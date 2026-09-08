@@ -13,7 +13,7 @@ use crate::layer::{Anchor, LayerSize, LayerSpec, ScreenAlign};
 use crate::layout::Track;
 use crate::response::{Response, StateFlags};
 use crate::text::width;
-use crate::theme::{Family, FgStep, Role, StylePatch, Variant};
+use crate::theme::{Family, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
 /// Borrowed semantic data shared by picker and completion rows.
@@ -178,40 +178,46 @@ impl ItemColumns {
             ],
             0,
         );
-        cells
-            .cell_part(0, Part::ICON)
-            .remove_modifier(Modifier::BOLD)
-            .text(item.glyph)
-            .tone(Role::Fg(if focused {
-                FgStep::Primary
-            } else {
-                FgStep::Muted
-            }));
+        // A focused list fills every row from the CONTAINER recipe, whose
+        // bold bleeds into painted text. Strip it only where the resolved
+        // part style did not author bold, so theme, overlay and instance
+        // part styles stay authoritative. Color hierarchy also stays in the
+        // theme recipes: a built-in painter never tones over the resolved
+        // part style.
+        {
+            let mut icon = cells.cell_part(0, Part::ICON);
+            if !icon.authored_modifiers().contains(Modifier::BOLD) {
+                icon.remove_modifier(Modifier::BOLD);
+            }
+            icon.text(item.glyph);
+        }
         {
             let mut label = cells.cell_part(2, Part::LABEL);
-            if !focused {
+            if !focused && !label.authored_modifiers().contains(Modifier::BOLD) {
                 label.remove_modifier(Modifier::BOLD);
             }
             label.text_matched(item.label, item.matched);
         }
         if cells.rect(4).width >= 4 {
-            cells
-                .cell_part(4, Part::META)
-                .remove_modifier(Modifier::BOLD)
-                .text_matched(item.detail, &[])
-                .tone(Role::Fg(FgStep::Muted));
+            let mut meta = cells.cell_part(4, Part::META);
+            if !meta.authored_modifiers().contains(Modifier::BOLD) {
+                meta.remove_modifier(Modifier::BOLD);
+            }
+            meta.text_matched(item.detail, &[]);
         }
-        cells
-            .cell_part(6, Part::META)
-            .remove_modifier(Modifier::BOLD)
-            .text(item.tag.unwrap_or(""))
-            .tone(Role::Fg(FgStep::Secondary));
+        {
+            let mut tag = cells.cell_part(6, Part::META);
+            if !tag.authored_modifiers().contains(Modifier::BOLD) {
+                tag.remove_modifier(Modifier::BOLD);
+            }
+            tag.text(item.tag.unwrap_or(""));
+        }
         if show_group {
-            cells
-                .cell_part(8, Part::META)
-                .remove_modifier(Modifier::BOLD)
-                .text(item.group.unwrap_or(""))
-                .tone(Role::Fg(FgStep::Faint));
+            let mut group = cells.cell_part(8, Part::META);
+            if !group.authored_modifiers().contains(Modifier::BOLD) {
+                group.remove_modifier(Modifier::BOLD);
+            }
+            group.text(item.group.unwrap_or(""));
         }
     }
 }

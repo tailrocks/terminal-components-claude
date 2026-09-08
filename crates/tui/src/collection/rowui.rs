@@ -516,6 +516,14 @@ impl<'u> CellUi<'u> {
         self
     }
 
+    /// Whether the resolved part style itself adds these modifiers. Built-in
+    /// painters use this to compensate for a container's flag-driven bleed
+    /// (for example a focused list filling every row with bold) without
+    /// stripping modifiers an owner authored for this part.
+    pub(crate) fn authored_modifiers(&self) -> Modifier {
+        self.style.add_modifier
+    }
+
     /// Paint fitted text with matched original grapheme ordinals in bold.
     /// Truncation reserves the theme ellipsis, using the shared clipping writer.
     pub fn text_matched(&mut self, s: &str, matched: &[usize]) -> &mut Self {

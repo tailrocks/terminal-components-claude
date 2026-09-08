@@ -371,3 +371,108 @@ fn independent_ancestor_top_clip_repeats_first_visible_group() {
         h.row(2)
     );
 }
+
+#[test]
+fn owner_part_styles_win_over_painter_defaults_in_columns_mode() {
+    use junie_tui::{Color, Family, Overlay, OverlayRule, Role, StylePatch, Variant};
+    const FG: Color = Color::Rgb(17, 83, 149);
+    const RULES: &[OverlayRule] = &[
+        (
+            Family::PICKER,
+            Variant::DEFAULT,
+            Part::ICON,
+            junie_tui::StateFlags::empty(),
+            StylePatch::new().set_fg(Role::Custom(FG)),
+        ),
+        (
+            Family::PICKER,
+            Variant::DEFAULT,
+            Part::META,
+            junie_tui::StateFlags::empty(),
+            StylePatch::new().set_fg(Role::Custom(FG)),
+        ),
+        (
+            Family::PICKER,
+            Variant::DEFAULT,
+            Part::LABEL,
+            junie_tui::StateFlags::empty(),
+            StylePatch::new().add(Modifier::BOLD),
+        ),
+    ];
+    const PATCHES: &[(Part, StylePatch)] = &[
+        (Part::ICON, StylePatch::new().set_fg(Role::Custom(FG))),
+        (Part::META, StylePatch::new().set_fg(Role::Custom(FG))),
+        (Part::LABEL, StylePatch::new().add(Modifier::BOLD)),
+    ];
+    struct Styled {
+        page: Page,
+        overlay: bool,
+    }
+    impl App for Styled {
+        fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+            self.page.update(cx)
+        }
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let draw = |ui: &mut Ui<'_>| {
+                self.page.list().draw(
+                    ui,
+                    Rect::new(1, 1, 64, 4),
+                    &self.page.state,
+                    &self.page.items,
+                );
+            };
+            if self.overlay {
+                ui.with_overlay(&Overlay::new(RULES), draw);
+            } else {
+                draw(ui);
+            }
+        }
+    }
+    let mut failures = Vec::new();
+    for (tier, overlay) in [("theme", false), ("overlay", true)] {
+        let mut theme = Theme::junie();
+        if !overlay {
+            theme = theme.define_family(Family::PICKER, |f| {
+                f.part(Part::ICON)
+                    .base(StylePatch::new().set_fg(Role::Custom(FG)));
+                f.part(Part::META)
+                    .base(StylePatch::new().set_fg(Role::Custom(FG)));
+                f.part(Part::LABEL)
+                    .base(StylePatch::new().add(Modifier::BOLD));
+            });
+        }
+        let mut h = Harness::new(
+            Styled {
+                overlay,
+                page: Page {
+                    state: FilterListState::default(),
+                    items: ITEMS.to_vec(),
+                    layout: ItemRowLayout::Columns,
+                    width: 64,
+                    height: 4,
+                    chosen: vec![],
+                    custom: false,
+                    searchable: false,
+                    policy: FilterPolicy::Caller,
+                },
+            },
+            theme,
+            84,
+            8,
+        );
+        let _ = h.key(KeyCode::Down);
+        for (name, x) in [("ICON", 2), ("META", 21)] {
+            if h.cell(x, 1).fg != FG {
+                failures.push(format!("{tier} {name}: {:?}", h.cell(x, 1).fg));
+            }
+        }
+        if !h.cell(5, 1).modifier.contains(Modifier::BOLD) {
+            failures.push(format!("{tier} LABEL BOLD erased"));
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("; "));
+    // Scope note: instance patches (`patch_part`) address component chrome,
+    // exactly as for the Compact row painter and every other collection row;
+    // they do not enter row-cell part resolution. Row cells answer to the
+    // theme recipe and overlay tiers, asserted above.
+}
