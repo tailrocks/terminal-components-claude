@@ -1,6 +1,6 @@
 //! `TablePro` application shell built only on the public `junie-tui` facade.
 
-use junie_tui::author::PaintStyle;
+use junie_tui::author::{PaintStyle, StyleDefaults};
 use junie_tui::{
     Action, ActionKey, App, Chord, Color, Cx, Dialog, DialogAction, DialogState, FgStep, Field,
     Focusability, Form, FormAction, FormState, FrameRead, Grid, GridAction, GridEditor, GridState,
@@ -2155,14 +2155,7 @@ fn draw_connection_properties(
     }
     let y = area.bottom().saturating_sub(1);
     let mut x = area.x;
-    paint_action_button(
-        ui,
-        x,
-        y,
-        "Connect",
-        action_paint(ui, Role::Accent, Role::OnAccent),
-        true,
-    );
+    paint_action_button(ui, x, y, "Connect", connect_action_paint(ui), true);
     x = x.saturating_add(11);
     paint_action_button(
         ui,
@@ -2198,6 +2191,34 @@ fn draw_connection_properties(
         action_paint(ui, Role::Surface(junie_tui::Surface::Overlay), Role::Danger),
         false,
     );
+}
+
+const CONNECTION_ACTIONS: junie_tui::Family =
+    junie_tui::Family::custom("tablepro.connection-actions");
+const CONNECT_LABEL: Part = Part::custom("connect.label");
+const CONNECT_MONO: &[junie_tui::MonoRule] = &[(
+    CONNECT_LABEL,
+    junie_tui::StateFlags::empty(),
+    StylePatch::new()
+        .set_fg(Role::Surface(junie_tui::Surface::Canvas))
+        .set_bg(Role::Fg(FgStep::Primary)),
+)];
+
+fn connect_action_paint(ui: &Ui<'_>) -> PaintStyle {
+    ui.style_defaults(
+        CONNECTION_ACTIONS,
+        junie_tui::Variant::DEFAULT,
+        CONNECT_LABEL,
+        junie_tui::StateFlags::empty(),
+        StyleDefaults::new(
+            StylePatch::new()
+                .set_bg(Role::Accent)
+                .set_fg(Role::OnAccent),
+        )
+        .mono(CONNECT_MONO),
+        None,
+    )
+    .over(ui.surface_style())
 }
 
 fn action_paint(ui: &Ui<'_>, background: Role, foreground: Role) -> PaintStyle {
