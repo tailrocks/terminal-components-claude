@@ -11,7 +11,33 @@ Pinned reference: `794b095c196562d38f1b6f7ce379c128af2a023d`. Reference source n
 - Existing parity gate has useful strict fingerprints/artifact hashes/review binding. Preserve these. `xtask/src/parity.rs` hardcodes 499 historical recipes and maps only showcase/tablepro/jackin; extend distinct pinned-holla namespace, do not alter historical count or relabel historical captures.
 - Historical baseline_capture.sh uses fixed sleeps and `target/debug` binaries; source provenance must not assume caller's working directory proves executable identity. Existing newer capture_provenance.py is reusable and checks hashes; qualify it with stale-binary/capture-failure mutations rather than replace blindly.
 
-## Tool qualification plan (not executed; no installation)
+## Historical source provenance resolved (2026-09-08)
+
+The manifest's two revisions have identical application and build inputs:
+`d5e7075f436f0e437c7d12cf3d1e638e763b26f6` (declared binary source) and
+`0cd1bf7f7ddd185c28f1268ecfa5a31f4bf6f1f9` (generated manifest header).
+`git diff --name-status d5e7075 0cd1bf7` lists only REFACTORING_STATE.md and
+six docs/audit Markdown files. Independent `git ls-tree` calls for each revision
+give identical objects:
+
+| Input | Git object |
+|---|---|
+| src tree | `ecb17ddd20e98ded759a397582950cfd13cf4433` |
+| tools tree | `1e5082588fa4aac400b1adbdb6db62aa9885fbf0` |
+| Cargo.toml | `85c1ba0e9f664b9f1e2688ac8289f4e078ab789e` |
+| Cargo.lock | `e92b61e556ea64f36a14220fdf14bd6986abac09` |
+
+Use the full declared binary-source revision for historical regeneration. This
+resolves source ambiguity; it does not establish an original executable hash or
+recover the missing images. Existing immutable ANSI/cursor captures can supply
+historical image regeneration inputs, with their hashes, renderer source, font,
+Pillow version and generated output hashes recorded separately. Such outputs must
+be labelled regenerated, never original or pinned-Holla acceptance evidence.
+The historical renderer has known limited Unicode/modifier behavior; preserve
+its identity for archive reproduction and use qualified canonical tooling for
+new acceptance evidence. Regeneration and clean-checkout acquisition remain pending.
+
+## Initial tool qualification plan (subsequently executed; see tool reports)
 
 1. Inspect current donbeave/tui-snap and microsoft/tui-test primary repositories and actual manifests/API, pin full source SHA plus lockfiles/toolchains externally. Build modern tooling outside Rust 1.88 workspace and retain executable hashes.
 2. Reuse existing production-view Rust harness for canonical cell/cursor output. Feed a known ANSI fixture through each engine: default/truecolor/256/16/mono, DIM/bold/reverse combinations, blank colored cells, wide and combining Unicode, clipping at both edges, cursor positions/visibility.
