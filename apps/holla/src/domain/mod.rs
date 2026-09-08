@@ -12,6 +12,7 @@ pub mod debian;
 pub mod disk;
 #[allow(dead_code)]
 pub mod docker;
+pub(crate) mod effect;
 pub mod fixtures;
 #[allow(dead_code)]
 pub mod git;

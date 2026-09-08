@@ -5,6 +5,7 @@
 
 use crate::domain::disk::Freshness;
 use crate::domain::docker::{ContainerState, Health};
+use crate::domain::effect::Mutation;
 use crate::domain::human_bytes;
 use crate::domain::mise::ToolState;
 use crate::domain::plan::{Plan, PlanEffect, PlanSpec, PlanStep, StepState};
@@ -84,7 +85,24 @@ impl Approval<'_> {
         apply_effect(&self.review.plan, world);
         world.effect_revision = next_revision;
         let steps = self.review.plan.steps();
+        let applied_steps: Vec<AppliedStep> = steps
+            .iter()
+            .filter_map(|step| {
+                let effects = match step.state {
+                    StepState::Succeeded => &step.success_effects,
+                    StepState::Failed(_) => &step.failure_effects,
+                    _ => return None,
+                };
+                (!effects.is_empty()).then(|| AppliedStep {
+                    id: step.id.clone(),
+                    operations: effects.len(),
+                    reclaimed_bytes: effects.iter().map(Mutation::reclaimed_bytes).sum(),
+                })
+            })
+            .collect();
         Ok(EffectReport {
+            reclaimed_bytes: applied_steps.iter().map(|step| step.reclaimed_bytes).sum(),
+            applied_steps,
             succeeded: steps
                 .iter()
                 .filter(|s| s.state == StepState::Succeeded)
@@ -101,8 +119,18 @@ impl Approval<'_> {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Executed mutation groups, including truthful partial failures.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AppliedStep {
+    pub id: String,
+    pub operations: usize,
+    pub reclaimed_bytes: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EffectReport {
+    pub applied_steps: Vec<AppliedStep>,
+    pub reclaimed_bytes: u64,
     pub succeeded: usize,
     pub failed: usize,
     pub skipped: usize,
@@ -191,104 +219,106 @@ pub fn plan_for(w: &World, action_id: &str) -> Option<ReviewedPlan> {
     Some(ReviewedPlan::new(plan, w))
 }
 
-/// Apply the honest effect of a finished plan to the world.
-fn apply_effect(plan: &Plan, w: &mut World) {
-    if !plan.ran() {
-        return;
-    }
-    let succeeded = |id: &str| {
-        plan.steps()
-            .iter()
-            .find(|s| s.id == id)
-            .is_some_and(|s| matches!(s.state, StepState::Succeeded))
-    };
-    match &plan.effect() {
-        Some(PlanEffect::RestartContainer(name)) => {
-            if succeeded("restart")
-                && let Some(d) = &mut w.docker
-                && let Some(c) = d.containers.iter_mut().find(|c| &c.name == name)
-            {
-                c.state = ContainerState::Running;
-                c.health = Some(Health::Healthy);
-            }
-        }
-        Some(PlanEffect::DockerCleanup) => {
-            let Some(d) = &mut w.docker else { return };
-            if succeeded("cache") {
-                d.build_cache_bytes = 0;
-            }
-            // the failed removal still freed what its output said it removed
-            let removed: Vec<String> = if succeeded("containers") {
-                d.containers
-                    .iter()
-                    .filter(|c| c.state == ContainerState::Exited)
-                    .map(|c| c.name.clone())
-                    .collect()
-            } else if plan
-                .steps()
-                .iter()
-                .any(|s| s.id == "containers" && matches!(s.state, StepState::Failed(_)))
-            {
-                vec!["web".into(), "cron".into()]
-            } else {
-                vec![]
-            };
-            d.containers.retain(|c| !removed.contains(&c.name));
-            if succeeded("images") {
-                d.image_bytes /= 2;
-            }
-            if succeeded("volumes") {
-                d.volume_bytes = 0;
-                d.volumes = 0;
-            }
-        }
-        Some(PlanEffect::DiskReclaim) => {
-            let Some(disk) = &mut w.disk else { return };
-            let freed: Vec<String> = plan
-                .steps()
-                .iter()
-                .filter(|s| s.id.starts_with("rm:") && matches!(s.state, StepState::Succeeded))
-                .map(|s| s.id[3..].to_owned())
-                .collect();
-            let mut bytes = 0u64;
-            disk.candidates.retain(|c| {
-                if freed.contains(&c.path) {
-                    bytes += c.size_bytes;
-                    false
-                } else {
-                    true
+/// Apply only the mutations attached to the actual terminal step outcome.
+fn apply_effect(plan: &Plan, world: &mut World) {
+    for step in plan.steps() {
+        let effects = match step.state {
+            StepState::Succeeded => &step.success_effects,
+            StepState::Failed(_) => &step.failure_effects,
+            _ => continue,
+        };
+        for effect in effects {
+            match effect {
+                Mutation::RemoveContainers(targets) => {
+                    if let Some(docker) = &mut world.docker {
+                        docker.containers.retain(|c| !targets.contains(c));
+                    }
                 }
-            });
-            disk.used_bytes = disk.used_bytes.saturating_sub(bytes);
-        }
-        Some(PlanEffect::GitSync) => {
-            let Some(git) = &mut w.git else { return };
-            for child in &mut git.children {
-                // only a succeeded pull moves a child's counters
-                if succeeded(&format!("pull:{}", child.root)) {
-                    child.behind = 0;
+                Mutation::RemoveImages(targets) => {
+                    if let Some(docker) = &mut world.docker {
+                        docker.image_inventory.retain(|r| !targets.contains(r));
+                    }
                 }
-            }
-        }
-        Some(PlanEffect::DebianUpgraded) => {
-            if succeeded("apt-upgrade")
-                && let Some(deb) = &mut w.debian
-            {
-                deb.pending = deb.held; // held-back packages stay held
-                deb.security = 0;
-            }
-            if succeeded("mise-upgrade")
-                && let Some(mise) = &mut w.mise
-            {
-                for t in &mut mise.tools {
-                    if let ToolState::Outdated { latest } = &t.state {
-                        t.version = latest.clone();
-                        t.state = ToolState::Active;
+                Mutation::RemoveVolumes(targets) => {
+                    if let Some(docker) = &mut world.docker {
+                        docker.volume_inventory.retain(|r| !targets.contains(r));
+                    }
+                }
+                Mutation::RemoveNetworks(targets) => {
+                    if let Some(docker) = &mut world.docker {
+                        docker.network_inventory.retain(|r| !targets.contains(r));
+                    }
+                }
+                Mutation::PruneCache(bytes) => {
+                    if let Some(docker) = &mut world.docker {
+                        docker.cache_bytes = docker.cache_bytes.saturating_sub(*bytes);
+                    }
+                }
+                Mutation::RemoveDisk(target) => {
+                    if let Some(disk) = &mut world.disk {
+                        disk.candidates.retain(|candidate| candidate != target);
+                        disk.used_bytes = disk.used_bytes.saturating_sub(target.size_bytes);
+                    }
+                }
+                Mutation::CheckoutGit {
+                    root,
+                    branch,
+                    upstream,
+                } => {
+                    if let Some(child) = world
+                        .git
+                        .as_mut()
+                        .and_then(|git| git.children.iter_mut().find(|c| c.root == *root))
+                    {
+                        child.branch = Some(branch.clone());
+                        child.upstream = Some(upstream.clone());
+                        child.detached_sha = None;
+                    }
+                }
+                Mutation::FastForwardGit { root, .. } => {
+                    if let Some(child) = world
+                        .git
+                        .as_mut()
+                        .and_then(|git| git.children.iter_mut().find(|c| c.root == *root))
+                    {
+                        child.behind = 0;
+                    }
+                }
+                Mutation::RemoveOrphanPackages(targets) => {
+                    if let Some(debian) = &mut world.debian {
+                        debian
+                            .orphaned_packages
+                            .retain(|package| !targets.contains(package));
+                    }
+                }
+                Mutation::UpgradeDebian { held, .. } => {
+                    if let Some(debian) = &mut world.debian {
+                        debian.pending = *held;
+                        debian.security = 0;
+                    }
+                }
+                Mutation::UpgradeTool { name, after, .. } => {
+                    if let Some(tool) = world
+                        .mise
+                        .as_mut()
+                        .and_then(|mise| mise.tools.iter_mut().find(|t| t.name == *name))
+                    {
+                        tool.version = after.clone();
+                        tool.state = ToolState::Active;
+                    }
+                }
+                Mutation::RestartContainer(target) => {
+                    if let Some(container) = world
+                        .docker
+                        .as_mut()
+                        .and_then(|docker| docker.containers.iter_mut().find(|c| *c == target))
+                    {
+                        container.state = ContainerState::Running;
+                        container.health = Some(Health::Healthy);
                     }
                 }
             }
         }
-        None => {}
     }
 }
 
@@ -313,19 +343,27 @@ fn docker_cleanup(w: &World) -> Option<Plan> {
     // fixture truth: payments-old still has a bind mount registered, so the
     // removal fails partway — dependents (images, volumes) must propagate
     if exited.contains(&"payments-old") {
-        containers = containers.fails_with(
+        let removed = d
+            .containers
+            .iter()
+            .filter(|c| {
+                c.state == ContainerState::Exited && matches!(c.name.as_str(), "web" | "cron")
+            })
+            .cloned()
+            .collect();
+        containers = containers.fails_after(
             "payments-old: bind mount still registered · removal refused",
-            &[
-                "Removed web",
-                "Removed cron",
-                "Error: container payments-old: bind mount still registered",
-            ],
+            vec![Mutation::RemoveContainers(removed)],
+            "Error: container payments-old: bind mount still registered",
         );
     } else {
-        containers = containers.lines(&[
-            &format!("Removed {}", exited.join(", ")),
-            &format!("Total reclaimed: {}", human_bytes(d.container_bytes)),
-        ]);
+        containers = containers.succeeds_with(vec![Mutation::RemoveContainers(
+            d.containers
+                .iter()
+                .filter(|c| c.state == ContainerState::Exited)
+                .cloned()
+                .collect(),
+        )]);
     }
     let steps = vec![
         PlanStep::new(
@@ -340,22 +378,22 @@ fn docker_cleanup(w: &World) -> Option<Plan> {
             "TYPE                TOTAL   SIZE",
             &format!(
                 "Images              {:<7} {}",
-                d.images,
-                human_bytes(d.image_bytes)
+                d.images(),
+                human_bytes(d.image_bytes())
             ),
             &format!(
                 "Containers          {:<7} {}",
                 d.containers.len(),
-                human_bytes(d.container_bytes)
+                human_bytes(d.container_bytes())
             ),
             &format!(
                 "Local Volumes       {:<7} {}",
-                d.volumes,
-                human_bytes(d.volume_bytes)
+                d.volumes(),
+                human_bytes(d.volume_bytes())
             ),
             &format!(
                 "Build Cache                 {}",
-                human_bytes(d.build_cache_bytes)
+                human_bytes(d.build_cache_bytes())
             ),
         ]),
         containers,
@@ -366,10 +404,13 @@ fn docker_cleanup(w: &World) -> Option<Plan> {
             "images",
             &[1],
         )
-        .lines(&[
-            &format!("Deleted {} images", d.images),
-            &format!("Total reclaimed: {}", human_bytes(d.image_bytes / 2)),
-        ]),
+        .succeeds_with(vec![Mutation::RemoveImages(
+            d.image_inventory
+                .iter()
+                .filter(|r| r.unused)
+                .cloned()
+                .collect(),
+        )]),
         PlanStep::new(
             "volumes",
             "Remove unused volumes",
@@ -377,10 +418,13 @@ fn docker_cleanup(w: &World) -> Option<Plan> {
             "volumes",
             &[1],
         )
-        .lines(&[
-            &format!("Deleted {} volumes", d.volumes),
-            &format!("Total reclaimed: {}", human_bytes(d.volume_bytes)),
-        ]),
+        .succeeds_with(vec![Mutation::RemoveVolumes(
+            d.volume_inventory
+                .iter()
+                .filter(|r| r.unused)
+                .cloned()
+                .collect(),
+        )]),
         PlanStep::new(
             "cache",
             "Prune builder cache",
@@ -388,10 +432,7 @@ fn docker_cleanup(w: &World) -> Option<Plan> {
             "builder",
             &[0],
         )
-        .lines(&[
-            "Deleted build cache entries",
-            &format!("Total reclaimed: {}", human_bytes(d.build_cache_bytes)),
-        ]),
+        .succeeds_with(vec![Mutation::PruneCache(d.build_cache_bytes())]),
         PlanStep::new(
             "networks",
             "Remove unused networks",
@@ -399,7 +440,13 @@ fn docker_cleanup(w: &World) -> Option<Plan> {
             "networks",
             &[0],
         )
-        .lines(&["Removed 2 unused networks"]),
+        .succeeds_with(vec![Mutation::RemoveNetworks(
+            d.network_inventory
+                .iter()
+                .filter(|r| r.unused)
+                .cloned()
+                .collect(),
+        )]),
         PlanStep::new(
             "verify",
             "Verify reclaimed space",
@@ -458,10 +505,7 @@ fn disk_reclaim(w: &World) -> Option<Plan> {
             &c.freshness.label(),
             &[0],
         )
-        .lines(&[
-            &format!("Removed {}", c.path),
-            &format!("Reclaimed {}", human_bytes(c.size_bytes)),
-        ]);
+        .succeeds_with(vec![Mutation::RemoveDisk(c.clone())]);
         let step = match c.freshness {
             Freshness::ActiveToday => step.policy_skipped("active today · never removed"),
             _ => step,
@@ -515,6 +559,95 @@ fn debian_upgrade(w: &World) -> Option<Plan> {
                 .collect()
         })
         .unwrap_or_default();
+    if deb.held > deb.pending || deb.security > deb.pending - deb.held {
+        return None;
+    }
+    let tools = w
+        .mise
+        .as_ref()
+        .map(|mise| mise.tools.as_slice())
+        .unwrap_or(&[]);
+    let tool_effects: Vec<Mutation> = tools
+        .iter()
+        .filter_map(|tool| match &tool.state {
+            ToolState::Outdated { latest } => Some(Mutation::UpgradeTool {
+                name: tool.name.clone(),
+                before: tool.version.clone(),
+                after: latest.clone(),
+            }),
+            _ => None,
+        })
+        .collect();
+    let tool_lines: Vec<String> = tools
+        .iter()
+        .map(|tool| match &tool.state {
+            ToolState::Outdated { latest } => {
+                format!("{:<8}{}  latest {latest}", tool.name, tool.version)
+            }
+            ToolState::Missing => {
+                format!("{:<8}{}  missing (not required)", tool.name, tool.version)
+            }
+            ToolState::Active => format!("{:<8}{}  current", tool.name, tool.version),
+        })
+        .collect();
+    let command = if tool_effects.is_empty() {
+        "mise up".into()
+    } else {
+        format!(
+            "mise up {}",
+            tools
+                .iter()
+                .filter_map(|tool| match &tool.state {
+                    ToolState::Outdated { latest } => Some(format!("{}@{latest}", tool.name)),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+                .join(" ")
+        )
+    };
+    let mut inspect_tools = PlanStep::new(
+        "mise-inspect",
+        "Inspect tool versions",
+        "mise ls",
+        "mise",
+        &[0],
+    )
+    .required()
+    .lines(&tool_lines.iter().map(String::as_str).collect::<Vec<_>>());
+    let mut upgrade_tools = PlanStep::new(
+        "mise-upgrade",
+        "Upgrade outdated tools",
+        &command,
+        "mise",
+        &[4],
+    )
+    .succeeds_with(tool_effects);
+    if w.mise.is_none() {
+        inspect_tools = inspect_tools.policy_skipped("mise is not configured on this host");
+        upgrade_tools = upgrade_tools.policy_skipped("mise is not configured on this host");
+    }
+    let mut verify = vec![format!("0 upgrades pending · {} held back", deb.held)];
+    if w.mise.is_some() {
+        let missing = tools
+            .iter()
+            .filter(|tool| tool.state == ToolState::Missing)
+            .count();
+        verify.push(if missing == 0 {
+            "all tools current".into()
+        } else {
+            format!("installed tools current · {missing} optional tools missing")
+        });
+    }
+    verify.push(if deb.reboot_required {
+        "reboot still required · schedule separately".into()
+    } else {
+        "no reboot required".into()
+    });
+    let verify_deps = if w.mise.is_some() {
+        vec![2, 5]
+    } else {
+        vec![2]
+    };
     let steps = vec![
         PlanStep::new(
             "preflight",
@@ -547,15 +680,11 @@ fn debian_upgrade(w: &World) -> Option<Plan> {
             "apt",
             &[1],
         )
-        .lines(&[
-            &format!(
-                "{} upgraded, {} security, {} held back",
-                deb.pending - deb.held,
-                deb.security,
-                deb.held
-            ),
-            "held back: linux-image-amd64 (kept)",
-        ]),
+        .succeeds_with(vec![Mutation::UpgradeDebian {
+            upgraded: deb.pending - deb.held,
+            security: deb.security,
+            held: deb.held,
+        }]),
         PlanStep::new(
             "autoremove",
             "Remove orphaned packages",
@@ -563,56 +692,39 @@ fn debian_upgrade(w: &World) -> Option<Plan> {
             "apt",
             &[2],
         )
-        .lines(&["Removing 12 orphaned packages", "Freed 410 MB"]),
-        PlanStep::new(
-            "mise-inspect",
-            "Inspect tool versions",
-            "mise ls",
-            "mise",
-            &[0],
-        )
-        .required()
-        .lines(&[
-            "node    22.7.0  latest 22.9.0",
-            "python  3.12.6  current",
-            "rust    1.79.0  latest 1.81.0",
-            "go      1.23.0  missing (not required)",
-        ]),
-        PlanStep::new(
-            "mise-upgrade",
-            "Upgrade outdated tools",
-            "mise up node@22.9.0 rust@1.81.0",
-            "mise",
-            &[4],
-        )
-        .lines(&[
-            "node 22.7.0 → 22.9.0",
-            "rust 1.79.0 → 1.81.0",
-            "shims reshimmed",
-        ]),
+        .succeeds_with(vec![Mutation::RemoveOrphanPackages(
+            deb.orphaned_packages.clone(),
+        )]),
+        inspect_tools,
+        upgrade_tools,
         PlanStep::new(
             "verify",
             "Verify the host",
             "apt list --upgradable && mise ls",
             "verify",
-            &[2, 5],
+            &verify_deps,
         )
         .required()
-        .lines(&[
-            "0 upgrades pending · 1 held back (kernel, kept)",
-            "all tools current",
-            "reboot still required · schedule separately",
-        ]),
+        .lines(&verify.iter().map(String::as_str).collect::<Vec<_>>()),
     ];
     Plan::try_new(PlanSpec {
         action_id: "debian.upgrade".into(),
         title: "Upgrade everything on this host".into(),
         phrase: format!("I UNDERSTAND: UPGRADE EVERYTHING ON {host}"),
         will_change: format!(
-            "{} upgrades ({} security) + {} · reboot required after",
-            deb.pending,
+            "{} upgrades ({} security){}{}",
+            deb.pending - deb.held,
             deb.security,
-            outdated.join(", ")
+            if outdated.is_empty() {
+                String::new()
+            } else {
+                format!(" + {}", outdated.join(", "))
+            },
+            if deb.reboot_required {
+                " · reboot required after"
+            } else {
+                ""
+            }
         ),
         host,
         steps,
@@ -684,7 +796,11 @@ fn git_sync(w: &World) -> Option<Plan> {
                 name,
                 &[fetch_i],
             )
-            .lines(&[&format!("Switched to branch '{}'", c.primary_branch)]),
+            .succeeds_with(vec![Mutation::CheckoutGit {
+                root: c.root.clone(),
+                branch: c.primary_branch.clone(),
+                upstream: format!("origin/{}", c.primary_branch),
+            }]),
         );
         let pull = PlanStep::new(
             &format!("pull:{}", c.root),
@@ -707,14 +823,29 @@ fn git_sync(w: &World) -> Option<Plan> {
                 ],
             )
         } else {
-            pull.lines(&[
-                &format!("Updating origin/{}..", c.primary_branch),
-                &format!("Fast-forward · {} commits", c.behind),
-            ])
+            pull.succeeds_with(vec![Mutation::FastForwardGit {
+                root: c.root.clone(),
+                branch: c.primary_branch.clone(),
+                commits: c.behind,
+            }])
         };
         steps.push(pull);
+        if c.diverged() {
+            for step in &mut steps[fetch_i..] {
+                step.state = StepState::PolicySkipped(format!(
+                    "diverged · {} ahead, {} behind · untouched",
+                    c.ahead, c.behind
+                ));
+                step.optional = false;
+            }
+        }
     }
-    let behind_total: u32 = git.children.iter().map(|c| c.behind).sum();
+    let behind_total: u32 = git
+        .children
+        .iter()
+        .filter(|c| !c.diverged() && !c.detached())
+        .map(|c| c.behind)
+        .sum();
     Plan::try_new(PlanSpec {
         action_id: "git.sync".into(),
         title: "Update all child projects".into(),
@@ -758,7 +889,7 @@ fn restart_service(w: &World, name: &str) -> Option<Plan> {
             &[0],
         )
         .required()
-        .lines(&[name]),
+        .succeeds_with(vec![Mutation::RestartContainer(c.clone())]),
         PlanStep::new(
             "verify",
             "Verify health",
@@ -812,7 +943,7 @@ mod tests {
         assert!(matches!(p.plan().steps()[2].state, StepState::Skipped(_)));
         assert!(matches!(p.plan().steps()[4].state, StepState::Succeeded));
         let d = w.docker.unwrap();
-        assert_eq!(d.build_cache_bytes, 0);
+        assert_eq!(d.build_cache_bytes(), 0);
         assert!(d.containers.iter().any(|c| c.name == "payments-old"));
         assert!(!d.containers.iter().any(|c| c.name == "web"));
     }
@@ -970,5 +1101,165 @@ mod tests {
         );
         assert_eq!(world.docker, before);
         assert!(!review.plan().ran());
+    }
+    const MIB: u64 = 1_024 * 1_024;
+
+    fn execute_review(review: &mut ReviewedPlan, world: &mut World) -> EffectReport {
+        let phrase = review.plan().phrase().to_owned();
+        review
+            .approve(&phrase, world)
+            .unwrap()
+            .execute(world)
+            .unwrap()
+    }
+
+    #[test]
+    fn docker_partial_failure_accounts_exact_removed_targets() {
+        let mut world = settled(Scenario::DockerCleanup);
+        let mut review = plan_for(&world, "docker.cleanup").unwrap();
+        let report = execute_review(&mut review, &mut world);
+        let docker = world.docker.as_ref().unwrap();
+        assert_eq!(docker.container_bytes(), 340 * MIB);
+        assert_eq!((docker.images(), docker.image_bytes()), (9, 6_200 * MIB));
+        assert_eq!((docker.volumes(), docker.volume_bytes()), (5, 3_400 * MIB));
+        assert_eq!(docker.networks(), 4);
+        assert_eq!(report.reclaimed_bytes, 12_780 * MIB);
+        assert_eq!(
+            report
+                .applied_steps
+                .iter()
+                .map(|step| step.id.as_str())
+                .collect::<Vec<_>>(),
+            ["containers", "cache", "networks"]
+        );
+        assert_eq!(
+            review.plan().steps()[1].lines,
+            [
+                "Removed web",
+                "Removed cron",
+                "Error: container payments-old: bind mount still registered"
+            ]
+        );
+    }
+
+    #[test]
+    fn docker_success_recounts_resources_and_output_from_same_inventory() {
+        let mut world = settled(Scenario::DockerCleanup);
+        world
+            .docker
+            .as_mut()
+            .unwrap()
+            .containers
+            .retain(|c| c.name != "payments-old");
+        let before = world.docker.as_ref().unwrap().total_bytes();
+        let mut review = plan_for(&world, "docker.cleanup").unwrap();
+        let report = execute_review(&mut review, &mut world);
+        let docker = world.docker.as_ref().unwrap();
+        assert_eq!((docker.images(), docker.image_bytes()), (5, 3_100 * MIB));
+        assert_eq!((docker.volumes(), docker.volume_bytes()), (0, 0));
+        assert_eq!(docker.container_bytes(), 300 * MIB);
+        assert_eq!(docker.networks(), 4);
+        assert_eq!(before - docker.total_bytes(), report.reclaimed_bytes);
+        assert_eq!(
+            review.plan().steps()[2].lines,
+            ["Deleted 4 images", "Total reclaimed: 3.0 GB"]
+        );
+    }
+
+    #[test]
+    fn excluded_cleanup_steps_have_no_hidden_effects() {
+        let mut world = settled(Scenario::DockerCleanup);
+        let before = world.docker.as_ref().unwrap().total_bytes();
+        let mut review = plan_for(&world, "docker.cleanup").unwrap();
+        review.toggle(1).unwrap();
+        review.toggle(4).unwrap();
+        let report = execute_review(&mut review, &mut world);
+        assert_eq!(world.docker.as_ref().unwrap().total_bytes(), before);
+        assert_eq!(report.reclaimed_bytes, 0);
+        assert_eq!(world.docker.as_ref().unwrap().containers.len(), 7);
+    }
+
+    #[test]
+    fn disk_claims_only_policy_removable_bytes_and_accounts_exactly() {
+        let mut world = settled(Scenario::DiskCleanup);
+        let disk = world.disk.as_ref().unwrap();
+        assert_eq!(disk.inspected_bytes(), 26_040 * MIB);
+        assert_eq!(disk.reclaimable_bytes(), 22_940 * MIB);
+        let before = disk.used_bytes;
+        let mut review = plan_for(&world, "disk.reclaim").unwrap();
+        let report = execute_review(&mut review, &mut world);
+        let disk = world.disk.as_ref().unwrap();
+        assert_eq!(disk.used_bytes, before - 22_940 * MIB);
+        assert_eq!(report.reclaimed_bytes, 22_940 * MIB);
+        assert_eq!(disk.candidates.len(), 1);
+        assert_eq!(disk.candidates[0].freshness, Freshness::ActiveToday);
+    }
+
+    #[test]
+    fn git_checkout_is_real_in_model_and_diverged_children_stay_untouched() {
+        let mut world = settled(Scenario::MonorepoRoot);
+        let children = &mut world.git.as_mut().unwrap().children;
+        children[0].branch = Some("feature".into());
+        children[0].upstream = Some("origin/feature".into());
+        let diverged = children[1].clone();
+        let detached = children[2].clone();
+        let mut review = plan_for(&world, "git.sync").unwrap();
+        execute_review(&mut review, &mut world);
+        let children = &world.git.as_ref().unwrap().children;
+        assert_eq!(children[0].branch.as_deref(), Some("main"));
+        assert_eq!(children[0].upstream.as_deref(), Some("origin/main"));
+        assert_eq!(children[0].behind, 0);
+        assert_eq!(children[1], diverged);
+        assert_eq!(children[2], detached);
+        assert!(
+            review
+                .plan()
+                .steps()
+                .iter()
+                .filter(|s| s.id.contains("services/billing"))
+                .all(|s| matches!(s.state, StepState::PolicySkipped(_)))
+        );
+    }
+
+    #[test]
+    fn debian_remote_output_does_not_invent_tools_held_packages_or_reboot() {
+        let mut world = settled(Scenario::RemoteHost);
+        let mut review = plan_for(&world, "debian.upgrade").unwrap();
+        execute_review(&mut review, &mut world);
+        let lines: Vec<&str> = review
+            .plan()
+            .steps()
+            .iter()
+            .flat_map(|s| s.lines.iter().map(String::as_str))
+            .collect();
+        assert!(lines.contains(&"12 upgraded, 3 security, 0 held back"));
+        assert!(lines.contains(&"no reboot required"));
+        assert!(
+            !lines
+                .iter()
+                .any(|line| line.contains("rust") || line.contains("kernel"))
+        );
+        assert!(world.mise.is_none());
+        assert_eq!(world.debian.as_ref().unwrap().pending, 0);
+    }
+
+    #[test]
+    fn upgrade_fixture_retains_orphan_accounting_and_missing_optional_tool_truth() {
+        let mut world = settled(Scenario::UpgradePlan);
+        let mut review = plan_for(&world, "debian.upgrade").unwrap();
+        let report = execute_review(&mut review, &mut world);
+        assert_eq!(
+            review.plan().steps()[3].lines,
+            ["Removing 12 orphaned packages", "Freed 410 MB"]
+        );
+        assert!(world.debian.as_ref().unwrap().orphaned_packages.is_empty());
+        assert_eq!(report.reclaimed_bytes, 410 * MIB);
+        assert!(
+            review.plan().steps()[6]
+                .lines
+                .iter()
+                .any(|line| line == "installed tools current · 1 optional tools missing")
+        );
+        assert_eq!(world.debian.as_ref().unwrap().pending, 1);
     }
 }

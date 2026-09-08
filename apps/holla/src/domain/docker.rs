@@ -39,15 +39,34 @@ impl Health {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Container {
+    pub size_bytes: u64,
     pub name: String,
     pub image: String,
     pub state: ContainerState,
     pub health: Option<Health>,
 }
 
-/// Disk accounting per class, mirroring `docker system df -v`.
+/// One deterministic Docker resource. Aggregate counts and bytes are derived
+/// from the same inventory that cleanup mutates.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Resource {
+    pub id: String,
+    pub size_bytes: u64,
+    pub unused: bool,
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct DockerState {
+    pub containers: Vec<Container>,
+    pub(crate) image_inventory: Vec<Resource>,
+    pub(crate) network_inventory: Vec<Resource>,
+    pub(crate) volume_inventory: Vec<Resource>,
+    pub(crate) cache_bytes: u64,
+}
+
+/// Accepted aggregate fixture facts, expanded once into explicit resources.
+/// This constructor is fixture data preparation, never live discovery.
+pub(crate) struct DockerFixture {
     pub containers: Vec<Container>,
     pub images: u32,
     pub networks: u32,
@@ -58,6 +77,86 @@ pub struct DockerState {
     pub build_cache_bytes: u64,
 }
 
+impl DockerFixture {
+    pub fn into_state(mut self) -> DockerState {
+        let exited = self
+            .containers
+            .iter()
+            .filter(|c| c.state == ContainerState::Exited)
+            .count();
+        // The reference explicitly models 40 MiB per stopped container. Retain
+        // it, distributing the remaining accepted total across other containers.
+        let stopped_size = if exited == 0 {
+            0
+        } else {
+            (40 * 1_024 * 1_024).min(self.container_bytes / exited as u64)
+        };
+        let remaining = self.container_bytes - stopped_size * exited as u64;
+        let active = self.containers.len() - exited;
+        let mut active_index = 0;
+        for container in &mut self.containers {
+            container.size_bytes = if container.state == ContainerState::Exited {
+                stopped_size
+            } else {
+                let bytes = share(remaining, active, active_index);
+                active_index += 1;
+                bytes
+            };
+        }
+        let unused_images = (self.images / 2) as usize;
+        let used_images = self.images as usize - unused_images;
+        let unused_bytes = if unused_images == 0 {
+            0
+        } else {
+            self.image_bytes / 2
+        };
+        let mut image_inventory = resources("unused-image", unused_images, unused_bytes, true);
+        image_inventory.extend(resources(
+            "used-image",
+            used_images,
+            self.image_bytes - unused_bytes,
+            false,
+        ));
+        let unused_networks = self.networks.min(2) as usize;
+        let mut network_inventory = resources("unused-network", unused_networks, 0, true);
+        network_inventory.extend(resources(
+            "used-network",
+            self.networks as usize - unused_networks,
+            0,
+            false,
+        ));
+        DockerState {
+            containers: self.containers,
+            image_inventory,
+            network_inventory,
+            volume_inventory: resources(
+                "unused-volume",
+                self.volumes as usize,
+                self.volume_bytes,
+                true,
+            ),
+            cache_bytes: self.build_cache_bytes,
+        }
+    }
+}
+
+fn share(bytes: u64, count: usize, index: usize) -> u64 {
+    if count == 0 {
+        return 0;
+    }
+    bytes / count as u64 + u64::from((index as u64) < bytes % count as u64)
+}
+
+fn resources(prefix: &str, count: usize, bytes: u64, unused: bool) -> Vec<Resource> {
+    (0..count)
+        .map(|index| Resource {
+            id: format!("fixture:{prefix}:{index}"),
+            size_bytes: share(bytes, count, index),
+            unused,
+        })
+        .collect()
+}
+
 impl DockerState {
     pub fn running(&self) -> usize {
         self.containers
@@ -65,26 +164,50 @@ impl DockerState {
             .filter(|c| c.state == ContainerState::Running)
             .count()
     }
-
     pub fn unhealthy(&self) -> Vec<&Container> {
         self.containers
             .iter()
             .filter(|c| c.health == Some(Health::Unhealthy))
             .collect()
     }
-
-    pub fn total_bytes(&self) -> u64 {
-        self.image_bytes + self.container_bytes + self.volume_bytes + self.build_cache_bytes
+    pub fn images(&self) -> usize {
+        self.image_inventory.len()
     }
-
-    /// Reclaimable by a full cleanup: builder cache, exited containers and
-    /// the dangling share of images (fixture assumes half).
+    pub fn volumes(&self) -> usize {
+        self.volume_inventory.len()
+    }
+    pub fn networks(&self) -> usize {
+        self.network_inventory.len()
+    }
+    pub fn image_bytes(&self) -> u64 {
+        self.image_inventory.iter().map(|r| r.size_bytes).sum()
+    }
+    pub fn container_bytes(&self) -> u64 {
+        self.containers.iter().map(|r| r.size_bytes).sum()
+    }
+    pub fn volume_bytes(&self) -> u64 {
+        self.volume_inventory.iter().map(|r| r.size_bytes).sum()
+    }
+    pub fn build_cache_bytes(&self) -> u64 {
+        self.cache_bytes
+    }
+    pub fn total_bytes(&self) -> u64 {
+        self.image_bytes() + self.container_bytes() + self.volume_bytes() + self.cache_bytes
+    }
     pub fn reclaimable_bytes(&self) -> u64 {
-        let exited: u64 = self
-            .containers
-            .iter()
-            .filter(|c| c.state == ContainerState::Exited)
-            .count() as u64;
-        self.build_cache_bytes + self.image_bytes / 2 + exited * 40 * 1_024 * 1_024
+        self.cache_bytes
+            + self
+                .containers
+                .iter()
+                .filter(|c| c.state == ContainerState::Exited)
+                .map(|c| c.size_bytes)
+                .sum::<u64>()
+            + self
+                .image_inventory
+                .iter()
+                .chain(&self.volume_inventory)
+                .filter(|r| r.unused)
+                .map(|r| r.size_bytes)
+                .sum::<u64>()
     }
 }

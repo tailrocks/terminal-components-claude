@@ -3,9 +3,9 @@
 //! probed from the real machine.
 
 use crate::domain::activity::{Activity, ActivityState};
-use crate::domain::debian::DebianState;
+use crate::domain::debian::{DebianState, OrphanPackage};
 use crate::domain::disk::{Candidate, DiskState, Family, Freshness};
-use crate::domain::docker::{Container, ContainerState, DockerState, Health};
+use crate::domain::docker::{Container, ContainerState, DockerFixture, Health};
 use crate::domain::git::{GitRepo, Worktree};
 use crate::domain::github::{GhRepo, GhState};
 use crate::domain::host::{Environment, Host};
@@ -121,6 +121,7 @@ fn task(id: &str, command: &str, defined_in: &str) -> MiseTask {
 
 fn container(name: &str, image: &str, state: ContainerState, health: Option<Health>) -> Container {
     Container {
+        size_bytes: 0,
         name: name.into(),
         image: image.into(),
         state,
@@ -387,25 +388,28 @@ fn seed_monorepo(w: &mut World, child: bool) {
             ),
         ],
     });
-    w.docker = Some(DockerState {
-        containers: vec![
-            container(
-                "postgres",
-                "postgres:16",
-                ContainerState::Running,
-                Some(Health::Healthy),
-            ),
-            container("redis", "redis:7", ContainerState::Running, None),
-            container("mailhog", "mailhog/mailhog", ContainerState::Exited, None),
-        ],
-        images: 6,
-        networks: 4,
-        volumes: 3,
-        image_bytes: 3_800 * MB,
-        container_bytes: 120 * MB,
-        volume_bytes: 1_200 * MB,
-        build_cache_bytes: 2_100 * MB,
-    });
+    w.docker = Some(
+        DockerFixture {
+            containers: vec![
+                container(
+                    "postgres",
+                    "postgres:16",
+                    ContainerState::Running,
+                    Some(Health::Healthy),
+                ),
+                container("redis", "redis:7", ContainerState::Running, None),
+                container("mailhog", "mailhog/mailhog", ContainerState::Exited, None),
+            ],
+            images: 6,
+            networks: 4,
+            volumes: 3,
+            image_bytes: 3_800 * MB,
+            container_bytes: 120 * MB,
+            volume_bytes: 1_200 * MB,
+            build_cache_bytes: 2_100 * MB,
+        }
+        .into_state(),
+    );
     w.disk = Some(DiskState {
         total_bytes: 500 * GB,
         used_bytes: 300 * GB,
@@ -448,39 +452,42 @@ fn seed_monorepo(w: &mut World, child: bool) {
 
 /// ~/work/scratch: a Docker host whose complete cleanup is the point.
 fn seed_docker_cleanup(w: &mut World) {
-    w.docker = Some(DockerState {
-        containers: vec![
-            container(
-                "api",
-                "acme/api:1.4",
-                ContainerState::Running,
-                Some(Health::Healthy),
-            ),
-            container(
-                "worker",
-                "acme/api:1.4",
-                ContainerState::Running,
-                Some(Health::Healthy),
-            ),
-            container("redis", "redis:7", ContainerState::Running, None),
-            container(
-                "legacy-billing",
-                "acme/billing:0.9",
-                ContainerState::Restarting,
-                Some(Health::Unhealthy),
-            ),
-            container("web", "acme/web:2.0", ContainerState::Exited, None),
-            container("payments-old", "acme/pay:0.3", ContainerState::Exited, None),
-            container("cron", "acme/cron:1.1", ContainerState::Exited, None),
-        ],
-        images: 9,
-        networks: 6,
-        volumes: 5,
-        image_bytes: 6_200 * MB,
-        container_bytes: 420 * MB,
-        volume_bytes: 3_400 * MB,
-        build_cache_bytes: 12_700 * MB,
-    });
+    w.docker = Some(
+        DockerFixture {
+            containers: vec![
+                container(
+                    "api",
+                    "acme/api:1.4",
+                    ContainerState::Running,
+                    Some(Health::Healthy),
+                ),
+                container(
+                    "worker",
+                    "acme/api:1.4",
+                    ContainerState::Running,
+                    Some(Health::Healthy),
+                ),
+                container("redis", "redis:7", ContainerState::Running, None),
+                container(
+                    "legacy-billing",
+                    "acme/billing:0.9",
+                    ContainerState::Restarting,
+                    Some(Health::Unhealthy),
+                ),
+                container("web", "acme/web:2.0", ContainerState::Exited, None),
+                container("payments-old", "acme/pay:0.3", ContainerState::Exited, None),
+                container("cron", "acme/cron:1.1", ContainerState::Exited, None),
+            ],
+            images: 9,
+            networks: 6,
+            volumes: 5,
+            image_bytes: 6_200 * MB,
+            container_bytes: 420 * MB,
+            volume_bytes: 3_400 * MB,
+            build_cache_bytes: 12_700 * MB,
+        }
+        .into_state(),
+    );
     w.disk = Some(DiskState {
         total_bytes: 250 * GB,
         used_bytes: 210 * GB,
@@ -555,6 +562,12 @@ fn seed_disk_cleanup(w: &mut World) {
 /// devbox-deb: Debian host, global mise tools, the upgrade-everything plan.
 fn seed_upgrade_plan(w: &mut World) {
     w.debian = Some(DebianState {
+        orphaned_packages: (0..12)
+            .map(|index| OrphanPackage {
+                id: format!("fixture:orphan:{index}"),
+                size_bytes: 410 * MB / 12 + u64::from(index < 410 * MB % 12),
+            })
+            .collect(),
         pending: 47,
         security: 6,
         held: 1,
@@ -581,21 +594,24 @@ fn seed_upgrade_plan(w: &mut World) {
         ],
         tasks: vec![],
     });
-    w.docker = Some(DockerState {
-        containers: vec![container(
-            "gitea",
-            "gitea/gitea:1.22",
-            ContainerState::Running,
-            Some(Health::Healthy),
-        )],
-        images: 3,
-        networks: 2,
-        volumes: 2,
-        image_bytes: 1_100 * MB,
-        container_bytes: 60 * MB,
-        volume_bytes: 800 * MB,
-        build_cache_bytes: 2_200 * MB,
-    });
+    w.docker = Some(
+        DockerFixture {
+            containers: vec![container(
+                "gitea",
+                "gitea/gitea:1.22",
+                ContainerState::Running,
+                Some(Health::Healthy),
+            )],
+            images: 3,
+            networks: 2,
+            volumes: 2,
+            image_bytes: 1_100 * MB,
+            container_bytes: 60 * MB,
+            volume_bytes: 800 * MB,
+            build_cache_bytes: 2_200 * MB,
+        }
+        .into_state(),
+    );
     w.disk = Some(DiskState {
         total_bytes: 100 * GB,
         used_bytes: 71 * GB,
@@ -681,30 +697,33 @@ fn seed_remote_host(w: &mut World) {
         submodules: vec![],
         children: vec![],
     });
-    w.docker = Some(DockerState {
-        containers: vec![
-            container(
-                "payments",
-                "acme/payments:2026.08.3",
-                ContainerState::Restarting,
-                Some(Health::Unhealthy),
-            ),
-            container(
-                "postgres",
-                "postgres:16",
-                ContainerState::Running,
-                Some(Health::Healthy),
-            ),
-            container("nginx", "nginx:1.27", ContainerState::Running, None),
-        ],
-        images: 12,
-        networks: 5,
-        volumes: 8,
-        image_bytes: 9_800 * MB,
-        container_bytes: 900 * MB,
-        volume_bytes: 14_000 * MB,
-        build_cache_bytes: 4_500 * MB,
-    });
+    w.docker = Some(
+        DockerFixture {
+            containers: vec![
+                container(
+                    "payments",
+                    "acme/payments:2026.08.3",
+                    ContainerState::Restarting,
+                    Some(Health::Unhealthy),
+                ),
+                container(
+                    "postgres",
+                    "postgres:16",
+                    ContainerState::Running,
+                    Some(Health::Healthy),
+                ),
+                container("nginx", "nginx:1.27", ContainerState::Running, None),
+            ],
+            images: 12,
+            networks: 5,
+            volumes: 8,
+            image_bytes: 9_800 * MB,
+            container_bytes: 900 * MB,
+            volume_bytes: 14_000 * MB,
+            build_cache_bytes: 4_500 * MB,
+        }
+        .into_state(),
+    );
     w.pg = Some(vec![
         PgSession {
             pid: 4201,
@@ -740,6 +759,7 @@ fn seed_remote_host(w: &mut World) {
         },
     ]);
     w.debian = Some(DebianState {
+        orphaned_packages: Vec::new(),
         pending: 12,
         security: 3,
         held: 0,

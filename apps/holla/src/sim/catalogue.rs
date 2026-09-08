@@ -344,7 +344,7 @@ fn docker_actions(w: &World, out: &mut Vec<Action>) {
             Scope::Host,
             &format!(
                 "{} builder cache · {} reclaimable",
-                human_bytes(d.build_cache_bytes),
+                human_bytes(d.build_cache_bytes()),
                 human_bytes(reclaim)
             ),
             Risk::Broad,

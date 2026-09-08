@@ -3,6 +3,7 @@
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DebianState {
+    pub orphaned_packages: Vec<OrphanPackage>,
     pub pending: u32,
     pub security: u32,
     pub held: u32,
@@ -23,4 +24,11 @@ impl DebianState {
         }
         s
     }
+}
+
+/// Explicit simulated orphan package accounting; no package manager is invoked.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OrphanPackage {
+    pub id: String,
+    pub size_bytes: u64,
 }

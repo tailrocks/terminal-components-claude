@@ -70,7 +70,17 @@ impl DiskState {
         ((self.used_bytes * 100) / self.total_bytes) as u32
     }
 
-    pub fn reclaimable_bytes(&self) -> u64 {
+    /// All inspected generated artifacts, including policy-protected active data.
+    pub fn inspected_bytes(&self) -> u64 {
         self.candidates.iter().map(|c| c.size_bytes).sum()
+    }
+
+    /// Bytes eligible for the cleanup policy shown by the plan.
+    pub fn reclaimable_bytes(&self) -> u64 {
+        self.candidates
+            .iter()
+            .filter(|c| c.freshness != Freshness::ActiveToday)
+            .map(|c| c.size_bytes)
+            .sum()
     }
 }

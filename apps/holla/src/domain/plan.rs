@@ -49,6 +49,8 @@ impl StepState {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PlanStep {
+    pub(crate) success_effects: Vec<super::effect::Mutation>,
+    pub(crate) failure_effects: Vec<super::effect::Mutation>,
     pub id: String,
     pub title: String,
     pub command: String,
@@ -70,6 +72,8 @@ pub struct PlanStep {
 impl PlanStep {
     pub fn new(id: &str, title: &str, command: &str, branch: &str, deps: &[usize]) -> Self {
         Self {
+            success_effects: Vec::new(),
+            failure_effects: Vec::new(),
             id: id.into(),
             title: title.into(),
             command: command.into(),
@@ -82,6 +86,36 @@ impl PlanStep {
             state: StepState::Pending,
             lines: vec![],
         }
+    }
+
+    pub(crate) fn succeeds_with(mut self, effects: Vec<super::effect::Mutation>) -> Self {
+        self.ok_lines = effects
+            .iter()
+            .flat_map(|effect| effect.lines(false))
+            .collect();
+        if effects
+            .iter()
+            .any(|effect| matches!(effect, super::effect::Mutation::UpgradeTool { .. }))
+        {
+            self.ok_lines.push("shims reshimmed".into());
+        }
+        self.success_effects = effects;
+        self
+    }
+    pub(crate) fn fails_after(
+        mut self,
+        reason: &str,
+        effects: Vec<super::effect::Mutation>,
+        error_line: &str,
+    ) -> Self {
+        self.fails = Some(reason.into());
+        self.fail_lines = effects
+            .iter()
+            .flat_map(|effect| effect.lines(true))
+            .collect();
+        self.fail_lines.push(error_line.into());
+        self.failure_effects = effects;
+        self
     }
 
     pub fn required(mut self) -> Self {
