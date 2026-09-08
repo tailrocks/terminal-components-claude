@@ -26,6 +26,8 @@ const MENU: Id = Id::root("holla.menu");
 const HEADER: Id = Id::root("holla.header");
 const STRIP: Id = Id::root("holla.activities");
 const FOOTER: Id = Id::root("holla.footer");
+const MIN_WIDTH: u16 = 72;
+const MIN_HEIGHT: u16 = 20;
 const HELP: ActionKey = ActionKey::application("holla.help");
 const ABOUT: ActionKey = ActionKey::application("holla.about");
 const QUIT: ActionKey = ActionKey::application("holla.quit");
@@ -153,6 +155,10 @@ enum Overlay {
 }
 
 /// Holla's deterministic launcher application. External commands remain fixture data.
+///
+/// Run with [`junie_tui::FeedbackClock::Simulation`] initialized to
+/// [`Self::fixture_time_ms`]. An incompatible feedback clock pauses simulation
+/// with a visible diagnostic before advancing any fixture state.
 pub struct App {
     world: World,
     motion: Motion,
@@ -678,7 +684,12 @@ impl App {
         }
         synchronized
     }
-    fn refresh_query_bindings(&mut self) {
+    fn refresh_query_bindings(&mut self, cx: &Cx<'_>) {
+        let quit = Chord::key(KeyCode::Char('q'));
+        self.keymap.remove(KeyPhase::Capture, quit);
+        if too_small(cx.viewport()) {
+            self.keymap.add(KeyPhase::Capture, quit, INTERRUPT);
+        }
         for (character, command) in std::iter::once(&('0', HOME)).chain(ACTIVITY_SHORTCUTS) {
             let chord = Chord::key(KeyCode::Char(*character));
             self.keymap.remove(KeyPhase::Capture, chord);
@@ -731,6 +742,27 @@ impl App {
         let items = [StatusItem::new("? help").key(ItemKey::text("help"))];
         let header = StatusBar::new(HEADER).right(&items).update(cx);
         let controls = retired | home_response | plan_response | activity_response;
+        if too_small(cx.viewport()) {
+            let overlay = self
+                .overlay
+                .as_mut()
+                .map_or_else(Response::ignored, |overlay| match overlay {
+                    Overlay::Dialog(dialog) => dialog.poll(cx).0,
+                    Overlay::Gate(gate) => gate.poll(cx).0,
+                    Overlay::Clone(picker) => picker.update(cx).0,
+                    Overlay::Actions(picker) => picker.update(cx).0,
+                });
+            if cx.update_cause() == junie_tui::UpdateCause::Event && cx.command() == Some(INTERRUPT)
+            {
+                self.quit = true;
+            }
+            return controls
+                | overlay
+                | menu.erase()
+                | brand.erase()
+                | header.erase()
+                | Response::consumed();
+        }
         if self.overlay.is_some() {
             return controls
                 | menu.erase()
@@ -821,7 +853,7 @@ impl junie_tui::App for App {
             }
         }
         let response = self.update_controls(cx);
-        self.refresh_query_bindings();
+        self.refresh_query_bindings(cx);
         if self.motion != Motion::Paused
             && let Some(anchor) = self.last_step_at
         {
@@ -835,9 +867,9 @@ impl junie_tui::App for App {
         let area = ui.full();
         let base = ui.surface_style();
         ui.fill(area, base);
-        if area.width < 72 || area.height < 20 {
+        if too_small(area) {
             TooSmall::new(Id::root("holla.too-small"), "holla")
-                .minimum(72, 20)
+                .minimum(MIN_WIDTH, MIN_HEIGHT)
                 .draw(ui, area);
             return;
         }
@@ -887,6 +919,10 @@ impl junie_tui::App for App {
         }
         Response::ignored()
     }
+}
+
+fn too_small(area: Rect) -> bool {
+    area.width < MIN_WIDTH || area.height < MIN_HEIGHT
 }
 
 #[cfg(test)]
@@ -1097,6 +1133,49 @@ mod tests {
             "{:?}",
             harness.diagnostics()
         );
+    }
+    #[test]
+    fn too_small_surface_consumes_commands_and_quits_without_query_or_modal_effects() {
+        for key in [KeyCode::Char('q'), KeyCode::Char('c')] {
+            let mut harness = app(Scenario::HardCases);
+            let _ = harness.type_str("git");
+            let _ = harness.key(KeyCode::F(1));
+            let revision = harness.app().effect_revision();
+            let _ = harness.resize(40, 10);
+            assert!(
+                harness.diagnostics().is_empty(),
+                "resize: {:?}",
+                harness.diagnostics()
+            );
+            let _ = harness.key(KeyCode::F(1));
+            assert!(!harness.app().quit);
+            let _ = harness.resize(120, 40);
+            assert!(harness.text().contains("Key reference"));
+            assert!(
+                harness.diagnostics().is_empty(),
+                "restore: {:?}",
+                harness.diagnostics()
+            );
+            let _ = harness.resize(40, 10);
+            assert!(
+                harness.diagnostics().is_empty(),
+                "second resize: {:?}",
+                harness.diagnostics()
+            );
+            if key == KeyCode::Char('c') {
+                let _ = harness.ctrl('c');
+            } else {
+                let _ = harness.key(key);
+            }
+            assert!(harness.app().quit);
+            assert_eq!(harness.app().home.query(), "git");
+            assert_eq!(harness.app().effect_revision(), revision);
+            assert!(
+                harness.diagnostics().is_empty(),
+                "{:?}",
+                harness.diagnostics()
+            );
+        }
     }
     #[test]
     fn every_real_app_scenario_renders_purely_with_persistent_identity() {
