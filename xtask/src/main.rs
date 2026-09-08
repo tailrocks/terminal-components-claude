@@ -5174,8 +5174,8 @@ fn binary_names_are_preserved() -> Result<(), String> {
     for a in &APPS {
         match found.get(a.bin).map(Vec::as_slice) {
             None => errors.push(format!(
-                "`[[bin]] {}` is missing from the workspace (owner {}): goal §21 preserves all \
-                 three binary names across the split",
+                "`[[bin]] {}` is missing from the workspace (owner {}): the integration goal \
+                 requires all four public binary names",
                 a.bin, a.slice
             )),
             Some(targets) if targets.len() > 1 => errors.push(format!(

@@ -297,3 +297,22 @@ production composition and TablePro canonical tab ownership remain active.
 Pinned Showcase production comparisons now cover 352 cases per side and expose
 remaining product differences; matching main-derived captures is not fidelity
 acceptance. Main is unmerged and completion gates remain open.
+
+Grid renderer `079b910` independently accepted and integrated as `96bfb45`;
+root six external renderer tests pass. Scene remains excluded: independent
+review reproduced stale model cache reuse with both synthetic and production
+TextViewport models. Runtime owner is binding cache lifetime to a borrowed
+model projection session before resubmission.
+
+Separate app runs exposed Showcase prompt submission (28/29 journeys pass)
+and TablePro connection transition/form closure (33/35 pass), in addition to
+the Jackin failures above. App owners are reconciling unconditional component
+lifecycle updates with route/modal command gating. External logs are
+`shared-integration-other-apps.log` and `shared-integration-tablepro.log`.
+
+Four-app boundary inventory `9f38e7f` now includes Holla in package, facade,
+dependency and binary checks. Five focused inventory tests pass and facade
+scanning passes; binary identity correctly rejects the missing Holla binary.
+Capture inventory is separate remaining work, not silently approved here.
+Exact test inventory `8b97760` plus feature fix `8ceb281` independently accepted
+and integrated as `551afe8`/`bc7d23c`; historical mappings remain pending.
