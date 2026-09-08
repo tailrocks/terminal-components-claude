@@ -187,8 +187,11 @@ Meter typed policy and ordered reference lift integrated d52ee38/29ed8e5.
 Independent final review at E/meter-lift-final-review accepts exact alias order,
 source-plane dimming, explicit colors and Paper preservation;56frames checked.
 Root18 MSRV semantic/capability tests pass. Existing seven Meter default digest
-differences remain unapproved; no baseline changed. Grid sampling272f737 remains
-held: independent live-action-reserve regression confirmed, owner repairing.
+differences remain unapproved; no baseline changed. Grid sampling272f737+89495a9
+now independently accepted and integrated29c3ed4/fb009d3: fixed keyed natural
+samples with live action constraints. Original reviewer negative passes unchanged.
+Root7 sampling +42 Grid MSRV tests and shared all-target strictClippy pass.
+Complete-fit/editor-pointer and gutter restoration remain separate open slices.
 TablePro ac4ce44 restores source history filters and selective revert assertions;
 root compared pinned model.rs959–1010 directly. a50ff14 fixes UTF8 tokenizer
 byte/character confusion at its owner (original café panic); root68 MSRV
