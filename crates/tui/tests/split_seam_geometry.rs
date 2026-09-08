@@ -28,6 +28,7 @@ struct Page {
     state: SplitPaneState,
     observed_part: Option<Rect>,
     observed_area: Option<Rect>,
+    observed_logical: Option<Rect>,
 }
 impl Default for Page {
     fn default() -> Self {
@@ -45,6 +46,7 @@ impl Default for Page {
             state: SplitPaneState::new(32),
             observed_part: None,
             observed_area: None,
+            observed_logical: None,
         }
     }
 }
@@ -78,10 +80,12 @@ impl Page {
 impl App for Page {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         if cx.update_cause() == UpdateCause::Bootstrap {
+            assert_eq!(cx.layout(ID), None);
             cx.focus(LEFT);
         }
         self.observed_part = cx.area_of_part(ID, PartRef::of(Part::CONTAINER));
         self.observed_area = cx.area(ID);
+        self.observed_logical = cx.layout(ID).and_then(|facts| facts.logical_area);
         for _ in cx.intents(LEFT) {}
         self.split().update(cx, &mut self.state).erase()
     }
@@ -387,4 +391,122 @@ fn non_resizable_still_drags_until_explicitly_disabled() {
         let _ = h.mouse(MouseKind::Up, 80, 3);
         assert_eq!(h.app().state.percent(), before);
     }
+}
+
+#[test]
+fn clipped_split_axis_preserves_logical_drag_geometry() {
+    let mut h = harness(Page {
+        clip: Some(Rect::new(30, 2, 50, 36)),
+        ..Page::default()
+    });
+    assert_eq!(seam(&h), Some(Rect::new(39, 2, 1, 36)));
+    let _ = h.mouse(MouseKind::Down, 39, 3);
+    assert_eq!(h.runtime().capture_owner(), Some(ID));
+    let _ = h.mouse(MouseKind::Drag, 61, 3);
+    assert_eq!(
+        h.app().state.percent(),
+        52,
+        "ancestor clipping must not replace the logical split container"
+    );
+    let _ = h.mouse(MouseKind::Up, 61, 3);
+}
+
+#[test]
+fn same_axis_clipping_matches_unclipped_drag_on_both_axes() {
+    for axis in [SplitAxis::Horizontal, SplitAxis::Vertical] {
+        let area = Rect::new(2, 2, 34, 34);
+        let clip = match axis {
+            SplitAxis::Horizontal => Rect::new(14, 2, 18, 34),
+            SplitAxis::Vertical => Rect::new(2, 14, 34, 18),
+        };
+        let mut unclipped = harness(Page {
+            axis,
+            area,
+            min_first: 4,
+            min_second: 6,
+            state: SplitPaneState::new(50),
+            ..Page::default()
+        });
+        let mut clipped = harness(Page {
+            axis,
+            area,
+            clip: Some(clip),
+            min_first: 4,
+            min_second: 6,
+            state: SplitPaneState::new(50),
+            ..Page::default()
+        });
+        let (x, y, to_x, to_y) = match axis {
+            SplitAxis::Horizontal => (19, 3, 25, 3),
+            SplitAxis::Vertical => (3, 19, 3, 25),
+        };
+        for h in [&mut unclipped, &mut clipped] {
+            let _ = h.mouse(MouseKind::Down, x, y);
+            assert_eq!(h.runtime().capture_owner(), Some(ID));
+            let _ = h.mouse(MouseKind::Drag, to_x, to_y);
+            let _ = h.mouse(MouseKind::Up, to_x, to_y);
+            assert_eq!(h.app().observed_logical, Some(area));
+        }
+        assert_eq!(
+            clipped.app().state.percent(),
+            unclipped.app().state.percent()
+        );
+        assert_eq!(clipped.app().state.percent(), 72);
+    }
+}
+#[test]
+fn logical_facts_follow_successful_publication_only() {
+    let mut h = harness(Page::default());
+    let _ = h.key(KeyCode::Char('x'));
+    assert_eq!(h.app().observed_logical, Some(BODY));
+    let next = Rect::new(2, 3, 100, 30);
+    h.app_mut().area = next;
+    let mut buffer = ratatui_core::buffer::Buffer::empty(Rect::new(0, 0, 120, 40));
+    drop(
+        h.runtime_mut()
+            .draw_buffer(Rect::new(0, 0, 120, 40), &mut buffer),
+    );
+    drop(
+        h.runtime_mut()
+            .draw_scene(Rect::new(0, 0, 120, 40), &mut buffer, |ui, _| {
+                assert_eq!(
+                    ui.layout(ID).and_then(|facts| facts.logical_area),
+                    Some(BODY)
+                );
+            }),
+    );
+    h.draw();
+    let _ = h.key(KeyCode::Char('x'));
+    assert_eq!(h.app().observed_logical, Some(next));
+    let _ = h.mouse(MouseKind::Down, 34, 4);
+    let _ = h.mouse(MouseKind::Drag, 50, 4);
+    assert_eq!(
+        h.app().state.percent(),
+        49,
+        "new publication must replace logical resize coordinates"
+    );
+    let _ = h.mouse(MouseKind::Up, 50, 4);
+    drop(
+        h.runtime_mut()
+            .draw_scene(Rect::new(0, 0, 120, 40), &mut buffer, |ui, _| {
+                assert_eq!(
+                    ui.layout(ID).and_then(|facts| facts.logical_area),
+                    Some(next)
+                );
+                ui.reference(None, |ui| {
+                    assert_eq!(ui.layout(ID), None);
+                    SplitPane::new(ID, SplitAxis::Horizontal).draw(
+                        ui,
+                        BODY,
+                        &SplitPaneState::default(),
+                        |_, _, _| {},
+                    );
+                    assert_eq!(ui.layout(ID), None);
+                });
+                assert_eq!(
+                    ui.layout(ID).and_then(|facts| facts.logical_area),
+                    Some(next)
+                );
+            }),
+    );
 }

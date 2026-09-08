@@ -37,6 +37,9 @@ pub struct LayoutFacts {
     pub rows: u16,
     /// Columns the component occupied.
     pub cols: u16,
+    /// Logical layout rectangle before ancestor clipping. This is model
+    /// geometry, not permission to receive input outside published hit regions.
+    pub logical_area: Option<Rect>,
 }
 
 impl LayoutFacts {
@@ -47,7 +50,16 @@ impl LayoutFacts {
             content_len,
             rows,
             cols,
+            logical_area: None,
         }
+    }
+
+    /// Attach the logical layout coordinate system used by the painter.
+    /// It becomes readable only when that frame is successfully published.
+    #[must_use]
+    pub const fn with_logical_area(mut self, area: Rect) -> Self {
+        self.logical_area = Some(area);
+        self
     }
 }
 

@@ -23,7 +23,7 @@ use crate::layout::{Maximized, SplitAxis, SplitModel};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
 use crate::theme::{Family, GlyphRole, Slot, StylePatch, Variant};
-use crate::ui::{Cx, FrameRead, Ui};
+use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 
 /// The percent a [`SplitCmd::Reset`] returns the seam to.
 const BALANCED: u8 = 50;
@@ -255,7 +255,8 @@ enum SeamAlign {
 /// three states differ by a symbol and survive `ColorLevel::Mono` — the
 /// recipe's own `SEAM` rules are colour-only, and R-8 forbids a component
 /// assembling a `Style` of its own. The container rect `update` reads back
-/// through published `CONTAINER` geometry is the one `draw` registered.
+/// through published logical layout facts is the one `draw` used, even when
+/// ancestor clipping narrows the visible and hittable seam.
 pub struct SplitPane<'a> {
     id: Id,
     axis: SplitAxis,
@@ -467,7 +468,8 @@ impl<'a> SplitPane<'a> {
     /// The update phase: keyboard resize (when resizable) and the seam drag.
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut SplitPaneState) -> Response<SplitAction> {
         let area = cx
-            .area_of_part(self.id, PartRef::of(Part::CONTAINER))
+            .layout(self.id)
+            .and_then(|facts| facts.logical_area)
             .unwrap_or(Rect::ZERO);
         let gap = self.gap;
         let table = self.table();
@@ -564,6 +566,10 @@ impl<'a> SplitPane<'a> {
         st: &SplitPaneState,
         body: impl FnOnce(&mut Ui<'_>, Rect, Rect) -> R,
     ) -> R {
+        ui.report_layout(
+            self.id,
+            LayoutFacts::new(0, 0, area.height, area.width).with_logical_area(area),
+        );
         if area.is_empty() {
             let empty = Rect {
                 x: area.x,
