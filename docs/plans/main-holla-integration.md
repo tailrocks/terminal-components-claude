@@ -177,6 +177,12 @@ namespace regression failed on component-range key41789, then99 MSRV tests
 passed across model, real input journeys and destructive guards. Strict stable
 TablePro all-target Clippy passes. Showcase namespace and Jackin private MenuBar
 key coupling are assigned to their owners; neither is waived.
+Tree full-row renderer and prefix/cursor presentation integrated c2ed7b5/3660b26.
+Root reviewed complete production/public-test diffs;12 MSRV public tests and
+strict stable shared all-target Clippy pass;215 MSRV app library smoke tests pass.
+Shared row clipping, keyed navigation,
+disclosure geometry and zero warm allocation preserved. Jackin Manager caller
+and source fixture restoration remain owner work; this does not approve app parity.
 Full test mapping retains700 semantic deltas; owner source/assertion reviews are
 assigned, not discharged by name matches. Native capture55c7dc0 built all four
 real binaries under confinement at3deb20e plus tool overlay; root independent
