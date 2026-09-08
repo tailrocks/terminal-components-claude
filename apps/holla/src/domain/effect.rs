@@ -38,7 +38,7 @@ pub(crate) enum Mutation {
 }
 
 impl Mutation {
-    pub fn reclaimed_bytes(&self) -> u64 {
+    pub(crate) fn reclaimed_bytes(&self) -> u64 {
         match self {
             Self::RemoveContainers(items) => items.iter().map(|item| item.size_bytes).sum(),
             Self::RemoveImages(items)
@@ -51,7 +51,7 @@ impl Mutation {
         }
     }
 
-    pub fn lines(&self, partial: bool) -> Vec<String> {
+    pub(crate) fn lines(&self, partial: bool) -> Vec<String> {
         match self {
             Self::RemoveContainers(containers) => {
                 if partial {

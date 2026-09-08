@@ -3,31 +3,31 @@
 //! these facts surface as reasons (`used 6 times in this project`).
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Pin {
-    pub path: String,
-    pub command: String,
+pub(crate) struct Pin {
+    pub(crate) path: String,
+    pub(crate) command: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Alias {
-    pub alias: String,
-    pub expansion: String,
+pub(crate) struct Alias {
+    pub(crate) alias: String,
+    pub(crate) expansion: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Usage {
-    pub path: String,
-    pub command: String,
-    pub count: u32,
+pub(crate) struct Usage {
+    pub(crate) path: String,
+    pub(crate) command: String,
+    pub(crate) count: u32,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct Memory {
-    pub pins: Vec<Pin>,
+pub(crate) struct Memory {
+    pub(crate) pins: Vec<Pin>,
     aliases: Vec<Alias>,
-    pub usage: Vec<Usage>,
+    pub(crate) usage: Vec<Usage>,
     /// Rows the user hid at a path (same shape as a pin; reset restores).
-    pub hides: Vec<Pin>,
+    pub(crate) hides: Vec<Pin>,
 }
 
 impl Memory {
@@ -55,7 +55,7 @@ impl Memory {
         memory
     }
 
-    pub fn aliases(&self) -> &[Alias] {
+    pub(crate) fn aliases(&self) -> &[Alias] {
         &self.aliases
     }
 
@@ -63,7 +63,7 @@ impl Memory {
     ///
     /// # Errors
     /// Refuses an empty name or a name already owned by a different command.
-    pub fn set_alias(&mut self, name: &str, command: &str) -> Result<(), AliasError> {
+    pub(crate) fn set_alias(&mut self, name: &str, command: &str) -> Result<(), AliasError> {
         let name = name.trim();
         if name.is_empty() {
             return Err(AliasError::Empty);
@@ -83,7 +83,7 @@ impl Memory {
         Ok(())
     }
 
-    pub fn usage_at(&self, path: &str, command: &str) -> u32 {
+    pub(crate) fn usage_at(&self, path: &str, command: &str) -> u32 {
         self.usage
             .iter()
             .filter(|u| u.path == path && u.command == command)
@@ -91,19 +91,19 @@ impl Memory {
             .fold(0, u32::saturating_add)
     }
 
-    pub fn pin_at(&self, path: &str, command: &str) -> bool {
+    pub(crate) fn pin_at(&self, path: &str, command: &str) -> bool {
         self.pins
             .iter()
             .any(|p| p.path == path && p.command == command)
     }
 
-    pub fn hidden_at(&self, path: &str, command: &str) -> bool {
+    pub(crate) fn hidden_at(&self, path: &str, command: &str) -> bool {
         self.hides
             .iter()
             .any(|p| p.path == path && p.command == command)
     }
 
-    pub fn alias(&self, name: &str) -> Option<&str> {
+    pub(crate) fn alias(&self, name: &str) -> Option<&str> {
         self.aliases
             .iter()
             .find(|a| alias_key(&a.alias) == alias_key(name))
@@ -111,7 +111,7 @@ impl Memory {
     }
 
     /// The alias pointing at a command, for reason annotation (`alias gs`).
-    pub fn alias_for(&self, command: &str) -> Option<&str> {
+    pub(crate) fn alias_for(&self, command: &str) -> Option<&str> {
         self.aliases
             .iter()
             .find(|a| a.expansion == command)
@@ -120,7 +120,7 @@ impl Memory {
 
     /// Reset pin/hide at this path and the command’s global alias. Usage history
     /// stays intact, matching the accepted P5 ranking-reset scope.
-    pub fn reset_at(&mut self, path: &str, command: &str) {
+    pub(crate) fn reset_at(&mut self, path: &str, command: &str) {
         self.pins
             .retain(|p| !(p.path == path && p.command == command));
         self.hides
@@ -135,7 +135,7 @@ pub(crate) fn alias_key(name: &str) -> String {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AliasError {
+pub(crate) enum AliasError {
     Empty,
     NameOwned,
 }

@@ -2,7 +2,7 @@
 //! images, containers, volumes, builder cache. Cleanup reads these numbers.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ContainerState {
+pub(crate) enum ContainerState {
     Running,
     Exited,
     Restarting,
@@ -10,7 +10,7 @@ pub enum ContainerState {
 }
 
 impl ContainerState {
-    pub fn label(self) -> &'static str {
+    pub(crate) fn label(self) -> &'static str {
         match self {
             ContainerState::Running => "running",
             ContainerState::Exited => "exited",
@@ -21,14 +21,14 @@ impl ContainerState {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Health {
+pub(crate) enum Health {
     Healthy,
     Unhealthy,
     Starting,
 }
 
 impl Health {
-    pub fn label(self) -> &'static str {
+    pub(crate) fn label(self) -> &'static str {
         match self {
             Health::Healthy => "healthy",
             Health::Unhealthy => "unhealthy",
@@ -38,26 +38,26 @@ impl Health {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Container {
-    pub size_bytes: u64,
-    pub name: String,
-    pub image: String,
-    pub state: ContainerState,
-    pub health: Option<Health>,
+pub(crate) struct Container {
+    pub(crate) size_bytes: u64,
+    pub(crate) name: String,
+    pub(crate) image: String,
+    pub(crate) state: ContainerState,
+    pub(crate) health: Option<Health>,
 }
 
 /// One deterministic Docker resource. Aggregate counts and bytes are derived
 /// from the same inventory that cleanup mutates.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Resource {
-    pub id: String,
-    pub size_bytes: u64,
-    pub unused: bool,
+pub(crate) struct Resource {
+    pub(crate) id: String,
+    pub(crate) size_bytes: u64,
+    pub(crate) unused: bool,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct DockerState {
-    pub containers: Vec<Container>,
+pub(crate) struct DockerState {
+    pub(crate) containers: Vec<Container>,
     pub(crate) image_inventory: Vec<Resource>,
     pub(crate) network_inventory: Vec<Resource>,
     pub(crate) volume_inventory: Vec<Resource>,
@@ -67,18 +67,18 @@ pub struct DockerState {
 /// Accepted aggregate fixture facts, expanded once into explicit resources.
 /// This constructor is fixture data preparation, never live discovery.
 pub(crate) struct DockerFixture {
-    pub containers: Vec<Container>,
-    pub images: u32,
-    pub networks: u32,
-    pub volumes: u32,
-    pub image_bytes: u64,
-    pub container_bytes: u64,
-    pub volume_bytes: u64,
-    pub build_cache_bytes: u64,
+    pub(crate) containers: Vec<Container>,
+    pub(crate) images: u32,
+    pub(crate) networks: u32,
+    pub(crate) volumes: u32,
+    pub(crate) image_bytes: u64,
+    pub(crate) container_bytes: u64,
+    pub(crate) volume_bytes: u64,
+    pub(crate) build_cache_bytes: u64,
 }
 
 impl DockerFixture {
-    pub fn into_state(mut self) -> DockerState {
+    pub(crate) fn into_state(mut self) -> DockerState {
         let exited = self
             .containers
             .iter()
@@ -158,43 +158,43 @@ fn resources(prefix: &str, count: usize, bytes: u64, unused: bool) -> Vec<Resour
 }
 
 impl DockerState {
-    pub fn running(&self) -> usize {
+    pub(crate) fn running(&self) -> usize {
         self.containers
             .iter()
             .filter(|c| c.state == ContainerState::Running)
             .count()
     }
-    pub fn unhealthy(&self) -> Vec<&Container> {
+    pub(crate) fn unhealthy(&self) -> Vec<&Container> {
         self.containers
             .iter()
             .filter(|c| c.health == Some(Health::Unhealthy))
             .collect()
     }
-    pub fn images(&self) -> usize {
+    pub(crate) fn images(&self) -> usize {
         self.image_inventory.len()
     }
-    pub fn volumes(&self) -> usize {
+    pub(crate) fn volumes(&self) -> usize {
         self.volume_inventory.len()
     }
-    pub fn networks(&self) -> usize {
+    pub(crate) fn networks(&self) -> usize {
         self.network_inventory.len()
     }
-    pub fn image_bytes(&self) -> u64 {
+    pub(crate) fn image_bytes(&self) -> u64 {
         self.image_inventory.iter().map(|r| r.size_bytes).sum()
     }
-    pub fn container_bytes(&self) -> u64 {
+    pub(crate) fn container_bytes(&self) -> u64 {
         self.containers.iter().map(|r| r.size_bytes).sum()
     }
-    pub fn volume_bytes(&self) -> u64 {
+    pub(crate) fn volume_bytes(&self) -> u64 {
         self.volume_inventory.iter().map(|r| r.size_bytes).sum()
     }
-    pub fn build_cache_bytes(&self) -> u64 {
+    pub(crate) fn build_cache_bytes(&self) -> u64 {
         self.cache_bytes
     }
-    pub fn total_bytes(&self) -> u64 {
+    pub(crate) fn total_bytes(&self) -> u64 {
         self.image_bytes() + self.container_bytes() + self.volume_bytes() + self.cache_bytes
     }
-    pub fn reclaimable_bytes(&self) -> u64 {
+    pub(crate) fn reclaimable_bytes(&self) -> u64 {
         self.cache_bytes
             + self
                 .containers

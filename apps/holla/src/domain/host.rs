@@ -4,7 +4,7 @@
 /// Environment role of a host; drives identity glyphs and confirmation
 /// strength. `◆` production / `◇` staging per the design-system glyph table.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Environment {
+pub(crate) enum Environment {
     /// Local developer machine.
     Local,
     /// Remote development host.
@@ -17,7 +17,7 @@ pub enum Environment {
 }
 
 impl Environment {
-    pub fn label(self) -> &'static str {
+    pub(crate) fn label(self) -> &'static str {
         match self {
             Environment::Local => "local",
             Environment::Dev => "dev",
@@ -27,7 +27,7 @@ impl Environment {
     }
 
     /// Identity marker for remote environments; `None` for a local machine.
-    pub fn glyph(self) -> Option<&'static str> {
+    pub(crate) fn glyph(self) -> Option<&'static str> {
         match self {
             Environment::Local | Environment::Dev => None,
             Environment::Staging => Some("◇"),
@@ -37,13 +37,13 @@ impl Environment {
 
     /// Whether destructive confirmation gets the strongest treatment.
     #[allow(dead_code)] // P3 safety gates
-    pub fn sensitive(self) -> bool {
+    pub(crate) fn sensitive(self) -> bool {
         matches!(self, Environment::Staging | Environment::Production)
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum HostKind {
+pub(crate) enum HostKind {
     /// The machine holla runs on.
     Local,
     /// Reached over SSH; the session itself is remote.
@@ -51,7 +51,7 @@ pub enum HostKind {
 }
 
 impl HostKind {
-    pub fn label(self) -> &'static str {
+    pub(crate) fn label(self) -> &'static str {
         match self {
             HostKind::Local => "local",
             HostKind::Remote => "ssh",
@@ -62,11 +62,11 @@ impl HostKind {
 /// Deterministic host vitals for the system snapshot (§8.6). Integers keep
 /// `Host` `Eq`; load is ×100.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HostMetrics {
-    pub load_x100: (u32, u32, u32),
-    pub mem_used_mb: u32,
-    pub mem_total_mb: u32,
-    pub uptime_days: u32,
+pub(crate) struct HostMetrics {
+    pub(crate) load_x100: (u32, u32, u32),
+    pub(crate) mem_used_mb: u32,
+    pub(crate) mem_total_mb: u32,
+    pub(crate) uptime_days: u32,
 }
 
 impl HostMetrics {
@@ -90,15 +90,15 @@ impl HostMetrics {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Host {
-    pub name: String,
-    pub kind: HostKind,
-    pub env: Environment,
-    pub metrics: HostMetrics,
+pub(crate) struct Host {
+    pub(crate) name: String,
+    pub(crate) kind: HostKind,
+    pub(crate) env: Environment,
+    pub(crate) metrics: HostMetrics,
 }
 
 impl Host {
-    pub fn local(name: &str) -> Self {
+    pub(crate) fn local(name: &str) -> Self {
         Self {
             name: name.into(),
             kind: HostKind::Local,
@@ -107,7 +107,7 @@ impl Host {
         }
     }
 
-    pub fn remote(name: &str, env: Environment) -> Self {
+    pub(crate) fn remote(name: &str, env: Environment) -> Self {
         let metrics = match env {
             Environment::Production | Environment::Staging => HostMetrics::production(),
             _ => HostMetrics::dev(),
@@ -121,7 +121,7 @@ impl Host {
     }
 
     /// Right-hand identity for chrome: `devbox · local`, `◆ prod-eu-1 · production`.
-    pub fn identity(&self) -> String {
+    pub(crate) fn identity(&self) -> String {
         let role = match (self.kind, self.env) {
             (HostKind::Local, Environment::Local) => "local".to_owned(),
             _ => format!("{} · {}", self.kind.label(), self.env.label()),

@@ -7,7 +7,7 @@ use crate::domain::fixtures;
 /// Context ring an action belongs to (CONCEPT.md §5: Here → Project →
 /// Workspace → Host → Personal, cwd primary).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Scope {
+pub(crate) enum Scope {
     /// Under the launch directory.
     Here,
     /// The enclosing project / repository.
@@ -21,7 +21,7 @@ pub enum Scope {
 }
 
 impl Scope {
-    pub const ORDER: [Scope; 5] = [
+    pub(crate) const ORDER: [Scope; 5] = [
         Scope::Here,
         Scope::Project,
         Scope::Workspace,
@@ -29,7 +29,7 @@ impl Scope {
         Scope::Personal,
     ];
 
-    pub fn label(self) -> &'static str {
+    pub(crate) fn label(self) -> &'static str {
         match self {
             Scope::Here => "here",
             Scope::Project => "project",
@@ -40,7 +40,7 @@ impl Scope {
     }
 
     /// Ring weight: closer scopes rank higher.
-    pub fn weight(self) -> i32 {
+    pub(crate) fn weight(self) -> i32 {
         match self {
             Scope::Here => 100,
             Scope::Project => 80,
@@ -54,7 +54,7 @@ impl Scope {
 /// How much damage a run could do; risk changes treatment, never
 /// availability (CONCEPT.md §10).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Risk {
+pub(crate) enum Risk {
     /// Inspects only; runs directly.
     ReadOnly,
     /// Mutates a bounded, named target; asks once.
@@ -64,7 +64,7 @@ pub enum Risk {
 }
 
 impl Risk {
-    pub fn confirmation(self) -> &'static str {
+    pub(crate) fn confirmation(self) -> &'static str {
         match self {
             Risk::ReadOnly => "runs directly",
             Risk::Bounded => "asks once before changing anything",
@@ -75,7 +75,7 @@ impl Risk {
 
 /// Whether the action can run right now.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Availability {
+pub(crate) enum Availability {
     Ready,
     /// A mise task file that must be trusted first (exact path).
     NeedsTrust(String),
@@ -85,7 +85,7 @@ pub enum Availability {
 
 /// What family the action belongs to (ordering tiebreak + preview wording).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum ActionKind {
+pub(crate) enum ActionKind {
     Task,
     Git,
     Plan,
@@ -97,7 +97,7 @@ pub enum ActionKind {
 
 /// Effect identity is independent of the row that presents it.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ActionIntent {
+pub(crate) enum ActionIntent {
     Canonical(String),
     FixtureCommand(FixtureCommand),
     Unavailable,
@@ -106,7 +106,7 @@ pub enum ActionIntent {
 /// Explicit simulation-only commands present in accepted ranking fixtures.
 /// These are data labels, never executable process arguments.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FixtureCommand {
+pub(crate) enum FixtureCommand {
     MakeTest,
     CargoBuild,
     CargoTest,
@@ -115,7 +115,7 @@ pub enum FixtureCommand {
 }
 
 impl FixtureCommand {
-    pub fn command(self) -> &'static str {
+    pub(crate) fn command(self) -> &'static str {
         match self {
             Self::MakeTest => "make test",
             Self::CargoBuild => "cargo build",
@@ -127,35 +127,35 @@ impl FixtureCommand {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Action {
+pub(crate) struct Action {
     intent: ActionIntent,
     /// Stable identity for focus, pins and modal tags (`task:test`,
     /// `git.pull`, `docker.cleanup`).
-    pub id: String,
-    pub title: String,
-    pub kind: ActionKind,
-    pub scope: Scope,
+    pub(crate) id: String,
+    pub(crate) title: String,
+    pub(crate) kind: ActionKind,
+    pub(crate) scope: Scope,
     /// Where the scope shows up as a place (`apps/frontend`, `prod-eu-1`).
-    pub scope_label: String,
+    pub(crate) scope_label: String,
     /// Why this is recommended — the fact, not marketing.
-    pub reason: String,
-    pub risk: Risk,
-    pub availability: Availability,
+    pub(crate) reason: String,
+    pub(crate) risk: Risk,
+    pub(crate) availability: Availability,
     /// The path/host/service the run acts on.
-    pub target: String,
+    pub(crate) target: String,
     /// The operation, previewable before any run (CONCEPT.md §6.7).
-    pub command: String,
+    pub(crate) command: String,
     /// Effective working directory of the run.
-    pub workdir: String,
+    pub(crate) workdir: String,
     /// Long-running work starts a named activity instead of a one-shot.
-    pub long_running: bool,
+    pub(crate) long_running: bool,
     /// Extra search haystack, never displayed (a task's real command line).
-    pub keywords: String,
+    pub(crate) keywords: String,
 }
 
 impl Action {
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         id: &str,
         title: &str,
         kind: ActionKind,
@@ -183,11 +183,11 @@ impl Action {
         }
     }
 
-    pub fn intent(&self) -> &ActionIntent {
+    pub(crate) fn intent(&self) -> &ActionIntent {
         &self.intent
     }
 
-    pub fn intent_id(&self) -> Option<&str> {
+    pub(crate) fn intent_id(&self) -> Option<&str> {
         match &self.intent {
             ActionIntent::Canonical(id) => Some(id),
             _ => None,
@@ -238,7 +238,7 @@ impl Action {
     }
 
     /// What changes when this runs — the preview's "What will change" row.
-    pub fn changes(&self) -> String {
+    pub(crate) fn changes(&self) -> String {
         match self.risk {
             Risk::ReadOnly => "nothing · inspection only".to_owned(),
             Risk::Bounded => format!("changes {} on this host", self.target),
@@ -248,7 +248,7 @@ impl Action {
 
     /// Absolute display form of the target for confirmations (P3 phrases
     /// expand `~` through the fixture home).
-    pub fn resolved_target(&self) -> String {
+    pub(crate) fn resolved_target(&self) -> String {
         fixtures::expand_home(&self.target)
     }
 }

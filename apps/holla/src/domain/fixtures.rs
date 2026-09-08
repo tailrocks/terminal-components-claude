@@ -20,15 +20,15 @@ use crate::sim::world::{Discovery, Domain, World};
 /// phrases (P3) expand through this, e.g. `~/work/scratch` →
 /// `/home/dev/work/scratch`.
 #[allow(dead_code)] // P3 typed-phrase targets
-pub const HOME: &str = "/home/dev";
+pub(crate) const HOME: &str = "/home/dev";
 
 #[allow(dead_code)] // P3 typed-phrase targets
-pub fn expand_home(path: &str) -> String {
+pub(crate) fn expand_home(path: &str) -> String {
     path.replacen('~', HOME, 1)
 }
 
 /// The working directory holla was launched from, per scenario.
-pub fn cwd_for(scenario: Scenario) -> &'static str {
+pub(crate) fn cwd_for(scenario: Scenario) -> &'static str {
     match scenario {
         Scenario::FirstUse => "~/scratch/empty",
         Scenario::RustDirty => "~/work/pave",
@@ -44,7 +44,7 @@ pub fn cwd_for(scenario: Scenario) -> &'static str {
     }
 }
 
-pub fn host_for(scenario: Scenario) -> Host {
+pub(crate) fn host_for(scenario: Scenario) -> Host {
     match scenario {
         Scenario::RemoteHost => Host::remote("prod-eu-1", Environment::Production),
         Scenario::UpgradePlan => Host::remote("devbox-deb", Environment::Dev),
@@ -52,7 +52,7 @@ pub fn host_for(scenario: Scenario) -> Host {
     }
 }
 
-pub fn world_for(scenario: Scenario) -> World {
+pub(crate) fn world_for(scenario: Scenario) -> World {
     let mut w = World::new(scenario, host_for(scenario), cwd_for(scenario));
     w.discovery = match scenario {
         // hard-cases: docker discovery never lands; the UI must say so
@@ -833,7 +833,7 @@ fn seed_hard_cases(w: &mut World) {
 
 /// Explicit authorization for simulated custom commands seeded by these
 /// fixtures. Stored text alone never grants an effect or a risk downgrade.
-pub fn memory_command(
+pub(crate) fn memory_command(
     scenario: Scenario,
     cwd: &str,
     command: &str,

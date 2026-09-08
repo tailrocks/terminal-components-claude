@@ -13,7 +13,7 @@ use crate::sim::world::World;
 
 /// A review bound to the exact simulated host and effect target facts.
 /// It cannot be cloned, reconstructed from UI fields, or executed twice.
-pub struct ReviewedPlan {
+pub(crate) struct ReviewedPlan {
     plan: Plan,
     target: TargetSnapshot,
 }
@@ -24,11 +24,11 @@ impl ReviewedPlan {
         Self { plan, target }
     }
 
-    pub fn plan(&self) -> &Plan {
+    pub(crate) fn plan(&self) -> &Plan {
         &self.plan
     }
 
-    pub fn toggle(&mut self, index: usize) -> Result<String, crate::domain::plan::PlanError> {
+    pub(crate) fn toggle(&mut self, index: usize) -> Result<String, crate::domain::plan::PlanError> {
         self.plan.toggle(index)
     }
 
@@ -37,7 +37,7 @@ impl ReviewedPlan {
     /// # Errors
     /// Refuses a wrong phrase, an already-consumed review or changed target.
     /// The phrase is never retained or included in the error.
-    pub fn approve<'a>(
+    pub(crate) fn approve<'a>(
         &'a mut self,
         phrase: &str,
         world: &World,
@@ -62,7 +62,7 @@ impl ReviewedPlan {
 
 /// Exclusive, one-use permission to apply this in-memory simulation.
 /// Dropping approval cancels it without running or consuming the review.
-pub struct Approval<'a> {
+pub(crate) struct Approval<'a> {
     review: &'a mut ReviewedPlan,
 }
 
@@ -72,7 +72,7 @@ impl Approval<'_> {
     /// # Errors
     /// A changed target refuses the whole run with no model mutation. Successful
     /// execution consumes the review even when fixture steps fail partway.
-    pub fn execute(self, world: &mut World) -> Result<EffectReport, ApprovalError> {
+    pub(crate) fn execute(self, world: &mut World) -> Result<EffectReport, ApprovalError> {
         self.review.validate(world)?;
         let next_revision = world
             .effect_revision
@@ -121,24 +121,24 @@ impl Approval<'_> {
 
 /// Executed mutation groups, including truthful partial failures.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AppliedStep {
-    pub id: String,
-    pub operations: usize,
-    pub reclaimed_bytes: u64,
+pub(crate) struct AppliedStep {
+    pub(crate) id: String,
+    pub(crate) operations: usize,
+    pub(crate) reclaimed_bytes: u64,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct EffectReport {
-    pub applied_steps: Vec<AppliedStep>,
-    pub reclaimed_bytes: u64,
-    pub succeeded: usize,
-    pub failed: usize,
-    pub skipped: usize,
+pub(crate) struct EffectReport {
+    pub(crate) applied_steps: Vec<AppliedStep>,
+    pub(crate) reclaimed_bytes: u64,
+    pub(crate) succeeded: usize,
+    pub(crate) failed: usize,
+    pub(crate) skipped: usize,
 }
 
 /// Failure codes never contain typed confirmation text or target payloads.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ApprovalError {
+pub(crate) enum ApprovalError {
     WrongPhrase,
     StaleTarget,
     AlreadyConsumed,
@@ -207,7 +207,7 @@ impl TargetSnapshot {
 }
 
 /// The plan behind a Broad action, if this world has one.
-pub fn plan_for(w: &World, action_id: &str) -> Option<ReviewedPlan> {
+pub(crate) fn plan_for(w: &World, action_id: &str) -> Option<ReviewedPlan> {
     let plan = match action_id {
         "docker.cleanup" => docker_cleanup(w),
         "disk.reclaim" => disk_reclaim(w),

@@ -3,38 +3,38 @@
 
 // Fixture contract lands whole; P2+ renders into the parts P1 only seeds.
 #[allow(dead_code)]
-pub mod action;
+pub(crate) mod action;
 #[allow(dead_code)]
-pub mod activity;
+pub(crate) mod activity;
 #[allow(dead_code)]
-pub mod debian;
+pub(crate) mod debian;
 #[allow(dead_code)]
-pub mod disk;
+pub(crate) mod disk;
 #[allow(dead_code)]
-pub mod docker;
+pub(crate) mod docker;
 pub(crate) mod effect;
-pub mod fixtures;
+pub(crate) mod fixtures;
 #[allow(dead_code)]
-pub mod git;
+pub(crate) mod git;
 #[allow(dead_code)]
-pub mod github;
-pub mod host;
+pub(crate) mod github;
+pub(crate) mod host;
 #[allow(dead_code)]
-pub mod mise;
+pub(crate) mod mise;
 #[allow(dead_code)]
-pub mod pg;
+pub(crate) mod pg;
 #[allow(dead_code)]
-pub mod plan;
+pub(crate) mod plan;
 #[allow(dead_code)]
-pub mod ranking;
+pub(crate) mod ranking;
 #[allow(dead_code)]
-pub mod ssh;
+pub(crate) mod ssh;
 
-pub use host::Environment;
+pub(crate) use host::Environment;
 
 /// Human byte size per the design-system number grammar: `8.4 GB`, `900 MB`.
 #[allow(dead_code)] // P2 renders sizes
-pub fn human_bytes(bytes: u64) -> String {
+pub(crate) fn human_bytes(bytes: u64) -> String {
     const KB: u64 = 1_024;
     const MB: u64 = KB * 1_024;
     const GB: u64 = MB * 1_024;

@@ -18,7 +18,7 @@ use crate::scenario::Scenario;
 
 /// A capability domain discovery can land (or fail) in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Domain {
+pub(crate) enum Domain {
     Mise,
     Git,
     Ssh,
@@ -30,7 +30,7 @@ pub enum Domain {
 
 impl Domain {
     #[allow(dead_code)] // P2 renders per-domain scanning notes
-    pub const ALL: [Domain; 7] = [
+    pub(crate) const ALL: [Domain; 7] = [
         Domain::Mise,
         Domain::Git,
         Domain::Ssh,
@@ -41,7 +41,7 @@ impl Domain {
     ];
 
     #[allow(dead_code)] // P2 renders per-domain scanning notes
-    pub fn label(self) -> &'static str {
+    pub(crate) fn label(self) -> &'static str {
         match self {
             Domain::Mise => "mise",
             Domain::Git => "git",
@@ -56,16 +56,16 @@ impl Domain {
 
 /// One discovery mark: when it lands, whether it fails.
 #[derive(Debug, Clone)]
-pub struct Discovery {
-    pub domain: Domain,
-    pub at_ms: i64,
-    pub fails: bool,
-    pub done: bool,
-    pub failed: bool,
+pub(crate) struct Discovery {
+    pub(crate) domain: Domain,
+    pub(crate) at_ms: i64,
+    pub(crate) fails: bool,
+    pub(crate) done: bool,
+    pub(crate) failed: bool,
 }
 
 impl Discovery {
-    pub fn at(domain: Domain, at_ms: i64) -> Self {
+    pub(crate) fn at(domain: Domain, at_ms: i64) -> Self {
         Self {
             domain,
             at_ms,
@@ -75,7 +75,7 @@ impl Discovery {
         }
     }
 
-    pub fn failing(domain: Domain, at_ms: i64) -> Self {
+    pub(crate) fn failing(domain: Domain, at_ms: i64) -> Self {
         Self {
             fails: true,
             ..Self::at(domain, at_ms)
@@ -84,37 +84,37 @@ impl Discovery {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Msg {
+pub(crate) enum Msg {
     /// A capability domain finished discovering.
     Discovered(Domain),
     /// Discovery of this domain failed (hard-cases honesty).
     DiscoveryFailed(Domain),
 }
 
-pub struct World {
+pub(crate) struct World {
     /// Monotonic simulation commit revision; never rendered or driven by ticks.
     pub(crate) effect_revision: u64,
-    pub scenario: Scenario,
-    pub clock: Clock,
-    pub host: Host,
+    pub(crate) scenario: Scenario,
+    pub(crate) clock: Clock,
+    pub(crate) host: Host,
     /// Where holla was launched — the primary context object.
-    pub cwd: String,
-    pub discovery: Vec<Discovery>,
+    pub(crate) cwd: String,
+    pub(crate) discovery: Vec<Discovery>,
     // Fixture slots; `None` = discovery ran and found nothing here.
-    pub mise: Option<MiseState>,
-    pub git: Option<GitRepo>,
-    pub ssh: Vec<SshHost>,
-    pub github: Option<GhState>,
-    pub docker: Option<DockerState>,
-    pub pg: Option<Vec<PgSession>>,
-    pub disk: Option<DiskState>,
-    pub debian: Option<DebianState>,
-    pub memory: Memory,
-    pub activities: Vec<Activity>,
+    pub(crate) mise: Option<MiseState>,
+    pub(crate) git: Option<GitRepo>,
+    pub(crate) ssh: Vec<SshHost>,
+    pub(crate) github: Option<GhState>,
+    pub(crate) docker: Option<DockerState>,
+    pub(crate) pg: Option<Vec<PgSession>>,
+    pub(crate) disk: Option<DiskState>,
+    pub(crate) debian: Option<DebianState>,
+    pub(crate) memory: Memory,
+    pub(crate) activities: Vec<Activity>,
 }
 
 impl World {
-    pub fn new(scenario: Scenario, host: Host, cwd: &str) -> Self {
+    pub(crate) fn new(scenario: Scenario, host: Host, cwd: &str) -> Self {
         Self {
             effect_revision: 0,
             scenario,
@@ -135,12 +135,12 @@ impl World {
         }
     }
 
-    pub fn now_ms(&self) -> i64 {
+    pub(crate) fn now_ms(&self) -> i64 {
         self.clock.now_ms
     }
 
     /// Default progressive schedule; scenarios may override marks.
-    pub fn default_schedule() -> Vec<Discovery> {
+    pub(crate) fn default_schedule() -> Vec<Discovery> {
         vec![
             Discovery::at(Domain::Mise, 600),
             Discovery::at(Domain::Git, 900),
@@ -153,24 +153,24 @@ impl World {
     }
 
     /// Any domain still pending (failures settle: they are known, not pending).
-    pub fn discovering(&self) -> bool {
+    pub(crate) fn discovering(&self) -> bool {
         self.discovery.iter().any(|d| !d.done && !d.failed)
     }
 
     #[allow(dead_code)] // fixture tests + P2
-    pub fn discovered(&self, domain: Domain) -> bool {
+    pub(crate) fn discovered(&self, domain: Domain) -> bool {
         self.discovery.iter().any(|d| d.domain == domain && d.done)
     }
 
     #[allow(dead_code)] // fixture tests + P2
-    pub fn discovery_failed(&self, domain: Domain) -> bool {
+    pub(crate) fn discovery_failed(&self, domain: Domain) -> bool {
         self.discovery
             .iter()
             .any(|d| d.domain == domain && d.failed)
     }
 
     /// Advance virtual time and emit due events. No-op while paused.
-    pub fn tick(&mut self, interval_ms: i64) -> Vec<Msg> {
+    pub(crate) fn tick(&mut self, interval_ms: i64) -> Vec<Msg> {
         if !self.clock.running {
             return vec![];
         }
@@ -184,7 +184,7 @@ impl World {
     /// instant. Discovery only compares deadlines, so crossing every tick adds
     /// no information. Advance once to the same rounded instant; clamp values
     /// outside the signed fixture-clock range rather than wrap or loop.
-    pub fn seek(&mut self, frame_ms: u64) {
+    pub(crate) fn seek(&mut self, frame_ms: u64) {
         let target = i64::try_from(frame_ms).unwrap_or(i64::MAX);
         if target <= self.clock.now_ms {
             return;
@@ -196,7 +196,7 @@ impl World {
     }
 
     /// Trust one exact mise task file; affected tasks re-resolve as Ready.
-    pub fn trust_mise_file(&mut self, path: &str) -> bool {
+    pub(crate) fn trust_mise_file(&mut self, path: &str) -> bool {
         let Some(mise) = &mut self.mise else {
             return false;
         };

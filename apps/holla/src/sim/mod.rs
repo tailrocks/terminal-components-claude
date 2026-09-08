@@ -2,6 +2,6 @@
 //! mise, git, gh, docker, btm, pg_activity, ssh and the filesystem are
 //! deterministic fixtures that evolve only on virtual-clock ticks.
 
-pub mod catalogue;
-pub mod plans;
-pub mod world;
+pub(crate) mod catalogue;
+pub(crate) mod plans;
+pub(crate) mod world;

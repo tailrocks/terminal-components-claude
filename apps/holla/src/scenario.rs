@@ -2,7 +2,7 @@
 //! in, how motion behaves, and which tick a paused capture shows.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Scenario {
+pub(crate) enum Scenario {
     /// Empty directory on a local dev host: nothing discovered yet.
     FirstUse,
     /// A Rust project with a dirty worktree and a branch behind upstream.
@@ -28,7 +28,7 @@ pub enum Scenario {
 }
 
 impl Scenario {
-    pub const ALL: [Scenario; 11] = [
+    pub(crate) const ALL: [Scenario; 11] = [
         Scenario::FirstUse,
         Scenario::RustDirty,
         Scenario::MonorepoRoot,
@@ -42,7 +42,7 @@ impl Scenario {
         Scenario::HardCases,
     ];
 
-    pub fn name(self) -> &'static str {
+    pub(crate) fn name(self) -> &'static str {
         match self {
             Scenario::FirstUse => "first-use",
             Scenario::RustDirty => "rust-dirty",
@@ -58,13 +58,13 @@ impl Scenario {
         }
     }
 
-    pub fn from_name(s: &str) -> Option<Self> {
+    pub(crate) fn from_name(s: &str) -> Option<Self> {
         Self::ALL.into_iter().find(|sc| sc.name() == s)
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub enum Motion {
+pub(crate) enum Motion {
     /// Tick-driven spinners and progressive discovery.
     #[default]
     Full,
@@ -75,7 +75,7 @@ pub enum Motion {
 }
 
 impl Motion {
-    pub fn from_name(s: &str) -> Option<Self> {
+    pub(crate) fn from_name(s: &str) -> Option<Self> {
         match s {
             "full" => Some(Motion::Full),
             "reduced" => Some(Motion::Reduced),
@@ -86,7 +86,7 @@ impl Motion {
 
     /// Explicit CLI motion wins; otherwise `HOLLA_NO_MOTION` selects the
     /// reduced path.
-    pub fn resolve(cli: Option<Motion>, no_motion_env: bool) -> Motion {
+    pub(crate) fn resolve(cli: Option<Motion>, no_motion_env: bool) -> Motion {
         match cli {
             Some(m) => m,
             None if no_motion_env => Motion::Reduced,
