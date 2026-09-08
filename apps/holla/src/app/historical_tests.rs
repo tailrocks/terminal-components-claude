@@ -195,3 +195,96 @@ fn enter_on_top_match_reports_simulated_run() {
     assert!(t.contains("Would run: make test"), "{t}");
     assert!(t.contains("nothing executed"), "{t}");
 }
+
+#[test]
+fn actions_menu_offers_alternatives_and_pinning() {
+    let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
+    let _ = h.type_str("cargo build");
+    let _ = h.ctrl('o');
+    let t = h.text();
+    assert!(t.contains("Pin here"), "{t}");
+    assert!(t.contains("Copy command"), "{t}");
+    let _ = h.key(KeyCode::Esc);
+    let _ = h.key(KeyCode::Esc);
+    // pinning a row makes it outrank everything next time
+    let _ = h.type_str("status");
+    let _ = h.ctrl('o');
+    let _ = h.key(KeyCode::Down);
+    let _ = h.key(KeyCode::Down);
+    let _ = h.key(KeyCode::Down);
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.text().contains("Pinned git status here"), "{}", h.text());
+    let _ = h.key(KeyCode::Esc);
+    assert!(h.app().world.memory.pin_at("~/work/pave", "git status"));
+}
+
+#[test]
+fn alias_prompt_saves_and_query_matches_expansion() {
+    let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
+    let _ = h.type_str("cargo build");
+    let _ = h.ctrl('o');
+    let t = h.text();
+    assert!(t.contains("Set alias…"), "{t}");
+    // Run, Preview, Copy, Pin, Alias
+    for _ in 0..4 {
+        let _ = h.key(KeyCode::Down);
+    }
+    let _ = h.key(KeyCode::Enter);
+    let t = h.text();
+    assert!(t.contains("Alias for “cargo build”"), "{t}");
+    let _ = h.type_str("cb");
+    let _ = h.key(KeyCode::Enter);
+    assert!(h.text().contains("Alias cb → cargo build"), "{}", h.text());
+    assert_eq!(h.app().world.memory.alias_for("cargo build"), Some("cb"));
+    // the alias query finds the command's row
+    let _ = h.key(KeyCode::Esc);
+    h.key(KeyCode::Esc); // clear the old query
+    let _ = h.type_str("cb");
+    assert!(h.text().contains("cargo build"), "{}", h.text());
+}
+
+#[test]
+fn hide_removes_row_exact_query_resurfaces_and_reset_restores() {
+    let mut h = fixture(Scenario::RustDirty, Motion::Paused, 4_000, 120, 40);
+    let _ = h.type_str("cargo build");
+    let _ = h.ctrl('o');
+    // Run, Preview, Copy, Pin, Alias, Hide
+    for _ in 0..5 {
+        let _ = h.key(KeyCode::Down);
+    }
+    let _ = h.key(KeyCode::Enter);
+    assert!(
+        h.text()
+            .contains("Hidden cargo build here · Reset ranking restores"),
+        "{}",
+        h.text()
+    );
+    assert!(h.app().world.memory.hidden_at("~/work/pave", "cargo build"));
+    // hidden: a partial query no longer finds it
+    let _ = h.key(KeyCode::Esc);
+    let _ = h.key(KeyCode::Esc);
+    let _ = h.type_str("cargo b");
+    assert!(
+        !h.text().contains("cargo build · cargo build"),
+        "{}",
+        h.text()
+    );
+    assert!(!h.text().contains("used 6 times"), "{}", h.text());
+    // the exact command resurfaces the row so it can be managed
+    let _ = h.key(KeyCode::Esc);
+    let _ = h.type_str("cargo build");
+    let _ = h.ctrl('o');
+    let t = h.text();
+    assert!(t.contains("Unhide here"), "{t}");
+    // Reset ranking clears pin, alias and hide (last menu item)
+    for _ in 0..6 {
+        let _ = h.key(KeyCode::Down);
+    }
+    let _ = h.key(KeyCode::Enter);
+    assert!(
+        h.text().contains("Reset ranking for cargo build"),
+        "{}",
+        h.text()
+    );
+    assert!(!h.app().world.memory.hidden_at("~/work/pave", "cargo build"));
+}
