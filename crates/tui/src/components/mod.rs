@@ -68,7 +68,7 @@ pub use form::{
 };
 pub use grid::{
     CellAction, CellRef, Column, ColumnKey, EditIntent, GRID_MAX_COLUMNS, Grid, GridAction,
-    GridCmd, GridEditor, GridModel, GridState, NavUnit, SortDir,
+    GridCell, GridCmd, GridEditor, GridModel, GridState, NavUnit, SortDir,
 };
 pub use help::{HelpAction, HelpCmd, HelpOverlay, HelpOverlayState, HelpSection};
 pub use hintbar::{DerivedHintBar, HintBar};

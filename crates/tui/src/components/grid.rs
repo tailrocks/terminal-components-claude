@@ -27,8 +27,8 @@ use super::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn};
 use crate::action::ActionKey;
 use crate::collection::{
-    CellDecor, CollectionCore, EmptyState, KeySet, Reconcile, Reconciliation, RowDecor, RowTotal,
-    SelectMode,
+    CellDecor, CellUi, CollectionCore, EmptyState, KeySet, Reconcile, Reconciliation, RowDecor,
+    RowTotal, SelectMode,
 };
 use crate::event::{Chord, KeyCode, KeyModifiers};
 use crate::focus::Focusability;
@@ -155,6 +155,32 @@ impl Default for CellRef<'_> {
         CellRef::new("")
     }
 }
+
+/// Borrowed display context for [`Grid::cell`].
+///
+/// Keys identify logical cells across model reordering. Indices describe the
+/// current model view and must not be retained as cell identity. The painter
+/// already carries `style` and the cell/column alignment; its area excludes
+/// the grid-owned prefix and action affordance.
+#[derive(Clone, Copy, Debug)]
+pub struct GridCell<'a> {
+    /// Stable row identity.
+    pub row_key: ItemKey,
+    /// Stable column identity.
+    pub column_key: ColumnKey,
+    /// Row index in the current model view.
+    pub row: usize,
+    /// Column index in the current model view.
+    pub column: usize,
+    /// Borrowed model content.
+    pub value: CellRef<'a>,
+    /// Final row and cell state, including selection and model decoration.
+    pub flags: StateFlags,
+    /// Resolved CELL style with model tone and decoration applied.
+    pub style: PaintStyle,
+}
+
+type CellRenderer<'a> = &'a dyn Fn(GridCell<'_>, &mut CellUi<'_>);
 
 /// One affordance offered on a cell (§23 K2, G3).
 ///
@@ -922,6 +948,7 @@ pub struct Grid<'a> {
     select_mode: SelectMode,
     empty: Option<EmptyState<'a>>,
     actions: Option<SlotFn<'a>>,
+    cell: Option<CellRenderer<'a>>,
     ov: PartStyle<'a>,
 }
 
@@ -961,6 +988,7 @@ impl<'a> Grid<'a> {
             select_mode: SelectMode::Single,
             empty: None,
             actions: None,
+            cell: None,
             ov: PartStyle::new(),
         }
     }
@@ -986,6 +1014,20 @@ impl<'a> Grid<'a> {
     #[must_use]
     pub const fn select_mode(mut self, m: SelectMode) -> Self {
         self.select_mode = m;
+        self
+    }
+
+    /// Replace display content with a borrowed, allocation-free cell painter.
+    ///
+    /// Called once per visible, present cell, including cells with no remaining
+    /// content width. Ragged holes, inline editors and validation/refusal text
+    /// remain grid-owned and do not call the renderer. The grid still owns row
+    /// fills, prefixes, actions, clipping, hit regions and interaction state.
+    /// `CellUi` clips text at grapheme boundaries; custom content may use its
+    /// numeric, money, glyph, tone, alignment and patch methods.
+    #[must_use]
+    pub const fn cell(mut self, render: &'a dyn Fn(GridCell<'_>, &mut CellUi<'_>)) -> Self {
+        self.cell = Some(render);
         self
     }
 
@@ -2402,7 +2444,28 @@ impl Grid<'_> {
                 .or_else(|| self.columns.get(i).map(|column| column.align))
                 .unwrap_or(Align::Left);
             let text = refused_error.map_or(cell.text, |error| error.message.as_ref());
-            paint_aligned(ui, text_rect, text, align, style);
+            if let Some((render, column_key)) = self
+                .cell
+                .filter(|_| !editing && refused_error.is_none())
+                .zip(self.col_key(i))
+            {
+                let mut painter = CellUi::new(ui.reborrow(), text_rect, style);
+                painter.align(align);
+                render(
+                    GridCell {
+                        row_key: key,
+                        column_key,
+                        row,
+                        column: i,
+                        value: cell,
+                        flags: cflags,
+                        style,
+                    },
+                    &mut painter,
+                );
+            } else {
+                paint_aligned(ui, text_rect, text, align, style);
+            }
             if !inert {
                 ui.register_part(self.id, PartRef::item(Part::CELL, key), rect);
             }
