@@ -13,6 +13,8 @@ pub struct Workbench {
     pub connection: Connection,
     /// Database catalog.
     pub catalog: Catalog,
+    current_schema: String,
+    schema_caption: String,
     /// Explorer rows.
     pub explorer: Vec<ExplorerItem>,
     /// Explorer filter text.
@@ -38,6 +40,8 @@ impl Workbench {
     pub fn new(connection: Connection, catalog: Catalog) -> Self {
         Self {
             owner: std::sync::Arc::new(()),
+            current_schema: "public".to_owned(),
+            schema_caption: "public ".to_owned(),
             explorer: tabs::explorer_items(&catalog),
             connection,
             catalog,
@@ -51,6 +55,32 @@ impl Workbench {
             maximized: false,
         }
     }
+    /// Schema selected for explorer reconstruction.
+    pub fn current_schema(&self) -> &str {
+        &self.current_schema
+    }
+
+    pub(crate) fn schema_caption(&self) -> &str {
+        &self.schema_caption
+    }
+
+    /// Select an existing schema while preserving every owned tab and draft.
+    pub fn select_schema(&mut self, schema: &str) -> bool {
+        if !self
+            .catalog
+            .schemas
+            .iter()
+            .any(|candidate| candidate == schema)
+        {
+            return false;
+        }
+        schema.clone_into(&mut self.current_schema);
+        self.schema_caption = format!("{schema} ");
+        self.explorer_filter.clear();
+        self.explorer_selected = 0;
+        true
+    }
+
     /// Visible explorer rows.
     pub fn visible_explorer(&self) -> Vec<(usize, &ExplorerItem)> {
         let query = self.explorer_filter.to_ascii_lowercase();
@@ -78,6 +108,15 @@ impl Workbench {
 
     /// Open a table by its schema-qualified identity.
     pub fn open_table_in_schema(&mut self, schema: &str, name: &str) -> bool {
+        if let Some(key) = self.tabs.iter().find_map(|record| match record.payload() {
+            Tab::Table(tab) if tab.table.schema == schema && tab.table.name == name => {
+                Some(record.key())
+            }
+            _ => None,
+        }) {
+            self.active = Some(key);
+            return true;
+        }
         let Some(table) = self.catalog.find(Some(schema), name).cloned() else {
             return false;
         };

@@ -10,6 +10,7 @@ mod domain;
 mod filter_editor;
 mod grid_model;
 mod model;
+mod quick_switcher;
 mod sql;
 mod tabs;
 mod workbench;

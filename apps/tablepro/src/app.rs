@@ -5,9 +5,9 @@ use junie_tui::{
     Action, ActionKey, App, Chord, Color, Cx, Dialog, DialogAction, DialogState, FgStep, Field,
     Focusability, Form, FormAction, FormState, FrameRead, Grid, GridAction, GridEditor, GridModel,
     Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, Modifier, NodeKind,
-    Panel, PanelKind, Part, Phase, Response, Role, RowUi, Size, Span, SplitAxis, SplitPane,
-    SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextInput, TextInputState, Theme,
-    Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, wrap,
+    Panel, PanelKind, Part, Phase, PickerAction, Response, Role, RowUi, Size, Span, SplitAxis,
+    SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextInput, TextInputState,
+    Theme, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, wrap,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
@@ -15,6 +15,8 @@ use crate::db::{
     self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
 };
 use crate::domain::ResultGrid;
+use crate::model::SwitchTarget;
+use crate::quick_switcher::{self, QuickSwitcher};
 use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
@@ -460,6 +462,7 @@ pub struct TableProApp {
     destructive_intent: Option<DestructiveRequest>,
     destructive_notice: Option<&'static str>,
     quit_state: DialogState,
+    switcher: QuickSwitcher,
     /// Current product screen.
     pub screen: Screen,
     /// Current visual matrix surface.
@@ -502,6 +505,7 @@ impl core::fmt::Debug for TableProApp {
             .field("destructive_intent", &self.destructive_intent)
             .field("has_destructive_notice", &self.destructive_notice.is_some())
             .field("quit_state", &self.quit_state)
+            .field("switcher", &"<query and target snapshot>")
             .field("connections_screen", &self.connections_screen)
             .field("workbench", &self.workbench)
             .field("connection_nodes", &self.connection_nodes.len())
@@ -542,7 +546,7 @@ impl TableProApp {
         let connection_tree_state = initial_connection_tree_state(&connection_nodes);
         let connection_visual_tree_state = initial_connection_visual_tree_state(&connection_nodes);
         let explorer_nodes = build_explorer_nodes(&catalog);
-        let explorer_tree_state = initial_explorer_tree_state(&explorer_nodes);
+        let explorer_tree_state = initial_explorer_tree_state(&explorer_nodes, "public");
         let mut app = Self {
             safe_mode: connection.safe_mode,
             catalog: catalog.clone(),
@@ -555,6 +559,7 @@ impl TableProApp {
             destructive_intent: None,
             destructive_notice: None,
             quit_state: DialogState::default(),
+            switcher: QuickSwitcher::default(),
             screen: Screen::Connections,
             surface: Surface::Connections,
             connections_screen: ConnectionsScreen::new(connections),
@@ -775,11 +780,11 @@ impl TableProApp {
             .focused(false)
     }
 
-    fn explorer_panel() -> Panel<'static> {
+    fn explorer_panel(schema: &str) -> Panel<'_> {
         Panel::new(EXPLORER_PANEL)
             .kind(PanelKind::Framed)
             .title(" Explorer ")
-            .meta("public ")
+            .meta(schema)
             .focused(true)
             .patch_part(&FRAMED_PANEL_PATCH)
             .slot(Part::GUTTER, &preserve_frame_gutter)
@@ -891,7 +896,8 @@ impl TableProApp {
         self.workbench
             .reconnect_confirmed(connection.clone(), self.catalog.clone());
         self.workbench.new_query("");
-        self.explorer_tree_state = initial_explorer_tree_state(&self.explorer_nodes);
+        self.explorer_tree_state =
+            initial_explorer_tree_state(&self.explorer_nodes, self.workbench.current_schema());
         self.tabs_state = TabsState::default();
         self.split_state = SplitPaneState::default();
         self.sync_tabs_state();
@@ -913,6 +919,17 @@ impl TableProApp {
         } else {
             self.tabs_state = TabsState::default();
         }
+    }
+
+    /// Select a catalog schema and reconstruct its explorer expansion context.
+    pub fn select_schema(&mut self, schema: &str) -> bool {
+        if !self.workbench.select_schema(schema) {
+            return false;
+        }
+        self.explorer_nodes = build_explorer_nodes(&self.workbench.catalog);
+        reset_explorer_tree_state(&mut self.explorer_tree_state, &self.explorer_nodes, schema);
+        self.status = format!("Schema {schema}");
+        true
     }
 
     fn open_table(&mut self, item: &ExplorerItem) -> bool {
@@ -1339,6 +1356,99 @@ impl TableProApp {
         );
     }
 
+    fn open_switcher(&mut self, cx: &mut Cx<'_>) {
+        self.switcher.open(&self.workbench);
+        cx.open_layer(
+            quick_switcher::ID,
+            self.switcher.component().layer(cx, &self.switcher.items),
+        );
+        self.surface = Surface::QuickSwitcher;
+    }
+
+    fn update_switcher(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let was_open = cx.is_open(quick_switcher::ID);
+        let mut response =
+            self.switcher
+                .component()
+                .update(cx, &mut self.switcher.state, &self.switcher.items);
+        match response.take_action() {
+            Some(PickerAction::QueryChanged | PickerAction::Scope(_)) if was_open => {
+                self.switcher.refresh();
+            }
+            Some(PickerAction::Chosen(key) | PickerAction::ChosenAlt(key)) if was_open => {
+                let target = self
+                    .switcher
+                    .items
+                    .iter()
+                    .find(|item| ItemKey::text(&item.key) == key)
+                    .map(|item| item.target.clone());
+                cx.close_layer(quick_switcher::ID, None);
+                self.sync_active_tab();
+                if self.workbench.matches_owner(&self.switcher.owner) {
+                    if let Some(target) = target {
+                        self.choose_switch_target(cx, target);
+                    }
+                } else {
+                    "Workbench changed; reopen switcher".clone_into(&mut self.status);
+                }
+            }
+            _ => {}
+        }
+        if was_open && !cx.is_open(quick_switcher::ID) && self.surface == Surface::QuickSwitcher {
+            self.sync_active_tab();
+        }
+        response.erase()
+    }
+
+    fn choose_switch_target(&mut self, cx: &mut Cx<'_>, target: SwitchTarget) {
+        let changed = match target {
+            SwitchTarget::Table { schema, name } | SwitchTarget::View { schema, name } => {
+                let opened = self.workbench.open_table_in_schema(&schema, &name);
+                if opened {
+                    self.status = format!("Opened {schema}.{name}");
+                }
+                opened
+            }
+            SwitchTarget::OpenTab(key) => self.workbench.activate(key),
+            SwitchTarget::Query(id) => {
+                let sql = self
+                    .workbench
+                    .history
+                    .entries
+                    .iter()
+                    .find(|entry| entry.id == id)
+                    .map(|entry| entry.sql.clone());
+                sql.is_some_and(|sql| self.workbench.new_query(sql).is_some())
+            }
+            SwitchTarget::Schema(schema) => {
+                if self.select_schema(&schema) {
+                    cx.focus(EXPLORER);
+                }
+                return;
+            }
+            SwitchTarget::Database(name) => {
+                if self.workbench.catalog.database == name {
+                    cx.focus(EXPLORER);
+                }
+                return;
+            }
+            SwitchTarget::Connection(_) => false,
+        };
+        if changed {
+            self.sync_active_tab();
+            if let Some(focus) = self.query_id().or_else(|| self.result_id()) {
+                cx.focus(focus);
+            }
+        } else {
+            "Target unavailable; reopen switcher".clone_into(&mut self.status);
+            if let Some(focus) = self.query_id().or_else(|| self.result_id()) {
+                cx.focus(focus);
+            } else {
+                cx.focus(EXPLORER);
+            }
+        }
+    }
+
     fn stale_destructive(&mut self) {
         self.destructive_notice = Some("Work changed; request again");
     }
@@ -1650,7 +1760,7 @@ impl TableProApp {
     }
 
     fn draw_explorer(&self, ui: &mut Ui<'_>, area: junie_tui::Rect) {
-        let panel = Self::explorer_panel();
+        let panel = Self::explorer_panel(self.workbench.schema_caption());
         let inner = panel.inner(ui, area);
         let body = legacy_tree_body(inner);
         panel.draw(ui, area, |_, _| {});
@@ -1689,7 +1799,7 @@ impl TableProApp {
     fn draw_content(&self, ui: &mut Ui<'_>, area: junie_tui::Rect) {
         let (title, meta) = match self.workbench.active() {
             Some(Tab::Table(table)) => (
-                format!(" public › {}", table.table.name),
+                qualified_label(" ", &table.table.schema, &table.table.name),
                 Some(format!("{} cols ", table.table.columns.len())),
             ),
             Some(Tab::Query(query)) => (format!(" {}", query.name), None),
@@ -1969,23 +2079,28 @@ fn build_explorer_nodes(catalog: &Catalog) -> Vec<ExplorerNode> {
     nodes
 }
 
-fn initial_explorer_tree_state(nodes: &[ExplorerNode]) -> TreeState {
+fn initial_explorer_tree_state(nodes: &[ExplorerNode], schema: &str) -> TreeState {
     let mut state = TreeState::default();
+    reset_explorer_tree_state(&mut state, nodes, schema);
+    state
+}
+
+fn reset_explorer_tree_state(state: &mut TreeState, nodes: &[ExplorerNode], schema: &str) {
+    state.collapse_all();
     for node in nodes.iter().filter(|node| {
         matches!(node, ExplorerNode::Database { .. })
-            || matches!(node, ExplorerNode::Schema { name } if name == "public")
-            || matches!(node, ExplorerNode::Group { name, .. } if name == "Tables")
+            || matches!(node, ExplorerNode::Schema { name } if name == schema)
+            || matches!(node, ExplorerNode::Group { schema: group_schema, name } if group_schema == schema && name == "Tables")
     }) {
         state.expand(explorer_node_key(node));
     }
     if let Some((index, node)) = nodes
         .iter()
         .enumerate()
-        .find(|(_, node)| matches!(node, ExplorerNode::Schema { name } if name == "public"))
+        .find(|(_, node)| matches!(node, ExplorerNode::Schema { .. }))
     {
         state.set_cursor(index, explorer_node_key(node));
     }
-    state
 }
 
 fn explorer_node_key(node: &ExplorerNode) -> ItemKey {
@@ -2006,6 +2121,21 @@ fn explorer_node(node: &ExplorerNode) -> TreeNode {
         ExplorerNode::Group { .. } => TreeNode::parent(2).keyed(explorer_node_key(node)),
         ExplorerNode::Object { .. } => TreeNode::leaf(3).keyed(explorer_node_key(node)),
     }
+}
+
+fn qualified_label(prefix: &str, left: &str, right: &str) -> String {
+    let mut text = String::with_capacity(
+        prefix
+            .len()
+            .saturating_add(left.len())
+            .saturating_add(right.len())
+            .saturating_add(" › ".len()),
+    );
+    text.push_str(prefix);
+    text.push_str(left);
+    text.push_str(" › ");
+    text.push_str(right);
+    text
 }
 
 fn compact_count(rows: usize) -> String {
@@ -2318,7 +2448,7 @@ fn draw_header(ui: &mut Ui<'_>, area: junie_tui::Rect, app: &TableProApp) {
             Environment::Local | Environment::Development => "·",
         };
         let environment = app.connection.environment.label();
-        let path = format!("{} › public", app.connection.database);
+        let path = qualified_label("", &app.connection.database, app.workbench.current_schema());
         ui.paint_spans(
             area,
             &[
@@ -2736,6 +2866,13 @@ impl App for TableProApp {
         reason = "update keeps public component routing and product command arbitration in one phase"
     )]
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if cx.update_cause() == UpdateCause::Bootstrap
+            && self.screen == Screen::Workbench
+            && self.surface == Surface::QuickSwitcher
+        {
+            self.open_switcher(cx);
+        }
+        let switcher_was_open = cx.is_open(quick_switcher::ID);
         let modal_was_open = self.destructive_intent.is_some();
         let mut response = self.update_destructive_dialog(cx);
         response |= self.update_tab_controls(cx);
@@ -2754,11 +2891,15 @@ impl App for TableProApp {
                 .update(cx, &mut self.tabs_state, self.workbench.tabs())
                 .erase();
         }
+        response |= self.update_switcher(cx);
+        if switcher_was_open {
+            return response;
+        }
         // Stateless props have no update method, but their factories remain
         // the single source of configuration for both runtime phases.
         let _ = Self::connections_panel("", None);
         let _ = Self::connection_details_panel("");
-        let _ = Self::explorer_panel();
+        let _ = Self::explorer_panel(self.workbench.schema_caption());
         let _ = Self::content_panel("", None);
         if matches!(
             cx.update_cause(),
@@ -2810,8 +2951,10 @@ impl App for TableProApp {
                     response |= Response::changed();
                 }
                 c if c == OPEN => {
-                    self.surface = Surface::QuickSwitcher;
-                    response |= Response::changed();
+                    if self.screen == Screen::Workbench {
+                        self.open_switcher(cx);
+                        response |= Response::changed();
+                    }
                 }
                 c if c == NEW_QUERY => {
                     self.new_query("");
@@ -3003,6 +3146,11 @@ impl App for TableProApp {
             }
         }
         draw_footer(ui, rows[2], self);
+        ui.layer(quick_switcher::ID, |ui, area| {
+            self.switcher
+                .component()
+                .draw(ui, area, &self.switcher.state, &self.switcher.items);
+        });
         if let Some(intent) = self.destructive_intent.as_ref() {
             ui.layer(QUIT_DIALOG, |ui, area| {
                 intent.dialog().draw(ui, area, &self.quit_state, |_, _| {});
