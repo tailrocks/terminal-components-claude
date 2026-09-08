@@ -44,15 +44,25 @@ pub enum DialogCmd {
     Activate,
 }
 
+const PREVIOUS_ACTION_BINDING: Binding<DialogCmd> = Binding {
+    action: ActionKey::custom("dialog.previous-action"),
+    chord: Some(Chord::key(KeyCode::Left)),
+    cmd: DialogCmd::PrevAction,
+    label: "Prev",
+    priority: 20,
+    visible: false,
+};
+const NEXT_ACTION_BINDING: Binding<DialogCmd> = Binding {
+    action: ActionKey::custom("dialog.next-action"),
+    chord: Some(Chord::key(KeyCode::Right)),
+    cmd: DialogCmd::NextAction,
+    label: "Next",
+    priority: 20,
+    visible: false,
+};
+const NAVIGATION_BINDINGS: &[Binding<DialogCmd>] = &[PREVIOUS_ACTION_BINDING, NEXT_ACTION_BINDING];
 const BINDINGS: &[Binding<DialogCmd>] = &[
-    Binding {
-        action: ActionKey::custom("dialog.previous-action"),
-        chord: Some(Chord::key(KeyCode::Left)),
-        cmd: DialogCmd::PrevAction,
-        label: "Prev",
-        priority: 20,
-        visible: false,
-    },
+    PREVIOUS_ACTION_BINDING,
     Binding {
         action: ActionKey::custom("dialog.activate.enter"),
         chord: Some(Chord::key(KeyCode::Enter)),
@@ -69,14 +79,7 @@ const BINDINGS: &[Binding<DialogCmd>] = &[
         priority: 10,
         visible: false,
     },
-    Binding {
-        action: ActionKey::custom("dialog.next-action"),
-        chord: Some(Chord::key(KeyCode::Right)),
-        cmd: DialogCmd::NextAction,
-        label: "Next",
-        priority: 20,
-        visible: false,
-    },
+    NEXT_ACTION_BINDING,
 ];
 
 const CONFIRM_ACTIONS: [Action<'static>; 2] = [
@@ -886,10 +889,15 @@ impl<'a> Dialog<'a> {
                             .disabled(!enabled)
                             .draw(ui, r);
                         if enabled {
+                            // Extend the Button table; publishing another static
+                            // table would replace its Enter/Space activation.
                             ui.publish_dynamic_bindings(
                                 action_id,
                                 ui.state(action_id),
-                                core::iter::once((a.key(), a.chord_ref())),
+                                NAVIGATION_BINDINGS
+                                    .iter()
+                                    .map(|binding| (binding.action, binding.chord))
+                                    .chain(core::iter::once((a.key(), a.chord_ref()))),
                             );
                         }
                         if let Some(chord) = ui.effective_chord(action_id, a.key(), a.chord_ref()) {
