@@ -87,6 +87,7 @@ view/behavior proof -> review -> integration -> full candidate verification.
 | Holla resolved footer | b44de49 | Root99MSRV tests pass; status/EDIT/centering applied after focused hint selection; complete visual fidelity remains pending |
 | NavList scrolling | 5b64ce0 | Independent128 default frames unchanged; root747lib+12MSRV nav/scroll tests pass; actual Home caller migration pending |
 | Jackin tick admission | ef54503 | Independent exact6ec2d76 review and root28MSRV timing/preview/CLI tests pass; delayed wakes coalesce, unchanged-time events do not age world; feedback and missing reducers remain |
+| Spinner/pause/Meter defaults | fa0fe76, 97577b4, d4d0a51 | Root747lib+8MSRV public tests pass; independent override/default-cell review accepted three slices; b241f23 readout held after confirmed one-cell error marker loss; no baseline approval |
 
 Detailed reports and immutable hashes remain in the external evidence folders:
 publication, theme-contract, scene-final-independent, monotonic-independent,
@@ -110,7 +111,9 @@ showcase-fidelity, historical-regeneration and test-inventory.
    theme/motion/clock axes and missing targets must fail, never be ignored.
    Phase2 candidate7e8a36c rejected: root actual-compiler probe changed an ignored
    include_str input without invalidating provenance. Structural input attestation
-   repair is assigned; no production capture acceptance rests on that candidate.
+   repair12fb562 awaits independent review; no production capture acceptance rests
+   on the rejected candidate. Grid cursor5ed0ea6 also awaits repair: pending reveal
+   is consumed before first layout and stale indices survive pre-publication reorder.
 6. Complete exact test identities/relocations, mutation cases, full feature/MSRV
    matrix, all boundary/doc/perf/parity/capture gates, independent images/live
    journeys, coherent normative docs, PR and exact merged-source proof.
