@@ -904,14 +904,28 @@ fn local_override_page_shows_three_distinct_buttons() {
     let patched_title = cell_style(&panels, "Titled card");
     assert_eq!(
         patched_title.0,
-        Theme::junie().color.fg[junie_tui::FgStep::Secondary.index()]
+        require(
+            Theme::junie()
+                .color
+                .fg
+                .get(junie_tui::FgStep::Secondary.index())
+                .copied(),
+            "secondary foreground token"
+        )
     );
     assert!(!patched_title.2.contains(Modifier::BOLD));
     let page_title = panels.cell(26, 2);
     assert_eq!(page_title.symbol(), "P");
     assert_eq!(
         page_title.fg,
-        Theme::junie().color.fg[junie_tui::FgStep::Primary.index()]
+        require(
+            Theme::junie()
+                .color
+                .fg
+                .get(junie_tui::FgStep::Primary.index())
+                .copied(),
+            "primary foreground token"
+        )
     );
     assert!(page_title.modifier.contains(Modifier::BOLD));
     assert!(panels.diagnostics().is_empty(), "Panels diagnostics");
