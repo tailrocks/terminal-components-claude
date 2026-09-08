@@ -797,3 +797,57 @@ fn quit_confirm_on_production_names_the_remote_identity() {
     let _ = h.key(KeyCode::Enter);
     assert!(!h.app().quit);
 }
+
+#[test]
+fn pg_lock_tree_cancel_resumes_waiters() {
+    let mut h = fixture(Scenario::RemoteHost, Motion::Paused, 4_000, 120, 40);
+    let _ = h.type_str("locks");
+    let _ = h.key(KeyCode::Enter);
+    let t = h.text();
+    assert!(t.contains("Database lock tree"), "{t}");
+    assert!(t.contains("pid 4201 · payments · ALTER TABLE"), "{t}");
+    assert!(t.contains("cancel before terminate"), "{t}");
+    // focus starts on Cancel blocker (the policy-recommended action)
+    let _ = h.key(KeyCode::Enter);
+    assert!(
+        h.text()
+            .contains("Cancelled pid 4201 · 2 waiting sessions resumed"),
+        "{}",
+        h.text()
+    );
+    // fixture truth: blocker gone, waiters unblocked
+    let sessions = h.app().world.pg.as_ref();
+    assert!(sessions.is_some(), "fixture sessions must exist");
+    let Some(sessions) = sessions else { return };
+    assert!(!sessions.iter().any(|s| s.pid == 4201));
+    assert!(sessions.iter().all(|s| s.blocked_by.is_none()));
+    // reopening revalidates: no blocker, healthy status, no dialog
+    let _ = h.key(KeyCode::Esc);
+    let _ = h.type_str("locks");
+    let _ = h.key(KeyCode::Enter);
+    assert!(
+        h.text().contains("No blockers · sessions healthy"),
+        "{}",
+        h.text()
+    );
+}
+
+#[test]
+fn pg_terminate_revalidates_before_killing() {
+    let mut h = fixture(Scenario::RemoteHost, Motion::Paused, 4_000, 120, 40);
+    let _ = h.type_str("locks");
+    let _ = h.key(KeyCode::Enter);
+    // focus starts on Cancel blocker; one Right reaches Terminate
+    let _ = h.key(KeyCode::Right);
+    let _ = h.key(KeyCode::Enter);
+    assert!(
+        h.text()
+            .contains("Terminated pid 4201 after revalidation · 2 waiting sessions resumed"),
+        "{}",
+        h.text()
+    );
+    let sessions = h.app().world.pg.as_ref();
+    assert!(sessions.is_some(), "fixture sessions must exist");
+    let Some(sessions) = sessions else { return };
+    assert!(!sessions.iter().any(|s| s.pid == 4201));
+}

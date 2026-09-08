@@ -398,6 +398,16 @@ impl ProductDialog {
         cx.open_layer(DIALOG, props.layer(cx));
         cx.focus(if matches!(self.intent, Intent::Alias(_)) {
             props.input_id()
+        } else if matches!(
+            self.intent,
+            Intent::Database {
+                cancel: Some(_),
+                ..
+            }
+        ) {
+            // The pinned lock dialog retains the policy-recommended cancel
+            // action's initial focus when inserting Close before it.
+            props.action_id(1)
         } else {
             props.action_id(0)
         });
