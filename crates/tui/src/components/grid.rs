@@ -662,8 +662,8 @@ pub const GRID_MAX_COLUMNS: usize = 64;
 /// all keyed. `Debug` redacts the editor's draft, which `TextInputState`
 /// already does.
 ///
-/// Its public readers expose only durable state owned by the grid (§52), not
-/// model indices, editor drafts or derived viewport geometry.
+/// Its public readers expose durable keyed state and a borrowed inline draft
+/// for application guards, never model indices or derived viewport geometry.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct GridState {
     /// Row cursor key, row selection, vertical scroll and the stamp.
