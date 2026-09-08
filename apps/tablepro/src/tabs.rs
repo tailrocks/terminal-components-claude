@@ -299,6 +299,9 @@ impl QueryTab {
     /// Returns a parser or executor message when the query is unsupported or
     /// the catalog cannot evaluate it.
     pub fn execute(&mut self, catalog: &Catalog) -> Result<usize, String> {
+        if self.has_pending_result() {
+            return Err("Pending result edits require confirmation".to_owned());
+        }
         let statement = sql::parse(self.query.trim()).map_err(|error| error.message)?;
         let sql::Statement::Select(select) = statement else {
             return Err("The demo executor only runs SELECT statements".to_owned());
@@ -322,6 +325,12 @@ impl QueryTab {
         };
         self.plan = Some(sql::explain(catalog, &select, false).map_err(|error| error.message)?);
         Ok(())
+    }
+    /// Whether replacing this result would discard committed or retained inline edits.
+    pub fn has_pending_result(&self) -> bool {
+        self.result
+            .as_ref()
+            .is_some_and(|grid| grid.pending_total() > 0)
     }
     /// Whether the editor has changed text since its last saved copy.
     pub fn dirty(&self) -> bool {

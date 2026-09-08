@@ -230,7 +230,20 @@ impl Workbench {
         true
     }
     /// Start another connection without reusing prior control identities.
-    pub fn reconnect(&mut self, connection: Connection, catalog: Catalog) {
+    pub fn reconnect(&mut self, connection: Connection, catalog: Catalog) -> bool {
+        if self.has_unsaved_work() {
+            return false;
+        }
+        self.reconnect_confirmed(connection, catalog);
+        true
+    }
+
+    /// Whether any owned tab has unsaved work, including retained inline drafts.
+    pub fn has_unsaved_work(&self) -> bool {
+        self.tabs.iter().any(TabRecord::dirty)
+    }
+
+    pub(crate) fn reconnect_confirmed(&mut self, connection: Connection, catalog: Catalog) {
         let next_tab_key = self.next_tab_key;
         *self = Self::new(connection, catalog);
         self.next_tab_key = next_tab_key;
@@ -294,6 +307,9 @@ impl Workbench {
     /// be executed by the deterministic catalog.
     pub fn execute_active(&mut self) -> Result<usize, String> {
         let (query, source) = match self.active() {
+            Some(Tab::Query(tab)) if tab.has_pending_result() => {
+                return Err("Pending result edits require confirmation".to_owned());
+            }
             Some(Tab::Query(tab)) => (tab.query.clone(), HistorySource::Editor),
             _ => return Err("Active tab is not a query".to_owned()),
         };

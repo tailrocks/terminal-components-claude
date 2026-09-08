@@ -42,10 +42,45 @@ const CLOSE_ACTIONS: [Action<'static>; 2] = [
     Action::danger(ActionKey::CONFIRM, "Close anyway"),
 ];
 
-#[derive(Debug)]
+const RECONNECT_ACTIONS: [Action<'static>; 2] = [
+    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::danger(ActionKey::CONFIRM, "Reconnect"),
+];
+const REPLACE_ACTIONS: [Action<'static>; 2] = [
+    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::danger(ActionKey::CONFIRM, "Run query"),
+];
+
 enum DestructiveIntent {
     Quit(String),
     CloseTab(TabKey),
+    Reconnect {
+        target: Box<Connection>,
+        source: Box<Connection>,
+        keys: Vec<TabKey>,
+    },
+    ReplaceResult {
+        key: TabKey,
+        query: String,
+        connection: Box<Connection>,
+    },
+}
+
+impl core::fmt::Debug for DestructiveIntent {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Quit(_) => f.write_str("Quit"),
+            Self::CloseTab(key) => f.debug_tuple("CloseTab").field(key).finish(),
+            Self::Reconnect { keys, .. } => f
+                .debug_struct("Reconnect")
+                .field("tabs", &keys.len())
+                .finish_non_exhaustive(),
+            Self::ReplaceResult { key, .. } => f
+                .debug_struct("ReplaceResult")
+                .field("key", key)
+                .finish_non_exhaustive(),
+        }
+    }
 }
 
 impl DestructiveIntent {
@@ -60,6 +95,18 @@ impl DestructiveIntent {
                 "Pending row edits and unsaved query text in this tab will be lost.",
             )
             .actions(&CLOSE_ACTIONS),
+            Self::Reconnect { .. } => Dialog::destructive(
+                QUIT_DIALOG,
+                "Reconnect with unsaved work?",
+                "Pending row edits and unsaved query text in all tabs will be lost.",
+            )
+            .actions(&RECONNECT_ACTIONS),
+            Self::ReplaceResult { .. } => Dialog::destructive(
+                QUIT_DIALOG,
+                "Replace results with unsaved edits?",
+                "Pending row edits in this query result will be lost.",
+            )
+            .actions(&REPLACE_ACTIONS),
         }
     }
 }
@@ -655,8 +702,9 @@ impl TableProApp {
             .connections
             .iter()
             .position(|connection| connection.name == "Production")
+            && let Some(connection) = self.connections.get(index).cloned()
         {
-            let _ = self.connect(index);
+            let _ = self.connect_confirmed(&connection);
         }
     }
 
@@ -771,10 +819,20 @@ impl TableProApp {
         let Some(connection) = self.connections.get(index).cloned() else {
             return false;
         };
+        if self.workbench.has_unsaved_work() {
+            return false;
+        }
+        self.connect_confirmed(&connection)
+    }
+
+    fn connect_confirmed(&mut self, connection: &Connection) -> bool {
         if !self.workbench.can_insert_tab() {
             return false;
         }
-        self.connections_screen.selected = index;
+        let index = self.connections.iter().position(|item| item == connection);
+        if let Some(index) = index {
+            self.connections_screen.selected = index;
+        }
         if connection.outcome != ConnectOutcome::Ok {
             self.status = format!("Connection failed: {}", connection.name);
             self.connections_screen.error = Some("Connection failed; press r to retry".to_owned());
@@ -783,10 +841,9 @@ impl TableProApp {
         }
         self.safe_mode = connection.safe_mode;
         self.connection = connection.clone();
-        self.connections_screen.selected = index;
         self.connections_screen.error = None;
         self.workbench
-            .reconnect(connection.clone(), self.catalog.clone());
+            .reconnect_confirmed(connection.clone(), self.catalog.clone());
         self.workbench.new_query("");
         self.explorer_tree_state = initial_explorer_tree_state(&self.explorer_nodes);
         self.tabs_state = TabsState::default();
@@ -857,6 +914,11 @@ impl TableProApp {
     /// Run a query through the same parser, gate and executor as Ctrl+R.
     pub fn run_query(&mut self, query: impl Into<String>) -> QueryOutcome {
         let query = query.into();
+        if matches!(self.workbench.active(), Some(Tab::Query(tab)) if tab.has_pending_result()) {
+            return QueryOutcome::Rejected {
+                message: "Pending result edits require confirmation".to_owned(),
+            };
+        }
         if !matches!(self.workbench.active(), Some(Tab::Query(_))) {
             if self.workbench.new_query("").is_none() {
                 return QueryOutcome::Rejected {
@@ -870,7 +932,27 @@ impl TableProApp {
     }
     /// Parse, gate and execute the current query.
     pub fn execute_query(&mut self) -> QueryOutcome {
-        let statement = match crate::sql::parse(self.query().trim()) {
+        if matches!(self.workbench.active(), Some(Tab::Query(tab)) if tab.has_pending_result()) {
+            return QueryOutcome::Rejected {
+                message: "Pending result edits require confirmation".to_owned(),
+            };
+        }
+        let Some(key) = self.workbench.active_key() else {
+            return QueryOutcome::Rejected {
+                message: "Active tab is not a query".to_owned(),
+            };
+        };
+        let query = self.query().to_owned();
+        self.execute_snapshot(key, &query)
+    }
+
+    fn execute_snapshot(&mut self, key: TabKey, query: &str) -> QueryOutcome {
+        if !matches!(self.workbench.tab(key), Some(Tab::Query(_))) {
+            return QueryOutcome::Rejected {
+                message: "Query tab is no longer available".to_owned(),
+            };
+        }
+        let statement = match crate::sql::parse(query.trim()) {
             Ok(statement) => statement,
             Err(error) => {
                 let out = QueryOutcome::Rejected {
@@ -912,8 +994,13 @@ impl TableProApp {
                                 rows: result.rows.len(),
                                 editable: result.editable,
                             };
-                            if let Some(Tab::Query(tab)) = self.workbench.active_mut() {
+                            if let Some(Tab::Query(tab)) = self.workbench.tab_mut(key) {
                                 tab.result = Some(GridView::from_result(&result));
+                                if tab.editor_state.draft_text() == Some(query) {
+                                    let _ = tab
+                                        .editor_state
+                                        .commit(&mut tab.query, &junie_tui::NoValidate);
+                                }
                             }
                             self.status = outcome_message(&out);
                             out
@@ -1035,6 +1122,51 @@ impl TableProApp {
         self.destructive_intent = Some(intent);
     }
 
+    fn request_connect(&mut self, cx: &mut Cx<'_>, index: usize) {
+        let Some(target) = self.connections.get(index).cloned() else {
+            return;
+        };
+        if self.workbench.has_unsaved_work() {
+            self.open_destructive(
+                cx,
+                DestructiveIntent::Reconnect {
+                    target: Box::new(target),
+                    source: Box::new(self.workbench.connection.clone()),
+                    keys: self.workbench.tabs().iter().map(TabRecord::key).collect(),
+                },
+            );
+        } else {
+            let _ = self.connect_confirmed(&target);
+        }
+    }
+
+    fn request_query(&mut self, cx: &mut Cx<'_>) {
+        let Some(key) = self.workbench.active_key() else {
+            return;
+        };
+        let Some(Tab::Query(tab)) = self.workbench.tab(key) else {
+            return;
+        };
+        if tab.has_pending_result() {
+            let query = tab
+                .editor_state
+                .draft_text()
+                .unwrap_or(&tab.query)
+                .to_owned();
+            self.open_destructive(
+                cx,
+                DestructiveIntent::ReplaceResult {
+                    key,
+                    query,
+                    connection: Box::new(self.workbench.connection.clone()),
+                },
+            );
+        } else {
+            self.commit_query_edit();
+            let _ = self.execute_query();
+        }
+    }
+
     fn request_close_tab(&mut self, cx: &mut Cx<'_>, key: TabKey) {
         let Some(tab) = self.workbench.tabs().iter().find(|tab| tab.key() == key) else {
             return;
@@ -1072,6 +1204,27 @@ impl TableProApp {
                                 .or_else(|| self.result_id())
                                 .unwrap_or(EXPLORER);
                             cx.focus(focus);
+                        }
+                    }
+                    DestructiveIntent::Reconnect {
+                        target,
+                        source,
+                        keys,
+                    } => {
+                        if self.workbench.connection == *source
+                            && self.workbench.tabs().len() == keys.len()
+                            && keys.iter().all(|key| self.workbench.tab(*key).is_some())
+                        {
+                            let _ = self.connect_confirmed(&target);
+                        }
+                    }
+                    DestructiveIntent::ReplaceResult {
+                        key,
+                        query,
+                        connection,
+                    } => {
+                        if self.workbench.connection == *connection {
+                            let _ = self.execute_snapshot(key, &query);
                         }
                     }
                     DestructiveIntent::Quit(_) => {}
@@ -2433,8 +2586,7 @@ impl App for TableProApp {
                     }
                 }
                 c if c == RUN => {
-                    self.commit_query_edit();
-                    let _ = self.execute_query();
+                    self.request_query(cx);
                     response |= Response::changed();
                 }
                 c if c == OPEN => {
@@ -2487,7 +2639,10 @@ impl App for TableProApp {
                                 self.connections_screen.connections.push(connection.clone());
                                 self.rebuild_connection_nodes();
                                 if action == &FormAction::Action(connections::SAVE_CONNECT) {
-                                    let _ = self.connect(self.connections.len().saturating_sub(1));
+                                    self.request_connect(
+                                        cx,
+                                        self.connections.len().saturating_sub(1),
+                                    );
                                     self.close_connection_form();
                                 }
                             }
@@ -2512,7 +2667,7 @@ impl App for TableProApp {
                 )
             });
             if details_clicked {
-                let _ = self.connect(self.connections_screen.selected);
+                self.request_connect(cx, self.connections_screen.selected);
                 return response | Response::changed();
             }
             let tree_response = connection_tree().update(
@@ -2531,7 +2686,7 @@ impl App for TableProApp {
                     .iter()
                     .find(|node| connection_node_key(node) == *key)
             {
-                let _ = self.connect(*index);
+                self.request_connect(cx, *index);
             }
             response |= tree_response.erase();
             return response;
@@ -2671,4 +2826,87 @@ pub fn run_with(theme: Theme, connect: Option<&str>) -> std::io::Result<()> {
         let _ = app.connect(index);
     }
     junie_tui::run(app, theme)
+}
+
+#[cfg(test)]
+mod replacement_tests {
+    use super::*;
+    use junie_tui::GridEditor;
+    use junie_tui_testing::Harness;
+
+    fn pending() -> TableProApp {
+        let mut app = TableProApp::default();
+        app.set_surface(Surface::PendingChangeBar);
+        app.screen = Screen::Connections;
+        app
+    }
+
+    #[test]
+    fn reconnect_uses_configuration_snapshot_after_catalog_reorder() {
+        let mut h = Harness::new(pending(), Theme::junie(), 120, 40);
+        let target = h.app().connections_screen.selected;
+        let Some(expected) = h.app().connections.get(target).cloned() else {
+            unreachable!("target")
+        };
+        let _ = h.click_id(CONNECTION_DETAILS);
+        assert!(h.find("Reconnect with unsaved work?").is_some());
+        h.app_mut().connections.reverse();
+        let _ = h.key(KeyCode::Tab);
+        let _ = h.key(KeyCode::Enter);
+        assert_eq!(h.app().workbench.connection, expected);
+        assert_eq!(h.app().workbench.tabs().len(), 1);
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    }
+
+    #[test]
+    fn new_tab_after_reconnect_prompt_invalidates_captured_scope() {
+        let mut h = Harness::new(pending(), Theme::junie(), 120, 40);
+        let _ = h.click_id(CONNECTION_DETAILS);
+        let Some(key) = h.app_mut().workbench.new_query("new unsaved query") else {
+            unreachable!("key")
+        };
+        let count = h.app().workbench.tabs().len();
+        let _ = h.key(KeyCode::Tab);
+        let _ = h.key(KeyCode::Enter);
+        assert_eq!(h.app().workbench.tabs().len(), count);
+        assert_eq!(h.app().workbench.active_key(), Some(key));
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    }
+
+    #[test]
+    fn captured_connection_and_sql_debug_are_redacted_through_app() {
+        let mut app = pending();
+        app.destructive_intent = Some(DestructiveIntent::Reconnect {
+            target: Box::new(Connection {
+                host: "secret-reconnect-host".to_owned(),
+                ..app.connection.clone()
+            }),
+            source: Box::new(app.connection.clone()),
+            keys: Vec::new(),
+        });
+        assert!(!format!("{app:?}").contains("secret-reconnect-host"));
+        let _ = app
+            .workbench
+            .new_query("SELECT id, currency FROM orders LIMIT 1");
+        let catalog = app.catalog.clone();
+        let Some(Tab::Query(tab)) = app.workbench.active_mut() else {
+            unreachable!("query")
+        };
+        assert!(tab.execute(&catalog).is_ok());
+        let Some(view) = tab.result.as_mut() else {
+            unreachable!("result")
+        };
+        assert!(view.model.commit_cell(0, 1, "secret-result-value").is_ok());
+        let Some(key) = app.workbench.active_key() else {
+            unreachable!("key")
+        };
+        app.destructive_intent = Some(DestructiveIntent::ReplaceResult {
+            key,
+            query: "secret-captured-sql".to_owned(),
+            connection: Box::new(app.connection.clone()),
+        });
+        let text = format!("{app:?}");
+        assert!(!text.contains("secret-captured-sql"));
+        assert!(!text.contains("secret-result-value"));
+    }
 }
