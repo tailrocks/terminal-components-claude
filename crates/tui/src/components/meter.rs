@@ -543,7 +543,7 @@ impl<'a> Meter<'a> {
                     ..area
                 };
                 let used = self.paint_readout(ui, text, value, label.style, readout);
-                x = x.saturating_add(used).saturating_add(1);
+                x = x.saturating_add(used).saturating_add(u16::from(used > 0));
             }
             if let Some(g) = glyph {
                 let cell = Rect {

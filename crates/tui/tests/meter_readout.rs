@@ -137,3 +137,90 @@ fn value_only_readout_reserves_marker_space_under_clipping() {
         Some("!")
     );
 }
+
+#[test]
+fn tiny_value_only_marker_uses_gap_only_after_painted_text() {
+    for width in 0..=2 {
+        for value in ["value", "界", "e\u{301}"] {
+            let mut scene = Scene::new(
+                "tiny_meter_marker",
+                Theme::junie(),
+                ColorLevel::TrueColor,
+                width,
+                1,
+            );
+            scene.draw(|ui, area| {
+                Meter::new(ID)
+                    .value(value)
+                    .status(Status::Error)
+                    .draw(ui, area);
+            });
+            if width > 0 {
+                assert_eq!(
+                    scene.buffer().cell((0, 0)).map(junie_tui::Cell::symbol),
+                    Some("!"),
+                    "width{width} value{value}"
+                );
+            }
+        }
+    }
+}
+#[test]
+fn tiny_custom_wide_marker_and_slots_receive_clipped_geometry() {
+    for width in 0..=2 {
+        let theme = Theme::junie()
+            .builder()
+            .glyph(junie_tui::GlyphRole::Error, "界")
+            .build();
+        let mut scene = Scene::new("tiny_wide_marker", theme, ColorLevel::TrueColor, width, 1);
+        scene.draw(|ui, area| {
+            Meter::new(ID)
+                .value("value")
+                .status(Status::Error)
+                .draw(ui, area);
+        });
+        if width == 2 {
+            assert_eq!(
+                scene.buffer().cell((0, 0)).map(junie_tui::Cell::symbol),
+                Some("界")
+            );
+        }
+        if width == 1 {
+            assert_eq!(
+                scene.buffer().cell((0, 0)).map(junie_tui::Cell::symbol),
+                Some(" ")
+            );
+        }
+        for leading in [false, true] {
+            let seen = Cell::new(None);
+            let slot = |ui: &mut junie_tui::Ui<'_>, rect: junie_tui::Rect| {
+                seen.set(Some(rect));
+                ui.paint_str(rect, "!", ui.surface_style());
+            };
+            let mut scene = Scene::new(
+                "tiny_marker_slot",
+                Theme::junie(),
+                ColorLevel::TrueColor,
+                width,
+                1,
+            );
+            scene.draw(|ui, area| {
+                Meter::new(ID)
+                    .value("value")
+                    .status(if leading { Status::Busy } else { Status::Error })
+                    .leading_activity(leading)
+                    .slot(Part::ICON, &slot)
+                    .draw(ui, area);
+            });
+            if width == 0 {
+                assert!(seen.get().is_none());
+            } else {
+                assert!(seen.get().is_some_and(|r| r.x == 0 && r.width <= width));
+                assert_eq!(
+                    scene.buffer().cell((0, 0)).map(junie_tui::Cell::symbol),
+                    Some("!")
+                );
+            }
+        }
+    }
+}
