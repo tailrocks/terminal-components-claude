@@ -5,7 +5,7 @@ use tablepro_app::{Surface, Tab, TabKey, TableProApp, Value};
 
 fn activate(h: &mut Harness<TableProApp>, key: TabKey) {
     assert!(h.tab_to(Id::root("tablepro.workbench.tab-strip")));
-    for _ in 0..h.app().workbench.tabs.len() {
+    for _ in 0..h.app().workbench.tabs().len() {
         if h.app().workbench.active_key() == Some(key) {
             break;
         }
@@ -44,8 +44,7 @@ fn keyboard_cell_edit_survives_tab_switch_with_pending_cursor_and_undo() {
     let cursor = h
         .app()
         .workbench
-        .active()
-        .and_then(Tab::grid)
+        .active_grid()
         .and_then(|(_, grid)| grid.state.cursor());
     let row_key = h.app().result().row_key(0);
     assert!(
@@ -72,8 +71,7 @@ fn keyboard_cell_edit_survives_tab_switch_with_pending_cursor_and_undo() {
     assert_eq!(
         h.app()
             .workbench
-            .active()
-            .and_then(Tab::grid)
+            .active_grid()
             .and_then(|(_, grid)| grid.state.cursor()),
         cursor
     );
@@ -110,7 +108,14 @@ fn active_key_and_owned_values_survive_earlier_close_and_reorder() {
     assert_eq!(app.workbench.active_key(), Some(key));
     app.workbench.new_query("SELECT * FROM customers LIMIT 1");
     assert!(app.workbench.activate(key));
-    app.workbench.tabs.reverse();
+    let mut keys: Vec<_> = app
+        .workbench
+        .tabs()
+        .iter()
+        .map(tablepro_app::TabRecord::key)
+        .collect();
+    keys.reverse();
+    assert!(app.workbench.reorder_tabs(&keys));
     assert_eq!(app.workbench.active_key(), Some(key));
     assert_eq!(app.result().pending_total(), 1);
     assert_eq!(app.result_id(), Some(key.control("data")));
@@ -172,8 +177,7 @@ fn structure_grid_is_separate_and_data_pending_undo_survives_toggle() {
     let cursor = h
         .app()
         .workbench
-        .active()
-        .and_then(Tab::grid)
+        .active_grid()
         .and_then(|(_, grid)| grid.state.cursor());
     let _ = h.ctrl('d');
     assert_ne!(h.app().result_id(), Some(data_id));
@@ -188,8 +192,7 @@ fn structure_grid_is_separate_and_data_pending_undo_survives_toggle() {
     assert_eq!(
         h.app()
             .workbench
-            .active()
-            .and_then(Tab::grid)
+            .active_grid()
             .and_then(|(_, grid)| grid.state.cursor()),
         cursor
     );
@@ -247,16 +250,28 @@ fn focused_query_identity_and_draft_survive_earlier_insert_close_and_reorder() {
     assert!(h.tab_to(id));
     let _ = h.type_str("draft survives identity changes");
     assert!(h.app_mut().workbench.close_tab(0));
-    h.app_mut().workbench.new_query("inserted neighbor");
-    let Some(neighbor) = h.app_mut().workbench.tabs.pop() else {
-        unreachable!("neighbor")
-    };
-    h.app_mut().workbench.tabs.insert(0, neighbor);
+    assert!(
+        h.app_mut()
+            .workbench
+            .insert_tab(
+                0,
+                Tab::Query(tablepro_app::QueryTab::new(3, "inserted neighbor"))
+            )
+            .is_some()
+    );
     assert!(h.app_mut().workbench.activate(key));
     h.draw();
     assert_eq!(h.app().query_id(), Some(id));
     assert_eq!(h.focus(), Some(id));
-    h.app_mut().workbench.tabs.reverse();
+    let mut keys: Vec<_> = h
+        .app()
+        .workbench
+        .tabs()
+        .iter()
+        .map(tablepro_app::TabRecord::key)
+        .collect();
+    keys.reverse();
+    assert!(h.app_mut().workbench.reorder_tabs(&keys));
     h.draw();
     assert_eq!(h.app().workbench.active_key(), Some(key));
     assert_eq!(h.focus(), Some(id));
@@ -288,7 +303,12 @@ fn inactive_query_result_pending_edits_are_counted_by_quit_guard() {
     assert!(h.find("1 pending row change and 1 unsaved query").is_some());
     assert!(!h.app().should_quit());
     let _ = h.key(KeyCode::Esc);
-    let first = h.app().workbench.tabs.first();
+    let first = h
+        .app()
+        .workbench
+        .tabs()
+        .first()
+        .map(tablepro_app::TabRecord::payload);
     assert!(
         matches!(first, Some(Tab::Query(query)) if query.result.as_ref().is_some_and(|grid| grid.pending_total() == 1))
     );

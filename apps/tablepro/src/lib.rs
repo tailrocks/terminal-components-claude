@@ -27,7 +27,7 @@ pub use filter_editor::{Filter, FilterOp};
 pub use grid_model::{ResultGridModel, StructureModel, TableGridModel, preview_for};
 pub use model::{Completion, History, SwitchItem, SwitchTarget, SwitcherIndex, complete};
 pub use sql::{Decision, ParseError, ResultSet, gate, parse};
-pub use tabs::{ExplorerItem, GridView, HistoryTab, QueryTab, Tab, TabKey, TableTab};
+pub use tabs::{ExplorerItem, GridView, HistoryTab, QueryTab, Tab, TabKey, TabRecord, TableTab};
 pub use workbench::Workbench;
 
 #[cfg(test)]

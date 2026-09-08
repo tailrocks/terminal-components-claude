@@ -15,7 +15,7 @@ use crate::db::{
     self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
 };
 use crate::domain::ResultGrid;
-use crate::tabs::{ExplorerItem, GridView, Tab, TabKey};
+use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
 /// Minimum terminal width.
@@ -499,23 +499,19 @@ impl TableProApp {
     /// Current result adapter.
     pub fn result(&self) -> &ResultGrid {
         self.workbench
-            .active()
-            .and_then(Tab::grid)
+            .active_grid()
             .map_or(&self.empty_result, |(_, grid)| &grid.model)
     }
     /// Stable identity of the active SQL editor.
     pub fn query_id(&self) -> Option<Id> {
         match self.workbench.active() {
-            Some(Tab::Query(tab)) => Some(tab.key.control("query")),
+            Some(Tab::Query(_)) => self.workbench.active_key().map(|key| key.control("query")),
             _ => None,
         }
     }
     /// Stable identity of the active result or structure grid.
     pub fn result_id(&self) -> Option<Id> {
-        self.workbench
-            .active()
-            .and_then(Tab::grid)
-            .map(|(id, _)| id)
+        self.workbench.active_grid().map(|(id, _)| id)
     }
     /// Latest status text.
     pub fn status(&self) -> &str {
@@ -775,6 +771,9 @@ impl TableProApp {
         let Some(connection) = self.connections.get(index).cloned() else {
             return false;
         };
+        if !self.workbench.can_insert_tab() {
+            return false;
+        }
         self.connections_screen.selected = index;
         if connection.outcome != ConnectOutcome::Ok {
             self.status = format!("Connection failed: {}", connection.name);
@@ -805,7 +804,7 @@ impl TableProApp {
 
     fn sync_tabs_state(&mut self) {
         if let Some(active) = self.workbench.active_index()
-            && let Some(key) = self.workbench.tabs.get(active).map(tab_key)
+            && let Some(key) = self.workbench.tabs().get(active).map(tab_key)
         {
             self.tabs_state.set_active(active, key);
         } else {
@@ -824,9 +823,10 @@ impl TableProApp {
     }
 
     fn new_query(&mut self, query: impl Into<String>) {
-        self.workbench.new_query(query);
-        self.sync_tabs_state();
-        self.surface = Surface::QueryEditing;
+        if self.workbench.new_query(query).is_some() {
+            self.sync_tabs_state();
+            self.surface = Surface::QueryEditing;
+        }
     }
 
     fn commit_query_edit(&mut self) {
@@ -858,7 +858,12 @@ impl TableProApp {
     pub fn run_query(&mut self, query: impl Into<String>) -> QueryOutcome {
         let query = query.into();
         if !matches!(self.workbench.active(), Some(Tab::Query(_))) {
-            self.new_query("");
+            if self.workbench.new_query("").is_none() {
+                return QueryOutcome::Rejected {
+                    message: "No tab identities remain".to_owned(),
+                };
+            }
+            self.sync_active_tab();
         }
         self.set_visual_query(&query);
         self.execute_query()
@@ -989,8 +994,8 @@ impl TableProApp {
         let mut pending: usize = 0;
         let mut dirty_queries: usize = 0;
         if self.screen == Screen::Workbench {
-            for tab in &self.workbench.tabs {
-                match tab {
+            for record in self.workbench.tabs() {
+                match record.payload() {
                     Tab::Table(tab) => pending = pending.saturating_add(tab.result.pending_total()),
                     Tab::Query(tab) => {
                         dirty_queries = dirty_queries.saturating_add(usize::from(tab.dirty()));
@@ -1031,7 +1036,7 @@ impl TableProApp {
     }
 
     fn request_close_tab(&mut self, cx: &mut Cx<'_>, key: TabKey) {
-        let Some(tab) = self.workbench.tabs.iter().find(|tab| tab.key() == key) else {
+        let Some(tab) = self.workbench.tabs().iter().find(|tab| tab.key() == key) else {
             return;
         };
         if tab.dirty() {
@@ -1078,25 +1083,22 @@ impl TableProApp {
 
     fn update_tab_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
-        for tab in &mut self.workbench.tabs {
+        for (key, tab) in self.workbench.payloads_mut() {
             if let Tab::Query(query) = tab {
-                response |= query_input(query.key.control("query"), None)
+                response |= query_input(key.control("query"), None)
                     .update(cx, &mut query.editor_state, &mut query.query)
                     .erase();
             }
             match tab {
                 Tab::Table(table) => {
                     let grid_response =
-                        Self::update_grid_view(cx, table.key.control("data"), &mut table.result);
+                        Self::update_grid_view(cx, key.control("data"), &mut table.result);
                     if let Some(action) = grid_response.action_ref() {
                         Self::handle_grid(&mut self.status, action);
                     }
                     response |= grid_response.erase();
-                    let grid_response = Self::update_grid_view(
-                        cx,
-                        table.key.control("structure"),
-                        &mut table.structure,
-                    );
+                    let grid_response =
+                        Self::update_grid_view(cx, key.control("structure"), &mut table.structure);
                     if let Some(action) = grid_response.action_ref() {
                         Self::handle_grid(&mut self.status, action);
                     }
@@ -1105,7 +1107,7 @@ impl TableProApp {
                 Tab::Query(query) => {
                     if let Some(grid) = &mut query.result {
                         let grid_response =
-                            Self::update_grid_view(cx, query.key.control("results"), grid);
+                            Self::update_grid_view(cx, key.control("results"), grid);
                         if let Some(action) = grid_response.action_ref() {
                             Self::handle_grid(&mut self.status, action);
                         }
@@ -1133,7 +1135,7 @@ impl TableProApp {
     }
 
     fn draw_result_grid(&self, ui: &mut Ui<'_>, area: junie_tui::Rect) {
-        if let Some((id, grid)) = self.workbench.active().and_then(Tab::grid) {
+        if let Some((id, grid)) = self.workbench.active_grid() {
             let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable());
             result_grid(id, columns.get(..count).unwrap_or(&[])).draw(
                 ui,
@@ -1349,12 +1351,11 @@ impl TableProApp {
         panel.draw(ui, area, |ui, inner| match self.workbench.active() {
             Some(Tab::Query(query)) => {
                 let rows = fixed_flex_pair(inner, 3);
-                Field::new(
-                    "SQL query",
-                    query_input(query.key.control("query"), Some(&query.query)),
-                )
-                .plain(true)
-                .draw(ui, rows[0], &query.editor_state);
+                if let Some(id) = self.query_id() {
+                    Field::new("SQL query", query_input(id, Some(&query.query)))
+                        .plain(true)
+                        .draw(ui, rows[0], &query.editor_state);
+                }
                 if query.plan.is_some() {
                     ui.paint_str(rows[1], "Explain plan ready", ui.surface_style());
                 } else if query.error.is_some() {
@@ -1685,12 +1686,12 @@ fn explorer_row(node: &ExplorerNode, row: &mut RowUi<'_>) {
     }
 }
 
-fn tab_key(tab: &Tab) -> ItemKey {
+fn tab_key(tab: &TabRecord) -> ItemKey {
     ItemKey::num(tab.key().get())
 }
 
-fn tab_row(tab: &Tab, row: &mut RowUi<'_>) {
-    match tab {
+fn tab_row(tab: &TabRecord, row: &mut RowUi<'_>) {
+    match tab.payload() {
         Tab::Table(table) => {
             row.label_fmt(format_args!("T {}", table.table.name));
         }
@@ -1725,7 +1726,8 @@ fn explorer_tree() -> Tree<
         .row(explorer_row)
 }
 
-fn tab_strip() -> Tabs<'static, Tab, impl Fn(&Tab) -> ItemKey, impl Fn(&Tab, &mut RowUi<'_>)> {
+fn tab_strip()
+-> Tabs<'static, TabRecord, impl Fn(&TabRecord) -> ItemKey, impl Fn(&TabRecord, &mut RowUi<'_>)> {
     Tabs::new(TAB_STRIP)
         .key(tab_key)
         .row(tab_row)
@@ -2388,7 +2390,7 @@ impl App for TableProApp {
                 .update(cx, &mut self.explorer_tree_state, &self.explorer_nodes)
                 .erase();
             response |= tab_strip()
-                .update(cx, &mut self.tabs_state, &self.workbench.tabs)
+                .update(cx, &mut self.tabs_state, self.workbench.tabs())
                 .erase();
         }
         // Stateless props have no update method, but their factories remain
@@ -2422,7 +2424,7 @@ impl App for TableProApp {
                     return self.request_quit(cx);
                 }
                 c if c == UNDO => {
-                    if let Some((id, grid)) = self.workbench.active_mut().and_then(Tab::grid_mut)
+                    if let Some((id, grid)) = self.workbench.active_grid_mut()
                         && cx.state(id).contains(junie_tui::StateFlags::FOCUSED)
                         && !grid.state.is_editing()
                     {
@@ -2551,17 +2553,17 @@ impl App for TableProApp {
         }
         response |= tree_response.erase();
 
-        let tabs_response = tab_strip().update(cx, &mut self.tabs_state, &self.workbench.tabs);
+        let tabs_response = tab_strip().update(cx, &mut self.tabs_state, self.workbench.tabs());
         if let Some(action) = tabs_response.action_ref() {
             match *action {
                 TabsAction::Activated(key) => {
                     if let Some(index) = self
                         .workbench
-                        .tabs
+                        .tabs()
                         .iter()
                         .position(|tab| tab_key(tab) == key)
                     {
-                        if let Some(tab) = self.workbench.tabs.get(index) {
+                        if let Some(tab) = self.workbench.tabs().get(index) {
                             let key = tab.key();
                             let _ = self.workbench.activate(key);
                         }
@@ -2569,7 +2571,8 @@ impl App for TableProApp {
                     }
                 }
                 TabsAction::Close(key) => {
-                    if let Some(tab) = self.workbench.tabs.iter().find(|tab| tab_key(tab) == key) {
+                    if let Some(tab) = self.workbench.tabs().iter().find(|tab| tab_key(tab) == key)
+                    {
                         self.request_close_tab(cx, tab.key());
                     }
                 }
@@ -2608,7 +2611,7 @@ impl App for TableProApp {
                 ui,
                 workbench_rows[0],
                 &self.tabs_state,
-                &self.workbench.tabs,
+                self.workbench.tabs(),
             );
             if self.workbench.maximized {
                 self.draw_content(ui, workbench_rows[1]);

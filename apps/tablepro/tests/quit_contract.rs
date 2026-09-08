@@ -77,11 +77,11 @@ fn pending_rows_require_explicit_confirmation_and_modal_blocks_commands() {
     assert_eq!(pending, 1);
     let _ = h.ctrl('q');
     assert!(h.find("1 pending row change will be lost.").is_some());
-    let tabs = h.app().workbench.tabs.len();
+    let tabs = h.app().workbench.tabs().len();
     for key in ['q', 'c', 't', 'r'] {
         let _ = h.ctrl(key);
         assert!(!h.app().should_quit());
-        assert_eq!(h.app().workbench.tabs.len(), tabs);
+        assert_eq!(h.app().workbench.tabs().len(), tabs);
         assert_eq!(h.app().result().pending_total(), pending);
     }
     let _ = h.key(KeyCode::Char('q'));
@@ -172,7 +172,8 @@ fn query_debug_does_not_expose_saved_or_current_sql() {
         editable: false,
     }));
     let mut app = TableProApp::default();
-    app.workbench.tabs.push(Tab::Query(query));
+    let index = app.workbench.tabs().len();
+    assert!(app.workbench.insert_tab(index, Tab::Query(query)).is_some());
     let debug = format!("{app:?} {:?}", app.workbench);
     for secret in [
         "synthetic-saved-secret",

@@ -37,12 +37,7 @@ fn frame_tablepro_grid_500x14_120x40() {
     );
 
     assert_eq!(harness.app().result().row_count(), 500);
-    let Some((id, view)) = harness
-        .app()
-        .workbench
-        .active()
-        .and_then(tablepro_app::Tab::grid)
-    else {
+    let Some((id, view)) = harness.app().workbench.active_grid() else {
         unreachable!("query result grid");
     };
     assert_eq!(view.columns.len(), 14);

@@ -1,7 +1,7 @@
 //! Inline cell drafts remain owned across blur and guarded exit.
 use junie_tui::{App, Dialog, Id, KeyCode, Part, Theme};
 use junie_tui_testing::Harness;
-use tablepro_app::{GridView, Surface, Tab, TableProApp, Value};
+use tablepro_app::{GridView, Surface, TableProApp, Value};
 
 fn draft(surface: Surface, value: &str) -> Harness<TableProApp> {
     let mut app = TableProApp::default();
@@ -24,7 +24,7 @@ fn draft(surface: Surface, value: &str) -> Harness<TableProApp> {
 }
 
 fn view(h: &Harness<TableProApp>) -> &GridView {
-    let Some((_, view)) = h.app().workbench.active().and_then(Tab::grid) else {
+    let Some((_, view)) = h.app().workbench.active_grid() else {
         unreachable!("grid")
     };
     view

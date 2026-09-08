@@ -108,7 +108,7 @@ fn execution_error_marks_editor_and_result() {
 fn cancel_running_query() {
     let mut app = connected();
     let index = app.workbench.new_query("SELECT * FROM orders");
-    if let Some(Tab::Query(query)) = app.workbench.tabs.get_mut(index) {
+    if let Some(Tab::Query(query)) = index.and_then(|key| app.workbench.tab_mut(key)) {
         query.running = true;
         query.running = false;
         assert!(!query.running);
@@ -125,7 +125,7 @@ fn explain_opens_plan_tree() {
     let mut app = connected();
     let index = app.workbench.new_query("SELECT * FROM orders LIMIT 5");
     let catalog = app.workbench.catalog.clone();
-    if let Some(Tab::Query(query)) = app.workbench.tabs.get_mut(index) {
+    if let Some(Tab::Query(query)) = index.and_then(|key| app.workbench.tab_mut(key)) {
         assert!(query.explain(&catalog).is_ok());
     } else {
         panic!("new query must be active");
@@ -195,7 +195,7 @@ fn history_tab_reopens_query() {
     let mut app = connected();
     let index = app.workbench.open_history();
     assert!(matches!(
-        app.workbench.tabs.get(index),
+        index.and_then(|key| app.workbench.tab(key)),
         Some(Tab::History(_))
     ));
     assert!(!app.workbench.history.is_empty());
@@ -206,7 +206,7 @@ fn tab_strip_overflow_and_tab_list() {
     for _ in 0..12 {
         app.workbench.new_query("SELECT 1");
     }
-    assert!(app.workbench.tabs.len() >= 12);
+    assert!(app.workbench.tabs().len() >= 12);
     assert!(app.workbench.close_tab(0));
 }
 #[test]

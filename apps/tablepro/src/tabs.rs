@@ -123,8 +123,6 @@ pub(crate) enum TableMode {
 /// A table tab with data and structure modes.
 #[derive(Debug, Clone)]
 pub struct TableTab {
-    /// Stable identity in the workbench tab strip.
-    pub key: TabKey,
     /// Catalog table.
     pub table: Table,
     /// Current mode.
@@ -140,11 +138,6 @@ pub struct TableTab {
 impl TableTab {
     /// Load a bounded deterministic result for a table.
     pub fn new(table: Table, catalog: &Catalog) -> Self {
-        Self::with_key(TabKey::new(0), table, catalog)
-    }
-
-    /// Load a table tab with a caller-assigned stable identity.
-    pub fn with_key(key: TabKey, table: Table, catalog: &Catalog) -> Self {
         let query = format!("SELECT * FROM {}.{}", table.schema, table.name);
         let result = sql::parse(&query)
             .ok()
@@ -154,7 +147,6 @@ impl TableTab {
             })
             .map_or_else(GridView::empty, |result| GridView::from_result(&result));
         let mut tab = Self {
-            key,
             table,
             mode: TableMode::Data,
             result,
@@ -248,8 +240,6 @@ impl TableTab {
 /// Query editor tab.
 #[derive(Clone)]
 pub struct QueryTab {
-    /// Stable identity in the workbench tab strip.
-    pub key: TabKey,
     /// Stable tab id.
     pub id: usize,
     /// Display name.
@@ -273,7 +263,6 @@ pub struct QueryTab {
 impl core::fmt::Debug for QueryTab {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("QueryTab")
-            .field("key", &self.key)
             .field("id", &self.id)
             .field("name", &self.name)
             .field("query", &"[redacted]")
@@ -290,14 +279,8 @@ impl core::fmt::Debug for QueryTab {
 impl QueryTab {
     /// New empty query tab.
     pub fn new(id: usize, query: impl Into<String>) -> Self {
-        Self::with_key(TabKey::new(id as u64), id, query)
-    }
-
-    /// Build a query tab with a caller-assigned stable identity.
-    pub fn with_key(key: TabKey, id: usize, query: impl Into<String>) -> Self {
         let query = query.into();
         Self {
-            key,
             id,
             name: format!("Query {id}"),
             saved_text: query.clone(),
@@ -349,8 +332,6 @@ impl QueryTab {
 /// History tab.
 #[derive(Debug, Clone)]
 pub struct HistoryTab {
-    /// Stable identity in the workbench tab strip.
-    pub key: TabKey,
     /// Search text.
     pub search: String,
     /// Selected entry index.
@@ -362,13 +343,7 @@ pub struct HistoryTab {
 impl HistoryTab {
     /// Build from history.
     pub fn new(history: &History) -> Self {
-        Self::with_key(TabKey::new(0), history)
-    }
-
-    /// Build a history tab with a caller-assigned stable identity.
-    pub fn with_key(key: TabKey, history: &History) -> Self {
         Self {
-            key,
             search: String::new(),
             selected: 0,
             entries: history.entries.clone(),
@@ -403,44 +378,34 @@ pub enum Tab {
 }
 
 impl Tab {
-    /// Stable identity used by keyed public UI collections.
-    #[must_use]
-    pub const fn key(&self) -> TabKey {
-        match self {
-            Self::Table(tab) => tab.key,
-            Self::Query(tab) => tab.key,
-            Self::History(tab) => tab.key,
-        }
-    }
-
     /// Current grid and its stable control identity.
-    pub fn grid(&self) -> Option<(Id, &GridView)> {
+    pub(crate) fn grid(&self, key: TabKey) -> Option<(Id, &GridView)> {
         match self {
             Self::Table(tab) if tab.is_structure() => {
-                Some((tab.key.control("structure"), &tab.structure))
+                Some((key.control("structure"), &tab.structure))
             }
-            Self::Table(tab) => Some((tab.key.control("data"), &tab.result)),
+            Self::Table(tab) => Some((key.control("data"), &tab.result)),
             Self::Query(tab) => tab
                 .result
                 .as_ref()
-                .map(|grid| (tab.key.control("results"), grid)),
+                .map(|grid| (key.control("results"), grid)),
             Self::History(_) => None,
         }
     }
     /// Current grid mutably, with no mirrored model or interaction state.
-    pub fn grid_mut(&mut self) -> Option<(Id, &mut GridView)> {
+    pub(crate) fn grid_mut(&mut self, key: TabKey) -> Option<(Id, &mut GridView)> {
         match self {
             Self::Table(tab) => {
                 if tab.is_structure() {
-                    Some((tab.key.control("structure"), &mut tab.structure))
+                    Some((key.control("structure"), &mut tab.structure))
                 } else {
-                    Some((tab.key.control("data"), &mut tab.result))
+                    Some((key.control("data"), &mut tab.result))
                 }
             }
             Self::Query(tab) => tab
                 .result
                 .as_mut()
-                .map(|grid| (tab.key.control("results"), grid)),
+                .map(|grid| (key.control("results"), grid)),
             Self::History(_) => None,
         }
     }
@@ -457,6 +422,66 @@ impl Tab {
     pub fn dirty(&self) -> bool {
         matches!(self, Self::Table(tab) if tab.result.pending_total() > 0)
             || matches!(self, Self::Query(tab) if tab.dirty() || tab.result.as_ref().is_some_and(|grid| grid.pending_total() > 0))
+    }
+}
+
+/// An owned tab identity, separate from its freely replaceable payload.
+/// Construction and structural mutation belong exclusively to the workbench.
+///
+/// Payload cloning never includes its enclosing identity; record keys are private.
+/// ```compile_fail
+/// let mut app = tablepro_app::TableProApp::default();
+/// app.workbench.new_query("");
+/// app.workbench.tabs()[0].key = app.workbench.active_key().unwrap();
+/// ```
+/// The structural collection cannot be replaced or extended directly.
+/// ```compile_fail
+/// let mut app = tablepro_app::TableProApp::default();
+/// app.workbench.tabs.push(tablepro_app::Tab::Query(tablepro_app::QueryTab::new(1, "")));
+/// ```
+pub struct TabRecord {
+    key: TabKey,
+    payload: Tab,
+}
+
+impl TabRecord {
+    pub(crate) fn new(key: TabKey, payload: Tab) -> Self {
+        Self { key, payload }
+    }
+    pub(crate) fn payload_mut(&mut self) -> &mut Tab {
+        &mut self.payload
+    }
+
+    /// Immutable logical identity, never copied from an inserted payload.
+    pub const fn key(&self) -> TabKey {
+        self.key
+    }
+    /// Borrow the application payload without structural mutation access.
+    pub const fn payload(&self) -> &Tab {
+        &self.payload
+    }
+    /// Whether this record owns unsaved work.
+    pub fn dirty(&self) -> bool {
+        self.payload.dirty()
+    }
+    /// Current grid and its enclosing record's stable control identity.
+    pub fn grid(&self) -> Option<(Id, &GridView)> {
+        self.payload.grid(self.key)
+    }
+}
+
+impl core::fmt::Debug for TabRecord {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        let kind = match self.payload {
+            Tab::Table(_) => "table",
+            Tab::Query(_) => "query",
+            Tab::History(_) => "history",
+        };
+        f.debug_struct("TabRecord")
+            .field("key", &self.key)
+            .field("kind", &kind)
+            .field("dirty", &self.dirty())
+            .finish_non_exhaustive()
     }
 }
 

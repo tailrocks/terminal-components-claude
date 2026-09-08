@@ -40,15 +40,23 @@ fn mouse_close_confirmation_targets_key_after_neighbor_reorder() {
     let mut h = Harness::new(app, Theme::junie(), 120, 40);
     let _ = h.click_part(STRIP, PartRef::item(Part::CLOSE, ItemKey::num(key.get())));
     assert!(h.find("Close tab with unsaved work?").is_some());
-    h.app_mut().workbench.tabs.reverse();
+    let mut keys: Vec<_> = h
+        .app()
+        .workbench
+        .tabs()
+        .iter()
+        .map(tablepro_app::TabRecord::key)
+        .collect();
+    keys.reverse();
+    assert!(h.app_mut().workbench.reorder_tabs(&keys));
     h.draw();
     confirm(&mut h);
-    assert!(!h.app().workbench.tabs.iter().any(|tab| tab.key() == key));
-    assert_eq!(h.app().workbench.tabs.len(), 2);
+    assert!(!h.app().workbench.tabs().iter().any(|tab| tab.key() == key));
+    assert_eq!(h.app().workbench.tabs().len(), 2);
     assert!(!h.app().should_quit());
-    let count = h.app().workbench.tabs.len();
+    let count = h.app().workbench.tabs().len();
     let _ = h.key(KeyCode::Enter);
-    assert_eq!(h.app().workbench.tabs.len(), count);
+    assert_eq!(h.app().workbench.tabs().len(), count);
     assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
 }
 #[test]
@@ -88,7 +96,7 @@ fn query_and_inline_drafts_survive_cancel_without_commit() {
             };
             assert_eq!(tab.editor_state.draft_text(), Some("SELECT private_draft"));
         } else {
-            let Some((_, view)) = h.app().workbench.active().and_then(Tab::grid) else {
+            let Some((_, view)) = h.app().workbench.active_grid() else {
                 unreachable!("grid")
             };
             assert_eq!(view.state.edit_draft(), Some("USD draft"));
@@ -106,7 +114,15 @@ fn vanished_confirmation_target_cannot_close_replacement() {
     let Some(key) = h.app().workbench.active_key() else {
         unreachable!("key")
     };
-    h.app_mut().workbench.tabs.retain(|tab| tab.key() != key);
+    // Explicit payload replacement keeps the record identity but makes it clean,
+    // so the public close API can remove the captured target before confirmation.
+    if let Some(payload) = h.app_mut().workbench.tab_mut(key) {
+        *payload = Tab::Query(tablepro_app::QueryTab::new(99, ""));
+    }
+    let Some(index) = h.app().workbench.active_index() else {
+        unreachable!("target")
+    };
+    assert!(h.app_mut().workbench.close_tab(index));
     h.app_mut().workbench.new_query("");
     let replacement = h.app().workbench.active_key();
     h.draw();
@@ -115,7 +131,7 @@ fn vanished_confirmation_target_cannot_close_replacement() {
     assert!(
         h.app()
             .workbench
-            .tabs
+            .tabs()
             .iter()
             .any(|tab| Some(tab.key()) == replacement)
     );
