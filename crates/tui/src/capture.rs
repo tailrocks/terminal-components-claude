@@ -160,11 +160,7 @@ mod tests {
         let mut s = CaptureSlot::default();
         s.claim(cap(5));
         let mut reg = Registry::new(3);
-        reg.register_control(
-            Id::root("thumb"),
-            Rect::new(0, 0, 1, 1),
-            LayerId::PAGE,
-        );
+        reg.register_control(Id::root("thumb"), Rect::new(0, 0, 1, 1), LayerId::PAGE);
         s.release_if_stale(&reg);
         assert!(s.get().is_none());
         s.claim(cap(3));

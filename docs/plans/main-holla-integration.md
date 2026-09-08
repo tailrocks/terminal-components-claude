@@ -235,6 +235,21 @@ is separated from full lifecycle timing without changing thresholds. Existing
 capture binaries overwritten during app development have explicit provenance
 limitations and fresh reconstruction reports; no original-byte claim is made.
 
+Holla restoration integrated through8add385: canonical StatusItem spinner80891e7,
+fixture-time discovery67901ce, fourteen pinned historical App assertions5d35fff/
+8add385, descriptive HintKeyc662839 and product footer93bf6bc, active placeholder
+49d3b90/43365e1, display-only menu casingf8bcfa2/4d130f1. Root reviewed full
+production/test patches; independent HintKey review is bound in
+E/hintkey-independent/REVIEW.md (d669a3c6…77f14f). Root MSRV131 Holla tests,
+16 focused shared tests and103 other-app library tests pass; full workspace
+all-target/all-feature MSRV Clippy passes. These restore specific assertions,
+not whole-app parity. Footer Ctrl-letter casing still differs from pinned source;
+actions picker width/search behavior and remaining historical journeys stay open.
+Native capture owner reports all288 production captures completed and joined
+(startup112, Holla132, ANSI16-44); root final bundle review remains pending.
+Fixed16-run strict style measurement still fails on parent and candidate;
+recorded background OS CPU activity prevents causal attribution. No waiver.
+
 ## Historical checkpoints
 
 The previous 352-line execution log is preserved byte-for-byte in
