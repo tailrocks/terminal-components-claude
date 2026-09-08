@@ -203,6 +203,14 @@ cdbcb05/715ee07/f5c3763 after complete root production/test review. Root750share
 One PTY fixture ignored by ordinary run is separately executed by independent
 reviewer. Capture test qualification corrected without suppressions. Earlier033
 starvation is repaired by bounded diagnosed suppression, not waived.
+Collection performance fixture repair integrated7b3db93 after full root diff and
+independent review: immutable bound models, mutable Runtime Tick operations.
+All40 prior assertions/workloads/budgets retained (nodes.len→n equivalent); forced
+rescans still fail three original guards. Root11 MSRV and11 stable release tests
+and targeted Clippy pass. Stable release emitted rust-objcopy missing libLLVM
+warning during stripping; executable still ran all11 tests. Independent strict
+Picker timing remains red on both parent and candidate;
+no timing waiver or performance-completion claim.
 Full test mapping retains700 semantic deltas; owner source/assertion reviews are
 assigned, not discharged by name matches. Native capture55c7dc0 built all four
 real binaries under confinement at3deb20e plus tool overlay; root independent
