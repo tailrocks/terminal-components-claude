@@ -187,7 +187,7 @@ fn scrollregion_hidden_bar_keeps_full_content_width_and_measure_shrinks() {
 
 #[test]
 fn scrollregion_hidden_bar_still_routes_wheel_and_preserves_offset_history() {
-    let mut h = junie_tui_testing::Harness::new(
+    let mut h = Harness::new(
         BarePage {
             scroll: ScrollState::new(100),
             visible: false,

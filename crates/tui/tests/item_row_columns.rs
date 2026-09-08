@@ -399,11 +399,6 @@ fn owner_part_styles_win_over_painter_defaults_in_columns_mode() {
             StylePatch::new().add(Modifier::BOLD),
         ),
     ];
-    const PATCHES: &[(Part, StylePatch)] = &[
-        (Part::ICON, StylePatch::new().set_fg(Role::Custom(FG))),
-        (Part::META, StylePatch::new().set_fg(Role::Custom(FG))),
-        (Part::LABEL, StylePatch::new().add(Modifier::BOLD)),
-    ];
     struct Styled {
         page: Page,
         overlay: bool,

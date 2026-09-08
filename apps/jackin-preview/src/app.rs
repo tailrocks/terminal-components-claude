@@ -2514,17 +2514,10 @@ impl App {
     }
 
     fn commit_editor_save(&mut self) {
-        self.editor.close_preview();
-        self.editor.mark_saved();
-        self.world.saved = true;
-        let id = self
-            .world
-            .workspaces
-            .first()
-            .map_or(1, |workspace| workspace.id);
-        self.world
-            .schedule(200, crate::sim::world::Msg::WorkspaceSaved { id, ok: true });
-        self.status = Some("Saving workspace…".into());
+        self.status = Some(match self.editor.begin_save(&mut self.world) {
+            Ok(_) => format!("Saving {}…", self.editor.pending.name),
+            Err(error) => error.to_string(),
+        });
     }
 
     fn update_settings(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -3815,6 +3808,7 @@ impl App {
         for message in messages {
             match message {
                 crate::sim::world::Msg::WorkspaceSaved { id, ok } => {
+                    // Unbound legacy notices cannot authorize an editor write.
                     let workspace_label = self
                         .world
                         .workspace(id)
@@ -3824,27 +3818,31 @@ impl App {
                     } else {
                         format!("Workspace {workspace_label} save failed")
                     });
-                    if ok && self.route == Route::Editor {
-                        let pending = self.editor.pending.clone();
-                        if let Some(workspace) = self
-                            .world
-                            .workspaces
-                            .iter_mut()
-                            .find(|workspace| workspace.id == id)
-                        {
-                            pending.apply_to(workspace);
-                        } else {
-                            let mut workspace = crate::domain::workspace::Workspace::new(
-                                id,
-                                self.prelude.name(),
-                                "/Users/alexey/src/new-workspace",
-                            );
-                            pending.apply_to(&mut workspace);
-                            self.world.workspaces.push(workspace);
+                }
+                crate::sim::world::Msg::EditorSaveCompleted { operation } => {
+                    use crate::domain::workspace_save::SaveResult;
+                    let saved = self.world.complete_editor_save(operation);
+                    let leave_editor = self.editor.settle_save(&saved);
+                    match saved {
+                        SaveResult::Saved { workspace, .. } => {
+                            self.status = Some(format!("Workspace {} saved", workspace.name));
+                            self.manager_rows_cache.clear();
+                            if leave_editor && self.route == Route::Editor {
+                                self.route = Route::Manager;
+                                cx.focus(MANAGER_LIST);
+                            }
                         }
-                        self.manager_rows_cache.clear();
-                        self.route = Route::Manager;
-                        cx.focus(MANAGER_LIST);
+                        SaveResult::Failed(_) => {
+                            self.status = Some(
+                                "Save failed · write failed: ~/.jackin/workspaces is not writable (EACCES) · your edits are intact · nothing was written".into(),
+                            );
+                        }
+                        SaveResult::Stale(_) => {
+                            self.status = Some(
+                                "Workspace changed · nothing was written · edits are intact".into(),
+                            );
+                        }
+                        SaveResult::Ignored => {}
                     }
                 }
                 crate::sim::world::Msg::Refreshed { ok } => {

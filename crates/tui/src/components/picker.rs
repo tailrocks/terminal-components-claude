@@ -742,7 +742,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                         query
                             .x
                             .saturating_add(2)
-                            .saturating_add(crate::text::width(st.query())),
+                            .saturating_add(width(st.query())),
                         query.y,
                     ),
                 );
