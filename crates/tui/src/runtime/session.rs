@@ -6,7 +6,8 @@
 //! capture and bracketed paste. The chained panic hook is installed
 //! **before** the first mode change (`init.rs:196-197`); every mode is a
 //! typed crossterm command in one `execute!`, never a raw escape string;
-//! restore is one reverse-order `execute!` and `leave` is idempotent. This
+//! restoration attempts every reverse-order step and `leave` is retryable
+//! after failure, idempotent after success. This
 //! is the only file that names raw-mode / alternate-screen commands.
 
 use std::io::{self, Stdout, Write, stdout};
@@ -48,15 +49,61 @@ impl core::fmt::Debug for TerminalSession {
 /// Undo every mode this session sets; safe to call more than once.
 fn restore_modes() -> io::Result<()> {
     let mut out = stdout();
-    execute!(
-        out,
-        EnableLineWrap,
-        DisableBracketedPaste,
-        DisableMouseCapture,
-        LeaveAlternateScreen
-    )?;
-    disable_raw_mode()?;
-    out.flush()
+    restore_modes_with(&mut out, disable_raw_mode)
+}
+
+fn restore_modes_with(
+    out: &mut impl Write,
+    restore_raw: impl FnOnce() -> io::Result<()>,
+) -> io::Result<()> {
+    let mut first = Ok(());
+    // Evaluate each step even when an earlier write failed. In particular,
+    // broken stdout must never prevent restoring the terminal's input mode.
+    first = first.and(execute!(out, EnableLineWrap));
+    first = first.and(execute!(out, DisableBracketedPaste));
+    first = first.and(execute!(out, DisableMouseCapture));
+    first = first.and(execute!(out, LeaveAlternateScreen));
+    first = first.and(restore_raw());
+    first.and(out.flush())
+}
+
+struct EntryCleanup<R: FnMut() -> io::Result<()>> {
+    restore: R,
+    armed: bool,
+}
+
+impl<R: FnMut() -> io::Result<()>> Drop for EntryCleanup<R> {
+    fn drop(&mut self) {
+        if self.armed {
+            let _ = (self.restore)();
+        }
+    }
+}
+
+fn enter_guarded<T>(
+    enter: impl FnOnce() -> io::Result<T>,
+    restore: impl FnMut() -> io::Result<()>,
+) -> io::Result<T> {
+    let mut cleanup = EntryCleanup {
+        restore,
+        armed: true,
+    };
+    let terminal = enter()?;
+    cleanup.armed = false;
+    Ok(terminal)
+}
+
+fn leave_with(
+    left: &mut bool,
+    show_cursor: impl FnOnce() -> io::Result<()>,
+    restore: impl FnOnce() -> io::Result<()>,
+) -> io::Result<()> {
+    if *left {
+        return Ok(());
+    }
+    let result = show_cursor().and(restore());
+    *left = result.is_ok();
+    result
 }
 
 /// Install a panic hook that runs `restore` and then delegates to the
@@ -74,21 +121,27 @@ impl TerminalSession {
     /// screen, mouse capture and bracketed paste.
     ///
     /// # Errors
-    /// Any terminal command that fails; nothing is left half-set because
-    /// the hook restores on the way out.
+    /// Any terminal command that fails. A construction guard attempts every
+    /// restoration step on failure, including ordinary I/O errors. The original
+    /// entry error is retained even when restoration also fails.
     pub fn enter() -> io::Result<Self> {
         chain_panic_hook(|| {
             let _ = restore_modes();
         });
-        enable_raw_mode()?;
-        let mut out = stdout();
-        execute!(
-            out,
-            EnterAlternateScreen,
-            EnableMouseCapture,
-            EnableBracketedPaste
+        let terminal = enter_guarded(
+            || {
+                enable_raw_mode()?;
+                let mut out = stdout();
+                execute!(
+                    out,
+                    EnterAlternateScreen,
+                    EnableMouseCapture,
+                    EnableBracketedPaste
+                )?;
+                Terminal::new(CrosstermBackend::new(out))
+            },
+            restore_modes,
         )?;
-        let terminal = Terminal::new(CrosstermBackend::new(out))?;
         Ok(TerminalSession {
             terminal,
             left: false,
@@ -100,17 +153,17 @@ impl TerminalSession {
         &mut self.terminal
     }
 
-    /// Leave the session; idempotent.
+    /// Leave the session; idempotent after success. Failed restoration remains
+    /// retryable, including the final attempt made by `Drop`.
     ///
     /// # Errors
     /// A terminal command that fails.
     pub fn leave(&mut self) -> io::Result<()> {
-        if self.left {
-            return Ok(());
-        }
-        self.left = true;
-        self.terminal.show_cursor()?;
-        restore_modes()
+        leave_with(
+            &mut self.left,
+            || self.terminal.show_cursor(),
+            restore_modes,
+        )
     }
 }
 
@@ -216,7 +269,163 @@ pub fn run_with_feedback_clock<A: App>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::cell::Cell;
     use std::sync::{Arc, Mutex};
+
+    #[test]
+    fn partial_entry_errors_restore_once_and_preserve_the_entry_error() {
+        for failed_stage in 0..4 {
+            let reached = Cell::new(0);
+            let restored = Cell::new(0);
+            let result = enter_guarded(
+                || {
+                    for stage in 0..4 {
+                        reached.set(stage);
+                        if stage == failed_stage {
+                            return Err::<(), _>(io::Error::from(io::ErrorKind::BrokenPipe));
+                        }
+                    }
+                    Ok(())
+                },
+                || {
+                    restored.set(restored.get() + 1);
+                    Err(io::Error::from(io::ErrorKind::PermissionDenied))
+                },
+            );
+            assert_eq!(
+                result.err().map(|error| error.kind()),
+                Some(io::ErrorKind::BrokenPipe)
+            );
+            assert_eq!(reached.get(), failed_stage);
+            assert_eq!(restored.get(), 1);
+        }
+        let restored = Cell::new(false);
+        assert!(
+            enter_guarded(
+                || Ok(()),
+                || {
+                    restored.set(true);
+                    Ok(())
+                }
+            )
+            .is_ok()
+        );
+        assert!(!restored.get());
+    }
+
+    #[derive(Default)]
+    struct BrokenOutput {
+        calls: usize,
+        flushes: usize,
+        bytes: Vec<u8>,
+    }
+    impl Write for BrokenOutput {
+        fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+            self.calls += 1;
+            if self.calls == 1 {
+                return Err(io::Error::from(io::ErrorKind::BrokenPipe));
+            }
+            self.bytes.extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> io::Result<()> {
+            self.flushes += 1;
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn broken_output_still_restores_later_modes_raw_input_and_flushes() {
+        let mut out = BrokenOutput::default();
+        let raw = Cell::new(false);
+        let result = restore_modes_with(&mut out, || {
+            raw.set(true);
+            Err(io::Error::from(io::ErrorKind::PermissionDenied))
+        });
+        assert_eq!(
+            result.err().map(|error| error.kind()),
+            Some(io::ErrorKind::BrokenPipe)
+        );
+        assert!(raw.get());
+        assert!(out.flushes >= 4);
+        let mut final_command = Vec::new();
+        assert!(execute!(final_command, LeaveAlternateScreen).is_ok());
+        assert!(out.bytes.ends_with(&final_command));
+    }
+
+    #[test]
+    fn raw_restore_failure_is_retained_without_skipping_final_flush() {
+        let mut out = BrokenOutput {
+            calls: 1,
+            ..BrokenOutput::default()
+        };
+        let result = restore_modes_with(&mut out, || {
+            Err(io::Error::from(io::ErrorKind::PermissionDenied))
+        });
+        assert_eq!(
+            result.err().map(|error| error.kind()),
+            Some(io::ErrorKind::PermissionDenied)
+        );
+        assert_eq!(out.flushes, 5);
+    }
+
+    #[test]
+    fn failed_cursor_restore_still_restores_modes_and_allows_retry() {
+        let mut left = false;
+        let restored = Cell::new(0);
+        let result = leave_with(
+            &mut left,
+            || Err(io::Error::from(io::ErrorKind::BrokenPipe)),
+            || {
+                restored.set(restored.get() + 1);
+                Ok(())
+            },
+        );
+        assert_eq!(
+            result.err().map(|error| error.kind()),
+            Some(io::ErrorKind::BrokenPipe)
+        );
+        assert!(!left);
+        assert!(
+            leave_with(
+                &mut left,
+                || Ok(()),
+                || {
+                    restored.set(restored.get() + 1);
+                    Ok(())
+                }
+            )
+            .is_ok()
+        );
+        assert!(left);
+        assert_eq!(restored.get(), 2);
+        assert!(
+            leave_with(
+                &mut left,
+                || Err(io::Error::from(io::ErrorKind::Other)),
+                || Err(io::Error::from(io::ErrorKind::Other))
+            )
+            .is_ok()
+        );
+        assert!(left);
+    }
+
+    #[test]
+    fn failed_raw_restore_is_reported_and_retried() {
+        let mut left = false;
+        let result = leave_with(
+            &mut left,
+            || Ok(()),
+            || Err(io::Error::from(io::ErrorKind::PermissionDenied)),
+        );
+        assert_eq!(
+            result.err().map(|error| error.kind()),
+            Some(io::ErrorKind::PermissionDenied)
+        );
+        assert!(!left);
+        assert!(leave_with(&mut left, || Ok(()), || Ok(())).is_ok());
+        assert!(left);
+    }
 
     #[test]
     fn panic_hook_restores_before_delegating() {
