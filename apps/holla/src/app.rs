@@ -39,6 +39,18 @@ const OPEN_MENU: ActionKey = ActionKey::application("holla.open-menu");
 const RESULTS: ActionKey = ActionKey::application("holla.results");
 const QUERY_ESCAPE: ActionKey = ActionKey::application("holla.query-escape");
 const PREVIOUS: ActionKey = ActionKey::application("holla.previous");
+const INTERRUPT: ActionKey = ActionKey::application("holla.interrupt");
+const ACTIVITY_SHORTCUTS: &[(char, ActionKey)] = &[
+    ('1', ActionKey::application("holla.activity-1")),
+    ('2', ActionKey::application("holla.activity-2")),
+    ('3', ActionKey::application("holla.activity-3")),
+    ('4', ActionKey::application("holla.activity-4")),
+    ('5', ActionKey::application("holla.activity-5")),
+    ('6', ActionKey::application("holla.activity-6")),
+    ('7', ActionKey::application("holla.activity-7")),
+    ('8', ActionKey::application("holla.activity-8")),
+    ('9', ActionKey::application("holla.activity-9")),
+];
 const GLOBAL: &[Binding<ActionKey>] = &[
     Binding {
         action: HELP,
@@ -192,7 +204,11 @@ impl App {
             .bind(KeyPhase::Capture, Chord::key(KeyCode::Char(' ')), TOGGLE)
             .bind(KeyPhase::Bubble, Chord::key(KeyCode::Down), RESULTS)
             .bind(KeyPhase::Bubble, Chord::key(KeyCode::Up), PREVIOUS)
-            .bind(KeyPhase::Capture, Chord::key(KeyCode::Char('0')), HOME);
+            .bind(
+                KeyPhase::Capture,
+                Chord::with(KeyCode::Char('c'), junie_tui::KeyModifiers::CONTROL),
+                INTERRUPT,
+            );
         Self {
             world,
             motion,
@@ -261,6 +277,7 @@ impl App {
             HELP => self.open_dialog(dialogs::Intent::Help, cx),
             ABOUT => self.open_dialog(dialogs::Intent::About, cx),
             QUIT => self.open_dialog(dialogs::Intent::Quit, cx),
+            INTERRUPT => self.quit = true,
             HOME => {
                 self.route = Route::Home;
                 cx.focus(home::QUERY);
@@ -270,9 +287,13 @@ impl App {
             }
             NEXT_ACTIVITY => {
                 let ordered = activity::ordered(&self.world);
-                let next = ordered
-                    .iter()
-                    .position(|activity| Some(activity.id) == self.activities.current_id())
+                let next = (self.route == Route::Activity)
+                    .then(|| {
+                        ordered
+                            .iter()
+                            .position(|activity| Some(activity.id) == self.activities.current_id())
+                    })
+                    .flatten()
                     .and_then(|index| ordered.get(index.saturating_add(1)))
                     .or_else(|| ordered.first())
                     .map(|activity| activity.id);
@@ -334,6 +355,20 @@ impl App {
                     self.set_status("Scope: all".into());
                 } else {
                     self.home.clear_query();
+                }
+            }
+            command if self.route == Route::Activity => {
+                if let Some(index) = ACTIVITY_SHORTCUTS
+                    .iter()
+                    .position(|(_, key)| *key == command)
+                {
+                    if let Some(activity) = activity::ordered(&self.world).get(index) {
+                        let id = activity.id;
+                        self.activities.show(id);
+                        cx.focus(activity::output_id(id));
+                    } else {
+                        self.set_status(format!("No activity {}", index.saturating_add(1)));
+                    }
                 }
             }
             _ => {}
@@ -623,6 +658,13 @@ impl App {
 }
 impl App {
     fn refresh_query_bindings(&mut self) {
+        for (character, command) in std::iter::once(&('0', HOME)).chain(ACTIVITY_SHORTCUTS) {
+            let chord = Chord::key(KeyCode::Char(*character));
+            self.keymap.remove(KeyPhase::Capture, chord);
+            if self.route == Route::Activity {
+                self.keymap.add(KeyPhase::Capture, chord, *command);
+            }
+        }
         for (character, command) in [('q', QUIT), ('?', HELP)] {
             let chord = Chord::key(KeyCode::Char(character));
             self.keymap.remove_before_typing(home::QUERY, chord);
@@ -674,6 +716,13 @@ impl App {
                 | brand.erase()
                 | header.erase()
                 | self.update_overlay(cx);
+        }
+        if let Some(command @ (INTERRUPT | QUIT)) = cx
+            .command()
+            .filter(|_| cx.update_cause() == junie_tui::UpdateCause::Event)
+        {
+            self.command(command, cx);
+            return controls | menu.erase() | brand.erase() | header.erase() | Response::changed();
         }
         if let Some(MenuAction::Chosen(command)) = menu.take_action() {
             self.command(command, cx);
@@ -938,6 +987,53 @@ mod tests {
                 .id,
             first
         );
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
+    #[test]
+    fn activity_digits_are_route_scoped_and_cycle_from_home_starts_first() {
+        let mut harness = app(Scenario::ActivitiesMulti);
+        let ids: Vec<_> = activity::ordered(&harness.app().world)
+            .iter()
+            .map(|a| a.id)
+            .collect();
+        assert!(ids.len() >= 2);
+        let _ = harness.type_str("12");
+        assert_eq!(harness.app().home.query(), "12");
+        let _ = harness.ctrl('a');
+        assert_eq!(harness.app().activities.current_id(), Some(ids[0]));
+        let _ = harness.key(KeyCode::Char('2'));
+        assert_eq!(harness.app().activities.current_id(), Some(ids[1]));
+        let _ = harness.key(KeyCode::Char('9'));
+        assert_eq!(harness.app().status.as_deref(), Some("No activity 9"));
+        let _ = harness.key(KeyCode::Char('0'));
+        assert!(harness.app().route == Route::Home);
+        let _ = harness.ctrl('a');
+        assert_eq!(harness.app().activities.current_id(), Some(ids[0]));
+        assert!(
+            harness.diagnostics().is_empty(),
+            "{:?}",
+            harness.diagnostics()
+        );
+    }
+    #[test]
+    fn interrupt_quits_outside_modals_and_quit_chord_precedes_open_menu() {
+        let mut harness = app(Scenario::HardCases);
+        let _ = harness.key(KeyCode::F(1));
+        let _ = harness.ctrl('c');
+        assert!(!harness.app().quit);
+        let _ = harness.key(KeyCode::Esc);
+        let _ = harness.key(KeyCode::F(10));
+        let _ = harness.ctrl('q');
+        assert!(harness.text().contains("Quit holla?"));
+        assert!(!harness.app().quit);
+        let mut harness = app(Scenario::HardCases);
+        let _ = harness.key(KeyCode::F(10));
+        let _ = harness.ctrl('c');
+        assert!(harness.app().quit);
         assert!(
             harness.diagnostics().is_empty(),
             "{:?}",
