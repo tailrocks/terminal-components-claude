@@ -730,6 +730,31 @@ struct SampledWidth {
     natural: u16,
 }
 
+/// Header contribution to a column's width.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum GridHeaderSizing {
+    /// Keep the existing title/badge and column min/max constraints.
+    #[default]
+    Content,
+    /// Reserve marks after the title and permit a bounded header minimum.
+    Minimum {
+        /// Blank cells reserved for marks even when inactive.
+        padding: u16,
+        /// Header minimum may raise the column maximum only up to this width.
+        cap: u16,
+    },
+}
+
+/// When sortable headers show their direction glyph.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum GridSortIndicator {
+    /// Existing behavior: an unsorted sortable header shows the ascending glyph.
+    #[default]
+    Always,
+    /// Only the currently sorted column shows a glyph.
+    ActiveOnly,
+}
+
 /// Durable state of a [`Grid`].
 ///
 /// Holds the cursor cell, the rectangular range anchor, the row selection,
@@ -1093,6 +1118,9 @@ pub struct Grid<'a> {
     id: Id,
     columns: &'a [Column<'a>],
     nav: NavUnit,
+    column_gap: u16,
+    header_sizing: GridHeaderSizing,
+    sort_indicator: GridSortIndicator,
     disabled: bool,
     fetch_on_activate: bool,
     select_mode: SelectMode,
@@ -1136,6 +1164,9 @@ impl<'a> Grid<'a> {
             id,
             columns,
             nav: NavUnit::Cell,
+            column_gap: 1,
+            header_sizing: GridHeaderSizing::Content,
+            sort_indicator: GridSortIndicator::Always,
             disabled: false,
             fetch_on_activate: false,
             select_mode: SelectMode::Single,
@@ -1228,6 +1259,27 @@ impl<'a> Grid<'a> {
     #[must_use]
     pub const fn fetch_on_activate(mut self, enabled: bool) -> Self {
         self.fetch_on_activate = enabled;
+        self
+    }
+
+    /// Horizontal cells between columns; defaults to one.
+    #[must_use]
+    pub const fn column_gap(mut self, gap: u16) -> Self {
+        self.column_gap = gap;
+        self
+    }
+
+    /// Header width policy, independent of cell-width sampling.
+    #[must_use]
+    pub const fn header_sizing(mut self, policy: GridHeaderSizing) -> Self {
+        self.header_sizing = policy;
+        self
+    }
+
+    /// Choose whether inactive sortable headers show a direction glyph.
+    #[must_use]
+    pub const fn sort_indicator(mut self, policy: GridSortIndicator) -> Self {
+        self.sort_indicator = policy;
         self
     }
 
@@ -1398,28 +1450,14 @@ impl<'a> Grid<'a> {
         (header, note, body, bar)
     }
 
-    /// Sample column widths and place the window. Pure in
-    /// `(body, columns, st, model, rows)`; both phases call it, so a pointer
-    /// resolved in `update` lands on the column `draw` painted.
-    fn geometry<M: GridModel + ?Sized>(
+    fn column_widths<M: GridModel + ?Sized>(
         &self,
-        body: Rect,
         st: &GridState,
         model: &M,
         rows: core::ops::Range<usize>,
-    ) -> Geometry {
-        let mut g = Geometry::empty(body);
-        g.n = self.column_count();
-        g.content_x = body.x.saturating_add(2);
-        if g.n == 0 || body.is_empty() {
-            return g;
-        }
-        let avail = body.width.saturating_sub(2);
-        if avail == 0 {
-            g.hidden_right = g.n;
-            return g;
-        }
-        for (i, c) in self.columns.iter().enumerate().take(g.n) {
+    ) -> [u16; GRID_MAX_COLUMNS] {
+        let mut widths = [0; GRID_MAX_COLUMNS];
+        for (i, c) in self.columns.iter().enumerate().take(self.column_count()) {
             let mut w = width(c.title);
             let mut has_actions = false;
             if let Some(b) = c.badge {
@@ -1428,6 +1466,10 @@ impl<'a> Grid<'a> {
             if let Some(s) = c.subtitle {
                 w = w.max(width(s));
             }
+            let header_width = match self.header_sizing {
+                GridHeaderSizing::Content => w,
+                GridHeaderSizing::Minimum { padding, .. } => w.saturating_add(padding),
+            };
             let sample = st.sampled_width(c.key);
             if let Some(sample) = sample {
                 w = w.max(sample.natural);
@@ -1450,12 +1492,45 @@ impl<'a> Grid<'a> {
             if has_actions {
                 w = w.saturating_add(2);
             }
-            if let Some(slot) = g.width.get_mut(i) {
-                *slot = w.clamp(c.min_width.max(1), c.max_width.max(c.min_width).max(1));
+            if let Some(slot) = widths.get_mut(i) {
+                *slot = match self.header_sizing {
+                    GridHeaderSizing::Content => {
+                        w.clamp(c.min_width.max(1), c.max_width.max(c.min_width).max(1))
+                    }
+                    GridHeaderSizing::Minimum { cap, .. } => {
+                        let max = c.max_width.max(header_width.min(cap)).max(1);
+                        w.max(header_width).clamp(c.min_width.min(max).max(1), max)
+                    }
+                };
             }
         }
+        widths
+    }
+
+    /// Sample column widths and place the window. Pure in
+    /// `(body, columns, st, model, rows)`; both phases call it, so a pointer
+    /// resolved in `update` lands on the column `draw` painted.
+    fn geometry<M: GridModel + ?Sized>(
+        &self,
+        body: Rect,
+        st: &GridState,
+        model: &M,
+        rows: core::ops::Range<usize>,
+    ) -> Geometry {
+        let mut g = Geometry::empty(body);
+        g.n = self.column_count();
+        g.content_x = body.x.saturating_add(2);
+        if g.n == 0 || body.is_empty() {
+            return g;
+        }
+        let avail = body.width.saturating_sub(2);
+        if avail == 0 {
+            g.hidden_right = g.n;
+            return g;
+        }
+        g.width = self.column_widths(st, model, rows);
         // sticky columns first, then a window over the rest
-        let gap = 1u16;
+        let gap = self.column_gap;
         let mut x = g.content_x;
         let mut used = 0u16;
         for i in 0..g.n {
@@ -2633,7 +2708,10 @@ impl Grid<'_> {
             if rect.width == 0 {
                 continue;
             }
-            let sort_width = u16::from(col.sortable).min(rect.width);
+            let show_sort = col.sortable
+                && (self.sort_indicator == GridSortIndicator::Always
+                    || st.sort.is_some_and(|(key, _)| key == col.key));
+            let sort_width = u16::from(show_sort).min(rect.width);
             let title = Rect {
                 width: rect
                     .width
@@ -2654,7 +2732,7 @@ impl Grid<'_> {
                 };
                 paint_aligned(ui, at, badge, Align::Right, hs.style);
             }
-            if col.sortable {
+            if show_sort {
                 let glyph = match st.sort {
                     Some((key, SortDir::Desc)) if key == col.key => GlyphRole::SortDesc,
                     _ => GlyphRole::SortAsc,

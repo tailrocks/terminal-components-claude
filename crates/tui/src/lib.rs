@@ -154,8 +154,8 @@ pub use components::{
 // components — work package 4I (grid)
 pub use components::{
     CellAction, CellRef, Column, ColumnKey, EditIntent, GRID_MAX_COLUMNS, Grid, GridAction,
-    GridCell, GridCmd, GridCursorError, GridEditor, GridModel, GridState, NavUnit, SortDir,
-    WidthSample, WidthSampleError,
+    GridCell, GridCmd, GridCursorError, GridEditor, GridHeaderSizing, GridModel, GridSortIndicator,
+    GridState, NavUnit, SortDir, WidthSample, WidthSampleError,
 };
 // components — work package 4H (code editor and diff)
 pub use components::{
