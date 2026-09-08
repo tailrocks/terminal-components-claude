@@ -89,6 +89,10 @@ const ITEMS: &[SidebarItem] = &[
     },
 ];
 
+fn collapse_button(collapsed: bool) -> Button<'static> {
+    Button::new(COLLAPSE, if collapsed { "›" } else { "Collapse" }).variant(Variant::SECONDARY)
+}
+
 fn item_key(item: &SidebarItem) -> ItemKey {
     ItemKey::num(u64::from(item.key))
 }
@@ -161,9 +165,7 @@ impl Page for SidebarsPage {
         {
             self.selected = item.label;
         }
-        let collapse = Button::new(COLLAPSE, if self.collapsed { "›" } else { "Collapse" })
-            .variant(Variant::SECONDARY)
-            .update(cx);
+        let collapse = collapse_button(self.collapsed).update(cx);
         if collapse.activated() {
             self.collapsed = !self.collapsed;
         }
@@ -200,17 +202,15 @@ impl Page for SidebarsPage {
                         &self.state,
                         ITEMS,
                     );
-                    Button::new(COLLAPSE, if self.collapsed { "›" } else { "Collapse" })
-                        .variant(Variant::SECONDARY)
-                        .draw(
-                            ui,
-                            Rect {
-                                x: inner.x.saturating_add(1),
-                                y: inner.bottom().saturating_sub(1),
-                                height: 1,
-                                ..inner
-                            },
-                        );
+                    collapse_button(self.collapsed).draw(
+                        ui,
+                        Rect {
+                            x: inner.x.saturating_add(1),
+                            y: inner.bottom().saturating_sub(1),
+                            height: 1,
+                            ..inner
+                        },
+                    );
                     if body.width < 70 {
                         let visible = [
                             "                            ",

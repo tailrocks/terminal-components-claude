@@ -429,12 +429,6 @@ fn table() -> Grid<'static> {
         .patch_part(PART_PATCH)
 }
 
-fn table_view() -> Grid<'static> {
-    Grid::new(TABLE, &COLUMNS)
-        .nav(NavUnit::Row)
-        .patch_part(PART_PATCH)
-}
-
 /// The grid owns only cursor state; the adapter owns row order and domain
 /// comparison, preserving keyed identity through every sort request.
 #[derive(Debug)]
@@ -507,7 +501,7 @@ impl Page for TablesPage {
             );
             let tasks = regions.first().copied().unwrap_or(body);
             let task_meta = if self.sort.is_some() {
-                let rows = table_view().rows_label(ui, &self.state, &self.model);
+                let rows = table().rows_label(ui, &self.state, &self.model);
                 format!(
                     "{} · {}",
                     self.last,
@@ -577,7 +571,7 @@ impl TablesPage {
             width: inner.width,
             ..inner
         };
-        table_view().draw(ui, grid_area, &self.state, &self.model);
+        table().draw(ui, grid_area, &self.state, &self.model);
         let header = ui.style(
             Family::GRID,
             Variant::DEFAULT,

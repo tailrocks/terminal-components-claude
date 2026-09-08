@@ -15,7 +15,7 @@ const PLAYGROUND: Id = id!("textareas.playground");
 const STATES: Id = id!("textareas.states");
 
 fn body_area() -> TextArea<'static> {
-    TextArea::new(BODY, 8).placeholder("Write a checklist")
+    TextArea::new(BODY, 8)
 }
 
 fn checklist() -> String {
@@ -31,7 +31,7 @@ fn checklist() -> String {
 }
 
 fn task_field(value: &str) -> Field<'_, TextArea<'_>> {
-    Field::new("Task description", TextArea::new(BODY, 8).value(value)).optional_suffix(false)
+    Field::new("Task description", body_area().value(value)).optional_suffix(false)
 }
 
 fn notes_field() -> Field<'static, TextArea<'static>> {

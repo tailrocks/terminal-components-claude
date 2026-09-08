@@ -20,6 +20,14 @@ const PAUSE: Id = id!("progress.pause");
 const QUEUED: Id = id!("progress.queued");
 const HALFWAY: Id = id!("progress.halfway");
 
+fn restart_button() -> Button<'static> {
+    Button::new(RESTART, "Restart").variant(Variant::SECONDARY)
+}
+
+fn pause_button() -> Button<'static> {
+    Button::new(PAUSE, "Pause").variant(Variant::SECONDARY)
+}
+
 fn build_bar(ratio: f64, frame: usize, _paused: bool) -> ProgressBar<'static> {
     ProgressBar::new(BUILD)
         .label("Building")
@@ -74,17 +82,13 @@ impl Page for ProgressPage {
 
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut response = Response::ignored();
-        let restart = Button::new(RESTART, "Restart")
-            .variant(Variant::SECONDARY)
-            .update(cx);
+        let restart = restart_button().update(cx);
         if restart.activated() {
             self.build = 0.0;
             self.paused = false;
         }
         response |= restart.erase();
-        let pause = Button::new(PAUSE, "Pause")
-            .variant(Variant::SECONDARY)
-            .update(cx);
+        let pause = pause_button().update(cx);
         if pause.activated() {
             self.paused = !self.paused;
         }
@@ -201,8 +205,8 @@ impl ProgressPage {
                 ..inner
             },
         );
-        let restart = Button::new(RESTART, "Restart").variant(Variant::SECONDARY);
-        let pause = Button::new(PAUSE, "Pause").variant(Variant::SECONDARY);
+        let restart = restart_button();
+        let pause = pause_button();
         let widths = [
             restart
                 .measure(ui, Constraints::loose(inner.width, 1))
