@@ -176,6 +176,33 @@ impl std::ops::Deref for PaintStyle {
     }
 }
 
+/// Role-level defaults supplied by a component author without installing a
+/// theme recipe. Unlike ordinary unknown-family resolution, opting into
+/// these defaults does not add the neutral recipe underneath them.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct StyleDefaults<'a> {
+    /// The authored role pair and modifiers before theme recipes and fallback.
+    pub base: StylePatch,
+    /// This author's whole targeted Mono manifest. Generic Mono rules still
+    /// apply first; a theme's `mono_rules` replaces this slice, including `&[]`.
+    pub mono: &'a [super::MonoRule],
+}
+
+impl<'a> StyleDefaults<'a> {
+    /// Start with role-level defaults and no targeted Mono rules.
+    #[must_use]
+    pub const fn new(base: StylePatch) -> Self {
+        Self { base, mono: &[] }
+    }
+
+    /// Supply the author's targeted Mono fallback manifest.
+    #[must_use]
+    pub const fn mono(mut self, rules: &'a [super::MonoRule]) -> Self {
+        self.mono = rules;
+        self
+    }
+}
+
 /// The result of a style query.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Resolved {
@@ -265,39 +292,74 @@ fn accumulate_defaults(
     p: Part,
     live: StateFlags,
 ) -> (StylePatch, Variant) {
-    let mut acc = StylePatch::new();
     let recipes = &theme.recipes;
-    // A family nobody declared resolves through the neutral recipe (§11.2).
-    let r = recipes.get_or_neutral(f);
-    let variant = if v == Variant::DEFAULT {
-        r.default_variant
-    } else {
-        v
-    };
-    let fam = r.parts.get(p);
-    let var = r.variant(variant).and_then(|m| m.get(p));
-    // 1: the family base
-    if let Some(part) = fam {
-        acc = part.apply_base(acc);
-    }
-    // 2: the variant delta's base
-    if let Some(part) = var {
-        acc = part.apply_base(acc);
-    }
-    // 3: family and variant state rules are one level, merged in ascending
-    //    specificity with the family's rule first on a tie
-    acc = super::recipe::merge_states(
-        acc,
-        fam.map_or(&[][..], |x| &x.states),
-        var.map_or(&[][..], |x| &x.states),
-        live,
-    );
+    // Ordinary queries retain the neutral unknown-family contract.
+    let (mut acc, variant) = apply_recipe(recipes.get_or_neutral(f), v, p, live, StylePatch::new());
     // §11.4: mono fallback is a private static layer. It follows ordinary
     // family/variant states and precedes all author overrides.
     if theme.capability.color == super::ColorLevel::Mono {
         acc = super::downgrade::apply_mono_fallback(acc, recipes, f, p, live);
     }
     (acc, variant)
+}
+
+fn apply_recipe(
+    recipe: &super::Recipe,
+    requested: Variant,
+    part: Part,
+    live: StateFlags,
+    mut acc: StylePatch,
+) -> (StylePatch, Variant) {
+    let variant = if requested == Variant::DEFAULT {
+        recipe.default_variant
+    } else {
+        requested
+    };
+    let family = recipe.parts.get(part);
+    let delta = recipe.variant(variant).and_then(|m| m.get(part));
+    if let Some(part) = family {
+        acc = part.apply_base(acc);
+    }
+    if let Some(part) = delta {
+        acc = part.apply_base(acc);
+    }
+    acc = super::recipe::merge_states(
+        acc,
+        family.map_or(&[][..], |p| &p.states),
+        delta.map_or(&[][..], |p| &p.states),
+        live,
+    );
+    (acc, variant)
+}
+
+/// Resolve author defaults before recipes, Mono policy, and all explicit
+/// overrides. It deliberately does not cache caller-supplied defaults by the
+/// ordinary family/part key, which cannot identify their content or lifetime.
+pub(crate) fn bind_defaults(
+    theme: &Theme,
+    (family, variant, part): (Family, Variant, Part),
+    flags: StateFlags,
+    overlays: &[Overlay],
+    surface: Surface,
+    defaults: StyleDefaults<'_>,
+    local: Option<&StylePatch>,
+) -> Resolved {
+    let (mut acc, variant) = match theme.recipes.get(family) {
+        Some(recipe) => apply_recipe(recipe, variant, part, flags, defaults.base),
+        None => (defaults.base, variant),
+    };
+    if theme.capability.color == super::ColorLevel::Mono {
+        acc = super::downgrade::apply_mono_with_defaults(
+            acc,
+            &theme.recipes,
+            family,
+            part,
+            flags,
+            Some(defaults.mono),
+        );
+    }
+    acc = apply_explicit(theme, (family, variant, part), flags, overlays, acc);
+    bind(theme, acc, local, surface)
 }
 
 fn apply_explicit(

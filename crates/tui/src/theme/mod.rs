@@ -28,7 +28,7 @@ pub use recipe::{
     Family, Overlay, OverlayRule, PartEdit, PartMap, PartRecipe, Recipe, RecipeEdit, Recipes,
     Variant,
 };
-pub use resolve::{PaintStyle, PartMetrics, Resolved};
+pub use resolve::{PaintStyle, PartMetrics, Resolved, StyleDefaults};
 pub use role::{Align, FG_STEPS, FgStep, MeterRole, Role, SURFACE_LEVELS, Surface, SyntaxRole};
 pub use tokens::{
     Capability, ColorLevel, ColorTokens, Density, DesignTokens, MeterThresholds, MeterTokens,

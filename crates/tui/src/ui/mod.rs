@@ -494,6 +494,34 @@ impl<'f> Ui<'f> {
         )
     }
 
+    /// Resolve component-author defaults without installing a theme recipe.
+    ///
+    /// Precedence: defaults, declared family/variant/state recipe, generic and
+    /// authored Mono fallback, explicit theme/scope overrides, then `local`.
+    /// A theme's targeted Mono manifest replaces the author's whole manifest.
+    /// Unknown families use these opted-in defaults instead of the neutral
+    /// recipe; ordinary [`Ui::style`] keeps its existing neutral fallback.
+    /// Different defaults never alias in the ordinary style cache.
+    pub fn style_defaults(
+        &self,
+        family: Family,
+        variant: Variant,
+        part: Part,
+        flags: StateFlags,
+        defaults: crate::theme::StyleDefaults<'_>,
+        local: Option<&crate::theme::StylePatch>,
+    ) -> Resolved {
+        crate::theme::resolve::bind_defaults(
+            self.theme,
+            (family, variant, part),
+            flags,
+            &self.core.overlays,
+            self.surface,
+            defaults,
+            local,
+        )
+    }
+
     /// Bind a semantic patch directly against the current surface.
     pub fn paint_patch(&self, patch: &crate::theme::StylePatch) -> crate::theme::PaintStyle {
         crate::theme::resolve::bind(self.theme, *patch, None, self.surface).style

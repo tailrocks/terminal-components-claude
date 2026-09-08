@@ -608,11 +608,22 @@ fn select_mono_rules() -> [MonoRule; 3] {
 /// [`ThemeBuilder::mono_rules`](super::ThemeBuilder::mono_rules), and
 /// [`Theme::downgrade`] adds none.
 pub(crate) fn apply_mono_fallback(
+    acc: StylePatch,
+    recipes: &Recipes,
+    family: Family,
+    part: Part,
+    live: StateFlags,
+) -> StylePatch {
+    apply_mono_with_defaults(acc, recipes, family, part, live, None)
+}
+
+pub(crate) fn apply_mono_with_defaults(
     mut acc: StylePatch,
     recipes: &Recipes,
     family: Family,
     part: Part,
     live: StateFlags,
+    authored: Option<&[MonoRule]>,
 ) -> StylePatch {
     let rules = mono_rules();
     let extra = mono_rules_extra();
@@ -628,7 +639,7 @@ pub(crate) fn apply_mono_fallback(
     // Whole-set semantics: an authored manifest *replaces* the built-in one
     // for that family, so a theme can retarget or silence it, and repeating
     // the call cannot accumulate duplicates.
-    let targeted: &[MonoRule] = recipes.mono_rules(family).unwrap_or(builtin);
+    let targeted: &[MonoRule] = recipes.mono_rules(family).or(authored).unwrap_or(builtin);
     for (rule_part, when, patch) in rules.iter().chain(extra.iter()).chain(targeted) {
         let applies = family != Family::SCROLLBAR
             || *rule_part != Part::CONTAINER
