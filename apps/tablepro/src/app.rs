@@ -28,13 +28,13 @@ const EXPLORER: Id = Id::root("tablepro.workbench.explorer.tree");
 const EXPLORER_PANEL: Id = Id::root("tablepro.workbench.explorer.panel");
 const TAB_STRIP: Id = Id::root("tablepro.workbench.tab-strip");
 const WORKBENCH_SPLIT: Id = Id::root("tablepro.workbench.split");
-const RUN: ActionKey = ActionKey::custom("tablepro.run");
-const UNDO: ActionKey = ActionKey::custom("tablepro.undo");
-const INSERT_ROW: ActionKey = ActionKey::custom("tablepro.insert-row");
-const DELETE_ROW: ActionKey = ActionKey::custom("tablepro.delete-row");
-const DISCARD_ROWS: ActionKey = ActionKey::custom("tablepro.discard-rows");
-const QUIT: ActionKey = ActionKey::custom("tablepro.quit");
-const CANCEL_OR_QUIT: ActionKey = ActionKey::custom("tablepro.cancel-or-quit");
+const RUN: ActionKey = ActionKey::application("tablepro.run");
+const UNDO: ActionKey = ActionKey::application("tablepro.undo");
+const INSERT_ROW: ActionKey = ActionKey::application("tablepro.insert-row");
+const DELETE_ROW: ActionKey = ActionKey::application("tablepro.delete-row");
+const DISCARD_ROWS: ActionKey = ActionKey::application("tablepro.discard-rows");
+const QUIT: ActionKey = ActionKey::application("tablepro.quit");
+const CANCEL_OR_QUIT: ActionKey = ActionKey::application("tablepro.cancel-or-quit");
 const QUIT_DIALOG: Id = Id::root("tablepro.quit-dialog");
 const QUIT_ACTIONS: [Action<'static>; 2] = [
     Action::new(ActionKey::CANCEL, "Cancel"),
@@ -147,20 +147,20 @@ impl DestructiveIntent {
     }
 }
 
-const OPEN: ActionKey = ActionKey::custom("tablepro.open");
-const NEW_QUERY: ActionKey = ActionKey::custom("tablepro.new-query");
-const HISTORY: ActionKey = ActionKey::custom("tablepro.history");
-const STRUCTURE: ActionKey = ActionKey::custom("tablepro.structure");
-const FORM: ActionKey = ActionKey::custom("tablepro.form");
-const HELP: ActionKey = ActionKey::custom("tablepro.help");
-const TAB_LIST: ActionKey = ActionKey::custom("tablepro.tab-list");
-const FILTER: ActionKey = ActionKey::custom("tablepro.filter");
-const PREVIEW: ActionKey = ActionKey::custom("tablepro.preview");
-const SAVE: ActionKey = ActionKey::custom("tablepro.save");
-const EXPLAIN: ActionKey = ActionKey::custom("tablepro.explain");
-const CLEAR_QUERY: ActionKey = ActionKey::custom("tablepro.clear-query");
-const COMPLETE: ActionKey = ActionKey::custom("tablepro.complete");
-const PALETTE: ActionKey = ActionKey::custom("tablepro.palette");
+const OPEN: ActionKey = ActionKey::application("tablepro.open");
+const NEW_QUERY: ActionKey = ActionKey::application("tablepro.new-query");
+const HISTORY: ActionKey = ActionKey::application("tablepro.history");
+const STRUCTURE: ActionKey = ActionKey::application("tablepro.structure");
+const FORM: ActionKey = ActionKey::application("tablepro.form");
+const HELP: ActionKey = ActionKey::application("tablepro.help");
+const TAB_LIST: ActionKey = ActionKey::application("tablepro.tab-list");
+const FILTER: ActionKey = ActionKey::application("tablepro.filter");
+const PREVIEW: ActionKey = ActionKey::application("tablepro.preview");
+const SAVE: ActionKey = ActionKey::application("tablepro.save");
+const EXPLAIN: ActionKey = ActionKey::application("tablepro.explain");
+const CLEAR_QUERY: ActionKey = ActionKey::application("tablepro.clear-query");
+const COMPLETE: ActionKey = ActionKey::application("tablepro.complete");
+const PALETTE: ActionKey = ActionKey::application("tablepro.palette");
 
 const CONNECTION_DETAILS: Id = Id::root("tablepro.connections.details");
 const CONTENT_FRAME: Id = Id::root("tablepro.workbench.content.frame");
@@ -3135,5 +3135,49 @@ mod replacement_tests {
         let text = format!("{app:?}");
         assert!(!text.contains("secret-captured-sql"));
         assert!(!text.contains("secret-result-value"));
+    }
+}
+
+#[cfg(test)]
+mod action_namespace_tests {
+    use super::*;
+
+    #[test]
+    fn application_actions_are_isolated_and_unique() {
+        let keys = [
+            RUN,
+            UNDO,
+            INSERT_ROW,
+            DELETE_ROW,
+            DISCARD_ROWS,
+            QUIT,
+            CANCEL_OR_QUIT,
+            OPEN,
+            NEW_QUERY,
+            HISTORY,
+            STRUCTURE,
+            FORM,
+            HELP,
+            TAB_LIST,
+            FILTER,
+            PREVIEW,
+            SAVE,
+            EXPLAIN,
+            CLEAR_QUERY,
+            COMPLETE,
+            PALETTE,
+            connections::TEST,
+            connections::SAVE_CONNECT,
+        ];
+        for (index, key) in keys.iter().enumerate() {
+            assert!(
+                (0x4000..0x8000).contains(&key.raw()),
+                "application namespace: {key:?}"
+            );
+            assert!(
+                !keys.iter().take(index).any(|previous| previous == key),
+                "duplicate application action: {key:?}"
+            );
+        }
     }
 }

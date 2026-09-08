@@ -172,6 +172,11 @@ toggle and generation/owner-bound discard. Root48 MSRV model/runtime/guard
 tests pass; all413 evidence hashes and356 full-cell preservation pairs verified.
 Prior wrong NULL-omission SQL expectation corrected explicitly; full editor/save
 and application restoration remain open.
+TablePro23 application actions now use the application namespace; original
+namespace regression failed on component-range key41789, then99 MSRV tests
+passed across model, real input journeys and destructive guards. Strict stable
+TablePro all-target Clippy passes. Showcase namespace and Jackin private MenuBar
+key coupling are assigned to their owners; neither is waived.
 Full test mapping retains700 semantic deltas; owner source/assertion reviews are
 assigned, not discharged by name matches. Native capture55c7dc0 built all four
 real binaries under confinement at3deb20e plus tool overlay; root independent
