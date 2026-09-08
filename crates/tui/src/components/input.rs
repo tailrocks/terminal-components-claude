@@ -648,6 +648,17 @@ impl TextInputState {
         }
     }
 
+    /// Compare the text the editor currently displays without exposing its draft.
+    /// Redacted snapshots cannot authorize an action on the original secret.
+    pub(crate) fn visible_text_equals(&self, committed: &str, expected: &str) -> bool {
+        !self.redacted_snapshot
+            && if self.is_editing() {
+                self.draft.text() == expected
+            } else {
+                committed == expected
+            }
+    }
+
     pub(crate) const fn is_sensitive(&self) -> bool {
         self.draft.is_sensitive()
     }

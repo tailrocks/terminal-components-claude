@@ -482,7 +482,7 @@ impl<'a> Dialog<'a> {
 
     fn armed(&self, st: &DialogState) -> bool {
         self.ack
-            .is_none_or(|tok| st.ack_draft.expose().trim() == tok)
+            .is_none_or(|tok| st.input.visible_text_equals(st.ack_draft.expose(), tok))
     }
 
     fn enabled(&self, i: usize, a: &Action<'_>, st: &DialogState) -> bool {
@@ -1337,6 +1337,29 @@ mod tests {
         assert!(!copy.ack_draft.expose().contains(TOKEN));
         assert!(!d.enabled(0, &action, &copy));
         assert!(d.enabled(0, &action, &st));
+    }
+
+    #[test]
+    fn acknowledgement_requires_exact_current_draft_not_stale_commit() {
+        let d = acknowledge();
+        for draft in ["delet", "DELETE", " delete", "delete ", "deletex"] {
+            let mut st = DialogState::default();
+            st.set_secret_mode(true);
+            st.ack_draft.set(TOKEN);
+            st.input.begin(draft);
+            assert!(!d.armed(&st), "a differing live draft armed confirmation");
+        }
+        let mut st = DialogState::default();
+        st.set_secret_mode(true);
+        st.input.begin(TOKEN);
+        assert!(d.armed(&st), "exact live draft needs no preliminary commit");
+        assert!(!d.armed(&st.clone()), "redacted clone is not authorization");
+        for draft in [" delete", "delete "] {
+            let mut st = DialogState::default();
+            st.set_secret_mode(true);
+            st.ack_draft.set(draft);
+            assert!(!d.armed(&st), "committed whitespace must not be trimmed");
+        }
     }
 
     #[test]
