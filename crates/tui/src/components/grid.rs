@@ -678,6 +678,59 @@ impl fmt::Display for GridCursorError {
 
 impl core::error::Error for GridCursorError {}
 
+/// Validated, bounded natural-width sampling policy.
+///
+/// Sampling uses the first `rows` model rows, sorts their terminal-cell widths,
+/// and selects index `floor(n * percentile / 100)`, capped at `n - 1`.
+/// It runs only through [`Grid::sample_column_widths`], never during draw.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct WidthSample {
+    rows: usize,
+    percentile: u8,
+}
+
+/// Invalid natural-width sampling policy.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WidthSampleError {
+    /// The bounded sample must contain between one and 200 rows.
+    RowsOutOfRange,
+    /// Percentiles range from zero through 100 inclusive.
+    PercentileOutOfRange,
+}
+
+impl fmt::Display for WidthSampleError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(match self {
+            Self::RowsOutOfRange => "width sample rows must be between 1 and 200",
+            Self::PercentileOutOfRange => "width percentile must be between 0 and 100",
+        })
+    }
+}
+impl std::error::Error for WidthSampleError {}
+
+impl WidthSample {
+    /// Validate the bounded sample size and percentile.
+    ///
+    /// # Errors
+    /// Rejects rows outside `1..=200` or percentile above 100.
+    pub const fn new(rows: usize, percentile: u8) -> Result<Self, WidthSampleError> {
+        if rows == 0 || rows > 200 {
+            return Err(WidthSampleError::RowsOutOfRange);
+        }
+        if percentile > 100 {
+            return Err(WidthSampleError::PercentileOutOfRange);
+        }
+        Ok(Self { rows, percentile })
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct SampledWidth {
+    key: ColumnKey,
+    natural: u16,
+    has_actions: bool,
+}
+
 /// Durable state of a [`Grid`].
 ///
 /// Holds the cursor cell, the rectangular range anchor, the row selection,
@@ -689,6 +742,8 @@ impl core::error::Error for GridCursorError {}
 /// for application guards, never model indices or derived viewport geometry.
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub struct GridState {
+    sampled_widths: [Option<SampledWidth>; GRID_MAX_COLUMNS],
+    sampled_len: usize,
     /// Synthetic row position, never a model key.
     fetch_row: Option<FetchRow>,
     /// Row cursor key, row selection, vertical scroll and the stamp.
@@ -725,6 +780,8 @@ impl Default for GridState {
         let mut editor = TextInputState::default();
         editor.set_sensitive(false);
         Self {
+            sampled_widths: [None; GRID_MAX_COLUMNS],
+            sampled_len: 0,
             fetch_row: None,
             core: CollectionCore::default(),
             col: None,
@@ -739,6 +796,28 @@ impl Default for GridState {
 }
 
 impl GridState {
+    /// Explicitly sampled natural cell width for this stable column key.
+    /// Header, prefix, action and min/max constraints are applied by layout.
+    pub fn sampled_column_width(&self, key: ColumnKey) -> Option<u16> {
+        self.sampled_width(key).map(|sample| sample.natural)
+    }
+
+    /// Return every column to the default visible-row width policy.
+    /// Does not change cursor, selection, draft or scroll; caller owns repaint.
+    pub fn clear_sampled_widths(&mut self) {
+        self.sampled_widths.fill(None);
+        self.sampled_len = 0;
+    }
+
+    fn sampled_width(&self, key: ColumnKey) -> Option<SampledWidth> {
+        self.sampled_widths
+            .iter()
+            .take(self.sampled_len)
+            .flatten()
+            .find(|sample| sample.key == key)
+            .copied()
+    }
+
     /// Whether the cursor targets the fetch sentinel rather than model data.
     pub const fn on_fetch_row(&self) -> bool {
         self.fetch_row.is_some()
@@ -1006,8 +1085,9 @@ impl Geometry {
 /// the read-only entry point needs nothing from `GridEditor`.
 ///
 /// ## Invariants
-/// `reconcile` runs before any action is emitted (G7); only visible cells
-/// invoke the model; a frame allocates nothing per row or per cell; `draw`
+/// `reconcile` runs before any action is emitted (G7); draw invokes the model
+/// only for visible cells (explicit load sampling is separate); a frame
+/// allocates nothing per row or per cell; `draw`
 /// takes `&GridState` and `&M`, so it can neither commit nor cancel an edit
 /// (G2).
 pub struct Grid<'a> {
@@ -1066,6 +1146,58 @@ impl<'a> Grid<'a> {
             blur: BlurPolicy::CommitAndValidate,
             ov: PartStyle::new(),
         }
+    }
+
+    /// Replace the keyed natural-width sample as an explicit load transaction.
+    ///
+    /// Reads at most 200 model rows per reachable column using bounded scratch
+    /// storage. No cursor, selection, draft or scroll mutation. Draw and update
+    /// never refresh this cache: append/reorder keep the sample until repeated
+    /// explicitly or cleared. New column keys use the default visible policy.
+    /// Header and min/max metadata remain live layout constraints.
+    pub fn sample_column_widths<M: GridModel + ?Sized>(
+        &self,
+        st: &mut GridState,
+        model: &M,
+        policy: WidthSample,
+    ) {
+        self.assert_distinct_column_keys();
+        let len = model.row_count().min(policy.rows);
+        let mut sampled = [None; GRID_MAX_COLUMNS];
+        let mut widths = [0u16; 200];
+        for (i, (column, sampled_slot)) in self
+            .columns
+            .iter()
+            .take(self.column_count())
+            .zip(sampled.iter_mut())
+            .enumerate()
+        {
+            let mut has_actions = false;
+            for (row, slot) in widths.iter_mut().take(len).enumerate() {
+                *slot = if let Some(cell) = model.cell(row, i) {
+                    has_actions |= !model.actions(row, i).is_empty();
+                    width(cell.text)
+                } else {
+                    0
+                };
+            }
+            let Some(values) = widths.get_mut(..len) else {
+                return;
+            };
+            values.sort_unstable();
+            let index = len.saturating_mul(usize::from(policy.percentile)) / 100;
+            let natural = values
+                .get(index.min(len.saturating_sub(1)))
+                .copied()
+                .unwrap_or(0);
+            *sampled_slot = Some(SampledWidth {
+                key: column.key,
+                natural,
+                has_actions,
+            });
+        }
+        st.sampled_widths = sampled;
+        st.sampled_len = self.column_count();
     }
 
     /// The id.
@@ -1300,13 +1432,18 @@ impl<'a> Grid<'a> {
             if let Some(s) = c.subtitle {
                 w = w.max(width(s));
             }
-            for r in rows.clone() {
-                if r >= model.row_count() {
-                    break;
-                }
-                if let Some(cell) = model.cell(r, i) {
-                    w = w.max(width(cell.text));
-                    has_actions |= !model.actions(r, i).is_empty();
+            if let Some(sample) = st.sampled_width(c.key) {
+                w = w.max(sample.natural);
+                has_actions = sample.has_actions;
+            } else {
+                for r in rows.clone() {
+                    if r >= model.row_count() {
+                        break;
+                    }
+                    if let Some(cell) = model.cell(r, i) {
+                        w = w.max(width(cell.text));
+                        has_actions |= !model.actions(r, i).is_empty();
+                    }
                 }
             }
             if c.prefix_glyph.is_some() {
