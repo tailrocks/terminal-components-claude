@@ -18,14 +18,6 @@ impl GridModel for Model {
         assert!(row < self.order.len(), "synthetic row has no key");
         ItemKey::index(self.order.get(row).copied().unwrap_or(row))
     }
-    fn row_number(&self, row: usize) -> usize {
-        assert!(row < self.order.len(), "synthetic row has no source number");
-        self.order
-            .get(row)
-            .copied()
-            .unwrap_or(row)
-            .saturating_add(1)
-    }
     fn has_more(&self) -> bool {
         self.more
     }
@@ -33,9 +25,17 @@ impl GridModel for Model {
         self.order.get(row)?;
         ["aaaa", "bbbb", "cccc"].get(col).map(|s| CellRef::new(s))
     }
-    fn row_decor(&self, _: usize) -> RowDecor<'_> {
+    fn row_decor(&self, row: usize) -> RowDecor<'_> {
+        assert!(row < self.order.len(), "synthetic row has no source number");
         RowDecor {
             marker: Some(GlyphRole::Dirty),
+            number: Some(
+                self.order
+                    .get(row)
+                    .copied()
+                    .unwrap_or(row)
+                    .saturating_add(1),
+            ),
             ..RowDecor::default()
         }
     }

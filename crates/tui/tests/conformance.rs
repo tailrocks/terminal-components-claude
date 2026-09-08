@@ -828,7 +828,20 @@ impl Conformance for DialogCase {
     }
 
     fn dynamic_bindings(_fixture: &Fixture) -> Vec<(ActionKey, Chord)> {
-        vec![(ActionKey::CANCEL, Chord::key(KeyCode::F(6)))]
+        // The dialog publishes the navigation chords per action button at draw
+        // time (`publish_dynamic_bindings`); they never live in the static
+        // table, so the conformance contract must declare them here.
+        vec![
+            (ActionKey::CANCEL, Chord::key(KeyCode::F(6))),
+            (
+                ActionKey::custom("dialog.previous-action"),
+                Chord::key(KeyCode::Left),
+            ),
+            (
+                ActionKey::custom("dialog.next-action"),
+                Chord::key(KeyCode::Right),
+            ),
+        ]
     }
 
     fn dynamic_binding_id(_action: ActionKey) -> Id {

@@ -8755,8 +8755,8 @@ baseline key blessing, candidate snapshot approval, or pinned-Holla acceptance.
 `MeterTokens::fill_rest` is now `MeterFillRest`, either `Color(Color)` or
 `ReferenceLift`. This is an explicit experimental API migration: existing custom
 struct literals and assignments must wrap their color in `MeterFillRest::Color`.
-The symbolic policy applies pinned Holla `Theme::lift` to the resolved current
-surface color: compare Canvas first (return Elevated), then Surface or Elevated
+The symbolic policy applies the pinned Holla reference lift to the resolved
+current surface color: compare Canvas first (return Elevated), then Surface or Elevated
 (return Overlay), then Field (return FieldHover), else return Popover. Ordering
 is normative after capability conversion or custom token aliasing; comparing the
 semantic Surface enum instead changes reference output when colors coincide.

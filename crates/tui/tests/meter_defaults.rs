@@ -78,17 +78,21 @@ fn capture_unchanged_default_cells() {
             }
         }
     }
+    // Pinned after d52ee38b/29ed8e5e: the junie palette meters its unfilled
+    // share through the reference lift, which moves the junie truecolor and
+    // ansi256 rows plus the block ansi16 row; mono and the paper palette keep
+    // their pinned values (paper fills with an explicit color).
     assert_eq!(
         hashes,
         [
-            1_159_640_294_317_262_172,
-            8_524_636_370_365_931_983,
-            17_304_888_123_808_244_299,
-            14_527_121_805_144_147_895,
-            1_501_075_464_778_236_392,
-            13_008_536_859_510_244_795,
+            10_772_714_535_040_698_230,
+            7_536_098_631_154_068_646,
+            17_260_405_213_946_973_771,
+            8_246_685_266_941_457_616,
+            14_818_118_036_683_959_920,
+            16_562_180_527_847_283_635,
             3_973_918_168_754_095_168,
-            1_800_951_633_708_178_901,
+            1_980_463_968_318_773_821,
             13_755_095_515_169_827_076,
             15_886_380_626_526_385_761,
             15_862_199_869_115_132_544,

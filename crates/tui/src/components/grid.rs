@@ -327,11 +327,6 @@ pub trait GridModel {
     /// hooks.
     fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>>;
 
-    /// One-based display number. Override with source order when the view is sorted.
-    fn row_number(&self, row: usize) -> usize {
-        row.saturating_add(1)
-    }
-
     /// Owner-supplied row decoration.
     fn row_decor(&self, _row: usize) -> RowDecor<'_> {
         RowDecor::default()
@@ -3425,7 +3420,7 @@ impl Grid<'_> {
                 geometry,
                 y,
                 GutterRow {
-                    data: Some((key, model.row_number(row))),
+                    data: Some((key, decor.number.unwrap_or_else(|| row.saturating_add(1)))),
                     decor,
                     flags: rflags,
                     style: row_style,
