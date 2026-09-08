@@ -201,6 +201,7 @@ pub struct Cx<'f> {
     theme: &'f Theme,
     command: Option<ActionKey>,
     update_cause: UpdateCause,
+    activation_key: Option<crate::runtime::ActivationKey>,
 }
 
 impl core::fmt::Debug for Cx<'_> {
@@ -255,7 +256,18 @@ impl<'f> Cx<'f> {
             theme,
             command,
             update_cause,
+            activation_key: None,
         }
+    }
+
+    pub(crate) fn with_activation_key(
+        mut self,
+        key: Option<crate::runtime::ActivationKey>,
+    ) -> Self {
+        if self.update_cause == UpdateCause::Event {
+            self.activation_key = key;
+        }
+        self
     }
 
     /// This owner's intents for the frame. Borrows only the frozen queue;
@@ -309,6 +321,16 @@ impl<'f> Cx<'f> {
     /// Why the runtime invoked the current update pass.
     pub const fn update_cause(&self) -> UpdateCause {
         self.update_cause
+    }
+
+    /// Unmodified Enter/Space origin of this admitted physical event, if any.
+    ///
+    /// Capture and bubble passes share the same origin; focus settlement,
+    /// bootstrap, timers, mouse and paste have none. Normalization admits both
+    /// key press and repeat and drops releases. This does not imply consumption
+    /// or activation: callers must first verify their semantic action occurred.
+    pub const fn activation_key(&self) -> Option<crate::runtime::ActivationKey> {
+        self.activation_key
     }
 
     /// Stage a focus transition (applied after this pass, §3.3 step 7).

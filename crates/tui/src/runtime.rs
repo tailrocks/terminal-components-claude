@@ -73,6 +73,15 @@ pub trait App {
     }
 }
 
+/// Narrow physical key origin for an admitted update; never an activation grant.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ActivationKey {
+    /// An unmodified Enter press or repeat.
+    Enter,
+    /// An unmodified Space press or repeat.
+    Space,
+}
+
 /// Why the runtime is invoking [`App::update`].
 ///
 /// The cause is scoped to one update pass. A focus-settling rerun is always
@@ -1172,7 +1181,12 @@ impl<A: App> Runtime<A> {
     }
 
     /// Step 7: `app.update` with the frozen queue, re-run while focus moves.
-    fn run_update(&mut self, command: Option<ActionKey>, cause: UpdateCause) -> Response<()> {
+    fn run_update(
+        &mut self,
+        command: Option<ActionKey>,
+        cause: UpdateCause,
+        activation_key: Option<ActivationKey>,
+    ) -> Response<()> {
         self.presented = false;
         self.core.begin_cache_frame(self.generation.wrapping_add(1));
         let mut folded = Response::ignored();
@@ -1201,7 +1215,8 @@ impl<A: App> Runtime<A> {
                     &self.theme,
                     command,
                     pass_cause,
-                );
+                )
+                .with_activation_key(activation_key);
                 self.app.update(&mut cx)
             };
             folded |= r;
@@ -1289,7 +1304,7 @@ impl<A: App> Runtime<A> {
             .extend(self.keymap_conflicts.iter().cloned());
         self.services.registry_gen = self.last.registry.generation();
         self.intents.clear();
-        let r = self.run_update(None, UpdateCause::Bootstrap);
+        let r = self.run_update(None, UpdateCause::Bootstrap, None);
         self.finish(r)
     }
 
@@ -1314,7 +1329,7 @@ impl<A: App> Runtime<A> {
             }
             self.intents.clear();
             self.pump_layer_events();
-            let r = self.run_update(None, UpdateCause::Tick);
+            let r = self.run_update(None, UpdateCause::Tick, None);
             return self.finish(r);
         };
         self.intents.clear();
@@ -1325,7 +1340,7 @@ impl<A: App> Runtime<A> {
             self.intents.focus_in(new, via);
         }
         self.dismiss_on_focus_out(to);
-        let r = self.run_update(None, UpdateCause::Settle);
+        let r = self.run_update(None, UpdateCause::Settle, None);
         self.finish(r)
     }
 
@@ -1338,6 +1353,14 @@ impl<A: App> Runtime<A> {
         if !self.bootstrapped || !self.presented || self.needs_settle() {
             return Err(PendingInput(input));
         }
+        let activation_key = match &input {
+            Input::Key(key) if key.mods.is_empty() => match key.code {
+                KeyCode::Enter => Some(ActivationKey::Enter),
+                KeyCode::Char(' ') => Some(ActivationKey::Space),
+                _ => None,
+            },
+            _ => None,
+        };
         self.services.diagnostics.clear();
         self.sync_keymap(None);
         self.refresh_keymap_conflicts();
@@ -1357,7 +1380,8 @@ impl<A: App> Runtime<A> {
                 // `FocusIn` pair staged for a `pending_focus` is already in
                 // the queue and must reach `app.update` before `finish`
                 // clears it (MA-7).
-                let r = self.run_update(None, UpdateCause::Event) | Response::changed().relayout();
+                let r = self.run_update(None, UpdateCause::Event, activation_key)
+                    | Response::changed().relayout();
                 drop(input);
                 return Ok(self.finish(r));
             }
@@ -1377,7 +1401,7 @@ impl<A: App> Runtime<A> {
                 if let Some(cmd) =
                     scoped.or_else(|| self.core.keymap.lookup(KeyPhase::Capture, k, swallows))
                 {
-                    let r = self.run_update(Some(cmd), UpdateCause::Event);
+                    let r = self.run_update(Some(cmd), UpdateCause::Event, activation_key);
                     drop(input);
                     return Ok(self.finish(r));
                 }
@@ -1391,13 +1415,13 @@ impl<A: App> Runtime<A> {
                 }
             }
         }
-        let mut r = self.run_update(None, update_cause);
+        let mut r = self.run_update(None, update_cause, activation_key);
         // step 8: bubble
         if let Some(k) = key_input
             && !r.is_consumed()
         {
             if let Some(cmd) = self.core.keymap.lookup(KeyPhase::Bubble, &k, false) {
-                r |= self.run_update(Some(cmd), UpdateCause::Event);
+                r |= self.run_update(Some(cmd), UpdateCause::Event, activation_key);
             } else if k.code == KeyCode::Esc {
                 let dismissable = self
                     .services
@@ -1406,7 +1430,9 @@ impl<A: App> Runtime<A> {
                     .is_some_and(|l| l.spec.dismiss.esc);
                 if dismissable {
                     self.dismiss_top(DismissReason::Esc);
-                    r |= self.run_update(None, UpdateCause::Event).repaint();
+                    r |= self
+                        .run_update(None, UpdateCause::Event, activation_key)
+                        .repaint();
                 } else {
                     let esc = {
                         let mut cx = Cx::new_with_cause(

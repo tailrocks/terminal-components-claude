@@ -54,9 +54,9 @@ pub use runtime::session::{
     DefaultTerminal, TerminalSession, chain_panic_hook, run, run_with_feedback_clock,
 };
 pub use runtime::{
-    ActivationFeedback, App, ClockError, FeedbackClock, FeedbackClockError, Moment, PaintedFrame,
-    PendingInput, RenderSnapshot, RenderSnapshotError, Runtime, SimulationMoment, TypingPolicy,
-    UpdateCause,
+    ActivationFeedback, ActivationKey, App, ClockError, FeedbackClock, FeedbackClockError, Moment,
+    PaintedFrame, PendingInput, RenderSnapshot, RenderSnapshotError, Runtime, SimulationMoment,
+    TypingPolicy, UpdateCause,
 };
 #[cfg(feature = "testing")]
 pub use runtime::{ProjectedFrame, RenderModel};
