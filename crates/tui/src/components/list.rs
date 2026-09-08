@@ -383,6 +383,7 @@ pub struct List<'a, T, K = ByIndex, R = DefaultRow> {
     leave_at_boundary: bool,
     empty: Option<EmptyState<'a>>,
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
+    pointer_item: Option<&'a dyn Fn(&T) -> bool>,
     status: Status,
     /// Kept beside `ov` so the nested [`ScrollRegion`] can be built with the
     /// caller's own overrides. `PartStyle` reads back only the slot, and a
@@ -421,6 +422,7 @@ impl<T> List<'_, T, ByIndex, DefaultRow> {
             leave_at_boundary: false,
             empty: None,
             disabled_item: None,
+            pointer_item: None,
             status: Status::Ready,
             patch: None,
             parts: &[],
@@ -476,6 +478,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             leave_at_boundary: self.leave_at_boundary,
             empty: self.empty,
             disabled_item: self.disabled_item,
+            pointer_item: self.pointer_item,
             status: self.status,
             patch: self.patch,
             parts: self.parts,
@@ -495,6 +498,7 @@ impl<'a, T, K, R> List<'a, T, K, R> {
             leave_at_boundary: self.leave_at_boundary,
             empty: self.empty,
             disabled_item: self.disabled_item,
+            pointer_item: self.pointer_item,
             status: self.status,
             patch: self.patch,
             parts: self.parts,
@@ -544,6 +548,19 @@ impl<'a, T, K, R> List<'a, T, K, R> {
     #[must_use]
     pub fn disabled_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
         self.disabled_item = Some(f);
+        self
+    }
+
+    /// Which rows accept pointer selection and activation.
+    ///
+    /// Defaults to every row. Ineligible rows retain keyboard traversal and
+    /// activation, but publish an owner-only `Part::BODY` hit instead of a
+    /// keyed row hit and ignore stale row-pointer intents. This keeps the
+    /// list focusable at their coordinates without selecting a row; owner
+    /// hover/press feedback is independent of row hover/press feedback.
+    #[must_use]
+    pub fn pointer_item(mut self, f: &'a dyn Fn(&T) -> bool) -> Self {
+        self.pointer_item = Some(f);
         self
     }
 
@@ -834,6 +851,13 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                         acc.consumed();
                         continue;
                     };
+                    if !items
+                        .get(i)
+                        .is_some_and(|item| self.pointer_item.is_none_or(|f| f(item)))
+                    {
+                        acc.consumed();
+                        continue;
+                    }
                     match phase {
                         Phase::Press => {
                             st.anchor = None;
@@ -950,15 +974,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
             let Some(item) = items.get(i) else { break };
             let key = self.key.key(item, i);
             let is_cursor = cursor == Some(key);
+            let pointer_eligible = self.pointer_item.is_none_or(|f| f(item));
             let mut flags = status;
             if is_cursor {
                 flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
             }
             let row_part = PartRef::item(Part::ROW, key);
-            if hovered == Some(row_part) {
+            if pointer_eligible && hovered == Some(row_part) {
                 flags |= StateFlags::HOVERED;
             }
-            if pressed == Some(row_part)
+            if (pointer_eligible && pressed == Some(row_part))
                 || (pressed.is_none() && is_cursor && live.contains(StateFlags::PRESSED))
             {
                 flags |= StateFlags::PRESSED;
@@ -986,7 +1011,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                     ui.with_area(row, |ui| renderer(ui, row, flags, key, item));
                 }
                 if !ui.is_inert() {
-                    ui.register_part(self.id, PartRef::item(Part::ROW, key), row);
+                    let part = if pointer_eligible {
+                        PartRef::item(Part::ROW, key)
+                    } else {
+                        PartRef::of(Part::BODY)
+                    };
+                    ui.register_part(self.id, part, row);
                 }
                 continue;
             }
@@ -1035,7 +1065,12 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> List<'_, T, K, R> {
                 self.row.row(item, &mut r);
             }
             if !ui.is_inert() {
-                ui.register_part(self.id, PartRef::item(Part::ROW, key), row);
+                let part = if pointer_eligible {
+                    PartRef::item(Part::ROW, key)
+                } else {
+                    PartRef::of(Part::BODY)
+                };
+                ui.register_part(self.id, part, row);
             }
         }
         area
