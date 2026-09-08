@@ -328,7 +328,7 @@ mod tests {
     fn painted(slot: Option<Part>) -> Buffer {
         let mut rt = Runtime::new(SlotPage(slot), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         buf
     }
 

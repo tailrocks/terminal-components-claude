@@ -1002,7 +1002,8 @@ mod tests {
                     ui.register_decor(BODY, PartRef::of(Part::BODY), SCREEN);
                     42
                 });
-            });
+            })
+            .commit_presented();
             let inner = seen.get();
             assert_eq!(answer, 42, "body result became optional for {area:?}");
             assert_eq!(calls.get(), 1, "body traversal count for {area:?}");
@@ -1052,7 +1053,8 @@ mod tests {
                     ui.register_decor(BODY, PartRef::of(Part::BODY), SCREEN);
                     73
                 });
-        });
+        })
+        .commit_presented();
         assert_eq!(answer, 73);
         assert!(!inner.is_empty());
         for pos in SCREEN.positions() {
@@ -1088,12 +1090,14 @@ mod tests {
         let render = |dialog: &Dialog<'_>| {
             let (mut runtime, mut buffer) = scene();
             let calls = Cell::new(0usize);
-            runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-                dialog.draw(ui, area, &DialogState::default(), |ui, body| {
-                    calls.set(calls.get().saturating_add(1));
-                    ui.paint_str(body, "body-slot", ui.surface_style());
-                });
-            });
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                    dialog.draw(ui, area, &DialogState::default(), |ui, body| {
+                        calls.set(calls.get().saturating_add(1));
+                        ui.paint_str(body, "body-slot", ui.surface_style());
+                    });
+                })
+                .commit_presented();
             assert_eq!(calls.get(), 1);
             buffer
         };
@@ -1139,9 +1143,11 @@ mod tests {
         assert_eq!(dialog.effective_actions(), &ACTIONS[..Dialog::MAX_ACTIONS]);
 
         let (mut runtime, mut buffer) = scene();
-        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-            dialog.draw(ui, area, &DialogState::default(), |_, _| {});
-        });
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                dialog.draw(ui, area, &DialogState::default(), |_, _| {});
+            })
+            .commit_presented();
         for i in 0..Dialog::MAX_ACTIONS {
             assert!(runtime.area_of(dialog.action_id(i)).is_some());
         }
@@ -1222,7 +1228,8 @@ mod tests {
         let mut body = Rect::ZERO;
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             d.draw(ui, asked, &DialogState::default(), |_, area| body = area);
-        });
+        })
+        .commit_presented();
         assert_eq!(body.height, 3);
         assert!(asked.contains(Position::new(body.x, body.y)));
         let borders = theme.design.borders;
@@ -1257,9 +1264,9 @@ mod tests {
         let mut rt = Runtime::new(Centered::default(), Theme::junie());
         let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf);
-        let _ = rt.handle(Input::Tick);
-        rt.draw_buffer(SCREEN, &mut buf);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         let area = rt
             .layer_area(DLG)
             .expect("resolver assigned the dialog area");
@@ -1301,13 +1308,13 @@ mod tests {
         let mut rt = Runtime::new(Growing::default(), Theme::junie());
         let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf);
-        let _ = rt.handle(Input::Tick);
-        rt.draw_buffer(SCREEN, &mut buf);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         let before = rt.layer_area(DLG).expect("open layer");
         rt.app_mut().rows = 5;
-        let _ = rt.handle(Input::Tick);
-        rt.draw_buffer(SCREEN, &mut buf);
+        let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         let after = rt.layer_area(DLG).expect("resized layer");
         assert_eq!(after.height, before.height.saturating_add(6));
     }
@@ -1340,7 +1347,8 @@ mod tests {
         st.set_secret_mode(true);
         rt.draw_scene(SCREEN, &mut buf, |ui, area| {
             acknowledge().draw(ui, area, &st, |_, _| {});
-        });
+        })
+        .commit_presented();
         let frame: String = buf
             .content()
             .iter()
@@ -1373,7 +1381,8 @@ mod tests {
         let mut buf = Buffer::empty(area);
         rt.draw_scene(area, &mut buf, |ui, a| {
             prompt().draw(ui, a, &st, |_, _| {});
-        });
+        })
+        .commit_presented();
         // the chrome's own region, not the editor's: `Field` registers its
         // block as `Decorative` under the control's id, and the control then
         // registers its one-row editor under the same `(id, CONTAINER)` key
@@ -1415,7 +1424,8 @@ mod tests {
 
         rt.draw_scene(SCREEN, &mut buf, |ui, area| {
             d.draw(ui, area, &st, |_, _| {});
-        });
+        })
+        .commit_presented();
 
         let frame: String = buf
             .content()
@@ -1467,12 +1477,12 @@ mod tests {
         let mut rt = Runtime::new(DialogApp::default(), Theme::junie());
         let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf);
-        let _ = rt.handle(Input::Tick);
-        rt.draw_buffer(SCREEN, &mut buf);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert!(rt.is_open(DLG), "the dialog sized and opened its own layer");
-        let _ = rt.handle(esc());
-        rt.draw_buffer(SCREEN, &mut buf);
+        let _ = crate::runtime::stub::deliver(&mut rt, esc());
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert!(!rt.is_open(DLG));
         assert_eq!(rt.app().dismissed, vec![DismissReason::Esc]);
         assert!(
@@ -1530,17 +1540,17 @@ mod tests {
         let mut runtime = Runtime::new(DynamicDialogApp::default(), Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         let key = |code| {
             Input::Key(Key {
                 code,
                 mods: KeyModifiers::NONE,
             })
         };
-        let _ = runtime.handle(key(KeyCode::F(4)));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::F(4)));
         assert_eq!(runtime.app().chosen, Some(QUICK));
 
         runtime.app_mut().chosen = None;
@@ -1549,11 +1559,11 @@ mod tests {
             QUICK,
             Chord::key(KeyCode::F(5)),
         );
-        let _ = runtime.handle(key(KeyCode::F(4)));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::F(4)));
         assert_eq!(runtime.app().chosen, None);
-        let _ = runtime.handle(key(KeyCode::F(5)));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::F(5)));
         assert_eq!(runtime.app().chosen, Some(QUICK));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         let painted = buffer
             .content()
             .iter()
@@ -1566,7 +1576,7 @@ mod tests {
             .app_mut()
             .keymap
             .remove_component(dialog().action_id(0), QUICK);
-        let _ = runtime.handle(key(KeyCode::F(5)));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::F(5)));
         assert_eq!(runtime.app().chosen, None);
     }
 
@@ -1584,7 +1594,8 @@ mod tests {
             let input = dlg.input_id();
             rt.draw_scene(SCREEN, &mut buf, |ui, a| {
                 ui.reference(None, |ui| dlg.draw(ui, a, &st, |_, _| {}));
-            });
+            })
+            .commit_presented();
             assert!(rt.registry().area_of(id).is_none(), "the chrome is live");
             assert!(
                 rt.registry().area_of(action0).is_none(),
@@ -1603,11 +1614,13 @@ mod tests {
         let render = |dialog: Dialog<'_>, target| {
             let (mut runtime, mut buffer) = scene();
             runtime.set_theme(Theme::junie().downgrade(crate::ColorLevel::Mono));
-            runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-                ui.reference(target, |ui| {
-                    dialog.draw(ui, area, &DialogState::default(), |_, _| {});
-                });
-            });
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                    ui.reference(target, |ui| {
+                        dialog.draw(ui, area, &DialogState::default(), |_, _| {});
+                    });
+                })
+                .commit_presented();
             buffer
                 .content()
                 .iter()

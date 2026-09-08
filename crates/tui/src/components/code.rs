@@ -1722,15 +1722,15 @@ mod tests {
         );
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(area);
-        runtime.draw_buffer(area, &mut buffer);
-        let _ = runtime.handle(key(KeyCode::Tab));
-        runtime.draw_buffer(area, &mut buffer);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Tab));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
         (runtime, buffer)
     }
 
     fn send_key(runtime: &mut Runtime<EditorApp>, buffer: &mut Buffer, code: KeyCode) {
-        let _ = runtime.handle(key(code));
-        runtime.draw_buffer(buffer.area, buffer);
+        let _ = crate::runtime::stub::deliver(runtime, key(code));
+        runtime.draw_buffer(buffer.area, buffer).commit_presented();
     }
 
     #[test]
@@ -1746,15 +1746,19 @@ mod tests {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(area);
         for _ in 0..2 {
-            runtime.draw_scene(area, &mut buffer, |ui, rect| {
-                editor.draw(ui, rect, &state);
-            });
+            runtime
+                .draw_scene(area, &mut buffer, |ui, rect| {
+                    editor.draw(ui, rect, &state);
+                })
+                .commit_presented();
         }
         assert_eq!(calls.get(), 1, "unchanged draw re-highlighted the document");
         state.set_text("select 2");
-        runtime.draw_scene(area, &mut buffer, |ui, rect| {
-            editor.draw(ui, rect, &state);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, rect| {
+                editor.draw(ui, rect, &state);
+            })
+            .commit_presented();
         assert_eq!(calls.get(), 2);
     }
 
@@ -1769,18 +1773,22 @@ mod tests {
             let area = Rect::new(0, 0, 30, 4);
             let mut runtime = Runtime::new(Stub::default(), theme);
             let mut buffer = Buffer::empty(area);
-            runtime.draw_scene(area, &mut buffer, |ui, _| {
-                if stale_runtime_editing {
-                    ui.declare_state(ID, StateFlags::EDITING);
-                }
-            });
+            runtime
+                .draw_scene(area, &mut buffer, |ui, _| {
+                    if stale_runtime_editing {
+                        ui.declare_state(ID, StateFlags::EDITING);
+                    }
+                })
+                .commit_presented();
             let mut state = CodeEditorState::new("hello");
             if real_editing {
                 state.begin_edit();
             }
-            runtime.draw_scene(area, &mut buffer, |ui, area| {
-                CodeEditor::new(ID, 4).draw(ui, area, &state);
-            });
+            runtime
+                .draw_scene(area, &mut buffer, |ui, area| {
+                    CodeEditor::new(ID, 4).draw(ui, area, &state);
+                })
+                .commit_presented();
             let text = runtime
                 .registry()
                 .area_of_part(ID, PartRef::of(Part::TEXT))
@@ -1809,9 +1817,11 @@ mod tests {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(area);
         for _ in 0..2 {
-            runtime.draw_scene(area, &mut buffer, |ui, rect| {
-                editor.draw(ui, rect, &state);
-            });
+            runtime
+                .draw_scene(area, &mut buffer, |ui, rect| {
+                    editor.draw(ui, rect, &state);
+                })
+                .commit_presented();
         }
         assert_eq!(calls.get(), 2);
     }
@@ -1855,12 +1865,14 @@ mod tests {
         let mut runtime = Runtime::new(Stub::default(), theme.clone());
         let mut buffer = Buffer::empty(area);
         let state = CodeEditorState::new("let attempts = 5;");
-        runtime.draw_scene(area, &mut buffer, |ui, rect| {
-            CodeEditor::new(ID, 5)
-                .disabled(true)
-                .highlighter(&highlighter)
-                .draw(ui, rect, &state);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, rect| {
+                CodeEditor::new(ID, 5)
+                    .disabled(true)
+                    .highlighter(&highlighter)
+                    .draw(ui, rect, &state);
+            })
+            .commit_presented();
         let text = runtime
             .area_of_part(ID, PartRef::of(Part::TEXT))
             .expect("disabled editor registers its text part");
@@ -1894,9 +1906,11 @@ mod tests {
         let area = Rect::new(0, 0, 30, 4);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, rect| {
-            editor.draw(ui, rect, &state);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, rect| {
+                editor.draw(ui, rect, &state);
+            })
+            .commit_presented();
         assert_eq!(state, before);
     }
 
@@ -1952,19 +1966,26 @@ mod tests {
             .expect("text part");
         for (column, expected) in [(0, 0), (1, 1), (2, 1), (3, 4)] {
             let x = text.x.saturating_add(column);
-            let _ = runtime.handle(mouse(MouseKind::Down, x, text.y));
-            runtime.draw_buffer(buffer.area, &mut buffer);
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, x, text.y));
+            runtime
+                .draw_buffer(buffer.area, &mut buffer)
+                .commit_presented();
             assert_eq!(
                 runtime.app().state.cursor_offset(),
                 expected,
                 "column {column}"
             );
-            let _ = runtime.handle(mouse(MouseKind::Up, x, text.y));
-            runtime.draw_buffer(buffer.area, &mut buffer);
+            let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, x, text.y));
+            runtime
+                .draw_buffer(buffer.area, &mut buffer)
+                .commit_presented();
         }
         let gutter_x = text.x.saturating_sub(1);
-        let _ = runtime.handle(mouse(MouseKind::Down, gutter_x, text.y));
-        runtime.draw_buffer(buffer.area, &mut buffer);
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, gutter_x, text.y));
+        runtime
+            .draw_buffer(buffer.area, &mut buffer)
+            .commit_presented();
         assert_eq!(runtime.app().state.cursor_offset(), 4);
     }
 
@@ -1974,7 +1995,9 @@ mod tests {
         runtime.app_mut().state.begin_edit();
         runtime.app_mut().state.jump_to(2);
         let before = runtime.app().state.clone();
-        runtime.draw_buffer(buffer.area, &mut buffer);
+        runtime
+            .draw_buffer(buffer.area, &mut buffer)
+            .commit_presented();
         for code in [
             KeyCode::Char('x'),
             KeyCode::Backspace,

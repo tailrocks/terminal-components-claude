@@ -137,7 +137,7 @@ impl Scene {
             return;
         };
         self.buf.reset();
-        rt.draw_scene(area, &mut self.buf, f);
+        rt.draw_scene(area, &mut self.buf, f).commit_presented();
     }
 
     /// Draw over a pre-filled buffer (sentinel tests).
@@ -152,7 +152,7 @@ impl Scene {
         };
         self.buf.reset();
         prefill(&mut self.buf);
-        rt.draw_scene(area, &mut self.buf, f);
+        rt.draw_scene(area, &mut self.buf, f).commit_presented();
     }
 
     /// FNV-1a over `(symbol, fg, bg, modifier)` per cell.

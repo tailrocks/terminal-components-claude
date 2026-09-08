@@ -1,10 +1,10 @@
 //! The runtime (`COMPONENT_ARCHITECTURE.md` §3.3, §8, §9, §17.0 A1).
 //!
 //! `Runtime<A>` owns all interaction state — focus, hover, press, flash,
-//! capture, layers, cursor, regions — and runs the exact two-phase frame
-//! sequence: `handle` (steps 1–9, no buffer in scope) and `draw` (steps
-//! 10–15, no `&mut` app state in scope). The application owns only domain
-//! state and `XState`s.
+//! capture, layers, cursor and regions. `initialize`, `handle` and `settle`
+//! run updates without a buffer. `draw` paints an exclusively borrowed candidate;
+//! only `PaintedFrame::commit_presented` publishes its routing geometry after
+//! successful output. Painting and publication never call application updates.
 
 #[cfg(feature = "crossterm")]
 pub(crate) mod session;
@@ -108,6 +108,83 @@ struct Interaction {
 /// Passes of `app.update` before the runtime gives up settling focus.
 const MAX_FOCUS_PASSES: usize = 4;
 
+/// An input retained until initialization, presentation and focus settling finish.
+/// Debug deliberately omits the event, including pasted text.
+pub struct PendingInput(Input);
+
+impl PendingInput {
+    /// Recover the original owned event for retry.
+    pub fn into_input(self) -> Input {
+        self.0
+    }
+}
+
+impl core::fmt::Debug for PendingInput {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.write_str("PendingInput { event: <redacted> }")
+    }
+}
+
+/// A painted candidate, exclusively borrowing its originating runtime.
+/// Commit only after output succeeds. Dropping it aborts publication.
+///
+/// A pending frame prevents mutation of the runtime it belongs to:
+/// ```compile_fail,E0499
+/// use junie_tui::{App, Runtime};
+/// use ratatui_core::terminal::Frame;
+/// fn stale<A: App>(rt: &mut Runtime<A>, buf: &mut Frame<'_>) {
+///     let frame = rt.draw(buf);
+///     let _ = rt.app_mut();
+///     frame.commit_presented();
+/// }
+/// ```
+/// Publication cannot be redirected to a different runtime:
+/// ```compile_fail,E0061
+/// use junie_tui::{App, Runtime};
+/// use ratatui_core::terminal::Frame;
+/// fn wrong<A: App>(one: &mut Runtime<A>, two: &mut Runtime<A>, buf: &mut Frame<'_>) {
+///     let frame = one.draw(buf);
+///     frame.commit_presented(two);
+/// }
+/// ```
+/// A successful acknowledgment consumes the frame:
+/// ```compile_fail,E0382
+/// use junie_tui::{App, Runtime};
+/// use ratatui_core::terminal::Frame;
+/// fn twice<A: App>(rt: &mut Runtime<A>, buf: &mut Frame<'_>) {
+///     let frame = rt.draw(buf);
+///     frame.commit_presented();
+///     frame.commit_presented();
+/// }
+/// ```
+#[must_use = "commit only after successful output; dropping aborts publication"]
+pub struct PaintedFrame<'a, A: App> {
+    runtime: &'a mut Runtime<A>,
+    committed: bool,
+}
+
+impl<A: App> core::fmt::Debug for PaintedFrame<'_, A> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("PaintedFrame").finish_non_exhaustive()
+    }
+}
+
+impl<A: App> PaintedFrame<'_, A> {
+    /// Publish this candidate after its buffer and cursor were presented.
+    pub fn commit_presented(mut self) {
+        self.runtime.commit_frame();
+        self.committed = true;
+    }
+}
+
+impl<A: App> Drop for PaintedFrame<'_, A> {
+    fn drop(&mut self) {
+        if !self.committed {
+            self.runtime.presented = false;
+        }
+    }
+}
+
 /// The runtime.
 pub struct Runtime<A: App> {
     app: A,
@@ -134,6 +211,8 @@ pub struct Runtime<A: App> {
     focus_out_closed: Vec<Id>,
     unsettled: usize,
     bootstrapped: bool,
+    presented: bool,
+    painted_cursor: Option<Position>,
 }
 
 impl<A: App> core::fmt::Debug for Runtime<A> {
@@ -175,6 +254,8 @@ impl<A: App> Runtime<A> {
             focus_out_closed: Vec::new(),
             unsettled: 0,
             bootstrapped: false,
+            presented: false,
+            painted_cursor: None,
         }
     }
 
@@ -185,6 +266,7 @@ impl<A: App> Runtime<A> {
 
     /// The application, mutably.
     pub const fn app_mut(&mut self) -> &mut A {
+        self.presented = false;
         &mut self.app
     }
 
@@ -195,21 +277,22 @@ impl<A: App> Runtime<A> {
 
     /// Replace the theme; derived caches are dropped.
     pub fn set_theme(&mut self, t: Theme) {
+        self.presented = false;
         self.theme = t;
         self.core.clear_caches();
     }
 
-    /// Last frame's area of a control (`None` before it first draws).
+    /// Last successfully presented area of a control (`None` before publication).
     pub fn area_of(&self, id: Id) -> Option<Rect> {
         self.last.registry.area_of(id)
     }
 
-    /// Last frame's area of a component's sub-region.
+    /// Last successfully presented area of a component's sub-region.
     pub fn area_of_part(&self, id: Id, p: PartRef) -> Option<Rect> {
         self.last.registry.area_of_part(id, p)
     }
 
-    /// Last frame's focus ring.
+    /// Last successfully presented focus ring.
     pub const fn ring(&self) -> &FocusRing {
         &self.last.ring
     }
@@ -243,20 +326,6 @@ impl<A: App> Runtime<A> {
             || self.last_invalidate >= Invalidate::Paint
     }
 
-    /// Consume an immediate repaint request raised during the draw phase.
-    ///
-    /// Terminal sessions use this for focus reconciliation: the first frame
-    /// can discover a different focus owner after it paints, which requires
-    /// one settle frame. Keeping this request separate from response
-    /// invalidation lets the terminal loop stay dirty-driven without exposing
-    /// frame-service state as public API.
-    #[cfg(feature = "crossterm")]
-    pub(crate) fn take_repaint_request(&mut self) -> bool {
-        let requested = self.services.repaint;
-        self.services.repaint = false;
-        requested
-    }
-
     /// The earliest outstanding repaint deadline requested by the app.
     ///
     /// The duration is relative to the update that established the deadline.
@@ -271,7 +340,7 @@ impl<A: App> Runtime<A> {
         self.clock_ms
     }
 
-    /// The terminal size as last resized or drawn.
+    /// The terminal size as last resized or successfully presented.
     pub const fn screen(&self) -> Rect {
         self.screen
     }
@@ -839,6 +908,7 @@ impl<A: App> Runtime<A> {
 
     /// Step 7: `app.update` with the frozen queue, re-run while focus moves.
     fn run_update(&mut self, command: Option<ActionKey>, cause: UpdateCause) -> Response<()> {
+        self.presented = false;
         self.core.begin_cache_frame(self.generation.wrapping_add(1));
         let mut folded = Response::ignored();
         let mut first_pass = true;
@@ -958,17 +1028,45 @@ impl<A: App> Runtime<A> {
         self.finish(r)
     }
 
-    /// `Runtime::handle` — steps 1–9.
+    /// Whether an update must settle focus discovered by a committed frame.
+    pub const fn needs_settle(&self) -> bool {
+        self.pending_focus.is_some()
+    }
+
+    /// Whether another successful presentation is required before input.
+    pub const fn needs_present(&self) -> bool {
+        !self.presented
+    }
+
+    /// Deliver committed focus transitions without consuming external input.
+    pub fn settle(&mut self) -> Response<()> {
+        if !self.bootstrapped {
+            return Response::ignored();
+        }
+        let Some((from, to, via)) = self.pending_focus.take() else {
+            return Response::ignored();
+        };
+        self.intents.clear();
+        if let Some(old) = from {
+            self.intents.focus_out(old, to);
+        }
+        if let Some(new) = to {
+            self.intents.focus_in(new, via);
+        }
+        self.dismiss_on_focus_out(to);
+        let r = self.run_update(None, UpdateCause::Settle);
+        self.finish(r)
+    }
+
+    /// Route one event using compatible, successfully presented geometry.
     ///
-    /// Initializes an uninitialized application on this update path. Live
-    /// drivers should call [`Self::initialize`] and draw before delivering
-    /// input, since routing still uses the last drawn frame's geometry.
-    #[expect(
-        clippy::too_many_lines,
-        reason = "one input lifecycle pass preserves event ownership and paste wiping"
-    )]
-    pub fn handle(&mut self, input: Input) -> Response<()> {
-        let _ = self.initialize();
+    /// # Errors
+    /// Returns the original event without effects if initialization, presentation
+    /// or explicit focus settling is still required. Retry after completing it.
+    pub fn handle(&mut self, input: Input) -> Result<Response<()>, PendingInput> {
+        if !self.bootstrapped || !self.presented || self.needs_settle() {
+            return Err(PendingInput(input));
+        }
         self.services.diagnostics.clear();
         self.sync_keymap();
         self.refresh_keymap_conflicts();
@@ -978,18 +1076,6 @@ impl<A: App> Runtime<A> {
         self.services.repaint = false;
         self.intents.clear();
         self.services.registry_gen = self.last.registry.generation();
-        // focus moved at the last draw's reconcile: deliver FocusOut/FocusIn now
-        if let Some((from, to, via)) = self.pending_focus.take() {
-            if let Some(old) = from {
-                self.intents.focus_out(old, to);
-            }
-            if let Some(new) = to {
-                self.intents.focus_in(new, via);
-            }
-            // A deferred traversal can leave a popover. Its semantic lifecycle
-            // belongs to this update, not to the draw that resolved the target.
-            self.dismiss_on_focus_out(to);
-        }
         self.pump_layer_events();
         let mut key_input = None;
         let mut update_cause = UpdateCause::Event;
@@ -1002,7 +1088,7 @@ impl<A: App> Runtime<A> {
                 // clears it (MA-7).
                 let r = self.run_update(None, UpdateCause::Event) | Response::changed().relayout();
                 drop(input);
-                return self.finish(r);
+                return Ok(self.finish(r));
             }
             Input::Tick => {
                 update_cause = UpdateCause::Tick;
@@ -1028,7 +1114,7 @@ impl<A: App> Runtime<A> {
                 if let Some(cmd) = self.core.keymap.lookup(KeyPhase::Capture, k, swallows) {
                     let r = self.run_update(Some(cmd), UpdateCause::Event);
                     drop(input);
-                    return self.finish(r);
+                    return Ok(self.finish(r));
                 }
                 key_input = Some(*k);
                 self.enqueue_key(*k);
@@ -1081,7 +1167,7 @@ impl<A: App> Runtime<A> {
             }
         }
         drop(input);
-        self.finish(r)
+        Ok(self.finish(r))
     }
 
     /// Step 9.
@@ -1094,19 +1180,20 @@ impl<A: App> Runtime<A> {
         r
     }
 
-    /// `Runtime::draw` — steps 10–15.
-    pub fn draw(&mut self, frame: &mut Frame<'_>) {
+    /// Paint a candidate into a terminal frame without publishing input geometry.
+    /// Keep the returned guard until terminal output succeeds, then call
+    /// [`PaintedFrame::commit_presented`]. Dropping it requires another frame.
+    pub fn draw(&mut self, frame: &mut Frame<'_>) -> PaintedFrame<'_, A> {
         let area = frame.area();
         let buf = frame.buffer_mut();
-        self.draw_into(area, buf);
-        if let Some(cursor) = self.cursor {
+        self.draw_with_buffer(area, buf, A::draw);
+        if let Some(cursor) = self.painted_cursor {
             frame.set_cursor_position(cursor);
         }
-    }
-
-    /// The draw phase into a bare buffer (headless scenes and tests).
-    pub(crate) fn draw_into(&mut self, area: Rect, buf: &mut Buffer) {
-        self.draw_with_buffer(area, buf, A::draw);
+        PaintedFrame {
+            runtime: self,
+            committed: false,
+        }
     }
 
     fn draw_with_buffer(
@@ -1115,9 +1202,10 @@ impl<A: App> Runtime<A> {
         buf: &mut Buffer,
         paint: impl FnOnce(&A, &mut Ui<'_>),
     ) {
+        self.presented = false;
+        self.sync_keymap();
         // step 10: new frame state
         if area != self.screen {
-            self.screen = area;
             self.core.clear_caches();
         }
         self.generation = self.generation.wrapping_add(1);
@@ -1148,6 +1236,22 @@ impl<A: App> Runtime<A> {
                 composite_layer(&mut ui, i, area);
             }
         }
+        self.painted_cursor = match self.frame.cursor {
+            None => None,
+            Some(req) => match cursor::resolve(req, self.frame.top, self.focus.current()) {
+                CursorDecision::Keep(p) => Some(p),
+                CursorDecision::Reject(d) => {
+                    self.frame.diagnostics.push(d);
+                    None
+                }
+                CursorDecision::Silent => None,
+            },
+        };
+    }
+
+    fn commit_frame(&mut self) {
+        self.screen = self.frame.screen;
+        self.presented = true;
         // step 13: registry swap, stale captures released
         let mut diags = core::mem::take(&mut self.frame.diagnostics);
         self.services.diagnostics.extend(diags.drain(..));
@@ -1177,7 +1281,24 @@ impl<A: App> Runtime<A> {
             self.frame.ring.reconcile(&self.last.ring, previous)
         };
         core::mem::swap(&mut self.last.ring, &mut self.frame.ring);
-        let reconciled = reconciled.filter(|id| self.focus_target_admissible(*id));
+        let reconciled = reconciled.and_then(|id| {
+            if self.focus_target_admissible(id) {
+                return Some(id);
+            }
+            // An ambiguous duplicate ID can make the first reachable entry
+            // inadmissible. Continue in registration order to a valid owner.
+            let entries = self.last.ring.entries();
+            let after = entries
+                .iter()
+                .position(|entry| entry.id == id)
+                .map_or(0, |i| i.saturating_add(1));
+            entries
+                .iter()
+                .skip(after)
+                .chain(entries.iter().take(after))
+                .find(|entry| self.focus_target_admissible(entry.id))
+                .map(|entry| entry.id)
+        });
         if reconciled != previous {
             let via = if self
                 .staged_focus
@@ -1187,37 +1308,32 @@ impl<A: App> Runtime<A> {
             } else {
                 FocusVia::Programmatic
             };
-            self.pending_focus = Some((previous, reconciled, via));
+            // No update has observed the intermediate target yet. Preserve the
+            // original source when several presentations precede explicit settle.
+            let from = self.pending_focus.map_or(previous, |(from, _, _)| from);
+            self.pending_focus = (from != reconciled).then_some((from, reconciled, via));
             self.focus.set(reconciled);
-            // the frame was painted with the old focus: ask for another one
+            // This output used the old focus. Even a coalesced round trip with
+            // no callback needs another presentation before input is compatible.
+            self.presented = false;
             self.services.repaint = true;
         }
         self.staged_focus = None;
         self.last.snapshot.focus = self.focus.current();
         self.last.snapshot.focus_visible = self.focus.visible();
-        // hover is re-resolved against the new registry so a control that
-        // moved under a still pointer does not keep a stale hover
+        // Drop vanished hover owners. Re-hit-testing a stationary pointer
+        // against moved/reordered geometry remains a separate interaction slice.
         if let Some((owner, _)) = self.inter.hover
             && !self.last.registry.has_owner(owner)
         {
             self.inter.hover = None;
             self.last.snapshot.hover = None;
         }
-        // step 15: cursor
-        self.cursor = match self.frame.cursor {
-            None => None,
-            Some(req) => match cursor::resolve(req, self.frame.top, self.focus.current()) {
-                CursorDecision::Keep(p) => Some(p),
-                CursorDecision::Reject(d) => {
-                    self.services.diagnostics.push(d);
-                    None
-                }
-                CursorDecision::Silent => None,
-            },
-        };
+        // Cursor matches the actual output, painted before focus reconciliation.
+        self.cursor = self.painted_cursor;
     }
 
-    /// The cursor position kept by the last draw.
+    /// The cursor position kept by the last successful presentation.
     pub const fn cursor_position(&self) -> Option<Position> {
         self.cursor
     }
@@ -1323,13 +1439,26 @@ impl<A: App> Runtime<A> {
     }
 
     /// The draw phase with a closure instead of `App::draw` (headless scenes).
-    pub fn draw_scene(&mut self, area: Rect, buf: &mut Buffer, f: impl FnOnce(&mut Ui<'_>, Rect)) {
+    pub fn draw_scene(
+        &mut self,
+        area: Rect,
+        buf: &mut Buffer,
+        f: impl FnOnce(&mut Ui<'_>, Rect),
+    ) -> PaintedFrame<'_, A> {
         self.draw_with_buffer(area, buf, |_, ui| f(ui, area));
+        PaintedFrame {
+            runtime: self,
+            committed: false,
+        }
     }
 
     /// The draw phase into a bare buffer.
-    pub fn draw_buffer(&mut self, area: Rect, buf: &mut Buffer) {
-        self.draw_into(area, buf);
+    pub fn draw_buffer(&mut self, area: Rect, buf: &mut Buffer) -> PaintedFrame<'_, A> {
+        self.draw_with_buffer(area, buf, A::draw);
+        PaintedFrame {
+            runtime: self,
+            committed: false,
+        }
     }
 
     /// The number of regions registered last frame.
@@ -1362,6 +1491,7 @@ impl<A: App> Runtime<A> {
     pub fn set_focus(&mut self, id: Option<Id>) {
         let from = self.focus.current();
         if from != id {
+            self.presented = false;
             self.pending_focus = Some((from, id, FocusVia::Programmatic));
             self.focus.set(id);
             self.last.snapshot.focus = id;
@@ -1471,6 +1601,7 @@ pub(crate) mod stub {
         pub(crate) resize_request: Option<(Id, crate::layer::LayerSize)>,
         /// `update` calls so far.
         pub(crate) updates: usize,
+        pub(crate) events_started: bool,
         /// Focus requests issued from inside `update` on each pass (settling tests).
         pub(crate) chase: Vec<Id>,
         pub(crate) esc_hits: usize,
@@ -1504,6 +1635,9 @@ pub(crate) mod stub {
             // queued test actions for the first externally handled event.
             if cx.update_cause() == UpdateCause::Bootstrap {
                 return Response::ignored();
+            }
+            if matches!(cx.update_cause(), UpdateCause::Event | UpdateCause::Tick) {
+                self.events_started = true;
             }
             let mut r = Response::ignored();
             let controls: Vec<Control> = self.controls().cloned().collect();
@@ -1546,6 +1680,9 @@ pub(crate) mod stub {
                 for it in cx.intents(id) {
                     self.log.push((id, format!("{it:?}")));
                 }
+            }
+            if !self.events_started {
+                return r;
             }
             if let Some(f) = self.focus_request.take() {
                 cx.focus(f);
@@ -1613,8 +1750,14 @@ pub(crate) mod stub {
         let mut rt = Runtime::new(stub, Theme::junie());
         let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf);
-        (rt, buf)
+        for _ in 0..16 {
+            rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+            if !rt.needs_settle() {
+                return (rt, buf);
+            }
+            let _ = rt.settle();
+        }
+        panic!("initial fixture focus did not settle");
     }
 
     pub(crate) fn key(code: KeyCode) -> Input {
@@ -1632,17 +1775,43 @@ pub(crate) mod stub {
         })
     }
 
+    /// Behavioral fixture delivery: publish real geometry, settle, then assert acceptance.
+    pub(crate) fn deliver<A: App>(rt: &mut Runtime<A>, input: Input) -> Response<()> {
+        assert!(
+            rt.bootstrapped,
+            "behavioral fixture must explicitly initialize"
+        );
+        let area = if rt.screen().is_empty() {
+            SCREEN
+        } else {
+            rt.screen()
+        };
+        let mut buffer = Buffer::empty(area);
+        for _ in 0..16 {
+            if rt.needs_settle() {
+                let _ = rt.settle();
+            }
+            if !rt.needs_present() && !rt.needs_settle() {
+                return rt
+                    .handle(input)
+                    .expect("fixture publication must accept input");
+            }
+            rt.draw_buffer(area, &mut buffer).commit_presented();
+        }
+        panic!("fixture publication did not settle: {:?}", rt.diagnostics());
+    }
+
     /// Handle then draw, like the harness.
     pub(crate) fn step(rt: &mut Runtime<Stub>, buf: &mut Buffer, input: Input) -> Response<()> {
-        let r = rt.handle(input);
-        rt.draw_buffer(SCREEN, buf);
+        let r = deliver(rt, input);
+        rt.draw_buffer(SCREEN, buf).commit_presented();
         r
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::stub::{Control, SCREEN, Stub, key, mouse, runtime, step};
+    use super::stub::{Control, SCREEN, Stub, deliver, key, mouse, runtime, step};
     use super::*;
     use crate::event::MouseKind;
     use crate::focus::Focusability;
@@ -1682,7 +1851,7 @@ mod tests {
         let mut buf = Buffer::empty(SCREEN);
 
         assert_eq!(rt.clock_ms(), 0);
-        rt.draw_buffer(SCREEN, &mut buf);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert_eq!(rt.app().causes, vec![UpdateCause::Bootstrap]);
         assert_eq!(rt.clock_ms(), 0);
         assert_eq!(
@@ -1690,7 +1859,7 @@ mod tests {
             Some(core::time::Duration::from_millis(33))
         );
 
-        rt.draw_buffer(SCREEN, &mut buf);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert_eq!(rt.app().causes, vec![UpdateCause::Bootstrap]);
         assert_eq!(rt.clock_ms(), 0);
     }
@@ -1720,10 +1889,12 @@ mod tests {
         let mut rt = Runtime::new(TickCauseProbe::default(), Theme::junie());
         let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = rt.settle();
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         rt.app_mut().causes.clear();
 
-        let _ = rt.handle(Input::Tick);
+        let _ = deliver(&mut rt, Input::Tick);
         assert_eq!(
             rt.app().causes,
             vec![UpdateCause::Tick, UpdateCause::Settle]
@@ -1765,32 +1936,38 @@ mod tests {
         );
         let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert_eq!(
             rt.next_deadline(),
             Some(core::time::Duration::from_millis(40))
         );
 
-        let _ = rt.handle(Input::Key(Key {
-            code: KeyCode::Char('x'),
-            mods: KeyModifiers::NONE,
-        }));
+        let _ = deliver(
+            &mut rt,
+            Input::Key(Key {
+                code: KeyCode::Char('x'),
+                mods: KeyModifiers::NONE,
+            }),
+        );
         assert_eq!(
             rt.next_deadline(),
             Some(core::time::Duration::from_millis(40))
         );
 
-        let _ = rt.handle(Input::Mouse(Mouse {
-            kind: MouseKind::Move,
-            pos: Position::new(1, 1),
-            mods: KeyModifiers::NONE,
-        }));
+        let _ = deliver(
+            &mut rt,
+            Input::Mouse(Mouse {
+                kind: MouseKind::Move,
+                pos: Position::new(1, 1),
+                mods: KeyModifiers::NONE,
+            }),
+        );
         assert_eq!(
             rt.next_deadline(),
             Some(core::time::Duration::from_millis(10))
         );
 
-        let _ = rt.handle(Input::Tick);
+        let _ = deliver(&mut rt, Input::Tick);
         assert_eq!(rt.next_deadline(), None);
     }
 
@@ -1799,11 +1976,11 @@ mod tests {
         let mut rt = Runtime::new(BootstrapProbe::default(), Theme::junie());
         let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         rt.app_mut().causes.clear();
 
         let before = rt.clock_ms();
-        let _ = rt.handle(Input::Tick);
+        let _ = deliver(&mut rt, Input::Tick);
         assert_eq!(rt.app().causes, vec![UpdateCause::Tick]);
         assert_eq!(rt.clock_ms(), before + rt.theme().design.motion.tick_ms);
     }
@@ -1820,7 +1997,12 @@ mod tests {
 
     impl App for ReferenceLayerApp {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            if cx.update_cause() != UpdateCause::Bootstrap
+            for owner in [REFERENCE_PAGE, REFERENCE_LAYER, REFERENCE_LAYER_CONTROL] {
+                for intent in cx.intents(owner) {
+                    let _ = intent;
+                }
+            }
+            if matches!(cx.update_cause(), UpdateCause::Event | UpdateCause::Tick)
                 && self.open
                 && !cx.is_open(REFERENCE_LAYER)
             {
@@ -1858,7 +2040,7 @@ mod tests {
     fn a_layer_attempted_only_in_reference_has_no_backdrop_or_focus_effect() {
         let mut plain = Runtime::new(ReferenceLayerApp::default(), Theme::junie());
         let mut expected = Buffer::empty(SCREEN);
-        plain.draw_buffer(SCREEN, &mut expected);
+        plain.draw_buffer(SCREEN, &mut expected).commit_presented();
 
         let mut runtime = Runtime::new(
             ReferenceLayerApp {
@@ -1868,16 +2050,16 @@ mod tests {
             Theme::junie(),
         );
         let _ = runtime.initialize();
-        let _ = runtime.handle(Input::Tick);
+        let _ = deliver(&mut runtime, Input::Tick);
         let mut actual = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut actual);
+        runtime.draw_buffer(SCREEN, &mut actual).commit_presented();
         assert_eq!(actual, expected, "an undrawn layer left a backdrop");
         assert_eq!(runtime.focus(), Some(REFERENCE_PAGE));
         assert!(runtime.diagnostics().is_empty());
 
         runtime.app_mut().draw_live = true;
         actual.reset();
-        runtime.draw_buffer(SCREEN, &mut actual);
+        runtime.draw_buffer(SCREEN, &mut actual).commit_presented();
         assert_ne!(actual, expected, "a later legitimate layer draw was lost");
         assert_eq!(runtime.focus(), Some(REFERENCE_LAYER_CONTROL));
         assert!(runtime.diagnostics().is_empty());
@@ -2023,8 +2205,8 @@ mod tests {
         let mut buffer = Buffer::empty(area);
         let mut runtime = Runtime::new(app, Theme::junie());
         let _ = runtime.initialize();
-        runtime.draw_buffer(area, &mut buffer);
-        runtime.draw_buffer(area, &mut buffer);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
         (runtime, buffer)
     }
 
@@ -2038,7 +2220,7 @@ mod tests {
     #[test]
     fn default_action_routes_to_typed_command() {
         let (mut runtime, _) = route_runtime(RouteApp::default());
-        let response = runtime.handle(key(KeyCode::Enter));
+        let response = deliver(&mut runtime, key(KeyCode::Enter));
         assert!(response.is_consumed());
         assert_eq!(runtime.app().typed, vec![(A, RouteCmd::Default)]);
         assert_eq!(runtime.app().raw, 0);
@@ -2050,8 +2232,10 @@ mod tests {
         app.keymap.remove_component(A, DEFAULT_ACTION);
         let (mut runtime, mut buffer) = route_runtime(app);
         assert!(!hint_row(&buffer).contains("Default"));
-        let response = runtime.handle(key(KeyCode::Enter));
-        runtime.draw_buffer(Rect::new(0, 0, 40, 3), &mut buffer);
+        let response = deliver(&mut runtime, key(KeyCode::Enter));
+        runtime
+            .draw_buffer(Rect::new(0, 0, 40, 3), &mut buffer)
+            .commit_presented();
         assert!(!response.is_consumed());
         assert!(runtime.app().typed.is_empty());
         assert_eq!(runtime.app().raw, 1);
@@ -2064,11 +2248,13 @@ mod tests {
             .remap_component(A, DEFAULT_ACTION, crate::Chord::key(KeyCode::F(3)));
         let (mut runtime, mut buffer) = route_runtime(app);
         assert!(hint_row(&buffer).contains("F3"));
-        let old = runtime.handle(key(KeyCode::Enter));
+        let old = deliver(&mut runtime, key(KeyCode::Enter));
         assert!(!old.is_consumed());
         assert_eq!(runtime.app().raw, 1);
-        runtime.draw_buffer(Rect::new(0, 0, 40, 3), &mut buffer);
-        let new = runtime.handle(key(KeyCode::F(3)));
+        runtime
+            .draw_buffer(Rect::new(0, 0, 40, 3), &mut buffer)
+            .commit_presented();
+        let new = deliver(&mut runtime, key(KeyCode::F(3)));
         assert!(new.is_consumed());
         assert_eq!(runtime.app().typed, vec![(A, RouteCmd::Default)]);
     }
@@ -2081,7 +2267,7 @@ mod tests {
             .bind_component(A, LATENT_ACTION, crate::Chord::key(KeyCode::F(4)));
         let (mut runtime, buffer) = route_runtime(app);
         assert!(hint_row(&buffer).contains("F4"));
-        assert!(runtime.handle(key(KeyCode::F(4))).is_consumed());
+        assert!(deliver(&mut runtime, key(KeyCode::F(4))).is_consumed());
         assert_eq!(runtime.app().typed, vec![(A, RouteCmd::Latent)]);
     }
 
@@ -2094,10 +2280,12 @@ mod tests {
         app.keymap
             .remap_component(A, DEFAULT_ACTION, crate::Chord::key(KeyCode::F(5)));
         let (mut runtime, mut buffer) = route_runtime(app);
-        let _ = runtime.handle(key(KeyCode::Tab));
-        runtime.draw_buffer(Rect::new(0, 0, 40, 3), &mut buffer);
+        let _ = deliver(&mut runtime, key(KeyCode::Tab));
+        runtime
+            .draw_buffer(Rect::new(0, 0, 40, 3), &mut buffer)
+            .commit_presented();
         assert_eq!(runtime.focus(), Some(B));
-        assert!(runtime.handle(key(KeyCode::Enter)).is_consumed());
+        assert!(deliver(&mut runtime, key(KeyCode::Enter)).is_consumed());
         assert_eq!(runtime.app().typed, vec![(B, RouteCmd::Default)]);
     }
 
@@ -2110,7 +2298,7 @@ mod tests {
             ActionKey::SAVE,
         );
         let (mut runtime, _) = route_runtime(app);
-        assert!(runtime.handle(key(KeyCode::Enter)).is_consumed());
+        assert!(deliver(&mut runtime, key(KeyCode::Enter)).is_consumed());
         assert_eq!(runtime.app().app_commands, 1);
         assert!(runtime.app().typed.is_empty());
     }
@@ -2124,11 +2312,11 @@ mod tests {
             ActionKey::SAVE,
         );
         let (mut runtime, _) = route_runtime(app);
-        assert!(runtime.handle(key(KeyCode::F(6))).is_consumed());
+        assert!(deliver(&mut runtime, key(KeyCode::F(6))).is_consumed());
         assert_eq!(runtime.app().app_commands, 1);
 
         runtime.app_mut().options |= ROUTE_CONSUME_RAW;
-        assert!(runtime.handle(key(KeyCode::F(6))).is_consumed());
+        assert!(deliver(&mut runtime, key(KeyCode::F(6))).is_consumed());
         assert_eq!(runtime.app().app_commands, 1);
     }
 
@@ -2138,7 +2326,9 @@ mod tests {
         assert!(hint_row(&buffer).contains("Default"));
         let capacity = runtime.core.focused_hints.layer.hints.capacity();
         runtime.app_mut().options |= ROUTE_ALTERNATE;
-        runtime.draw_buffer(Rect::new(0, 0, 40, 3), &mut buffer);
+        runtime
+            .draw_buffer(Rect::new(0, 0, 40, 3), &mut buffer)
+            .commit_presented();
         assert!(hint_row(&buffer).contains("Alternate"));
         assert_eq!(runtime.core.focused_hints.layer.hints.capacity(), capacity);
     }
@@ -2151,8 +2341,10 @@ mod tests {
             DEFAULT_ACTION,
             crate::Chord::key(KeyCode::F(7)),
         );
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(Rect::new(0, 0, 40, 3), &mut buffer);
+        let _ = deliver(&mut runtime, Input::Tick);
+        runtime
+            .draw_buffer(Rect::new(0, 0, 40, 3), &mut buffer)
+            .commit_presented();
         assert!(hint_row(&buffer).contains("F7"));
     }
 
@@ -2163,7 +2355,7 @@ mod tests {
             ..RouteApp::default()
         };
         let (mut runtime, _) = route_runtime(app);
-        assert!(!runtime.handle(key(KeyCode::Enter)).is_consumed());
+        assert!(!deliver(&mut runtime, key(KeyCode::Enter)).is_consumed());
         assert_eq!(runtime.app().raw, 1);
         assert!(runtime.app().typed.is_empty());
     }
@@ -2175,7 +2367,7 @@ mod tests {
             ..RouteApp::default()
         };
         let (mut runtime, _) = route_runtime(app);
-        assert!(runtime.handle(key(KeyCode::Tab)).is_consumed());
+        assert!(deliver(&mut runtime, key(KeyCode::Tab)).is_consumed());
         assert_eq!(runtime.focus(), Some(A));
         assert_eq!(runtime.app().typed, vec![(A, RouteCmd::Alternate)]);
     }
@@ -2188,7 +2380,7 @@ mod tests {
         };
         app.keymap.remove_component(A, TAB_ACTION);
         let (mut runtime, _) = route_runtime(app);
-        let _ = runtime.handle(key(KeyCode::Tab));
+        let _ = deliver(&mut runtime, key(KeyCode::Tab));
         assert_eq!(runtime.focus(), Some(B));
         assert!(runtime.app().typed.is_empty());
     }
@@ -2212,15 +2404,21 @@ mod tests {
         let mut buffer = Buffer::empty(area);
         let component = Id::root("cache-gap");
 
-        runtime.draw_scene(area, &mut buffer, |ui, _| {
-            ui.cache::<GapCache>(component).0 = 7;
-        });
-        runtime.draw_scene(area, &mut buffer, |_ui, _| {});
+        runtime
+            .draw_scene(area, &mut buffer, |ui, _| {
+                ui.cache::<GapCache>(component).0 = 7;
+            })
+            .commit_presented();
+        runtime
+            .draw_scene(area, &mut buffer, |_ui, _| {})
+            .commit_presented();
 
         let observed = core::cell::Cell::new(u32::MAX);
-        runtime.draw_scene(area, &mut buffer, |ui, _| {
-            observed.set(ui.cache::<GapCache>(component).0);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, _| {
+                observed.set(ui.cache::<GapCache>(component).0);
+            })
+            .commit_presented();
         assert_eq!(observed.get(), 0);
     }
 
@@ -2508,7 +2706,7 @@ mod tests {
     #[test]
     fn resize_releases_capture_and_relayouts() {
         let (mut rt, buf) = runtime(three());
-        let r = rt.handle(Input::Resize(50, 20));
+        let r = deliver(&mut rt, Input::Resize(50, 20));
         assert_eq!(r.invalidate(), Invalidate::Layout);
         assert_eq!(rt.screen(), Rect::new(0, 0, 50, 20));
         let _ = buf;
@@ -2570,8 +2768,8 @@ mod tests {
         s.page.clear();
         s.page.push(Control::new(A, Rect::new(0, 0, 10, 1)));
         let (mut rt, mut buf) = runtime(s);
-        // the stub drains everything; empty its control list so A stays registered last frame but undrained
-        rt.app_mut().page.clear();
+        // Keep A in actual presented geometry while deliberately leaving its bucket undrained.
+        rt.app_mut().skip_drain = Some(A);
         let _ = step(&mut rt, &mut buf, mouse(MouseKind::Down, 1, 0));
         assert!(
             rt.diagnostics()
@@ -2631,15 +2829,15 @@ mod tests {
         let mut rt = Runtime::new(Mapped(s, km), Theme::junie());
         let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         // the editor swallows typing: `q` reaches the editor, not the keymap
-        let _ = rt.handle(key(KeyCode::Char('q')));
+        let _ = deliver(&mut rt, key(KeyCode::Char('q')));
         assert!(rt.app().0.saw(A, "Char('q')"));
         assert!(!rt.app().0.saw(KeyMap::OWNER, "cmd"));
-        rt.draw_buffer(SCREEN, &mut buf);
-        let _ = rt.handle(key(KeyCode::Tab));
-        rt.draw_buffer(SCREEN, &mut buf);
-        let _ = rt.handle(key(KeyCode::Char('q')));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = deliver(&mut rt, key(KeyCode::Tab));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = deliver(&mut rt, key(KeyCode::Char('q')));
         assert!(rt.app().0.saw(KeyMap::OWNER, "cmd:ActionKey"));
     }
 
@@ -2849,7 +3047,7 @@ mod tests {
         assert!(!rt.registry().has_owner(OK));
 
         rt.app_mut().open_request = Some((DLG, LayerSpec::modal(DLG).initial_focus(OK)));
-        let _ = rt.handle(key(KeyCode::Char('x')));
+        let _ = deliver(&mut rt, key(KeyCode::Char('x')));
 
         assert_eq!(
             rt.focus(),

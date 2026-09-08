@@ -1200,9 +1200,11 @@ mod tests {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(AREA);
         let state = PropsState::default();
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            PropsList::new(ID).draw(ui, area, &state, &rows);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                PropsList::new(ID).draw(ui, area, &state, &rows);
+            })
+            .commit_presented();
 
         let text = painted_text(&buffer, AREA);
         assert!(!text.contains("hunter2"));
@@ -1239,27 +1241,27 @@ mod tests {
         let mut runtime = Runtime::new(ActionApp::default(), Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_buffer(AREA, &mut buffer);
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
 
-        let _ = runtime.handle(key(KeyCode::Char('y')));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('y')));
         assert_eq!(runtime.app().actions, [PropsAction::Copy(FIRST_KEY)]);
 
-        let _ = runtime.handle(key(KeyCode::Down));
-        let _ = runtime.handle(key(KeyCode::Char('y')));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Down));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('y')));
         assert_eq!(
             runtime.app().actions,
             [PropsAction::Copy(FIRST_KEY)],
             "a non-copyable row must consume copy without emitting an action"
         );
 
-        runtime.draw_buffer(AREA, &mut buffer);
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         let row = runtime
             .area_of_part(ID, PartRef::item(Part::ROW, FIRST_KEY))
             .expect("the keyed row must register a mouse hit region");
         let x = row.x.saturating_add(row.width / 2);
-        let _ = runtime.handle(mouse(MouseKind::Down, x, row.y));
-        runtime.draw_buffer(AREA, &mut buffer);
-        let _ = runtime.handle(mouse(MouseKind::Up, x, row.y));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, x, row.y));
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, x, row.y));
 
         assert_eq!(
             runtime.app().actions,
@@ -1336,12 +1338,12 @@ mod tests {
         let mut runtime = Runtime::new(ReorderApp::default(), Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_buffer(AREA, &mut buffer);
-        let _ = runtime.handle(key(KeyCode::Down));
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Down));
         assert_eq!(runtime.app().state.cursor(), Some(ItemKey::num(2)));
 
         runtime.app_mut().reordered = true;
-        let _ = runtime.handle(key(KeyCode::Char('y')));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('y')));
         assert_eq!(runtime.app().copied, Some(ItemKey::num(2)));
     }
 
@@ -1361,17 +1363,19 @@ mod tests {
         state.set_cursor(1, SECOND_KEY);
         let mut runtime = Runtime::new(Stub::default(), theme.clone());
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            ui.reference(
-                Some(ReferenceTarget::new(
-                    ID,
-                    ReferenceState::FOCUSED | ReferenceState::FOCUS_VISIBLE,
-                )),
-                |ui| {
-                    PropsList::new(ID).draw(ui, area, &state, &rows);
-                },
-            );
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                ui.reference(
+                    Some(ReferenceTarget::new(
+                        ID,
+                        ReferenceState::FOCUSED | ReferenceState::FOCUS_VISIBLE,
+                    )),
+                    |ui| {
+                        PropsList::new(ID).draw(ui, area, &state, &rows);
+                    },
+                );
+            })
+            .commit_presented();
 
         let value_x = 8;
         assert_ne!(
@@ -1393,11 +1397,13 @@ mod tests {
             let theme = Theme::junie().downgrade(crate::ColorLevel::Mono);
             let mut runtime = Runtime::new(Stub::default(), theme);
             let mut buffer = Buffer::empty(AREA);
-            runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-                ui.reference(Some(target), |ui| {
-                    PropsList::new(ID).draw(ui, area, &state, &rows);
-                });
-            });
+            runtime
+                .draw_scene(AREA, &mut buffer, |ui, area| {
+                    ui.reference(Some(target), |ui| {
+                        PropsList::new(ID).draw(ui, area, &state, &rows);
+                    });
+                })
+                .commit_presented();
             buffer
         };
 
@@ -1444,11 +1450,13 @@ mod tests {
             let mut runtime = Runtime::new(Stub::default(), Theme::junie());
             let mut buffer = Buffer::empty(AREA);
             let state = PropsState::default();
-            runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-                PropsList::new(ID)
-                    .slot(part, &painter)
-                    .draw(ui, area, &state, &rows);
-            });
+            runtime
+                .draw_scene(AREA, &mut buffer, |ui, area| {
+                    PropsList::new(ID)
+                        .slot(part, &painter)
+                        .draw(ui, area, &state, &rows);
+                })
+                .commit_presented();
             assert!(called.get(), "{part:?} slot was not forwarded");
         }
     }

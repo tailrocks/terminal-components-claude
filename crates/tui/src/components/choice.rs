@@ -1499,18 +1499,22 @@ mod tests {
     fn draw_checkbox(checked: bool) -> Buffer {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-            Checkbox::new(RG, "Choice").checked(checked).draw(ui, area);
-        });
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                Checkbox::new(RG, "Choice").checked(checked).draw(ui, area);
+            })
+            .commit_presented();
         buffer
     }
 
     fn draw_toggle(on: bool) -> Buffer {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-            Toggle::new(RG, "Choice").on(on).draw(ui, area);
-        });
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                Toggle::new(RG, "Choice").on(on).draw(ui, area);
+            })
+            .commit_presented();
         buffer
     }
 
@@ -1530,7 +1534,7 @@ mod tests {
     fn disabled_update_does_not_initialize_collection_state() {
         let mut runtime = Runtime::new(DisabledRadioApp::default(), Theme::junie());
         let _ = runtime.initialize();
-        let _ = runtime.handle(Input::Tick);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
         assert_eq!(runtime.app().state, RadioGroupState::default());
     }
 
@@ -1583,7 +1587,7 @@ mod tests {
             Theme::junie(),
         );
         let _ = runtime.initialize();
-        let _ = runtime.handle(Input::Tick);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
         assert_eq!(runtime.app().state.cursor(), Some(selected));
 
         let mut state = runtime.app().state.clone();
@@ -1713,7 +1717,8 @@ mod tests {
         rt.draw_scene(SCREEN, &mut buf, |ui, a| {
             let g: RadioGroup<'_, &str> = RadioGroup::new(RG).value(ItemKey::index(0));
             g.draw(ui, a, &st, &items);
-        });
+        })
+        .commit_presented();
         let mut text = String::new();
         for y in 0..2u16 {
             for x in 0..SCREEN.width {

@@ -1616,11 +1616,14 @@ mod tests {
         );
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(Input::Key(Key {
-            code: KeyCode::Enter,
-            mods: KeyModifiers::NONE,
-        }));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            Input::Key(Key {
+                code: KeyCode::Enter,
+                mods: KeyModifiers::NONE,
+            }),
+        );
         runtime.app().state.clone()
     }
 
@@ -1650,13 +1653,15 @@ mod tests {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(SCREEN);
         let state = TextInputState::default();
-        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-            let mut input = TextInput::new(ID).value("value");
-            if let Some(status) = status {
-                input = input.status(status);
-            }
-            input.draw(ui, area, &state);
-        });
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                let mut input = TextInput::new(ID).value("value");
+                if let Some(status) = status {
+                    input = input.status(status);
+                }
+                input.draw(ui, area, &state);
+            })
+            .commit_presented();
         buffer
     }
 
@@ -1820,7 +1825,8 @@ mod tests {
         for _ in 0..3 {
             rt.draw_scene(SCREEN, &mut buf, |ui, a| {
                 TextInput::new(ID).value("ada").draw(ui, a, &st);
-            });
+            })
+            .commit_presented();
         }
         assert_eq!(st.error().map(|e| e.code), Some(Some("dup")));
         st.set_error(None);
@@ -1891,18 +1897,22 @@ mod tests {
             });
             let mut runtime = Runtime::new(Stub::default(), theme);
             let mut buffer = Buffer::empty(SCREEN);
-            runtime.draw_scene(SCREEN, &mut buffer, |ui, _| {
-                if stale_runtime_editing {
-                    ui.declare_state(ID, StateFlags::EDITING);
-                }
-            });
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                    if stale_runtime_editing {
+                        ui.declare_state(ID, StateFlags::EDITING);
+                    }
+                })
+                .commit_presented();
             let mut state = TextInputState::default();
             if real_editing {
                 state.begin("value");
             }
-            runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-                TextInput::new(ID).value("value").draw(ui, area, &state);
-            });
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                    TextInput::new(ID).value("value").draw(ui, area, &state);
+                })
+                .commit_presented();
             buffer
                 .cell(Position::new(1, 0))
                 .map(|cell| cell.bg)
@@ -1927,7 +1937,8 @@ mod tests {
                 .secret(SecretPolicy::default())
                 .value(SECRET)
                 .draw(ui, a, &st);
-        });
+        })
+        .commit_presented();
         let mut row = String::new();
         for x in 0..SCREEN.width {
             if let Some(c) = buf.cell(Position::new(x, 0)) {
@@ -1999,9 +2010,11 @@ mod tests {
         state.begin(SECRET);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-            TextInput::new(ID).value(SECRET).draw(ui, area, &state);
-        });
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                TextInput::new(ID).value(SECRET).draw(ui, area, &state);
+            })
+            .commit_presented();
         let frame: String = buffer
             .content()
             .iter()
@@ -2084,13 +2097,15 @@ mod tests {
             ),
             (Part::ICON, StylePatch::new().set_glyph(GlyphRole::NewTab)),
         ];
-        runtime.draw_scene(area, &mut buffer, |ui, area| {
-            TextInput::new(ID)
-                .value("value")
-                .status(Status::Error)
-                .patch_part(&patches)
-                .draw(ui, area, &st);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                TextInput::new(ID)
+                    .value("value")
+                    .status(Status::Error)
+                    .patch_part(&patches)
+                    .draw(ui, area, &st);
+            })
+            .commit_presented();
         assert_eq!(
             buffer
                 .cell(Position::new(11, 0))
@@ -2099,13 +2114,15 @@ mod tests {
         );
 
         st.set_error(None);
-        runtime.draw_scene(area, &mut buffer, |ui, area| {
-            TextInput::new(ID)
-                .value("value")
-                .status(Status::Error)
-                .patch_part(&patches)
-                .draw(ui, area, &st);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                TextInput::new(ID)
+                    .value("value")
+                    .status(Status::Error)
+                    .patch_part(&patches)
+                    .draw(ui, area, &st);
+            })
+            .commit_presented();
         assert_eq!(
             buffer
                 .cell(Position::new(11, 0))
@@ -2114,22 +2131,26 @@ mod tests {
         );
 
         st.set_error(Some(FieldError::new("invalid")));
-        runtime.draw_scene(area, &mut buffer, |ui, area| {
-            TextInput::new(ID)
-                .value("value")
-                .status(Status::Error)
-                .slot(Part::MARKER, &marker)
-                .draw(ui, area, &st);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                TextInput::new(ID)
+                    .value("value")
+                    .status(Status::Error)
+                    .slot(Part::MARKER, &marker)
+                    .draw(ui, area, &st);
+            })
+            .commit_presented();
         assert_eq!(marker_calls.get(), 1);
         st.set_error(None);
-        runtime.draw_scene(area, &mut buffer, |ui, area| {
-            TextInput::new(ID)
-                .value("value")
-                .status(Status::Error)
-                .slot(Part::ICON, &icon)
-                .draw(ui, area, &st);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                TextInput::new(ID)
+                    .value("value")
+                    .status(Status::Error)
+                    .slot(Part::ICON, &icon)
+                    .draw(ui, area, &st);
+            })
+            .commit_presented();
         assert_eq!(icon_calls.get(), 1);
         assert_eq!(seen.get(), Some(Rect::new(11, 0, 1, 1)));
         assert_eq!(

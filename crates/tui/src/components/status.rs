@@ -1027,11 +1027,13 @@ mod tests {
         let mut runtime = Runtime::new(Stub::default(), theme);
         let mut buffer = Buffer::empty(ROW);
 
-        runtime.draw_scene(ROW, &mut buffer, |ui, area| {
-            StatusBar::new(Id::root("status.overflow"))
-                .left(&ITEMS)
-                .draw(ui, area);
-        });
+        runtime
+            .draw_scene(ROW, &mut buffer, |ui, area| {
+                StatusBar::new(Id::root("status.overflow"))
+                    .left(&ITEMS)
+                    .draw(ui, area);
+            })
+            .commit_presented();
 
         assert!(
             painted_row(&buffer, ROW.width).contains(overflow),
@@ -1068,7 +1070,7 @@ mod tests {
         let mut runtime = Runtime::new(ClickApp::default(), Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         let item = runtime
             .area_of_part(CLICK_ID, PartRef::item(Part::LABEL, CLICK_KEY))
             .unwrap_or(Rect::ZERO);
@@ -1078,9 +1080,9 @@ mod tests {
         );
         let x = item.x.saturating_add(item.width / 2);
 
-        let _ = runtime.handle(mouse(MouseKind::Down, x, item.y));
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(mouse(MouseKind::Up, x, item.y));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, x, item.y));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, x, item.y));
 
         assert_eq!(runtime.app().action, Some(StatusAction::Chose(CLICK_KEY)));
     }
@@ -1120,7 +1122,9 @@ mod tests {
         let mut runtime = Runtime::new(HoverApp, Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(HOVER_ROW);
-        runtime.draw_buffer(HOVER_ROW, &mut buffer);
+        runtime
+            .draw_buffer(HOVER_ROW, &mut buffer)
+            .commit_presented();
         let area = |runtime: &Runtime<HoverApp>, k: ItemKey| {
             runtime
                 .area_of_part(HOVER_ID, PartRef::item(Part::LABEL, k))
@@ -1130,12 +1134,23 @@ mod tests {
         let second = area(&runtime, SECOND);
         assert!(first.width >= 2 && !second.is_empty());
 
-        let entered = runtime.handle(mouse(MouseKind::Move, first.x, first.y));
-        runtime.draw_buffer(HOVER_ROW, &mut buffer);
-        let stayed = runtime.handle(mouse(MouseKind::Move, first.x.saturating_add(1), first.y));
-        runtime.draw_buffer(HOVER_ROW, &mut buffer);
-        let crossed = runtime.handle(mouse(MouseKind::Move, second.x, second.y));
-        runtime.draw_buffer(HOVER_ROW, &mut buffer);
+        let entered =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Move, first.x, first.y));
+        runtime
+            .draw_buffer(HOVER_ROW, &mut buffer)
+            .commit_presented();
+        let stayed = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Move, first.x.saturating_add(1), first.y),
+        );
+        runtime
+            .draw_buffer(HOVER_ROW, &mut buffer)
+            .commit_presented();
+        let crossed =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Move, second.x, second.y));
+        runtime
+            .draw_buffer(HOVER_ROW, &mut buffer)
+            .commit_presented();
 
         assert_eq!(entered.invalidate(), Invalidate::Paint);
         assert_eq!(
@@ -1199,7 +1214,8 @@ mod tests {
         let mut buf = Buffer::empty(ROW);
         rt.draw_scene(ROW, &mut buf, |ui, area| {
             bar.draw(ui, area);
-        });
+        })
+        .commit_presented();
         let row = painted_row(&buf, ROW.width);
 
         let at = |needle: &str| -> u16 {

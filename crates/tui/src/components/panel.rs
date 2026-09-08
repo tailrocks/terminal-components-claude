@@ -534,7 +534,8 @@ mod tests {
                 seen.set(inner);
                 42
             });
-        });
+        })
+        .commit_presented();
         assert_eq!(answer, 42);
         assert_eq!(calls.get(), 1);
         assert_eq!(seen.get(), area);
@@ -554,7 +555,8 @@ mod tests {
                     ui.paint_str(row, "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ", style);
                 }
             });
-        });
+        })
+        .commit_presented();
         for pos in SCREEN.positions() {
             let is_z = buf.cell(pos).is_some_and(|cell| cell.symbol() == "Z");
             assert_eq!(is_z, inner.contains(pos), "body clip mismatch at {pos:?}");
@@ -605,7 +607,8 @@ mod tests {
                     }
                 }
             }
-        });
+        })
+        .commit_presented();
     }
 
     /// The head row is confined to `area.x + 1 ..= area.right() - 2`, so a
@@ -628,7 +631,8 @@ mod tests {
                 .title("a title far too long for this panel")
                 .meta("and a meta as well")
                 .draw(ui, area, |_, inner| inner);
-        });
+        })
+        .commit_presented();
         let b = Theme::junie().design.borders;
         assert_eq!(symbol_at(&buf, 0, 0), b.top_left);
         assert_eq!(symbol_at(&buf, 19, 0), b.top_right);
@@ -659,7 +663,8 @@ mod tests {
                     .title("Files")
                     .focused(focused)
                     .draw(ui, area, |_, inner| inner);
-            });
+            })
+            .commit_presented();
             symbol_at(&buf, 1, 0)
         };
         assert_eq!(render(true), bar, "a focused panel paints no focus bar");
@@ -682,7 +687,8 @@ mod tests {
                 .kind(PanelKind::Framed)
                 .title("Files")
                 .draw(ui, a, |_, inner| inner);
-        });
+        })
+        .commit_presented();
         assert!(!rt.ring().is_registered(ID));
         assert_eq!(rt.ring().reachable().count(), 0);
         assert!(rt.area_of(ID).is_some(), "the container is not addressable");
@@ -700,7 +706,8 @@ mod tests {
                     .title("Files")
                     .draw(ui, a, |_, inner| inner);
             });
-        });
+        })
+        .commit_presented();
         assert!(rt.area_of(ID).is_none());
     }
 
@@ -735,7 +742,8 @@ mod tests {
                     p = p.patch_part(&ps);
                 }
                 p.draw(ui, area, |_, inner| inner);
-            });
+            })
+            .commit_presented();
             buf
         };
         let plain = render(None);
@@ -779,7 +787,8 @@ mod tests {
                     p = p.slot(part, &marker);
                 }
                 p.draw(ui, area, |_, inner| inner);
-            });
+            })
+            .commit_presented();
             buf
         };
         let plain = render(None);

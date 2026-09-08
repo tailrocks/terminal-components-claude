@@ -64,10 +64,10 @@ fn first_and_repeated_draws_cannot_initialize_commit_or_emit_effects() {
     let effects = Rc::clone(&app.effects);
     let mut runtime = Runtime::new(app, Theme::junie());
     let mut buffer = Buffer::empty(AREA);
-    runtime.draw_buffer(AREA, &mut buffer);
+    drop(runtime.draw_buffer(AREA, &mut buffer));
     let before = buffer.clone();
     for _ in 0..1_000 {
-        runtime.draw_buffer(AREA, &mut buffer);
+        drop(runtime.draw_buffer(AREA, &mut buffer));
     }
     assert_eq!(buffer, before);
     assert_eq!(runtime.app().value, "fixture");
@@ -92,19 +92,23 @@ fn explicit_initialize_runs_once_and_retains_deadline_without_advancing_time() {
     assert_eq!(runtime.app().updates, 1);
     assert_eq!(runtime.app().effects.get(), 1);
     let mut buffer = Buffer::empty(AREA);
-    runtime.draw_buffer(AREA, &mut buffer);
+    drop(runtime.draw_buffer(AREA, &mut buffer));
     assert_eq!(runtime.app().updates, 1);
 }
 
 #[test]
-fn input_path_initializes_without_requiring_a_paint() {
+#[expect(clippy::unwrap_used, reason = "assert that first input is retained")]
+fn input_before_initialize_is_retained_without_effects() {
     let mut runtime = Runtime::new(ProductionView::default(), Theme::junie());
-    let _ = runtime.handle(input());
+    let pending = runtime.handle(input()).unwrap_err();
+    assert_eq!(runtime.app().bootstraps, 0);
+    assert_eq!(runtime.app().updates, 0);
+    let _ = runtime.initialize();
+    let _ = junie_tui_testing::deliver(&mut runtime, AREA, pending.into_input());
     assert_eq!(runtime.app().bootstraps, 1);
-    assert_eq!(runtime.app().updates, 2);
-    let _ = runtime.handle(input());
-    assert_eq!(runtime.app().bootstraps, 1);
-    assert_eq!(runtime.app().updates, 3);
+    let before = runtime.app().updates;
+    let _ = junie_tui_testing::deliver(&mut runtime, AREA, input());
+    assert_eq!(runtime.app().updates, before + 1);
 }
 
 #[test]

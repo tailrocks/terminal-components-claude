@@ -1091,11 +1091,13 @@ mod tests {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(AREA);
         let state = ListState::default();
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            List::new(ID)
-                .status(status)
-                .draw(ui, area, &state, &["one", "two"]);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                List::new(ID)
+                    .status(status)
+                    .draw(ui, area, &state, &["one", "two"]);
+            })
+            .commit_presented();
         buffer
     }
 
@@ -1123,24 +1125,30 @@ mod tests {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(AREA);
         let state = ListState::default();
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            List::new(ID)
-                .status(Status::Busy)
-                .patch_part(&patch)
-                .draw(ui, area, &state, &["one"]);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                List::new(ID).status(Status::Busy).patch_part(&patch).draw(
+                    ui,
+                    area,
+                    &state,
+                    &["one"],
+                );
+            })
+            .commit_presented();
         assert!(
             buffer
                 .cell(Position::new(0, 0))
                 .is_some_and(|cell| cell.modifier.contains(Modifier::UNDERLINED))
         );
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            List::new(ID)
-                .status(Status::Error)
-                .patch_part(&patch)
-                .slot(Part::ICON, &slot)
-                .draw(ui, area, &state, &["one"]);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                List::new(ID)
+                    .status(Status::Error)
+                    .patch_part(&patch)
+                    .slot(Part::ICON, &slot)
+                    .draw(ui, area, &state, &["one"]);
+            })
+            .commit_presented();
         assert_eq!(seen.get(), Some(Rect::new(0, 0, 1, 1)));
     }
 
@@ -1149,9 +1157,11 @@ mod tests {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(AREA);
         let state = ListState::default();
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            List::new(ID).draw(ui, area, &state, &["one"]);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                List::new(ID).draw(ui, area, &state, &["one"]);
+            })
+            .commit_presented();
         assert_eq!(
             buffer
                 .cell(Position::new(1, 0))
@@ -1163,9 +1173,11 @@ mod tests {
             chosen: Some(ItemKey::index(0)),
             ..ListState::default()
         };
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            List::new(ID).draw(ui, area, &selected, &["one"]);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                List::new(ID).draw(ui, area, &selected, &["one"]);
+            })
+            .commit_presented();
         assert_eq!(
             buffer
                 .cell(Position::new(1, 0))

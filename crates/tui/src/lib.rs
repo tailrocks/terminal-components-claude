@@ -51,7 +51,7 @@ pub use id::{Id, ItemKey, Part, PartRef};
 // runtime
 #[cfg(feature = "crossterm")]
 pub use runtime::session::{DefaultTerminal, TerminalSession, chain_panic_hook, run};
-pub use runtime::{App, Runtime, UpdateCause};
+pub use runtime::{App, PaintedFrame, PendingInput, Runtime, UpdateCause};
 // phases
 #[cfg(feature = "testing")]
 pub use ui::StyledQuery;
@@ -82,8 +82,8 @@ pub use layer::{
 pub use theme::{
     Align, BorderSet, ColorLevel, ColorTokens, Density, DesignTokens, FG_STEPS, Family, FgStep,
     GlyphRole, MONO_RULES_PER_FAMILY, MeterRole, MeterThresholds, Modifier, MonoRule, Overlay,
-    OverlayRule, PartMetrics, Resolved, Role, SURFACE_LEVELS, Slot, StylePatch, Surface,
-    SyntaxRole, Theme, ThemeBuilder, Variant,
+    OverlayRule, PaintStyle, PartMetrics, Resolved, Role, SURFACE_LEVELS, Slot, StylePatch,
+    Surface, SyntaxRole, Theme, ThemeBuilder, Variant,
 };
 // layout and measurement
 pub use layout::{Insets, Maximized, RowAlign, SplitAxis, SplitModel, Track};

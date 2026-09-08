@@ -1068,13 +1068,15 @@ mod tests {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(AREA);
         let state = TabsState::default();
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            let mut tabs = Tabs::new(TABS);
-            if let Some(status) = status {
-                tabs = tabs.status(status);
-            }
-            tabs.draw(ui, area, &state, &["tab"]);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                let mut tabs = Tabs::new(TABS);
+                if let Some(status) = status {
+                    tabs = tabs.status(status);
+                }
+                tabs.draw(ui, area, &state, &["tab"]);
+            })
+            .commit_presented();
         buffer
     }
 
@@ -1116,18 +1118,20 @@ mod tests {
         let mut buffer = Buffer::empty(AREA);
         let mut state = TabsState::default();
         state.set_active(0, ItemKey::index(0));
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            ui.reference(
-                Some(
-                    crate::ReferenceTarget::new(
-                        TABS,
-                        crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
-                    )
-                    .part(PartRef::item(Part::TAB, ItemKey::index(0))),
-                ),
-                |ui| Tabs::new(TABS).draw(ui, area, &state, &items),
-            );
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                ui.reference(
+                    Some(
+                        crate::ReferenceTarget::new(
+                            TABS,
+                            crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
+                        )
+                        .part(PartRef::item(Part::TAB, ItemKey::index(0))),
+                    ),
+                    |ui| Tabs::new(TABS).draw(ui, area, &state, &items),
+                );
+            })
+            .commit_presented();
 
         assert_eq!(row_text(&buffer, AREA.width), "[Full width]");
     }
@@ -1140,18 +1144,20 @@ mod tests {
         let mut buffer = Buffer::empty(AREA);
         let mut state = TabsState::default();
         state.set_active(0, key);
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            let target = crate::ReferenceTarget::new(
-                TABS,
-                crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
-            )
-            .part(PartRef::item(Part::TAB, key));
-            ui.reference(Some(target), |ui| {
-                Tabs::new(TABS)
-                    .closable(true)
-                    .draw(ui, area, &state, &items);
-            });
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                let target = crate::ReferenceTarget::new(
+                    TABS,
+                    crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
+                )
+                .part(PartRef::item(Part::TAB, key));
+                ui.reference(Some(target), |ui| {
+                    Tabs::new(TABS)
+                        .closable(true)
+                        .draw(ui, area, &state, &items);
+                });
+            })
+            .commit_presented();
 
         assert_eq!(
             buffer.cell(Position::new(4, 0)).map(BufferCell::symbol),
@@ -1185,12 +1191,14 @@ mod tests {
         let state = TabsState::default();
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            Tabs::new(TABS)
-                .status(Status::Busy)
-                .patch_part(&patch)
-                .draw(ui, area, &state, &["tab"]);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                Tabs::new(TABS)
+                    .status(Status::Busy)
+                    .patch_part(&patch)
+                    .draw(ui, area, &state, &["tab"]);
+            })
+            .commit_presented();
         assert!(
             buffer
                 .cell(Position::new(10, 0))
@@ -1199,12 +1207,14 @@ mod tests {
 
         let seen = Cell::new(None);
         let slot = |_ui: &mut Ui<'_>, area: Rect| seen.set(Some(area));
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            Tabs::new(TABS)
-                .status(Status::Error)
-                .slot(Part::ICON, &slot)
-                .draw(ui, area, &state, &["tab"]);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                Tabs::new(TABS)
+                    .status(Status::Error)
+                    .slot(Part::ICON, &slot)
+                    .draw(ui, area, &state, &["tab"]);
+            })
+            .commit_presented();
         assert_eq!(seen.get(), Some(Rect::new(10, 0, 1, 1)));
     }
 
@@ -1213,9 +1223,11 @@ mod tests {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(AREA);
         let state = TabsState::default();
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            Tabs::new(TABS).draw(ui, area, &state, &["tab"]);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                Tabs::new(TABS).draw(ui, area, &state, &["tab"]);
+            })
+            .commit_presented();
         assert_eq!(
             buffer
                 .cell(Position::new(0, 1))
@@ -1227,9 +1239,11 @@ mod tests {
             active: Some(ItemKey::index(0)),
             ..TabsState::default()
         };
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            Tabs::new(TABS).draw(ui, area, &active, &["tab"]);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                Tabs::new(TABS).draw(ui, area, &active, &["tab"]);
+            })
+            .commit_presented();
         assert_eq!(
             buffer
                 .cell(Position::new(0, 1))

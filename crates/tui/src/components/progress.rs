@@ -796,12 +796,14 @@ mod tests {
         let mut runtime = Runtime::new(Stub::default(), theme);
         let mut buffer = Buffer::empty(AREA);
 
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            ProgressBar::new(Id::root("progress.done"))
-                .ratio(1.0)
-                .done(true)
-                .draw(ui, area);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                ProgressBar::new(Id::root("progress.done"))
+                    .ratio(1.0)
+                    .done(true)
+                    .draw(ui, area);
+            })
+            .commit_presented();
 
         assert!(
             buffer.content().iter().any(|cell| cell.symbol() == DONE),

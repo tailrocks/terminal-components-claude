@@ -25,8 +25,15 @@ enum Request {
 }
 
 #[derive(Default)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "independent fixture route and focus switches"
+)]
 struct Page {
     changed_route: bool,
+    change_route_on_input: bool,
+    remove_nav_on_input: bool,
+    disable_first_on_input: bool,
     remove_nav: bool,
     disable_first: bool,
     request: Option<Request>,
@@ -37,6 +44,11 @@ struct Page {
 impl App for Page {
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         self.updates = self.updates.saturating_add(1);
+        if cx.update_cause() == junie_tui::UpdateCause::Event {
+            self.changed_route |= self.change_route_on_input;
+            self.remove_nav |= self.remove_nav_on_input;
+            self.disable_first |= self.disable_first_on_input;
+        }
         for owner in [NAV, OLD, NEW, LAST, MODAL, MODAL_FIRST, MODAL_LAST] {
             for intent in cx.intents(owner) {
                 if matches!(intent, Intent::FocusIn { .. }) {
@@ -104,50 +116,50 @@ fn runtime() -> (Runtime<Page>, Buffer) {
     let mut rt = Runtime::new(Page::default(), Theme::junie());
     let _ = rt.initialize();
     let mut buffer = Buffer::empty(AREA);
-    rt.draw_buffer(AREA, &mut buffer);
-    let _ = rt.handle(input());
+    rt.draw_buffer(AREA, &mut buffer).commit_presented();
+    let _ = junie_tui_testing::deliver(&mut rt, AREA, input());
     (rt, buffer)
 }
 
 #[test]
 fn enter_content_uses_new_route_and_does_not_update_during_draw() {
     let (mut rt, mut buffer) = runtime();
-    rt.app_mut().changed_route = true;
+    rt.app_mut().change_route_on_input = true;
     rt.app_mut().request = Some(Request::Next);
-    let response = rt.handle(input());
+    let response = junie_tui_testing::deliver(&mut rt, AREA, input());
     assert!(response.invalidate() >= junie_tui::Invalidate::Paint);
     assert_eq!(rt.focus(), Some(NAV));
     let updates = rt.app().updates;
-    rt.draw_buffer(AREA, &mut buffer);
+    rt.draw_buffer(AREA, &mut buffer).commit_presented();
     assert_eq!(rt.focus(), Some(NEW));
     assert_eq!(rt.app().updates, updates);
     let before = rt.app().focus_ins;
-    let _ = rt.handle(input());
+    let _ = junie_tui_testing::deliver(&mut rt, AREA, input());
     assert_eq!(rt.app().focus_ins, before + 1);
-    rt.draw_buffer(AREA, &mut buffer);
-    rt.draw_buffer(AREA, &mut buffer);
-    let _ = rt.handle(input());
+    rt.draw_buffer(AREA, &mut buffer).commit_presented();
+    rt.draw_buffer(AREA, &mut buffer).commit_presented();
+    let _ = junie_tui_testing::deliver(&mut rt, AREA, input());
     assert_eq!(rt.app().focus_ins, before + 1);
 }
 
 #[test]
 fn deferred_next_skips_disabled_new_content() {
     let (mut rt, mut buffer) = runtime();
-    rt.app_mut().changed_route = true;
-    rt.app_mut().disable_first = true;
+    rt.app_mut().change_route_on_input = true;
+    rt.app_mut().disable_first_on_input = true;
     rt.app_mut().request = Some(Request::Next);
-    let _ = rt.handle(input());
-    rt.draw_buffer(AREA, &mut buffer);
+    let _ = junie_tui_testing::deliver(&mut rt, AREA, input());
+    rt.draw_buffer(AREA, &mut buffer).commit_presented();
     assert_eq!(rt.focus(), Some(LAST));
 }
 
 #[test]
 fn removed_anchor_reconciles_to_nearest_surviving_control() {
     let (mut rt, mut buffer) = runtime();
-    rt.app_mut().remove_nav = true;
+    rt.app_mut().remove_nav_on_input = true;
     rt.app_mut().request = Some(Request::Next);
-    let _ = rt.handle(input());
-    rt.draw_buffer(AREA, &mut buffer);
+    let _ = junie_tui_testing::deliver(&mut rt, AREA, input());
+    rt.draw_buffer(AREA, &mut buffer).commit_presented();
     assert_eq!(rt.focus(), Some(OLD));
 }
 
@@ -155,12 +167,12 @@ fn removed_anchor_reconciles_to_nearest_surviving_control() {
 fn new_modal_traps_a_deferred_content_request() {
     let (mut rt, mut buffer) = runtime();
     rt.app_mut().request = Some(Request::OpenModal);
-    let _ = rt.handle(input());
-    rt.draw_buffer(AREA, &mut buffer);
+    let _ = junie_tui_testing::deliver(&mut rt, AREA, input());
+    rt.draw_buffer(AREA, &mut buffer).commit_presented();
     assert_eq!(rt.focus(), Some(MODAL_FIRST));
     rt.app_mut().request = Some(Request::Next);
-    let _ = rt.handle(input());
-    rt.draw_buffer(AREA, &mut buffer);
+    let _ = junie_tui_testing::deliver(&mut rt, AREA, input());
+    rt.draw_buffer(AREA, &mut buffer).commit_presented();
     assert_eq!(rt.focus(), Some(MODAL_LAST));
 }
 
@@ -168,8 +180,8 @@ fn new_modal_traps_a_deferred_content_request() {
 fn later_direct_focus_supersedes_deferred_traversal() {
     let (mut rt, mut buffer) = runtime();
     rt.app_mut().request = Some(Request::NextThenDirect);
-    let _ = rt.handle(input());
-    rt.draw_buffer(AREA, &mut buffer);
+    let _ = junie_tui_testing::deliver(&mut rt, AREA, input());
+    rt.draw_buffer(AREA, &mut buffer).commit_presented();
     assert_eq!(rt.focus(), Some(LAST));
 }
 
@@ -177,8 +189,8 @@ fn later_direct_focus_supersedes_deferred_traversal() {
 fn later_traversal_supersedes_direct_focus() {
     let (mut rt, mut buffer) = runtime();
     rt.app_mut().request = Some(Request::DirectThenNext);
-    let _ = rt.handle(input());
-    rt.draw_buffer(AREA, &mut buffer);
+    let _ = junie_tui_testing::deliver(&mut rt, AREA, input());
+    rt.draw_buffer(AREA, &mut buffer).commit_presented();
     assert_eq!(rt.focus(), Some(OLD));
 }
 
@@ -186,15 +198,15 @@ fn later_traversal_supersedes_direct_focus() {
 fn deferred_focus_out_dismisses_popover_in_update_only() {
     let (mut rt, mut buffer) = runtime();
     rt.app_mut().request = Some(Request::OpenPopover);
-    let _ = rt.handle(input());
-    rt.draw_buffer(AREA, &mut buffer);
+    let _ = junie_tui_testing::deliver(&mut rt, AREA, input());
+    rt.draw_buffer(AREA, &mut buffer).commit_presented();
     assert_eq!(rt.focus(), Some(MODAL_LAST));
     rt.app_mut().request = Some(Request::Next);
-    let _ = rt.handle(input());
-    rt.draw_buffer(AREA, &mut buffer);
+    let _ = junie_tui_testing::deliver(&mut rt, AREA, input());
+    rt.draw_buffer(AREA, &mut buffer).commit_presented();
     assert_eq!(rt.focus(), Some(NAV));
     assert!(rt.is_open(MODAL), "painting must not dismiss a layer");
-    let _ = rt.handle(input());
+    let _ = junie_tui_testing::deliver(&mut rt, AREA, input());
     assert!(!rt.is_open(MODAL));
     assert_eq!(rt.focus(), Some(NAV));
 }

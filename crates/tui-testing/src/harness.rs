@@ -45,8 +45,7 @@ fn theme_label(theme: &Theme) -> &'static str {
 }
 
 impl<A: App> Harness<A> {
-    /// Initialize the application, then draw its first frame twice: the first
-    /// draw settles initial focus and the second paints it.
+    /// Initialize the application, then publish its first frame and settle discovered focus.
     pub fn new(app: A, theme: Theme, w: u16, h: u16) -> Self {
         let theme_name = theme_label(&theme);
         let mut h = Harness {
@@ -57,7 +56,6 @@ impl<A: App> Harness<A> {
             color: ColorLevel::TrueColor,
         };
         let _ = h.rt.initialize();
-        h.draw();
         h.draw();
         h
     }
@@ -72,7 +70,8 @@ impl<A: App> Harness<A> {
         self
     }
 
-    /// `false`: `handle` does not draw; call `draw()` explicitly.
+    /// `false` skips after-input drawing; call `draw()` explicitly to inspect it.
+    /// A subsequent input still completes any presentation required for routing.
     #[must_use]
     pub const fn with_auto_draw(mut self, yes: bool) -> Self {
         self.auto_draw = yes;
@@ -81,7 +80,14 @@ impl<A: App> Harness<A> {
 
     /// Handle one input, then draw (when auto-draw is on).
     pub fn handle(&mut self, input: Input) -> Response<()> {
-        let r = self.rt.handle(input);
+        // Complete pending publication before routing this owned event.
+        if self.rt.needs_present() || self.rt.needs_settle() {
+            self.draw();
+        }
+        let r = self
+            .rt
+            .handle(input)
+            .expect("harness publishes before input");
         if self.auto_draw {
             self.draw();
         }
@@ -200,10 +206,28 @@ impl<A: App> Harness<A> {
         self.handle(Input::Resize(w, h))
     }
 
-    /// Draw one frame.
+    /// Present frames and explicitly settle focus until input is ready.
     pub fn draw(&mut self) {
-        let rt = &mut self.rt;
-        self.term.draw(|f| rt.draw(f)).expect("draw");
+        for _ in 0..16 {
+            if self.rt.needs_settle() {
+                let _ = self.rt.settle();
+            }
+            {
+                let mut painted = None;
+                self.term
+                    .draw(|f| {
+                        painted = Some(self.rt.draw(f));
+                    })
+                    .expect("draw");
+                if let Some(frame) = painted {
+                    frame.commit_presented();
+                }
+            }
+            if !self.rt.needs_settle() {
+                return;
+            }
+        }
+        panic!("harness focus did not settle: {:?}", self.rt.diagnostics());
     }
 
     /// Advance the virtual clock by `n` ticks.

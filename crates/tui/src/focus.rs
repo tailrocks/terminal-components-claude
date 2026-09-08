@@ -704,9 +704,9 @@ mod runtime_tests {
     }
 
     /// §21 item 15: after a layer closes, the restore target holds focus and
-    /// receives keys **before** the next draw re-registers it.
+    /// retains the next key until a successful draw re-registers it.
     #[test]
-    fn restore_target_receives_keys_before_the_next_draw() {
+    fn restore_target_receives_retained_key_after_the_next_publication() {
         let mut s = page();
         s.layers = vec![(DLG, vec![Control::new(OK, Rect::new(2, 2, 4, 1))])];
         let (mut rt, mut buf) = runtime(s);
@@ -718,7 +718,9 @@ mod runtime_tests {
         assert_eq!(rt.focus(), Some(OK));
         // Esc dismisses the layer; the opener is focused again immediately,
         // in the same `handle`, before the draw that re-registers it
-        let _ = rt.handle(key(KeyCode::Esc));
+        let _ = rt
+            .handle(key(KeyCode::Esc))
+            .expect("modal frame is published");
         assert_eq!(
             rt.focus(),
             Some(A),
@@ -726,7 +728,9 @@ mod runtime_tests {
         );
         // and the very next key reaches it
         rt.app_mut().log.clear();
-        let _ = rt.handle(key(KeyCode::Char('z')));
+        let pending = rt.handle(key(KeyCode::Char('z'))).unwrap_err();
+        assert!(!rt.app().saw(A, "Key"));
+        let _ = crate::runtime::stub::deliver(&mut rt, pending.into_input());
         assert!(rt.app().saw(A, "Key"), "{:?}", rt.app().log);
     }
 }

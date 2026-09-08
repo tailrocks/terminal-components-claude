@@ -775,14 +775,14 @@ mod tests {
         );
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_buffer(AREA, &mut buffer);
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         runtime.set_focus(Some(EDITOR));
-        runtime.draw_buffer(AREA, &mut buffer);
-        let _ = runtime.handle(key(KeyCode::Char('i')));
-        runtime.draw_buffer(AREA, &mut buffer);
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('i')));
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         runtime.app_mut().open_next = true;
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(AREA, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         (runtime, buffer)
     }
 
@@ -846,15 +846,15 @@ mod tests {
     fn completion_controller_accept_splices_and_dismisses_atomically() {
         let mut runtime = controller_runtime();
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_buffer(AREA, &mut buffer);
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         runtime.app_mut().request = true;
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(AREA, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         assert!(runtime.app().completion.is_open());
         assert!(runtime.is_open(POPUP));
 
         runtime.app_mut().accept = true;
-        let _ = runtime.handle(Input::Tick);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
 
         assert_eq!(runtime.app().buffer.text(), "SEL alpha");
         assert!(!runtime.app().completion.is_open());
@@ -865,14 +865,14 @@ mod tests {
     fn completion_controller_dismisses_on_editor_motion() {
         let mut runtime = controller_runtime();
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_buffer(AREA, &mut buffer);
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         runtime.app_mut().request = true;
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(AREA, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         assert!(runtime.is_open(POPUP));
 
         runtime.app_mut().editor_motion = true;
-        let _ = runtime.handle(Input::Tick);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
 
         assert!(!runtime.app().completion.is_open());
         assert!(!runtime.is_open(POPUP));
@@ -898,8 +898,8 @@ mod tests {
     fn focused_editor_down_moves_completion_not_editor() {
         let (mut runtime, mut buffer) = routing_runtime();
         let editor_offset = runtime.app().editor.cursor_offset();
-        let _ = runtime.handle(key(KeyCode::Down));
-        runtime.draw_buffer(AREA, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Down));
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         assert_eq!(runtime.app().completion.cursor(), Some(SECOND));
         assert_eq!(runtime.app().editor.cursor_offset(), editor_offset);
     }
@@ -908,7 +908,7 @@ mod tests {
     fn focused_editor_tab_and_enter_accept_completion() {
         for code in [KeyCode::Tab, KeyCode::Enter] {
             let (mut runtime, _) = routing_runtime();
-            let _ = runtime.handle(key(code));
+            let _ = crate::runtime::stub::deliver(&mut runtime, key(code));
             assert_eq!(runtime.app().accepted, Some(FIRST));
         }
     }
@@ -916,7 +916,7 @@ mod tests {
     #[test]
     fn focused_editor_escape_dismisses_completion() {
         let (mut runtime, _) = routing_runtime();
-        let _ = runtime.handle(key(KeyCode::Esc));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
         assert!(runtime.app().dismissed);
         assert!(!runtime.app().completion.is_open());
     }
@@ -924,7 +924,7 @@ mod tests {
     #[test]
     fn ordinary_text_remains_owned_by_the_editor() {
         let (mut runtime, _) = routing_runtime();
-        let _ = runtime.handle(key(KeyCode::Char('x')));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('x')));
         assert_eq!(runtime.app().editor.text(), "xalpha\nbeta");
         assert_eq!(runtime.app().completion.cursor(), Some(FIRST));
     }
@@ -936,15 +936,15 @@ mod tests {
             .app_mut()
             .keymap
             .remap_component(EDITOR, MOVE_DOWN, Chord::key(KeyCode::F(4)));
-        let _ = runtime.handle(key(KeyCode::Down));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Down));
         assert_eq!(runtime.app().completion.cursor(), Some(FIRST));
-        let _ = runtime.handle(key(KeyCode::F(4)));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::F(4)));
         assert_eq!(runtime.app().completion.cursor(), Some(SECOND));
 
-        runtime.draw_buffer(AREA, &mut buffer);
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         runtime.app_mut().keymap.remove_component(EDITOR, MOVE_DOWN);
-        let _ = runtime.handle(key(KeyCode::Up));
-        let _ = runtime.handle(key(KeyCode::F(4)));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Up));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::F(4)));
         assert_eq!(runtime.app().completion.cursor(), Some(FIRST));
     }
 

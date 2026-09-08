@@ -2053,9 +2053,11 @@ mod tests {
         let area = Rect::new(0, 0, 24, items.len().max(1) as u16);
         let mut runtime = Runtime::new(Stub::default(), theme);
         let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, area| {
-            tree.draw(ui, area, state, items);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                tree.draw(ui, area, state, items);
+            })
+            .commit_presented();
         buffer
     }
 
@@ -2526,15 +2528,17 @@ mod tests {
         let area = Rect::new(0, 0, 24, 2);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, area| {
-            ui.reference(
-                Some(crate::ReferenceTarget::new(
-                    TREE,
-                    crate::ReferenceState::FOCUSED,
-                )),
-                |ui| tree.draw(ui, area, &state, &items),
-            );
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                ui.reference(
+                    Some(crate::ReferenceTarget::new(
+                        TREE,
+                        crate::ReferenceState::FOCUSED,
+                    )),
+                    |ui| tree.draw(ui, area, &state, &items),
+                );
+            })
+            .commit_presented();
 
         assert_eq!(
             flags.borrow().as_slice(),
@@ -2661,9 +2665,11 @@ mod tests {
         let area = Rect::new(0, 0, 40, 1);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, rect| {
-            tree.draw(ui, rect, &state, &items);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, rect| {
+                tree.draw(ui, rect, &state, &items);
+            })
+            .commit_presented();
 
         for x in [0, 1, 2, 3] {
             assert!(

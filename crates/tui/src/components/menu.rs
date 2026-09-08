@@ -1387,15 +1387,17 @@ mod tests {
             Theme::junie().downgrade(crate::ColorLevel::Mono),
         );
         let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, area| {
-            ui.reference(
-                Some(
-                    crate::ReferenceTarget::new(ID, crate::ReferenceState::PRESSED)
-                        .part(PartRef::item(Part::TITLE, ItemKey::index(0))),
-                ),
-                |ui| MenuBar::new(ID, &MENUS).draw(ui, area, &MenuState::default()),
-            );
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                ui.reference(
+                    Some(
+                        crate::ReferenceTarget::new(ID, crate::ReferenceState::PRESSED)
+                            .part(PartRef::item(Part::TITLE, ItemKey::index(0))),
+                    ),
+                    |ui| MenuBar::new(ID, &MENUS).draw(ui, area, &MenuState::default()),
+                );
+            })
+            .commit_presented();
 
         assert_eq!(
             buffer
@@ -1546,8 +1548,8 @@ mod tests {
             Theme::junie(),
         );
         let _ = runtime.initialize();
-        runtime.draw_buffer(area, &mut buffer);
-        runtime.draw_buffer(area, &mut buffer);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
         (runtime, buffer)
     }
 
@@ -1564,18 +1566,18 @@ mod tests {
             Theme::junie(),
         );
         let _ = runtime.initialize();
-        runtime.draw_buffer(area, &mut buffer);
-        runtime.draw_buffer(area, &mut buffer);
-        let _ = runtime.handle(Input::Key(key(KeyCode::Right)));
-        runtime.draw_buffer(area, &mut buffer);
-        let _ = runtime.handle(Input::Key(key(KeyCode::Enter)));
-        runtime.draw_buffer(area, &mut buffer);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Right)));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Enter)));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
 
         assert_eq!(runtime.app().state.open, Some(1));
         assert!(runtime.is_open(Id::root("menu.bar.shrinking")));
 
         runtime.app_mut().shrink = true;
-        let _ = runtime.handle(Input::Tick);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
 
         assert_eq!(
             runtime.app().closed,
@@ -1597,10 +1599,10 @@ mod tests {
             Theme::junie(),
         );
         let _ = runtime.initialize();
-        runtime.draw_buffer(area, &mut buffer);
-        runtime.draw_buffer(area, &mut buffer);
-        let _ = runtime.handle(Input::Key(key(KeyCode::Enter)));
-        runtime.draw_buffer(area, &mut buffer);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Enter)));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
 
         assert_eq!(runtime.app().state.open, Some(0));
         assert!(
@@ -1617,21 +1619,23 @@ mod tests {
     fn dynamic_item_binding_routes_remaps_removes_and_paints_effective_chord() {
         let owner = Id::root("menu.runtime");
         let (mut runtime, mut buffer) = menu_runtime();
-        let _ = runtime.handle(Input::Key(key(KeyCode::Char('o'))));
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Char('o'))));
         assert_eq!(runtime.app().chosen, Some(OPEN));
         runtime.app_mut().chosen = None;
-        let _ = runtime.handle(Input::Key(key(KeyCode::Char('d'))));
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Char('d'))));
         assert_eq!(runtime.app().chosen, None, "disabled item was published");
 
         runtime
             .app_mut()
             .keymap
             .remap_component(owner, OPEN, Chord::key(KeyCode::F(4)));
-        let _ = runtime.handle(Input::Key(key(KeyCode::Char('o'))));
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Char('o'))));
         assert_eq!(runtime.app().chosen, None, "old raw key activated the item");
-        let _ = runtime.handle(Input::Key(key(KeyCode::F(4))));
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::F(4))));
         assert_eq!(runtime.app().chosen, Some(OPEN));
-        runtime.draw_buffer(Rect::new(0, 0, 80, 24), &mut buffer);
+        runtime
+            .draw_buffer(Rect::new(0, 0, 80, 24), &mut buffer)
+            .commit_presented();
         let painted = buffer
             .content()
             .iter()
@@ -1642,9 +1646,11 @@ mod tests {
 
         runtime.app_mut().chosen = None;
         runtime.app_mut().keymap.remove_component(owner, OPEN);
-        let _ = runtime.handle(Input::Key(key(KeyCode::F(4))));
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::F(4))));
         assert_eq!(runtime.app().chosen, None);
-        runtime.draw_buffer(Rect::new(0, 0, 80, 24), &mut buffer);
+        runtime
+            .draw_buffer(Rect::new(0, 0, 80, 24), &mut buffer)
+            .commit_presented();
         let painted = buffer
             .content()
             .iter()

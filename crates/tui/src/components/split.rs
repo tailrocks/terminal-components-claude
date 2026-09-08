@@ -670,7 +670,8 @@ mod tests {
                     42
                 },
             );
-        });
+        })
+        .commit_presented();
         assert_eq!(answer, 42);
         assert_eq!(calls.get(), 1);
         assert_eq!(first.get(), area);
@@ -690,7 +691,8 @@ mod tests {
                 .draw(ui, AREA, &SplitPaneState::default(), |_, _, _| {
                     observed.set(painted.get());
                 });
-        });
+        })
+        .commit_presented();
         assert!(observed.get());
     }
 
@@ -711,7 +713,8 @@ mod tests {
                     }
                 },
             );
-        });
+        })
+        .commit_presented();
         for pos in SCREEN.positions() {
             let is_z = buf.cell(pos).is_some_and(|cell| cell.symbol() == "Z");
             assert_eq!(is_z, area.contains(pos), "body clip mismatch at {pos:?}");
@@ -802,7 +805,8 @@ mod tests {
         let st = SplitPaneState::default();
         rt.draw_scene(SCREEN, &mut buf, |ui, a| {
             SplitPane::new(ID, SplitAxis::Horizontal).draw(ui, a, &st, |_, _, _| ());
-        });
+        })
+        .commit_presented();
         assert!(!rt.ring().is_registered(ID));
         assert!(
             SplitPane::new(ID, SplitAxis::Horizontal)
@@ -815,7 +819,8 @@ mod tests {
             SplitPane::new(ID, SplitAxis::Horizontal)
                 .resizable(true)
                 .draw(ui, a, &st, |_, _, _| ());
-        });
+        })
+        .commit_presented();
         assert!(rt.ring().is_registered(ID), "a resizable split has no stop");
         assert_eq!(
             SplitPane::new(ID, SplitAxis::Horizontal)
@@ -846,7 +851,8 @@ mod tests {
                 ui.reference(Some(crate::ReferenceTarget::new(ID, state)), |ui| {
                     sp.draw(ui, AREA, &st, |_, _, _| ());
                 });
-            });
+            })
+            .commit_presented();
             let mut out = BTreeMap::new();
             for p in seam.positions() {
                 if let Some(c) = buf.cell(Position::new(p.x, p.y)) {
@@ -897,7 +903,8 @@ mod tests {
                     .resizable(true)
                     .draw(ui, a, &st, |_, _, _| ());
             });
-        });
+        })
+        .commit_presented();
         assert!(rt.area_of(ID).is_none());
         assert!(!rt.ring().is_registered(ID));
     }
@@ -921,7 +928,8 @@ mod tests {
                     sp = sp.patch_part(&ps);
                 }
                 sp.draw(ui, AREA, &st, |_, _, _| ());
-            });
+            })
+            .commit_presented();
             buf
         };
         let plain = render(None);
@@ -953,7 +961,8 @@ mod tests {
                     sp = sp.slot(part, &marker);
                 }
                 sp.draw(ui, AREA, &st, |_, _, _| ());
-            });
+            })
+            .commit_presented();
             buf
         };
         let plain = render(None);

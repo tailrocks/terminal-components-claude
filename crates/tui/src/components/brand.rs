@@ -393,8 +393,8 @@ mod tests {
         let mut rt = Runtime::new(app, Theme::junie());
         let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf);
-        rt.draw_buffer(SCREEN, &mut buf);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         (rt, buf)
     }
 
@@ -408,15 +408,17 @@ mod tests {
         let area = Rect::new(0, 0, 12, 1);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
         let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, area| {
-            ui.reference(
-                Some(crate::ReferenceTarget::new(
-                    ID,
-                    crate::ReferenceState::PRESSED,
-                )),
-                |ui| Brand::new(ID, TEXT).clickable(true).draw(ui, area),
-            );
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                ui.reference(
+                    Some(crate::ReferenceTarget::new(
+                        ID,
+                        crate::ReferenceState::PRESSED,
+                    )),
+                    |ui| Brand::new(ID, TEXT).clickable(true).draw(ui, area),
+                );
+            })
+            .commit_presented();
 
         assert_eq!(
             buffer
@@ -492,8 +494,8 @@ mod tests {
         let (x, y) = pointer();
 
         let (mut rt, mut buf) = page(true);
-        let _ = rt.handle(mouse(MouseKind::Down, x, y));
-        rt.draw_buffer(SCREEN, &mut buf);
+        let _ = crate::runtime::stub::deliver(&mut rt, mouse(MouseKind::Down, x, y));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert_eq!(
             rt.app().activations,
             0,
@@ -504,8 +506,8 @@ mod tests {
             1,
             "but the press did reach `Brand::update`"
         );
-        let _ = rt.handle(mouse(MouseKind::Up, x, y));
-        rt.draw_buffer(SCREEN, &mut buf);
+        let _ = crate::runtime::stub::deliver(&mut rt, mouse(MouseKind::Up, x, y));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert_eq!(
             rt.app().activations,
             1,
@@ -513,9 +515,9 @@ mod tests {
         );
 
         let (mut rt, mut buf) = page(false);
-        let _ = rt.handle(mouse(MouseKind::Down, x, y));
-        let _ = rt.handle(mouse(MouseKind::Up, x, y));
-        rt.draw_buffer(SCREEN, &mut buf);
+        let _ = crate::runtime::stub::deliver(&mut rt, mouse(MouseKind::Down, x, y));
+        let _ = crate::runtime::stub::deliver(&mut rt, mouse(MouseKind::Up, x, y));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert_eq!(
             rt.app().activations,
             0,
@@ -568,7 +570,7 @@ mod tests {
     fn painted(slot: Option<Part>) -> Buffer {
         let mut rt = Runtime::new(SlotPage(slot), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         buf
     }
 
@@ -617,8 +619,8 @@ mod tests {
 
         let (mut rt, mut buf) = page(true);
         assert_eq!(bg_at(&buf, x, y), accent, "unhovered: the accent plane");
-        let _ = rt.handle(mouse(MouseKind::Move, x, y));
-        rt.draw_buffer(SCREEN, &mut buf);
+        let _ = crate::runtime::stub::deliver(&mut rt, mouse(MouseKind::Move, x, y));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert_eq!(rt.hover(), Some(MARK), "the pointer is over the lockup");
         assert_eq!(
             bg_at(&buf, x, y),
@@ -632,8 +634,8 @@ mod tests {
         );
 
         let (mut rt, mut buf) = page(false);
-        let _ = rt.handle(mouse(MouseKind::Move, x, y));
-        rt.draw_buffer(SCREEN, &mut buf);
+        let _ = crate::runtime::stub::deliver(&mut rt, mouse(MouseKind::Move, x, y));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert_eq!(rt.hover(), None, "a plain lockup is not a hit target");
         assert_eq!(
             bg_at(&buf, x, y),

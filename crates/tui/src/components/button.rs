@@ -568,22 +568,26 @@ mod tests {
     fn draw_status(status: Option<Status>) -> Buffer {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            let mut button = Button::new(BUTTON, "Go");
-            if let Some(status) = status {
-                button = button.status(status);
-            }
-            button.draw(ui, area);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                let mut button = Button::new(BUTTON, "Go");
+                if let Some(status) = status {
+                    button = button.status(status);
+                }
+                button.draw(ui, area);
+            })
+            .commit_presented();
         buffer
     }
 
     fn draw_checked(checked: bool) -> Buffer {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            Button::new(BUTTON, "Go").checked(checked).draw(ui, area);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                Button::new(BUTTON, "Go").checked(checked).draw(ui, area);
+            })
+            .commit_presented();
         buffer
     }
 
@@ -597,15 +601,17 @@ mod tests {
         const LABEL: &str = "Full width";
         let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            ui.reference(
-                Some(crate::ReferenceTarget::new(
-                    BUTTON,
-                    crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
-                )),
-                |ui| Button::new(BUTTON, LABEL).draw(ui, area),
-            );
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                ui.reference(
+                    Some(crate::ReferenceTarget::new(
+                        BUTTON,
+                        crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
+                    )),
+                    |ui| Button::new(BUTTON, LABEL).draw(ui, area),
+                );
+            })
+            .commit_presented();
 
         assert_eq!(row_text(&buffer, AREA.width), "[Full width]");
     }
@@ -622,15 +628,17 @@ mod tests {
                 Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
             let mut buffer = Buffer::empty(screen);
             let before = buffer.clone();
-            runtime.draw_scene(screen, &mut buffer, |ui, _| {
-                ui.reference(
-                    Some(crate::ReferenceTarget::new(
-                        BUTTON,
-                        crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
-                    )),
-                    |ui| Button::new(BUTTON, LABEL).draw(ui, area),
-                );
-            });
+            runtime
+                .draw_scene(screen, &mut buffer, |ui, _| {
+                    ui.reference(
+                        Some(crate::ReferenceTarget::new(
+                            BUTTON,
+                            crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
+                        )),
+                        |ui| Button::new(BUTTON, LABEL).draw(ui, area),
+                    );
+                })
+                .commit_presented();
 
             for x in 0..screen.width {
                 if x < area.x || x >= area.right() {
@@ -662,28 +670,32 @@ mod tests {
         let patch = [(Part::ICON, StylePatch::new().add(Modifier::UNDERLINED))];
         let mut runtime = Runtime::new(Stub::default(), theme);
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            used.set(
-                Button::new(BUTTON, "Go")
-                    .status(Status::Error)
-                    .checked(true)
-                    .patch_part(&patch)
-                    .slot(Part::ICON, &replacement)
-                    .draw(ui, area),
-            );
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                used.set(
+                    Button::new(BUTTON, "Go")
+                        .status(Status::Error)
+                        .checked(true)
+                        .patch_part(&patch)
+                        .slot(Part::ICON, &replacement)
+                        .draw(ui, area),
+                );
+            })
+            .commit_presented();
 
         assert_eq!(seen.get(), Some(Rect::new(1, 0, 1, 1)));
         assert_eq!(used.get().width, 8);
         assert!(row_text(&buffer, AREA.width).contains("Go"));
 
         let mut patched = Buffer::empty(AREA);
-        runtime.draw_scene(AREA, &mut patched, |ui, area| {
-            Button::new(BUTTON, "Go")
-                .status(Status::Busy)
-                .patch_part(&patch)
-                .draw(ui, area);
-        });
+        runtime
+            .draw_scene(AREA, &mut patched, |ui, area| {
+                Button::new(BUTTON, "Go")
+                    .status(Status::Busy)
+                    .patch_part(&patch)
+                    .draw(ui, area);
+            })
+            .commit_presented();
         assert!(
             patched
                 .cell(Position::new(1, 0))
@@ -739,20 +751,20 @@ mod tests {
         let mut runtime = Runtime::new(AutofocusApp::default(), Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.focus(), Some(OTHER));
 
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.focus(), Some(BUTTON), "autofocus must fire once");
 
-        let _ = runtime.handle(key(KeyCode::Tab));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Tab));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.focus(), Some(OTHER));
 
         for _ in 0..3 {
-            let _ = runtime.handle(Input::Tick);
-            runtime.draw_buffer(SCREEN, &mut buffer);
+            let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         }
         assert_eq!(
             runtime.focus(),
@@ -769,14 +781,14 @@ mod tests {
         let mut runtime = Runtime::new(AutofocusApp { disabled: true }, Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.focus(), Some(OTHER));
         assert!(runtime.ring().is_registered(BUTTON));
         assert!(!runtime.ring().contains(BUTTON));
 
         for _ in 0..3 {
-            let _ = runtime.handle(Input::Tick);
-            runtime.draw_buffer(SCREEN, &mut buffer);
+            let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         }
 
         assert_eq!(
@@ -806,17 +818,17 @@ mod tests {
         let mut runtime = Runtime::new(HoverApp, Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
 
-        let entered = runtime.handle(mouse(MouseKind::Move, 1, 0));
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let stayed = runtime.handle(mouse(MouseKind::Move, 2, 0));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let entered = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Move, 1, 0));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let stayed = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Move, 2, 0));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.hover(), Some(BUTTON));
-        let pressed = runtime.handle(mouse(MouseKind::Down, 2, 0));
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let left = runtime.handle(mouse(MouseKind::Up, 2, 0));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let pressed = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 2, 0));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let left = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, 2, 0));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
 
         assert_eq!(entered.invalidate(), Invalidate::Paint);
         assert_eq!(

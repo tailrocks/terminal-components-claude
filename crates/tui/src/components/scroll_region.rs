@@ -441,7 +441,8 @@ mod tests {
         let st = ScrollState::new(100);
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             ScrollRegion::new(ID).draw(ui, area, &st, 100);
-        });
+        })
+        .commit_presented();
         let set = Theme::junie().design.glyphs.scrollbar();
         assert_eq!(
             buf.cell(Position::new(4, 0))
@@ -464,7 +465,8 @@ mod tests {
             ui.reference(None, |ui| {
                 ScrollRegion::new(ID).draw(ui, area, &st, 100);
             });
-        });
+        })
+        .commit_presented();
         assert!(rt.area_of(ID).is_none());
     }
 
@@ -474,11 +476,13 @@ mod tests {
             let mut runtime = Runtime::new(Stub::default(), Theme::junie());
             let mut buffer = Buffer::empty(SCREEN);
             let state = ScrollState::new(100);
-            runtime.draw_scene(SCREEN, &mut buffer, |ui, _area| {
-                ui.reference(target, |ui| {
-                    ScrollRegion::new(ID).draw(ui, Rect::new(0, 0, 5, 6), &state, 100);
-                });
-            });
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, _area| {
+                    ui.reference(target, |ui| {
+                        ScrollRegion::new(ID).draw(ui, Rect::new(0, 0, 5, 6), &state, 100);
+                    });
+                })
+                .commit_presented();
             buffer
         };
         let plain = render(None);
@@ -494,13 +498,15 @@ mod tests {
             let mut runtime = Runtime::new(Stub::default(), Theme::junie());
             let mut buffer = Buffer::empty(SCREEN);
             let state = ScrollState::new(100);
-            runtime.draw_scene(SCREEN, &mut buffer, |ui, _| {
-                let target =
-                    part.map(|part| ReferenceTarget::new(ID, ReferenceState::PRESSED).part(part));
-                ui.reference(target, |ui| {
-                    ScrollRegion::new(ID).draw(ui, Rect::new(0, 0, 5, 6), &state, 100);
-                });
-            });
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                    let target = part
+                        .map(|part| ReferenceTarget::new(ID, ReferenceState::PRESSED).part(part));
+                    ui.reference(target, |ui| {
+                        ScrollRegion::new(ID).draw(ui, Rect::new(0, 0, 5, 6), &state, 100);
+                    });
+                })
+                .commit_presented();
             buffer
         };
         let plain = render(None);
@@ -526,7 +532,8 @@ mod tests {
                     region = region.patch_part(&parts);
                 }
                 region.draw(ui, Rect::new(0, 0, 5, 3), &st, 1);
-            });
+            })
+            .commit_presented();
             buf
         };
         assert_ne!(render(false), render(true));
@@ -542,13 +549,15 @@ mod tests {
             let mut runtime = Runtime::new(Stub::default(), Theme::junie());
             let mut buffer = Buffer::empty(SCREEN);
             let state = ScrollState::new(100);
-            runtime.draw_scene(SCREEN, &mut buffer, |ui, _| {
-                let mut region = ScrollRegion::new(ID);
-                if let Some(part) = slot {
-                    region = region.slot(part, &marker);
-                }
-                region.draw(ui, Rect::new(0, 0, 5, 6), &state, 100);
-            });
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                    let mut region = ScrollRegion::new(ID);
+                    if let Some(part) = slot {
+                        region = region.slot(part, &marker);
+                    }
+                    region.draw(ui, Rect::new(0, 0, 5, 6), &state, 100);
+                })
+                .commit_presented();
             buffer
         };
         let plain = render(None);

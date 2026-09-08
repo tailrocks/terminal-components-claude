@@ -1851,9 +1851,11 @@ mod tests {
         state.reconcile_fields(&fields);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-            Form::new(FORM, &fields).draw(ui, area, state, data);
-        });
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                Form::new(FORM, &fields).draw(ui, area, state, data);
+            })
+            .commit_presented();
         (runtime, buffer)
     }
 
@@ -1863,7 +1865,7 @@ mod tests {
         let mut runtime = Runtime::new(app, Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         runtime.app().state.clone()
     }
 
@@ -1872,9 +1874,11 @@ mod tests {
         state.reconcile_fields(&fields);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-            Form::new(FORM, &fields).draw(ui, area, state, data);
-        });
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                Form::new(FORM, &fields).draw(ui, area, state, data);
+            })
+            .commit_presented();
         buffer
     }
 
@@ -2090,7 +2094,7 @@ mod tests {
         let mut runtime = Runtime::new(MatrixApp::new(kind), Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.focus(), Some(MATRIX));
         (runtime, buffer)
     }
@@ -2151,9 +2155,11 @@ mod tests {
         let fields = fields();
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-            Form::new(FORM, &fields).draw(ui, area, &state, &data);
-        });
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                Form::new(FORM, &fields).draw(ui, area, &state, &data);
+            })
+            .commit_presented();
         assert!(runtime.ring().is_registered(NAME));
         assert!(runtime.ring().is_registered(FLAG));
     }
@@ -2228,32 +2234,43 @@ mod tests {
         let mut runtime = Runtime::new(app, Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(tiny);
-        runtime.draw_buffer(tiny, &mut buffer);
+        runtime.draw_buffer(tiny, &mut buffer).commit_presented();
         runtime.set_focus(Some(CHOOSER));
-        let _ = runtime.handle(Input::Tick);
         assert_eq!(runtime.app().state.scroll.offset(), 0);
-        runtime.draw_buffer(tiny, &mut buffer);
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(tiny, &mut buffer);
+        drop(runtime.draw_buffer(tiny, &mut buffer));
+        assert_eq!(
+            runtime.app().state.scroll.offset(),
+            0,
+            "paint cannot reveal focus"
+        );
+        let _ = runtime.settle();
+        let settled_offset = runtime.app().state.scroll.offset();
+        runtime.draw_buffer(tiny, &mut buffer).commit_presented();
+        assert_eq!(runtime.app().state.scroll.offset(), settled_offset);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(tiny, &mut buffer).commit_presented();
         assert!(runtime.app().state.scroll.offset() > 0);
     }
 
     #[test]
     fn submit_commits_the_in_flight_edit_before_validating() {
         let (mut runtime, mut buffer) = matrix_runtime(MatrixKind::Text);
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(press(KeyCode::Char('x')));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Char('x')));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.app().data.text, "", "keystroke remains a draft");
         let action_id = FORM.part(Part::ACTIONS).index(0);
         runtime.set_focus(Some(action_id));
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(Input::Key(Key {
-            code: KeyCode::Char('s'),
-            mods: KeyModifiers::CONTROL,
-        }));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            Input::Key(Key {
+                code: KeyCode::Char('s'),
+                mods: KeyModifiers::CONTROL,
+            }),
+        );
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.app().data.validations.get(), 1);
         assert_eq!(
             runtime.app().last,
@@ -2268,9 +2285,9 @@ mod tests {
         let mut runtime = Runtime::new(app, Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(press(KeyCode::Enter));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.app().data.validations.get(), 1);
         assert_eq!(runtime.app().last, Some(FormAction::Invalid(MATRIX)));
         assert!(runtime.app().state.error(MATRIX).is_some());
@@ -2285,14 +2302,17 @@ mod tests {
         let mut runtime = Runtime::new(app, Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         let action_id = FORM.part(Part::ACTIONS).index(0);
         assert_eq!(runtime.focus(), Some(action_id));
-        let _ = runtime.handle(Input::Key(Key {
-            code: KeyCode::Char('s'),
-            mods: KeyModifiers::CONTROL,
-        }));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            Input::Key(Key {
+                code: KeyCode::Char('s'),
+                mods: KeyModifiers::CONTROL,
+            }),
+        );
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.app().data.validations.get(), 0);
         assert_eq!(
             runtime.app().last,
@@ -2311,8 +2331,8 @@ mod tests {
             MatrixKind::Chooser,
         ] {
             let (mut runtime, mut buffer) = matrix_runtime(kind);
-            let _ = runtime.handle(press(KeyCode::Enter));
-            runtime.draw_buffer(SCREEN, &mut buffer);
+            let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
             assert_eq!(
                 runtime.app().last,
                 Some(FormAction::Action(ActionKey::SAVE)),
@@ -2337,8 +2357,8 @@ mod tests {
 
         for kind in [MatrixKind::Text, MatrixKind::Area] {
             let (mut runtime, mut buffer) = matrix_runtime(kind);
-            let _ = runtime.handle(Input::Tick);
-            runtime.draw_buffer(SCREEN, &mut buffer);
+            let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
             let editing = runtime
                 .app()
                 .state
@@ -2350,8 +2370,8 @@ mod tests {
                     _ => false,
                 });
             assert!(editing, "{kind:?} did not enter editing after focus");
-            let _ = runtime.handle(press(KeyCode::Enter));
-            runtime.draw_buffer(SCREEN, &mut buffer);
+            let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
             let expected = match kind {
                 MatrixKind::Text => FormAction::Committed(MATRIX),
                 MatrixKind::Area => FormAction::Changed(MATRIX),
@@ -2370,13 +2390,16 @@ mod tests {
         let (mut runtime, mut buffer) = matrix_runtime(MatrixKind::Check);
         let action_id = FORM.part(Part::ACTIONS).index(0);
         runtime.set_focus(Some(action_id));
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(Input::Key(Key {
-            code: KeyCode::Char('s'),
-            mods: KeyModifiers::CONTROL,
-        }));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            Input::Key(Key {
+                code: KeyCode::Char('s'),
+                mods: KeyModifiers::CONTROL,
+            }),
+        );
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(
             runtime.app().last,
             Some(FormAction::Action(ActionKey::SAVE))
@@ -2386,18 +2409,18 @@ mod tests {
     #[test]
     fn dirty_is_set_by_a_commit_not_by_a_keystroke() {
         let (mut runtime, mut buffer) = matrix_runtime(MatrixKind::Text);
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert!(!runtime.app().state.is_dirty());
-        let _ = runtime.handle(press(KeyCode::Char('x')));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Char('x')));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert!(
             !runtime.app().state.is_dirty(),
             "typing changed only the child draft"
         );
         runtime.set_focus(Some(FORM.part(Part::ACTIONS).index(0)));
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert!(
             runtime.app().state.is_dirty(),
             "focus-out commit marked the form dirty"
@@ -2407,20 +2430,20 @@ mod tests {
     #[test]
     fn chooser_activation_emits_chose_with_the_field_id() {
         let (mut runtime, mut buffer) = matrix_runtime(MatrixKind::Chooser);
-        let _ = runtime.handle(press(KeyCode::Char(' ')));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Char(' ')));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.app().last, Some(FormAction::Chose(MATRIX)));
     }
 
     #[test]
     fn space_stays_child_owned_and_unrelated_intents_stay_ignored() {
         let (mut runtime, mut buffer) = matrix_runtime(MatrixKind::Check);
-        let _ = runtime.handle(press(KeyCode::F(12)));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::F(12)));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.app().last, None);
         assert!(!runtime.app().data.flag);
-        let _ = runtime.handle(press(KeyCode::Char(' ')));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Char(' ')));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.app().last, Some(FormAction::Committed(MATRIX)));
         assert!(runtime.app().data.flag);
     }
@@ -2435,18 +2458,21 @@ mod tests {
     #[test]
     fn at_most_one_action_per_frame_in_declaration_order() {
         let (mut runtime, mut buffer) = matrix_runtime(MatrixKind::Text);
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(press(KeyCode::Char('x')));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Char('x')));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         let action_id = FORM.part(Part::ACTIONS).index(0);
         runtime.set_focus(Some(action_id));
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(Input::Key(Key {
-            code: KeyCode::Char('s'),
-            mods: KeyModifiers::CONTROL,
-        }));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            Input::Key(Key {
+                code: KeyCode::Char('s'),
+                mods: KeyModifiers::CONTROL,
+            }),
+        );
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.app().data.text, "x", "child focus-out committed");
         assert_eq!(
             runtime.app().data.validations.get(),
@@ -2467,24 +2493,24 @@ mod tests {
         let mut runtime = Runtime::new(app, Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(press(KeyCode::Enter));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert!(runtime.app().state.slots[0].select.is_open());
         let action_id = FORM.part(Part::ACTIONS).index(0);
-        let _ = runtime.handle(press(KeyCode::Tab));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Tab));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.focus(), Some(action_id));
         assert!(!runtime.app().state.slots[0].select.is_open());
 
         runtime.set_focus(Some(MATRIX));
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(press(KeyCode::Enter));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert!(runtime.app().state.slots[0].select.is_open());
-        let _ = runtime.handle(press(KeyCode::Esc));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Esc));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert!(!runtime.app().state.slots[0].select.is_open());
         assert_eq!(runtime.focus(), Some(MATRIX));
     }
@@ -2498,9 +2524,9 @@ mod tests {
         let mut runtime = Runtime::new(removed, Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(press(KeyCode::Enter));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.app().last, None);
         assert!(!runtime.app().data.flag);
 
@@ -2512,12 +2538,12 @@ mod tests {
         );
         let mut runtime = Runtime::new(remapped, Theme::junie());
         let _ = runtime.initialize();
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(press(KeyCode::Enter));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.app().last, None, "removed Enter did not submit");
-        let _ = runtime.handle(press(KeyCode::F(2)));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::F(2)));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert!(runtime.app().data.flag, "remapped chord reached the child");
     }
 
@@ -2679,7 +2705,7 @@ mod tests {
         let mut runtime = Runtime::new(app, Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
 
         runtime
             .app_mut()
@@ -2714,7 +2740,7 @@ mod tests {
         );
         assert!(!format!("{copy:?}").contains(DETAIL));
 
-        let _ = runtime.handle(Input::Tick);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
         assert_eq!(
             runtime
                 .app()
@@ -2750,7 +2776,7 @@ mod tests {
         let mut runtime = Runtime::new(app, Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
 
         let fields = fields_with_secret_policy(true);
         let app = runtime.app_mut();
@@ -2772,7 +2798,7 @@ mod tests {
 
         runtime.app_mut().data.hidden_secret_mode = true;
         runtime.app_mut().data.flags.show_hidden = false;
-        let _ = runtime.handle(Input::Tick);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
 
         assert_public_error_is_redacted(&runtime.app().state, HIDDEN, DETAIL);
         let slot = runtime
@@ -2799,7 +2825,7 @@ mod tests {
         let mut runtime = Runtime::new(app, Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
 
         let (fields, group) = fields_for_app(false, true);
         let app = runtime.app_mut();
@@ -2825,7 +2851,7 @@ mod tests {
                 .shown(&runtime.app().data, &fields[1])
         );
         runtime.app_mut().data.hidden_secret_mode = true;
-        let _ = runtime.handle(Input::Tick);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
 
         assert_public_error_is_redacted(&runtime.app().state, HIDDEN, DETAIL);
         let slot = runtime
@@ -3066,8 +3092,8 @@ mod tests {
         let mut runtime = Runtime::new(app, Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(Input::Tick);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
         assert_eq!(
             runtime
                 .app()
@@ -3088,7 +3114,7 @@ mod tests {
         let mut runtime = Runtime::new(app, Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         {
             let state = &mut runtime.app_mut().state;
             let slot = state
@@ -3102,7 +3128,7 @@ mod tests {
         }
 
         runtime.app_mut().data.secret_mode = false;
-        let _ = runtime.handle(Input::Tick);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
         let slot = runtime
             .app()
             .state
@@ -3115,7 +3141,7 @@ mod tests {
         assert!(slot.input.error().is_none());
 
         runtime.app_mut().data.secret_mode = true;
-        let _ = runtime.handle(Input::Tick);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
         let slot = runtime
             .app()
             .state
@@ -3143,12 +3169,12 @@ mod tests {
     #[test]
     fn changing_options_between_frames_does_not_rebuild_props() {
         let (mut runtime, mut buffer) = matrix_runtime(MatrixKind::Select);
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         let slot_count = runtime.app().state.slots.len();
         runtime.app_mut().data.config.options = MatrixOptions::Alternate;
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.app().state.slots.len(), slot_count);
         assert_eq!(runtime.app().data.options(MATRIX), OTHER_OPTIONS);
         assert_eq!(runtime.focus(), Some(MATRIX));
@@ -3204,7 +3230,7 @@ mod tests {
             app.reference = true;
             let mut runtime = Runtime::new(app, Theme::junie());
             let mut buffer = Buffer::empty(SCREEN);
-            runtime.draw_buffer(SCREEN, &mut buffer);
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
             let action_id = FORM.part(Part::ACTIONS).index(0);
             assert!(!runtime.registry().has_owner(FORM), "{kind:?} form leaked");
             assert!(
@@ -3228,7 +3254,7 @@ mod tests {
             app.target = target;
             let mut runtime = Runtime::new(app, Theme::junie().downgrade(crate::ColorLevel::Mono));
             let mut buffer = Buffer::empty(SCREEN);
-            runtime.draw_buffer(SCREEN, &mut buffer);
+            runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
             buffer
         };
         let suppressed = render(None);
@@ -3246,15 +3272,15 @@ mod tests {
         let mut runtime = Runtime::new(app, Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         runtime.set_focus(Some(SECRET));
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(press(KeyCode::Char('!')));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Char('!')));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         runtime.set_focus(Some(CHOOSER));
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         assert_eq!(runtime.app().data.secret.expose(), "hunter2!");
     }
 

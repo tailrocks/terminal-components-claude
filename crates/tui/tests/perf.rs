@@ -702,7 +702,7 @@ fn probe_runtime(n: usize) -> (Runtime<Probes>, ratatui_core::buffer::Buffer) {
     let mut rt = Runtime::new(Probes(n), Theme::junie());
     let _ = rt.initialize();
     let mut buf = ratatui_core::buffer::Buffer::empty(area);
-    rt.draw_buffer(area, &mut buf);
+    rt.draw_buffer(area, &mut buf).commit_presented();
     (rt, buf)
 }
 
@@ -713,25 +713,25 @@ fn probe_runtime(n: usize) -> (Runtime<Probes>, ratatui_core::buffer::Buffer) {
 #[test]
 fn intents_drain_is_o_1_when_the_queue_is_empty() {
     let _g = lock();
-    let (mut small, _) = probe_runtime(20);
-    let (mut large, _) = probe_runtime(500);
+    let (mut small, mut small_buf) = probe_runtime(20);
+    let (mut large, mut large_buf) = probe_runtime(500);
 
     // settle the initial focus, whose `FocusOut`/`FocusIn` pair is delivered
     // by the first `handle` and does fill the queue
     for _ in 0..2 {
-        let _ = small.handle(Input::Tick);
-        let _ = large.handle(Input::Tick);
+        let _ = junie_tui_testing::deliver_buffer(&mut small, &mut small_buf, Input::Tick);
+        let _ = junie_tui_testing::deliver_buffer(&mut large, &mut large_buf, Input::Tick);
     }
     // an empty queue short-circuits before the bucket table is touched
     let before = large.intent_probes();
-    let _ = large.handle(Input::Tick);
+    let _ = junie_tui_testing::deliver_buffer(&mut large, &mut large_buf, Input::Tick);
     assert_eq!(
         large.intent_probes(),
         before,
         "a frame with an empty queue must perform 0 bucket probes"
     );
     let before20 = small.intent_probes();
-    let _ = small.handle(Input::Tick);
+    let _ = junie_tui_testing::deliver_buffer(&mut small, &mut small_buf, Input::Tick);
     assert_eq!(
         small.intent_probes() - before20,
         large.intent_probes() - before,
@@ -739,10 +739,18 @@ fn intents_drain_is_o_1_when_the_queue_is_empty() {
     );
 
     let s20 = bench(2, iters(200), &mut || {
-        let _ = black_box(small.handle(Input::Tick));
+        let _ = black_box(junie_tui_testing::deliver_buffer(
+            &mut small,
+            &mut small_buf,
+            Input::Tick,
+        ));
     });
     let s500 = bench(2, iters(200), &mut || {
-        let _ = black_box(large.handle(Input::Tick));
+        let _ = black_box(junie_tui_testing::deliver_buffer(
+            &mut large,
+            &mut large_buf,
+            Input::Tick,
+        ));
     });
     report("intents_drain_is_o_1_when_the_queue_is_empty", &s500);
     println!(
@@ -770,12 +778,12 @@ fn intents_drain_is_o_1_when_the_queue_is_empty() {
         })
     };
     let probes_for = |n: usize| {
-        let (mut rt, _) = probe_runtime(n);
+        let (mut rt, mut buf) = probe_runtime(n);
         for _ in 0..2 {
-            let _ = rt.handle(Input::Tick);
+            let _ = junie_tui_testing::deliver_buffer(&mut rt, &mut buf, Input::Tick);
         }
         let before = rt.intent_probes();
-        let _ = rt.handle(key());
+        let _ = junie_tui_testing::deliver_buffer(&mut rt, &mut buf, key());
         rt.intent_probes() - before
     };
     let (p20, p500) = (probes_for(20), probes_for(500));
@@ -786,12 +794,16 @@ fn intents_drain_is_o_1_when_the_queue_is_empty() {
         "one probe per drain call in one update pass: {p500} - {p20} != 480 \
          (960 would mean a second focus pass, not a drain regression)"
     );
-    let (mut two, _) = probe_runtime(500);
+    let (mut two, mut two_buf) = probe_runtime(500);
     let s2 = bench(2, iters(200), &mut || {
-        let _ = black_box(two.handle(Input::Key(junie_tui::Key {
-            code: KeyCode::Enter,
-            mods: KeyModifiers::NONE,
-        })));
+        let _ = black_box(junie_tui_testing::deliver_buffer(
+            &mut two,
+            &mut two_buf,
+            Input::Key(junie_tui::Key {
+                code: KeyCode::Enter,
+                mods: KeyModifiers::NONE,
+            }),
+        ));
     });
     println!(
         "PERF intents_drain_500_controls_1_intent ns={} allocs={}",
@@ -1083,10 +1095,10 @@ fn list_runtime(n: usize, mode: SelectMode) -> (Runtime<ListApp>, ratatui_core::
     );
     let _ = rt.initialize();
     let mut buf = ratatui_core::buffer::Buffer::empty(area);
-    rt.draw_buffer(area, &mut buf);
+    rt.draw_buffer(area, &mut buf).commit_presented();
     for _ in 0..2 {
-        let _ = rt.handle(Input::Tick);
-        rt.draw_buffer(area, &mut buf);
+        let _ = junie_tui_testing::deliver_buffer(&mut rt, &mut buf, Input::Tick);
+        rt.draw_buffer(area, &mut buf).commit_presented();
     }
     (rt, buf)
 }
@@ -1105,10 +1117,14 @@ fn list_100k_select_all() {
         })
     };
     // warm: the first toggle also settles focus
-    let _ = rt.handle(toggle());
-    rt.draw_buffer(area, &mut buf);
+    let _ = junie_tui_testing::deliver_buffer(&mut rt, &mut buf, toggle());
+    rt.draw_buffer(area, &mut buf).commit_presented();
     let s = measure_once(&mut || {
-        let _ = black_box(rt.handle(toggle()));
+        let _ = black_box(junie_tui_testing::deliver_buffer(
+            &mut rt,
+            &mut buf,
+            toggle(),
+        ));
     });
     println!(
         "PERF list_100k_select_all ns={} allocs={} bytes={}",
@@ -1122,7 +1138,7 @@ fn list_100k_select_all() {
     );
     // `a` toggles: the measured press cleared the set the warm press filled,
     // so one more press proves the set-level "everything" is reachable at all
-    let _ = rt.handle(toggle());
+    let _ = junie_tui_testing::deliver_buffer(&mut rt, &mut buf, toggle());
     assert!(rt.app().st.checked().contains(junie_tui::ItemKey::num(99)));
     assert!(
         rt.app()
@@ -1159,9 +1175,9 @@ fn event_dispatch_is_not_o_n() {
             black_box(i);
         }
         for input in click(10, 5) {
-            let _ = black_box(rt.handle(input));
+            let _ = black_box(junie_tui_testing::deliver_buffer(rt, buf, input));
         }
-        rt.draw_buffer(area, buf);
+        rt.draw_buffer(area, buf).commit_presented();
     };
     let s_small = bench(2, iters(50), &mut || run(&mut small, &mut small_buf));
     let s_large = bench(2, iters(50), &mut || run(&mut large, &mut large_buf));
@@ -1254,10 +1270,10 @@ fn frame_showcase_buttons_120x40() {
     let _ = rt.initialize();
     let mut buf = ratatui_core::buffer::Buffer::empty(area);
     // two warm frames: the runtime double-buffers the registry and the ring
-    rt.draw_buffer(area, &mut buf);
-    rt.draw_buffer(area, &mut buf);
+    rt.draw_buffer(area, &mut buf).commit_presented();
+    rt.draw_buffer(area, &mut buf).commit_presented();
     let s = bench(2, iters(200), &mut || {
-        rt.draw_buffer(area, &mut buf);
+        rt.draw_buffer(area, &mut buf).commit_presented();
     });
     let s = s.with_regions(rt.region_count(), rt.ring().reachable().count());
     report("frame_showcase_buttons_120x40", &s);
@@ -1338,22 +1354,22 @@ fn prepare_query_editor(
     area: Rect,
     buffer: &mut ratatui_core::buffer::Buffer,
 ) {
-    runtime.draw_buffer(area, buffer);
-    runtime.draw_buffer(area, buffer);
+    runtime.draw_buffer(area, buffer).commit_presented();
+    runtime.draw_buffer(area, buffer).commit_presented();
     let input = |code| {
         Input::Key(junie_tui::Key {
             code,
             mods: KeyModifiers::NONE,
         })
     };
-    let _ = runtime.handle(input(KeyCode::Tab));
-    let _ = runtime.handle(input(KeyCode::Char('/')));
-    runtime.draw_buffer(area, buffer);
+    let _ = junie_tui_testing::deliver_buffer(runtime, buffer, input(KeyCode::Tab));
+    let _ = junie_tui_testing::deliver_buffer(runtime, buffer, input(KeyCode::Char('/')));
+    runtime.draw_buffer(area, buffer).commit_presented();
     for character in "column".chars() {
-        let _ = runtime.handle(input(KeyCode::Char(character)));
+        let _ = junie_tui_testing::deliver_buffer(runtime, buffer, input(KeyCode::Char(character)));
     }
-    let _ = runtime.handle(input(KeyCode::Enter));
-    runtime.draw_buffer(area, buffer);
+    let _ = junie_tui_testing::deliver_buffer(runtime, buffer, input(KeyCode::Enter));
+    runtime.draw_buffer(area, buffer).commit_presented();
 }
 
 #[test]
@@ -1370,10 +1386,12 @@ fn frame_tablepro_query_editor_2k_lines() {
     prepare_query_editor(&mut small_runtime, area, &mut small_buffer);
     let warm_highlights = HIGHLIGHT_CALLS.load(Ordering::Relaxed);
     let sample = bench(2, iters(100), &mut || {
-        runtime.draw_buffer(area, &mut buffer);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
     });
     let small_sample = bench(2, iters(100), &mut || {
-        small_runtime.draw_buffer(area, &mut small_buffer);
+        small_runtime
+            .draw_buffer(area, &mut small_buffer)
+            .commit_presented();
     });
     report("frame_tablepro_query_editor_2k_lines", &sample);
     assert!(
@@ -1468,11 +1486,11 @@ fn diff_2k_cached_projection_has_zero_warm_allocations() {
     );
     let _ = runtime.initialize();
     let mut buffer = ratatui_core::buffer::Buffer::empty(area);
-    runtime.draw_buffer(area, &mut buffer);
-    runtime.draw_buffer(area, &mut buffer);
+    runtime.draw_buffer(area, &mut buffer).commit_presented();
+    runtime.draw_buffer(area, &mut buffer).commit_presented();
     let sample = bench(2, iters(100), &mut || {
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(area, &mut buffer);
+        let _ = junie_tui_testing::deliver_buffer(&mut runtime, &mut buffer, Input::Tick);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
     });
     report("diff_2k_cached_projection", &sample);
     assert_eq!(sample.allocs, 0, "warm update and draw must not allocate");
@@ -1532,10 +1550,10 @@ fn frame_hintbar_derived() {
     let mut runtime = Runtime::new(DerivedHintApp::default(), Theme::junie());
     let _ = runtime.initialize();
     let mut buffer = ratatui_core::buffer::Buffer::empty(area);
-    runtime.draw_buffer(area, &mut buffer);
-    runtime.draw_buffer(area, &mut buffer);
+    runtime.draw_buffer(area, &mut buffer).commit_presented();
+    runtime.draw_buffer(area, &mut buffer).commit_presented();
     let sample = bench(2, iters(200), &mut || {
-        runtime.draw_buffer(area, &mut buffer);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
     });
     report("frame_hintbar_derived", &sample);
     assert_eq!(sample.allocs, 0, "unchanged derived-hint frame allocated");
@@ -1546,9 +1564,13 @@ fn frame_hintbar_derived() {
             mods: KeyModifiers::NONE,
         })
     };
-    let _ = runtime.handle(key());
+    let _ = junie_tui_testing::deliver_buffer(&mut runtime, &mut buffer, key());
     let routing = bench(2, iters(200), &mut || {
-        let _ = black_box(runtime.handle(key()));
+        let _ = black_box(junie_tui_testing::deliver_buffer(
+            &mut runtime,
+            &mut buffer,
+            key(),
+        ));
     });
     assert_eq!(
         routing.allocs, 0,
@@ -1612,13 +1634,13 @@ fn frame_form_update_draw() {
     let mut runtime = Runtime::new(PerfFormApp::default(), Theme::junie());
     let _ = runtime.initialize();
     let mut buffer = ratatui_core::buffer::Buffer::empty(area);
-    runtime.draw_buffer(area, &mut buffer);
-    let _ = runtime.handle(Input::Tick);
-    runtime.draw_buffer(area, &mut buffer);
-    runtime.draw_buffer(area, &mut buffer);
+    runtime.draw_buffer(area, &mut buffer).commit_presented();
+    let _ = junie_tui_testing::deliver_buffer(&mut runtime, &mut buffer, Input::Tick);
+    runtime.draw_buffer(area, &mut buffer).commit_presented();
+    runtime.draw_buffer(area, &mut buffer).commit_presented();
     let sample = bench(2, iters(200), &mut || {
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(area, &mut buffer);
+        let _ = junie_tui_testing::deliver_buffer(&mut runtime, &mut buffer, Input::Tick);
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
     });
     report("frame_form_update_draw", &sample);
     assert_eq!(sample.allocs, 0, "warm Form update and draw allocated");

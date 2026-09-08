@@ -2990,8 +2990,8 @@ mod tests {
         let mut runtime = Runtime::new(GridApp::new(model, editable), Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_buffer(AREA, &mut buffer);
-        runtime.draw_buffer(AREA, &mut buffer);
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         (runtime, buffer)
     }
 
@@ -3044,9 +3044,11 @@ mod tests {
         let area = Rect::new(0, 0, 20, 5);
         let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, _| {
-            Grid::new(ID, &columns).draw(ui, area, &GridState::default(), &model);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, _| {
+                Grid::new(ID, &columns).draw(ui, area, &GridState::default(), &model);
+            })
+            .commit_presented();
 
         assert_eq!(
             buffer
@@ -3081,9 +3083,11 @@ mod tests {
         let screen = AREA;
         let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(screen);
-        runtime.draw_scene(screen, &mut buffer, |ui, _| {
-            Grid::new(ID, &columns).draw(ui, screen, &GridState::default(), &model);
-        });
+        runtime
+            .draw_scene(screen, &mut buffer, |ui, _| {
+                Grid::new(ID, &columns).draw(ui, screen, &GridState::default(), &model);
+            })
+            .commit_presented();
     }
 
     /// `0x8000..` is `ColumnKey::of`'s half. Masking a number into it — the
@@ -3197,11 +3201,16 @@ mod tests {
             let model = Model::default();
             let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
             let mut buffer = Buffer::empty(AREA);
-            runtime.draw_scene(AREA, &mut buffer, |ui, _| {
-                Grid::new(ID, &columns)
-                    .empty(empty)
-                    .draw(ui, AREA, &GridState::default(), &model);
-            });
+            runtime
+                .draw_scene(AREA, &mut buffer, |ui, _| {
+                    Grid::new(ID, &columns).empty(empty).draw(
+                        ui,
+                        AREA,
+                        &GridState::default(),
+                        &model,
+                    );
+                })
+                .commit_presented();
             buffer
                 .content()
                 .iter()
@@ -3240,16 +3249,18 @@ mod tests {
             let empty = Model::default();
             let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
             let mut buffer = Buffer::empty(screen);
-            runtime.draw_scene(screen, &mut buffer, |ui, _| {
-                let mut full = Grid::new(ID, &columns).actions_slot(&replace);
-                let mut blank = Grid::new(ID.sub("empty"), &columns);
-                if let Some(part) = slot {
-                    full = full.slot(part, &replace);
-                    blank = blank.slot(part, &replace);
-                }
-                full.draw(ui, Rect::new(0, 0, 12, 6), &GridState::default(), &model);
-                blank.draw(ui, Rect::new(0, 7, 12, 3), &GridState::default(), &empty);
-            });
+            runtime
+                .draw_scene(screen, &mut buffer, |ui, _| {
+                    let mut full = Grid::new(ID, &columns).actions_slot(&replace);
+                    let mut blank = Grid::new(ID.sub("empty"), &columns);
+                    if let Some(part) = slot {
+                        full = full.slot(part, &replace);
+                        blank = blank.slot(part, &replace);
+                    }
+                    full.draw(ui, Rect::new(0, 0, 12, 6), &GridState::default(), &model);
+                    blank.draw(ui, Rect::new(0, 7, 12, 3), &GridState::default(), &empty);
+                })
+                .commit_presented();
             buffer
         }
 
@@ -3325,9 +3336,9 @@ mod tests {
         let mut runtime = Runtime::new(app, Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_buffer(AREA, &mut buffer);
-        runtime.draw_buffer(AREA, &mut buffer);
-        let _ = runtime.handle(key(KeyCode::Right));
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Right));
 
         assert_eq!(
             runtime.app().state.cursor(),
@@ -3339,11 +3350,11 @@ mod tests {
     fn read_only_f2_never_activates_but_enter_still_does() {
         let (mut runtime, _) = runtime(Model::two(), false);
 
-        let f2 = runtime.handle(key(KeyCode::F(2)));
+        let f2 = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::F(2)));
         assert!(f2.is_consumed());
         assert!(runtime.app().actions.is_empty());
 
-        let enter = runtime.handle(key(KeyCode::Enter));
+        let enter = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
         assert!(enter.is_consumed());
         assert_eq!(
             runtime.app().actions,
@@ -3357,12 +3368,12 @@ mod tests {
         model.locked = true;
         let (mut runtime, _) = runtime(model, true);
 
-        let f2 = runtime.handle(key(KeyCode::F(2)));
+        let f2 = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::F(2)));
         assert!(f2.is_consumed());
         assert!(!runtime.app().state.is_editing());
         assert!(runtime.app().actions.is_empty());
 
-        let enter = runtime.handle(key(KeyCode::Enter));
+        let enter = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
         assert!(enter.is_consumed());
         assert!(!runtime.app().state.is_editing());
         assert_eq!(
@@ -3381,10 +3392,10 @@ mod tests {
         let mut runtime = Runtime::new(app, Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_buffer(AREA, &mut buffer);
-        runtime.draw_buffer(AREA, &mut buffer);
-        let _ = runtime.handle(key(KeyCode::Right));
-        let _ = runtime.handle(key(KeyCode::Enter));
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Right));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
 
         assert_eq!(
             runtime.app().state.cursor(),
@@ -3405,8 +3416,10 @@ mod tests {
             )
             .unwrap_or(Rect::ZERO);
         assert!(!header.is_empty());
-        let _ = runtime.handle(mouse(MouseKind::Down, header.x, header.y));
-        let _ = runtime.handle(mouse(MouseKind::Up, header.x, header.y));
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, header.x, header.y));
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, header.x, header.y));
         assert_eq!(
             runtime.app().actions.last(),
             Some(&GridAction::Sort(ColumnKey::num(2), SortDir::Asc))
@@ -3419,14 +3432,14 @@ mod tests {
         };
         let mut pointer = Runtime::new(pointer_app, Theme::junie());
         let _ = pointer.initialize();
-        pointer.draw_buffer(AREA, &mut buffer);
-        pointer.draw_buffer(AREA, &mut buffer);
+        pointer.draw_buffer(AREA, &mut buffer).commit_presented();
+        pointer.draw_buffer(AREA, &mut buffer).commit_presented();
         let hole = pointer
             .area_of_part(ID, PartRef::item(Part::CELL, ItemKey::num(1)))
             .unwrap_or(Rect::ZERO);
         assert!(!hole.is_empty());
         assert_eq!(hole.x, 11);
-        let _ = pointer.handle(mouse(MouseKind::Down, hole.x, hole.y));
+        let _ = crate::runtime::stub::deliver(&mut pointer, mouse(MouseKind::Down, hole.x, hole.y));
         assert_eq!(
             pointer.app().state.cursor(),
             Some((ItemKey::num(1), ColumnKey::num(2)))
@@ -3450,14 +3463,16 @@ mod tests {
         let model = RaggedModel::default();
         let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_scene(AREA, &mut buffer, |ui, _| {
-            Grid::new(ID, &columns).patch_part(&patch).draw(
-                ui,
-                AREA,
-                &GridState::default(),
-                &model,
-            );
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, _| {
+                Grid::new(ID, &columns).patch_part(&patch).draw(
+                    ui,
+                    AREA,
+                    &GridState::default(),
+                    &model,
+                );
+            })
+            .commit_presented();
 
         assert!(
             buffer
@@ -3482,16 +3497,22 @@ mod tests {
         let mut runtime = Runtime::new(app, Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_buffer(AREA, &mut buffer);
-        runtime.draw_buffer(AREA, &mut buffer);
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         let affordance = runtime
             .area_of_part(ID, PartRef::item(Part::ACTIONS, ItemKey::num(1)))
             .unwrap_or(Rect::ZERO);
         assert!(!affordance.is_empty());
 
-        let _ = runtime.handle(mouse(MouseKind::Down, affordance.x, affordance.y));
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Down, affordance.x, affordance.y),
+        );
         runtime.app().model.second_present.set(false);
-        let _ = runtime.handle(mouse(MouseKind::Up, affordance.x, affordance.y));
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Up, affordance.x, affordance.y),
+        );
 
         assert!(
             runtime
@@ -3534,14 +3555,16 @@ mod tests {
             }];
             let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
             let mut buffer = Buffer::empty(screen);
-            runtime.draw_scene(screen, &mut buffer, |ui, _| {
-                Grid::new(ID, &columns).draw(
-                    ui,
-                    screen,
-                    &GridState::default(),
-                    &AlignmentModel(cell_align),
-                );
-            });
+            runtime
+                .draw_scene(screen, &mut buffer, |ui, _| {
+                    Grid::new(ID, &columns).draw(
+                        ui,
+                        screen,
+                        &GridState::default(),
+                        &AlignmentModel(cell_align),
+                    );
+                })
+                .commit_presented();
             buffer
         }
 
@@ -3634,9 +3657,11 @@ mod tests {
         let screen = Rect::new(0, 0, 200, 3);
         let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(screen);
-        runtime.draw_scene(screen, &mut buffer, |ui, _| {
-            Grid::new(ID, &columns).draw(ui, screen, &GridState::default(), &model);
-        });
+        runtime
+            .draw_scene(screen, &mut buffer, |ui, _| {
+                Grid::new(ID, &columns).draw(ui, screen, &GridState::default(), &model);
+            })
+            .commit_presented();
         let mut state = GridState::default();
         state.set_cursor(
             0,
@@ -3662,9 +3687,11 @@ mod tests {
         let model = Model::two();
         let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(screen);
-        runtime.draw_scene(screen, &mut buffer, |ui, _| {
-            Grid::new(ID, &columns).draw(ui, area, &GridState::default(), &model);
-        });
+        runtime
+            .draw_scene(screen, &mut buffer, |ui, _| {
+                Grid::new(ID, &columns).draw(ui, area, &GridState::default(), &model);
+            })
+            .commit_presented();
 
         for y in 0..screen.height {
             for x in 0..screen.width {
@@ -3707,8 +3734,8 @@ mod tests {
         let app = AreaGridApp { state, model, area };
         let mut runtime = Runtime::new(app, Theme::junie());
         let mut buffer = Buffer::empty(screen);
-        runtime.draw_buffer(screen, &mut buffer);
-        runtime.draw_buffer(screen, &mut buffer);
+        runtime.draw_buffer(screen, &mut buffer).commit_presented();
+        runtime.draw_buffer(screen, &mut buffer).commit_presented();
         for y in 0..screen.height {
             for x in 0..screen.width {
                 if !area.contains(Position::new(x, y)) {
@@ -3734,7 +3761,11 @@ mod tests {
             .unwrap_or(Rect::ZERO);
         assert_eq!(header, Rect::new(7, 5, 2, 1));
 
-        let _ = runtime.handle(mouse(MouseKind::Down, cell.right() - 1, cell.y));
+        let _ = runtime.initialize();
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Down, cell.right() - 1, cell.y),
+        );
         assert_eq!(
             runtime.app().state.cursor(),
             Some((ItemKey::num(10), ColumnKey::num(1)))
@@ -3766,14 +3797,18 @@ mod tests {
 
         let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, _| {
-            grid.draw(ui, area, &state, &model);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, _| {
+                grid.draw(ui, area, &state, &model);
+            })
+            .commit_presented();
         let mut label = None;
-        runtime.draw_scene(area, &mut buffer, |ui, _| {
-            grid.draw(ui, area, &state, &model);
-            label = grid.cols_label(ui, &state, &model);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, _| {
+                grid.draw(ui, area, &state, &model);
+                label = grid.cols_label(ui, &state, &model);
+            })
+            .commit_presented();
         assert_eq!(label.as_deref(), Some("cols 1–1 of 2"));
         assert!(
             runtime
@@ -3841,11 +3876,13 @@ mod tests {
                     Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
                 let mut buffer = Buffer::empty(screen);
                 let before_measure = model.cell_calls.get();
-                runtime.draw_scene(screen, &mut buffer, |ui, _| {
-                    let _ = grid.measure(ui, Constraints::loose(width, height));
-                    assert_eq!(model.cell_calls.get(), before_measure);
-                    grid.draw(ui, area, &GridState::default(), &model);
-                });
+                runtime
+                    .draw_scene(screen, &mut buffer, |ui, _| {
+                        let _ = grid.measure(ui, Constraints::loose(width, height));
+                        assert_eq!(model.cell_calls.get(), before_measure);
+                        grid.draw(ui, area, &GridState::default(), &model);
+                    })
+                    .commit_presented();
                 for y in 0..screen.height {
                     for x in 0..screen.width {
                         if !area.contains(Position::new(x, y)) {
@@ -3917,8 +3954,8 @@ mod tests {
         let rect = rt.area_of_part(ID, part).unwrap_or(Rect::ZERO);
         assert!(!rect.is_empty());
         let x = rect.x.saturating_add(rect.width / 2);
-        let _ = rt.handle(mouse(MouseKind::Down, x, rect.y));
-        let _ = rt.handle(mouse(MouseKind::Up, x, rect.y));
+        let _ = crate::runtime::stub::deliver(&mut rt, mouse(MouseKind::Down, x, rect.y));
+        let _ = crate::runtime::stub::deliver(&mut rt, mouse(MouseKind::Up, x, rect.y));
         assert_eq!(
             rt.app().actions,
             [GridAction::Sort(ColumnKey::num(1), SortDir::Asc)]
@@ -3932,8 +3969,8 @@ mod tests {
         descending.app_mut().state.sort = Some((ColumnKey::num(1), SortDir::Asc));
         let rect = descending.area_of_part(ID, part).unwrap_or(Rect::ZERO);
         let x = rect.x.saturating_add(rect.width / 2);
-        let _ = descending.handle(mouse(MouseKind::Down, x, rect.y));
-        let _ = descending.handle(mouse(MouseKind::Up, x, rect.y));
+        let _ = crate::runtime::stub::deliver(&mut descending, mouse(MouseKind::Down, x, rect.y));
+        let _ = crate::runtime::stub::deliver(&mut descending, mouse(MouseKind::Up, x, rect.y));
         assert_eq!(
             descending.app().actions,
             [GridAction::Sort(ColumnKey::num(1), SortDir::Desc)]
@@ -3943,19 +3980,19 @@ mod tests {
     #[test]
     fn edit_intent_inline_cycle_external_refuse() {
         let (mut inline, _) = runtime(Model::two(), true);
-        let _ = inline.handle(key(KeyCode::Enter));
+        let _ = crate::runtime::stub::deliver(&mut inline, key(KeyCode::Enter));
         assert!(inline.app().state.is_editing());
 
         let mut cycle_model = Model::two();
         cycle_model.mode = Mode::Cycle;
         let (mut cycle, _) = runtime(cycle_model, true);
-        let _ = cycle.handle(key(KeyCode::Enter));
+        let _ = crate::runtime::stub::deliver(&mut cycle, key(KeyCode::Enter));
         assert_eq!(cycle.app().model.cycles, 1);
 
         let mut external_model = Model::two();
         external_model.mode = Mode::External;
         let (mut external, _) = runtime(external_model, true);
-        let _ = external.handle(key(KeyCode::Enter));
+        let _ = crate::runtime::stub::deliver(&mut external, key(KeyCode::Enter));
         assert_eq!(
             external.app().actions,
             [GridAction::EditRequested(
@@ -3967,8 +4004,10 @@ mod tests {
         let mut refuse_model = Model::two();
         refuse_model.mode = Mode::Refuse;
         let (mut refuse, mut refuse_buffer) = runtime(refuse_model, true);
-        let _ = refuse.handle(key(KeyCode::Enter));
-        refuse.draw_buffer(AREA, &mut refuse_buffer);
+        let _ = crate::runtime::stub::deliver(&mut refuse, key(KeyCode::Enter));
+        refuse
+            .draw_buffer(AREA, &mut refuse_buffer)
+            .commit_presented();
         assert_eq!(
             refuse.app().state.edit_error().map(ToString::to_string),
             Some("locked".to_owned())
@@ -3985,25 +4024,31 @@ mod tests {
     #[test]
     fn update_editable_commits_through_the_editor() {
         let (mut runtime, _) = runtime(Model::two(), true);
-        let _ = runtime.handle(key(KeyCode::Enter));
-        runtime.draw_buffer(AREA, &mut Buffer::empty(AREA));
-        let _ = runtime.handle(key(KeyCode::Char('x')));
-        let _ = runtime.handle(key(KeyCode::Enter));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
+        runtime
+            .draw_buffer(AREA, &mut Buffer::empty(AREA))
+            .commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Char('x')));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
         assert_eq!(runtime.app().model.commits.len(), 1);
         assert!(!runtime.app().state.is_editing());
 
         runtime.app_mut().model.fail_commit = true;
-        runtime.draw_buffer(AREA, &mut Buffer::empty(AREA));
-        let _ = runtime.handle(key(KeyCode::Enter));
-        runtime.draw_buffer(AREA, &mut Buffer::empty(AREA));
-        let _ = runtime.handle(key(KeyCode::Enter));
+        runtime
+            .draw_buffer(AREA, &mut Buffer::empty(AREA))
+            .commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
+        runtime
+            .draw_buffer(AREA, &mut Buffer::empty(AREA))
+            .commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
         assert!(runtime.app().state.is_editing());
         assert_eq!(
             runtime.app().state.edit_error().and_then(|e| e.code),
             Some("grid-test")
         );
 
-        let _ = runtime.handle(key(KeyCode::Esc));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Esc));
         assert!(!runtime.app().state.is_editing());
         assert!(runtime.app().state.edit_error().is_none());
     }
@@ -4011,13 +4056,17 @@ mod tests {
     #[test]
     fn click_inside_an_active_inline_edit_goes_to_the_editor() {
         let (mut runtime, _) = runtime(Model::two(), true);
-        let _ = runtime.handle(key(KeyCode::Enter));
-        runtime.draw_buffer(AREA, &mut Buffer::empty(AREA));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
+        runtime
+            .draw_buffer(AREA, &mut Buffer::empty(AREA))
+            .commit_presented();
         let editor = runtime.area_of(ID.part(Part::TEXT)).unwrap_or(Rect::ZERO);
         assert!(!editor.is_empty());
         let before = runtime.app().actions.len();
-        let _ = runtime.handle(mouse(MouseKind::Down, editor.x, editor.y));
-        let _ = runtime.handle(mouse(MouseKind::Up, editor.x, editor.y));
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, editor.x, editor.y));
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, editor.x, editor.y));
         assert_eq!(runtime.app().actions.len(), before);
         assert!(runtime.app().state.is_editing());
     }
@@ -4046,8 +4095,14 @@ mod tests {
             .area_of_part(ID, PartRef::item(Part::ACTIONS, ItemKey::num(10)))
             .unwrap_or(Rect::ZERO);
         assert!(!affordance.is_empty());
-        let _ = runtime.handle(mouse(MouseKind::Down, affordance.x, affordance.y));
-        let _ = runtime.handle(mouse(MouseKind::Up, affordance.x, affordance.y));
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Down, affordance.x, affordance.y),
+        );
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Up, affordance.x, affordance.y),
+        );
         assert_eq!(
             runtime.app().actions,
             [GridAction::CellAction(
@@ -4077,9 +4132,11 @@ mod tests {
             .slot(Part::ACTIONS, &replace);
         let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_scene(AREA, &mut buffer, |ui, _| {
-            grid.draw(ui, AREA, &GridState::default(), &model);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, _| {
+                grid.draw(ui, AREA, &GridState::default(), &model);
+            })
+            .commit_presented();
 
         let hashes = buffer
             .content()
@@ -4111,15 +4168,17 @@ mod tests {
             .extend((0..20).map(|i| (ItemKey::num(100 + i), ["overflow", "row"])));
         let mut runtime = Runtime::new(crate::runtime::stub::Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_scene(AREA, &mut buffer, |ui, _| {
-            ui.reference(
-                Some(crate::ReferenceTarget::new(
-                    ID,
-                    crate::ReferenceState::FOCUSED,
-                )),
-                |ui| grid.draw(ui, AREA, &GridState::default(), &model),
-            );
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, _| {
+                ui.reference(
+                    Some(crate::ReferenceTarget::new(
+                        ID,
+                        crate::ReferenceState::FOCUSED,
+                    )),
+                    |ui| grid.draw(ui, AREA, &GridState::default(), &model),
+                );
+            })
+            .commit_presented();
         assert!(runtime.area_of(ID).is_none());
         assert!(runtime.area_of_part(ID, PartRef::of(Part::TRACK)).is_none());
     }
@@ -4136,11 +4195,13 @@ mod tests {
             crate::ReferenceState::FOCUSED | crate::ReferenceState::PRESSED,
         )
         .part(PartRef::item(Part::ROW, ItemKey::num(10)));
-        runtime.draw_scene(AREA, &mut buffer, |ui, _| {
-            ui.reference(Some(target), |ui| {
-                grid.draw(ui, AREA, &GridState::default(), &model);
-            });
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, _| {
+                ui.reference(Some(target), |ui| {
+                    grid.draw(ui, AREA, &GridState::default(), &model);
+                });
+            })
+            .commit_presented();
         assert_eq!(
             buffer
                 .cell(Position::new(1, 1))
@@ -4150,9 +4211,11 @@ mod tests {
 
         let mut selected = GridState::default();
         selected.core.checked_mut().insert(ItemKey::num(10));
-        runtime.draw_scene(AREA, &mut buffer, |ui, _| {
-            ui.reference(Some(target), |ui| grid.draw(ui, AREA, &selected, &model));
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, _| {
+                ui.reference(Some(target), |ui| grid.draw(ui, AREA, &selected, &model));
+            })
+            .commit_presented();
         assert_eq!(
             buffer
                 .cell(Position::new(1, 1))

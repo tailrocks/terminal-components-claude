@@ -1132,7 +1132,7 @@ mod tests {
         let screen = Rect::new(0, 0, 20, 2);
         let mut runtime = Runtime::new(SlotApp(part), Theme::junie());
         let mut buffer = Buffer::empty(screen);
-        runtime.draw_buffer(screen, &mut buffer);
+        runtime.draw_buffer(screen, &mut buffer).commit_presented();
         buffer
     }
 
@@ -1193,18 +1193,18 @@ mod tests {
         let mut runtime = Runtime::new(AddApp::default(), Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_buffer(AREA, &mut buffer);
-        runtime.draw_buffer(AREA, &mut buffer);
-        let _ = runtime.handle(key(KeyCode::End));
-        runtime.draw_buffer(AREA, &mut buffer);
-        let _ = runtime.handle(key(KeyCode::Enter));
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::End));
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::Enter));
         assert_eq!(runtime.app().actions, [ChipBarAction::AddRequested]);
 
         let mut runtime = Runtime::new(AddApp::default(), Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_buffer(AREA, &mut buffer);
-        runtime.draw_buffer(AREA, &mut buffer);
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
         let add = runtime
             .area_of_part(BAR, PartRef::of(Part::NEW))
             .unwrap_or(Rect::ZERO);
@@ -1213,9 +1213,9 @@ mod tests {
             "the configured add affordance is registered"
         );
         let x = add.x.saturating_add(add.width / 2);
-        let _ = runtime.handle(mouse(MouseKind::Down, x, add.y));
-        runtime.draw_buffer(AREA, &mut buffer);
-        let _ = runtime.handle(mouse(MouseKind::Up, x, add.y));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, x, add.y));
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, x, add.y));
         assert_eq!(runtime.app().actions, [ChipBarAction::AddRequested]);
     }
 
@@ -1225,7 +1225,7 @@ mod tests {
         let mut runtime = Runtime::new(AddApp::default(), Theme::junie());
         let _ = runtime.initialize();
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_buffer(AREA, &mut buffer);
+        runtime.draw_buffer(AREA, &mut buffer).commit_presented();
 
         assert_ne!(PartRef::item(Part::LABEL, item), PartRef::of(Part::NEW));
         assert!(
@@ -1287,14 +1287,16 @@ mod tests {
         let items = ["a"];
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(Rect::new(0, 0, 20, 1));
-        runtime.draw_scene(Rect::new(0, 0, 20, 1), &mut buffer, |ui, area| {
-            ChipBar::new(BAR).row(row).patch_part(&patches).draw(
-                ui,
-                area,
-                &ChipBarState::default(),
-                &items,
-            );
-        });
+        runtime
+            .draw_scene(Rect::new(0, 0, 20, 1), &mut buffer, |ui, area| {
+                ChipBar::new(BAR).row(row).patch_part(&patches).draw(
+                    ui,
+                    area,
+                    &ChipBarState::default(),
+                    &items,
+                );
+            })
+            .commit_presented();
         assert!(
             buffer
                 .cell(Position::new(1, 0))
@@ -1334,9 +1336,11 @@ mod tests {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(AREA);
         let unchecked = ChipBarState::default();
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            ChipBar::new(BAR).draw(ui, area, &unchecked, &items);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                ChipBar::new(BAR).draw(ui, area, &unchecked, &items);
+            })
+            .commit_presented();
         assert_eq!(
             buffer.cell(Position::new(0, 0)).map(Cell::symbol),
             Some(" ")
@@ -1344,9 +1348,11 @@ mod tests {
 
         let mut checked = ChipBarState::default();
         checked.checked_mut().insert(ItemKey::index(0));
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            ChipBar::new(BAR).draw(ui, area, &checked, &items);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                ChipBar::new(BAR).draw(ui, area, &checked, &items);
+            })
+            .commit_presented();
         assert_ne!(
             buffer.cell(Position::new(0, 0)).map(Cell::symbol),
             Some(" "),
@@ -1389,20 +1395,24 @@ mod tests {
         )];
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            ChipBar::new(BAR)
-                .patch_part(&set)
-                .draw(ui, area, &state, &items);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                ChipBar::new(BAR)
+                    .patch_part(&set)
+                    .draw(ui, area, &state, &items);
+            })
+            .commit_presented();
         assert_eq!(
             buffer.cell(Position::new(0, 0)).map(Cell::symbol),
             Some(Theme::junie().design.glyphs.get(GlyphRole::WarningMark))
         );
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            ChipBar::new(BAR)
-                .patch_part(&clear)
-                .draw(ui, area, &state, &items);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                ChipBar::new(BAR)
+                    .patch_part(&clear)
+                    .draw(ui, area, &state, &items);
+            })
+            .commit_presented();
         assert_eq!(
             buffer.cell(Position::new(0, 0)).map(Cell::symbol),
             Some(" ")
@@ -1420,9 +1430,11 @@ mod tests {
             let checked = theme.design.glyphs.get(GlyphRole::Checked);
             let mut runtime = Runtime::new(Stub::default(), theme);
             let mut buffer = Buffer::empty(AREA);
-            runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-                ChipBar::new(BAR).draw(ui, area, &state, &items);
-            });
+            runtime
+                .draw_scene(AREA, &mut buffer, |ui, area| {
+                    ChipBar::new(BAR).draw(ui, area, &state, &items);
+                })
+                .commit_presented();
             assert_eq!(
                 buffer.cell(Position::new(0, 0)).map(Cell::symbol),
                 Some(checked)
@@ -1484,9 +1496,11 @@ mod tests {
 
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(STRIP);
-        runtime.draw_scene(STRIP, &mut buffer, |ui, area| {
-            bar.draw(ui, area, &st, &items);
-        });
+        runtime
+            .draw_scene(STRIP, &mut buffer, |ui, area| {
+                bar.draw(ui, area, &st, &items);
+            })
+            .commit_presented();
         let before = runtime.area_of_part(BAR, PartRef::item(Part::LABEL, head));
         assert_eq!(
             before.map(|r| r.x),
@@ -1499,9 +1513,11 @@ mod tests {
         assert_eq!(st.first(), Some(head), "the window head keeps its key");
         assert_eq!(st.first_index, 3, "and follows it to its new position");
         let mut buffer = Buffer::empty(STRIP);
-        runtime.draw_scene(STRIP, &mut buffer, |ui, area| {
-            bar.draw(ui, area, &st, &reversed);
-        });
+        runtime
+            .draw_scene(STRIP, &mut buffer, |ui, area| {
+                bar.draw(ui, area, &st, &reversed);
+            })
+            .commit_presented();
         assert_eq!(
             runtime.area_of_part(BAR, PartRef::item(Part::LABEL, head)),
             before,
@@ -1516,16 +1532,18 @@ mod tests {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
         let mut buffer = Buffer::empty(AREA);
         let state = ChipBarState::default();
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            let target = crate::ReferenceTarget::new(
-                BAR,
-                crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
-            )
-            .part(PartRef::item(Part::LABEL, ItemKey::index(0)));
-            ui.reference(Some(target), |ui| {
-                ChipBar::new(BAR).draw(ui, area, &state, &items);
-            });
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                let target = crate::ReferenceTarget::new(
+                    BAR,
+                    crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
+                )
+                .part(PartRef::item(Part::LABEL, ItemKey::index(0)));
+                ui.reference(Some(target), |ui| {
+                    ChipBar::new(BAR).draw(ui, area, &state, &items);
+                });
+            })
+            .commit_presented();
 
         assert_eq!(row_text(&buffer, AREA.width), "[Full width]");
     }
@@ -1536,18 +1554,23 @@ mod tests {
         let key = ItemKey::index(0);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            let target = crate::ReferenceTarget::new(
-                BAR,
-                crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
-            )
-            .part(PartRef::item(Part::LABEL, key));
-            ui.reference(Some(target), |ui| {
-                ChipBar::new(BAR)
-                    .closable(true)
-                    .draw(ui, area, &ChipBarState::default(), &items);
-            });
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                let target = crate::ReferenceTarget::new(
+                    BAR,
+                    crate::ReferenceState::PRESSED | crate::ReferenceState::FOCUSED,
+                )
+                .part(PartRef::item(Part::LABEL, key));
+                ui.reference(Some(target), |ui| {
+                    ChipBar::new(BAR).closable(true).draw(
+                        ui,
+                        area,
+                        &ChipBarState::default(),
+                        &items,
+                    );
+                });
+            })
+            .commit_presented();
 
         assert_eq!(
             buffer.cell(Position::new(4, 0)).map(Cell::symbol),
