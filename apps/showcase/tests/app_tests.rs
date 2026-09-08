@@ -462,6 +462,16 @@ fn mouse_click_activates_and_keyboard_enter_activates() {
 }
 
 #[test]
+fn escape_returns_focus_to_navigation_without_changing_page() {
+    let mut h = harness(PageId::Pickers);
+    press(&mut h, KeyCode::Tab);
+    press(&mut h, KeyCode::Esc);
+
+    assert_eq!(h.app().page(), PageId::Pickers);
+    assert_eq!(h.focus(), Some(APP_NAV));
+}
+
+#[test]
 fn hover_and_focus_render_differently() {
     let mut h = harness(PageId::Buttons);
     let (x, y) = require(h.find("Run task"), "run button is visible");

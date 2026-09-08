@@ -1250,14 +1250,11 @@ impl TuiApp for App {
         }
     }
 
-    fn on_esc(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
-        if self.page == PageId::Overview {
-            self.quit = true;
-            Response::changed()
-        } else {
-            self.goto(PageId::Overview);
-            Response::changed()
-        }
+    fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        // Historical top-level Esc only returns focus to the shell navigation;
+        // it never changes the selected page or exits the application.
+        cx.focus(NAV);
+        Response::changed()
     }
 }
 
