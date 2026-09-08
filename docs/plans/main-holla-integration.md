@@ -128,15 +128,25 @@ showcase-fidelity, historical-regeneration and test-inventory.
    matrix, all boundary/doc/perf/parity/capture gates, independent images/live
    journeys, coherent normative docs, PR and exact merged-source proof.
 
-Current application repros: Holla F10 opens then prematurely dismisses its menu
-while runtime focus checks the previous scope; shared reparenting repair assigned.
-Jackin manager uses positional List identity despite durable domain keys: swapping
-workspace rows changes selected Workspace1 to Workspace2. Root actual-runtime red
-test retained on codex/jackin-manager-row-identity; repair92b91e4 awaits independent
-review, with selected-workspace Right semantics a separate source-backed followup.
-TablePro replacement guard4586555 is rejected: a later payload under the same tab
-key can be discarded by an older confirmation. Payload-generation binding repair
-is assigned; close/identity acceptance does not authorize this replacement slice.
+Current integration checkpoint: runtime reparenting, scoped activation origin,
+active menu bindings and conditional typing caret are integrated through2f13925.
+Root48 MSRV activation/layer/typing/publication/Scene tests pass. Jackin stable
+manager identity is integrated aaed062 (33 MSRV tests); Right rendering remains
+held by hidden-child and historical-overpaint regressions. Holla production perf
+target eaffc19 passed all13 workloads; timing includes required frame publication.
+TablePro replacement/generation chain is integrated through734439e: all four
+destructive intents bind payload generation plus immutable Workbench ownership.
+Independent original negatives and397 evidence hashes verified; root58 MSRV tests
+pass. This supersedes prior same-key replacement-close acceptance. Six live
+terminal examples now declare crossterm requirements in0bf4aa9; backend-free
+examples remain enabled. Full acceptance remains incomplete.
+
+Current review findings: Grid fetch sentinel ShiftUp range anchors stale real-row
+state; owner repair assigned, fetch slice held. Meter default Canvas source oracle
+is verified but quantized-surface lift aliases still need explicit disposition.
+Test inventory Cargo execution context and example discovery repairs await root
+review; full mapping retains failed/unresolved identities. Native capture
+confinement repair remains in progress, Linux and production capture unaccepted.
 
 Known exceptions are scoped evidence, not acceptance waivers: reference trimmed
 acknowledgement is tightened to exact visible text; performance operation timing

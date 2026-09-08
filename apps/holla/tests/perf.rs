@@ -1,5 +1,6 @@
-//! Actual Holla production-view and reducer measurements.
+//! Actual Holla production-view and input-lifecycle measurements.
 //! Each sample reports totals for a complete fixed-size workload batch.
+//! Input pairs include the runtime's required pre-input frame publication.
 //! Wall time is informational; allocation limits require independent review.
 use holla_app::{App, Motion, Scenario};
 use junie_tui::{Id, KeyCode, Theme};
