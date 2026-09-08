@@ -1,0 +1,93 @@
+   Compiling tuisnap v0.2.0 (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-sources/tui-snap-repaired)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.37s
+     Running unittests src/lib.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/tuisnap-df9c3a2b7ad1e714)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cells.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/cells-82b3f8a56de940f9)
+
+running 9 tests
+test indexed_and_rgb_colors_resolve ... ok
+test dimension_mismatch_is_an_error_not_a_diff ... ok
+test cursor_only_change_detected ... ok
+test corrupt_imports_rejected_explicitly ... ok
+test provenance_excluded_from_digest ... ok
+test style_only_change_detected ... ok
+test text_change_detected ... ok
+test json_round_trip_preserves_everything ... ok
+test identical_frames_match_and_digest_is_stable ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/pty.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/pty-c47fe3b65b9f1cff)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/render.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/render-6d6eaa224ff987b3)
+
+running 13 tests
+test clipping_and_wrapping_match_terminal ... ok
+test font_hash_pinned_and_documented ... ok
+test svg_and_ansi_outputs_carry_content ... ok
+test geometry_pin_fails_loudly ... ok
+test cjk_keeps_two_cell_geometry ... ok
+test emoji_tofu_keeps_two_cell_advance ... ok
+test box_braille_icons_render_ink ... ok
+test glyph_change_changes_pixels ... ok
+test dark_vs_light_theme_changes_pixels ... ok
+test deterministic_reruns_are_byte_identical ... ok
+test themes_change_pixels_and_sizes_change_dims ... ok
+test cursor_styles_render ... ok
+test every_modifier_changes_pixels ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.42s
+
+     Running tests/snapshot.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/snapshot-0a910065b5be2263)
+
+running 12 tests
+test corrupt_approval_is_explicit ... ok
+test no_env_var_can_auto_accept ... ok
+test missing_approval_fails_closed_but_writes_actuals ... ok
+test report_embeds_images_and_frame_json ... ok
+test script_embed_round_trips_hostile_symbols ... ok
+test dimension_mismatch_status ... ok
+test corrupt_approved_png_is_an_explicit_error ... ok
+test accept_then_match_round_trip ... ok
+test relaxed_threshold_still_gates_dimensions ... ok
+test changed_snapshot_reports_cells_and_diff_image ... ok
+test concurrent_different_names_are_safe ... ok
+test same_name_concurrent_checks_are_safe ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.20s
+
+     Running tests/tool_qualification.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/tool_qualification-5745a41d7daf9733)
+
+running 4 tests
+test ratatui_preserves_combined_flags_and_wide_styles ... ok
+test schema_two_is_not_silently_reinterpreted ... ok
+test dim_blending_uses_full_precision_before_narrowing ... ok
+test hidden_and_blink_are_canonical_and_hidden_does_not_paint ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.68s
+
+     Running tests/visual.rs (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/target/debug/deps/visual-75b46905cc1aa2b4)
+
+running 1 test
+test fixture_visual_gates has been running for over 60 seconds
+test fixture_visual_gates ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 135.42s
+
+   Doc-tests tuisnap
+
+running 1 test
+test src/ratatui.rs - ratatui (line 7) - compile ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+mbx[cache]: 0 hits, 0 misses, 1 bypassed; 0 B downloaded, 0 B uploaded, 0 B stored locally
+mbx[savings]: has quietly disposed of 112.5 GiB of build leftovers. nobody saw anything.
