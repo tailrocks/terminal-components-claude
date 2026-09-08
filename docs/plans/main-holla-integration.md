@@ -334,3 +334,19 @@ exposing secrets, preserving reference Enter-only-arms behavior. List's
 full-row hook remains under final nested-clipping review; Scene remains blocked
 on model-bound cache ownership. Main integration remains gated on all open
 product, architecture, evidence and verification obligations.
+
+Integrated runtime measurement correction `5d84883` retains historical measured
+operations while reporting complete presentation lifecycles separately. Root
+strict release drain and dispatch pass unchanged limits (522 ns and 101,035 ns;
+zero allocations). Full lifecycle dispatch is 200,929 ns at 100k rows versus
+203,391 ns at 100 rows, ratio 0.99. Full strict suite still has focus traversal
+and style-resolution failures in worker evidence; these are not waived.
+
+Jackin persistent shell lifecycle `e437148` passes root 27 app journeys and 11
+preview tests. Existing visual namespace mismatch remains; 36 candidate/base
+frame digests are identical, not newly blessed. Visible header activation on
+Cockpit/Editor is a separate unverified product obligation. Shared exact current
+acknowledgement `a1c89fd` passes root Rust 1.88 two unit and four external tests;
+Holla's original five gate regressions also pass after consuming the shared fix.
+Editor Enter only commits/arms, while Confirm activation executes; no secret
+draft accessor was introduced.
