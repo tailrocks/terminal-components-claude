@@ -308,6 +308,14 @@ Full application visual fidelity remains unapproved. Tree lineage76e561f and
 scratch reuse1abcb47 await independent/root review; removed-opener restoration
 is assigned a distinct publication-validated path, not generic unknown-ID focus.
 
+Holla activity fix4617021 restores six pinned historical journeys and accepts
+repeated strip activation classified by the shared runtime as DoubleClick. Root
+reviewed the source assertions; 143 MSRV library tests pass. Coordinate overflow
+is explicitly asserted in the restored tests; scoped all-target/all-feature MSRV
+Clippy and stable formatting pass after the lint repair. The short-stream retained
+log test does not establish nonzero scroll-offset persistence or visual parity.
+All integration remains on PR #1 branch codex/main-holla-integration.
+
 ## Historical checkpoints
 
 The previous 352-line execution log is preserved byte-for-byte in

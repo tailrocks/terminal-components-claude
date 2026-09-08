@@ -371,7 +371,8 @@ fn digit_switches_to_activity_page() {
     let _ = h.key(KeyCode::Backspace);
     // click the strip tab for "seed db"
     let (x, _) = find(&h, "4 seed db");
-    let _ = h.click(x + 1, 1);
+    assert!(x < u16::MAX, "activity label coordinate fits");
+    let _ = h.click(x.saturating_add(1), 1);
     assert!(h.app().route == Route::Activity, "{}", h.text());
     let t = h.text();
     assert!(t.contains("Activity · seed db"), "{t}");
@@ -392,7 +393,8 @@ fn switching_away_and_back_preserves_output_and_scope() {
     let mut h = fixture(Scenario::ActivitiesMulti, Motion::Paused, 4_000, 120, 40);
     // open activity 1 via the strip, note the page
     let (x, _) = find(&h, "1 dev server");
-    let _ = h.click(x + 1, 1);
+    assert!(x < u16::MAX, "activity label coordinate fits");
+    let _ = h.click(x.saturating_add(1), 1);
     assert!(h.app().route == Route::Activity);
     let page = h.text();
     assert!(page.contains("Scope"), "{page}");
@@ -405,7 +407,8 @@ fn switching_away_and_back_preserves_output_and_scope() {
     assert!(h.app().route == Route::Home);
     // back again: same output, same scope, nothing lost
     let (x, _) = find(&h, "1 dev server");
-    let _ = h.click(x + 1, 1);
+    assert!(x < u16::MAX, "activity label coordinate fits");
+    let _ = h.click(x.saturating_add(1), 1);
     let back = h.text();
     assert!(back.contains("~/work/monorepo/apps/frontend"), "{back}");
     assert!(back.contains("vite v5.4 ready in 412 ms"), "{back}");
@@ -422,7 +425,8 @@ fn merged_logs_scroll_retained_per_activity() {
     let _ = h.key(KeyCode::Up);
     let _ = h.key(KeyCode::Char('0'));
     let (x, _) = find(&h, "container logs");
-    let _ = h.click(x + 1, 1);
+    assert!(x < u16::MAX, "activity label coordinate fits");
+    let _ = h.click(x.saturating_add(1), 1);
     assert!(h.app().route == Route::Activity, "{}", h.text());
     assert!(h.text().contains("container logs"), "{}", h.text());
 }
