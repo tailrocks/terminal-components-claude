@@ -2281,3 +2281,25 @@ world it can no longer be compared against byte-for-byte. Reconciliation
 (recovering historical HTML/PNG artifacts or re-establishing a comparably
 strict historical gate) remains open work for a successor effort, not
 something this consolidation may fake with a waiver.
+
+## Post-cleanup verification (2026-09-09)
+
+The disposition ledger (`docs/audit/consolidation/disposition-ledger.md`) was
+committed (`569167ee`), the branch was pushed to
+`origin/codex/main-holla-integration`, and PR #1's description was updated
+with the consolidation outcome. Cleanup then executed with zero failures:
+
+- 231 scratch worktrees removed (`git worktree remove --force`), evidence
+  snapshot taken beforehand (`/tmp/cleanup-log-083908.txt`); `probe-main`
+  included (SUPERSEDED, evidence preserved above).
+- 111 dispositioned local branches deleted; the only remaining local
+  branches are `main` (protected, `af1e752e`, in sync with `origin/main`,
+  never modified by the consolidation) and `codex/main-holla-integration`
+  (the integration branch, `569167ee`).
+- `git worktree prune --dry-run` reports nothing; the integration checkout
+  is clean.
+
+The GOAL2 consolidation is complete up to the standing open items: the
+inherited red `parity_contract` (honest red, refusal paths documented
+above) and the successor work rejected with root causes in the ledger
+(manager rewrite, item-row part-patch threading, showcase WIP fixtures).
