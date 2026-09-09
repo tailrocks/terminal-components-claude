@@ -2210,7 +2210,8 @@ gate that remains red.
 
 - MSRV compile check (`cargo check --locked --workspace --all-targets
   --all-features`): **pass**. By contrast, `main` itself was red at this exact
-  step: 40 consecutive CI failures (checked 2026-09-09), 4 dead-code errors in
+  step: every recorded CI run fails there — 316 of 316 runs at the time of
+  writing (checked 2026-09-09), 4 dead-code errors in
   `apps/showcase` (`AuthorBadge::draw` never used among them). The union keeps
   the `overview.rs` page that calls `author.draw`, so the consolidation repairs
   main's red build.
@@ -2230,14 +2231,17 @@ gate that remains red.
 
 Triage of all 499 recipes against the frozen `baseline/before` captures with a
 tolerant (non-fail-fast) driver: **60 byte-exact matches, 379 mismatches, 60
-run failures**. The first mismatch was root-caused, not guessed:
+run failures** (triage performed at da38e52e; the two later commits,
+0a1688ee and b9bfd758, touch only lints, a test pin and docs, so the
+behavioral result carries to HEAD). The first failure of the fail-fast
+replay — which stopped at recipe 244 of 499 — was root-caused, not guessed:
 `tablepro_grid_header_hover_120x40` never reaches its `order_number` anchor
-because startup focus diverges — the historical binary focuses the explorer
-tree (Down×5 + Enter opens orders) while the current shell focuses the query
-editor. The identical divergence reproduces with `main`'s own pre-merge
-binary, so it is inherited from both parents and not introduced by the
-consolidation. `main`'s CI never even reaches this step (red earlier at the
-MSRV compile check).
+(a run failure, not a byte mismatch) because startup focus diverges — the
+historical binary focuses the explorer tree (Down×5 + Enter opens orders)
+while the current shell focuses the query editor. The identical divergence
+reproduces with `main`'s own pre-merge binary (af1e752e), so it is inherited
+from both parents and not introduced by the consolidation. `main`'s CI never
+even reaches this step (red earlier at the MSRV compile check).
 
 Repair paths considered and refused:
 
@@ -2245,8 +2249,11 @@ Repair paths considered and refused:
    evidence of the pre-refactor binaries; immutability is the contract that
    makes the gate mean anything.
 2. Declare 439 recipes reviewed exceptions — refused. A gate with 88% of its
-   rows excepted is vacuous, and `parity --approve` exists for genuine,
-   narrow, reviewed exceptions, not wholesale waiver.
+   rows excepted is vacuous. In any case the approve path cannot express it:
+   `parity --approve` (and `tools/parity_approve.py`) promotes replay evidence
+   only after exact artifact equality, so it is a promotion mechanism for
+   matching replays, not an exception mechanism — there is no per-recipe
+   waiver lane to widen.
 3. Change application behavior to match the captures — refused. The merged
    line's rendering is the reviewed semantic-paint pipeline whose 594 digest
    pairs are re-blessed under `COMPONENT_ARCHITECTURE.md` §20.10 item 39 and
@@ -2255,6 +2262,16 @@ Repair paths considered and refused:
    required to preserve.
 4. Delete or skip the check — refused. A valid test's failure is not
    permission to remove it.
+5. Re-point the gate's oracle at a new capture generation — considered and
+   refused. `classify_baseline` freezes only the documented trees, so a new
+   `baseline/generations/<gen>/` tree and a re-pointed `HISTORICAL_MANIFEST`
+   would be mechanically possible; `main`'s pre-merge binary even survives at
+   `/private/tmp/probe-main` for fresh captures. Refused because re-pointing
+   `HISTORICAL_MANIFEST` redefines the required gate's oracle — weakening by
+   redefinition, the same refusal as (4) in different clothes — and a parallel
+   additional oracle would not make `parity_contract` pass, only coexist with
+   its redness. Reconciling with the genuine historical evidence stays the
+   honest successor path.
 
 Outcome: `parity_contract` stays registered and stays red, honestly. The
 authoritative behavioral evidence for the merged pipeline is the frozen
