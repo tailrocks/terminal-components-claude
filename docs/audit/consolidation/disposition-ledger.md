@@ -22,6 +22,16 @@ Scope: 233 git worktrees (231 scratch checkouts + the protected main checkout + 
 | SUPERSEDED | 1 |
 | **Total** | **233** |
 
+## Per-commit drift classification
+
+Three of the adjudicated non-patch-equivalent commits were classified DRIFT: their substance exists in the target but in altered form. At commit level they are `REIMPLEMENTED` or `SUPERSEDED`; the worktrees sharing them remain `NO_UNIQUE_CHANGE` above because the drift commits are shared lineage, not per-worktree unique work.
+
+| Commit | Subject | Class | Where the substance lives |
+|---|---|---|---|
+| `37c45f39` | docs(tui): clarify grid draft reader contract | REIMPLEMENTED (cosmetic drift) | `crates/tui/src/components/grid.rs` draft-reader contract, reworded |
+| `58fea3e1` | fix(widgets): warning statuses carry ▲ like errors carry ! | REIMPLEMENTED (analog) | `GlyphRole::WarningMark` (`theme/glyph.rs`, `rowui.rs`) + direct ▲ in holla (`home.rs`, `plan.rs`) |
+| `4a46bcae` | docs(holla): verification walkthrough — automated, per-scenario, matrix | SUPERSEDED | `docs/audit/main-holla/holla-disposition.md` (P6 132-identity analysis) |
+
 ## Special cases (individually adjudicated or adopted)
 
 ### `probe-main`
