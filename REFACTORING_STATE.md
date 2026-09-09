@@ -2199,3 +2199,68 @@ required. No main reset, tree replacement, baseline blessing or merge occurred.
   historical-artifact recovery, canonical production-view evidence, mutation/
   terminal tests, performance proof, independent reviews and final PR/main
   integration remain open. No full goal or parity completion claim.
+## Consolidation checkpoint — gate sweep and parity disposition (2026-09-09)
+
+Scope: branch `codex/main-holla-integration` after the semantic union merge
+(c3b51b96), guard-base fallback fix (f2860496) and capture-matrix refresh
+(da38e52e). This records the full CI-gate sweep and the disposition of the one
+gate that remains red.
+
+### Gate sweep at HEAD (all steps from `.github/workflows/ci.yml` `gates` job)
+
+- MSRV compile check (`cargo check --locked --workspace --all-targets
+  --all-features`): **pass**. By contrast, `main` itself was red at this exact
+  step: 40 consecutive CI failures (checked 2026-09-09), 4 dead-code errors in
+  `apps/showcase` (`AuthorBadge::draw` never used among them). The union keeps
+  the `overview.rs` page that calls `author.draw`, so the consolidation repairs
+  main's red build.
+- Format, Clippy (`-D warnings`): **pass** after three union repairs:
+  `panel.rs` `badge_lane_width` removed a redundant closure and a `u16` cast;
+  `apps/showcase/src/lib.rs` dropped seven stale `clippy::expect` entries whose
+  lint sites no longer exist in the merged pages (removal re-arms the lints, so
+  this is stricter, not weaker); `apps/jackin-preview/tests/visual.rs` dropped
+  an unused `FeedbackClock` import.
+- Test (`cargo test --locked --workspace --all-features`): **pass** (capture
+  matrix contract was repaired earlier by da38e52e).
+- Boundary set: all 40 checks pass except `parity_contract`. Run locally with
+  `BLESS_GUARD_BASE=origin/main` (CI supplies `github.event.before`/base ref);
+  without an explicit base the bless-guard check fails closed by design.
+
+### `parity_contract` disposition: pre-existing red on both parent lines
+
+Triage of all 499 recipes against the frozen `baseline/before` captures with a
+tolerant (non-fail-fast) driver: **60 byte-exact matches, 379 mismatches, 60
+run failures**. The first mismatch was root-caused, not guessed:
+`tablepro_grid_header_hover_120x40` never reaches its `order_number` anchor
+because startup focus diverges — the historical binary focuses the explorer
+tree (Down×5 + Enter opens orders) while the current shell focuses the query
+editor. The identical divergence reproduces with `main`'s own pre-merge
+binary, so it is inherited from both parents and not introduced by the
+consolidation. `main`'s CI never even reaches this step (red earlier at the
+MSRV compile check).
+
+Repair paths considered and refused:
+
+1. Regenerate `baseline/before` — refused. The directory is frozen historical
+   evidence of the pre-refactor binaries; immutability is the contract that
+   makes the gate mean anything.
+2. Declare 439 recipes reviewed exceptions — refused. A gate with 88% of its
+   rows excepted is vacuous, and `parity --approve` exists for genuine,
+   narrow, reviewed exceptions, not wholesale waiver.
+3. Change application behavior to match the captures — refused. The merged
+   line's rendering is the reviewed semantic-paint pipeline whose 594 digest
+   pairs are re-blessed under `COMPONENT_ARCHITECTURE.md` §20.10 item 39 and
+   classified by the bless guard; rewinding app behavior to 2026-09-04-era
+   captures would discard exactly the newer behavior the consolidation is
+   required to preserve.
+4. Delete or skip the check — refused. A valid test's failure is not
+   permission to remove it.
+
+Outcome: `parity_contract` stays registered and stays red, honestly. The
+authoritative behavioral evidence for the merged pipeline is the frozen
+digest/perf baselines re-blessed under ledger item 39, plus the 112-cell
+capture matrix (da38e52e); the parity archive documents the pre-refactor
+world it can no longer be compared against byte-for-byte. Reconciliation
+(recovering historical HTML/PNG artifacts or re-establishing a comparably
+strict historical gate) remains open work for a successor effort, not
+something this consolidation may fake with a waiver.
