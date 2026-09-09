@@ -2062,3 +2062,107 @@ mod tests {
 
 #[cfg(test)]
 mod historical_tests;
+
+#[cfg(test)]
+mod independent_draw_review {
+    //! Draw purity: repeating a full frame must repaint every cell
+    //! identically and leave the model untouched, at every colour level and
+    //! size, for every scenario and top-level route.
+    use super::*;
+
+    struct Borrowed<'a>(&'a App);
+
+    impl junie_tui::App for Borrowed<'_> {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+
+        fn draw(&self, ui: &mut Ui<'_>) {
+            junie_tui::App::draw(self.0, ui);
+        }
+    }
+
+    /// Everything a frame may read; a change here means draw reached the
+    /// model.
+    fn fingerprint(a: &App) -> String {
+        format!(
+            "{:?}{:?}{:?}{:?}{:?}{:?}",
+            (
+                a.world.effect_revision,
+                a.world.now_ms(),
+                &a.world.cwd,
+                &a.world.discovery
+            ),
+            (&a.world.mise, &a.world.git, &a.world.ssh, &a.world.github),
+            (&a.world.docker, &a.world.pg, &a.world.disk, &a.world.debian),
+            (&a.world.memory, &a.world.activities),
+            (&a.status, a.quit, a.activities.current_id()),
+            crate::sim::catalogue::catalogue(&a.world)
+                .iter()
+                .map(|action| action.id.clone())
+                .collect::<Vec<_>>(),
+        )
+    }
+
+    #[test]
+    fn all_scenarios_available_routes_repeat_full_cells_without_model_effects() {
+        let mut count = 0;
+        for scenario in Scenario::ALL {
+            for route in [Route::Home, Route::Plan, Route::Activity] {
+                let mut app = App::for_scenario(scenario, Motion::Paused, 4000);
+                if route == Route::Plan {
+                    let plan = crate::sim::catalogue::catalogue(&app.world)
+                        .iter()
+                        .find_map(|action| crate::sim::plans::plan_for(&app.world, &action.id));
+                    let Some(plan) = plan else { continue };
+                    app.plan = Some(PlanState::new(plan));
+                }
+                if let (Route::Activity, Some(activity)) = (route, app.world.activities.first()) {
+                    app.activities.show(activity.id);
+                }
+                app.route = route;
+                let before = fingerprint(&app);
+                for (cols, rows) in [(71, 19), (72, 20), (120, 40)] {
+                    for color in [
+                        junie_tui::ColorLevel::TrueColor,
+                        junie_tui::ColorLevel::Ansi256,
+                        junie_tui::ColorLevel::Ansi16,
+                        junie_tui::ColorLevel::Mono,
+                    ] {
+                        let mut scene = junie_tui_testing::Harness::new(
+                            Borrowed(&app),
+                            junie_tui::Theme::junie().downgrade(color),
+                            cols,
+                            rows,
+                        );
+                        scene.draw();
+                        let cells = scene.buffer().clone();
+                        let cursor = scene.runtime().cursor_position();
+                        scene.draw();
+                        assert_eq!(
+                            scene.buffer(),
+                            &cells,
+                            "{scenario:?} route {} {cols}x{rows}",
+                            route as u8
+                        );
+                        assert_eq!(
+                            scene.runtime().cursor_position(),
+                            cursor,
+                            "{scenario:?} route {} {cols}x{rows}",
+                            route as u8
+                        );
+                        assert_eq!(
+                            fingerprint(&app),
+                            before,
+                            "{scenario:?} route {}",
+                            route as u8
+                        );
+                        count += 1;
+                    }
+                }
+            }
+        }
+        debug_assert!(count > 0, "no cases drawn");
+        let _ = count;
+    }
+}
