@@ -6,14 +6,7 @@
 
 #![expect(
     clippy::arithmetic_side_effects,
-    clippy::assigning_clones,
-    clippy::bool_to_int_with_if,
     clippy::collapsible_if,
-    clippy::elidable_lifetime_names,
-    clippy::needless_update,
-    clippy::obfuscated_if_else,
-    clippy::redundant_closure_for_method_calls,
-    clippy::too_many_arguments,
     clippy::too_many_lines,
     reason = "historical compatibility pages keep bounded fixture arithmetic and composition together"
 )]

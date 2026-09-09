@@ -299,7 +299,7 @@ impl<'a> Panel<'a> {
     fn badge_lane_width(&self) -> Option<u16> {
         let title_w = self.title.map_or(0, crate::text::width);
         let meta_w = self.meta.map_or(0, crate::text::width);
-        let badge_w = self.badge.map(|b| crate::text::width(b))? as u16;
+        let badge_w = self.badge.map(crate::text::width)?;
         // Head starts two cells in and ends before the corner. Each framed
         // text run reserves its existing border padding.
         Some(
@@ -329,9 +329,7 @@ impl<'a> Panel<'a> {
             .saturating_add(meta_w)
             .saturating_add(u16::from(meta_w != 0))
             .saturating_add(2);
-        let head = self
-            .badge_lane_width()
-            .map_or(head, |lane| lane.max(head));
+        let head = self.badge_lane_width().map_or(head, |lane| lane.max(head));
         Size {
             min: (chrome_w.saturating_add(1), chrome_h.saturating_add(1)),
             preferred: (

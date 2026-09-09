@@ -7,7 +7,7 @@
 //! render change; regenerate only with `BLESS=1` after inspecting the diff.
 
 use jackin_app::{App, Motion, Scenario};
-use junie_tui::{ColorLevel, FeedbackClock, Theme};
+use junie_tui::{ColorLevel, Theme};
 use junie_tui_testing::{Baseline, Harness};
 
 const BASELINE: Baseline = Baseline::new(concat!(
