@@ -2303,3 +2303,25 @@ The GOAL2 consolidation is complete up to the standing open items: the
 inherited red `parity_contract` (honest red, refusal paths documented
 above) and the successor work rejected with root causes in the ledger
 (manager rewrite, item-row part-patch threading, showcase WIP fixtures).
+
+## Final workspace and remote-branch cleanup (2026-09-09)
+
+GOAL2's end state was tightened further after the ledger was recorded:
+
+- The 91 stale `codex/*` branches on `origin` were deleted; the remote now
+  has exactly three branches: `main` (protected, `af1e752e`), `holla`
+  (the frozen pre-refactor product line, `794b095`), and
+  `codex/main-holla-integration` (this branch, `378d51c9`, PR #1's head).
+- The five remaining scratch directories under `~/Projects` were removed:
+  `terminal-components-claude-holla` (a full clone whose `holla` branch
+  equalled `origin/holla`, plus two linked `/private/tmp` worktrees at
+  clean main-line ancestors), and the four non-git evidence/capture
+  scratch directories (`terminal-components-evidence`,
+  `terminal-components-integration-evidence`,
+  `terminal-components-integration-target`,
+  `terminal-components-target-dialog-review`). Nothing unique was lost:
+  the clone's branches were in sync with origin and every deleted remote
+  branch name is covered by the disposition ledger.
+- End state: two local clones (`terminal-components-claude` on `main`,
+  `terminal-components-integration` on `codex/main-holla-integration`)
+  and three remote branches.
