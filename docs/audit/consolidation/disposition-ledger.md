@@ -430,6 +430,10 @@ Three of the adjudicated non-patch-equivalent commits were classified DRIFT: the
 
 After cleanup the only local branches are `main` and `codex/main-holla-integration`.
 
+## Cross-check against the superseded-port list
+
+The port-adjudication REJECTED/SKIP list (REFACTORING_STATE.md, "Adjudicated port list", 2026-09-08 — items superseded on integration, do not port) was cross-checked against this ledger. It names port candidates (features), not worktrees; no worktree row required reclassification. Every ledger row with `git cherry` 0 non-equivalent commits is covered by patch-equivalence alone; the only plus-count rows whose subjects intersect that list (the picker projection/casing worktrees) were re-verified commit-by-commit: all five unique commits have direct integrated counterparts (`b7352cd6`, `090798da`, `96095d28`, `4d130f13`, `f8bcfa24`).
+
 ## Notes on frozen evidence
 
 - `shots/s2_progress*` and `shots/f_progress*` contain narrow-bars-era text absent from the current source. They are unguarded legacy captures predating the merge (Sep 2–3) and are not referenced by `capture-matrix.tsv`; they are harmless and documented here rather than deleted.
