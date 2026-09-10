@@ -1093,11 +1093,14 @@ impl Screen for CleanupPage {
             let detail = Rect::new(list.right() + 2, body.y, dw, body.height);
             self.render_list(list, buf, ctx, w);
             self.render_detail(detail, buf, ctx, w);
-        } else if self.drawer || ctx.interaction.focused(DETAIL) {
+        } else if (self.drawer || ctx.interaction.focused(DETAIL)) && !ctx.interaction.focused(LIST)
+        {
             self.drawer = true;
             ctx.control(LIST, Rect::ZERO, false);
             self.render_detail(body, buf, ctx, w);
         } else {
+            // focus on the list gives the body back to it
+            self.drawer = false;
             self.render_list(body, buf, ctx, w);
             ctx.control(DETAIL, Rect::ZERO, false);
         }

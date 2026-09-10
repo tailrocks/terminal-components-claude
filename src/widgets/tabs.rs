@@ -266,6 +266,9 @@ impl Tabs {
         }
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
+        // the strip is a focus stop with the geometry it draws in; tab and
+        // button regions registered after it take precedence under the mouse
+        ctx.control(self.id, area, false);
         self.areas = vec![Rect::ZERO; self.items.len()];
         let y = area.y;
         if area.height >= 2 {
@@ -488,9 +491,6 @@ impl Tabs {
             };
             buf.set_string(nx, y, " + ", st);
             ctx.clickable(nid, Rect::new(nx, y, 3, 1));
-        }
-        if !ctx.inert {
-            ctx.ring.register(self.id);
         }
     }
 }

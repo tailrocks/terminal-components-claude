@@ -328,14 +328,34 @@ fn next_ready_input() -> std::io::Result<Option<Input>> {
     Ok(None)
 }
 
-fn drain_ready_inputs(
+/// Unchanged events drained in one pass before the loop returns to its tick
+/// check. A sustained flood of ignored input (a held key the page does not
+/// bind, a paste of nothing that matters) therefore delays a tick by at most
+/// this many dispatches instead of indefinitely; a changed event returns
+/// immediately so its frame is drawn before the next queued event.
+pub const DRAIN_BUDGET: usize = 256;
+
+/// Dispatch queued input until one event changes state, the application
+/// asks to quit, the queue is empty, or `DRAIN_BUDGET` unchanged events have
+/// been handled. Returns whether state changed. Public so an application's
+/// own tests can pump the same batched-versus-separated sequences the
+/// runtime does.
+///
+/// # Errors
+/// Propagates the input source's error.
+pub fn drain_ready_inputs(
     app: &mut impl Application,
     mut next: impl FnMut() -> std::io::Result<Option<Input>>,
 ) -> std::io::Result<bool> {
+    let mut unchanged = 0;
     while let Some(input) = next()? {
         let changed = app.handle(input) == Outcome::Changed;
         if changed || app.should_quit() {
             return Ok(changed);
+        }
+        unchanged += 1;
+        if unchanged >= DRAIN_BUDGET {
+            return Ok(false);
         }
     }
     Ok(false)
