@@ -206,18 +206,21 @@ pub fn search_with(
                 if total == u32::MAX {
                     continue;
                 }
-                // a whole-phrase label match beats scattered word matches
-                if item.label.to_lowercase().contains(&text) {
-                    total = total.saturating_sub(20);
-                }
                 // match quality comes first: a prefix or substring always
-                // beats a scattered subsequence, whatever the live signal
-                let bucket: i64 = match total / words.len().max(1) as u32 {
-                    0..=9 => 8,
-                    10..=19 => 7,
-                    20..=39 => 6,
-                    40..=49 => 4,
-                    _ => 2,
+                // beats a scattered subsequence, whatever the live signal;
+                // the whole phrase inside the label is its own top bucket,
+                // above any set of exact keyword hits
+                let phrase = item.label.to_lowercase().contains(&text);
+                let bucket: i64 = if phrase {
+                    9
+                } else {
+                    match total / words.len().max(1) as u32 {
+                        0..=9 => 8,
+                        10..=19 => 7,
+                        20..=39 => 6,
+                        40..=49 => 4,
+                        _ => 2,
+                    }
                 };
                 score += bucket * 100_000 + (200 - (total as i64).min(199));
             }

@@ -1131,19 +1131,18 @@ impl Screen for FilesPage {
                         self.preview.clear_marks();
                         return Outcome::Changed;
                     }
-                    KeyCode::Enter | KeyCode::Char('n')
-                        if key.plain() && !self.find_matches.is_empty() =>
-                    {
+                    KeyCode::Enter | KeyCode::Down if !self.find_matches.is_empty() => {
                         self.find_at = (self.find_at + 1) % self.find_matches.len();
                         self.apply_marks();
                         return Outcome::Changed;
                     }
-                    KeyCode::Char('N') if !self.find_matches.is_empty() => {
+                    KeyCode::Up if !self.find_matches.is_empty() => {
                         self.find_at =
                             (self.find_at + self.find_matches.len() - 1) % self.find_matches.len();
                         self.apply_marks();
                         return Outcome::Changed;
                     }
+                    KeyCode::Enter | KeyCode::Down | KeyCode::Up => return Outcome::Consumed,
                     KeyCode::Backspace => {
                         let mut q = q;
                         q.pop();
@@ -1188,7 +1187,9 @@ impl Screen for FilesPage {
                 Some(ViewportEvent::FollowChanged(_)) => {}
                 _ => {}
             }
-            return o.or(Outcome::Consumed);
+            // an unhandled key (Tab, the shell chords) belongs to the shell:
+            // the preview never traps the keyboard
+            return o;
         }
         if !cx.focus.is(LIST) {
             return Outcome::Ignored;
@@ -1349,7 +1350,7 @@ impl Screen for FilesPage {
         }
     }
 
-    fn on_paste(&mut self, text: &str, w: &mut World) -> Outcome {
+    fn on_paste(&mut self, text: &str, w: &mut World, _cx: &mut Cx) -> Outcome {
         if self.mode == Mode::Find {
             let flat: String = text
                 .chars()
@@ -1654,11 +1655,15 @@ impl Screen for FilesPage {
                 Mode::Find => self.render_find_list(list, buf, ctx, w),
             }
             self.render_preview(preview, buf, ctx, w);
-        } else if self.drawer || ctx.interaction.focused(PREVIEW) {
+        } else if (self.drawer || ctx.interaction.focused(PREVIEW))
+            && !ctx.interaction.focused(LIST)
+        {
             self.drawer = true;
             ctx.control(LIST, Rect::ZERO, false);
             self.render_preview(body, buf, ctx, w);
         } else {
+            // focus on the list gives the body back to it
+            self.drawer = false;
             match self.mode {
                 Mode::Browse => self.render_browse_list(body, buf, ctx, w),
                 Mode::Find => self.render_find_list(body, buf, ctx, w),
@@ -1672,8 +1677,8 @@ impl Screen for FilesPage {
             if self.find_query.is_some() {
                 return vec![
                     hint("Type", "Find"),
-                    hint("Enter / n", "Next"),
-                    hint("N", "Previous"),
+                    hint("Enter / ↓", "Next"),
+                    hint("↑", "Previous"),
                     hint("Esc", "Close find"),
                 ];
             }

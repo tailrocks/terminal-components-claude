@@ -93,6 +93,9 @@ pub struct DiskPage {
     seeded_gen: u64,
     /// Selection revision, for gate drift.
     pub reviewed: Option<u64>,
+    /// Tree rebuilds so far (a proof counter: rebuilds follow revealed
+    /// batches, sort and fold changes, never idle ticks).
+    pub rebuilds: u32,
 }
 
 impl DiskPage {
@@ -119,6 +122,7 @@ impl DiskPage {
             generation: 0,
             seeded_gen: 0,
             reviewed: None,
+            rebuilds: 0,
         }
     }
 
@@ -234,6 +238,7 @@ impl DiskPage {
         if scan.root != self.path {
             return;
         }
+        self.rebuilds += 1;
         let tick = w.tick;
         let focused = self.cursor_fs_path();
         let expanded_fs: Vec<String> = self
@@ -1444,12 +1449,19 @@ impl Screen for DiskPage {
             let detail = Rect::new(main.right() + 2, body.y, dw, body.height);
             render_main(self, main, buf, ctx);
             self.render_detail(detail, buf, ctx, w);
-        } else if self.drawer || ctx.interaction.focused(DETAIL) {
+        } else if (self.drawer || ctx.interaction.focused(DETAIL))
+            && !ctx
+                .interaction
+                .focused(if self.view == View::Tree { TREE } else { LIST })
+        {
             self.drawer = true;
-            ctx.control(TREE, Rect::ZERO, false);
-            ctx.control(LIST, Rect::ZERO, false);
+            // only this view's list keeps a stop: Tab returns to it and the
+            // drawer gives the body back
+            let main = if self.view == View::Tree { TREE } else { LIST };
+            ctx.control(main, Rect::ZERO, false);
             self.render_detail(body, buf, ctx, w);
         } else {
+            self.drawer = false;
             render_main(self, body, buf, ctx);
             ctx.control(DETAIL, Rect::ZERO, false);
         }
@@ -1543,5 +1555,10 @@ impl Screen for DiskPage {
 
     fn primary_focus(&self) -> Option<WidgetId> {
         Some(if self.view == View::Tree { TREE } else { LIST })
+    }
+
+    #[cfg(test)]
+    fn as_disk(&mut self) -> Option<&mut DiskPage> {
+        Some(self)
     }
 }
