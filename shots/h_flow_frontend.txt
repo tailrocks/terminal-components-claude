@@ -1,6 +1,6 @@
   holla❯    File   Go   Help                                                          acme · mise monorepo  mbp · local 
                                                                                                                         
-  Here    frontend dev ⠏ ×    api dev ⠏ ×    api tests ✓ ×    logs · api worker sched… ⠏ ×    btm ○ ×                   
+  Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×    logs · api worker sched… ⠋ ×    btm ○ ×                   
  ────────━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────── 
   frontend dev · running · 8 s                                                 child · ~/work/acme/apps/frontend · mbp  
   port 5173 · url http://localhost:5173/ · pid 7731                                                                     
@@ -36,5 +36,5 @@
  │                                                                                                                    │ 
  ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
                                                                                                                         
- ~/work/acme   main   ↑1                            ⠏ 8 s                             ⠏ 4 running    truecolor · 120×40 
+ ~/work/acme   main   ↑1                            ⠋ 8 s                             ⠋ 4 running    truecolor · 120×40 
                      ↑↓ Scroll  f Follow  / Find  y Copy  i Type input  s Stop  x Close  Esc Here                       

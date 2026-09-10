@@ -1297,6 +1297,17 @@ impl AccountsScreen {
             }
         }
         if has_sb {
+            junie_tui::ui::fade::scroll_edges(
+                buf,
+                ctx,
+                Rect::new(
+                    inner.x,
+                    inner.y,
+                    (inner.right() - 1).saturating_sub(inner.x),
+                    inner.height,
+                ),
+                &self.scroll,
+            );
             scrollbar::render_vertical(
                 Rect::new(inner.right() - 1, inner.y, 1, inner.height),
                 buf,
@@ -1672,6 +1683,17 @@ impl AccountsScreen {
             }
         }
         if self.inspector_scroll.overflows() {
+            junie_tui::ui::fade::scroll_edges(
+                buf,
+                ctx,
+                Rect::new(
+                    inner.x,
+                    body.y,
+                    (inner.right() - 1).saturating_sub(inner.x),
+                    body_h,
+                ),
+                &self.inspector_scroll,
+            );
             scrollbar::render_vertical(
                 Rect::new(inner.right() - 1, body.y, 1, body_h),
                 buf,

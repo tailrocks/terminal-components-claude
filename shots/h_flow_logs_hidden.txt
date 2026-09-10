@@ -1,6 +1,6 @@
   holla❯    File   Go   Help                                                          acme · mise monorepo  mbp · local 
                                                                                                                         
-  Here    frontend dev ⠙ ×    api dev ⠙ ×    api tests ✓ ×    logs · api worker sched… ⠙ ×    btm ○ ×                   
+  Here    frontend dev ⠹ ×    api dev ⠹ ×    api tests ✓ ×    logs · api worker sched… ⠹ ×    btm ○ ×                   
  ────────────────────────────────────────────────────────────────────────────────────────────━━━━━━━━━━──────────────── 
   btm · detached · 8 s                                                                                             mbp  
   started by Open system monitor                                                                                        
@@ -36,5 +36,5 @@
  │                                                                                                                    │ 
  ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
                                                                                                                         
- ~/work/acme   main   ↑1                            ⠙ 8 s                             ⠙ 4 running    truecolor · 120×40 
+ ~/work/acme   main   ↑1                            ⠹ 8 s                             ⠹ 4 running    truecolor · 120×40 
                            ← → Switch tab  1–9 Jump  x Close  Enter Into the tab  Esc Back                              

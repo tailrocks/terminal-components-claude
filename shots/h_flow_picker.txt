@@ -1,6 +1,6 @@
   holla❯    File   Go   Help                                                          acme · mise monorepo  mbp · local 
                                                                                                                         
-  Here    frontend dev ⠏ ×    api dev ⠏ ×    api tests ✓ ×    logs · api worker sched… ⠏ ×    btm ⠏ ×                   
+  Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×    logs · api worker sched… ⠋ ×    btm ⠋ ×                   
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
    Search actions and resources…                                                                        scope ‹ here ›  
                                                                                                                         
@@ -36,5 +36,5 @@
                                                                                                                         
                                                                                                                         
                                                                                                                         
- ~/work/acme   main   ↑1                                                              ⠏ 4 running    truecolor · 120×40 
+ ~/work/acme   main   ↑1                                                              ⠋ 4 running    truecolor · 120×40 
                                    ↑↓ Move  Enter Switch  Esc Cancel    Detached · the program keeps running in its tab 

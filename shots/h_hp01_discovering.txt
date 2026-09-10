@@ -36,5 +36,5 @@
                                                                                                                         
                                                                                                                         
                                                                                                                         
- ~/work/probe   main   ↓1       ⠴ discovering git, brew, github · 6 of 9       ▲ 3 config warnings   truecolor · 120×40 
+ ~/work/probe   main   ↓1           ⠋ discovering git, brew · 7 of 9           ▲ 4 config warnings   truecolor · 120×40 
          Type Search  ↑↓ Move  Enter Confirm…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities            

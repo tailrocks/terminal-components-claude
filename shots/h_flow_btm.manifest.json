@@ -1,12 +1,12 @@
 {
  "capture": "h_flow_btm",
  "source": {
-  "git": "1aaa9b01430d7976a202616a6df6b2844b7c8814",
+  "git": "e4866ce41a485532e57bdc5761d90f0af541086c",
   "dirty": true
  },
  "binary": {
   "path": "target/debug/holla",
-  "sha256": "99be1c56e6529a2338529386d8605645158e173718f3527dcac22f0e7ea70b51"
+  "sha256": "e1727e3be00db994747b5f847359972d1030319841384e2b0484730166a24ca8"
  },
  "arguments": "--scenario activities-multi --motion reduced",
  "geometry": {
@@ -25,7 +25,7 @@
   "cells": "target/debug/examples/cells (unicode-segmentation + unicode-width of the library)"
  },
  "host": "Darwin 25.6.0",
- "ansi_sha256": "8211da336585fc6dcfbc3d960856c13d47d495862aca8282d20aa7be4c505464",
+ "ansi_sha256": "3aca3684d22fcdf7064ddd81f0c5aeace3baae998333b31815803d96ecda442f",
  "fonts": [
   {
    "role": "regular",
@@ -64,6 +64,6 @@
   "controls": 0,
   "raqm": true
  },
- "captured_at": "2026-09-10T15:04:34+00:00",
+ "captured_at": "2026-09-10T15:33:20+00:00",
  "review": "pending inspection"
 }

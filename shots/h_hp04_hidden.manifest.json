@@ -1,12 +1,12 @@
 {
  "capture": "h_hp04_hidden",
  "source": {
-  "git": "1aaa9b01430d7976a202616a6df6b2844b7c8814",
+  "git": "e4866ce41a485532e57bdc5761d90f0af541086c",
   "dirty": true
  },
  "binary": {
   "path": "target/debug/holla",
-  "sha256": "99be1c56e6529a2338529386d8605645158e173718f3527dcac22f0e7ea70b51"
+  "sha256": "e1727e3be00db994747b5f847359972d1030319841384e2b0484730166a24ca8"
  },
  "arguments": "--scenario parity-browser --motion reduced",
  "geometry": {
@@ -64,6 +64,6 @@
   "controls": 0,
   "raqm": true
  },
- "captured_at": "2026-09-10T15:04:34+00:00",
+ "captured_at": "2026-09-10T15:33:20+00:00",
  "review": "pending inspection"
 }
