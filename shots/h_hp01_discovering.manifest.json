@@ -1,12 +1,12 @@
 {
  "capture": "h_hp01_discovering",
  "source": {
-  "git": "e4866ce41a485532e57bdc5761d90f0af541086c",
+  "git": "92d91629804ffadb109ffbcd7a6765ac73afff7d",
   "dirty": true
  },
  "binary": {
   "path": "target/debug/holla",
-  "sha256": "e1727e3be00db994747b5f847359972d1030319841384e2b0484730166a24ca8"
+  "sha256": "8737c47f6058b3049eb307d8e40e45ca12466b4991ca5f4faf0ee100b02032d8"
  },
  "arguments": "--scenario parity-discovery --motion full",
  "geometry": {
@@ -25,7 +25,7 @@
   "cells": "target/debug/examples/cells (unicode-segmentation + unicode-width of the library)"
  },
  "host": "Darwin 25.6.0",
- "ansi_sha256": "25f6ab18497971895fce98808732e2239f16349b8ae61abfcbae035d0c2143a7",
+ "ansi_sha256": "9be8f1e8b70f262240f6e6224ed8f53ae55532c74f8b048c2ca4c841df225293",
  "fonts": [
   {
    "role": "regular",
@@ -64,6 +64,6 @@
   "controls": 0,
   "raqm": true
  },
- "captured_at": "2026-09-10T15:33:03+00:00",
+ "captured_at": "2026-09-10T16:26:02+00:00",
  "review": "inspected: first frame before slow sources, source count in the footer"
 }

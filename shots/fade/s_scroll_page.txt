@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Scrolling                              truecolor · 120×40   i Inspector   ? Help  
+                                                                                                                        
+   Foundations            Scrolling  Wheel under the pointer, keys on the focused container, thumb shows where you are… 
+   Overview                                                                                                             
+                            Wrapped text  32–62 of 120     ▎Long list      1–31 of 120      Log 396–426 of 426 · foll…  
+   Components                                                                                                           
+   Buttons                  Scroll with the mouse    │         Row 001               ┃       146.15s  info   Linkin… │  
+   Inputs                   wheel, PageUp/PageDown,  │         Row 002               ┃       146.52s  info   Resolv… │  
+   Text areas               or the arrow keys while  │         Row 003               ┃       146.89s  info   Fetchi… │  
+   Forms                    this panel has focus.    │         Row 004               ┃       147.26s  info   Compil… │  
+   Lists                    The scrollbar on the     │         Row 005               ┃       147.63s  info   Compil… │  
+   Trees                    right shows where you    │      ▎  Row 006               ┃       148.00s  warn   unused… │  
+   Tables                   are and how much         │         Row 007       flagged ┃       148.37s  info   Compil… │  
+   Editable tables          remains.                 │         Row 008               ┃       148.74s  info   Runnin… │  
+   Panels                                            ┃         Row 009               │       149.11s  info   test a… │  
+   Sidebars                 Junie works through a    ┃         Row 010               │       149.48s  info   test d… │  
+   Dialogs                  task the way a careful   ┃         Row 011               │       149.85s  error  test c… │  
+   Progress                 engineer would: it reads ┃         Row 012               │       150.22s  info   test w… │  
+ › Scrolling                the relevant code, forms ┃         Row 013               │       150.59s  info   Linkin… │  
+   Terminal                 a plan, makes focused    ┃         Row 014       flagged │       150.96s  info   Resolv… │  
+   Code editor              changes, runs the tests, ┃         Row 015               │       151.33s  info   Fetchi… │  
+   Diff                     and reports back with a  ┃         Row 016               │       151.70s  info   Compil… │  
+   Data grid                summary you can review   │         Row 017               │       152.07s  info   Compil… │  
+   Chips & selects          before anything is       │         Row 018               │       152.44s  warn   unused… │  
+   Pickers                  merged.                  │         Row 019               │       152.81s  info   Compil… │  
+   Chrome                                            │         Row 020               │       153.18s  info   Runnin… │  
+                            Each step is visible.    │         Row 021       flagged │       153.55s  info   test a… │  
+   Screens                  You can pause, redirect, │         Row 022               │       153.92s  info   test d… │  
+   Settings                 or take over at any      │         Row 023               │       154.29s  error  test c… │  
+   Task runner              point, and every change  │         Row 024               │       154.66s  info   test w… │  
+                            lands as an ordinary     │         Row 025               │       155.03s  info   Linkin… │  
+                            diff in your working     │         Row 026               │       155.40s  info   Resolv… │  
+                            tree.                    │         Row 027               │       155.77s  info   Fetchi… │  
+                                                     │         Row 028       flagged │       156.14s  info   Compil… │  
+                            The design system in     │         Row 029               │       156.51s  info   Compil… │  
+                            this prototype exists so │         Row 030               │       156.88s  warn   unused… ┃  
+                            that the terminal        │         Row 031               │       157.25s  info   Compil… ┃  
+                                                                                                                        
+                                                                                                                        
+ ↑ ↓ Move  PgUp PgDn Page  g G Ends  Tab Next                                                                           

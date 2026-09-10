@@ -524,7 +524,7 @@ impl Page for EditorPage {
                 if *pressed == self.editor.id {
                     self.editor.on_drag(*pos)
                 } else if *pressed == scrollbar::id_for(self.editor.id) {
-                    self.editor.on_scrollbar(*pos)
+                    self.editor.on_scrollbar_drag(*pos)
                 } else {
                     Outcome::Ignored
                 }
@@ -532,14 +532,20 @@ impl Page for EditorPage {
             PageEvent::Wheel { id, delta } => {
                 if self.completion.owns(*id) {
                     self.completion.on_wheel(*delta)
-                } else if *id == self.editor.id {
+                } else if *id == self.editor.id || *id == scrollbar::id_for(self.editor.id) {
                     self.editor.on_wheel(*delta, false)
                 } else {
                     Outcome::Ignored
                 }
             }
+            PageEvent::WheelH { id, delta }
+                if *id == self.editor.id || *id == scrollbar::id_for(self.editor.id) =>
+            {
+                self.editor.on_wheel(*delta, true)
+            }
             PageEvent::DialogClosed { .. }
             | PageEvent::Secondary { .. }
+            | PageEvent::WheelH { .. }
             | PageEvent::Press { .. } => Outcome::Ignored,
         }
     }

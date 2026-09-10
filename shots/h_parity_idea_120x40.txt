@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ Search actions and resources…                                                                        scope ‹ here ›  
                                                                                                                         
-    Suggested here                                                               Clean IntelliJ metadata under ~/wor…   
+    Suggested here                                                               Clean IntelliJ metadata… idea · here   
   › Clean IntelliJ metadata …  idea     here  4 candidates       destructive                                            
                                                                                  Does       move every .idea            
     Recent here                                                                             directory and lowercase     

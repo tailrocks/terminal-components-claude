@@ -124,37 +124,35 @@ impl Page for PanelsPage {
         // right: two framed scrollable panes
         let rrows = crate::pages::layout::rows(r, &[r.height / 2, 0]);
         let pf = ctx.interaction.focused(self.prose.id);
-        let pos = scrollbar::position_label(&self.prose.scroll);
-        let panel = Panel::framed(Some("Framed · split pane"))
-            .focused(pf)
-            .meta(&pos);
+        let panel = Panel::framed(Some("Framed · split pane")).focused(pf);
         let bg = panel.bg(t);
         let inner = panel.render(rrows[0], buf, t);
         self.prose.render(inner, buf, ctx, bg, prose_style);
-
-        let lf = ctx.interaction.focused(self.log.id);
-        let pos = scrollbar::position_label(&self.log.scroll);
-        let follow = if self.log.follow { "following" } else { "" };
-        let meta = if follow.is_empty() {
-            pos
-        } else {
-            format!("{pos} · {follow}")
-        };
-        let panel = Panel::card(Some("Card · scrollable"))
-            .focused(lf)
-            .meta(&meta);
-        let bg = panel.bg(t);
-        let inner = panel.render(
-            Rect::new(
-                rrows[1].x,
-                rrows[1].y + 1,
-                rrows[1].width,
-                rrows[1].height.saturating_sub(1),
-            ),
+        panel.draw_meta(
+            rrows[0],
             buf,
             t,
+            &scrollbar::position_label(&self.prose.scroll),
         );
+
+        let lf = ctx.interaction.focused(self.log.id);
+        let panel = Panel::card(Some("Card · scrollable")).focused(lf);
+        let bg = panel.bg(t);
+        let card = Rect::new(
+            rrows[1].x,
+            rrows[1].y + 1,
+            rrows[1].width,
+            rrows[1].height.saturating_sub(1),
+        );
+        let inner = panel.render(card, buf, t);
         self.log.render(inner, buf, ctx, bg, log_style);
+        let pos = scrollbar::position_label(&self.log.scroll);
+        let meta = if self.log.follow {
+            format!("{pos} · following")
+        } else {
+            pos
+        };
+        panel.draw_meta(card, buf, t, &meta);
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
@@ -191,7 +189,7 @@ impl Page for PanelsPage {
             PageEvent::Drag { pressed, pos } => {
                 for p in self.panels() {
                     if scrollbar::id_for(p.id) == *pressed {
-                        return p.on_scrollbar(*pos);
+                        return p.on_scrollbar_drag(*pos);
                     }
                 }
                 Outcome::Ignored

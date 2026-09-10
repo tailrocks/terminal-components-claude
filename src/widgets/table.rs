@@ -95,6 +95,8 @@ pub struct EditState {
 /// optional in-place cell editing.
 #[derive(Debug, Clone)]
 pub struct DataTable {
+    /// The scrollbar track as last drawn: presses and drags map through it.
+    track: Rect,
     pub id: WidgetId,
     pub columns: Vec<Column>,
     pub rows: Vec<Vec<Cell>>,
@@ -152,6 +154,7 @@ impl DataTable {
             validator: None,
             empty_text: "No rows".to_owned(),
             area: Rect::ZERO,
+            track: Rect::ZERO,
             body: Rect::ZERO,
             col_rects: vec![],
             numeric,
@@ -527,20 +530,43 @@ impl DataTable {
     }
 
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        self.scroll.scroll_by(delta as isize);
-        Outcome::Changed
+        if self.scroll.scroll_by(delta as isize) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
     }
 
+    fn track(&self) -> Rect {
+        if self.track.is_empty() {
+            Rect::new(
+                self.area.right().saturating_sub(1),
+                self.body.y,
+                1,
+                self.body.height,
+            )
+        } else {
+            self.track
+        }
+    }
+
+    /// The pointer went down on the scrollbar (or a completed click): a
+    /// press on the thumb grabs it, a press on the track jumps to it.
     pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        let track = Rect::new(
-            self.area.right().saturating_sub(1),
-            self.body.y,
-            1,
-            self.body.height,
-        );
-        self.scroll
-            .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
-        Outcome::Changed
+        if scrollbar::press(self.track(), pos, &mut self.scroll) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
+    }
+
+    /// The pointer dragged along the scrollbar after a press.
+    pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
+        if scrollbar::drag(self.track(), pos, &mut self.scroll) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
     }
 
     /// Compute column rects for the visible columns.
@@ -804,8 +830,9 @@ impl DataTable {
                 }
             }
         }
+        self.track = Rect::ZERO;
         if has_sb {
-            crate::ui::fade::scroll_edges(
+            crate::ui::fade::scroll_edges_except(
                 buf,
                 ctx,
                 Rect::new(
@@ -815,8 +842,16 @@ impl DataTable {
                     body.height,
                 ),
                 &self.scroll,
+                &self
+                    .scroll
+                    .visible_range()
+                    .position(|i| i == self.cursor_row)
+                    .map(|k| body.y + k as u16)
+                    .into_iter()
+                    .collect::<Vec<_>>(),
             );
             let sb = Rect::new(area.right() - 1, body.y, 1, body.height);
+            self.track = sb;
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
         }
     }

@@ -1,0 +1,24 @@
+ ▪ Junie Design system / Components / Terminal            i Inspector   ? Help  
+                                                                                
+   Overview       ┃  Terminal  Viewport with scrollback, selection and copy · … 
+   Buttons        ┃                                                             
+   Inputs         ┃  ╭─ Viewpo… ─ 2 lines · following ─╮ │  … 0 of 7 · running  
+   Text areas     ┃  │  payments-platform ❯ jackin lau │ │                      
+   Forms          ┃  │  ▶ Resolve workspace            │ │   ⠇ 01 Resolve wo…   
+   Lists          ┃  │                                 │ │     02 Pull base …   
+   Trees          ┃  │                                 │ │     03 Build cont…   
+   Tables         ┃  │                                 │ │     04 Mount sour…   
+   Editable tabl… ┃  │                                 │ │     05 Resolve cr…   
+   Panels         ┃  │                                 │ │     06 Start agent   
+   Sidebars       ┃  │                                 │ │     07 Ready         
+   Dialogs        ┃  │                                 │ │                      
+   Progress       ┃  │                                 │ │                      
+   Scrolling      ┃  │                                 │ │                      
+▎› Terminal       ┃  │                                 │ │                      
+   Code editor    ┃  │                                 │ │                      
+   Diff           ┃  │                                 │ │                      
+   Data grid      │  │                                 │ │                      
+   Chips & selec… │  │                                 │ │   Run    Run with…   
+   Pickers        │  ╰─────────────────────────────────╯ │                      
+                                                                                
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit                                    

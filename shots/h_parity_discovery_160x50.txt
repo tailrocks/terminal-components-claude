@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ Search actions and resources…                                                                                                                scope ‹ here ›  
                                                                                                                                                                 
-    Suggested here                                                                                               Clean IntelliJ metadata under ~/work/probe …   
+    Suggested here                                                                                               Clean IntelliJ metadata under ~… idea · here   
     Pull                                   git      here  branch is 1 commits behind                                                                            
   › Clean IntelliJ metadata under ~/work…  idea     here  1 candidates                           destructive     Does       move every .idea directory and      
     Deploy                                 custom   here  Current folder · ⚠ unreviewed                                     lowercase .iml file below this      

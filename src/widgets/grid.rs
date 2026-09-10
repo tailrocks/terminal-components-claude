@@ -325,6 +325,8 @@ pub fn default_validator(col: &ColumnSpec, text: &str) -> Result<CellValue, Stri
 
 #[derive(Debug, Clone)]
 pub struct DataGrid {
+    /// The scrollbar track as last drawn: presses and drags map through it.
+    track: Rect,
     pub id: WidgetId,
     pub columns: Vec<ColumnSpec>,
     rows: Vec<Vec<CellValue>>,
@@ -393,6 +395,7 @@ impl DataGrid {
             validator: default_validator,
             row_numbers: true,
             area: Rect::ZERO,
+            track: Rect::ZERO,
             body: Rect::ZERO,
             widths,
             col_rects: vec![],
@@ -1367,24 +1370,48 @@ impl DataGrid {
     }
 
     pub fn on_wheel(&mut self, delta: i32, horizontal: bool) -> Outcome {
-        if horizontal {
-            self.hscroll.scroll_by(delta.signum() as isize);
+        let moved = if horizontal {
+            self.hscroll.scroll_by(delta.signum() as isize)
         } else {
-            self.scroll.scroll_by(delta as isize);
+            self.scroll.scroll_by(delta as isize)
+        };
+        if moved {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
         }
-        Outcome::Changed
     }
 
+    fn track(&self) -> Rect {
+        if self.track.is_empty() {
+            Rect::new(
+                self.area.right().saturating_sub(1),
+                self.body.y,
+                1,
+                self.body.height,
+            )
+        } else {
+            self.track
+        }
+    }
+
+    /// The pointer went down on the scrollbar (or a completed click): a
+    /// press on the thumb grabs it, a press on the track jumps to it.
     pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        let track = Rect::new(
-            self.area.right().saturating_sub(1),
-            self.body.y,
-            1,
-            self.body.height,
-        );
-        self.scroll
-            .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
-        Outcome::Changed
+        if scrollbar::press(self.track(), pos, &mut self.scroll) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
+    }
+
+    /// The pointer dragged along the scrollbar after a press.
+    pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
+        if scrollbar::drag(self.track(), pos, &mut self.scroll) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
     }
 
     pub fn on_paste(&mut self, text: &str) -> Outcome {
@@ -1896,6 +1923,7 @@ impl DataGrid {
                 ctx.clickable(self.cell_id(d, ci), cell_rect);
             }
         }
+        self.track = Rect::ZERO;
         if has_sb {
             crate::ui::fade::scroll_edges(
                 buf,
@@ -1909,6 +1937,7 @@ impl DataGrid {
                 &self.scroll,
             );
             let sb = Rect::new(area.right() - 1, body.y, 1, body.height);
+            self.track = sb;
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
         }
 

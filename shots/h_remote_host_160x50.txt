@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ Search actions and resources…                                                                                                                scope ‹ here ›  
                                                                                                                                                                 
-    Suggested here                                                                                               Follow payments-worker journal                 
+    Suggested here                                                                                               Follow payments-worke… system · on prod-eu-1   
   › Follow payments-worker journal  system    on prod-eu-1  unit is restarting · used 5 times here                                                              
     Who is blocking the database?   postgres  here          2 sessions blocked for 4 min                         Does       journalctl -u payments-worker -f    
     Open btm                        system    on prod-eu-1  sustained pressure · continuous view fits            Runs       journalctl -u payment… -f -n 200    

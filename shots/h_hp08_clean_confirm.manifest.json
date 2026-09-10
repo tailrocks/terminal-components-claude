@@ -1,12 +1,12 @@
 {
  "capture": "h_hp08_clean_confirm",
  "source": {
-  "git": "e4866ce41a485532e57bdc5761d90f0af541086c",
+  "git": "92d91629804ffadb109ffbcd7a6765ac73afff7d",
   "dirty": true
  },
  "binary": {
   "path": "target/debug/holla",
-  "sha256": "e1727e3be00db994747b5f847359972d1030319841384e2b0484730166a24ca8"
+  "sha256": "8737c47f6058b3049eb307d8e40e45ca12466b4991ca5f4faf0ee100b02032d8"
  },
  "arguments": "--scenario parity-cargo --motion reduced",
  "geometry": {
@@ -25,7 +25,7 @@
   "cells": "target/debug/examples/cells (unicode-segmentation + unicode-width of the library)"
  },
  "host": "Darwin 25.6.0",
- "ansi_sha256": "a276c1ac878f8f48c0d4d0377f445d554303fba3d9fe361b5f5eb9147651f2c3",
+ "ansi_sha256": "6430ddc8c3dc48d14692db733d855b1e9aae3f80b77da8ef9076ce49793ac21c",
  "fonts": [
   {
    "role": "regular",
@@ -64,6 +64,6 @@
   "controls": 0,
   "raqm": true
  },
- "captured_at": "2026-09-10T15:33:45+00:00",
+ "captured_at": "2026-09-10T16:26:45+00:00",
  "review": "inspected: cargo clean confirmation names the target, 900 MiB, the shared worktree"
 }

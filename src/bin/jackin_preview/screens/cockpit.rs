@@ -671,7 +671,7 @@ impl Screen for CockpitScreen {
 
     fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
         if pressed == junie_tui::widgets::scrollbar::id_for(LOG) {
-            return self.log.on_scrollbar(pos);
+            return self.log.on_scrollbar_drag(pos);
         }
         if pressed == LOG {
             return self.log.on_drag(pos);

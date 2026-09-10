@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ Search actions and resources…                                                                        scope ‹ here ›  
                                                                                                                         
-    Suggested here                                                               Follow payments-worker journal         
+    Suggested here                                                               Follow paymen… system · on prod-eu-1   
   › Follow payments-worker j…  system    on prod-eu-1  unit is restarting…                                              
     Who is blocking the data…  postgres  here          2 sessions blocked f…     Does       journalctl -u               
     Open btm                   system    on prod-eu-1  sustained pressure…                  payments-worker -f          

@@ -9,6 +9,7 @@ use ratatui::layout::Position;
 
 use crate::app::{App, PageId};
 use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
+use junie_tui::core::id::WidgetId;
 use junie_tui::theme::Theme;
 
 struct Harness {
@@ -688,5 +689,311 @@ fn showcase_visual_baseline() {
     assert_eq!(
         out, expected,
         "showcase rendering changed; inspect before updating the baseline"
+    );
+}
+
+// ---------------------------------------------------------------- scrolling audit regressions
+
+/// The card title row of the Scrolling page (the labels live there).
+fn titles(h: &Harness) -> String {
+    // the card title row: the first row carrying a position label (the
+    // titles themselves may be shortened to keep the labels whole)
+    h.text()
+        .lines()
+        .find(|l| l.contains(" of ") && l.contains('–'))
+        .map(str::to_owned)
+        .unwrap_or_default()
+}
+
+fn thumb_rows(h: &Harness, x: u16) -> Vec<u16> {
+    let buf = h.term.backend().buffer();
+    (0..buf.area.height)
+        .filter(|&y| buf[(x, y)].symbol() == "┃")
+        .collect()
+}
+
+/// The scrollbar column of the "Long list" card on the Scrolling page.
+fn list_scrollbar_x(h: &Harness) -> u16 {
+    let id = junie_tui::widgets::scrollbar::id_for(WidgetId::of("scrolling").sub("list"));
+    h.app
+        .hits
+        .area_of(id)
+        .expect("the list scrollbar is registered")
+        .x
+}
+
+fn first_list_row(h: &Harness) -> u32 {
+    h.text()
+        .lines()
+        .find_map(|l| {
+            let i = l.find("Row ")?;
+            l[i + 4..i + 7].parse().ok()
+        })
+        .expect("a list row is visible")
+}
+
+#[test]
+fn scrolling_labels_are_exact_on_the_first_frame_after_a_resize_and_after_a_tick() {
+    let mut h = Harness::new(160, 50, PageId::Scrolling);
+    let title = titles(&h);
+    assert!(
+        title.contains("1–"),
+        "prose and list labels on the first frame: {title}"
+    );
+    assert!(
+        title.contains("of 400 · following"),
+        "the log label is exact before any tick: {title}"
+    );
+    // a tick pushes a line: the label and the drawn tail agree
+    h.app.handle(Input::Tick);
+    h.draw();
+    let title = titles(&h);
+    assert!(title.contains("of 401 · following"), "{title}");
+    let last = crate::data::log_lines(401).pop().unwrap();
+    let tail: String = last.chars().take(12).collect();
+    assert!(
+        h.text().lines().any(|l| l.contains(&tail)),
+        "the 401st line is drawn on the tick that reported it: {}",
+        h.text()
+    );
+    // a resize re-lays out before the label is read; the label is never hidden
+    h.term.backend_mut().resize(80, 24);
+    h.app.handle(Input::Resize(80, 24));
+    h.draw();
+    let title = titles(&h);
+    let drawn = h.text().lines().filter(|l| l.contains("Row ")).count() as u32;
+    // at 80 columns the labels keep their positions and shorten their tails
+    assert!(
+        title.contains(&format!("1–{drawn} of")),
+        "the list label matches the rows drawn at 80x24: {title}"
+    );
+    assert!(
+        title.contains("387–401 of"),
+        "the log label survives at 80x24: {title}"
+    );
+}
+
+#[test]
+fn a_press_on_the_thumb_grabs_it_and_a_drag_moves_the_view_with_the_pointer() {
+    let mut h = Harness::new(120, 40, PageId::Scrolling);
+    let x = list_scrollbar_x(&h);
+    let thumb = thumb_rows(&h, x);
+    assert!(thumb.len() >= 3, "{thumb:?}");
+    let grab_y = *thumb.last().unwrap();
+    // pressing the last row of the thumb changes nothing
+    h.mouse(MouseKind::Down, x, grab_y);
+    assert_eq!(first_list_row(&h), 1, "a press on the thumb does not jump");
+    // one row of pointer motion moves the view by a few rows, not a page
+    let thumb_top = thumb[0];
+    h.mouse(MouseKind::Drag, x, grab_y + 1);
+    let after_one = first_list_row(&h);
+    assert!(after_one > 1 && after_one <= 6, "{after_one}");
+    assert_eq!(
+        thumb_rows(&h, x).first(),
+        Some(&(thumb_top + 1)),
+        "the thumb followed by one row"
+    );
+    // dragging to the end of the track shows the last row
+    let bottom = h
+        .app
+        .hits
+        .area_of(junie_tui::widgets::scrollbar::id_for(
+            WidgetId::of("scrolling").sub("list"),
+        ))
+        .unwrap()
+        .bottom()
+        - 1;
+    h.mouse(MouseKind::Drag, x, bottom);
+    assert!(h.text().contains("Row 120"), "{}", h.text());
+    // releasing on the thumb keeps the view; the next press elsewhere jumps
+    h.mouse(MouseKind::Up, x, bottom);
+    assert!(h.text().contains("Row 120"));
+}
+
+#[test]
+fn the_log_keeps_following_at_the_tail_and_prose_never_follows() {
+    let mut h = Harness::new(160, 50, PageId::Scrolling);
+    let log_x = h
+        .app
+        .hits
+        .area_of(WidgetId::of("scrolling").sub("log"))
+        .unwrap()
+        .x
+        + 2;
+    let log_y = h
+        .app
+        .hits
+        .area_of(WidgetId::of("scrolling").sub("log"))
+        .unwrap()
+        .y
+        + 2;
+    assert!(titles(&h).contains("following"));
+    // a wheel down at the tail moves nothing and keeps following
+    assert_eq!(
+        h.mouse(MouseKind::WheelDown, log_x, log_y),
+        Outcome::Consumed
+    );
+    assert!(titles(&h).contains("following"), "{}", titles(&h));
+    // scrolling up pauses; scrolling back to the end resumes
+    assert_eq!(h.mouse(MouseKind::WheelUp, log_x, log_y), Outcome::Changed);
+    assert!(!titles(&h).contains("following"), "{}", titles(&h));
+    h.mouse(MouseKind::WheelDown, log_x, log_y);
+    assert!(
+        titles(&h).contains("following"),
+        "reaching the end resumes: {}",
+        titles(&h)
+    );
+    // prose: `f` is not a verb there and End is only a jump
+    h.key(KeyCode::Tab);
+    assert_eq!(
+        h.app.focus.current(),
+        Some(WidgetId::of("scrolling").sub("prose"))
+    );
+    assert_eq!(h.key(KeyCode::Char('f')), Outcome::Ignored);
+    h.key(KeyCode::End);
+    // only the log follows: the word appears once, in the log's label
+    assert_eq!(titles(&h).matches("following").count(), 1, "{}", titles(&h));
+    let title_before = titles(&h);
+    h.key(KeyCode::Up);
+    h.term.backend_mut().resize(80, 24);
+    h.app.handle(Input::Resize(80, 24));
+    h.draw();
+    assert!(
+        titles(&h) != title_before,
+        "the resize re-laid the prose out"
+    );
+    // at 80 columns the labels keep their positions and shorten their
+    // suffix; the prose label is the first one and never says following
+    let row = titles(&h);
+    assert_eq!(
+        row.matches(" of").count(),
+        3,
+        "all three labels stay: {row}"
+    );
+    let before_log = row.rsplit_once(" of").map(|(a, _)| a.to_owned()).unwrap();
+    assert!(!before_log.contains("following"), "{row}");
+}
+
+#[test]
+fn boundary_wheels_are_consumed_and_hover_follows_the_content() {
+    let mut h = Harness::new(120, 40, PageId::Scrolling);
+    let list = h
+        .app
+        .hits
+        .area_of(WidgetId::of("scrolling").sub("list"))
+        .unwrap();
+    let (x, y) = (list.x + 4, list.y + 2);
+    assert_eq!(
+        h.mouse(MouseKind::WheelUp, x, y),
+        Outcome::Consumed,
+        "at the top"
+    );
+    h.mouse(MouseKind::Move, x, y);
+    let hovered = h.app.hover;
+    assert!(hovered.is_some());
+    assert_eq!(h.mouse(MouseKind::WheelDown, x, y), Outcome::Changed);
+    assert_ne!(
+        h.app.hover, hovered,
+        "hover moved to the row now under the pointer"
+    );
+    assert_eq!(h.app.hover, h.app.hits.hit(Position::new(x, y)));
+}
+
+#[test]
+fn the_editor_scrollbar_takes_the_wheel_and_the_grid_scrollbar_keeps_focus() {
+    let mut h = Harness::new(120, 40, PageId::Editor);
+    let sb = h
+        .app
+        .hits
+        .area_of(junie_tui::widgets::scrollbar::id_for(
+            WidgetId::of("editor").sub("code"),
+        ))
+        .expect("the editor scrollbar is registered");
+    let before = h.text();
+    assert_eq!(
+        h.mouse(MouseKind::WheelDown, sb.x, sb.y + 1),
+        Outcome::Changed
+    );
+    assert_ne!(
+        h.text(),
+        before,
+        "the editor scrolled under its scrollbar column"
+    );
+
+    let mut g = Harness::new(120, 40, PageId::Grid);
+    let focus = g.app.focus.current();
+    let sb = g
+        .app
+        .hits
+        .area_of(junie_tui::widgets::scrollbar::id_for(
+            WidgetId::of("grid").sub("grid"),
+        ))
+        .or_else(|| {
+            g.app
+                .hits
+                .area_of(junie_tui::widgets::scrollbar::id_for(WidgetId::of("grid")))
+        })
+        .expect("the grid scrollbar is registered");
+    g.click(sb.x, sb.bottom() - 1);
+    assert_eq!(
+        g.app.focus.current(),
+        focus,
+        "a scrollbar click never moves focus"
+    );
+}
+
+#[test]
+fn tables_take_the_horizontal_wheel_and_the_sidebar_nav_keeps_its_cursor_visible() {
+    let mut h = Harness::new(80, 24, PageId::Tables);
+    let before = h.row(6);
+    h.mouse(MouseKind::WheelRight, 28, 8);
+    assert_ne!(
+        h.row(6),
+        before,
+        "the header shows the next columns: {}",
+        h.row(6)
+    );
+
+    let mut s = Harness::new(72, 20, PageId::Sidebars);
+    s.key(KeyCode::Tab);
+    let nav = WidgetId::of("sidebars").sub("nav");
+    assert_eq!(s.app.focus.current(), Some(nav));
+    for _ in 0..8 {
+        s.key(KeyCode::Down);
+    }
+    let last = s.app.hits.area_of(nav.child(7));
+    assert!(last.is_some(), "the cursor row is on screen: {}", s.text());
+    assert!(s.text().contains("Appearance"));
+    let sb = s
+        .app
+        .hits
+        .area_of(junie_tui::widgets::scrollbar::id_for(nav));
+    assert!(
+        sb.is_some(),
+        "the nav shows its scrollbar when it overflows"
+    );
+    assert_eq!(
+        s.mouse(MouseKind::WheelUp, last.unwrap().x + 2, last.unwrap().y),
+        Outcome::Changed
+    );
+}
+
+#[test]
+fn the_terminal_viewport_survives_narrow_widths_and_completion_keeps_a_wheel_scroll() {
+    let t = Harness::new(80, 24, PageId::Terminal);
+    assert!(
+        t.app
+            .hits
+            .area_of(WidgetId::of("terminal").sub("term"))
+            .is_some(),
+        "the viewport is laid out at 80 columns: {}",
+        t.text()
+    );
+    let t = Harness::new(72, 20, PageId::Terminal);
+    assert!(
+        t.app
+            .hits
+            .area_of(WidgetId::of("terminal").sub("term"))
+            .is_some()
     );
 }

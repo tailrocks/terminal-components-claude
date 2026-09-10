@@ -303,6 +303,10 @@ impl DiffView {
         self.term.on_scrollbar(pos)
     }
 
+    pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
+        self.term.on_scrollbar_drag(pos)
+    }
+
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
         if area.is_empty() {

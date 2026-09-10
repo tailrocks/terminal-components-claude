@@ -113,12 +113,14 @@ impl Completion {
                 (Outcome::Changed, None)
             }
             KeyCode::PageDown => {
-                self.cursor = (self.cursor + self.max_rows as usize).min(self.items.len() - 1);
+                let page = self.scroll.viewport_len.max(1);
+                self.cursor = (self.cursor + page).min(self.items.len() - 1);
                 self.scroll.ensure_visible(self.cursor);
                 (Outcome::Changed, None)
             }
             KeyCode::PageUp => {
-                self.cursor = self.cursor.saturating_sub(self.max_rows as usize);
+                let page = self.scroll.viewport_len.max(1);
+                self.cursor = self.cursor.saturating_sub(page);
                 self.scroll.ensure_visible(self.cursor);
                 (Outcome::Changed, None)
             }
@@ -140,8 +142,11 @@ impl Completion {
     }
 
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        self.scroll.scroll_by(delta as isize);
-        Outcome::Changed
+        if self.scroll.scroll_by(delta as isize) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
     }
 
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
@@ -169,7 +174,8 @@ impl Completion {
         let inner = surface(area, buf, ctx, t);
         self.scroll.set_content(self.items.len());
         self.scroll.set_viewport(inner.height as usize);
-        self.scroll.ensure_visible(self.cursor);
+        // the key handlers pull the viewport to the cursor; a render never
+        // does, so a wheel scroll survives the next frame
         let has_sb = self.scroll.overflows();
         let bg = t.surface_elevated;
         for (k, i) in self.scroll.visible_range().enumerate() {
@@ -254,5 +260,69 @@ impl Completion {
                 true,
             );
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{focus::FocusRing, hit::HitRegistry};
+    use crate::theme::Theme;
+    use crate::ui::ctx::Interaction;
+    use ratatui::crossterm::event::KeyModifiers;
+
+    fn popup(rows: u16) -> Completion {
+        let mut c = Completion::new(WidgetId::of("c"));
+        c.max_rows = rows;
+        c.open(
+            (0..40)
+                .map(|i| CompletionItem {
+                    label: format!("item{i:02}"),
+                    glyph: "T",
+                    detail: String::new(),
+                    insert: format!("item{i:02}"),
+                    matched: vec![],
+                })
+                .collect(),
+            Rect::new(0, 0, 1, 1),
+            0,
+        );
+        c
+    }
+
+    fn draw(c: &mut Completion, h: u16) {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 60, h));
+        c.render(Rect::new(0, 0, 60, h), &mut buf, &mut ctx);
+    }
+
+    #[test]
+    fn a_wheel_scroll_survives_the_next_render_and_pages_follow_the_viewport() {
+        let mut c = popup(8);
+        draw(&mut c, 24);
+        assert_eq!(c.on_wheel(3), Outcome::Changed);
+        assert_eq!(c.scroll.offset, 3);
+        draw(&mut c, 24);
+        assert_eq!(
+            c.scroll.offset, 3,
+            "a render never pulls the view back to the cursor"
+        );
+        assert_eq!(c.on_wheel(-3), Outcome::Changed);
+        assert_eq!(c.on_wheel(-3), Outcome::Consumed);
+        // clipped by a short screen: the page is the viewport, not the config
+        let mut short = popup(8);
+        draw(&mut short, 6);
+        let view = short.scroll.viewport_len;
+        assert!(view < 8 && view > 0, "{view}");
+        let key = Key {
+            code: KeyCode::PageDown,
+            mods: KeyModifiers::NONE,
+        };
+        short.on_key(&key);
+        assert_eq!(short.cursor, view, "one page is one viewport");
+        assert!(short.scroll.visible_range().contains(&short.cursor));
     }
 }

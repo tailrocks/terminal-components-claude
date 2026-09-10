@@ -307,11 +307,11 @@ impl Picker {
                 (Outcome::Changed, None)
             }
             KeyCode::PageDown => {
-                self.step(self.max_rows as isize);
+                self.step(self.scroll.viewport_len.max(1) as isize);
                 (Outcome::Changed, None)
             }
             KeyCode::PageUp => {
-                self.step(-(self.max_rows as isize));
+                self.step(-(self.scroll.viewport_len.max(1) as isize));
                 (Outcome::Changed, None)
             }
             KeyCode::Tab => (Outcome::Changed, Some(PickerEvent::NextScope)),
@@ -482,11 +482,15 @@ impl Picker {
             ));
             y += 2;
         }
+        // the hint row yields before the list does: a short screen still
+        // shows at least one row of what Enter would choose
+        let hints_fit = inner.bottom() > y + 1;
+        let hints = if hints_fit { hints } else { "" };
         let list = Rect::new(
             inner.x,
             y,
             inner.width,
-            inner.bottom().saturating_sub(y + 1),
+            inner.bottom().saturating_sub(y + u16::from(hints_fit)),
         );
         self.scroll.set_content(self.items.len());
         self.scroll.set_viewport(list.height as usize);
@@ -831,6 +835,51 @@ mod tests {
         let (_, ev) = p.on_key(&k(KeyCode::Char('s'), M::CONTROL));
         assert_eq!(ev, None);
         assert_eq!(p.query, "");
+    }
+
+    #[test]
+    fn page_keys_step_by_the_viewport_and_a_short_screen_keeps_a_row() {
+        let mut p = Picker::new(WidgetId::of("p"), "Pick");
+        p.set_items(
+            (0..40)
+                .map(|i| PickerItem {
+                    label: format!("item {i:02}"),
+                    detail: String::new(),
+                    glyph: "",
+                    group: "",
+                    tag: None,
+                    matched: vec![],
+                    disabled: false,
+                    key: format!("k{i}"),
+                })
+                .collect(),
+        );
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(Rect::new(0, 0, 60, 8));
+        p.render(Rect::new(0, 0, 60, 8), &mut buf, &mut ctx, "hints");
+        assert!(
+            p.scroll.viewport_len >= 1,
+            "a short screen still shows a row"
+        );
+        let shown: String = (0..8)
+            .map(|y| {
+                (0..60)
+                    .map(|x| buf[(x, y)].symbol().to_owned())
+                    .collect::<String>()
+                    + "\n"
+            })
+            .collect();
+        assert!(shown.contains("item 00"), "{shown}");
+        let view = p.scroll.viewport_len;
+        let key = Key {
+            code: KeyCode::PageDown,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        p.on_key(&key);
+        assert_eq!(p.cursor, view, "one page is one viewport row set");
     }
 
     fn render(p: &mut Picker) -> String {

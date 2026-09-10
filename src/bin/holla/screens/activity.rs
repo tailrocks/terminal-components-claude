@@ -622,7 +622,7 @@ impl Screen for ActivityTab {
             return self.view.on_drag(pos);
         }
         if pressed == junie_tui::widgets::scrollbar::id_for(VIEW) {
-            return self.view.on_scrollbar(pos);
+            return self.view.on_scrollbar_drag(pos);
         }
         Outcome::Ignored
     }

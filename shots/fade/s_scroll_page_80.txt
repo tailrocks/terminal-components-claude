@@ -1,0 +1,24 @@
+ ▪ Junie Design system / Components / Scrolling           i Inspector   ? Help  
+                                                                                
+   Overview       ┃  Scrolling  Wheel under the pointer, keys on the focused c… 
+   Buttons        ┃                                                             
+   Inputs         ┃   ▎Wra… 16–30 of…      Lon… 1–15 of …      Log 411–425 of…  
+   Text areas     ┃                                                             
+   Forms          ┃    reports back │         Row 001   ┃       151.70s  in… │  
+   Lists          ┃    with a       ┃         Row 002   │       152.07s  in… │  
+   Trees          ┃    summary you  │         Row 003   │       152.44s  wa… │  
+   Tables         ┃    can review   │         Row 004   │       152.81s  in… │  
+   Editable tabl… ┃    before       │         Row 005   │       153.18s  in… │  
+   Panels         ┃    anything is  │         Row 006   │       153.55s  in… │  
+   Sidebars       ┃    merged.      │         Row 007   │       153.92s  in… │  
+   Dialogs        ┃                 │         Row 008   │       154.29s  er… │  
+   Progress       ┃    Each step is │         Row 009   │       154.66s  in… │  
+ › Scrolling      ┃    visible. You │         Row 010   │       155.03s  in… │  
+   Terminal       ┃    can pause,   │         Row 011   │       155.40s  in… │  
+   Code editor    ┃    redirect, or │         Row 012   │       155.77s  in… │  
+   Diff           ┃    take over at │         Row 013   │       156.14s  in… │  
+   Data grid      │    any point,   │         Row 014   │       156.51s  in… │  
+   Chips & selec… │    and every    │         Row 015   │       156.88s  wa… ┃  
+   Pickers        │                                                             
+                                                                                
+ ↑ ↓ Scroll  PgUp PgDn Page  g G Ends  Tab Next                                 

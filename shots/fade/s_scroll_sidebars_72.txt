@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Sidebars    i Inspector   ? Help  
+                                                                        
+   Overview       ┃  Sidebars  Sections, current item, focus cursor, h… 
+   Buttons        ┃                                                     
+   Inputs         ┃                                  Tasks              
+   Text areas     ┃     B Branches              │                       
+   Forms          ┃                             │    One focus stop. ↑  
+   Lists          ┃     Project                 │    ↓ move the         
+   Trees          ┃     M Members               ┃    cursor, Enter      
+   Tables         ┃     E Environment           ┃    opens.             
+   Editable tabl… ┃     $ Billing               ┃                       
+   Panels         ┃                             ┃    ›  current item ·  
+ › Sidebars       ┃     Preferences             ┃    persists when      
+   Dialogs        │     K Keyboard              ┃    focus leaves       
+   Progress       │  ▎  A Appearance            ┃    ▎  keyboard        
+   Scrolling      │                                  cursor · only      
+   Terminal       │    Collapse                      while focused      
+   Code editor    │                                                     
+                                                                        
+ ↑ ↓ Move  Enter Open  Tab Next                                         

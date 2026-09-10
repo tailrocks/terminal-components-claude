@@ -34,8 +34,7 @@ impl ScrollingPage {
                 ListItem::new(&format!("Row {i:03}")).meta(if i % 7 == 0 { "flagged" } else { "" })
             })
             .collect();
-        let mut log = ScrollPanel::new(ID.sub("log"), crate::data::log_lines(400));
-        log.follow = true;
+        let log = ScrollPanel::new(ID.sub("log"), crate::data::log_lines(400)).tail(true);
         Self {
             prose: ScrollPanel::new(ID.sub("prose"), text).wrap(true),
             list: ListBox::new(ID.sub("list"), items, SelectMode::Single),
@@ -70,34 +69,45 @@ impl Page for ScrollingPage {
                 area.height,
             ),
         ];
-        let pos = scrollbar::position_label(&self.prose.scroll);
-        let panel = Panel::card(Some("Wrapped text"))
-            .meta(&pos)
-            .focused(ctx.interaction.focused(self.prose.id));
+        // titles first, content second, the position last: a label read
+        // after the content laid itself out is exact on the first frame,
+        // after a resize and after every tick
+        let panel =
+            Panel::card(Some("Wrapped text")).focused(ctx.interaction.focused(self.prose.id));
         let bg = panel.bg(t);
         let inner = panel.render(cols[0], buf, t);
         self.prose.render(inner, buf, ctx, bg, prose_style);
+        panel.draw_meta(
+            cols[0],
+            buf,
+            t,
+            &scrollbar::position_label(&self.prose.scroll),
+        );
 
-        let pos = scrollbar::position_label(&self.list.scroll);
-        let panel = Panel::card(Some("Long list"))
-            .meta(&pos)
-            .focused(ctx.interaction.focused(self.list.id));
+        let panel = Panel::card(Some("Long list")).focused(ctx.interaction.focused(self.list.id));
         let bg = panel.bg(t);
         let inner = panel.render(cols[1], buf, t);
         self.list.render(inner, buf, ctx, bg);
+        panel.draw_meta(
+            cols[1],
+            buf,
+            t,
+            &scrollbar::position_label(&self.list.scroll),
+        );
 
+        let lf = ctx.interaction.focused(self.log.id);
+        let panel = Panel::card(Some("Log")).focused(lf);
+        let bg = panel.bg(t);
+        let inner = panel.render(cols[2], buf, t);
+        self.log
+            .render(inner, buf, ctx, bg, crate::pages::panels::log_style);
         let pos = scrollbar::position_label(&self.log.scroll);
         let meta = if self.log.follow {
             format!("{pos} · following")
         } else {
             pos
         };
-        let lf = ctx.interaction.focused(self.log.id);
-        let panel = Panel::card(Some("Log")).focused(lf).meta(&meta);
-        let bg = panel.bg(t);
-        let inner = panel.render(cols[2], buf, t);
-        self.log
-            .render(inner, buf, ctx, bg, crate::pages::panels::log_style);
+        panel.draw_meta(cols[2], buf, t, &meta);
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
@@ -128,11 +138,17 @@ impl Page for ScrollingPage {
                 }
                 Outcome::Ignored
             }
-            PageEvent::Click { id, pos } => {
+            PageEvent::Press { id, pos } | PageEvent::Click { id, pos } => {
                 if let Some(row) = self.list.locate(*id) {
+                    if matches!(ev, PageEvent::Press { .. }) {
+                        return Outcome::Ignored;
+                    }
                     cx.focus.focus(self.list.id);
                     return self.list.on_click(row);
                 }
+                // the press grabs the thumb or jumps to the track; the
+                // completed click after a drag then finds the thumb under
+                // the pointer and moves nothing
                 if *id == scrollbar::id_for(self.list.id) {
                     return self.list.on_scrollbar(*pos);
                 }
@@ -145,11 +161,11 @@ impl Page for ScrollingPage {
             }
             PageEvent::Drag { pressed, pos } => {
                 if *pressed == scrollbar::id_for(self.list.id) {
-                    return self.list.on_scrollbar(*pos);
+                    return self.list.on_scrollbar_drag(*pos);
                 }
                 for p in [&mut self.prose, &mut self.log] {
                     if scrollbar::id_for(p.id) == *pressed {
-                        return p.on_scrollbar(*pos);
+                        return p.on_scrollbar_drag(*pos);
                     }
                 }
                 Outcome::Ignored
