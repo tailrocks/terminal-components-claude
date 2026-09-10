@@ -17,7 +17,9 @@ use crate::scenario::{Motion, Scenario};
 const HOME: &str = "/Users/alex";
 
 fn open(h: &mut H, label: &str) {
-    h.key(KeyCode::Esc);
+    // Alt+0 is the Here tab; Ctrl+U clears whatever query was left there
+    h.alt(KeyCode::Char('0'));
+    h.ctrl(KeyCode::Char('u'));
     h.type_str(label);
     h.key(KeyCode::Enter);
 }
@@ -1204,4 +1206,491 @@ fn hp10_brew_services_verbs_are_exact_capped_and_fail_with_brew_s_reason() {
     open(&mut h, "Homebrew services");
     assert!(h.text().contains("fails on this host"), "{}", h.text());
     assert!(h.text().contains("svc10"), "{}", h.text());
+}
+
+/// The item count named in the gate-2 title ("Trash 4 items · gate 2 of 2").
+fn gate2_items(h: &H) -> usize {
+    let text = h.text();
+    let line = text
+        .lines()
+        .find(|l| l.contains("gate 2 of 2"))
+        .unwrap_or_else(|| panic!("{text}"));
+    line.split_whitespace()
+        .find_map(|w| w.parse::<usize>().ok())
+        .unwrap_or_else(|| panic!("{line}"))
+}
+
+/// Gate 2: type the exact phrase into the dialog and execute.
+fn gate2(h: &mut H, phrase: &str) {
+    assert!(h.text().contains("gate 2 of 2"), "{}", h.text());
+    h.key(KeyCode::Enter);
+    h.type_str(phrase);
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Enter);
+}
+
+// ------------------------------------------------------------ HP11
+
+#[test]
+fn hp11_gradle_wrapper_daemon_and_recursive_cleanup_are_bounded_and_truthful() {
+    let mut h = H::new(Scenario::ParityGradle, Motion::Reduced, 0, 120, 40);
+    h.ticks(6);
+    let items = h.app.world.items();
+    let ids: Vec<&str> = items.iter().map(|i| i.id.as_str()).collect();
+    for id in [
+        "gradle.build",
+        "gradlew.build",
+        "gradle.clean",
+        "gradlew.clean",
+        "gradle.test",
+        "gradlew.test",
+        "gradle.clean-all",
+    ] {
+        assert!(ids.contains(&id), "{id}: {ids:?}");
+    }
+    let wrapper = items.iter().find(|i| i.id == "gradlew.build").unwrap();
+    assert_eq!(
+        argv_of(wrapper),
+        vec!["./gradlew build @/Users/alex/work/android"]
+    );
+    // the build fails with gradle's exit; the daemon stays up
+    run(&mut h, "./gradlew build");
+    let id = activity_id(&h);
+    assert_eq!(settle(&mut h, &id), ActivityState::Failed);
+    assert!(h.app.world.gradle.daemon_running);
+    // clean lands its effect: the top-level build output is gone
+    h.alt(KeyCode::Char('0'));
+    run(&mut h, "gradle clean");
+    let id = activity_id(&h);
+    assert_eq!(
+        argv(&h, &id),
+        vec!["gradle clean @/Users/alex/work/android"]
+    );
+    assert_eq!(settle(&mut h, &id), ActivityState::Succeeded);
+    assert!(!h.app.world.fs.exists("/Users/alex/work/android/build"));
+    // the recursive cleanup: depth-bounded, skips node_modules, never follows
+    // the link; the label states the measured size
+    let all = items.iter().find(|i| i.id == "gradle.clean-all").unwrap();
+    assert!(all.label.contains("49.0 MiB"), "{}", all.label);
+    h.alt(KeyCode::Char('0'));
+    open(&mut h, "Clean Gradle outputs");
+    assert!(h.text().contains("Cleanup"), "{}", h.text());
+    h.key(KeyCode::Right);
+    let t = h.text();
+    assert!(
+        t.contains("app/build") && t.contains("android/.gradle") && t.contains("a/b/c/d/e/bu"),
+        "{t}"
+    );
+    assert!(
+        !t.contains("e/f/build") && !t.contains("too-deep"),
+        "beyond the depth bound: {t}"
+    );
+    assert!(!t.contains("android/node_modules"), "{t}");
+    assert!(!t.contains("work/other"), "the link is never followed: {t}");
+    // the deletion runs gradle --stop first; a failing stop cancels the
+    // cleanup (the stale candidates are preselected)
+    assert!(h.text().contains("3 selected"), "{}", h.text());
+    h.key(KeyCode::Char('d'));
+    assert!(h.text().contains("gradle --stop first"), "{}", h.text());
+    h.app.world.gradle.stop_fails = Some("Gradle daemon is busy".into());
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    let n = gate2_items(&h);
+    gate2(
+        &mut h,
+        &format!("TRASH {n} UNDER /Users/alex/work/android ON mbp"),
+    );
+    assert!(h.text().contains("gradle --stop failed"), "{}", h.text());
+    assert!(
+        h.app.world.fs.exists("/Users/alex/work/android/.gradle"),
+        "nothing was removed"
+    );
+    assert!(h.app.world.gradle.daemon_running);
+}
+
+// ------------------------------------------------------------ HP12
+
+#[test]
+fn hp12_intellij_cleanup_finds_metadata_case_insensitively_and_logs_a_failed_log_write() {
+    let mut h = H::new(Scenario::ParityIdea, Motion::Reduced, 0, 120, 40);
+    h.ticks(4);
+    let items = h.app.world.items();
+    let idea = items.iter().find(|i| i.id == "idea.clean").unwrap();
+    assert!(idea.label.contains("44.0 KiB"), "{}", idea.label);
+    open(&mut h, "Clean IntelliJ metadata");
+    h.key(KeyCode::Right);
+    let t = h.text();
+    // exact lowercase `.iml` (OP49): the upper-case file is not metadata
+    // rows truncate long paths in the middle: match their visible heads
+    for want in [
+        "app.iml",
+        "~/work/ide/.idea",
+        "mod/mod.iml",
+        "a/b/c/d/e/deep",
+    ] {
+        assert!(t.contains(want), "{want}\n{t}");
+    }
+    for never in ["Upper", "e/f/g", "ide/node_modules", "elsewhere", "nested"] {
+        assert!(!t.contains(never), "{never} must not be a candidate\n{t}");
+    }
+    assert!(
+        t.contains("locked"),
+        "the unreadable folder is reported: {t}"
+    );
+    assert!(
+        t.contains("4 selected"),
+        "stale metadata is preselected: {t}"
+    );
+    h.key(KeyCode::Char('d'));
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    let n = gate2_items(&h);
+    gate2(
+        &mut h,
+        &format!("TRASH {n} UNDER /Users/alex/work/ide ON mbp"),
+    );
+    // the report: removed items, the log failure named, nothing rolled back
+    assert!(h.text().contains("report"), "{}", h.text());
+    assert!(
+        h.text().contains("write failures") || h.text().contains("EROFS"),
+        "{}",
+        h.text()
+    );
+    assert!(!h.app.world.fs.exists("/Users/alex/work/ide/app.iml"));
+    assert!(
+        h.app
+            .world
+            .fs
+            .exists("/Users/alex/work/ide/node_modules/x/.idea/x.xml")
+    );
+    let r = h.app.world.reports.last().unwrap();
+    assert!(r.log_failures > 0);
+    assert!(
+        r.count(crate::domain::cleanup::Outcome::Trashed) >= 4,
+        "{:?}",
+        r.items
+    );
+}
+
+// ------------------------------------------------------------ HP13
+
+#[test]
+fn hp13_upgrade_managers_run_exact_stages_and_the_plan_branches() {
+    let mut h = H::new(Scenario::ParityUpgradeManagers, Motion::Reduced, 0, 120, 40);
+    h.ticks(6);
+    let items = h.app.world.items();
+    let brew = items
+        .iter()
+        .find(|i| i.id == "upgrade.brew-packages")
+        .unwrap();
+    assert_eq!(
+        argv_of(brew),
+        vec![
+            "brew update @/Users/alex",
+            "brew upgrade --greedy --yes @/Users/alex",
+            "brew cleanup @/Users/alex",
+            "brew autoremove @/Users/alex",
+            "brew doctor @/Users/alex"
+        ]
+    );
+    let omz = items.iter().find(|i| i.id == "upgrade.oh-my-zsh").unwrap();
+    assert_eq!(
+        argv_of(omz),
+        vec!["sh /Users/alex/.config/omz/tools/upgrade.sh @/Users/alex"],
+        "$ZSH wins over ~/.oh-my-zsh"
+    );
+    // the sequential batch: doctor fails on this host, the earlier stages
+    // succeeded and the upgrade effect landed
+    run(&mut h, "Upgrade Homebrew packages");
+    h.ticks(1);
+    let batch = h.app.world.batches.last().cloned().unwrap();
+    assert_eq!(batch.members.len(), 5);
+    for _ in 0..80 {
+        h.ticks(1);
+    }
+    let states: Vec<(String, ActivityState)> = batch
+        .members
+        .iter()
+        .map(|m| {
+            let a = h.app.world.activity(m).unwrap();
+            (a.name.clone(), a.state)
+        })
+        .collect();
+    assert_eq!(states[1].1, ActivityState::Succeeded, "{states:?}");
+    assert_eq!(
+        states[4].1,
+        ActivityState::Failed,
+        "brew doctor fails on this host: {states:?}"
+    );
+    assert!(
+        h.app.world.upgrade.brew_outdated.is_empty(),
+        "the upgrade effect landed"
+    );
+    // mise upgrade moves the global tools to their latest versions
+    h.alt(KeyCode::Char('0'));
+    run(&mut h, "Upgrade mise-managed tools");
+    let id = activity_id(&h);
+    assert_eq!(argv(&h, &id), vec!["mise upgrade @/Users/alex"]);
+    assert_eq!(settle(&mut h, &id), ActivityState::Succeeded);
+    assert!(
+        h.app
+            .world
+            .mise
+            .global_tools
+            .iter()
+            .all(|t| t.active.as_deref() == Some(t.latest.as_str()))
+    );
+    // the everything plan: branches per manager, brew chained, verify last
+    h.alt(KeyCode::Char('0'));
+    open(&mut h, "Upgrade everything");
+    assert!(
+        h.text().contains("Upgrade everything · mbp") && h.text().contains("9 steps"),
+        "{}",
+        h.text()
+    );
+    let plan = h.app.world.plan("upgrade-all").unwrap();
+    let ids: Vec<&str> = plan.steps.iter().map(|s| s.id.as_str()).collect();
+    for id in [
+        "brew-update",
+        "brew-upgrade",
+        "brew-casks",
+        "mise-upgrade",
+        "amp-update",
+        "omz-upgrade",
+        "verify",
+    ] {
+        assert!(ids.contains(&id), "{id}: {ids:?}");
+    }
+    let doctor = plan.steps.iter().find(|s| s.id == "brew-doctor").unwrap();
+    assert!(doctor.fails);
+    assert!(
+        plan.steps
+            .iter()
+            .find(|s| s.id == "mise-upgrade")
+            .unwrap()
+            .deps
+            .is_empty(),
+        "managers run beside the brew chain"
+    );
+}
+
+// ------------------------------------------------------------ HP14
+
+#[test]
+fn hp14_output_streams_are_exact_and_retention_drops_are_stated() {
+    let mut h = H::new(Scenario::ParityExecutor, Motion::Reduced, 0, 120, 40);
+    h.ticks(6);
+    run(&mut h, "Emit a mixed stream");
+    let id = activity_id(&h);
+    assert_eq!(argv(&h, &id), vec!["./emit-stream @/Users/alex/work/batch"]);
+    assert_eq!(settle(&mut h, &id), ActivityState::Succeeded);
+    let out = output(&h, &id);
+    assert_eq!(out[0], "first", "CRLF stripped: {out:?}");
+    assert_eq!(
+        out[1], "\u{1b}[32mgreen\u{1b}[0m",
+        "the executor keeps the bytes: {out:?}"
+    );
+    assert!(
+        !h.text().contains('\u{1b}'),
+        "the viewer never paints a raw escape: {}",
+        h.text()
+    );
+    assert!(h.text().contains("green"), "{}", h.text());
+    assert!(
+        out[2].contains("bad \u{fffd} byte"),
+        "invalid UTF-8 replaced, never dropped: {out:?}"
+    );
+    assert_eq!(
+        out[3], "last fragment",
+        "a final fragment without newline is a line: {out:?}"
+    );
+    // the burst: 4500 lines, the last 4000 kept, the drop stated
+    h.alt(KeyCode::Char('0'));
+    run(&mut h, "Emit a burst");
+    let id = activity_id(&h);
+    assert_eq!(settle(&mut h, &id), ActivityState::Succeeded);
+    let a = h.app.world.activity(&id).unwrap();
+    assert_eq!(a.output.len(), 4000);
+    assert_eq!(a.dropped, 500);
+    assert_eq!(a.output[0].1, "burst line 500");
+    assert!(
+        h.text().contains("500 earlier lines dropped"),
+        "{}",
+        h.text()
+    );
+    // the sequential batch runs one member after another and stops the rest
+    // when asked; the summary counts what actually happened
+    h.alt(KeyCode::Char('0'));
+    let mut hb = H::new(Scenario::ParityGitBatch, Motion::Reduced, 0, 120, 40);
+    hb.ticks(6);
+    let mode = hb
+        .app
+        .world
+        .items()
+        .iter()
+        .find(|i| i.id == "git.push-all-remotes")
+        .unwrap()
+        .batch_mode;
+    run(&mut hb, "Push 4 repositories to origin and GitLab");
+    hb.ticks(1);
+    let batch = hb.app.world.batches.last().cloned().unwrap();
+    let first = hb.app.world.activity(&batch.members[0]).unwrap().state;
+    let second = hb.app.world.activity(&batch.members[1]).unwrap().state;
+    assert_eq!(batch.mode, mode);
+    assert_eq!(first, ActivityState::Running);
+    match mode {
+        crate::sim::world::BatchMode::Sequential => {
+            assert_eq!(second, ActivityState::Queued, "sequential: the next waits");
+            assert!(hb.text().contains("queued"), "{}", hb.text());
+        }
+        crate::sim::world::BatchMode::Parallel => {
+            assert_eq!(
+                second,
+                ActivityState::Running,
+                "parallel: members run together"
+            );
+        }
+    }
+}
+
+// ------------------------------------------------------------ HP15
+
+#[test]
+fn hp15_prompts_take_exact_input_and_cancellation_escalates_truthfully() {
+    let mut h = H::new(Scenario::ParityTaskInput, Motion::Reduced, 0, 120, 40);
+    h.ticks(4);
+    run(&mut h, "Deploy the release");
+    let id = activity_id(&h);
+    assert_eq!(argv(&h, &id), vec!["./deploy.sh @/srv/app"]);
+    h.ticks(4);
+    assert!(
+        h.app
+            .world
+            .activity(&id)
+            .unwrap()
+            .waiting
+            .as_ref()
+            .is_some_and(|p| p.secret)
+    );
+    assert!(h.text().contains("waiting for input"), "{}", h.text());
+    assert!(h.text().contains("input wanted"), "{}", h.text());
+    // input mode: the secret is never echoed or retained; Enter sends it
+    h.key(KeyCode::Char('i'));
+    assert!(h.text().contains("typing goes to stdin"), "{}", h.text());
+    h.type_str("hunter2");
+    assert!(
+        !h.text().contains("hunter2"),
+        "a secret is never echoed: {}",
+        h.text()
+    );
+    h.key(KeyCode::Enter);
+    let a = h.app.world.activity(&id).unwrap();
+    assert!(
+        a.stdin.iter().all(|r| r.secret && r.bytes.is_empty()),
+        "{:?}",
+        a.stdin
+    );
+    assert!(a.waiting.is_none());
+    h.ticks(4);
+    assert!(
+        output(&h, &id).iter().any(|l| l == "authenticated"),
+        "{:?}",
+        output(&h, &id)
+    );
+    // the second prompt echoes a plain answer; n cancels the rollout
+    assert!(
+        h.app
+            .world
+            .activity(&id)
+            .unwrap()
+            .waiting
+            .as_ref()
+            .is_some_and(|p| !p.secret)
+    );
+    h.type_str("n");
+    h.key(KeyCode::Enter);
+    assert_eq!(settle(&mut h, &id), ActivityState::Failed);
+    let out = output(&h, &id);
+    assert!(
+        out.iter().any(|l| l.ends_with("[y/N] n")),
+        "the answer is echoed on the prompt row: {out:?}"
+    );
+    assert!(
+        out.iter().any(|l| l.contains("rollout cancelled")),
+        "{out:?}"
+    );
+    assert_eq!(h.app.world.activity(&id).unwrap().exit, Some(2));
+    // EOF at the password prompt takes the EOF branch
+    h.alt(KeyCode::Char('0'));
+    run(&mut h, "Deploy the release");
+    let id = activity_id(&h);
+    h.ticks(4);
+    h.key(KeyCode::Char('i'));
+    h.ctrl(KeyCode::Char('d'));
+    let st = settle(&mut h, &id);
+    assert_eq!(
+        st,
+        ActivityState::Failed,
+        "{:?} · stdin {:?}",
+        output(&h, &id),
+        h.app.world.activity(&id).unwrap().stdin
+    );
+    assert!(
+        output(&h, &id).iter().any(|l| l.contains("aborted (EOF)")),
+        "{:?}",
+        output(&h, &id)
+    );
+    assert!(
+        output(&h, &id).iter().any(|l| l.ends_with("Password: ^D")),
+        "EOF is visible: {:?}",
+        output(&h, &id)
+    );
+    // a resistant program: stop sends TERM, KILL follows after the grace
+    h.alt(KeyCode::Char('0'));
+    run(&mut h, "Run the stubborn worker");
+    let id = activity_id(&h);
+    h.ticks(2);
+    h.key(KeyCode::Char('s'));
+    assert_eq!(
+        h.app.world.activity(&id).unwrap().state,
+        ActivityState::Cancelling
+    );
+    assert!(h.text().contains("stopping"), "{}", h.text());
+    h.ticks(4);
+    assert_eq!(
+        h.app.world.activity(&id).unwrap().state,
+        ActivityState::Cancelling,
+        "TERM alone does not end it"
+    );
+    h.ticks(10);
+    assert_eq!(
+        h.app.world.activity(&id).unwrap().state,
+        ActivityState::Stopped
+    );
+    let out = output(&h, &id).join("\n");
+    assert!(out.contains("SIGKILL"), "{out}");
+    // Ctrl+C in input mode is the same stop request
+    h.alt(KeyCode::Char('0'));
+    run(&mut h, "Run the stubborn worker");
+    let id = activity_id(&h);
+    h.ticks(1);
+    h.key(KeyCode::Char('i'));
+    h.ctrl(KeyCode::Char('c'));
+    assert_eq!(
+        h.app.world.activity(&id).unwrap().state,
+        ActivityState::Cancelling
+    );
+    assert!(output(&h, &id).iter().any(|l| l == "^C"));
+    // a finished program takes no input
+    h.alt(KeyCode::Char('0'));
+    run(&mut h, "Quick no-op");
+    let id = activity_id(&h);
+    assert_eq!(settle(&mut h, &id), ActivityState::Succeeded);
+    h.key(KeyCode::Char('i'));
+    assert!(
+        h.text().contains("finished · nothing reads input"),
+        "{}",
+        h.text()
+    );
 }

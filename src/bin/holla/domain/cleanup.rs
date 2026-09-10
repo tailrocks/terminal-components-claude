@@ -515,11 +515,24 @@ fn walk_artifacts(fs: &Fs, dir: &str, depth: usize, out: &mut Vec<String>) {
 /// never enters node_modules, depth five, does not descend a selected
 /// directory, unreadable entries skipped, sorted unique paths.
 pub fn walk_candidates(fs: &Fs, root: &str, select: &dyn Fn(&str, bool) -> bool) -> Vec<String> {
+    walk_candidates_report(fs, root, select).0
+}
+
+/// The walk plus every directory it could not read: a folder it had to
+/// skip is reported, so a partial answer is never presented as complete.
+pub fn walk_candidates_report(
+    fs: &Fs,
+    root: &str,
+    select: &dyn Fn(&str, bool) -> bool,
+) -> (Vec<String>, Vec<String>) {
     let mut out = vec![];
-    walk_sel(fs, root, 0, select, &mut out);
+    let mut unreadable = vec![];
+    walk_sel(fs, root, 0, select, &mut out, &mut unreadable);
     out.sort();
     out.dedup();
-    out
+    unreadable.sort();
+    unreadable.dedup();
+    (out, unreadable)
 }
 
 fn walk_sel(
@@ -528,12 +541,17 @@ fn walk_sel(
     depth: usize,
     select: &dyn Fn(&str, bool) -> bool,
     out: &mut Vec<String>,
+    unreadable: &mut Vec<String>,
 ) {
     if depth > 5 {
         return;
     }
-    let Ok(children) = fs.list(dir) else {
-        return;
+    let children = match fs.list(dir) {
+        Ok(c) => c,
+        Err(_) => {
+            unreadable.push(dir.to_owned());
+            return;
+        }
     };
     for c in children {
         if matches!(c.kind, NodeKind::Symlink { .. }) {
@@ -546,8 +564,12 @@ fn walk_sel(
             out.push(c.path.clone());
             continue;
         }
-        if c.is_dir() && c.readable {
-            walk_sel(fs, &c.path, depth + 1, select, out);
+        if c.is_dir() {
+            if c.readable {
+                walk_sel(fs, &c.path, depth + 1, select, out, unreadable);
+            } else {
+                unreadable.push(c.path.clone());
+            }
         }
     }
 }
