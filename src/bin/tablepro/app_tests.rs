@@ -473,9 +473,10 @@ fn safety_gate_acknowledgement_supports_mouse_focus_edit_and_confirmation() {
         _ => unreachable!(),
     };
     h.key(KeyCode::Tab); // Leave the acknowledgement before clicking it.
+    // one click focuses the field and starts editing; a second click keeps it
     h.click(ack_area.x + 2, ack_area.y);
     assert_eq!(h.focus(), Some(ack_id));
-    assert!(matches!(h.app.modal.as_ref(), Some(Modal::Dialog(d)) if !d.is_editing()));
+    assert!(matches!(h.app.modal.as_ref(), Some(Modal::Dialog(d)) if d.is_editing()));
     h.click(ack_area.x + 2, ack_area.y);
     assert!(matches!(h.app.modal.as_ref(), Some(Modal::Dialog(d)) if d.is_editing()));
     h.type_str("wrong");
