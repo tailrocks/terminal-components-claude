@@ -3027,13 +3027,14 @@ pub fn insight_candidates(w: &World) -> Vec<InsightCategory> {
             roots = vec![format!("{}/uv", w.platform.xdg_cache_home)];
         }
         let mut paths: Vec<String> = vec![];
+        let mut unreadable: Vec<String> = vec![];
         if cat.id == "project.artifacts" {
             let mut scan_roots = vec![format!("{home}/Projects")];
             if let Some(parent) = crate::sim::fs::Fs::parent(&w.location.cwd) {
                 scan_roots.push(parent);
             }
             let existing: Vec<String> = scan_roots.into_iter().filter(|r| w.fs.is_dir(r)).collect();
-            paths = cleanup::find_artifacts(&w.fs, &existing);
+            (paths, unreadable) = cleanup::find_artifacts_report(&w.fs, &existing);
         } else {
             for r in &roots {
                 if cat.children_of_root {
@@ -3078,7 +3079,7 @@ pub fn insight_candidates(w: &World) -> Vec<InsightCategory> {
             category: cat,
             candidates: cands,
             process,
-            unreadable: vec![],
+            unreadable,
         });
     }
     out

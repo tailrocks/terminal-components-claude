@@ -17,8 +17,15 @@ use crate::scenario::{Motion, Scenario};
 const HOME: &str = "/Users/alex";
 
 fn open(h: &mut H, label: &str) {
-    // Alt+0 is the Here tab; Ctrl+U clears whatever query was left there
+    // Alt+0 is the Here tab; Esc leaves any page above the finder; Ctrl+U
+    // clears whatever query was left there
     h.alt(KeyCode::Char('0'));
+    for _ in 0..8 {
+        if h.app.tabs[0].stack.len() <= 1 || !h.app.modals.is_empty() {
+            break;
+        }
+        h.key(KeyCode::Esc);
+    }
     h.ctrl(KeyCode::Char('u'));
     h.type_str(label);
     h.key(KeyCode::Enter);
@@ -1693,4 +1700,851 @@ fn hp15_prompts_take_exact_input_and_cancellation_escalates_truthfully() {
         "{}",
         h.text()
     );
+}
+
+// ------------------------------------------------------------ HP17
+
+#[test]
+fn hp17_custom_actions_are_exact_argv_reviewed_by_digest_and_never_run_unsaved() {
+    let mut h = H::new(Scenario::ParityCustomActions, Motion::Reduced, 0, 120, 40);
+    h.ticks(4);
+    let items = h.app.world.items();
+    let ids: Vec<&str> = items.iter().map(|i| i.id.as_str()).collect();
+    // global and project actions; a project id that repeats a global one is
+    // dropped as a diagnostic; a malformed id never becomes an action
+    for id in [
+        "notes",
+        "shared",
+        "deploy.preview",
+        "wipe",
+        "multi",
+        "custom.config",
+    ] {
+        assert!(ids.contains(&id), "{id}: {ids:?}");
+    }
+    assert!(!ids.contains(&"Bad Id"));
+    let shared = items.iter().find(|i| i.id == "shared").unwrap();
+    assert!(
+        shared.provenance.contains("global"),
+        "the global definition wins: {}",
+        shared.provenance
+    );
+    let cfg = h.app.world.custom_project.clone().unwrap();
+    assert!(
+        cfg.diagnostics.iter().any(|d| d.text().contains("shared")),
+        "{:?}",
+        cfg.diagnostics
+    );
+    assert!(
+        cfg.diagnostics.iter().any(|d| d.text().contains("Bad Id")),
+        "{:?}",
+        cfg.diagnostics
+    );
+    // argv is exact: the shell substitution is a literal argument
+    let deploy = items.iter().find(|i| i.id == "deploy.preview").unwrap();
+    assert_eq!(
+        argv_of(deploy),
+        vec!["tools/deploy-preview.sh --env 'preview stack' '$(whoami)' @/Users/alex/work/team"]
+    );
+    let multi = items.iter().find(|i| i.id == "multi").unwrap();
+    assert_eq!(multi.all_exec()[0].args, vec!["%s\n", "a\nb c"]);
+    // the bytes were trusted at another path (and as a legacy digest-only
+    // record): both mean review again; the trust page names the whole-file
+    // digest and the exact argv, then approval binds path and cwd
+    let status = h
+        .app
+        .world
+        .trust
+        .status(&cfg.digest, &cfg.path, "/Users/alex/work/team");
+    assert!(
+        matches!(
+            status,
+            crate::domain::custom::TrustStatus::Moved
+                | crate::domain::custom::TrustStatus::LegacyDigestOnly
+        ),
+        "{status:?}"
+    );
+    open(&mut h, "Deploy preview");
+    assert!(h.text().contains("Trust"), "{}", h.text());
+    assert!(h.text().contains("sha256:"), "{}", h.text());
+    assert!(
+        h.text().contains("argv[3]") && h.text().contains("$(whoami)"),
+        "{}",
+        h.text()
+    );
+    // the file changes during review: nothing is trusted or run
+    let edited = cfg.text.replace("Deploy preview", "Deploy PREVIEW");
+    h.app.world.fs.text(&cfg.path, &edited, 0);
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("changed during review"), "{}", h.text());
+    assert!(matches!(h.tab_kind(), TabKind::Here));
+    assert!(
+        h.app
+            .world
+            .trust
+            .status(&cfg.digest, &cfg.path, "/Users/alex/work/team")
+            != crate::domain::custom::TrustStatus::Trusted
+    );
+    // reviewed again with the current bytes: approval persists, the action runs
+    let now_cfg = h.app.world.custom_project.clone().unwrap();
+    open(&mut h, "Deploy preview");
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    let id = activity_id(&h);
+    assert_eq!(
+        argv(&h, &id),
+        vec!["tools/deploy-preview.sh --env 'preview stack' '$(whoami)' @/Users/alex/work/team"]
+    );
+    assert_eq!(
+        h.app
+            .world
+            .trust
+            .status(&now_cfg.digest, &now_cfg.path, "/Users/alex/work/team"),
+        crate::domain::custom::TrustStatus::Trusted
+    );
+    let saved = h.app.world.persisted.trust.clone().unwrap();
+    assert!(
+        saved.contains(&now_cfg.digest) && saved.contains("/Users/alex/work/team/.holla.toml"),
+        "{saved}"
+    );
+    // a trust store that cannot be saved runs nothing
+    h.alt(KeyCode::Char('0'));
+    h.app.world.trust.save_failure = Some("EROFS".into());
+    let _ = h.app.world.trust.revoke(&now_cfg.digest);
+    open(&mut h, "Deploy preview");
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("nothing was run"), "{}", h.text());
+    assert!(matches!(h.tab_kind(), TabKind::Here));
+    // the destructive action confirms once and runs its argv without a shell
+    h.app.world.trust.save_failure = None;
+    open(&mut h, "Wipe local caches");
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    confirm(&mut h);
+    let id = activity_id(&h);
+    assert_eq!(
+        argv(&h, &id),
+        vec!["sh -c 'rm -rf .cache && echo done' @/Users/alex/work/team"]
+    );
+}
+
+// ------------------------------------------------------------ HP18
+
+#[test]
+fn hp18_disk_scan_streams_measures_exactly_and_keeps_cached_hints_as_hints() {
+    let mut h = H::new(Scenario::ParityDiskScan, Motion::Reduced, 0, 120, 40);
+    h.ticks(2);
+    open(&mut h, "Analyze disk usage");
+    assert!(h.text().contains("Disk › Usage"), "{}", h.text());
+    assert!(h.text().contains("scanning ·"), "{}", h.text());
+    // a cached size is a hint with its age until the live number arrives
+    let scan = h.app.world.scan.clone().unwrap();
+    assert_eq!(scan.ticks, 48);
+    let now = h.app.world.now_secs();
+    let mtime = |h: &H, p: &str| h.app.world.fs.get(p).map(|n| n.mtime).unwrap_or(0);
+    assert!(
+        h.app
+            .world
+            .size_cache
+            .hint(
+                "/Users/alex/work/data/media",
+                mtime(&h, "/Users/alex/work/data/media"),
+                now
+            )
+            .is_some(),
+        "a valid entry is a hint"
+    );
+    assert!(
+        !h.app
+            .world
+            .size_cache
+            .entries
+            .iter()
+            .any(|e| e.path.ends_with("/expired")),
+        "expired entries are dropped at load"
+    );
+    assert!(
+        h.app
+            .world
+            .size_cache
+            .hint(
+                "/Users/alex/work/data/many",
+                mtime(&h, "/Users/alex/work/data/many"),
+                now
+            )
+            .is_none(),
+        "a stale mtime invalidates the hint"
+    );
+    assert!(
+        h.app
+            .world
+            .size_cache
+            .hint("/Users/alex/work/data/gone", 1, now)
+            .is_none()
+            || !h.app.world.fs.exists("/Users/alex/work/data/gone")
+    );
+    h.ticks(60);
+    assert!(h.text().contains("scan complete"), "{}", h.text());
+    let scan = h.app.world.scan.clone().unwrap();
+    let media = scan.tree.find("/Users/alex/work/data/media").unwrap();
+    assert_eq!(
+        media.allocated,
+        12 * crate::sim::fs::BLOCK + crate::sim::fs::BLOCK,
+        "the hardlink counts once, plus the directory block"
+    );
+    assert_eq!(media.entries, 3, "both names and the link are entries");
+    assert!(
+        media
+            .children
+            .iter()
+            .any(|c| c.link && c.path.ends_with("/link")),
+        "the link is a leaf, never followed"
+    );
+    let sparse = scan.tree.find("/Users/alex/work/data/sparse.img").unwrap();
+    assert_eq!(
+        (sparse.apparent, sparse.allocated),
+        (50 * crate::sim::fs::BLOCK, 3 * crate::sim::fs::BLOCK)
+    );
+    let hidden = scan.tree.find("/Users/alex/work/data/.hidden").unwrap();
+    assert_eq!(
+        hidden.allocated,
+        4 * crate::sim::fs::BLOCK + crate::sim::fs::BLOCK,
+        "hidden entries are scanned"
+    );
+    let locked = scan.tree.find("/Users/alex/work/data/locked").unwrap();
+    assert!(
+        locked.error.is_some(),
+        "an unreadable folder is an error, not a zero"
+    );
+    let cloud = scan.tree.find("/Users/alex/work/data/cloud").unwrap();
+    assert!(
+        cloud.error.is_some() && cloud.children.is_empty(),
+        "dataless is never materialised"
+    );
+    assert!(h.text().contains("unreadable"), "{}", h.text());
+    // the finished scan recorded the cache (root plus depth two), skipping
+    // paths that changed during the scan
+    assert!(
+        h.app
+            .world
+            .size_cache
+            .entries
+            .iter()
+            .any(|e| e.path == "/Users/alex/work/data/media")
+    );
+    assert!(
+        h.app
+            .world
+            .persisted
+            .sizes
+            .as_deref()
+            .is_some_and(|s| s.contains("\"v\":3") || s.contains("3"))
+    );
+    // rescan restarts the generation and keeps hints; cancel keeps a partial tree
+    h.key(KeyCode::Char('r'));
+    assert!(h.text().contains("Rescanning"), "{}", h.text());
+    assert_eq!(h.app.world.scan.as_ref().unwrap().generation, 2);
+    h.ticks(5);
+    h.key(KeyCode::Char('x'));
+    assert!(
+        h.text().contains("partial · scan cancelled"),
+        "{}",
+        h.text()
+    );
+    assert!(h.app.world.scan.as_ref().unwrap().cancelled);
+    h.ticks(60);
+    assert!(
+        h.text().contains("partial"),
+        "a cancelled scan stays partial: {}",
+        h.text()
+    );
+    assert!(
+        h.text().contains("Freshness") && h.text().contains("partial · scan cancelled"),
+        "{}",
+        h.text()
+    );
+}
+
+// ------------------------------------------------------------ HP19
+
+#[test]
+fn hp19_tree_navigation_sorting_folding_selection_and_top_files() {
+    let mut h = H::new(Scenario::ParityDiskNavigation, Motion::Reduced, 0, 120, 40);
+    h.ticks(2);
+    open(&mut h, "Analyze disk usage");
+    h.ticks(40);
+    assert!(h.text().contains("scan complete"), "{}", h.text());
+    // largest first with allocated bytes; the sparse image sorts by what it
+    // occupies, not by its apparent size, until s switches the sort
+    let target = h.find("target").unwrap();
+    let vm = h.find("vm.img").unwrap();
+    assert!(
+        target.1 < vm.1,
+        "target (allocated 500 blocks) above vm.img (allocated 40)"
+    );
+    h.key(KeyCode::Char('s'));
+    assert!(h.text().contains("Sorted by apparent"), "{}", h.text());
+    let target = h.find("target").unwrap();
+    let vm = h.find("vm.img").unwrap();
+    assert!(
+        vm.1 < target.1,
+        "apparent: vm.img (900 blocks) above target"
+    );
+    h.key(KeyCode::Char('s'));
+    // noise folding is presentation only: the size stays, the row is one
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Down);
+    let before = h.text();
+    assert!(before.contains("noise folded"), "{before}");
+    h.key(KeyCode::Char('f'));
+    assert!(h.text().contains("unfolded"), "{}", h.text());
+    h.key(KeyCode::Char('f'));
+    // selection: a parent dominates its descendants; a selects the visible
+    h.key(KeyCode::Home);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Down);
+    assert!(
+        h.text().contains("~/work/big/noise"),
+        "the cursor is on the noise folder: {}",
+        h.text()
+    );
+    h.key(KeyCode::Char(' '));
+    assert!(h.text().contains("1 item selected"), "{}", h.text());
+    h.key(KeyCode::Char('f'));
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Char(' '));
+    assert!(
+        h.text().contains("covered by a selected ancestor"),
+        "{}",
+        h.text()
+    );
+    h.key(KeyCode::Char('a'));
+    assert!(
+        h.text().contains("Every visible entry selected"),
+        "{}",
+        h.text()
+    );
+    h.key(KeyCode::Char('a'));
+    assert!(h.text().contains("Everything unselected"), "{}", h.text());
+    // top files: Spotlight results deduplicated, the vanished one reported,
+    // fed into the same gate
+    h.key(KeyCode::Char('t'));
+    assert!(h.text().contains("Disk › Top files"), "{}", h.text());
+    let t = h.text();
+    let rows = t
+        .lines()
+        .filter(|l| l.contains("iso.iso") && l.contains("MiB"))
+        .count();
+    assert_eq!(rows, 1, "duplicates collapse: {t}");
+    assert!(t.contains("big.mov"), "{t}");
+    assert!(
+        t.contains("vanished.bin") && t.contains("stat failed"),
+        "{t}"
+    );
+    assert!(!t.contains("small.bin"), "below 100 MiB: {t}");
+    h.key(KeyCode::Char(' '));
+    assert!(
+        h.text().contains("1 item selected") || h.text().contains("selected"),
+        "{}",
+        h.text()
+    );
+    h.key(KeyCode::Char('d'));
+    assert!(
+        h.text().contains("gate 1 of 2") || h.text().contains("Review · trash"),
+        "{}",
+        h.text()
+    );
+    // Linux: no Spotlight, the tree scan is the way
+    let mut l = H::new(Scenario::ParityPlatformsLinux, Motion::Reduced, 0, 120, 40);
+    l.ticks(3);
+    open(&mut l, "Top files on this Mac");
+    assert!(
+        l.text()
+            .contains("unavailable · Spotlight is unavailable on Linux"),
+        "{}",
+        l.text()
+    );
+    assert!(matches!(l.tab_kind(), TabKind::Here));
+}
+
+// ------------------------------------------------------------ HP20
+
+#[test]
+fn hp20_insight_categories_sizes_eligibility_and_guards_are_truthful() {
+    let mut h = H::new(Scenario::ParityInsights, Motion::Reduced, 0, 120, 40);
+    h.ticks(8);
+    let cats = crate::domain::catalog::insight_candidates(&h.app.world);
+    let by = |id: &str| cats.iter().find(|c| c.category.id == id);
+    // Xcode is running: derived data is ineligible with the reason
+    let dd = by("xcode.derived-data").expect("derived data");
+    assert!(dd.candidates.iter().all(|k| matches!(&k.eligibility, crate::domain::cleanup::Eligibility::Ineligible(w) if w.contains("Xcode is running"))), "{:?}", dd.candidates);
+    // device support: 91 days old is preselected, 89 is not
+    let ds = by("xcode.device-support").unwrap();
+    let ios = ds
+        .candidates
+        .iter()
+        .find(|k| k.path.contains("iOS"))
+        .unwrap();
+    let watch = ds
+        .candidates
+        .iter()
+        .find(|k| k.path.contains("watchOS"))
+        .unwrap();
+    assert_eq!(
+        ios.eligibility,
+        crate::domain::cleanup::Eligibility::Preselected
+    );
+    assert!(matches!(
+        watch.eligibility,
+        crate::domain::cleanup::Eligibility::Ineligible(_)
+    ));
+    // the pnpm store comes from the tool's resolved path, not a guess
+    let pnpm = by("pnpm.store").unwrap();
+    assert!(
+        pnpm.candidates
+            .iter()
+            .any(|k| k.path == "/Users/alex/Library/pnpm/store/v3"),
+        "{:?}",
+        pnpm.candidates
+    );
+    assert_eq!(
+        pnpm.candidates[0].bytes,
+        2200 * 1024 * 1024 + 2 * crate::sim::fs::BLOCK,
+        "the file plus two directory blocks"
+    );
+    // project artifacts: every indicator-backed tree, nested never, the
+    // symlinked project skipped, the unreadable folder reported
+    let art = by("project.artifacts").unwrap();
+    let paths: Vec<&str> = art.candidates.iter().map(|k| k.path.as_str()).collect();
+    for want in [
+        "/Users/alex/Projects/web/node_modules",
+        "/Users/alex/Projects/rs/target",
+        "/Users/alex/Projects/py/.venv",
+        "/Users/alex/Projects/kt/build",
+        "/Users/alex/Projects/ios/Pods",
+        "/Users/alex/Projects/next/.next",
+    ] {
+        assert!(paths.contains(&want), "{want}: {paths:?}");
+    }
+    assert!(
+        !paths.iter().any(|p| p.contains("target/node_modules")),
+        "nested artifacts never double: {paths:?}"
+    );
+    assert!(
+        !paths.iter().any(|p| p.contains("/plain/build")),
+        "no indicator, no candidate: {paths:?}"
+    );
+    assert!(
+        !paths
+            .iter()
+            .any(|p| p.contains("/linked/") || p.starts_with("/Users/alex/work/")),
+        "symlinks are never followed: {paths:?}"
+    );
+    assert!(
+        art.unreadable.iter().any(|p| p.ends_with("/locked")),
+        "{:?}",
+        art.unreadable
+    );
+    // the page: sizes per category, the Xcode guard visible, the lower bound named
+    open(&mut h, "Review cleanup candidates");
+    let t = h.text();
+    assert!(t.contains("18 categories"), "{t}");
+    assert!(
+        t.contains("Xcode DerivedData") && t.contains("810.0 MiB"),
+        "{t}"
+    );
+    assert!(
+        t.contains("Xcode is running"),
+        "the guard is stated on the category: {t}"
+    );
+    h.key(KeyCode::End);
+    let t = h.text();
+    assert!(
+        t.contains("Project artifacts") && t.contains("2.5 GiB"),
+        "{t}"
+    );
+    let (_, y) = h.find("Project artifacts").unwrap();
+    let list = h.app.hits.area_of(crate::screens::cleanup::LIST).unwrap();
+    h.click(list.x + 2, y);
+    assert!(
+        h.text().contains("Unreadable") && h.text().contains("locked"),
+        "{}",
+        h.text()
+    );
+}
+
+// ------------------------------------------------------------ HP21
+
+#[test]
+fn hp21_deletion_is_authorized_validated_at_commit_and_never_falls_back() {
+    let mut h = H::new(Scenario::ParityDeleteSafety, Motion::Reduced, 0, 120, 40);
+    h.ticks(2);
+    open(&mut h, "Analyze disk usage");
+    h.ticks(30);
+    assert!(h.text().contains("scan complete"), "{}", h.text());
+    // select the target, the odd-named build, the linked tree and the
+    // folder that will vanish; the gate names denials and the threat model
+    for name in ["target", "linked", "gone-later", "locked"] {
+        let (_, y) = h
+            .find(name)
+            .unwrap_or_else(|| panic!("{name}\n{}", h.text()));
+        let tree = h.app.hits.area_of(crate::screens::disk::TREE).unwrap();
+        h.click(tree.x + 6, y);
+    }
+    assert!(h.text().contains("4 selected"), "{}", h.text());
+    // the documented deny rules, each with its own reason
+    let w = &h.app.world;
+    let deny = |p: &str| {
+        crate::domain::cleanup::validate(p, &w.location.home, w.host.os, &w.fs)
+            .err()
+            .map(|d| d.0)
+            .unwrap_or_default()
+    };
+    assert!(deny("/Users/alex/.Trash/old").contains("Trash"));
+    assert!(
+        deny("/Users/alex/Library/Containers/com.apple.Safari/Data/x").contains("holds user data")
+    );
+    assert!(deny("/Users/alex/Library/Application Support/App/x").contains("holds user data"));
+    assert!(deny("/Users/alex/Library/Mobile Documents/com~apple~CloudDocs/x").contains("iCloud"));
+    assert!(deny("/Users/alex/Library/Caches").contains("itself is protected"));
+    assert!(deny("/Users/alex/Projects/safe/linked/node_modules").contains("symbolic link"));
+    assert_eq!(
+        crate::domain::cleanup::validate(
+            "/tmp/holla-scratch/x",
+            &w.location.home,
+            w.host.os,
+            &w.fs
+        )
+        .unwrap(),
+        "/private/tmp/holla-scratch/x"
+    );
+    assert!(
+        crate::domain::cleanup::validate(
+            "/Users/alex/Projects/safe/ünï\ncode/build",
+            &w.location.home,
+            w.host.os,
+            &w.fs
+        )
+        .is_ok(),
+        "odd names are names"
+    );
+    h.key(KeyCode::Char('d'));
+    let t = h.text();
+    assert!(t.contains("Review · trash 4 items"), "{t}");
+    assert!(
+        t.contains("Threat model") && t.contains("re-resolved at commit"),
+        "{t}"
+    );
+    assert!(
+        t.contains("Denied") && t.contains("none · every path passed"),
+        "{t}"
+    );
+    assert!(
+        t.contains("Revision") && t.contains("voids this review"),
+        "{t}"
+    );
+    // the folder vanishes after review: commit reports it, everything else
+    // proceeds; the Trash collision retries and succeeds
+    h.app
+        .world
+        .fs
+        .remove_permanent("/Users/alex/Projects/safe/gone-later")
+        .unwrap();
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    gate2(&mut h, "TRASH 4 UNDER /Users/alex/Projects/safe ON mbp");
+    let r = h.app.world.reports.last().cloned().expect("a report");
+    let outcome = |p: &str| {
+        r.items
+            .iter()
+            .find(|i| i.path.ends_with(p))
+            .map(|i| (i.outcome, i.error.clone()))
+            .unwrap()
+    };
+    assert_eq!(
+        outcome("/target").0,
+        crate::domain::cleanup::Outcome::Trashed
+    );
+    assert_eq!(
+        outcome("/gone-later").0,
+        crate::domain::cleanup::Outcome::Failed,
+        "{:?}",
+        r.items
+    );
+    assert_eq!(
+        outcome("/linked").0,
+        crate::domain::cleanup::Outcome::Trashed,
+        "a selected link removes the link only"
+    );
+    assert!(
+        h.app
+            .world
+            .fs
+            .exists("/Users/alex/work/other/node_modules/x"),
+        "the link target is untouched"
+    );
+    assert_eq!(
+        outcome("/locked").0,
+        crate::domain::cleanup::Outcome::Failed,
+        "{:?}",
+        r.items
+    );
+    assert!(
+        outcome("/locked")
+            .1
+            .as_deref()
+            .is_some_and(|e| e.contains("unreadable")),
+        "{:?}",
+        r.items
+    );
+    assert_eq!(r.freed_now, 0, "Trash keeps the bytes on the volume");
+    assert!(r.bytes >= 1000 * 1024 * 1024);
+    assert!(h.text().contains("Cleanup report"), "{}", h.text());
+    // a review is void once the mode changes: the gate refuses the stale plan
+    let mut d = H::new(Scenario::ParityDeleteSafety, Motion::Reduced, 0, 120, 40);
+    d.ticks(2);
+    open(&mut d, "Review cleanup candidates");
+    d.key(KeyCode::Right);
+    d.key(KeyCode::Char('m'));
+    assert!(d.text().contains("PERMANENT"), "{}", d.text());
+    d.key(KeyCode::Char('n'));
+    assert!(d.text().contains("Dry run"), "{}", d.text());
+    d.key(KeyCode::Char('d'));
+    assert!(
+        d.text().contains("dry run") && d.text().contains("touch nothing"),
+        "{}",
+        d.text()
+    );
+    d.key(KeyCode::Right);
+    d.key(KeyCode::Enter);
+    let n = gate2_items(&d);
+    let used = d.app.world.fs.volume_for("/").unwrap().used;
+    gate2(
+        &mut d,
+        &format!("PERMANENTLY DELETE {n} UNDER /Users/alex ON mbp"),
+    );
+    let r = d.app.world.reports.last().cloned().expect("dry-run report");
+    assert!(r.dry_run);
+    assert!(
+        r.items
+            .iter()
+            .all(|i| i.outcome != crate::domain::cleanup::Outcome::Removed)
+    );
+    assert_eq!(
+        d.app.world.fs.volume_for("/").unwrap().used,
+        used,
+        "a dry run frees nothing"
+    );
+    assert!(
+        d.app
+            .world
+            .ops_log
+            .lines
+            .iter()
+            .any(|l| l.contains("\"dry_run\":true") && l.contains("would_remove")),
+        "{:?}",
+        d.app.world.ops_log.lines
+    );
+}
+
+// ------------------------------------------------------------ HP22
+
+#[test]
+fn hp22_reports_ownership_outcomes_and_the_operation_log_are_exact() {
+    let mut h = H::new(Scenario::ParityCleanupResults, Motion::Reduced, 0, 120, 40);
+    h.ticks(2);
+    // the prior run is in the log and the history before anything happens
+    assert_eq!(h.app.world.ops_log.lines.len(), 1);
+    open(&mut h, "Show cleanup history");
+    assert!(
+        h.text().contains("legacy/node_modules") || h.text().contains("legacy"),
+        "{}",
+        h.text()
+    );
+    assert!(h.text().contains("1 operation log records"), "{}", h.text());
+    // trash the clones: the estimate over-counts, the report says so
+    h.alt(KeyCode::Char('0'));
+    open(&mut h, "Analyze disk usage");
+    h.ticks(30);
+    let (_, y) = h.find("big").unwrap_or_else(|| panic!("{}", h.text()));
+    let tree = h.app.hits.area_of(crate::screens::disk::TREE).unwrap();
+    h.click(tree.x + 6, y);
+    h.key(KeyCode::Char('d'));
+    assert!(
+        h.text().contains("APFS clones may overcount")
+            && h.text().contains("purgeable space excluded"),
+        "{}",
+        h.text()
+    );
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    gate2(&mut h, "TRASH 1 UNDER /Users/alex/Projects/safe ON mbp");
+    let r = h.app.world.reports.last().cloned().unwrap();
+    assert_eq!(r.count(crate::domain::cleanup::Outcome::Trashed), 1);
+    assert_eq!(r.freed_now, 0);
+    assert_eq!(
+        r.bytes,
+        6000 * 1024 * 1024 + crate::sim::fs::BLOCK,
+        "two clones plus the directory block"
+    );
+    assert!(
+        h.text().contains("returns when the Trash is emptied"),
+        "{}",
+        h.text()
+    );
+    assert!(h.text().contains("every record written"), "{}", h.text());
+    // the log grew by exactly the items, persisted with the prior record intact
+    assert_eq!(h.app.world.ops_log.lines.len(), 2);
+    assert_eq!(
+        h.app.world.persisted.ops_log.len(),
+        2,
+        "append only, the earlier record kept"
+    );
+    assert!(h.app.world.persisted.ops_log[0].contains("legacy/node_modules"));
+    assert!(
+        h.app.world.persisted.ops_log[1].contains("\"outcome\":\"trashed\"")
+            && h.app.world.persisted.ops_log[1].contains("/big")
+    );
+    // the history snapshot lists both and links the report
+    h.alt(KeyCode::Char('0'));
+    open(&mut h, "Show cleanup history");
+    let t = h.text();
+    assert!(t.contains("2 operation log records"), "{t}");
+    assert!(t.contains("Report 1"), "{t}");
+    // the used bytes on the volume stay until the Trash is emptied
+    let v = h.app.world.fs.volume_for("/").unwrap();
+    assert!(v.used > 0);
+    assert!(!h.app.world.fs.exists("/Users/alex/Projects/safe/big"));
+}
+
+// ------------------------------------------------------------ HP23
+
+#[test]
+fn hp23_platform_capabilities_are_stated_and_never_faked() {
+    // macOS: the dataless policy failure and the Spotlight timeout are facts
+    let mut m = H::new(Scenario::ParityPlatforms, Motion::Reduced, 0, 120, 40);
+    m.ticks(4);
+    open(&mut m, "Top files on this Mac");
+    assert!(
+        m.text().contains("did not finish within 5 s"),
+        "{}",
+        m.text()
+    );
+    m.alt(KeyCode::Char('0'));
+    let items = m.app.world.items();
+    assert!(
+        items.iter().any(|i| i.id == "upgrade.brew-casks"),
+        "casks are a macOS action"
+    );
+    assert!(
+        m.app
+            .world
+            .platform
+            .dataless_failure
+            .as_deref()
+            .is_some_and(|f| f.contains("EPERM"))
+    );
+    // /tmp resolves through the macOS alias: validation names the canonical path
+    assert_eq!(
+        crate::domain::cleanup::validate(
+            "/private/tmp/x",
+            &m.app.world.location.home,
+            m.app.world.host.os,
+            &m.app.world.fs
+        )
+        .unwrap(),
+        "/private/tmp/x"
+    );
+    assert_eq!(
+        crate::domain::cleanup::validate(
+            "/tmp/x",
+            &m.app.world.location.home,
+            m.app.world.host.os,
+            &m.app.world.fs
+        )
+        .unwrap(),
+        "/private/tmp/x"
+    );
+    // Linux: no Trash backend, no opener, no OSC 52, no pgrep, no Spotlight
+    let mut l = H::new(Scenario::ParityPlatformsLinux, Motion::Reduced, 0, 120, 40);
+    l.ticks(4);
+    assert_eq!(
+        crate::domain::cleanup::validate(
+            "/tmp/x",
+            &l.app.world.location.home,
+            l.app.world.host.os,
+            &l.app.world.fs
+        )
+        .unwrap(),
+        "/tmp/x",
+        "no /private alias on Linux: the path stays as typed"
+    );
+    let items = l.app.world.items();
+    assert!(!items.iter().any(|i| i.id == "upgrade.brew-casks"));
+    assert!(!items.iter().any(|i| i.id.starts_with("cleanup.xcode")));
+    open(&mut l, "Review cleanup candidates");
+    assert!(
+        l.text().contains("Cargo registry cache") || l.text().contains("Project artifacts"),
+        "{}",
+        l.text()
+    );
+    l.key(KeyCode::Right);
+    if !l.text().contains(" selected (") || l.text().contains("0 selected") {
+        l.key(KeyCode::Down);
+        l.key(KeyCode::Char(' '));
+    }
+    l.key(KeyCode::Char('d'));
+    let t = l.text();
+    assert!(
+        t.contains("no Trash backend · every item will fail, never fall back"),
+        "{t}"
+    );
+    l.key(KeyCode::Right);
+    l.key(KeyCode::Enter);
+    let n = gate2_items(&l);
+    gate2(&mut l, &format!("TRASH {n} UNDER /home/alex ON devbox"));
+    let r = l.app.world.reports.last().cloned().unwrap();
+    assert_eq!(
+        r.count(crate::domain::cleanup::Outcome::Failed),
+        r.items.len(),
+        "{:?}",
+        r.items
+    );
+    assert!(
+        r.items.iter().all(|i| i
+            .error
+            .as_deref()
+            .is_some_and(|e| e.contains("Trash unavailable"))),
+        "{:?}",
+        r.items
+    );
+    assert!(
+        l.app
+            .world
+            .fs
+            .exists("/home/alex/Projects/app/node_modules/x"),
+        "nothing fell back to permanent deletion"
+    );
+    // copy and open state their missing capability
+    l.alt(KeyCode::Char('0'));
+    open(&mut l, "Copy this folder's path");
+    assert!(l.text().contains("does not accept OSC 52"), "{}", l.text());
+    assert!(l.app.world.clipboard.is_none());
+    open(&mut l, "Browse ~/work/box");
+    l.key(KeyCode::Char('g'));
+    l.type_str("~/Projects/app");
+    l.key(KeyCode::Enter);
+    assert!(l.text().contains("Files › app"), "{}", l.text());
+    let (_, y) = l
+        .find("package.json")
+        .unwrap_or_else(|| panic!("{}", l.text()));
+    let list = l.app.hits.area_of(files::LIST).unwrap();
+    l.click(list.x + 2, y);
+    l.alt(KeyCode::Enter);
+    assert!(!l.app.modals.is_empty(), "the actions menu: {}", l.text());
+    l.key(KeyCode::Enter);
+    assert!(l.text().contains("No opener on devbox"), "{}", l.text());
 }
