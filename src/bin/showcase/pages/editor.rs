@@ -512,9 +512,8 @@ impl Page for EditorPage {
                     }
                 }
                 if *id == self.editor.id {
-                    let was = cx.focus.is(*id);
                     cx.focus.focus(*id);
-                    return self.editor.on_click(*pos, was);
+                    return self.editor.on_click(*pos);
                 }
                 if *id == scrollbar::id_for(self.editor.id) {
                     return self.editor.on_scrollbar(*pos);

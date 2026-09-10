@@ -161,7 +161,7 @@ fn disabled_fields_and_menu_commands_stay_distinct_and_inert() {
             level == ColorLevel::Mono
         );
         assert_eq!(input.on_key(&enter).0, Outcome::Ignored);
-        input.on_click(Position::new(2, 1), true);
+        input.on_click(Position::new(2, 1));
         input.on_paste("replacement");
         assert_eq!(input.text(), "locked");
         assert!(!input.editing);

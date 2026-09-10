@@ -143,7 +143,8 @@ While editing: `Ctrl+A/E` line start/end, `Ctrl+← →` or `Alt+B/F` by word,
 cell in a table). Bracketed paste inserts into whichever control is editing.
 
 Mouse: hover previews any row, button, field or tab; click focuses and
-activates; a second click on a focused field or cell starts editing; the wheel
+activates; one click on a text field starts editing at the pointer and a
+second click on the current grid cell edits it; the wheel
 scrolls the container under the pointer without moving focus; the scrollbar
 thumb can be clicked and dragged; clicking outside a dialog cancels it.
 

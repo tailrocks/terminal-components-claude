@@ -873,7 +873,7 @@ impl Screen for TrustPage {
 
 pub const ARGS_CANCEL: WidgetId = WidgetId::of("args.cancel");
 pub const ARGS_RUN: WidgetId = WidgetId::of("args.run");
-const ARG: WidgetId = WidgetId::of("args.field");
+pub(crate) const ARG: WidgetId = WidgetId::of("args.field");
 
 enum Field {
     Text(TextInput),
@@ -1065,9 +1065,8 @@ impl Screen for ArgsPage {
             let fid = ARG.child(i);
             match &mut self.fields[i] {
                 Field::Text(t) if fid == id => {
-                    let was = cx.focus.is(fid);
                     cx.focus.focus(fid);
-                    return t.on_click(pos, was);
+                    return t.on_click(pos);
                 }
                 Field::Choice(c) if c.owns(id) => {
                     cx.focus.focus(fid);
