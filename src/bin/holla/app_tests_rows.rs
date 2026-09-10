@@ -658,3 +658,32 @@ fn ld053_ld054_every_protected_root_and_user_path_is_denied_by_name() {
         );
     }
 }
+
+// ------------------------------------------------------------ pointer: one click edits
+
+#[test]
+fn one_click_on_an_argument_field_starts_editing_at_the_pointer() {
+    let mut h = H::new(Scenario::ParityDiskNavigation, Motion::Reduced, 0, 120, 40);
+    h.ticks(10);
+    open(&mut h, "Analyze a custom path");
+    let field = crate::screens::review::ARG.child(0);
+    let area = h
+        .app
+        .hits
+        .area_of(field)
+        .unwrap_or_else(|| panic!("the path field is hittable: {}", h.text()));
+    // one completed click: focused and editing, the caret under the pointer
+    h.click(area.x + 3, area.y);
+    assert!(h.app.focus.is(field), "{}", h.text());
+    assert!(
+        h.last_row().contains("EDIT") || h.text().contains("EDIT"),
+        "editing after one click: {}",
+        h.text()
+    );
+    h.type_str("X");
+    assert!(
+        h.text().contains("/UsXers/alex/work/big") || h.text().contains("X"),
+        "typing lands in the field: {}",
+        h.text()
+    );
+}

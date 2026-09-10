@@ -235,9 +235,8 @@ impl Page for InputsPage {
                 let Some(i) = self.fields.iter().position(|f| f.id == *id) else {
                     return Outcome::Ignored;
                 };
-                let was = cx.focus.is(*id);
                 cx.focus.focus(*id);
-                self.fields[i].on_click(*pos, was)
+                self.fields[i].on_click(*pos)
             }
             _ => Outcome::Ignored,
         }

@@ -530,16 +530,15 @@ impl CodeEditor {
         self.buffer.offset_at(line, col)
     }
 
-    pub fn on_click(&mut self, pos: Position, was_focused: bool) -> Outcome {
+    /// A click enters editing (one click, never two) and places the cursor
+    /// at the pointer; a read-only editor only moves the caret.
+    pub fn on_click(&mut self, pos: Position) -> Outcome {
         if self.read_only {
             let off = self.offset_at_pos(pos);
             self.jump_to(off);
             return Outcome::Changed;
         }
         if !self.editing {
-            if !was_focused {
-                return Outcome::Changed;
-            }
             self.begin_edit();
         }
         let off = self.offset_at_pos(pos);

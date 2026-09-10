@@ -113,9 +113,8 @@ impl Page for TextAreasPage {
                         .scroll_to(scrollbar::offset_for_click(track, *pos, &a.scroll));
                     return Outcome::Changed;
                 }
-                let was = cx.focus.is(*id);
                 cx.focus.focus(*id);
-                self.areas[i].on_click(*pos, was)
+                self.areas[i].on_click(*pos)
             }
             PageEvent::Drag { pressed, pos } => {
                 let Some(i) = self.index_of(*pressed) else {
