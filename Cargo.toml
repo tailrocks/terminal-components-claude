@@ -24,6 +24,10 @@ path = "src/bin/tablepro/main.rs"
 name = "jackin-preview"
 path = "src/bin/jackin_preview/main.rs"
 
+[[bin]]
+name = "holla"
+path = "src/bin/holla/main.rs"
+
 [dependencies]
 ratatui = { version = "0.30", features = ["crossterm_0_29"] }
 unicode-width = "0.2"

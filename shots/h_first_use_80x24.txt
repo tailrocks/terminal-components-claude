@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                            no project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                scope ‹ here ›
+
+    Suggested here
+  › Analyze disk usage     disk     here  / is 91% full
+    Show system resources  system   host  CPU 78% for 4 min
+    Open btm               system   host  sustained pressure…
+
+    Recent here
+    nothing used here yet
+
+    Explore
+ ▎   Tasks   Git   Files   Disk   Services   System
+    System · mbp           explore  host  available on this host
+
+
+
+    → holla disk analyze /Users/alex/scratch · here · read-only
+
+ ~/scratch                              / ━━━━━━━━━━─ 91%     truecolor · 80×24
+       Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  …

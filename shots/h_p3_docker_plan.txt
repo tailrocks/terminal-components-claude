@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                           no project  devbox · development
+
+  Here › Clean Docker completely
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────
+  Clean Docker completely · devbox                                           7 steps · 7 included · 0 excluded · ~11 s
+  remove all user-removable Docker state on devbox
+
+         step                            needs        lane  note          01 Stop running containers         required
+ ▎[✓] 01 Stop running containers         –            ·
+ ▎[✓] 02 Remove containers               01           ·                   Runs        docker stop acme-api-1
+ ▎[✓] 03 Remove unused images            02           a                               acme-worker-1 acme-scheduler-1
+ ▎[✓] 04 Prune networks                  02           b                               acme-db-1 acme-redis-1
+ ▎[✓] 05 Prune volumes                   02           c                   In          / · devbox
+ ▎[✓] 06 Prune builder and Buildx cach…  02           d                   Needs       nothing · starts first
+ ▎[✓] 07 Rescan and report               03 04 05 06  join                Unlocks     02 Remove containers
+                                                                          Lane        · trunk · ordered
+    7 required · 0 optional · 4 branches run in parallel where independentOrdered by  docker daemon
+                                                                          Effect      5 running containers stop
+                                                                                      gracefully (10 s timeout)
+                                                                          State       ready
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                                 ▎Cancel   ▎Continue…
+
+ /work/scratch                        review · 7 steps · 4 branches parallel                         truecolor · 120×40
+                            ↑↓ Step  Space Toggle  u Undo  c Confirm  p Facts  Esc Discard

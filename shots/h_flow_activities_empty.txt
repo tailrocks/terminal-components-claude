@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                          holla · Rust project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ port                                                                                                 scope ‹ here ›
+
+    Results · 5                                                                  Show PostgreSQL activity
+    Find the process on a po…  system    host  available on this host
+    Inspect 12 GB of generat…  disk      here  12 GB generated artifacts         Does       holla@localhost:5432/hol
+  › Show PostgreSQL activity   postgres  here  24/100 connections…                          la_dev · connections
+    Copy this folder's path    file      here  available                                    24/100 · sessions by
+    Stop the Compose proj╭────────────────────────────────────────────────────────────────────╮te, wait event, query
+                         │ Activities                                                  0 live │ transaction age
+                         │                    Nothing has been started yet                    │ECT pid, stat…ctivity
+                         │                                                                    │ork/holla
+                         │                                                                    │ · local
+                         ╰────────────────────────────────────────────────────────────────────╯e
+                                                                                 Why        24/100 connections ·
+                                                                                            used once here
+                                                                                 Changes    none · read-only
+                                                                                 Risk       read-only
+                                                                                 Data       live · 2 s ago
+                                                                                 Gate       runs directly
+                                                                                 Alt+Enter  Open pg_activity · Pin ·
+                                                                                            Alias · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/holla   main   ↓3 • 5                                                                        truecolor · 120×40
+                                          ↑↓ Move  Enter Switch  Esc Cancel            Cancelled · nothing was executed

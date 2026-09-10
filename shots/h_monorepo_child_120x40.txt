@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                         acme › frontend · Node project · pnpm  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                        scope ‹ here ›
+
+    Suggested here                                                               Inspect 3 GB of generated artifacts
+  › Inspect 3 GB of generate…  disk     here    3 GB generated artifacts
+    Install missing tools · …  task     here    1 tool missing                   Does       1 rebuildable candidate
+    Run tests                  task     here    2 files changed since the l…                below this folder · 0
+    Follow acme-api-1 logs     docker   parent  service is unhealthy                        stale enough to start
+    Review 2 modified files    git      parent  2 modified · 0 untracked                    selected
+                                                                                 Runs       holla disk analy…tifacts
+    Recent here                                                                  In         ~/work/acme/apps…rontend
+    nothing used here yet                                                        Host       mbp · local
+                                                                                 Scope      here
+    From acme · the parent root                                                  Why        3 GB generated artifacts
+    Start development ecosys…  task     parent  defined by ~/work/acme/mise…     Changes    none · read-only
+    Start required containers  task     parent  defined by ~/work/acme/mise…     Risk       read-only
+                                                                                 Data       live · 3 s ago
+    Explore                                                                      Gate       runs directly
+ ▎   Tasks   Git   Files   Disk   Services   System                              Alt+Enter  Pin · Alias · Why here?
+    Parent · acme (mise mono…  explore  parent  workspace root above this f…
+    System · mbp               explore  host    available on this host
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/acme/apps/frontend   main   ↑1 • 2                                                           truecolor · 120×40
+           Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

@@ -15,7 +15,7 @@ case "$cmd" in
   start)
     cols=${1:-120}; rows=${2:-40}
     tmux kill-session -t $S 2>/dev/null || true
-    tmux -f /dev/null new-session -d -s $S -x "$cols" -y "$rows" \
+    tmux -f /dev/null new-session -d -s $S -c "$PWD" -x "$cols" -y "$rows" \
       "env -u NO_COLOR TERM=xterm-256color COLORTERM=truecolor ${BIN} ${ARGS:-} 2>shots/stderr.log; sleep 30"
     tmux set-option -t $S status off
     tmux set-option -s escape-time 0

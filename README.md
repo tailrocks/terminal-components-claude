@@ -1,6 +1,6 @@
 # Junie TUI — a Ratatui design system and its first real application
 
-Three binaries share one library:
+Four binaries share one library:
 
 - **`showcase`** — the approved design-system laboratory: every component in
   every interaction state, two composed screens, and the visual baseline that
@@ -19,6 +19,16 @@ Three binaries share one library:
   scenario is a fixture world with a virtual clock, so any frame can be
   reproduced. It never touches the real Jackin CLI, containers, 1Password or
   provider APIs.
+- **`holla`** — a context-adaptive action launcher ("this folder, this
+  host, right now") as a deterministic preview: one finder that ranks the
+  actions and resources of the priority stack (mise, Git and GitHub, Docker,
+  `btm`, disk and cleanup, PostgreSQL, Rust and nextest, SSH) around the
+  working directory with a reason on every row, scope on every row, a
+  preview that says what will run and where, two-gate target-bound
+  confirmation for destructive work, dependency-graph plans with optional
+  branches and failure propagation, and named activities that survive
+  navigation. Every stack system is an in-memory fixture; no command is ever
+  spawned. Concept and notes live in `holla-project/`.
 
 The application is the specification: *if the
 [Junie](https://junie.jetbrains.com) website had been designed for a terminal
@@ -41,7 +51,28 @@ cargo run --release --bin jackin-preview -- --scenario accounts-mixed   # first-
 cargo run --release --bin jackin-preview -- --scenario launch-running --motion reduced   # full | reduced | paused
 cargo run --release --bin jackin-preview -- --scenario first-use --motion paused --frame 282    # freeze one frame
 JACKIN_NO_MOTION=1 cargo run --release --bin jackin-preview   # same as --motion reduced
+
+cargo run --release --bin holla                      # the launcher, first-use scenario (an empty folder)
+cargo run --release --bin holla -- --scenario rust-dirty       # first-use | rust-dirty | monorepo-root | monorepo-child |
+                                                     # docker-cleanup | disk-cleanup | upgrade-plan | activities-multi |
+                                                     # remote-host | launch-failure | hard-cases
+cargo run --release --bin holla -- --scenario upgrade-plan --motion paused --frame 60   # freeze one fixture tick
+HOLLA_NO_MOTION=1 cargo run --release --bin holla    # same as --motion reduced (discovery completes at once)
 ```
+
+Holla's shell is the family's: the ` holla❯ ` menu bar with the host on the
+right, a tab strip whose first tab `Here` is permanent (a tab is something
+that runs, a page is something you are deciding), the body, a status bar
+with the path, and the one hint bar. On `Here`, typing searches; `↑↓` move,
+`Enter` runs (destructive rows open a review instead), `Alt+Enter` lists the
+alternatives (copy, insert, arguments, pin, alias, hide, why), `Tab` reaches
+the preview, `Ctrl+↑/↓` walk the scope axis (children · here · parent ·
+system; `@parent @children @system @all` in the query do the same), `Ctrl+G`
+lists activities, `Alt+0–9` switch tabs, `Esc` climbs clear query › scope
+back to here › back a page › quit. Exact aliases never drift: `gp` pull, `du`
+disk usage, `test` the test task here, `dc` the Docker cleanup, `d` then `u`.
+The `h_*` captures in `shots/` are the review evidence
+(`tools/holla_shots.sh`, `tools/holla_flows.sh`).
 
 Every screen's first row is the application menu bar (`F10`, or click a
 label; the `jackin❯` lockup opens the app menu). Host screens share one bar —

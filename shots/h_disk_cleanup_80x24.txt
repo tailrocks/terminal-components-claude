@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help             work · project collection  mbp · local
+
+  Here › Disk › Usage
+ ━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────
+  Disk usage · ~/work
+  ⠋ scanning · 9 candidates so far ━━━━━━━━━━━━━━━━━────────  67%
+
+    Largest on /                                                              ┃
+ ▎  ~/work                                     41.6 GB  project collection    ┃
+ ▎  ~/Library/Containers/com.docker.docke…     24.0 GB  container disk        ┃
+ ▎  ~/Library/Caches                           11.2 GB  caches                ┃
+ ▎  ~/work/dumps/prod-2026-08.sql.gz            6.3 GB  large file            ┃
+ ▎› ~/.cargo                                    5.9 GB  developer cache       ┃
+                                                                              ┃
+    Rebuildable artifacts · by project                                        ┃
+ ▎[✓] android › build                    3.1 GB  inactive 22 days    ./gradl… │
+ ▎[ ] android › .gradle                  0.9 GB  activity unknown    in use … │
+ ▎[✓] backend › target                  12.7 GB  inactive 18 days    cargo    │
+ ▎[✓] frontend › node_modules            8.4 GB  inactive 31 days    Trash    │
+ ▎[ ] frontend › dist                    0.4 GB  active today        Trash    │
+                                                                              │
+
+ ~/work     ⠋ scanning ~/work · 67%     / ━━━━━━━━━━─ 91%     truecolor · 80×24
+      ↑↓ Move  a All  c Cleanup plan  Enter Facts  y Copy path  Esc Back

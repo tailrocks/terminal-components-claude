@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                          acme · mise monorepo  mbp · local
+
+  Here    frontend dev ⠼ ×    api dev ⠼ ×    api tests ✓ ×    logs · api worker sched… ⠼ ×    btm ⠼ ×
+ ────────────────────────────────────────────────────────────────────────────────────────────━━━━━━━━━━────────────────
+  btm · running · 9 s · attached                                                                                   mbp
+  started by Open system monitor
+
+ ╭─ btm screen ────────────────────────────────────────────────────────────────────────────── keys go to the program ─╮
+ │  btm 0.11.1 · attached · q quits the monitor, Ctrl+] returns to holla                                              │
+ │  CPU  ▏78%  core0 91  core1 84  core2 70  core3 66  core4 88  core5 79  core6 71  core7 75                         │
+ │  MEM  ▏12.4 GiB / 16 GiB  swap 1.1 GiB                                                                             │
+ │  NET  ▏en0  rx 1.2 MiB/s  tx 240 KiB/s                                                                             │
+ │                                                                                                                    │
+ │    PID   Name              CPU%   Mem     State                                                                    │
+ │    4812  rust-analyzer     41%    2.9G    Running                                                                  │
+ │    9120  cargo             32%    1.1G    Running                                                                  │
+ │    2201  Docker            9%     3.8G    Sleeping                                                                 │
+ │    7731  node (vite)       6%     420M    Sleeping                                                                 │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ~/work/acme   main   ↑1                     ⠼ 9 s                       attached     ⠼ 4 running    truecolor · 120×40
+                                          Ctrl+] Detach  q Exit the program                             Attached to btm

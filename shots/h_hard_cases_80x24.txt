@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                                        mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                scope ‹ here ›
+
+    Suggested here                                                            ┃
+  › Analyze disk usage          disk     here    / is 91% full                ┃
+    Resolve the rebase in laz…  git      here    rebase in progress…          ┃
+    Review 7 modified files     git      here    7 modified · 0 untracked     ┃
+    Show system resources       system   host    CPU 78% for 4 min            ┃
+    Open btm                    system   host    sustained pressure…          ┃
+                                                                              ┃
+    Recent here                                                               ┃
+    nothing used here yet                                                     ┃
+                                                                              ┃
+    Explore                                                                   ┃
+ ▎   Tasks   Git   Files   Disk   Services   System                           │
+    Children · 14 projects      explore  child   14 child projects discovered │
+
+    → holla disk analyze /Users/alex/work/…ciliation-service · here · read-only
+
+ ~/work/clients/northwind-trad…iation-service   ! docker, github unavailable
+       Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  …

@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                          acme · mise monorepo  mbp · local
+
+  Here    frontend dev ⠧ ×    api dev ⠧ ×    api tests ✓ ×    logs · api worker sched… ⠧ ×    btm ⠧ ×
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                        scope ‹ here ›
+
+    Suggested here                                                               Follow acme-api-1 logs
+  › Follow acme-api-1 logs     docker    here   service is unhealthy
+    Inspect 10 GB of generat…  disk      here   10 GB generated artifacts        Does       stream the last 10
+    Install missing tools · …  task      here   1 tool missing                              minutes and follow ·
+    Deploy preview       ╭────────────────────────────────────────────────────────────────────╮e/api:dev · running
+    Follow acme-db-1 logs│ Activities                                                  4 live │ker logs -f -…e-api-1
+                         │ ▎⠋ frontend dev                 running · child · 10 s activities  │ork/acme
+    Recent here          │ ▎⠋ api dev                      running · child · 10 s             │ · local
+    nothing used here yet│ ▎✓ api tests                    succeeded · project ·…             │e
+                         │ ▎⠋ logs · api worker scheduler  running · here · 10 s              │vice is unhealthy
+    Running              │ ▎⠋ btm                          running · host · 10 s              │e · read-only
+    logs · api worker sch│                                                                    │d-only
+    api dev              │                                                                    │e · 10 s ago
+    btm                  ╰────────────────────────────────────────────────────────────────────╯s directly
+    frontend dev               activity  child  ⠋ running · 10 s                 Alt+Enter  Restart · Stop · Pin ·
+                                                                                            Alias · Why here?
+    Explore
+ ▎   Tasks   Git   Files   Disk   Services   System
+    Children · 3 projects      explore   child  3 child projects discovered
+    System · mbp               explore   host   available on this host
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/acme   main   ↑1                                                              ⠧ 4 running    truecolor · 120×40
+                                   ↑↓ Move  Enter Switch  Esc Cancel    Detached · the program keeps running in its tab

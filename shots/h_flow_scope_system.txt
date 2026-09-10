@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                      acme · mise monorepo  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                  scope ‹ system ›
+
+    System · mbp · 22 entries                                                                     ┃
+  › Show system resources           system  host  CPU 12% · memory 61%                            ┃
+    Clean Docker completely         plan    host  7.1 GB reclaimable on mbp           destructive ┃
+    List containers                 docker  host  5 running                                       ┃
+    Prune builder cache             docker  host  2.9 GB of build cache                           ┃
+    Show Docker disk usage          docker  host  7.1 GB reclaimable                              ┃
+    Stop all containers             docker  host  5 running on mbp                                ┃
+    Upgrade 8 outdated mise tools   task    host  8 tools have newer versions                     ┃
+    Analyze the home folder         disk    host  available                                       ┃
+    Connect to bastion              ssh     host  from ~/.ssh/config.d/work                       ┃
+    Connect to devbox               ssh     host  from ~/.ssh/config.d/work                       ┃
+    Connect to prod-eu-1            ssh     host  from ~/.ssh/config.d/work            privileged ┃
+    Connect to production-db        ssh     host  from ~/.ssh/config                   privileged ┃
+    Find the process on a port…     system  host  available on this host                          ┃
+    Follow pgadmin logs             docker  host  exited                                          ┃
+    Open btm                        system  host  installed on this host                          ┃
+    Prune unused networks           docker  host  available on this host                          │
+    Prune unused volumes            docker  host  3 volumes                           destructive │
+    Remove all unused images        docker  host  5 dangling                          destructive │
+
+    → holla snapshot system · host · read-only
+
+ ~/work/acme   main   ↑1                   scope system · mbp                    truecolor · 100×30
+              Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  …   Scope system · mbp

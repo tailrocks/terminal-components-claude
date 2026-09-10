@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                     acme › frontend · Node project · pnpm  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                    scope ‹ here ›
+
+    Suggested here
+  › Inspect 3 GB of generated artifa…  disk     here    3 GB generated artifacts
+    Install missing tools · sqlx-cli   task     here    1 tool missing
+    Run tests                          task     here    2 files changed since the last run
+    Follow acme-api-1 logs             docker   parent  service is unhealthy
+    Review 2 modified files            git      parent  2 modified · 0 untracked
+
+    Recent here
+    nothing used here yet
+
+    From acme · the parent root
+    Start development ecosystem        task     parent  defined by ~/work/acme/mise.toml
+    Start required containers          task     parent  defined by ~/work/acme/mise.toml
+
+    Explore
+ ▎   Tasks   Git   Files   Disk   Services   System
+    Parent · acme (mise monorepo)      explore  parent  workspace root above this folder
+    System · mbp                       explore  host    available on this host
+
+
+    → holla disk analyze /Users/alex/work/acme/apps/frontend --artifacts · here · read-only
+
+ ~/work/acme/apps/frontend   main   ↑1 • 2                                       truecolor · 100×30
+ Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

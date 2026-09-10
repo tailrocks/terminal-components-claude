@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                           no project  devbox · development
+
+  Here › Clean Docker completely › Review
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────
+  Review · Clean Docker completely · gate 1 of 2 · review the resolved facts, then continue deliberately
+
+  Action             remove all user-removable Docker state on devbox
+  Host               devbox · development · over SSH
+  In                 ╭────────────────────────────────────────────────────────────────────────────╮
+  Steps              │                                                                            │
+  Docker accounting  │  Clean Docker completely · gate 2 of 2                                     │6.1 GB
+  Reclaimable        │                                                                            │
+  Recoverable        │  Action             remove all user-removable Docker state on devbox       │
+  Not touched        │  Host               devbox                                                 │
+  Privilege          │  Steps              7 included                                             │
+  Uncertainty        │  Docker accounting  12 containers (5 running) · 41 images 9.8 GB · 7       │
+  Provenance         │                     volumes 4.1 GB · build cache 6.1 GB                    │
+  Gate               │  Reclaimable        ~18.4 GB                                               │
+                     │  Recoverable        no · images, containers and volumes are permanent      │
+ ╭─ Sequence · 8 comm│                                                                            │──────── y copies ─╮
+ │  01  docker stop a│  docker stop acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-re…  │                   │
+ │  02  docker rm acm│  docker rm acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-redi…  │registry-mirror t… │
+ │  03  docker image │  docker image prune -a --force                                             │                   │
+ │  04  docker networ│  docker network prune --force                                              │                   │
+ │  05  docker volume│  docker volume prune -a --force                                            │                   │
+ │  06  docker builde│  docker builder prune -a --force … 2 more                                  │                   │
+ │      docker buildx│                                                                            │                   │
+ │  07  docker system│   Type I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox to confirm           │                   │
+ │                   │ ▎ I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox                           │                   │
+ │                   │                                                                            │                   │
+ │                   │                                                        ▎Cancel  ▎Execute   │                   │
+ │                   │                                                                            │                   │
+ │                   ╰────────────────────────────────────────────────────────────────────────────╯                   │
+ │                                                                                                                    │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+                                                                                                 ▎Cancel   ▎Continue…
+
+ /work/scratch                                 review · gate 1 of 2                                  truecolor · 120×40
+  EDIT                                   Type Phrase  Enter Next  Esc Cancel

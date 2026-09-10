@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                     work · project collection  mbp · local
+
+  Here › Disk › Usage
+ ━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────
+  Disk usage · ~/work
+  ⠋ scanning · 9 candidates so far ━━━━━━━━━━━━━━━━━────────  67%
+
+    Filesystems                                                              ~/work                project collection
+ ▎  /                       ━━━━━━━━━━━━━━━━── 91%    842 of 926 GB
+ ▎  /Volumes/Backup         ━━━━━━━━━━━━━───── 71%    1420 of 2000 GB        Size  41.6 GB
+                                                                             Note  observation only · nothing is
+    Largest on /                                                                   deleted from this view
+ ▎› ~/work                                   41.6 GB  project collection
+ ▎  ~/Library/Containers/com.docker.doc…     24.0 GB  container disk
+ ▎  ~/Library/Caches                         11.2 GB  caches
+ ▎  ~/work/dumps/prod-2026-08.sql.gz          6.3 GB  large file
+ ▎  ~/.cargo                                  5.9 GB  developer cache
+
+    Rebuildable artifacts · by project
+ ▎[✓] android › build                  3.1 GB  inactive 22 days
+ ▎[ ] android › .gradle                0.9 GB  activity unknown
+ ▎[✓] backend › target                12.7 GB  inactive 18 days
+ ▎[✓] frontend › node_modules          8.4 GB  inactive 31 days
+ ▎[ ] frontend › dist                  0.4 GB  active today
+
+    System cleanup families
+      developer-tool caches · 2 candidates · 7.0 GB
+ ▎[✓] ~/Library/pnpm/store/v3          2.2 GB  inactive 40 days
+ ▎[ ] ~/.cargo/registry/cache          4.8 GB  inactive 3 days
+      virtualization and containers · 1 candidate · 24.0 GB
+ ▎[ ] ~/Library/Containers/com.do…    24.0 GB  active today
+      logs · 1 candidate · 1.4 GB
+ ▎[✓] ~/Library/Logs                   1.4 GB  inactive 60 days
+
+
+
+
+
+ ~/work                        ⠋ scanning ~/work · 67%                         / ━━━━━━━━━━─ 91%     truecolor · 120×40
+                          ↑↓ Move  a All  c Cleanup plan  Enter Facts  y Copy path  Esc Back

@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                          acme · mise monorepo  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                        scope ‹ here ›
+
+    Suggested here                                                               Follow acme-api-1 logs
+  › Follow acme-api-1 logs     docker    here   service is unhealthy
+    Inspect 10 GB of generat…  disk      here   10 GB generated artifacts        Does       stream the last 10
+    Install missing tools · …  task      here   1 tool missing                              minutes and follow ·
+    Deploy preview             workflow  here   provenance: project workflo…                acme/api:dev · running
+    Follow acme-db-1 logs      docker    here   running                          Runs       docker logs -f -…e-api-1
+                                                                                 In         ~/work/acme
+    Recent here                                                                  Host       mbp · local
+    nothing used here yet                                                        Scope      here
+                                                                                 Why        service is unhealthy
+    Explore                                                                      Changes    none · read-only
+ ▎   Tasks   Git   Files   Disk   Services   System                              Risk       read-only
+    Children · 3 projects      explore   child  3 child projects discovered      Data       live · 2 s ago
+    System · mbp               explore   host   available on this host           Gate       runs directly
+                                                                                 Alt+Enter  Restart · Stop · Pin ·
+                                                                                            Alias · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/acme   main   ↑1                                                                             truecolor · 120×40
+            Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

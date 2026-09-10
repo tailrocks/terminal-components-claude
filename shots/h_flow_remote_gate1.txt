@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                      payments · service checkout  ◆ prod-eu-1 · production
+
+  Here › Review
+ ━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────
+  Review · Restart payments · gate 1 of 2 · review the resolved facts, then continue deliberately
+
+  Action       systemctl restart payments on prod-eu-1 · production · in-flight requests are dropped
+  Host         prod-eu-1 · production
+  In           prod-eu-1 · host-wide
+  Scope        on prod-eu-1
+  Changes      payments restarts · brief outage on prod-eu-1
+  Risk         privileged
+  Data         live · 0 s ago
+  Recoverable  service restarts · brief outage
+  Provenance   built-in action · resolved from live state
+  Gate         second gate types the target-bound phrase
+
+ ╭─ Sequence · 2 commands ───────────────────────────────────────────────────────────────────────────────── y copies ─╮
+ │  01  sudo systemctl restart payments                                                                               │
+ │  02  systemctl status payments                                                                                     │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+                                                                                                 ▎Cancel   ▎Continue…
+
+ /srv/payments   detached @ v2.14.3                       review · gate 1 of 2                       truecolor · 120×40
+                          ← → Choose  Enter Activate  Tab Next  y Copy sequence  Esc Cancel

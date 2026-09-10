@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                      acme · mise monorepo  mbp · local
+
+      Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×                                   2›
+ ────━━━━━━━───────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                    scope ‹ here ›
+
+    Suggested here                                                                                ┃
+  › Follow acme-api-1 logs             docker    here   service is unhealthy                      ┃
+    Inspect 10 GB of generated artif…  disk      here   10 GB generated artifacts                 ┃
+    Install missing tools · sqlx-cli   task      here   1 tool missing                            ┃
+    Deploy preview                     workflow  here   provenance: project workflow file…        ┃
+    Follow acme-db-1 logs              docker    here   running                                   ┃
+                                                                                                  ┃
+    Recent here                                                                                   ┃
+    nothing used here yet                                                                         ┃
+                                                                                                  ┃
+    Running                                                                                       ┃
+    logs · api worker scheduler        activity  here   ⠋ running · 3 s                           ┃
+    api dev                            activity  child  ⠋ running · 3 s                           ┃
+    btm                                activity  host   ⠋ detached · 3 s                          ┃
+    frontend dev                       activity  child  ⠋ running · 3 s                           ┃
+                                                                                                  ┃
+    Explore                                                                                       ┃
+ ▎   Tasks   Git   Files   Disk   Services   System                                               ┃
+    Children · 3 projects              explore   child  3 child projects discovered               │
+
+    → docker logs -f --since 10m acme-api-1 · here · read-only
+
+ ~/work/acme   main   ↑1                                          ⠋ 4 running    truecolor · 100×30
+      Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  …   api tests finished · exit 0

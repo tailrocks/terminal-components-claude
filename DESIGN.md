@@ -418,6 +418,13 @@ TablePro's body has a one-cell margin on each side.
   Tab or opening an object puts it away).
 - **Connections screen**: list pane (`width ÷ 3`, clamped `26–40`) + `2` gap
   + detail or form card; a single list below `80` columns.
+- **Holla**: menu bar with the ` holla❯ ` lockup and the host identity, a
+  blank row, a two-row document tab strip whose first tab `Here` is
+  permanent, the body with one-cell margins, a status bar, the hint bar. A
+  tab is something that runs; a page is something you are deciding, and
+  pages stack inside the Here tab with a breadcrumb. The finder's preview
+  card sits beside the rows from `110` columns; below that it is a drawer
+  that covers the rows while it has focus and a one-line summary stands in.
 
 ### Rhythm
 
@@ -461,6 +468,10 @@ widest label `+ 2`.
 - **Modal workflow**: dialog or picker centred over a dimmed page.
 - **Command palette / quick switcher**: the picker, centred in the upper
   third, with query, grouped rows, scope and its own hint row.
+- **Finder + preview** (Holla): a live query row on the field plane with a
+  clickable scope readout at its right end, grouped fixed-column rows
+  beneath, and a preview card of facts beside them. Use when one query
+  must search mixed result types whose scope and type matter on every row.
 
 ### Responsive rules
 
@@ -922,6 +933,9 @@ Tab still reaches them.
 - **Meters**: an item may carry a compact line meter after its label
   (`Session ━━━━━━━━─── 76%`) in the quota-meter tones, so capacity reads as
   a gauge rather than a number; the item stays clickable as a whole.
+- **Busy**: an item may be `busy`: the ten-frame spinner precedes its text
+  in the primary tone while the text keeps its own tone (`⠋ 4 running`,
+  `⠋ discovering github · 8 of 9`). This is the status bar's only accent.
 - **Usage**: Capsule bottom chrome — left the work (`PR #482 · title` or the
   branch, strong, then `• 4 changed · 1 unpushed` in warning), centre the
   focused session (`Claude Code · Work · needs input`), right the focused
@@ -1171,6 +1185,64 @@ Tab still reaches them.
 - **History**: searchable list on the left; on the right a card with the
   wrapped query, facts under it, actions right after the facts.
 - **Safety gate**: the facts dialog composed from the statement classifier.
+
+#### Finder rows
+
+- **Rule**: a row of a mixed-domain result list reads `label · type ·
+  scope · reason` in fixed columns computed over every row. The type is a
+  domain word in text-muted; the scope word is muted when local and
+  text-secondary when it crosses a boundary (`parent`, `child`, `sibling`,
+  `host`, `on prod-eu-1`); the reason is the strongest live or learned
+  signal, truncated at a ` · ` boundary; a destructive or privileged row
+  ends with its risk word as a plain text-secondary column (the safety
+  tones are for the preview's `Risk` line and the gates, not for rows at
+  rest). Matched query characters are bold. The query row carries the
+  finder's focus bar; the cursor row is marked by `›` and the tint alone.
+  Section headings (`Suggested here`, `Recent here`, `Running`, `Explore`)
+  are text-faint with one blank row before, and the Explore domains are one
+  row of cells with the `›` marker on the chosen cell.
+- **Responsive**: the reason column gives way first; type, scope and the
+  risk column never drop. The one-line summary that stands in for the
+  preview truncates its command in the middle so ` · scope · risk` survives.
+- **Avoid**: colouring a destructive row, hiding it, or ranking it lower:
+  risk changes the gate and the hint (`Enter Review…`), never the rank.
+
+#### Stage outline
+
+- **Rule**: a plan is an ordered outline, one step per row: an inclusion
+  mark (`[✓]` in the accent for included optional steps, muted `[ ]` when
+  excluded, faint `[✓]` for required steps), the `NN` ordinal, the label,
+  a `needs` column listing prerequisite ordinals, a `lane` column (`·` for
+  the trunk, a letter per independent branch, `join` where branches
+  converge) and a meta column (`optional`, `excluded`, `sudo`, `blocked ·
+  needs 06`). While executing the mark becomes the step-rail state glyph
+  and the meta becomes elapsed time, `waits 04`, or the exit status;
+  blocked steps stay faint, only the failed row and the `N failed` clause
+  take the error tone. A consequence line one blank row under the outline
+  names blocked steps and why; the selected step's facts (runs, in, needs,
+  unlocks, lane, privilege, effect, note, state) sit beside it in a card
+  that ends after its content, or behind `p` when narrow. When the run
+  ends the cursor lands on the result (the failed step, else the last that
+  ran), the outcome line names only non-zero classes, and a `Next` row
+  offers the plan's follow-ups.
+- **Avoid**: connector lines, colouring done rows green, hiding excluded
+  rows.
+
+#### Two gates
+
+- **Rule**: a broad destructive action opens a review page (Gate 1): the
+  plain action, host, effective cwd, resource classes with counts and
+  sizes, inclusions, recoverable or permanent, privilege, provenance,
+  uncertainty, and the full command sequence in a framed scrollable pane;
+  `Cancel` is focused, the danger button reads `Continue…`. Continuing
+  opens the facts dialog (Gate 2) with the condensed facts, six command
+  lines and a typed acknowledgement whose token is the target-bound phrase
+  (`REMOVE ALL DOCKER DATA ON devbox`, prefixed `I UNDERSTAND: ` for the
+  broadest actions); the danger button stays disabled until it matches.
+  Execution re-resolves the plan; a changed target closes the dialog with
+  an error status and re-renders Gate 1 with a `Changed` fact.
+- **Avoid**: letting the selecting interaction count as a gate, a generic
+  `yes`, remembering an approval, a countdown.
 
 There is no toast, context menu, diff viewer or generic badge component. Do
 not claim one exists; add it to the showcase first if it becomes necessary.
