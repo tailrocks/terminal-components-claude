@@ -186,6 +186,10 @@ impl ContextMenu {
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<MenuEvent>) {
+        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
+            // an unassigned modified chord never performs a plain action
+            return (Outcome::Ignored, None);
+        }
         match key.code {
             KeyCode::Down | KeyCode::Char('j') => {
                 self.step(1);
@@ -435,6 +439,10 @@ impl MenuBar {
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<MenuBarEvent>) {
         let n = self.labels.len();
+        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
+            // an unassigned modified chord never performs a plain action
+            return (Outcome::Ignored, None);
+        }
         if let Some(menu) = self.open.as_mut() {
             match key.code {
                 KeyCode::Left | KeyCode::Char('h') if n > 1 => {

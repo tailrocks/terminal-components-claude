@@ -120,6 +120,10 @@ impl ListBox {
             return Outcome::Ignored;
         }
         let shift = key.shift();
+        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
+            // an unassigned modified chord never performs a plain action
+            return Outcome::Ignored;
+        }
         match key.code {
             KeyCode::Up | KeyCode::Char('k') | KeyCode::Char('K') => {
                 self.move_cursor(self.cursor.saturating_sub(1), shift);

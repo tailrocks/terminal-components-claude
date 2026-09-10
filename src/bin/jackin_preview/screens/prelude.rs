@@ -291,6 +291,7 @@ impl PreludeScreen {
                 tag: if i == 0 { Some("destination") } else { None },
                 matched: vec![],
                 disabled: false,
+                key: String::new(),
             })
             .collect()
     }
