@@ -1,4 +1,4 @@
-  holla❯    File   Go   Help                                      northwind-traders-platform-migration › inventory-reco…entory-reconciliation-core  mbp · local
+  holla❯    File   Go   Help      northwind-traders-platform-migration › inventory-reconciliation-service · … member inventory-reconciliation-core  mbp · local
 
   Here
  ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────

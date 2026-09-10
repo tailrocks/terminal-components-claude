@@ -9,10 +9,11 @@ use crate::clock::Clock;
 use crate::domain::action::Item;
 use crate::domain::activity::{Activity, ActivityKind, ActivityState, Script};
 use crate::domain::context::{Host, Location, ScopeTag};
+use crate::domain::effect::Effect;
 use crate::domain::plan::{Plan, PlanPhase, StepState};
 use crate::domain::stack::{
-    AptState, DiskState, DockerState, GitState, GithubState, MiseState, PgState, RankingMemory,
-    SshState, SystemSnapshot,
+    AptState, CleanupRecord, DiskState, DockerState, GitState, GithubState, MiseState, PgState,
+    RankingMemory, SshState, SystemSnapshot,
 };
 use crate::scenario::Scenario;
 
@@ -68,6 +69,9 @@ pub struct World {
     pub trusted_now: Vec<String>,
     /// Personal workflows contributed by the user (name, command, trusted).
     pub workflows: Vec<(String, String, bool)>,
+    /// systemd units restarted by holla this session: their degraded state
+    /// is healed in the catalogue and the snapshot.
+    pub healed_units: Vec<String>,
 }
 
 impl World {
@@ -218,15 +222,23 @@ impl World {
             msgs.push(Msg::ScanDone);
         }
         let tick = self.tick;
+        let mut effects = vec![];
         for a in &mut self.activities {
             let was = a.state;
             a.advance(tick);
             if was.live() && !a.state.live() {
+                let ok = a.state == ActivityState::Succeeded;
+                if ok && let Some(e) = &a.effect {
+                    effects.push(e.clone());
+                }
                 msgs.push(Msg::ActivityEnded {
                     id: a.id.clone(),
-                    ok: a.state == ActivityState::Succeeded,
+                    ok,
                 });
             }
+        }
+        for e in &effects {
+            self.apply_effect(e);
         }
         for pi in 0..self.plans.len() {
             msgs.extend(self.tick_plan(pi));
@@ -315,9 +327,205 @@ impl World {
         if self.plans[pi].is_done() && self.plans[pi].phase == PlanPhase::Running {
             self.plans[pi].phase = PlanPhase::Done;
             self.plans[pi].ended_tick = Some(tick);
+            self.apply_plan_effects(pi);
             msgs.push(Msg::PlanDone { plan: plan_id });
         }
         msgs
+    }
+
+    /// The PID blocking other sessions, when one is.
+    pub fn pg_blocker(&self) -> Option<u32> {
+        self.pg
+            .as_ref()
+            .and_then(|pg| pg.sessions.iter().find_map(|s| s.blocked_by))
+    }
+
+    /// Land a finished activity's effect in the world.
+    pub fn apply_effect(&mut self, e: &Effect) {
+        match e {
+            Effect::DockerRestart(name) => {
+                if let Some(c) = self.docker.containers.iter_mut().find(|c| &c.name == name) {
+                    c.running = true;
+                    if c.health.is_some() {
+                        c.health = Some("healthy".into());
+                    }
+                }
+            }
+            Effect::DockerStop(name) => {
+                if let Some(c) = self.docker.containers.iter_mut().find(|c| &c.name == name) {
+                    c.running = false;
+                    c.cpu_pct = 0.0;
+                }
+            }
+            Effect::ServiceRestart(unit) => {
+                if !self.healed_units.contains(unit) {
+                    self.healed_units.push(unit.clone());
+                }
+            }
+            Effect::PgCancel(pid) | Effect::PgTerminate(pid) => {
+                if let Some(pg) = &mut self.pg {
+                    let terminate = matches!(e, Effect::PgTerminate(_));
+                    if terminate {
+                        pg.sessions.retain(|s| s.pid != *pid);
+                        pg.connections = pg.connections.saturating_sub(1);
+                    } else if let Some(s) = pg.sessions.iter_mut().find(|s| s.pid == *pid) {
+                        s.state = "idle".into();
+                        s.txn_secs = 0;
+                        s.query_secs = 0;
+                        s.query = "ROLLBACK".into();
+                    }
+                    for s in pg
+                        .sessions
+                        .iter_mut()
+                        .filter(|s| s.blocked_by == Some(*pid))
+                    {
+                        s.blocked_by = None;
+                        s.wait = None;
+                        s.state = "active".into();
+                    }
+                }
+            }
+            Effect::GitPull(path) => {
+                if let Some(g) = self.git.iter_mut().find(|g| &g.path == path) {
+                    g.behind = 0;
+                }
+            }
+            Effect::CargoClean(path) => {
+                let target = format!("{path}/target");
+                self.remove_candidate(&target, "cargo clean");
+            }
+            Effect::MiseInstall => {
+                for cfg in &mut self.mise.configs {
+                    for t in &mut cfg.tools {
+                        if !t.installed {
+                            t.installed = true;
+                            t.active = Some(t.requested.clone());
+                        }
+                    }
+                }
+                for t in &mut self.mise.global_tools {
+                    if !t.installed {
+                        t.installed = true;
+                        t.active = Some(t.requested.clone());
+                    }
+                }
+            }
+        }
+    }
+
+    /// Remove a cleanup candidate that was reclaimed and record it.
+    fn remove_candidate(&mut self, path: &str, method: &str) {
+        let Some(i) = self.disk.candidates.iter().position(|c| c.path == path) else {
+            return;
+        };
+        let c = self.disk.candidates.remove(i);
+        if let Some(fs) = self.disk.filesystems.first_mut() {
+            fs.used_gb = fs.used_gb.saturating_sub(c.gb.round() as u32);
+        }
+        self.disk.history.push(CleanupRecord {
+            when_secs: self.now_secs(),
+            target: c.path.clone(),
+            method: method.to_owned(),
+            reclaimed_gb: c.gb,
+            outcome: "succeeded".into(),
+        });
+    }
+
+    /// Land a finished plan's effects: only the steps that succeeded change
+    /// anything, so a partial run leaves a truthful partial world.
+    fn apply_plan_effects(&mut self, pi: usize) {
+        let plan = self.plans[pi].clone();
+        let ok = |id: &str| {
+            plan.steps
+                .iter()
+                .any(|s| s.id == id && s.state == StepState::Succeeded)
+        };
+        match plan.id.as_str() {
+            "docker-cleanup" => {
+                if ok("stop") {
+                    for c in &mut self.docker.containers {
+                        c.running = false;
+                        c.cpu_pct = 0.0;
+                    }
+                }
+                if ok("rm") {
+                    self.docker.containers.clear();
+                }
+                if ok("images") {
+                    self.docker.images = 0;
+                    self.docker.images_gb = 0.0;
+                    self.docker.dangling_images = 0;
+                }
+                if ok("networks") {
+                    self.docker.networks = 0;
+                }
+                if ok("volumes") {
+                    self.docker.volumes.clear();
+                }
+                if ok("builder") {
+                    self.docker.builder_cache_gb = 0.0;
+                }
+                self.docker.reclaimable_gb =
+                    self.docker.images_gb + self.docker.volumes_gb() + self.docker.builder_cache_gb;
+                self.docker.cleanup_uses += 1;
+            }
+            "upgrade" => {
+                if ok("apt-apply")
+                    && let Some(apt) = &mut self.apt
+                {
+                    apt.upgradable.clear();
+                    apt.pending_reboot = true;
+                }
+                if ok("mise-upgrade") {
+                    for t in &mut self.mise.global_tools {
+                        if t.name != "go" && t.installed {
+                            t.active = Some(t.latest.clone());
+                        }
+                    }
+                }
+            }
+            "cleanup-work" => {
+                for s in plan
+                    .steps
+                    .iter()
+                    .filter(|s| s.state == StepState::Succeeded)
+                {
+                    let Some(target) = s.target.clone() else {
+                        continue;
+                    };
+                    let method = s
+                        .commands
+                        .first()
+                        .and_then(|c| c.split_whitespace().next())
+                        .unwrap_or("cleanup")
+                        .to_owned();
+                    self.remove_candidate(&target, &method);
+                }
+            }
+            "git-pull-all" => {
+                for s in plan
+                    .steps
+                    .iter()
+                    .filter(|s| s.state == StepState::Succeeded)
+                {
+                    if let Some(g) = self.git.iter_mut().find(|g| g.path == s.cwd) {
+                        g.behind = 0;
+                    }
+                }
+            }
+            "git-switch-primary" => {
+                for s in plan
+                    .steps
+                    .iter()
+                    .filter(|s| s.state == StepState::Succeeded)
+                {
+                    if let Some(g) = self.git.iter_mut().find(|g| g.path == s.cwd) {
+                        g.branch = Some(g.primary.clone());
+                    }
+                }
+            }
+            _ => {}
+        }
     }
 
     /// Ticks since the scan started, capped at the scan length.

@@ -368,7 +368,7 @@ its whole hierarchy from those.
 | Metadata (counts, sizes, timestamps) | text-muted, right-aligned in the row |
 | Helper text | text-muted below the field |
 | Hint | bold key + muted action, `Esc Cancel` |
-| Status message | text-secondary, right edge of the footer |
+| Status message | text-secondary, right edge of the footer; a warning status carries `▲`, an error status a bold `!`, so the weight survives monochrome |
 | Warning / dirty | warning tone plus `•` or `▲` |
 | Error | error tone plus bold `!` |
 | Disabled | text-faint, no modifiers |
@@ -1083,7 +1083,10 @@ Tab still reaches them.
   last action; `Enter` in the field only moves focus).
 - **Anatomy**: dimmed backdrop (footer excluded), centred rounded elevated
   surface `54` wide (`66` for facts) with a `3×2` inset, bold title, body,
-  right-aligned actions with one-cell gaps.
+  right-aligned actions with one-cell gaps. The width is content-driven:
+  when a dialog's facts are the decision (a plan's sequence, a lock tree),
+  widen `Dialog.width` per instance until the longest fact renders without
+  truncation — a truncated fact is a hidden fact.
 - **Keys**: `←→`/`h l` between enabled actions, `Enter`/`Space`, `Esc` and
   `n` cancel, `y` confirms (text bodies only). Nothing leaks to the page.
 

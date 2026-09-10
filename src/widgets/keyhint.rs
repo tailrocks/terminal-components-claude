@@ -38,7 +38,8 @@ pub fn render(
 }
 
 /// Like [`render`], with a toned status: an error status is drawn as
-/// `! message` in the error tone. Hints that do not fit are dropped from
+/// `! message` in the error tone and a warning as `▲ message` in the
+/// warning tone, so the weight survives monochrome. Hints that do not fit are dropped from
 /// the right and a faint `…` marks the cut.
 pub fn render_toned(
     area: Rect,
@@ -69,20 +70,26 @@ pub fn render_aligned(
     let mut x = area.x + 1;
     let mut right_w = 0u16;
     if let Some((r, tone)) = right {
-        let text = if tone == Tone::Error {
-            format!("! {r}")
-        } else {
+        // the glyph carries the meaning in monochrome, the tone in colour
+        let mark = match tone {
+            Tone::Error => "!",
+            Tone::Warning => "▲",
+            _ => "",
+        };
+        let text = if mark.is_empty() {
             r.to_owned()
+        } else {
+            format!("{mark} {r}")
         };
         let w = crate::ui::text::width(&text) as u16;
         if area.width > w + 2 {
             let st = ratatui::style::Style::new().fg(t.tone(tone));
             buf.set_string(area.right() - w - 1, area.y, &text, st);
-            if tone == Tone::Error {
+            if !mark.is_empty() {
                 buf.set_string(
                     area.right() - w - 1,
                     area.y,
-                    "!",
+                    mark,
                     st.add_modifier(ratatui::style::Modifier::BOLD),
                 );
             }
@@ -137,4 +144,46 @@ pub fn render_aligned(
         buf.set_string(x, area.y, "…", t.faint());
     }
     drawn
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn row_text(buf: &Buffer, width: u16) -> String {
+        (0..width)
+            .map(|x| buf[(x, 0)].symbol().to_owned())
+            .collect()
+    }
+
+    #[test]
+    fn warning_and_error_statuses_carry_glyphs_so_mono_keeps_the_weight() {
+        let t = Theme::junie();
+        let hints = [hint("Esc", "Back")];
+        for (tone, mark) in [(Tone::Warning, "▲"), (Tone::Error, "!")] {
+            let mut buf = Buffer::empty(Rect::new(0, 0, 60, 1));
+            render_toned(
+                Rect::new(0, 0, 60, 1),
+                &mut buf,
+                &t,
+                &hints,
+                None,
+                Some(("disk low", tone)),
+            );
+            let row = row_text(&buf, 60);
+            assert!(row.contains(&format!("{mark} disk low")), "{row:?}");
+        }
+        let mut plain = Buffer::empty(Rect::new(0, 0, 60, 1));
+        render_toned(
+            Rect::new(0, 0, 60, 1),
+            &mut plain,
+            &t,
+            &hints,
+            None,
+            Some(("Saved", Tone::Secondary)),
+        );
+        let row = row_text(&plain, 60);
+        assert!(row.contains("Saved"), "{row:?}");
+        assert!(!row.contains('▲') && !row.contains('!'), "{row:?}");
+    }
 }

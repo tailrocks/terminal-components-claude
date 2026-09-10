@@ -1,6 +1,6 @@
   holla❯    File   Go   Help                                                          acme · mise monorepo  mbp · local
 
-  Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×    logs · api worker sched… ⠋ ×    btm ○ ×
+  Here    frontend dev ⠙ ×    api dev ⠙ ×    api tests ✓ ×    logs · api worker sched… ⠙ ×    btm ○ ×
  ────────────────────────────────────────────────────────────━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────────────
   logs · api worker scheduler · running · 6 s                                                 here · ~/work/acme · mbp
   compose acme · errors 3 in 2 min
@@ -36,5 +36,5 @@
  │                                                                                                                    │
  ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
- ~/work/acme   main   ↑1                            ⠋ 6 s                             ⠋ 4 running    truecolor · 120×40
+ ~/work/acme   main   ↑1                            ⠙ 6 s                             ⠙ 4 running    truecolor · 120×40
                                 ↑↓ Scroll  f Follow  y Copy  s Stop  x Close  Esc Here

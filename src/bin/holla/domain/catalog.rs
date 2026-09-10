@@ -1696,6 +1696,14 @@ fn service_items(w: &World, out: &mut Vec<Item>) {
         ("postgresql", "active · 41 d", false),
     ];
     for (name, state, degraded) in services {
+        // a unit holla restarted this session is healed, honestly
+        let healed = w.healed_units.iter().any(|u| u == name);
+        let degraded = degraded && !healed;
+        let state = if healed {
+            "active · restarted just now"
+        } else {
+            state
+        };
         let mut st = Item::new(
             &format!("service.status.{name}"),
             &format!("Show {name} status"),

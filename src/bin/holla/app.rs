@@ -831,10 +831,25 @@ impl App {
         } else {
             "Nothing is running.".into()
         };
-        let d = if n > 0 {
-            Dialog::destructive(WidgetId::of("quit"), "Quit holla❯?", &body, "Stop and quit")
+        // leaving a remote box says which box
+        let title = if self.world.host.remote {
+            format!("Quit holla❯ on {}?", self.world.host.name)
         } else {
-            Dialog::confirm(WidgetId::of("quit"), "Quit holla❯?", &body, "Quit")
+            "Quit holla❯?".to_owned()
+        };
+        let body = if self.world.host.remote {
+            format!(
+                "◆ {} · {} · over SSH. {body}",
+                self.world.host.name,
+                self.world.host.role.label()
+            )
+        } else {
+            body
+        };
+        let d = if n > 0 {
+            Dialog::destructive(WidgetId::of("quit"), &title, &body, "Stop and quit")
+        } else {
+            Dialog::confirm(WidgetId::of("quit"), &title, &body, "Quit")
         };
         self.push_modal(Modal::Dialog(d), ModalTag::new("quit"));
     }
@@ -1920,10 +1935,12 @@ impl App {
                 let aid =
                     self.world
                         .start_activity(&script, &name, &it.label, kind, it.scope.clone());
-                if let Some(a) = self.world.activity_mut(&aid)
-                    && !args.is_empty()
-                {
-                    a.insights = args.clone();
+                let effect = crate::domain::effect::Effect::for_item(&it.id, &self.world);
+                if let Some(a) = self.world.activity_mut(&aid) {
+                    if !args.is_empty() {
+                        a.insights = args.clone();
+                    }
+                    a.effect = effect;
                 }
                 self.open_activity_tab(&aid, true);
                 self.set_status(
@@ -2128,6 +2145,11 @@ impl App {
                 ActivityKind::Task,
                 scope,
             );
+            if let Some(a) = self.world.activity_mut(&aid) {
+                a.effect = Some(crate::domain::effect::Effect::DockerRestart(
+                    name.to_owned(),
+                ));
+            }
             self.open_activity_tab(&aid, true);
             return;
         }
@@ -2139,6 +2161,9 @@ impl App {
                 ActivityKind::Task,
                 scope,
             );
+            if let Some(a) = self.world.activity_mut(&aid) {
+                a.effect = Some(crate::domain::effect::Effect::DockerStop(name.to_owned()));
+            }
             self.open_activity_tab(&aid, true);
             return;
         }
@@ -2490,17 +2515,17 @@ impl App {
             (None, Some(p)) => format!("{} · {}", p.name, p.kind.label()),
             _ => "no project".into(),
         };
-        right.push(
-            Segment::new(
-                truncate_middle(&project, (area.width / 2) as usize),
-                Tone::Secondary,
-            )
-            .priority(6),
-        );
         let host = match w.host.role {
             HostRole::Production => format!("◆ {} · production", w.host.name),
             r => format!("{} · {}", w.host.name, r.label()),
         };
+        // the identity is the constant frame and the path the variable
+        // part: the crumb truncates to what is left rather than dropping
+        let budget = (rest.width as usize).saturating_sub(width(&host) + 6);
+        if budget >= 12 {
+            right
+                .push(Segment::new(truncate_middle(&project, budget), Tone::Secondary).priority(6));
+        }
         // the `◆` glyph and the word are the identity; no safety tone at rest
         right.push(Segment::new(host, Tone::Normal).bold().priority(9));
         segments::render(rest, buf, ctx, &[], &right, t.canvas);

@@ -1249,6 +1249,7 @@ fn base(scenario: Scenario, motion: Motion, host: Host, location: Location) -> W
         next_activity: 0,
         trusted_now: vec![],
         workflows: vec![],
+        healed_units: vec![],
     }
 }
 
@@ -2505,6 +2506,7 @@ pub fn plan_cleanup_work(w: &World, selected: &[String]) -> Plan {
             c.method.label()
         )])
         .optional()
+        .target(&c.path)
         .ticks(20 + (c.gb * 4.0) as u64);
         if let Some(shared) = &c.shares_with {
             s = s.exclusive(&format!("cargo target shared with {shared}"));

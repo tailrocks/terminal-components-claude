@@ -675,12 +675,15 @@ impl SnapshotPage {
                 let name = k.trim_start_matches("service-");
                 self.title = format!("{name}.service");
                 self.meta = format!("◆ {host} · production");
-                let degraded = name == "payments-worker";
+                let healed = w.healed_units.iter().any(|u| u == name);
+                let degraded = name == "payments-worker" && !healed;
                 self.facts = vec![
                     Prop::new(
                         "Active",
                         if degraded {
                             "activating (auto-restart) · 3 restarts in 10 min"
+                        } else if healed {
+                            "active (running) · restarted by holla just now"
                         } else {
                             "active (running)"
                         },

@@ -355,8 +355,24 @@ fn render_outline(
                         .ended_tick
                         .unwrap_or(0)
                         .saturating_sub(s.started_tick.unwrap_or(0));
+                    // a failed row names its reason: the last error line
+                    let reason = if s.state == StepState::Failed {
+                        s.output
+                            .iter()
+                            .rev()
+                            .find(|l| l.contains("ERROR") || l.contains("mismatch"))
+                            .map(|l| {
+                                format!(
+                                    " · {}",
+                                    l.split_once("ERROR ").map(|(_, r)| r).unwrap_or(l)
+                                )
+                            })
+                            .unwrap_or_default()
+                    } else {
+                        String::new()
+                    };
                     format!(
-                        "{}{}",
+                        "{}{}{reason}",
                         ticks_label(d),
                         s.exit
                             .filter(|e| *e != 0)

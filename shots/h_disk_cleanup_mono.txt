@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                 work · project collection  mbp · local
+
+  Here › Disk › Usage
+ ━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────
+  Disk usage · ~/work
+  ⠋ scanning · 9 candidates so far ━━━━━━━━━━━━━━━━━────────  67%
+
+    Filesystems                                                                                   ┃
+ ▎  /                       ━━━━━━━━━━━━━━━━── 91%    842 of 926 GB                               ┃
+ ▎  /Volumes/Backup         ━━━━━━━━━━━━━───── 71%    1420 of 2000 GB                             ┃
+                                                                                                  ┃
+    Largest on /                                                                                  ┃
+ ▎› ~/work                                             41.6 GB  project collection                ┃
+ ▎  ~/Library/Containers/com.docker.docker/Data/v…     24.0 GB  container disk                    ┃
+ ▎  ~/Library/Caches                                   11.2 GB  caches                            ┃
+ ▎  ~/work/dumps/prod-2026-08.sql.gz                    6.3 GB  large file                        ┃
+ ▎  ~/.cargo                                            5.9 GB  developer cache                   ┃
+                                                                                                  ┃
+    Rebuildable artifacts · by project                                                            ┃
+ ▎[✓] android › build                            3.1 GB  inactive 22 days    ./gradlew            ┃
+ ▎[ ] android › .gradle                          0.9 GB  activity unknown    in use by gradle da… ┃
+ ▎[✓] backend › target                          12.7 GB  inactive 18 days    cargo                ┃
+ ▎[✓] frontend › node_modules                    8.4 GB  inactive 31 days    Trash                │
+ ▎[ ] frontend › dist                            0.4 GB  active today        Trash                │
+                                                                                                  │
+    System cleanup families                                                                       │
+      developer-tool caches · 2 candidates · 7.0 GB                                               │
+
+ ~/work               ⠋ scanning ~/work · 67%               / ━━━━━━━━━━─ 91%     no color · 100×30
+                ↑↓ Move  a All  c Cleanup plan  Enter Facts  y Copy path  Esc Back

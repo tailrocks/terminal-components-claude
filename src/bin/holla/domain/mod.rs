@@ -6,6 +6,7 @@ pub mod action;
 pub mod activity;
 pub mod catalog;
 pub mod context;
+pub mod effect;
 pub mod fixtures;
 pub mod plan;
 pub mod ranking;

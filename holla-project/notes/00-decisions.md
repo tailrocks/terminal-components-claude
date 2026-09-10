@@ -119,6 +119,20 @@ closed in place when answered.
   is its query row); `Uncertainty` and `Privilege` stay warning-toned on
   gates because they are safety facts; the attached chip is text-secondary.
 
+- D-24 Borrowed from the sibling `holla` branch (a separate Console-model
+  build) after comparing both: finished runs change the world they claimed
+  to (`domain/effect.rs`, `World::apply_effect`, plan effects on
+  completion, healed systemd units); warning statuses carry `▲` in the
+  hint bar as errors carry `!` (library `keyhint`, DESIGN status row);
+  content-driven dialog width recorded in DESIGN; the menu-bar crumb
+  truncates to its budget before it drops; a failed step names its reason
+  in the row; the quit dialog names a remote host; the capture matrix runs
+  mono for every scenario with env-overridable scope; a per-scenario
+  verification table lives in `src/bin/holla/README.md`. Not borrowed:
+  pin above alias (D-19 keeps the exact alias strongest), `✗` and `⚠`
+  glyphs (the vocabulary already has `!` and `▲`), a manual activity strip
+  (Tabs carries state glyphs), always-armed EDIT badge on the finder.
+
 ## Open questions
 
 - Q-1 Closed: the tab strip always shows `Here` so the model is visible from
