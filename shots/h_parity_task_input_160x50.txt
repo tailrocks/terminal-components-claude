@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ Search actions and resources…                                                                                                                scope ‹ here ›  
                                                                                                                                                                 
-    Suggested here                                                                                               Follow payments-worker journal                 
+    Suggested here                                                                                               Follow payments-worker j… system · on devbox   
   › Follow payments-worker journal  system   on devbox  unit is restarting                                                                                      
     Show payments-worker status     system   on devbox  3 restarts in 10 min                                     Does       journalctl -u payments-worker -f    
     Deploy the release              custom   here       Current folder · trusted                                 Runs       journalctl -u payment… -f -n 200    

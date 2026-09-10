@@ -975,9 +975,15 @@ mod tests {
         let diff_pos = Position::new(m.diff_area.x + 1, m.diff_area.y + 1);
         assert_eq!(m.on_wheel_at(2, tree_pos), Outcome::Changed);
         assert_eq!(m.tree.scroll.offset, 2);
+        // the wheel reaches the diff; at a boundary it is consumed, else it
+        // moves the view
         let d0 = m.diff.term.scroll.offset;
-        assert_eq!(m.on_wheel_at(3, diff_pos), Outcome::Changed);
-        assert!(m.diff.term.scroll.offset >= d0);
+        let out = m.on_wheel_at(3, diff_pos);
+        assert!(
+            matches!(out, Outcome::Changed | Outcome::Consumed),
+            "{out:?}"
+        );
+        assert_eq!(out == Outcome::Changed, m.diff.term.scroll.offset != d0);
         rig.draw(&mut m);
         assert_eq!(m.tree.scroll.offset, 2, "render keeps the wheel position");
         rig.h = 40;

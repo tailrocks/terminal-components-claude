@@ -63,6 +63,8 @@ pub enum EditorEvent {
 
 #[derive(Debug, Clone)]
 pub struct CodeEditor {
+    /// The scrollbar track as last drawn: presses and drags map through it.
+    track: Rect,
     pub id: WidgetId,
     pub buffer: TextBuffer,
     pub editing: bool,
@@ -120,6 +122,7 @@ impl CodeEditor {
             placeholder: String::new(),
             tab_leaves: false,
             area: Rect::ZERO,
+            track: Rect::ZERO,
             text_area: Rect::ZERO,
             gutter_w: 0,
             drag_anchor: None,
@@ -557,24 +560,50 @@ impl CodeEditor {
     }
 
     pub fn on_wheel(&mut self, delta: i32, horizontal: bool) -> Outcome {
-        if horizontal {
+        let moved = if horizontal {
+            let before = self.hscroll;
             self.hscroll = (self.hscroll as isize + delta as isize * 4).max(0) as usize;
+            self.hscroll != before
         } else {
-            self.scroll.scroll_by(delta as isize);
+            self.scroll.scroll_by(delta as isize)
+        };
+        if moved {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
         }
-        Outcome::Changed
     }
 
+    fn track(&self) -> Rect {
+        if self.track.is_empty() {
+            Rect::new(
+                self.area.right().saturating_sub(1),
+                self.area.y,
+                1,
+                self.area.height,
+            )
+        } else {
+            self.track
+        }
+    }
+
+    /// The pointer went down on the scrollbar (or a completed click): a
+    /// press on the thumb grabs it, a press on the track jumps to it.
     pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        let track = Rect::new(
-            self.area.right().saturating_sub(1),
-            self.area.y,
-            1,
-            self.area.height,
-        );
-        self.scroll
-            .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
-        Outcome::Changed
+        if scrollbar::press(self.track(), pos, &mut self.scroll) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
+    }
+
+    /// The pointer dragged along the scrollbar after a press.
+    pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
+        if scrollbar::drag(self.track(), pos, &mut self.scroll) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
     }
 
     /// Paste into the active find query, or into the editable document.
@@ -860,6 +889,7 @@ impl CodeEditor {
         {
             ctx.set_cursor(Position::new(cursor.x, cursor.y));
         }
+        self.track = Rect::ZERO;
         if has_sb {
             crate::ui::fade::scroll_edges(
                 buf,
@@ -873,6 +903,7 @@ impl CodeEditor {
                 &self.scroll,
             );
             let sb = Rect::new(area.right() - 1, area.y, 1, body_h);
+            self.track = sb;
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
         }
         // footer row
@@ -1020,6 +1051,27 @@ mod tests {
     use crate::theme::{ColorLevel, Theme};
     use crate::ui::ctx::Interaction;
     use ratatui::crossterm::event::KeyModifiers;
+
+    #[test]
+    fn scrollbar_drag_reaches_the_end_of_the_drawn_track() {
+        let text: Vec<String> = (1..=40).map(|i| format!("line {i}")).collect();
+        let mut editor = CodeEditor::new(WidgetId::of("c"), &text.join("\n"));
+        render(&mut editor, 40, 6);
+        assert!(editor.scroll.overflows());
+        let track = editor.track;
+        assert_eq!(track.height, 5, "the track is the body, not the status row");
+        assert_eq!(
+            editor.on_scrollbar_drag(Position::new(track.x, track.bottom() - 1)),
+            Outcome::Changed
+        );
+        assert_eq!(editor.scroll.offset, editor.scroll.max_offset());
+        assert_eq!(
+            editor.on_scrollbar_drag(Position::new(track.x, track.y)),
+            Outcome::Changed
+        );
+        assert_eq!(editor.scroll.offset, 0);
+        assert_eq!(editor.on_wheel(-1, false), Outcome::Consumed);
+    }
 
     fn render(editor: &mut CodeEditor, width: u16, height: u16) -> Option<Position> {
         let theme = Theme::for_level(ColorLevel::TrueColor);

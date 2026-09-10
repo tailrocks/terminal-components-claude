@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ Search actions and resources…                                                                        scope ‹ here ›  
                                                                                                                         
-    Suggested here                                                               Clean Gradle outputs under ~/work/a…   
+    Suggested here                                                               Clean Gradle outputs… cleanup · here   
   › Clean Gradle outputs und…  cleanup  here  4 candidates       destructive                                            
     gradle build               gradle   here  build.gradle.kts…                  Does       gradle --stop, then move    
     gradle clean               gradle   here  build.gradle.kts…                             every .gradle and build     

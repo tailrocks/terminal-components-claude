@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ Search actions and resources…                                                                        scope ‹ here ›  
                                                                                                                         
-    Suggested here                                                               Inspect 12 GB of generated artifacts   
+    Suggested here                                                               Inspect 12 GB of genera… disk · here   
     Pull                       git      here  branch is 3 commits behind…                                               
     Run tests                  task     here  5 files changed since the las…     Does       1 rebuildable candidate     
     Run lint                   task     here  defined by ~/work/holla/mise.…                below this folder · 0       

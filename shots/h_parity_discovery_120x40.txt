@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ Search actions and resources…                                                                        scope ‹ here ›  
                                                                                                                         
-    Suggested here                                                               Clean IntelliJ metadata under ~/wor…   
+    Suggested here                                                               Clean IntelliJ metadata… idea · here   
     Pull                       git      here  branch is 1 comm…                                                         
   › Clean IntelliJ metadata …  idea     here  1 candidates       destructive     Does       move every .idea            
     Deploy                     custom   here  Current folder…                               directory and lowercase     

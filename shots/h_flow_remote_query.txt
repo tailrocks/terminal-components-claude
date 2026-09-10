@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ restart payments                                                                                     scope ‹ here ›  
                                                                                                                         
-    Results · 2                                                                  Restart payments                       
+    Results · 2                                                                  Restart payme… system · on prod-eu-1   
   › Restart payments         system  on prod-eu-1  production h…  privileged                                            
     Restart payments-worker  system  on prod-eu-1  production h…  privileged     Does       systemctl restart           
                                                                                             payments on prod-eu-1 ·     

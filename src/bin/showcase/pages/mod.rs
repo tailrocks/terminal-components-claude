@@ -66,6 +66,12 @@ pub enum PageEvent {
         id: WidgetId,
         delta: i32,
     },
+    /// Horizontal wheel over `id`: columns of a table or grid, the text of
+    /// an editor.
+    WheelH {
+        id: WidgetId,
+        delta: i32,
+    },
     Tick,
     DialogClosed {
         id: WidgetId,

@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ Taskfile                                                                                             scope ‹ here ›  
                                                                                                                         
-    Results · 1                                                                  Taskfile · Taskfile.yaml               
+    Results · 1                                                                  Taskfile · Taskfile.yaml task · here   
   › Taskfile · Taskfile.yaml  task  here  discovery diagnostic                                                          
                                                                                  Does       task --list --json          
                                                                                             failed: yaml: line 3:       

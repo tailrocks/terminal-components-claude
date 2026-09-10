@@ -1,12 +1,12 @@
 {
  "capture": "h_parity_gradle_120x40",
  "source": {
-  "git": "e4866ce41a485532e57bdc5761d90f0af541086c",
+  "git": "92d91629804ffadb109ffbcd7a6765ac73afff7d",
   "dirty": true
  },
  "binary": {
   "path": "target/debug/holla",
-  "sha256": "e1727e3be00db994747b5f847359972d1030319841384e2b0484730166a24ca8"
+  "sha256": "8737c47f6058b3049eb307d8e40e45ca12466b4991ca5f4faf0ee100b02032d8"
  },
  "arguments": "--scenario parity-gradle --motion paused --frame 40",
  "geometry": {
@@ -25,7 +25,7 @@
   "cells": "target/debug/examples/cells (unicode-segmentation + unicode-width of the library)"
  },
  "host": "Darwin 25.6.0",
- "ansi_sha256": "a9829e0441a5ab0efb39c6dc32e11a304d4b61445317eed621262b4332dc3528",
+ "ansi_sha256": "acc69084f0f3422e2b2689d5d3eb9b94a18d3ba2bc3355eb78d55dddadaadeda",
  "fonts": [
   {
    "role": "regular",
@@ -64,6 +64,6 @@
   "controls": 0,
   "raqm": true
  },
- "captured_at": "2026-09-10T15:37:08+00:00",
+ "captured_at": "2026-09-10T16:30:06+00:00",
  "review": "pending inspection"
 }

@@ -211,6 +211,9 @@ pub struct App {
     pub pressed: Option<WidgetId>,
     pub mouse: Option<Position>,
     pub hover_suppressed: bool,
+    /// A wheel scroll moved the content under a still pointer: hover is
+    /// resolved against the next frame's hit regions at this position.
+    hover_refresh: Option<Position>,
     pub dialog: Option<Dialog>,
     pub inspector: bool,
     pub size: (u16, u16),
@@ -291,6 +294,7 @@ impl App {
             pressed: None,
             mouse: None,
             hover_suppressed: false,
+            hover_refresh: None,
             dialog: None,
             inspector: false,
             size: (0, 0),
@@ -711,7 +715,24 @@ impl App {
                 };
                 self.dispatch(PageEvent::Secondary { id, pos: m.pos })
             }
-            MouseKind::WheelLeft | MouseKind::WheelRight => Outcome::Ignored,
+            MouseKind::WheelLeft | MouseKind::WheelRight => {
+                if self.dialog.is_some() {
+                    return Outcome::Consumed;
+                }
+                let Some(id) = self.hits.hit_scroll(m.pos) else {
+                    return Outcome::Ignored;
+                };
+                let delta = if m.kind == MouseKind::WheelLeft {
+                    -1
+                } else {
+                    1
+                };
+                let out = self.dispatch(PageEvent::WheelH { id, delta });
+                if out == Outcome::Changed {
+                    self.hover_refresh = Some(m.pos);
+                }
+                out
+            }
             MouseKind::WheelUp | MouseKind::WheelDown => {
                 let delta = if m.kind == MouseKind::WheelUp { -3 } else { 3 };
                 if self.dialog.is_some() {
@@ -720,16 +741,23 @@ impl App {
                 let Some(id) = self.hits.hit_scroll(m.pos) else {
                     return Outcome::Ignored;
                 };
-                if id == NAV || id == scrollbar::id_for(NAV) || self.nav_index_at(id).is_some() {
-                    let before = self.nav_scroll.offset;
-                    self.nav_scroll.scroll_by(delta as isize);
-                    return if before == self.nav_scroll.offset {
-                        Outcome::Consumed
+                let out =
+                    if id == NAV || id == scrollbar::id_for(NAV) || self.nav_index_at(id).is_some()
+                    {
+                        if self.nav_scroll.scroll_by(delta as isize) {
+                            Outcome::Changed
+                        } else {
+                            Outcome::Consumed
+                        }
                     } else {
-                        Outcome::Changed
+                        self.dispatch(PageEvent::Wheel { id, delta })
                     };
+                // the rows under the pointer change with the scroll: hover
+                // is re-resolved once the new frame has registered its hits
+                if out == Outcome::Changed {
+                    self.hover_refresh = Some(m.pos);
                 }
-                self.dispatch(PageEvent::Wheel { id, delta })
+                out
             }
         }
     }
@@ -746,8 +774,7 @@ impl App {
             self.layout.sidebar.height,
         );
         let before = self.nav_scroll.offset;
-        self.nav_scroll
-            .scroll_to(scrollbar::offset_for_click(track, pos, &self.nav_scroll));
+        scrollbar::drag(track, pos, &mut self.nav_scroll);
         if before == self.nav_scroll.offset {
             Outcome::Consumed
         } else {
@@ -778,6 +805,11 @@ impl App {
         }
         self.hits = hits;
         self.ring = ring;
+        if let Some(pos) = self.hover_refresh.take()
+            && !self.hover_suppressed
+        {
+            self.hover = self.hits.hit(pos);
+        }
         // keep focus valid against the freshly built ring
         if self.dialog.is_none() {
             if !self.layout.too_small
@@ -995,7 +1027,7 @@ impl App {
             ctx.hits.register_scroll(NAV, area);
         }
         if overflow {
-            junie_tui::ui::fade::scroll_edges(
+            junie_tui::ui::fade::scroll_edges_except(
                 buf,
                 ctx,
                 Rect::new(
@@ -1005,6 +1037,12 @@ impl App {
                     area.height,
                 ),
                 &self.nav_scroll,
+                &self
+                    .nav_areas
+                    .get(self.nav_cursor)
+                    .map(|r| r.y)
+                    .into_iter()
+                    .collect::<Vec<_>>(),
             );
             scrollbar::render_vertical(
                 Rect::new(area.right() - 1, area.y, 1, area.height),

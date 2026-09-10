@@ -34,13 +34,12 @@ impl Page for TreesPage {
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let (l, r) = crate::pages::layout::columns(area, (area.width * 3 / 5).max(30), 2);
-        let pos = scrollbar::position_label(&self.tree.scroll);
-        let panel = Panel::card(Some("Project"))
-            .meta(&pos)
-            .focused(ctx.interaction.focused(self.tree.id));
+        let panel = Panel::card(Some("Project")).focused(ctx.interaction.focused(self.tree.id));
         let bg = panel.bg(t);
-        let inner = panel.render(Rect::new(l.x, l.y, l.width, l.height.min(18)), buf, t);
+        let card = Rect::new(l.x, l.y, l.width, l.height.min(18));
+        let inner = panel.render(card, buf, t);
         self.tree.render(inner, buf, ctx, bg);
+        panel.draw_meta(card, buf, t, &scrollbar::position_label(&self.tree.scroll));
 
         let panel = Panel::card(Some("Selection"));
         let bg = panel.bg(t);
@@ -127,7 +126,7 @@ impl Page for TreesPage {
                 Outcome::Ignored
             }
             PageEvent::Drag { pressed, pos } if *pressed == scrollbar::id_for(self.tree.id) => {
-                self.tree.on_scrollbar(*pos)
+                self.tree.on_scrollbar_drag(*pos)
             }
             PageEvent::Wheel { id, delta } if self.tree.owns(*id) => self.tree.on_wheel(*delta),
             _ => Outcome::Ignored,

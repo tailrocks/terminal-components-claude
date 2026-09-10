@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ Search actions and resources…                                                                                                                scope ‹ here ›  
                                                                                                                                                                 
-    Suggested here                                                                                               Inspect 3 GB of generated artifacts            
+    Suggested here                                                                                               Inspect 3 GB of generated artif… disk · here   
   › Inspect 3 GB of generated artifacts  disk     here    3 GB generated artifacts                                                                              
     Install missing tools · sqlx-cli     task     here    1 tool missing                                         Does       1 rebuildable candidate below       
     Run tests                            task     here    2 files changed since the last run                                this folder · 0 stale enough to     

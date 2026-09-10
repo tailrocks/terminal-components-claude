@@ -101,7 +101,7 @@ impl TerminalPage {
         let mut p = Self {
             term,
             rail,
-            split: Split::new(62, 30, 28),
+            split: Split::new(62, 24, 16),
             seam: Splitter::new(SEAM, SplitDir::Horizontal),
             container: Rect::ZERO,
             run: Button::primary(ID.sub("run"), "Run"),
@@ -346,7 +346,7 @@ impl Page for TerminalPage {
                     return self.term.on_drag(*pos);
                 }
                 if *pressed == scrollbar::id_for(self.term.id) {
-                    return self.term.on_scrollbar(*pos);
+                    return self.term.on_scrollbar_drag(*pos);
                 }
                 Outcome::Ignored
             }

@@ -65,6 +65,8 @@ impl Step {
 
 #[derive(Debug, Clone)]
 pub struct StepRail {
+    /// The scrollbar track as last drawn: presses and drags map through it.
+    track: Rect,
     pub id: WidgetId,
     pub steps: Vec<Step>,
     pub selectable: bool,
@@ -85,6 +87,7 @@ impl StepRail {
             cursor: 0,
             scroll: ScrollState::new(n),
             area: Rect::ZERO,
+            track: Rect::ZERO,
             numbered: true,
         }
     }
@@ -167,20 +170,43 @@ impl StepRail {
     }
 
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        self.scroll.scroll_by(delta as isize);
-        Outcome::Changed
+        if self.scroll.scroll_by(delta as isize) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
     }
 
+    fn track(&self) -> Rect {
+        if self.track.is_empty() {
+            Rect::new(
+                self.area.right().saturating_sub(1),
+                self.area.y,
+                1,
+                self.area.height,
+            )
+        } else {
+            self.track
+        }
+    }
+
+    /// The pointer went down on the scrollbar (or a completed click): a
+    /// press on the thumb grabs it, a press on the track jumps to it.
     pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        let track = Rect::new(
-            self.area.right().saturating_sub(1),
-            self.area.y,
-            1,
-            self.area.height,
-        );
-        self.scroll
-            .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
-        Outcome::Changed
+        if scrollbar::press(self.track(), pos, &mut self.scroll) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
+    }
+
+    /// The pointer dragged along the scrollbar after a press.
+    pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
+        if scrollbar::drag(self.track(), pos, &mut self.scroll) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
@@ -292,8 +318,9 @@ impl StepRail {
             }
             let _ = frontier;
         }
+        self.track = Rect::ZERO;
         if has_sb {
-            crate::ui::fade::scroll_edges(
+            crate::ui::fade::scroll_edges_except(
                 buf,
                 ctx,
                 Rect::new(
@@ -303,8 +330,16 @@ impl StepRail {
                     area.height,
                 ),
                 &self.scroll,
+                &self
+                    .scroll
+                    .visible_range()
+                    .position(|i| i == self.cursor)
+                    .map(|k| area.y + k as u16)
+                    .into_iter()
+                    .collect::<Vec<_>>(),
             );
             let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
+            self.track = sb;
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
         }
         let _ = Style::new();

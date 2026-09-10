@@ -1,12 +1,12 @@
 {
  "capture": "h_parity_git_batch_120x40",
  "source": {
-  "git": "e4866ce41a485532e57bdc5761d90f0af541086c",
+  "git": "92d91629804ffadb109ffbcd7a6765ac73afff7d",
   "dirty": true
  },
  "binary": {
   "path": "target/debug/holla",
-  "sha256": "e1727e3be00db994747b5f847359972d1030319841384e2b0484730166a24ca8"
+  "sha256": "8737c47f6058b3049eb307d8e40e45ca12466b4991ca5f4faf0ee100b02032d8"
  },
  "arguments": "--scenario parity-git-batch --motion paused --frame 40",
  "geometry": {
@@ -25,7 +25,7 @@
   "cells": "target/debug/examples/cells (unicode-segmentation + unicode-width of the library)"
  },
  "host": "Darwin 25.6.0",
- "ansi_sha256": "1a2bb50db44bfee73ac7a877baa2daf7245c4abafb00afdfb9a7a148f3f66408",
+ "ansi_sha256": "0601218f56ff923bf6c3c9634fff74bdce29d5277c94dca8bb59278e7ea760da",
  "fonts": [
   {
    "role": "regular",
@@ -64,6 +64,6 @@
   "controls": 0,
   "raqm": true
  },
- "captured_at": "2026-09-10T15:36:10+00:00",
+ "captured_at": "2026-09-10T16:29:10+00:00",
  "review": "pending inspection"
 }

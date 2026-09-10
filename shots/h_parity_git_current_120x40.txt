@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ Search actions and resources…                                                                        scope ‹ here ›  
                                                                                                                         
-    Suggested here                                                               Review 1 modified files                
+    Suggested here                                                               Review 1 modified files git · parent   
   › Review 1 modified files    git      parent  1 modified · 0 untracked                                                
                                                                                  Does       show the changed files      
     Recent here                                                                             with their diff stat        

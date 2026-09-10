@@ -35,6 +35,19 @@ pub const MIN_ROWS: u16 = 4;
 /// `scroll`. Call it after the rows are painted and before the scrollbar;
 /// `area` is the content rectangle without the scrollbar column.
 pub fn scroll_edges(buf: &mut Buffer, ctx: &RenderCtx, area: Rect, scroll: &ScrollState) {
+    scroll_edges_except(buf, ctx, area, scroll, &[]);
+}
+
+/// [`scroll_edges`] with rows that must stay whole whatever plane they are
+/// on: a widget passes its cursor row so a focus bar on the container plane
+/// (a navigation list, a monochrome palette) is never dimmed.
+pub fn scroll_edges_except(
+    buf: &mut Buffer,
+    ctx: &RenderCtx,
+    area: Rect,
+    scroll: &ScrollState,
+    keep: &[u16],
+) {
     let area = area.intersection(*buf.area());
     if area.is_empty() || area.height < MIN_ROWS {
         return;
@@ -60,11 +73,11 @@ pub fn scroll_edges(buf: &mut Buffer, ctx: &RenderCtx, area: Rect, scroll: &Scro
             rows.push((area.bottom() - 2, INNER_KEEP));
         }
     }
-    for (y, keep) in rows {
-        if Some(y) == cursor_row {
+    for (y, strength) in rows {
+        if Some(y) == cursor_row || keep.contains(&y) {
             continue;
         }
-        fade_row(buf, area, y, keep, container);
+        fade_row(buf, area, y, strength, container);
     }
 }
 
@@ -161,6 +174,7 @@ mod tests {
             offset,
             content_len: 30,
             viewport_len: 6,
+            ..Default::default()
         };
         // at the top: only the bottom row fades
         let mut b = painted(6);
@@ -187,6 +201,7 @@ mod tests {
                 offset: 0,
                 content_len: 6,
                 viewport_len: 6,
+                ..Default::default()
             },
             None,
         );
@@ -204,6 +219,7 @@ mod tests {
                 offset: 5,
                 content_len: 100,
                 viewport_len: 12,
+                ..Default::default()
             },
             None,
         );
@@ -220,6 +236,7 @@ mod tests {
                 offset: 5,
                 content_len: 100,
                 viewport_len: 3,
+                ..Default::default()
             },
             None,
         );
@@ -250,6 +267,7 @@ mod tests {
                 offset: 10,
                 content_len: 30,
                 viewport_len: 6,
+                ..Default::default()
             },
             None,
         );
@@ -272,11 +290,36 @@ mod tests {
                 offset: 10,
                 content_len: 30,
                 viewport_len: 6,
+                ..Default::default()
             },
             Some(Position::new(4, 5)),
         );
         assert_eq!(grey(&b, 5), 200);
         assert_eq!(grey(&b, 0), 110);
+    }
+
+    #[test]
+    fn protected_rows_stay_whole_on_the_container_plane() {
+        let mut b = painted(6);
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let area = *b.area();
+        scroll_edges_except(
+            &mut b,
+            &ctx,
+            area,
+            &ScrollState {
+                offset: 10,
+                content_len: 30,
+                viewport_len: 6,
+                ..Default::default()
+            },
+            &[5],
+        );
+        assert_eq!(grey(&b, 0), 110);
+        assert_eq!(grey(&b, 5), 200, "the kept row is untouched");
     }
 
     #[test]
@@ -298,6 +341,7 @@ mod tests {
                     offset: 5,
                     content_len: 100,
                     viewport_len: 12,
+                    ..Default::default()
                 },
                 None,
             );

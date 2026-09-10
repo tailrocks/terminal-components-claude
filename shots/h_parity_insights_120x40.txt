@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ Search actions and resources…                                                                        scope ‹ here ›  
                                                                                                                         
-    Suggested here                                                               Review cleanup candidates              
+    Suggested here                                                               Review cleanup candi… cleanup · host   
   › Review cleanup candidates  cleanup  host  18.8 GiB across 18 categories                                             
                                                                                  Does       18 detected categories ·    
     Recent here                                                                             18.8 GiB ·                  

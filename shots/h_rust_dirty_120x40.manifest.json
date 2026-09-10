@@ -1,12 +1,12 @@
 {
  "capture": "h_rust_dirty_120x40",
  "source": {
-  "git": "e4866ce41a485532e57bdc5761d90f0af541086c",
+  "git": "92d91629804ffadb109ffbcd7a6765ac73afff7d",
   "dirty": true
  },
  "binary": {
   "path": "target/debug/holla",
-  "sha256": "e1727e3be00db994747b5f847359972d1030319841384e2b0484730166a24ca8"
+  "sha256": "8737c47f6058b3049eb307d8e40e45ca12466b4991ca5f4faf0ee100b02032d8"
  },
  "arguments": "--scenario rust-dirty --motion paused --frame 40",
  "geometry": {
@@ -25,7 +25,7 @@
   "cells": "target/debug/examples/cells (unicode-segmentation + unicode-width of the library)"
  },
  "host": "Darwin 25.6.0",
- "ansi_sha256": "db32dcd3d03f2b16fe17b794e4f223b31a6a1f2de0250113beab80b2b4817d78",
+ "ansi_sha256": "c4b727d6c82a7c2146d2a4b6bbdc61bf88d2ba4e5a27ecabd7a794b5c5d00552",
  "fonts": [
   {
    "role": "regular",
@@ -64,6 +64,6 @@
   "controls": 0,
   "raqm": true
  },
- "captured_at": "2026-09-10T15:33:18+00:00",
+ "captured_at": "2026-09-10T16:26:17+00:00",
  "review": "pending inspection"
 }

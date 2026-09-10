@@ -1505,7 +1505,7 @@ impl QueryTab {
             return self.editor.on_drag(pos);
         }
         if pressed == scrollbar::id_for(self.editor.id) {
-            return self.editor.on_scrollbar(pos);
+            return self.editor.on_scrollbar_drag(pos);
         }
         if let Some(g) = self.active_grid_mut()
             && g.owns(pressed)

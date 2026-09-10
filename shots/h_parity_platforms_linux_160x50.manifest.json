@@ -1,12 +1,12 @@
 {
  "capture": "h_parity_platforms_linux_160x50",
  "source": {
-  "git": "e4866ce41a485532e57bdc5761d90f0af541086c",
+  "git": "92d91629804ffadb109ffbcd7a6765ac73afff7d",
   "dirty": true
  },
  "binary": {
   "path": "target/debug/holla",
-  "sha256": "e1727e3be00db994747b5f847359972d1030319841384e2b0484730166a24ca8"
+  "sha256": "8737c47f6058b3049eb307d8e40e45ca12466b4991ca5f4faf0ee100b02032d8"
  },
  "arguments": "--scenario parity-platforms-linux --motion paused --frame 40",
  "geometry": {
@@ -64,6 +64,6 @@
   "controls": 0,
   "raqm": true
  },
- "captured_at": "2026-09-10T15:39:28+00:00",
+ "captured_at": "2026-09-10T16:32:25+00:00",
  "review": "pending inspection"
 }

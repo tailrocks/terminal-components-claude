@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ Search actions and resources…                                                                        scope ‹ here ›  
                                                                                                                         
-    Suggested here                                                               Status across 5 child projects         
+    Suggested here                                                               Status across 5 child p… git · child   
   › Status across 5 child pr…  git      child  0 dirty · 1 behind                                                       
                                                                                  Does       inspect every discovered    
     Recent here                                                                             Git project · worktrees     

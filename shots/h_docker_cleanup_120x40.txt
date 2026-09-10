@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ docker clean                                                                                         scope ‹ here ›  
                                                                                                                         
-    Results · 7                                                                  Clean Docker completely                
+    Results · 7                                                                  Clean Docker compl… plan · on devbox   
   › Clean Docker completely    plan    on devbox  remembered f…  destructive                                            
     Stop all containers        docker  on devbox  5 running on…                  Does       remove all              ┃   
     Prune builder cache        docker  on devbox  6.1 GB of bu…  destructive                user-removable Docker   ┃   

@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ Search actions and resources…                                                                                                                scope ‹ here ›  
                                                                                                                                                                 
-    Suggested here                                                                                               Inspect 12 GB of generated artifacts           
+    Suggested here                                                                                               Inspect 12 GB of generated arti… disk · here   
     Pull                                  git      here  branch is 3 commits behind · used 9 times here                                                         
     Run tests                             task     here  5 files changed since the last run…                     Does       1 rebuildable candidate below       
     Run lint                              task     here  defined by ~/work/holla/mise.toml…                                 this folder · 0 stale enough to     

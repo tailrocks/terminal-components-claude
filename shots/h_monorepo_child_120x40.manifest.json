@@ -1,12 +1,12 @@
 {
  "capture": "h_monorepo_child_120x40",
  "source": {
-  "git": "e4866ce41a485532e57bdc5761d90f0af541086c",
+  "git": "92d91629804ffadb109ffbcd7a6765ac73afff7d",
   "dirty": true
  },
  "binary": {
   "path": "target/debug/holla",
-  "sha256": "e1727e3be00db994747b5f847359972d1030319841384e2b0484730166a24ca8"
+  "sha256": "8737c47f6058b3049eb307d8e40e45ca12466b4991ca5f4faf0ee100b02032d8"
  },
  "arguments": "--scenario monorepo-child --motion paused --frame 40",
  "geometry": {
@@ -25,7 +25,7 @@
   "cells": "target/debug/examples/cells (unicode-segmentation + unicode-width of the library)"
  },
  "host": "Darwin 25.6.0",
- "ansi_sha256": "feee6bda1263033b264b1a1a618443bbdecd125d5d2966245532c5d512904aa5",
+ "ansi_sha256": "e7018deb9ab67d00df4c50b000a261cd4b7fe9e4124abcf5f2546fbc4023b30f",
  "fonts": [
   {
    "role": "regular",
@@ -64,6 +64,6 @@
   "controls": 0,
   "raqm": true
  },
- "captured_at": "2026-09-10T15:33:41+00:00",
+ "captured_at": "2026-09-10T16:26:40+00:00",
  "review": "pending inspection"
 }

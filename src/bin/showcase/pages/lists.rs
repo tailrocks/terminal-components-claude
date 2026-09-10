@@ -91,10 +91,7 @@ impl Page for ListsPage {
             .chosen
             .map(|i| self.single.items[i].label.clone())
             .unwrap_or_default();
-        let pos = scrollbar::position_label(&self.single.scroll);
-        let panel = Panel::card(Some("Language"))
-            .meta(&pos)
-            .focused(ctx.interaction.focused(self.single.id));
+        let panel = Panel::card(Some("Language")).focused(ctx.interaction.focused(self.single.id));
         let bg = panel.bg(t);
         let inner = panel.render(cols[0], buf, t);
         buf.set_string(
@@ -113,6 +110,12 @@ impl Page for ListsPage {
             buf,
             ctx,
             bg,
+        );
+        panel.draw_meta(
+            cols[0],
+            buf,
+            t,
+            &scrollbar::position_label(&self.single.scroll),
         );
 
         let count = format!("{} selected", self.multi.checked_count());
@@ -176,7 +179,7 @@ impl Page for ListsPage {
             PageEvent::Drag { pressed, pos } => {
                 for l in self.lists() {
                     if scrollbar::id_for(l.id) == *pressed {
-                        return l.on_scrollbar(*pos);
+                        return l.on_scrollbar_drag(*pos);
                     }
                 }
                 Outcome::Ignored

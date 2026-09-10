@@ -26,5 +26,5 @@
                                                                                                     
     → tools/deploy-preview.sh --env preview · here · mutating                                       
                                                                                                     
- ~/work/acme   main   ↑1              ⠹ discovering github · 8 of 9              truecolor · 100×30 
+ ~/work/acme   main   ↑1              ⠸ discovering github · 8 of 9              truecolor · 100×30 
  Type Search  ↑↓ Move  Enter Trust…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities  

@@ -123,6 +123,14 @@ impl TextArea {
                     self.scroll.page_down();
                     (Outcome::Changed, None)
                 }
+                KeyCode::Home | KeyCode::Char('g') => {
+                    self.scroll.jump_start();
+                    (Outcome::Changed, None)
+                }
+                KeyCode::End | KeyCode::Char('G') => {
+                    self.scroll.jump_end();
+                    (Outcome::Changed, None)
+                }
                 _ => (Outcome::Ignored, None),
             };
         }
@@ -190,8 +198,11 @@ impl TextArea {
     }
 
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        self.scroll.scroll_by(delta as isize);
-        Outcome::Changed
+        if self.scroll.scroll_by(delta as isize) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
@@ -408,6 +419,40 @@ impl TextArea {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn home_and_end_scroll_a_read_only_view_and_boundary_wheels_are_consumed() {
+        let text = (1..=30)
+            .map(|i| format!("line {i}"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let mut ta = TextArea::new(WidgetId::of("t"), "Notes", 4).value(&text);
+        let theme = crate::theme::Theme::junie();
+        let mut hits = crate::core::hit::HitRegistry::default();
+        let mut ring = crate::core::focus::FocusRing::default();
+        let mut ctx = RenderCtx::new(
+            &theme,
+            crate::ui::ctx::Interaction::default(),
+            &mut hits,
+            &mut ring,
+        );
+        let mut buf = Buffer::empty(Rect::new(0, 0, 40, 7));
+        ta.render(Rect::new(0, 0, 40, 7), &mut buf, &mut ctx, theme.canvas);
+        assert!(ta.scroll.overflows());
+        assert_eq!(ta.on_wheel(-1), Outcome::Consumed);
+        let end = Key {
+            code: KeyCode::End,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        assert_eq!(ta.on_key(&end).0, Outcome::Changed);
+        assert_eq!(ta.scroll.offset, ta.scroll.max_offset());
+        let home = Key {
+            code: KeyCode::Home,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        };
+        assert_eq!(ta.on_key(&home).0, Outcome::Changed);
+        assert_eq!(ta.scroll.offset, 0);
+    }
     use crate::core::{focus::FocusRing, hit::HitRegistry};
     use crate::theme::{ColorLevel, Theme};
     use crate::ui::ctx::Interaction;

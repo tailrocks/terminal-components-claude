@@ -153,7 +153,7 @@ impl Page for DiffPage {
             }
             PageEvent::Drag { pressed, pos } => {
                 if *pressed == scrollbar::id_for(self.view.id()) {
-                    return self.view.on_scrollbar(*pos);
+                    return self.view.on_scrollbar_drag(*pos);
                 }
                 if *pressed == self.view.id() {
                     cx.focus.focus(self.view.id());

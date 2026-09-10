@@ -1513,7 +1513,7 @@ impl Screen for FilesPage {
             return self.preview.on_drag(pos);
         }
         if pressed == scrollbar::id_for(PREVIEW) {
-            return self.preview.on_scrollbar(pos);
+            return self.preview.on_scrollbar_drag(pos);
         }
         Outcome::Ignored
     }

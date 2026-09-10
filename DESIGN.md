@@ -526,6 +526,30 @@ RGB dim the outermost row with `DIM` instead of blending. Every list, tree,
 table, grid, viewport, panel, picker, step rail and application list applies
 it through `ui::fade::scroll_edges` right before its scrollbar.
 
+**Scrollbar and labels**
+
+- **Press and drag**: a press on the thumb grabs it where it was pressed and
+  a drag keeps that row under the pointer, so the thumb never jumps on the
+  first motion; a press on the bare track jumps the thumb under the pointer
+  and the drag continues from there. Dragging past either end reaches the
+  end. Every container maps presses and drags through the track it actually
+  drew (`ScrollState::press_track`/`drag_track` behind
+  `scrollbar::press`/`drag`), so the thumb and the pointer always agree.
+- **Movement reports itself**: `ScrollState::scroll_by`, `page_*`, `jump_*`
+  and `ensure_visible` return whether the offset changed; a wheel or key at
+  a boundary is `Consumed` (no repaint), never `Changed`.
+- **Position labels are read after layout**: a panel draws its title first,
+  its content lays itself out, and `Panel::draw_meta` writes the position
+  last, so `12–24 of 120` is exact on the first frame, after a resize and
+  after a tick. The meta is state the reader relies on: when both do not
+  fit, the title yields first down to four cells that still name the panel,
+  then the meta shortens; it is never dropped.
+- **Following is a capability of a tailing panel**, not a state any scroll
+  can enter: a log (`ScrollPanel::tail`) follows new lines while its end is
+  in view, pauses when scrolled away by any means and resumes when the end
+  is reached again by any means (`End`, a page, the wheel, the thumb). A
+  prose panel never follows; `End` there is only a jump.
+
 **Wheel and keyboard ownership**
 
 - **Routing**: the wheel goes to the scrollable region under the pointer,

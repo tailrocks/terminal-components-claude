@@ -1,12 +1,12 @@
 {
  "capture": "h_hp18_scanning",
  "source": {
-  "git": "e4866ce41a485532e57bdc5761d90f0af541086c",
+  "git": "92d91629804ffadb109ffbcd7a6765ac73afff7d",
   "dirty": true
  },
  "binary": {
   "path": "target/debug/holla",
-  "sha256": "e1727e3be00db994747b5f847359972d1030319841384e2b0484730166a24ca8"
+  "sha256": "8737c47f6058b3049eb307d8e40e45ca12466b4991ca5f4faf0ee100b02032d8"
  },
  "arguments": "--scenario parity-disk-scan --motion reduced",
  "geometry": {
@@ -25,7 +25,7 @@
   "cells": "target/debug/examples/cells (unicode-segmentation + unicode-width of the library)"
  },
  "host": "Darwin 25.6.0",
- "ansi_sha256": "b4585c1f2178233d41065a4d5521120842a09a2c7b7407b3aaab251b7e2a48e2",
+ "ansi_sha256": "1f4980364cac3afabb3127b8716f8b3626934562973f81bf12d75e8c1dc3c90c",
  "fonts": [
   {
    "role": "regular",
@@ -64,6 +64,6 @@
   "controls": 0,
   "raqm": true
  },
- "captured_at": "2026-09-10T15:34:42+00:00",
+ "captured_at": "2026-09-10T16:27:41+00:00",
  "review": "inspected: streaming scan with progress and scanning rows"
 }

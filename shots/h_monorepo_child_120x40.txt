@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ Search actions and resources…                                                                        scope ‹ here ›  
                                                                                                                         
-    Suggested here                                                               Inspect 3 GB of generated artifacts    
+    Suggested here                                                               Inspect 3 GB of generat… disk · here   
   › Inspect 3 GB of generate…  disk     here    3 GB generated artifacts                                                
     Install missing tools · …  task     here    1 tool missing                   Does       1 rebuildable candidate     
     Run tests                  task     here    2 files changed since the l…                below this folder · 0       

@@ -97,7 +97,6 @@ impl Page for TablesPage {
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let rows = crate::pages::layout::rows(area, &[area.height.saturating_sub(9), 1, 0]);
-        let pos = scrollbar::position_label(&self.table.scroll);
         let sort = match self.table.sort {
             Some((c, d)) => format!(
                 "sorted by {} {}",
@@ -110,17 +109,17 @@ impl Page for TablesPage {
             ),
             None => "unsorted".to_owned(),
         };
+        let panel = Panel::card(Some("Tasks")).focused(ctx.interaction.focused(self.table.id));
+        let bg = panel.bg(t);
+        let inner = panel.render(rows[0], buf, t);
+        self.table.render(inner, buf, ctx, bg);
+        let pos = scrollbar::position_label(&self.table.scroll);
         let meta = if pos.is_empty() {
             sort
         } else {
             format!("{sort} · {pos}")
         };
-        let panel = Panel::card(Some("Tasks"))
-            .meta(&meta)
-            .focused(ctx.interaction.focused(self.table.id));
-        let bg = panel.bg(t);
-        let inner = panel.render(rows[0], buf, t);
-        self.table.render(inner, buf, ctx, bg);
+        panel.draw_meta(rows[0], buf, t, &meta);
 
         let panel = Panel::card(Some("Checks"));
         let bg = panel.bg(t);
@@ -162,9 +161,13 @@ impl Page for TablesPage {
                 Outcome::Ignored
             }
             PageEvent::Drag { pressed, pos } if *pressed == scrollbar::id_for(self.table.id) => {
-                self.table.on_scrollbar(*pos)
+                self.table.on_scrollbar_drag(*pos)
             }
             PageEvent::Wheel { id, delta } if self.table.owns(*id) => self.table.on_wheel(*delta),
+            PageEvent::Wheel { id, delta } if self.empty.owns(*id) => self.empty.on_wheel(*delta),
+            PageEvent::WheelH { id, delta } if self.table.owns(*id) => {
+                self.table.on_wheel_h(*delta)
+            }
             _ => Outcome::Ignored,
         }
     }

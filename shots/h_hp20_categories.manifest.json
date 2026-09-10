@@ -1,12 +1,12 @@
 {
  "capture": "h_hp20_categories",
  "source": {
-  "git": "e4866ce41a485532e57bdc5761d90f0af541086c",
+  "git": "92d91629804ffadb109ffbcd7a6765ac73afff7d",
   "dirty": true
  },
  "binary": {
   "path": "target/debug/holla",
-  "sha256": "e1727e3be00db994747b5f847359972d1030319841384e2b0484730166a24ca8"
+  "sha256": "8737c47f6058b3049eb307d8e40e45ca12466b4991ca5f4faf0ee100b02032d8"
  },
  "arguments": "--scenario parity-insights --motion reduced",
  "geometry": {
@@ -64,6 +64,6 @@
   "controls": 0,
   "raqm": true
  },
- "captured_at": "2026-09-10T15:35:00+00:00",
+ "captured_at": "2026-09-10T16:27:59+00:00",
  "review": "inspected: 18 categories, cursor row whole at the top, the last rows fade toward the hidden categories"
 }

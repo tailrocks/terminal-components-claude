@@ -49,6 +49,28 @@ pub fn offset_for_click(track: Rect, pos: Position, scroll: &ScrollState) -> usi
     scroll.offset_for_track_pos(rel, track.height as usize)
 }
 
+/// Row of `track` under `pos`, clamped to the track (a pointer above or
+/// below the track still drags to the ends).
+fn track_row(track: Rect, pos: Position) -> usize {
+    pos.y
+        .saturating_sub(track.y)
+        .min(track.height.saturating_sub(1)) as usize
+}
+
+/// The pointer went down on `track`: on the thumb this grabs it, on the
+/// bare track it jumps the thumb under the pointer. Returns whether the
+/// offset changed. `track` must be the rectangle the scrollbar was drawn in.
+pub fn press(track: Rect, pos: Position, scroll: &mut ScrollState) -> bool {
+    scroll.press_track(track_row(track, pos), track.height as usize)
+}
+
+/// The pointer moved while held after [`press`]: the thumb follows,
+/// keeping the grabbed row under the pointer. Returns whether the offset
+/// changed.
+pub fn drag(track: Rect, pos: Position, scroll: &mut ScrollState) -> bool {
+    scroll.drag_track(track_row(track, pos), track.height as usize)
+}
+
 /// "12–24 of 120" style position label.
 pub fn position_label(scroll: &ScrollState) -> String {
     if !scroll.overflows() {

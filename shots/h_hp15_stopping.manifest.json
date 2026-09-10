@@ -1,12 +1,12 @@
 {
  "capture": "h_hp15_stopping",
  "source": {
-  "git": "e4866ce41a485532e57bdc5761d90f0af541086c",
+  "git": "92d91629804ffadb109ffbcd7a6765ac73afff7d",
   "dirty": true
  },
  "binary": {
   "path": "target/debug/holla",
-  "sha256": "e1727e3be00db994747b5f847359972d1030319841384e2b0484730166a24ca8"
+  "sha256": "8737c47f6058b3049eb307d8e40e45ca12466b4991ca5f4faf0ee100b02032d8"
  },
  "arguments": "--scenario parity-task-input --motion reduced",
  "geometry": {
@@ -25,7 +25,7 @@
   "cells": "target/debug/examples/cells (unicode-segmentation + unicode-width of the library)"
  },
  "host": "Darwin 25.6.0",
- "ansi_sha256": "b5b9e11a52f47480b9a7aede5f2105f432347e8bd2a56a3fb5a290174c28e0da",
+ "ansi_sha256": "e01b4c8a79e48aa2453dc4707b0e5b59eff775e778970a70d377a3a59975561a",
  "fonts": [
   {
    "role": "regular",
@@ -64,6 +64,6 @@
   "controls": 0,
   "raqm": true
  },
- "captured_at": "2026-09-10T15:34:31+00:00",
+ "captured_at": "2026-09-10T16:27:30+00:00",
  "review": "pending inspection"
 }
