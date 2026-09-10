@@ -74,16 +74,8 @@ impl Page for EditablePage {
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
-        let pos = scrollbar::position_label(&self.table.scroll);
         let err = self.table.edit_error().map(str::to_owned);
-        let meta = match &err {
-            Some(e) => e.clone(),
-            None if pos.is_empty() => format!("{} edits", self.edits),
-            None => format!("{} edits · {pos}", self.edits),
-        };
-        let panel = Panel::card(Some("Tasks"))
-            .meta(&meta)
-            .focused(ctx.interaction.focused(self.table.id));
+        let panel = Panel::card(Some("Tasks")).focused(ctx.interaction.focused(self.table.id));
         let bg = panel.bg(t);
         let card_h = (self.table.len() as u16 + 4).min(area.height.saturating_sub(4));
         let inner = panel.render(Rect::new(area.x, area.y, area.width, card_h), buf, t);
@@ -95,6 +87,13 @@ impl Page for EditablePage {
             buf.set_string(x, area.y, e, t.error_fg().bg(bg));
         }
         self.table.render(inner, buf, ctx, bg);
+        let pos = scrollbar::position_label(&self.table.scroll);
+        let meta = match &err {
+            Some(e) => e.clone(),
+            None if pos.is_empty() => format!("{} edits", self.edits),
+            None => format!("{} edits · {pos}", self.edits),
+        };
+        panel.draw_meta(Rect::new(area.x, area.y, area.width, card_h), buf, t, &meta);
         let y = area.y + card_h + 1;
         let legend = [
             (
@@ -155,7 +154,7 @@ impl Page for EditablePage {
                 Outcome::Ignored
             }
             PageEvent::Drag { pressed, pos } if *pressed == scrollbar::id_for(self.table.id) => {
-                self.table.on_scrollbar(*pos)
+                self.table.on_scrollbar_drag(*pos)
             }
             PageEvent::Wheel { id, delta } if self.table.owns(*id) => self.table.on_wheel(*delta),
             _ => Outcome::Ignored,

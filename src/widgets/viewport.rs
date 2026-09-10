@@ -364,6 +364,8 @@ struct Anchor {
 
 #[derive(Debug, Clone)]
 pub struct TextViewport {
+    /// The scrollbar track as last drawn: presses and drags map through it.
+    track: Rect,
     pub id: WidgetId,
     pub scroll: ScrollState,
     pub follow: bool,
@@ -401,6 +403,7 @@ impl TextViewport {
     pub fn new(id: WidgetId) -> Self {
         Self {
             id,
+            track: Rect::ZERO,
             scroll: ScrollState::default(),
             follow: true,
             wrap: false,
@@ -1127,21 +1130,43 @@ impl TextViewport {
     }
 
     pub fn on_wheel(&mut self, delta: i32) -> Outcome {
-        self.scroll.scroll_by(delta as isize);
+        if !self.scroll.scroll_by(delta as isize) {
+            return Outcome::Consumed;
+        }
         self.follow = self.is_at_tail();
         self.remember_reading();
         Outcome::Changed
     }
 
+    fn track(&self) -> Rect {
+        if self.track.is_empty() {
+            Rect::new(
+                self.area.right().saturating_sub(1),
+                self.area.y,
+                1,
+                self.area.height,
+            )
+        } else {
+            self.track
+        }
+    }
+
+    /// The pointer went down on the scrollbar (or a completed click): a
+    /// press on the thumb grabs it, a press on the track jumps to it.
     pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
-        let track = Rect::new(
-            self.area.right().saturating_sub(1),
-            self.area.y,
-            1,
-            self.area.height,
-        );
-        self.scroll
-            .scroll_to(scrollbar::offset_for_click(track, pos, &self.scroll));
+        if !scrollbar::press(self.track(), pos, &mut self.scroll) {
+            return Outcome::Consumed;
+        }
+        self.follow = self.is_at_tail();
+        self.remember_reading();
+        Outcome::Changed
+    }
+
+    /// The pointer dragged along the scrollbar after a press.
+    pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
+        if !scrollbar::drag(self.track(), pos, &mut self.scroll) {
+            return Outcome::Consumed;
+        }
         self.follow = self.is_at_tail();
         self.remember_reading();
         Outcome::Changed
@@ -1339,8 +1364,7 @@ impl TextViewport {
             let o = self.extend_selection(key.code, word);
             return (o, Some(ViewportEvent::SelectionChanged));
         }
-        let before = self.scroll.offset;
-        match key.code {
+        let moved = match key.code {
             KeyCode::Up | KeyCode::Char('k') if key.plain() => self.scroll.scroll_by(-1),
             KeyCode::Down | KeyCode::Char('j') if key.plain() => self.scroll.scroll_by(1),
             KeyCode::PageUp if key.plain() => self.scroll.page_up(),
@@ -1372,12 +1396,15 @@ impl TextViewport {
                 };
             }
             _ => return (Outcome::Ignored, None),
+        };
+        if !moved {
+            return (Outcome::Consumed, None);
         }
-        if self.scroll.offset != before {
-            self.follow = self.is_at_tail();
-            self.remember_reading();
-        }
-        (Outcome::Changed, None)
+        let was = self.follow;
+        self.follow = self.is_at_tail();
+        self.remember_reading();
+        let ev = (was != self.follow).then_some(ViewportEvent::FollowChanged(self.follow));
+        (Outcome::Changed, ev)
     }
 
     // ------------------------------------------------------------ render
@@ -1472,7 +1499,10 @@ impl TextViewport {
                 &self.scroll,
             );
             let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
+            self.track = sb;
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
+        } else {
+            self.track = Rect::ZERO;
         }
         // the hardware cursor: the keyboard selection head while selecting,
         // else the producer caret while following

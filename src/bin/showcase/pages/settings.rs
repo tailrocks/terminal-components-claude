@@ -215,15 +215,8 @@ impl Page for SettingsPage {
                 }
             }
             1 => {
-                let pos = scrollbar::position_label(&self.members.scroll);
-                let meta = match self.members.edit_error() {
-                    Some(e) => e.to_owned(),
-                    None if pos.is_empty() => format!("{} members", self.members.len()),
-                    None => format!("{} members · {pos}", self.members.len()),
-                };
-                let panel = Panel::card(Some("Members"))
-                    .meta(&meta)
-                    .focused(ctx.interaction.focused(self.members.id));
+                let panel =
+                    Panel::card(Some("Members")).focused(ctx.interaction.focused(self.members.id));
                 let bg = panel.bg(t);
                 let th = (self.members.len() as u16 + 1).max(2);
                 let card = Rect::new(body.x, body.y, body.width, (th + 5).min(body.height));
@@ -231,6 +224,13 @@ impl Page for SettingsPage {
                 let th = th.min(inner.height.saturating_sub(2));
                 self.members
                     .render(Rect::new(inner.x, inner.y, inner.width, th), buf, ctx, bg);
+                let pos = scrollbar::position_label(&self.members.scroll);
+                let meta = match self.members.edit_error() {
+                    Some(e) => e.to_owned(),
+                    None if pos.is_empty() => format!("{} members", self.members.len()),
+                    None => format!("{} members · {pos}", self.members.len()),
+                };
+                panel.draw_meta(card, buf, t, &meta);
                 let ay = inner.bottom().saturating_sub(1);
                 let rects = row_layout(
                     Rect::new(inner.x, ay, inner.width, 1),
@@ -472,10 +472,10 @@ impl Page for SettingsPage {
             }
             PageEvent::Drag { pressed, pos } => {
                 if *pressed == scrollbar::id_for(self.members.id) {
-                    return self.members.on_scrollbar(*pos);
+                    return self.members.on_scrollbar_drag(*pos);
                 }
                 if *pressed == scrollbar::id_for(self.env.id) {
-                    return self.env.on_scrollbar(*pos);
+                    return self.env.on_scrollbar_drag(*pos);
                 }
                 Outcome::Ignored
             }

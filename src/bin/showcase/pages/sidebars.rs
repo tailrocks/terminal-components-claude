@@ -6,9 +6,12 @@ use ratatui::style::Color;
 use crate::pages::{Hint, Page, PageCtx, PageEvent};
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::scroll::ScrollState;
 use junie_tui::ui::ctx::{RenderCtx, fill};
 use junie_tui::widgets::button::Button;
 use junie_tui::widgets::panel::Panel;
+use junie_tui::widgets::scrollbar;
+use ratatui::layout::Position;
 
 const ID: WidgetId = WidgetId::of("sidebars");
 
@@ -30,6 +33,18 @@ pub struct NavList {
     pub current: usize,
     pub cursor: usize,
     pub collapsed: bool,
+    /// Scroll over the flattened rows (section headings and items).
+    pub scroll: ScrollState,
+    area: Rect,
+    track: Rect,
+}
+
+/// One drawn row of the list.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum NavRow {
+    Section(usize),
+    Blank,
+    Item(usize),
 }
 
 impl NavList {
@@ -45,6 +60,66 @@ impl NavList {
         if self.collapsed { 6 } else { 24 }
     }
 
+    /// The rows in drawing order: a heading before every section, a blank
+    /// row between sections.
+    fn rows(&self) -> Vec<NavRow> {
+        let mut rows = vec![];
+        let mut section = "";
+        for (i, it) in self.items.iter().enumerate() {
+            if it.section != section {
+                if !rows.is_empty() {
+                    rows.push(NavRow::Blank);
+                }
+                rows.push(NavRow::Section(i));
+                section = it.section;
+            }
+            rows.push(NavRow::Item(i));
+        }
+        rows
+    }
+
+    fn row_of(&self, item: usize) -> usize {
+        self.rows()
+            .iter()
+            .position(|r| *r == NavRow::Item(item))
+            .unwrap_or(0)
+    }
+
+    /// Keep the cursor's row in view with the smallest scroll.
+    fn reveal_cursor(&mut self) {
+        let row = self.row_of(self.cursor);
+        self.scroll.set_content(self.rows().len());
+        self.scroll.ensure_visible(row);
+    }
+
+    pub fn on_wheel(&mut self, delta: i32) -> Outcome {
+        if self.scroll.scroll_by(delta as isize) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
+    }
+
+    pub fn on_scrollbar(&mut self, pos: Position) -> Outcome {
+        if scrollbar::press(self.track, pos, &mut self.scroll) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
+    }
+
+    pub fn on_scrollbar_drag(&mut self, pos: Position) -> Outcome {
+        if scrollbar::drag(self.track, pos, &mut self.scroll) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
+    }
+
+    pub fn owns(&self, id: WidgetId) -> bool {
+        id == self.id || id == scrollbar::id_for(self.id) || self.locate(id).is_some()
+    }
+
     pub fn on_key(&mut self, key: &Key) -> Outcome {
         match key.code {
             KeyCode::Up | KeyCode::Char('k') => {
@@ -56,6 +131,7 @@ impl NavList {
                         break;
                     }
                 }
+                self.reveal_cursor();
                 Outcome::Changed
             }
             KeyCode::Down | KeyCode::Char('j') => {
@@ -67,6 +143,21 @@ impl NavList {
                         break;
                     }
                 }
+                self.reveal_cursor();
+                Outcome::Changed
+            }
+            KeyCode::Home | KeyCode::Char('g') => {
+                if let Some(c) = self.items.iter().position(|i| !i.disabled) {
+                    self.cursor = c;
+                }
+                self.reveal_cursor();
+                Outcome::Changed
+            }
+            KeyCode::End | KeyCode::Char('G') => {
+                if let Some(c) = self.items.iter().rposition(|i| !i.disabled) {
+                    self.cursor = c;
+                }
+                self.reveal_cursor();
                 Outcome::Changed
             }
             KeyCode::Enter | KeyCode::Char(' ') => {
@@ -83,6 +174,7 @@ impl NavList {
         if i < self.items.len() && !self.items[i].disabled {
             self.cursor = i;
             self.current = i;
+            self.reveal_cursor();
         }
         Outcome::Changed
     }
@@ -90,78 +182,97 @@ impl NavList {
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
-        let mut y = area.y;
-        let mut section = "";
-        for (i, it) in self.items.iter().enumerate() {
-            if it.section != section {
-                if y > area.y {
-                    y += 1;
-                }
-                if y >= area.bottom() {
-                    break;
-                }
-                if self.collapsed {
-                    buf.set_string(area.x + 1, y, "····", t.faint().bg(bg));
-                } else {
-                    buf.set_string(area.x + 3, y, it.section, t.faint().bg(bg));
-                }
-                section = it.section;
-                y += 1;
-            }
-            if y >= area.bottom() {
-                break;
-            }
-            let row = Rect::new(area.x, y, area.width, 1);
-            let rid = self.item_id(i);
-            let mut s = ctx.state(rid);
-            s.focused = focused && i == self.cursor;
-            s.disabled = it.disabled;
-            if it.disabled {
-                s.hovered = false;
-            }
-            let current = i == self.current;
-            let st = t.row(s, bg);
-            fill(buf, row, st);
-            buf.set_string(
-                row.x,
-                y,
-                t.gutter_symbol(s),
-                t.gutter(s, st.bg.unwrap_or(bg), false),
-            );
-            if current {
-                buf.set_string(row.x + 1, y, "›", st.fg(t.accent));
-            }
-            let label_style = if it.disabled {
-                st
-            } else if current || s.focused || s.hovered {
-                st.fg(t.text_primary)
-            } else {
-                st.fg(t.text_secondary)
-            };
-            if self.collapsed {
-                buf.set_string(row.x + 3, y, it.icon, label_style);
-            } else {
-                buf.set_string(
-                    row.x + 3,
-                    y,
-                    it.icon,
-                    label_style.fg(if it.disabled {
-                        t.disabled
+        self.area = area;
+        let rows = self.rows();
+        self.scroll.set_content(rows.len());
+        self.scroll.set_viewport(area.height as usize);
+        let has_sb = self.scroll.overflows();
+        let row_w = area.width.saturating_sub(u16::from(has_sb));
+        let mut cursor_y = None;
+        for (k, ri) in self.scroll.visible_range().enumerate() {
+            let y = area.y + k as u16;
+            match rows[ri] {
+                NavRow::Blank => {}
+                NavRow::Section(i) => {
+                    if self.collapsed {
+                        buf.set_string(area.x + 1, y, "····", t.faint().bg(bg));
                     } else {
-                        t.text_muted
-                    }),
-                );
-                buf.set_string(row.x + 5, y, it.label, label_style);
-                if let Some(b) = it.badge {
-                    let bx = row.right().saturating_sub(b.len() as u16 + 1);
-                    let bs = if it.disabled { st } else { st.fg(t.accent) };
-                    buf.set_string(bx, y, b, bs);
+                        buf.set_string(area.x + 3, y, self.items[i].section, t.faint().bg(bg));
+                    }
+                }
+                NavRow::Item(i) => {
+                    let it = &self.items[i];
+                    let row = Rect::new(area.x, y, row_w, 1);
+                    let rid = self.item_id(i);
+                    let mut s = ctx.state(rid);
+                    s.focused = focused && i == self.cursor;
+                    s.disabled = it.disabled;
+                    if it.disabled {
+                        s.hovered = false;
+                    }
+                    if i == self.cursor {
+                        cursor_y = Some(y);
+                    }
+                    let current = i == self.current;
+                    let st = t.row(s, bg);
+                    fill(buf, row, st);
+                    buf.set_string(
+                        row.x,
+                        y,
+                        t.gutter_symbol(s),
+                        t.gutter(s, st.bg.unwrap_or(bg), false),
+                    );
+                    if current {
+                        buf.set_string(row.x + 1, y, "›", st.fg(t.accent));
+                    }
+                    let label_style = if it.disabled {
+                        st
+                    } else if current || s.focused || s.hovered {
+                        st.fg(t.text_primary)
+                    } else {
+                        st.fg(t.text_secondary)
+                    };
+                    if self.collapsed {
+                        buf.set_string(row.x + 3, y, it.icon, label_style);
+                    } else {
+                        buf.set_string(
+                            row.x + 3,
+                            y,
+                            it.icon,
+                            label_style.fg(if it.disabled {
+                                t.disabled
+                            } else {
+                                t.text_muted
+                            }),
+                        );
+                        buf.set_string(row.x + 5, y, it.label, label_style);
+                        if let Some(b) = it.badge {
+                            let bx = row.right().saturating_sub(b.len() as u16 + 1);
+                            let bs = if it.disabled { st } else { st.fg(t.accent) };
+                            buf.set_string(bx, y, b, bs);
+                        }
+                    }
+                    if !it.disabled {
+                        ctx.clickable(rid, row);
+                    }
                 }
             }
-            if !it.disabled {
-                ctx.clickable(rid, row);
-            }
-            y += 1;
+        }
+        ctx.scrollable(self.id, area);
+        self.track = if has_sb {
+            Rect::new(area.right() - 1, area.y, 1, area.height)
+        } else {
+            Rect::ZERO
+        };
+        if has_sb {
+            junie_tui::ui::fade::scroll_edges_except(
+                buf,
+                ctx,
+                Rect::new(area.x, area.y, row_w, area.height),
+                &self.scroll,
+                &cursor_y.into_iter().collect::<Vec<_>>(),
+            );
+            scrollbar::render_vertical(self.track, buf, ctx, self.id, &self.scroll, focused);
         }
         if !ctx.inert {
             ctx.ring.register(self.id);
@@ -241,6 +352,9 @@ impl SidebarsPage {
                 current: 0,
                 cursor: 0,
                 collapsed: false,
+                scroll: ScrollState::default(),
+                area: Rect::ZERO,
+                track: Rect::ZERO,
             },
             collapse: Button::secondary(ID.sub("collapse"), "Collapse"),
         }
@@ -350,6 +464,13 @@ impl Page for SidebarsPage {
                     return o;
                 }
                 Outcome::Ignored
+            }
+            PageEvent::Wheel { id, delta } if self.nav.owns(*id) => self.nav.on_wheel(*delta),
+            PageEvent::Drag { pressed, pos } if *pressed == scrollbar::id_for(self.nav.id) => {
+                self.nav.on_scrollbar_drag(*pos)
+            }
+            PageEvent::Click { id, pos } if *id == scrollbar::id_for(self.nav.id) => {
+                self.nav.on_scrollbar(*pos)
             }
             PageEvent::Click { id, .. } => {
                 if let Some(i) = self.nav.locate(*id) {

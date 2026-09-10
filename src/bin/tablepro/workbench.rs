@@ -1137,7 +1137,7 @@ impl Workbench {
 
     pub fn on_drag(&mut self, pressed: WidgetId, pos: Position) -> Outcome {
         if pressed == scrollbar::id_for(self.explorer.id) {
-            return self.explorer.on_scrollbar(pos);
+            return self.explorer.on_scrollbar_drag(pos);
         }
         match self.tabs.get_mut(self.active) {
             Some(WorkTab::Table(t)) => {
@@ -1145,14 +1145,14 @@ impl Workbench {
                     return t.grid.on_drag(pressed, pos);
                 }
                 if pressed == scrollbar::id_for(t.structure.id) {
-                    return t.structure.on_scrollbar(pos);
+                    return t.structure.on_scrollbar_drag(pos);
                 }
                 Outcome::Ignored
             }
             Some(WorkTab::Query(q)) => q.on_drag(pressed, pos),
             Some(WorkTab::History(h)) => {
                 if pressed == scrollbar::id_for(h.list.id) {
-                    return h.list.on_scrollbar(pos);
+                    return h.list.on_scrollbar_drag(pos);
                 }
                 Outcome::Ignored
             }

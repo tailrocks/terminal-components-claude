@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ cargo clean                                                                                          scope ‹ here ›  
                                                                                                                         
-    Results · 3                                                                  cargo clean · 900.0 MiB                
+    Results · 3                                                                  cargo clean · 900.0 … cleanup · here   
   › cargo clean · 900.0 MiB    cleanup  here  900.0 MiB of gen…  destructive                                            
     cargo clean dry run        cargo    here  read-only                          Does       remove the resolved         
     Clean Cargo registry cac…  cleanup  host  safe if old…                                  target directory            

@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ Search actions and resources…                                                                        scope ‹ here ›  
                                                                                                                         
-    Suggested here                                                               Clean IntelliJ metadata under ~/wor…   
+    Suggested here                                                               Clean IntelliJ metadata… idea · here   
   › Clean IntelliJ metadata …  idea     here  1 candidates       destructive                                            
     Deploy                     custom   here  Current folder…                    Does       move every .idea            
     Run tests                  task     here  defined by ~/wor…                             directory and lowercase     
@@ -36,5 +36,5 @@
                                                                                                                         
                                                                                                                         
                                                                                                                         
- ~/work/probe   main   ↓1           ⠋ discovering git, brew · 7 of 9           ▲ 4 config warnings   truecolor · 120×40 
+ ~/work/probe   main   ↓1       ⠦ discovering git, brew, github · 6 of 9       ▲ 3 config warnings   truecolor · 120×40 
          Type Search  ↑↓ Move  Enter Confirm…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities            

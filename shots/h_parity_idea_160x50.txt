@@ -4,7 +4,7 @@
  ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
  ▎ Search actions and resources…                                                                                                                scope ‹ here ›  
                                                                                                                                                                 
-    Suggested here                                                                                               Clean IntelliJ metadata under ~/work/ide · …   
+    Suggested here                                                                                               Clean IntelliJ metadata under ~… idea · here   
   › Clean IntelliJ metadata under ~/work…  idea     here  4 candidates                           destructive                                                    
                                                                                                                  Does       move every .idea directory and      
     Recent here                                                                                                             lowercase .iml file below this      

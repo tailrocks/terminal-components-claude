@@ -15,6 +15,7 @@ use junie_tui::widgets::grid::{
 };
 use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::props::Prop;
+use junie_tui::widgets::scrollbar;
 
 const ID: WidgetId = WidgetId::of("grid");
 const PREVIEW: WidgetId = ID.sub("preview");
@@ -313,13 +314,12 @@ impl Page for GridPage {
                 .bar_ids()
                 .iter()
                 .any(|b| ctx.interaction.focused(*b));
-        let meta = self.grid.position_label();
-        let panel = Panel::card(Some("customers")).focused(focused).meta(&meta);
+        let panel = Panel::card(Some("customers")).focused(focused);
         let bg = panel.bg(t);
-        let h = area.height.min(30);
-        let inner = panel.render(Rect::new(area.x, area.y, area.width, h), buf, t);
+        let card = Rect::new(area.x, area.y, area.width, area.height.min(30));
+        let inner = panel.render(card, buf, t);
         self.grid.render(inner, buf, ctx, bg);
-        let _ = h;
+        panel.draw_meta(card, buf, t, &self.grid.position_label());
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
@@ -355,9 +355,10 @@ impl Page for GridPage {
                 if !self.grid.owns(*id) {
                     return Outcome::Ignored;
                 }
+                // the scrollbar scrolls without taking focus
                 if self.grid.bar_ids().contains(id) {
                     cx.focus.focus(*id);
-                } else {
+                } else if *id != scrollbar::id_for(self.grid.id) {
                     cx.focus.focus(self.grid.id);
                 }
                 let (o, ev) = self.grid.on_click(*id, *pos);
@@ -369,6 +370,9 @@ impl Page for GridPage {
             }
             PageEvent::Wheel { id, delta } if self.grid.owns(*id) => {
                 self.grid.on_wheel(*delta, false)
+            }
+            PageEvent::WheelH { id, delta } if self.grid.owns(*id) => {
+                self.grid.on_wheel(*delta, true)
             }
             PageEvent::DialogClosed { id, result, .. }
                 if *id == PREVIEW && *result == DialogResult::Action(1) =>

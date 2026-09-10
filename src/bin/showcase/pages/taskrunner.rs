@@ -95,11 +95,11 @@ impl TaskRunnerPage {
                 speed: 0.012 + (i as f64 % 3.0) * 0.006,
             })
             .collect();
-        let mut log = ScrollPanel::new(
+        let log = ScrollPanel::new(
             ID.sub("log"),
             vec!["Ready. Press r or Run to start the pipeline.".into()],
-        );
-        log.follow = true;
+        )
+        .tail(true);
         Self {
             tree,
             tasks,
@@ -339,13 +339,7 @@ impl Page for TaskRunnerPage {
         }
 
         let lf = ctx.interaction.focused(self.log.id);
-        let pos = scrollbar::position_label(&self.log.scroll);
-        let meta = if self.log.follow {
-            format!("{pos} · following")
-        } else {
-            pos
-        };
-        let panel = Panel::card(Some("Log")).focused(lf).meta(&meta);
+        let panel = Panel::card(Some("Log")).focused(lf);
         let bg = panel.bg(t);
         let inner = panel.render(rrows[2], buf, t);
         self.log.render(inner, buf, ctx, bg, |t, line| {
@@ -359,6 +353,13 @@ impl Page for TaskRunnerPage {
                 t.secondary()
             }
         });
+        let pos = scrollbar::position_label(&self.log.scroll);
+        let meta = if self.log.follow {
+            format!("{pos} · following")
+        } else {
+            pos
+        };
+        panel.draw_meta(rrows[2], buf, t, &meta);
     }
 
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
@@ -445,10 +446,10 @@ impl Page for TaskRunnerPage {
             }
             PageEvent::Drag { pressed, pos } => {
                 if *pressed == scrollbar::id_for(self.log.id) {
-                    return self.log.on_scrollbar(*pos);
+                    return self.log.on_scrollbar_drag(*pos);
                 }
                 if *pressed == scrollbar::id_for(self.tree.id) {
-                    return self.tree.on_scrollbar(*pos);
+                    return self.tree.on_scrollbar_drag(*pos);
                 }
                 Outcome::Ignored
             }
