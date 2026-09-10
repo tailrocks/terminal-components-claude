@@ -676,14 +676,16 @@ fn one_click_on_an_argument_field_starts_editing_at_the_pointer() {
     h.click(area.x + 3, area.y);
     assert!(h.app.focus.is(field), "{}", h.text());
     assert!(
-        h.last_row().contains("EDIT") || h.text().contains("EDIT"),
+        h.text().contains("EDIT"),
         "editing after one click: {}",
         h.text()
     );
+    // the caret is under the pointer: the hit area starts one cell before the
+    // text, so column 3 of the area is offset 1 of the value
     h.type_str("X");
     assert!(
-        h.text().contains("/UsXers/alex/work/big") || h.text().contains("X"),
-        "typing lands in the field: {}",
+        h.text().contains("/XUsers/alex/work/big"),
+        "typing lands at the pointer: {}",
         h.text()
     );
 }
