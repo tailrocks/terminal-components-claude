@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                 no project  devbox · local 
+                                                                                                                        
+  Here › Cleanup report                                                                                                 
+ ━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────── 
+  Cleanup report                                                                               devbox · live · 1 s ago  
+                                                                                                                        
+  Outcome   1 failed                                                                                                    
+  Mode      trash                                                                                                       
+  Bytes     0 B left the tree · 0 B freed now · the rest returns when the Trash is emptied                              
+  Log       ~/.cache/holla/ops.log · every record written                                                               
+  Revision  c4d729e20ca0805b                                                                                            
+                                                                                                                        
+ ╭─ Detail ────────────────────────────────────────────────────────────────────────────────────── 2 lines · y copies ─╮ 
+ │  outcome            bytes   path · reason                                                                          │ 
+ │  failed               0 B   ~/Projects/app/node_modules · Trash unavailable: no Trash backend on this host         │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+  Next   Cleanup history                                                                                                
+                                                                                                                        
+ ~/work/box                                   snapshot · read-only                                   truecolor · 120×40 
+                                    ↑↓ Scroll  y Copy  Tab Next actions  Esc Back                            ! 1 failed 

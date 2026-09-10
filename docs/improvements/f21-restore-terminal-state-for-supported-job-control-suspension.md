@@ -9,9 +9,9 @@ Complete the shared runtime suspend/resume contract used by the Holla preview. U
 Apply every retained acceptance clause for this slice. Historical findings must
 be checked against current code before editing. Preserve surrounding behavior.
 
-- [ ] Implement the stated shared/Holla slice and necessary caller migrations.
-- [ ] Retain relevant deterministic contract and Holla owner regressions.
-- [ ] Inspect affected captures/terminal evidence and record scope and results.
+- [x] Implement the stated shared/Holla slice and necessary caller migrations.
+- [x] Retain relevant deterministic contract and Holla owner regressions.
+- [x] Inspect affected captures/terminal evidence and record scope and results.
 
 ## Later
 
@@ -51,5 +51,12 @@ and a lost output device cannot receive restoration escapes. Do not promise
 
 ## Evidence
 
-Pending implementation. Record current source findings, tests/scenarios,
-inspected capture paths, provenance/platform scope and any deferred remainder.
+**Slice status:** current shared slice complete.
+
+**Runtime:** `src/runtime.rs` owns suspend and re-entry as explicit `TerminalSession` transitions: a SIGTSTP handler only sets an atomic flag (`job_control`), the event loop restores the owned modes (`suspend()`), stops itself (`stop_self()`), and on SIGCONT re-acquires the terminal, clears and swaps both buffers and delivers the new geometry as `Input::Resize` (`reenter()`); repeated transitions are idempotent; `poll_uninterrupted` treats EINTR as no event. Tests: `runtime.rs: suspension_leaves_and_reacquires_idempotently`, `interrupted_poll_is_not_an_error`, `failed_terminal_setup_restores_state_and_preserves_error`, `panicking_terminal_setup_restores_state`, `successful_setup_transfers_restoration_and_leaves_once`.
+
+**Owned-PTY proof:** `tests/terminal_suspend.rs: external_sigtstp_restores_the_shell_and_fg_reenters_at_the_new_geometry` spawns a helper job-control parent on an owned PTY, runs the Holla preview as a foreground process group, sends SIGTSTP, asserts the shell-side termios has ICANON and ECHO back, bracketed paste and the alternate screen released, resizes while stopped, continues with `fg`, asserts re-entry at the new geometry with bracketed paste re-enabled, quits, and asserts the final termios equals the launch state and the child is reaped. Every wait is bounded; the helper is reaped by `waitpid`.
+
+**Limits (documented, not passed):** SIGKILL cannot unwind; a lost output device cannot receive restoration escapes; the proof ran on macOS only (Linux is pending external evidence). The probe never touches the user's live terminal.
+
+Provenance: every cited capture carries `<name>.manifest.json` (source git revision `1aaa9b0` with the dirty working tree of this change set, binary sha256 of `target/debug/holla`, arguments, geometry, colour environment, tmux 3.7c, Python 3.14.7, Pillow 12.3.0, the JetBrainsMono NFM font files) and `<name>.png.fidelity.json`; the `.txt` capture is authoritative for content. Platform scope: macOS (Darwin 25.6.0) host for every PTY and capture run; Linux behaviour is fixture-modeled only.

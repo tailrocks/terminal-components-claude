@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                           team · Rust project  mbp · local 
+                                                                                                                        
+  Here › Custom actions    deploy preview ! ×                                                                           
+ ━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────── 
+  Custom actions                                                              ~/work/team/.holla.toml · live · 1 s ago  
+                                                                                                                        
+  Origin   project                                                                                                      
+  Digest   sha256:80de150cfec6235763ee88135d6e8abf9c8de43ddebf148135b5eb42ea710dad                                      
+  Trust    Trusted                                                                                                      
+  Actions  3 · 2 diagnostics                                                                                            
+                                                                                                                        
+ ╭─ Detail ───────────────────────────────────────────────────────────────────────────────────── 40 lines · y copies ─╮ 
+ │  /Users/alex/work/team/.holla.toml action[2]: id "shared" is already defined by the global configuration         ┃ │ 
+ │  /Users/alex/work/team/.holla.toml action[3]: invalid id "Bad Id": lowercase ASCII letters, digits, `.`, `_`, `-…┃ │ 
+ │  deploy.preview          mutating     tools/deploy-preview.sh --env 'preview stack' '$(whoami)'                  ┃ │ 
+ │  wipe                    destructive  sh -c 'rm -rf .cache && echo done'                                         ┃ │ 
+ │  multi                   safe         printf '%s' 'ab c'                                                         ┃ │ 
+ │                                                                                                                  ┃ │ 
+ │  # team actions                                                                                                  ┃ │ 
+ │  [[action]]                                                                                                      ┃ │ 
+ │  id = "deploy.preview"                                                                                           ┃ │ 
+ │  label = "Deploy preview"                                                                                        ┃ │ 
+ │  command = ["tools/deploy-preview.sh", "--env", "preview stack", "$(whoami)"]                                    ┃ │ 
+ │  danger = "mutating"                                                                                             ┃ │ 
+ │  description = "push the current branch to the preview stack"                                                    ┃ │ 
+ │  keywords = ["deploy", "preview"]                                                                                ┃ │ 
+ │                                                                                                                  │ │ 
+ │  [[action]]                                                                                                      │ │ 
+ │  id = "wipe"                                                                                                     │ │ 
+ │  label = "Wipe local caches"                                                                                     │ │ 
+ │  command = ["sh", "-c", "rm -rf .cache && echo done"]                                                            │ │ 
+ │  danger = "destructive"                                                                                          │ │ 
+ │  confirm = true                                                                                                  │ │ 
+ │  group = "Maintenance"                                                                                           │ │ 
+ │                                                                                                                  │ │ 
+ │  [[action]]                                                                                                      │ │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+ ~/work/team   main                               snapshot · read-only                               truecolor · 120×40 
+                                             ↑↓ Scroll  y Copy  Esc Back             ! deploy preview failed · exit 127 

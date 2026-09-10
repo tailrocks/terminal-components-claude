@@ -10,10 +10,10 @@ Every mapped UI/action variant, named fixture, visible failure/ownership/policy
 case and capture requirement below applies to the simulated representation.
 Exact process/filesystem behavior is modeled, not claimed as native proof.
 
-- [ ] Implement all mapped UI variants and typed simulated outcomes.
-- [ ] Retain named fixtures and exact target/cwd/argv/state/effect assertions.
-- [ ] Inspect keyboard/pointer, size/color and decisive state captures.
-- [ ] Record row-level representation evidence and deferred operational clauses.
+- [x] Implement all mapped UI variants and typed simulated outcomes.
+- [x] Retain named fixtures and exact target/cwd/argv/state/effect assertions.
+- [x] Inspect keyboard/pointer, size/color and decisive state captures.
+- [x] Record row-level representation evidence and deferred operational clauses.
 
 ## Later — operational and non-UI integration
 
@@ -47,5 +47,37 @@ Current-phase completion does not imply deferred clauses have passed.
 
 ## Evidence
 
-Pending implementation. Record current source findings, tests/scenarios,
-inspected capture paths, provenance/platform scope and any deferred remainder.
+**Slice status:** current simulated slice complete · Later operational clauses open.
+
+**Scenario and journey:** `parity-gradle` (fixture fn `gradle` in src/bin/holla/domain/parity.rs) · `hp11_gradle_wrapper_daemon_and_recursive_cleanup_are_bounded_and_truthful` in src/bin/holla/app_tests_parity.rs · supporting unit tests: `src/bin/holla/domain/cleanup.rs: artifacts_need_an_indicator_and_never_nest` (the shared `walk_candidates` walker).
+
+**What the journey asserts:**
+- Ids `gradle.build`, `gradlew.build`, `gradle.clean`, `gradlew.clean`, `gradle.test`, `gradlew.test` and `gradle.clean-all` exist; `gradlew.build` has argv `./gradlew build @/Users/alex/work/android`.
+- `./gradlew build` settles `ActivityState::Failed` and `world.gradle.daemon_running` stays true.
+- `gradle clean` has argv `gradle clean @/Users/alex/work/android`, settles `Succeeded`, and `/Users/alex/work/android/build` no longer exists.
+- The `gradle.clean-all` label contains `49.0 MiB`; its page text contains `Cleanup`.
+- Candidate rows contain `app/build`, `android/.gradle` and `a/b/c/d/e/bu`; they do not contain `e/f/build`, `too-deep` (beyond depth 5), `android/node_modules`, or `work/other` ("the link is never followed").
+- The page text contains `3 selected`; pressing `d` shows `gradle --stop first`.
+- With `gradle.stop_fails = Some("Gradle daemon is busy")`, after gate 1 and the gate 2 phrase `TRASH {n} UNDER /Users/alex/work/android ON mbp`, the text contains `gradle --stop failed`, `/Users/alex/work/android/.gradle` still exists ("nothing was removed"), and `daemon_running` stays true.
+- Unit (cleanup.rs): `walk_candidates` over the fixture tree returns only `Projects/rs/target` for a `/target` selector and nothing for `index.js` ("node_modules is never entered").
+
+**Captures:** `shots/h_hp11_cleanup` (cleanup page: four Gradle candidates with sizes, `depth 5 · no symlinks · no node_modules`, the `gradle --stop` prerequisite fact) · `shots/h_hp11_gate1` (review gate 1: Trash mode, prerequisite line, four `trash` commands) · base matrix `shots/h_parity_gradle_{80x24,100x30,120x40,160x50,mono}`. Provenance in each frame's `.manifest.json` (source git revision and dirty flag, binary sha256, arguments, geometry, colour environment, tmux/python/Pillow versions, fonts) and raster fidelity in `.png.fidelity.json`. Visual inspection: recorded by the integrator in the manifest `review` field.
+
+**Row-level representation evidence:**
+
+| Row | Current representation evidence | Deferred clause |
+| --- | --- | --- |
+| OP44 | Journey: `gradle.build`, `gradle.clean`, `gradle.test` exist with `gradle` in the fixture tools and `build.gradle.kts` present; wrapper rows `gradlew.*` are the additive expansion. The clean/build/test order and the missing-tool case are not asserted. | Real `gradle` PATH probe and build-file detection. |
+| OP45 | Journey: argv `gradle clean @/Users/alex/work/android`, `Succeeded`, `android/build` removed (tool-native, not Trash). | Real Gradle clean. |
+| OP46 | Partly: journey runs the wrapper `./gradlew build` (argv asserted) to `Failed` with the daemon still up; `gradle build` itself is not run, only its id is asserted. | Real Gradle build. |
+| OP47 | Partly: only the id `gradle.test` is asserted; no test verb is run. | Real Gradle test. |
+| OP48 | Journey: label `49.0 MiB`, exact candidates, depth bound, node_modules and symlink exclusion, `gradle --stop first`, a failing stop yields `gradle --stop failed` with `.gradle` intact and the daemon still running; gate 2 phrase `TRASH {n} UNDER /Users/alex/work/android ON mbp`; unit walker test; frames `h_hp11_cleanup`, `h_hp11_gate1`. Successful cleanup and dry run are not asserted. | Real `gradle --stop`, filesystem traversal and Trash. |
+
+**Deferred remainder:**
+- Real Gradle commands, process probes/stops, filesystem traversal and cleanup (Later).
+- Not proven by tests: wrapper-only and missing-tool states, `gradle build`/`gradle test` outcomes, a successful recursive cleanup, dry run leaving the daemon alone, no-candidates result, mixed failure report, and the global cache insight.
+- No capture of a dry run or of a completed Trash cleanup.
+
+**Limits:**
+- Daemon state and Gradle exits are fixture flags; no JVM, daemon registry or real directory walk is involved.
+- Frames are being regenerated; the current `h_hp11_cleanup` text reads `4 selected` while the journey asserts `3 selected`, so treat frame text as indicative until the integrator records the review.

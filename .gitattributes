@@ -1,0 +1,4 @@
+# Terminal dumps keep trailing cells on purpose (tmux capture-pane -N): a
+# trailing space is content the HTML and PNG tools lay out, not noise.
+shots/*.txt -whitespace
+shots/*.ansi -whitespace

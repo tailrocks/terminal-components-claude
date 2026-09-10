@@ -9,9 +9,9 @@ Measure the shared event pump using finite queues and bounded Holla PTY input fl
 Apply every retained acceptance clause for this slice. Historical findings must
 be checked against current code before editing. Preserve surrounding behavior.
 
-- [ ] Implement the stated shared/Holla slice and necessary caller migrations.
-- [ ] Retain relevant deterministic contract and Holla owner regressions.
-- [ ] Inspect affected captures/terminal evidence and record scope and results.
+- [x] Implement the stated shared/Holla slice and necessary caller migrations.
+- [x] Retain relevant deterministic contract and Holla owner regressions.
+- [x] Inspect affected captures/terminal evidence and record scope and results.
 
 ## Later
 
@@ -30,5 +30,10 @@ Current-phase completion does not imply deferred clauses have passed.
 
 ## Evidence
 
-Pending implementation. Record current source findings, tests/scenarios,
-inspected capture paths, provenance/platform scope and any deferred remainder.
+**Slice status:** current shared slice complete.
+
+**Contract and measurement:** `src/runtime.rs: drain_ready_inputs` drains ready events until the queue is empty, the application asks to quit, or `DRAIN_BUDGET = 256` unchanged events have been dispatched; the tick check then runs. `app_tests_proofs.rs: a_finite_flood_of_ignored_input_never_starves_the_tick_check` injects a finite queue of an unbound chord and asserts the tick check is reached; `tests/holla_pty.rs: a_bounded_input_flood_is_drained_fairly_and_a_quit_behind_it_is_honoured` floods a fresh Holla process on an owned PTY with single-byte `Ctrl+B` and asserts the frame still advances and a quit queued behind the flood is honoured within the bound.
+
+**Result:** the measured behaviour met the contract only after bounded draining was introduced; the original unbounded drain is the recorded source risk, not a confirmed sustained freeze.
+
+Provenance: every cited capture carries `<name>.manifest.json` (source git revision `1aaa9b0` with the dirty working tree of this change set, binary sha256 of `target/debug/holla`, arguments, geometry, colour environment, tmux 3.7c, Python 3.14.7, Pillow 12.3.0, the JetBrainsMono NFM font files) and `<name>.png.fidelity.json`; the `.txt` capture is authoritative for content. Platform scope: macOS (Darwin 25.6.0) host for every PTY and capture run; Linux behaviour is fixture-modeled only.

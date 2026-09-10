@@ -1,0 +1,83 @@
+{
+ "cols": 80,
+ "rows": 24,
+ "cell": [
+  9,
+  20
+ ],
+ "raqm": true,
+ "fonts": [
+  {
+   "role": "regular",
+   "path": "/Users/donbeave/Library/Fonts/JetBrainsMonoNerdFontMono-Regular.ttf",
+   "family": "JetBrainsMono NFM",
+   "style": "Regular",
+   "size": 15,
+   "sha256": "f2a5ea6cfab397445ffab00c0370927b66d61e560a05db5db271b42006381c1a",
+   "used": 581
+  },
+  {
+   "role": "bold",
+   "path": "/Users/donbeave/Library/Fonts/JetBrainsMonoNerdFontMono-Bold.ttf",
+   "family": "JetBrainsMono NFM",
+   "style": "Bold",
+   "size": 15,
+   "sha256": "bfcf9a917276ffc058867d87cbc8a5b2f1ab0f4b710e9170dc02763ccb80bd4b",
+   "used": 86
+  },
+  {
+   "role": "italic",
+   "path": "/Users/donbeave/Library/Fonts/JetBrainsMonoNerdFontMono-Italic.ttf",
+   "family": "JetBrainsMono NFM",
+   "style": "Italic",
+   "size": 15,
+   "sha256": "31efd6ead98746f5b0afa1ee6dba60267ad48db36428360bee327bec10621f97",
+   "used": 0
+  },
+  {
+   "role": "bolditalic",
+   "path": "/Users/donbeave/Library/Fonts/JetBrainsMonoNerdFontMono-BoldItalic.ttf",
+   "family": "JetBrainsMono NFM",
+   "style": "Bold Italic",
+   "size": 15,
+   "sha256": "9dba502e00e35209f6ed2a151c7376c051657b067cdebbc6e52d06cb9002cf31",
+   "used": 0
+  }
+ ],
+ "missing": [],
+ "unshaped": [],
+ "clipped": [],
+ "controls": [],
+ "occupied": [
+  80,
+  80,
+  80,
+  80,
+  80,
+  80,
+  80,
+  80,
+  80,
+  80,
+  80,
+  80,
+  80,
+  80,
+  80,
+  80,
+  80,
+  80,
+  80,
+  80,
+  80,
+  80,
+  80,
+  80
+ ],
+ "cursor": [
+  15,
+  4
+ ],
+ "approximate": false,
+ "pillow": "12.3.0"
+}

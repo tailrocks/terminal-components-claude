@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                           team · Rust project  mbp · local 
+                                                                                                                        
+  Here    deploy preview ! ×                                                                                            
+ ────────━━━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────── 
+  deploy preview · failed · 0 s · exit 127                                                    here · ~/work/team · mbp  
+  $ tools/deploy-preview.sh --env 'preview stack' '$(whoami)' · started by Deploy preview                               
+                                                                                                                        
+ ╭─ output ─────────────────────────────────────────────────────────────────────────────────────────────── following ─╮ 
+ │  $ tools/deploy-preview.sh --env 'preview stack' '$(whoami)'                                                       │ 
+ │  holla: no simulated outcome for `tools/deploy-preview.sh --env 'preview stack' '$(whoami)'` in this preview       │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+ ~/work/team   main                                 ! exit 127 · 0 s                                 truecolor · 120×40 
+                ↑↓ Scroll  f Follow  / Find  y Copy  r Restart  x Close  Esc Here    ! deploy preview failed · exit 127 

@@ -165,6 +165,18 @@ pub struct World {
     pub scan: Option<ScanState>,
     /// Directory listings that answer late: (path, ticks).
     pub fs_latency: Vec<(String, u64)>,
+    /// A committed cleanup executing item by item (HP22): the report at its
+    /// index grows as it runs and a quit waits for it to settle.
+    pub cleanup_job: Option<CleanupJob>,
+}
+
+/// A cleanup in flight: owned by the world, not by the gate that started it.
+#[derive(Debug, Clone)]
+pub struct CleanupJob {
+    pub exec: crate::domain::cleanup::Execution,
+    pub report_index: usize,
+    /// Process guards observed once at commit, shared by every item.
+    pub processes: Vec<(String, crate::domain::cleanup::ProcessObservation)>,
 }
 
 /// A progressive directory scan over the virtual filesystem (HP18): the

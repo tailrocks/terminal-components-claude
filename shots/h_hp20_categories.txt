@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                     web · Node project · pnpm  mbp · local 
+                                                                                                                        
+  Here › Cleanup                                                                                                        
+ ━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────── 
+  Cleanup review                                                                                                        
+  18 categories · 18.8 GiB · 19 selected (12.4 GiB) · Trash                                                             
+                                                                                                                        
+ ▎[–] ▸ Xcode DerivedData         810.0 MiB  rebuilt on demand…         ┃    Xcode DerivedData               category   
+                                                                        ┃                                               
+  [✓] ▸ Xcode device support        2.4 GiB  safe if old…               ┃    Safety     rebuilt on demand               
+                                                                        ┃    Age rule   any age                         
+  [ ] ▸ Xcode archives            300.0 MiB  review first…              ┃    Platform   macOS only                      
+                                                                        ┃    Roots      ~/Library/Developer/Xcode/Der   
+  [✓] ▸ Simulator caches          900.0 MiB  rebuilt on demand…         ┃               ivedData                        
+                                                                        ┃    Why        rebuilt by the next build       
+  [✓] ▸ Homebrew cache            100.0 MiB  rebuilt on demand…         ┃    Size       810.0 MiB                       
+                                                                        ┃    Guard      Xcode is running · candidates   
+  [✓] ▸ npm cache                 201.0 MiB  rebuilt on demand…         ┃               are skipped                     
+                                                                        ┃    Selection  0 of 1 candidates eligible ·    
+  [✓] ▸ pnpm store                  2.1 GiB  safe if old · 1 candidate… ┃               0 checked                       
+                                                                        ┃                                               
+  [✓] ▸ Yarn cache                 50.0 MiB  rebuilt on demand…         ┃                                               
+                                                                        ┃                                               
+  [✓] ▸ Bun cache                  60.0 MiB  rebuilt on demand…         ┃                                               
+                                                                        ┃                                               
+  [✓] ▸ Cargo registry cache        4.8 GiB  safe if old…               ┃                                               
+                                                                        ┃                                               
+  [✓] ▸ Gradle caches               1.5 GiB  safe if old…               ┃                                               
+                                                                        ┃                                               
+  [ ] ▸ Maven repository          700.0 MiB  review first…              ┃                                               
+                                                                        ┃                                               
+  [✓] ▸ pip cache                 150.0 MiB  rebuilt on demand…         │                                               
+                                                                        │                                               
+  [✓] ▸ uv cache                  300.0 MiB  rebuilt on demand…         │                                               
+                                                                        │                                               
+  [~] ▸ User caches                 1.9 GiB  review first…              │                                               
+                                                                        │                                               
+                                                                                                                        
+ ~/Projects/web                                19 selected · 12.4 GiB                                truecolor · 120×40 
+        ↑↓ Move  Space Select  Enter Open  a All  m Permanent  n Dry run  d Review deletion  p Facts  Esc Back          

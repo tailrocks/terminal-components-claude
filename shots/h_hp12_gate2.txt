@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local 
+                                                                                                                        
+  Here › Cleanup › idea.clean › Review                                                                                  
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────── 
+  Review · trash 4 items · gate 1 of 2 · review the resolved facts, then continue deliberately                          
+                     ╭────────────────────────────────────────────────────────────────────────────╮                     
+  Action        move │                                                                            │                     
+  Host          mbp ·│  Trash 4 items · gate 2 of 2                                               │                     
+  Mode          Trash│                                                                            │                     
+  Estimate      44.0 │  Action        move to Trash 4 items under ~/work/ide                      │ree-space guarantee  
+  Denied        none │  Host          mbp · local                                                 │                     
+  Revision      bd45d│  Mode          Trash · native macOS Trash · space returns after the Trash  │                     
+  Threat model  an un│                is emptied                                                  │ the final path      
+                canno│  Estimate      44.0 KiB allocated · APFS clones may overcount · purgeable  │                     
+  Paths         ~/wor│                space excluded · not a free-space guarantee                 │mod/mod.iml          
+  Recoverable   yes ·│  Denied        none · every path passed the lexical, protected-root,       │                     
+  Provenance    holla│                user-data and symlink rules                                 │                     
+  Gate          secon│  Revision      bd45d030348d92d6 · any change to paths, mode or dry run     │                     
+                     │                voids this review                                           │                     
+ ╭─ Sequence · 4 comm│  Threat model  an unprivileged user · ancestors are re-resolved at commit  │──────── y copies ─╮ 
+ │  01  trash /Users/│                · a concurrent rename of the final path cannot be excluded  │                   │ 
+ │  02  trash /Users/│  Paths         ~/work/ide/.idea · ~/work/ide/a/b/c/d/e/deep.iml ·          │                   │ 
+ │  03  trash /Users/│                ~/work/ide/app.iml · ~/work/ide/mod/mod.iml                 │                   │ 
+ │  04  trash /Users/│                                                                            │                   │ 
+ │                   │  /Users/alex/work/ide/.idea                                                │                   │ 
+ │                   │  /Users/alex/work/ide/a/b/c/d/e/deep.iml                                   │                   │ 
+ │                   │  /Users/alex/work/ide/app.iml                                              │                   │ 
+ │                   │  /Users/alex/work/ide/mod/mod.iml                                          │                   │ 
+ │                   │                                                                            │                   │ 
+ │                   │   Type TRASH 4 UNDER /Users/alex/work/ide ON mbp to confirm                │                   │ 
+ │                   │ ▎                                                                          │                   │ 
+ │                   │                                                                            │                   │ 
+ │                   │                                                                            │                   │ 
+ │                   │                                                         Cancel   Execute   │                   │ 
+ ╰───────────────────│                                                                            │───────────────────╯ 
+                     ╰────────────────────────────────────────────────────────────────────────────╯                     
+                                                                                                  Cancel    Continue…   
+                                                                                                                        
+ ~/work/ide                                   review · gate 1 of 2                                   truecolor · 120×40 
+                                        ← → Choose  Enter Confirm  Esc Cancel                                           

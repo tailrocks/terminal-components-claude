@@ -10,10 +10,10 @@ Every mapped UI/action variant, named fixture, visible failure/ownership/policy
 case and capture requirement below applies to the simulated representation.
 Exact process/filesystem behavior is modeled, not claimed as native proof.
 
-- [ ] Implement all mapped UI variants and typed simulated outcomes.
-- [ ] Retain named fixtures and exact target/cwd/argv/state/effect assertions.
-- [ ] Inspect keyboard/pointer, size/color and decisive state captures.
-- [ ] Record row-level representation evidence and deferred operational clauses.
+- [x] Implement all mapped UI variants and typed simulated outcomes.
+- [x] Retain named fixtures and exact target/cwd/argv/state/effect assertions.
+- [x] Inspect keyboard/pointer, size/color and decisive state captures.
+- [x] Record row-level representation evidence and deferred operational clauses.
 
 ## Later — operational and non-UI integration
 
@@ -47,5 +47,39 @@ Current-phase completion does not imply deferred clauses have passed.
 
 ## Evidence
 
-Pending implementation. Record current source findings, tests/scenarios,
-inspected capture paths, provenance/platform scope and any deferred remainder.
+**Slice status:** current simulated slice complete · Later operational clauses open.
+
+**Scenario and journey:** `parity-platforms` and `parity-platforms-linux` (`platforms_mac` and `platforms_linux` in src/bin/holla/domain/parity.rs) · `hp23_platform_capabilities_are_stated_and_never_faked` in src/bin/holla/app_tests_parity.rs · supporting unit tests: `src/bin/holla/domain/cleanup.rs: validation_denies_every_documented_rule` (`/tmp/junk` on `Os::Debian` refused, `/private/tmp/junk` on macOS), `src/bin/holla/domain/cleanup.rs: detection_respects_platform_tools_and_roots` (mac-only categories hidden on `Os::Debian`), `src/bin/holla/sim/fs.rs: trash_keeps_used_bytes_and_permanent_frees_them` ("Trash unavailable" leaves the file).
+
+**What the journey asserts:**
+- macOS: `Top files on this Mac` shows "did not finish within 5 s" (fixture `Spotlight::Timeout`).
+- macOS: `upgrade.brew-casks` is an item; `platform.dataless_failure` contains "EPERM" (fixture "setiopolicy_np failed: EPERM").
+- macOS: `validate("/private/tmp/x")` and `validate("/tmp/x")` both return `/private/tmp/x`.
+- Linux: `validate("/tmp/x")` returns `/tmp/x` unchanged; no `upgrade.brew-casks` item; no item id starts with `cleanup.xcode`.
+- Linux: `Review cleanup candidates` shows "Cargo registry cache" or "Project artifacts"; the gate reads "no Trash backend · every item will fail, never fall back".
+- Linux gate 2 phrase "TRASH {n} UNDER /home/alex ON devbox"; report `count(Outcome::Failed) == r.items.len()`, every error contains "Trash unavailable", and `/home/alex/Projects/app/node_modules/x` still exists.
+- Linux: `Copy this folder's path` shows "does not accept OSC 52" and `world.clipboard` is `None`.
+- Linux: opening `package.json` from the Files actions menu shows "No opener on devbox" (fixture removes `xdg-open`, `opener: None`).
+
+**Captures:** `shots/h_hp23_mac_top_files` ("Disk › Top files" with "did not finish within 5 s"), `shots/h_hp23_linux_gate` ("no Trash backend" fact on gate 1), `shots/h_hp23_linux_gate2` ("gate 2 of 2" with "TRASH 1 UNDER /home/alex ON devbox"), `shots/h_hp23_linux_report` ("Cleanup report", "failed", "Trash unavailable"); base matrix `shots/h_parity_platforms_{80x24,100x30,120x40,160x50,mono}` and `shots/h_parity_platforms_linux_{80x24,100x30,120x40,160x50,mono}`. Provenance in each frame's `.manifest.json` (source git revision and dirty flag, binary sha256, arguments, geometry, colour environment, tmux/python/Pillow versions, fonts) and raster fidelity in `.png.fidelity.json`. Visual inspection: recorded by the integrator in the manifest `review` field.
+
+**Row-level representation evidence:**
+
+| Row | Current representation evidence | Deferred clause |
+| --- | --- | --- |
+| X01 | not applicable (boundary row); the journey proves the Linux host states its own capabilities instead: no Trash backend ("Trash unavailable" on every item, `node_modules/x` survives), `/tmp` stays `/tmp`. | none |
+| X02 | not applicable (boundary row); the journey proves platform statements only: "No opener on devbox", "does not accept OSC 52" with `clipboard == None`. | none |
+| X03 | not applicable (boundary row); provenance is carried by the capture manifests, not by the journey. | none |
+| X04 | not applicable (boundary row); the journey uses catalog labels (`Top files on this Mac`, `Review cleanup candidates`, `Copy this folder's path`), not CLI subcommands. | none |
+| X05 | not applicable (boundary row); no browser filter or scanner option is claimed. | none |
+| X06 | not applicable (boundary row); dry run is proven per plan in `hp21_*`, not as a global CLI flag. | none |
+| X07 | not applicable (boundary row); the macOS world proves honest limits instead: Spotlight "did not finish within 5 s", dataless "EPERM", `/tmp/x` resolved to `/private/tmp/x`, and the HP21 gate names the remaining pathname race. | none |
+
+**Deferred remainder:**
+- Production OS adapters, native filesystem/Trash/open/process probes on both operating systems and full CLI parity (Later section).
+- Acceptance clauses not proven by the tests: FreeDesktop Trash on a Linux host that has one, `xdg-open` fallback when present, Linuxbrew paths beyond `brew` in tools with `linux: true`, process subreaper behaviour (`subreaper: true` is fixture data only), `process_probe` `Err("pgrep: command not found")` is not asserted by `hp23_*`, store location (`xdg_config_home`, `xdg_cache_home`) is fixture data and not asserted, TERM/backend error state, TrueColor/Mono/NO_COLOR explanations are captured (`_mono`, base matrix) but not asserted, no macOS command spawned on Linux is proven only by item absence (`upgrade.brew-casks`, `cleanup.xcode*`).
+- Controlled filesystem/PTY/Trash/open probes on a real Linux host remain pending; a macOS fixture does not pass them.
+
+**Limits:**
+- Both worlds run in the same test process on macOS; `Os::Debian` is a fixture value, so nothing about a real Linux kernel, desktop or Trash mount is measured.
+- Timeouts, EPERM and missing tools are fixture strings, not observed syscalls.

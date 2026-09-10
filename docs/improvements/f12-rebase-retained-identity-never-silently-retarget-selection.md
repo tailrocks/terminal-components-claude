@@ -9,9 +9,9 @@ Complete retained line identity reconciliation for selection, drag, viewport and
 Apply every retained acceptance clause for this slice. Historical findings must
 be checked against current code before editing. Preserve surrounding behavior.
 
-- [ ] Implement the stated shared/Holla slice and necessary caller migrations.
-- [ ] Retain relevant deterministic contract and Holla owner regressions.
-- [ ] Inspect affected captures/terminal evidence and record scope and results.
+- [x] Implement the stated shared/Holla slice and necessary caller migrations.
+- [x] Retain relevant deterministic contract and Holla owner regressions.
+- [x] Inspect affected captures/terminal evidence and record scope and results.
 
 ## Later
 
@@ -40,5 +40,12 @@ and zero retention. Existing passing logical selection across resize must remain
 
 ## Evidence
 
-Pending implementation. Record current source findings, tests/scenarios,
-inspected capture paths, provenance/platform scope and any deferred remainder.
+**Slice status:** current shared slice complete.
+
+**Shared boundary:** one edit delta reconciles the selection head and anchor, the active drag anchor, the producer caret and the first visible logical line; fully evicted selections clear, partially surviving ranges clip, reading position is retained while follow is off. Tests: `viewport.rs: eviction_never_retargets_a_selection`, `active_drag_survives_eviction_with_the_right_source`, `reading_position_is_retained_while_follow_is_off`, `producer_caret_follows_eviction_and_replacement`, `replace_last_keeps_identity_and_clips_selection`, `keyboard_selection_pauses_follow_and_survives_append_and_resize`, `marks_paint_and_survive_eviction`.
+
+**Holla integration:** activity output churn (append, tail replacement for prompt rows, retention eviction) and resize keep the reading position and find marks. Tests: `app_tests_proofs.rs: output_scrollbar_press_and_drag_redraw_and_find_index_resets_on_a_new_query`, `resize_below_minimum_then_normal_then_wide_then_minimum_keeps_every_state_consistent`; `app_tests_parity.rs: hp14_…` (retention while following), `hp15_…` (prompt row replaced in place).
+
+**Captures inspected:** `shots/h_hp14_find` (marks after eviction), `shots/h_hp15_answered`.
+
+Provenance: every cited capture carries `<name>.manifest.json` (source git revision `1aaa9b0` with the dirty working tree of this change set, binary sha256 of `target/debug/holla`, arguments, geometry, colour environment, tmux 3.7c, Python 3.14.7, Pillow 12.3.0, the JetBrainsMono NFM font files) and `<name>.png.fidelity.json`; the `.txt` capture is authoritative for content. Platform scope: macOS (Darwin 25.6.0) host for every PTY and capture run; Linux behaviour is fixture-modeled only.

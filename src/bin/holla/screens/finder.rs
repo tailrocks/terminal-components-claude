@@ -75,6 +75,9 @@ pub struct FinderPage {
     /// The query changed since the last rebuild: the cursor goes to the best
     /// match, never stays on a row that merely still matches.
     query_changed: bool,
+    /// The item id whose preview is shown; the preview scroll resets when
+    /// it changes.
+    previewed: Option<String>,
     /// The whole query is selected: the next edit replaces it.
     select_all: bool,
     undo: Vec<String>,
@@ -104,6 +107,7 @@ impl FinderPage {
             dirty: true,
             rebuilds: 0,
             query_changed: false,
+            previewed: None,
             select_all: false,
             undo: vec![],
             redo: vec![],
@@ -212,7 +216,14 @@ impl FinderPage {
             rows.push(Row::Blank);
             rows.push(Row::Heading("Recent here".into()));
             if recent.is_empty() {
-                rows.push(Row::Heading("nothing used here yet".into()));
+                rows.push(Row::Heading(
+                    if projection.is_empty() {
+                        "nothing used here yet"
+                    } else {
+                        "everything used here is suggested above"
+                    }
+                    .into(),
+                ));
             }
             for r in recent {
                 used.insert(r.index);
@@ -318,10 +329,35 @@ impl FinderPage {
                     .position(|r| matches!(r, Row::Item(i, _) if self.items[*i].id == id))
             })
         };
-        self.query_changed = false;
+        let query_changed = std::mem::take(&mut self.query_changed);
         self.cursor = target.unwrap_or_else(|| self.first_selectable());
+        // the preview scroll belongs to the previewed item and the query: a
+        // different row under the cursor or a new query starts at the top
+        let previewed = match self.rows.get(self.cursor) {
+            Some(Row::Item(i, _)) => Some(self.items[*i].id.clone()),
+            _ => None,
+        };
+        if query_changed || previewed != self.previewed {
+            self.preview_scroll.jump_start();
+            self.previewed = previewed;
+        }
         self.scroll.set_content(self.rows.len());
         self.dirty = false;
+    }
+
+    /// The cursor rests on a runnable row (an item or an explore entry),
+    /// never on a heading or a blank line.
+    #[cfg(test)]
+    pub fn cursor_on_row(&self) -> bool {
+        matches!(
+            self.rows.get(self.cursor),
+            Some(Row::Item(..)) | Some(Row::Explore(_))
+        )
+    }
+
+    #[cfg(test)]
+    pub fn preview_offset(&self) -> usize {
+        self.preview_scroll.offset
     }
 
     fn first_selectable(&self) -> usize {
@@ -559,12 +595,16 @@ impl FinderPage {
             },
             true,
         ));
-        let gate = match &it.confirmation {
-            Confirmation::TwoGate { .. } => format!(
+        let gate = match (&it.launch, &it.confirmation) {
+            // a review page gates the deletion itself: opening it is navigation
+            (Launch::Cleanup { .. } | Launch::Disk { .. } | Launch::TopFiles | Launch::Find, _) => {
+                "opens a review · the deletion is gated there (typed phrase)".to_owned()
+            }
+            (_, Confirmation::TwoGate { .. }) => format!(
                 "two gates · type {}",
                 it.confirmation.phrase().unwrap_or_default()
             ),
-            c => c.label(),
+            (_, c) => c.label(),
         };
         v.push((
             "Gate".into(),
@@ -1020,6 +1060,39 @@ impl FinderPage {
         });
         Outcome::Changed
     }
+
+    /// Keys while the preview panel is focused: scroll, copy, activate,
+    /// and Esc back to the list.
+    fn preview_key(&mut self, key: &Key, cx: &mut Cx) -> Outcome {
+        match key.code {
+            KeyCode::Up | KeyCode::Char('k') => {
+                self.preview_scroll.scroll_by(-1);
+                Outcome::Changed
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                self.preview_scroll.scroll_by(1);
+                Outcome::Changed
+            }
+            KeyCode::Char('y') => {
+                if let Some(it) = self.current() {
+                    let cmd = it.commands.join("\n");
+                    if cmd.is_empty() {
+                        cx.status("Nothing to copy: this row has no command");
+                    } else {
+                        cx.copy(cmd);
+                    }
+                }
+                Outcome::Changed
+            }
+            KeyCode::Esc => {
+                self.drawer = false;
+                cx.focus.focus(FINDER);
+                Outcome::Changed
+            }
+            KeyCode::Enter => self.activate_current(cx),
+            _ => Outcome::Ignored,
+        }
+    }
 }
 
 impl Screen for FinderPage {
@@ -1028,34 +1101,18 @@ impl Screen for FinderPage {
             self.rebuild(w);
         }
         if cx.focus.is(PREVIEW) {
-            return match key.code {
-                KeyCode::Up | KeyCode::Char('k') => {
-                    self.preview_scroll.scroll_by(-1);
-                    Outcome::Changed
-                }
-                KeyCode::Down | KeyCode::Char('j') => {
-                    self.preview_scroll.scroll_by(1);
-                    Outcome::Changed
-                }
-                KeyCode::Char('y') => {
-                    if let Some(it) = self.current() {
-                        let cmd = it.commands.join("\n");
-                        if cmd.is_empty() {
-                            cx.status("Nothing to copy: this row has no command");
-                        } else {
-                            cx.copy(cmd);
-                        }
-                    }
-                    Outcome::Changed
-                }
-                KeyCode::Esc => {
-                    self.drawer = false;
-                    cx.focus.focus(FINDER);
-                    Outcome::Changed
-                }
-                KeyCode::Enter => self.activate_current(cx),
-                _ => Outcome::Ignored,
-            };
+            // typing belongs to the query: the keystroke edits it and the
+            // keyboard returns to the list (the preview's own letters stay)
+            let typed = matches!(
+                key.code,
+                KeyCode::Char(c) if !key.ctrl() && !key.alt() && !matches!(c, 'j' | 'k' | 'y')
+            );
+            if typed {
+                self.drawer = false;
+                cx.focus.focus(FINDER);
+            } else {
+                return self.preview_key(key, cx);
+            }
         }
         if !cx.focus.is(FINDER) {
             return Outcome::Ignored;

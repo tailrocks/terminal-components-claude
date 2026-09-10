@@ -10,10 +10,10 @@ Every mapped UI/action variant, named fixture, visible failure/ownership/policy
 case and capture requirement below applies to the simulated representation.
 Exact process/filesystem behavior is modeled, not claimed as native proof.
 
-- [ ] Implement all mapped UI variants and typed simulated outcomes.
-- [ ] Retain named fixtures and exact target/cwd/argv/state/effect assertions.
-- [ ] Inspect keyboard/pointer, size/color and decisive state captures.
-- [ ] Record row-level representation evidence and deferred operational clauses.
+- [x] Implement all mapped UI variants and typed simulated outcomes.
+- [x] Retain named fixtures and exact target/cwd/argv/state/effect assertions.
+- [x] Inspect keyboard/pointer, size/color and decisive state captures.
+- [x] Record row-level representation evidence and deferred operational clauses.
 
 ## Later — operational and non-UI integration
 
@@ -47,5 +47,35 @@ Current-phase completion does not imply deferred clauses have passed.
 
 ## Evidence
 
-Pending implementation. Record current source findings, tests/scenarios,
-inspected capture paths, provenance/platform scope and any deferred remainder.
+**Slice status:** current simulated slice complete · Later operational clauses open.
+
+**Scenario and journey:** `parity-git-current` (fixture fn `git_current` in src/bin/holla/domain/parity.rs) · `hp05_git_current_runs_at_the_repository_root_with_truthful_outcomes` in src/bin/holla/app_tests_parity.rs · supporting unit tests: `src/bin/holla/domain/parity.rs: every_parity_world_builds_a_catalogue_with_unique_ids`. · row proofs in src/bin/holla/app_tests_rows.rs: `op03_op11_op12_current_repository_status_fetch_prune_and_gc_are_exact`.
+
+**What the journey asserts:**
+- With cwd `/Users/alex/work/svc/src/api`, `.git` as a file, `pull_config = "merge"`, diverged (behind 2, ahead 1) and one modified file: the `git.pull` item's argv is `git -C /Users/alex/work/svc pull @/Users/alex/work/svc`, its effect is `Effect::GitPullMerge("/Users/alex/work/svc")` and its effects text contains "blocked · 1 modified".
+- "Pull with merge" runs `git -C /Users/alex/work/svc pull --no-rebase @/Users/alex/work/svc`; on success `behind == 0`, `ahead == 2`, not diverged; on failure output contains "overwritten" or "error" and `behind` stays 2.
+- "Push" runs `git -C /Users/alex/work/svc push @/Users/alex/work/svc`, settles `ActivityState::Failed`, output contains "fetch first" or "rejected".
+- "Push dry run" runs `git -C /Users/alex/work/svc push --dry-run @/Users/alex/work/svc` and settles `ActivityState::Succeeded`.
+- "Switch to main" runs `git -C /Users/alex/work/svc switch main @/Users/alex/work/svc`; on success `branch == Some("main")`, otherwise output has "overwritten"/"error" and `branch` stays `Some("feature/x")`.
+
+**Captures:** `shots/h_hp05_pull_blocked` (Pull row "blocked · 1 modified" with strategy alternatives in the preview), `shots/h_hp05_merge` (pull with merge activity, git's refusal over the modified file), `shots/h_hp05_push_rejected` (push failed with "[rejected]" and "fetch first"); base matrix `shots/h_parity_git_current_{80x24,100x30,120x40,160x50,mono}`. State: provenance in each frame's `.manifest.json` (source git revision and dirty flag, binary sha256, arguments, geometry, colour environment, tmux/python/Pillow versions, fonts) and raster fidelity in `.png.fidelity.json`. Visual inspection: recorded by the integrator in the manifest `review` field.
+
+**Row-level representation evidence:**
+
+| Row | Current representation evidence | Deferred clause |
+| --- | --- | --- |
+| OP01 | hp05: `git.pull` argv `git -C /Users/alex/work/svc pull`, effect `GitPullMerge`, "blocked · 1 modified"; "Pull with merge" argv `pull --no-rebase` with world effect (`behind` 0, `ahead` 2) or unchanged `behind` 2 on refusal. | real git, credentials, remotes |
+| OP02 | hp05: push argv `git -C /Users/alex/work/svc push`, state `Failed`, "fetch first"/"rejected"; dry run argv `push --dry-run` succeeds. A successful push changing remote state is not exercised (the fixture push is rejected). | real push, auth, upstream |
+| OP03 | `op03_op11_op12_current_repository_status_fetch_prune_and_gc_are_exact`: `git.status` argv is `git -C /Users/alex/work/svc status @/Users/alex/work/svc` (full status, no `--short`). | real `git status` |
+| OP04 | hp05: cwd is the subdirectory `src/api` and every argv targets the root `/Users/alex/work/svc`; fixture sets `git_file = true`. Git-on-PATH gating and hidden group are not asserted. | PATH probe |
+
+**Deferred remainder:**
+- Real git invocation, credentials, remotes and repository integration (Later).
+- Full `git status` detail and truthful unavailable-state recovery are not asserted.
+- Push success changing modeled remote state is not exercised; only the rejected path is.
+- No-upstream, detached and in-progress rebase fixture states named in the contract are not in `git_current`.
+- Discovery via a `.git` file is fixture input, not a separately asserted outcome.
+
+**Limits:**
+- Outcomes come from the simulated git world; the merge/switch branches accept either result and assert the matching world state.
+- No process, network or credential path exists in the test.

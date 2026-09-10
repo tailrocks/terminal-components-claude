@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local 
+                                                                                                                        
+  Here › Disk › Usage                                                                                                   
+ ━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────── 
+  Disk usage · ~/work/data                                                                                              
+  ⠴ scanning · 32 of 73 entries ━━━━━━━━━━━──────────────  44%                                                          
+                                                                                                                        
+    Filesystems                                                                                                         
+    /                       ━━━━━━━━━━━━────── 66%    611 of 926 GB                                                     
+                                                                                                                        
+    largest first · allocated · noise folded                                 data                           directory   
+ ▎▾   data                                              852.0 KiB · 100%                                                
+    ▸   many                                            724.0 KiB ·  85%     Path       ~/work/data                     
+    ⠴   media                                               … · scanning     Allocated  852.0 KiB                       
+    ⠴   skip-me                                             … · scanning     Apparent   1012.0 KiB · sparse             
+    ⠴   .hidden                                             … · scanning     Entries    66 · hardlinks counted once     
+        sparse.img                                       12.0 KiB ·   1%     Modified   2026-08-11 08:41                
+    ⠴   cloud                                               … · scanning     Freshness  live · 44%                      
+    ⠴   locked                                              … · scanning     Selection  not selected · Space selects    
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ ~/work/data                              ⠴ scanning ~/work/data · 44%                               truecolor · 120×40 
+ ↑↓ Move  ← → Fold / open  Space Select  s Sort  f Fold noise  d Delete…  c Artifact plan  r Rescan  x Cancel scan  …   

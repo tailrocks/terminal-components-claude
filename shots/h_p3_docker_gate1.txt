@@ -1,40 +1,40 @@
-  holla❯    File   Go   Help                                                           no project  devbox · development
-
-  Here › Clean Docker completely › Review
- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────
-  Review · Clean Docker completely · gate 1 of 2 · review the resolved facts, then continue deliberately
-
-  Action             remove all user-removable Docker state on devbox
-  Host               devbox · development · over SSH
-  In                 /work/scratch
-  Steps              7 included · 0 excluded · 4 branches parallel · ~11 s
-  Docker accounting  12 containers (5 running) · 41 images 9.8 GB · 7 volumes 4.1 GB · build cache 6.1 GB
-  Reclaimable        ~18.4 GB
-  Recoverable        no · images, containers and volumes are permanent
-  Not touched        the Docker daemon itself · its configuration
-  Privilege          none
-  Uncertainty        named volumes hold durable data; a generic system prune would keep them
-  Provenance         resolved by holla from live state · 2 s ago
-  Gate               second gate types the target-bound phrase
-
- ╭─ Sequence · 8 commands ───────────────────────────────────────────────────────────────────────────────── y copies ─╮
- │  01  docker stop acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-redis-1                                  │
- │  02  docker rm acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-redis-1 build-cache-7f2 registry-mirror t… │
- │  03  docker image prune -a --force                                                                                 │
- │  04  docker network prune --force                                                                                  │
- │  05  docker volume prune -a --force                                                                                │
- │  06  docker builder prune -a --force                                                                               │
- │      docker buildx prune -a --force                                                                                │
- │  07  docker system df                                                                                              │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-
-                                                                                                 ▎Cancel   ▎Continue…
-
- /work/scratch                                 review · gate 1 of 2                                  truecolor · 120×40
-                          ← → Choose  Enter Activate  Tab Next  y Copy sequence  Esc Cancel
+  holla❯    File   Go   Help                                                           no project  devbox · development 
+                                                                                                                        
+  Here › Clean Docker completely › Review                                                                               
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────── 
+  Review · Clean Docker completely · gate 1 of 2 · review the resolved facts, then continue deliberately                
+                                                                                                                        
+  Action             remove all user-removable Docker state on devbox                                                   
+  Host               devbox · development · over SSH                                                                    
+  In                 /work/scratch                                                                                      
+  Steps              7 included · 0 excluded · 4 branches parallel · ~11 s                                              
+  Docker accounting  12 containers (5 running) · 41 images 9.8 GB · 7 volumes 4.1 GB · build cache 6.1 GB               
+  Reclaimable        ~18.4 GB                                                                                           
+  Recoverable        no · images, containers and volumes are permanent                                                  
+  Not touched        the Docker daemon itself · its configuration                                                       
+  Privilege          none                                                                                               
+  Uncertainty        named volumes hold durable data; a generic system prune would keep them                            
+  Provenance         resolved by holla from live state · 2 s ago                                                        
+  Gate               second gate types the target-bound phrase                                                          
+                                                                                                                        
+ ╭─ Sequence · 8 commands ───────────────────────────────────────────────────────────────────────────────── y copies ─╮ 
+ │  01  docker stop acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-redis-1                                  │ 
+ │  02  docker rm acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-redis-1 build-cache-7f2 registry-mirror t… │ 
+ │  03  docker image prune -a --force                                                                                 │ 
+ │  04  docker network prune --force                                                                                  │ 
+ │  05  docker volume prune -a --force                                                                                │ 
+ │  06  docker builder prune -a --force                                                                               │ 
+ │      docker buildx prune -a --force                                                                                │ 
+ │  07  docker system df                                                                                              │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+                                                                                                 ▎Cancel    Continue…   
+                                                                                                                        
+ /work/scratch                                 review · gate 1 of 2                                  truecolor · 120×40 
+                          ← → Choose  Enter Activate  Tab Next  y Copy sequence  Esc Cancel                             

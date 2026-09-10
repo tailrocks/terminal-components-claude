@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local 
+                                                                                                                        
+  Here › Files › Find                                                                                                   
+ ━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────── 
+   todo                                                                                           ~ · 29 of 29 indexed  
+    1 result · home scope                                                                                               
+                                                                                                                        
+    todo.md                     ~/work/notes                        ╭─ ~/work/notes/todo.md ─────────── 10 B of 10 B ─╮ 
+     ╭──────────────────────────────────╮                           │      1 - ship it                                │ 
+     │  /Users/alex/work/notes/todo.md  │                           │                                                 │ 
+     │  Open in the OS            Enter │                           │                                                 │ 
+     │  Reveal in the file manager      │                           │                                                 │ 
+     │  Copy full path                y │                           │                                                 │ 
+     │  Analyze disk usage              │                           │                                                 │ 
+     │ ──────────────────────────────── │                           │                                                 │ 
+     │  Preview here                    │                           │                                                 │ 
+     ╰──────────────────────────────────╯                           │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    ╰─────────────────────────────────────────────────╯ 
+                                                                                                                        
+ ~/work/notes                                 29 indexed · 1 results                                 truecolor · 120×40 
+                                           ↑↓ Move  Enter Choose  Esc Close                                             

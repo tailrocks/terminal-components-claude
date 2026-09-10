@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local 
+                                                                                                                        
+  Here › Review    stop all containers ! ×                                                                              
+ ━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  Review · Stop and remove all containers · gate 1 of 2 · review the resolved facts, then continue deliberately         
+                                                                                                                        
+  Action       stop the running containers, then remove every captured container on mbp (running and stopped) · images  
+               and volumes stay · rm runs only after stop succeeds                                                      
+  Host         mbp · local                                                                                              
+  In           mbp · host-wide                                                                                          
+  Scope        host                                                                                                     
+  Changes      6 containers removed · writable layers lost                                                              
+  Risk         destructive                                                                                              
+  Data         live · 2 s ago                                                                                           
+  Includes     stopped containers and dangling resources · named volumes when volumes are pruned                        
+  Recoverable  no · permanent                                                                                           
+  Provenance   built-in action · resolved from live state                                                               
+  Gate         second gate types the target-bound phrase                                                                
+                                                                                                                        
+ ╭─ Sequence · 2 commands ───────────────────────────────────────────────────────────────────────────────── y copies ─╮ 
+ │  01  docker stop acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-scheduler-1                                  │ 
+ │  02  docker rm acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-scheduler-1 pgadmin                            │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+                                                                                                 ▎Cancel    Continue…   
+                                                                                                                        
+ ~/work/stack                                  review · gate 1 of 2                                  truecolor · 120×40 
+             ← → Choose  Enter Activate  Tab Next  y Copy sequence  Esc Cancel    ! stop all containers failed · exit 1 

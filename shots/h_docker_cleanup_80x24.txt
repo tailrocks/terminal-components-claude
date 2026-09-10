@@ -1,24 +1,24 @@
-  holla❯    File   Go   Help                   no project  devbox · development
-
-  Here
- ━━━━━━━───────────────────────────────────────────────────────────────────────
- ▎ docker clean                                                 scope ‹ here ›
-
-    Results · 7
-  › Clean Docker completely     plan    on devbox  18.4 GB recla…  destructive
-    Stop all containers         docker  on devbox  5 running on …
-    Prune builder cache         docker  on devbox  6.1 GB of bui…
-    Prune unused networks       docker  on devbox  available on …
-    Prune unused volumes        docker  on devbox  7 volumes       destructive
-    Remove all unused images    docker  on devbox  12 dangling     destructive
-    Stop and remove all conta…  docker  on devbox  12 containers…  destructive
-
-
-
-
-
-
-    → docker stop acme-api-1 acme-wor…-1 acme-redis-1 · on devbox · destructive
-
- /work/scratch                                                truecolor · 80×24
-      Type Search  ↑↓ Move  Enter Review…  Alt+Enter More  Tab Preview  …
+  holla❯    File   Go   Help                   no project  devbox · development 
+                                                                                
+  Here                                                                          
+ ━━━━━━━─────────────────────────────────────────────────────────────────────── 
+ ▎ docker clean                                                 scope ‹ here ›  
+                                                                                
+    Results · 7                                                                 
+  › Clean Docker completely     plan    on devbox  remembered fo…  destructive  
+    Stop all containers         docker  on devbox  5 running on …               
+    Prune builder cache         docker  on devbox  6.1 GB of bui…  destructive  
+    Prune unused networks       docker  on devbox  available on …               
+    Prune unused volumes        docker  on devbox  7 volumes       destructive  
+    Remove all unused images    docker  on devbox  12 dangling     destructive  
+    Stop and remove all conta…  docker  on devbox  12 containers…  destructive  
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+    → docker stop acme-api-1 acme-wor…-1 acme-redis-1 · on devbox · destructive 
+                                                                                
+ /work/scratch                                                truecolor · 80×24 
+      Type Search  ↑↓ Move  Enter Review…  Alt+Enter More  Tab Preview  …       

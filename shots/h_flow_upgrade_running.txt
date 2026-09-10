@@ -1,40 +1,40 @@
-  holla❯    File   Go   Help                                                           no project  devbox · development
-
-  Here    Upgrade everything ⠸ ×
- ────────━━━━━━━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────
-  Upgrade everything · 1 of 7 done · 2 running · 03 waits for 02                                                 ⠸ 3 s
-  ━━━━━━━━─────────────────────────────────────────────  14%
-
-        step                                                         ╭─ 01 Preflight ───────────────────── succeeded ─╮
- ▎ ✓ 01 Preflight                    –      ·     1 s                │  os: Debian GNU/Linux 13 (trixie) · kernel 6.1 │
- ▎ ⠸ 02 Refresh Debian metadata      01     a     1 s                │  2.0-1-amd64                                   │
- ▎ · 03 Review Debian upgrades       02     a     waits 02           │  privileges: sudo cached (asked once)          │
- ▎ · 04 Apply Debian upgrades        03     a     waits 03           │  apt lock: free                                │
- ▎ ⠸ 05 Inspect global mise tools    01     b     1 s                │  network: deb.debian.org reachable · 18 ms     │
- ▎ · 06 Upgrade selected mise tools  05     b     waits 05           │  free space on /: 41.2 GB                      │
- ▎ – 07 Package cleanup              04     a     excluded           │  pending reboot: no                            │
- ▎ · 08 Final verification           04 06  join  waits 04           │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     ╰────────────────────────────────────────────────╯
-
- ~                                      ⠸ lane a 02 · lane b 05                                      truecolor · 120×40
-               ↑↓ Step  Enter Maximise output  Ctrl+C Cancel remaining  x Close  Esc Here    Upgrade everything started
+  holla❯    File   Go   Help                                                           no project  devbox · development 
+                                                                                                                        
+  Here    Upgrade everything ⠦ ×                                                                                        
+ ────────━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────── 
+  Upgrade everything · 1 of 7 done · 2 running · 03 waits for 02                                                 ⠦ 3 s  
+  ━━━━━━━━─────────────────────────────────────────────  14%                                                            
+                                                                                                                        
+        step                                                         ╭─ 01 Preflight ───────────────────── succeeded ─╮ 
+ ▎ ✓ 01 Preflight                    –      ·     1 s                │  os: Debian GNU/Linux 13 (trixie) · kernel 6.1 │ 
+   ⠦ 02 Refresh Debian metadata      01     a     1 s                │  2.0-1-amd64                                   │ 
+   · 03 Review Debian upgrades       02     a     waits 02           │  privileges: sudo cached (asked once)          │ 
+   · 04 Apply Debian upgrades        03     a     waits 03           │  apt lock: free                                │ 
+   ⠦ 05 Inspect global mise tools    01     b     1 s                │  network: deb.debian.org reachable · 18 ms     │ 
+   · 06 Upgrade selected mise tools  05     b     waits 05           │  free space on /: 41.2 GB                      │ 
+   – 07 Package cleanup              04     a     excluded           │  pending reboot: no                            │ 
+   · 08 Final verification           04 06  join  waits 04           │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     ╰────────────────────────────────────────────────╯ 
+                                                                                                                        
+ ~                                      ⠦ lane a 02 · lane b 05                                      truecolor · 120×40 
+               ↑↓ Step  Enter Maximise output  Ctrl+C Cancel remaining  x Close  Esc Here    Upgrade everything started 

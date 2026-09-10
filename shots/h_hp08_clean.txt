@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                         engine · Rust project  mbp · local 
+                                                                                                                        
+  Here                                                                                                                  
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ cargo clean                                                                                          scope ‹ here ›  
+                                                                                                                        
+    Results · 3                                                                  cargo clean · 900.0 MiB                
+  › cargo clean · 900.0 MiB    cleanup  here  900.0 MiB of gen…  destructive                                            
+    cargo clean dry run        cargo    here  read-only                          Does       remove the resolved         
+    Clean Cargo registry cac…  cleanup  host  safe if old…                                  target directory            
+                                                                                            ~/work/engine/target · 2    
+                                                                                            files · tool-native         
+                                                                                            permanent removal, not      
+                                                                                            Trash · rebuilt by the      
+                                                                                            next build                  
+                                                                                 Runs       cargo clean                 
+                                                                                 In         ~/work/engine               
+                                                                                 Host       mbp · local                 
+                                                                                 Scope      here                        
+                                                                                 Why        900.0 MiB of generated      
+                                                                                            artifacts                   
+                                                                                 Changes    900.0 MiB freed by cargo    
+                                                                                            itself · permanent ·        
+                                                                                            next build recompiles       
+                                                                                            everything · shared         
+                                                                                            target:                     
+                                                                                            /Users/alex/work/engine-    
+                                                                                            wt loses its artifacts      
+                                                                                            too                         
+                                                                                 Risk       destructive                 
+                                                                                 Data       live · 0 s ago              
+                                                                                 Gate       one confirmation            
+                                                                                 Alt+Enter  Show what clean would       
+                                                                                            remove (dry run) · Pin ·    
+                                                                                            Alias · Why here?           
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ ~/work/engine   main                                                                                truecolor · 120×40 
+             Type Search  ↑↓ Move  Enter Confirm…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Esc Clear                

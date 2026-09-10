@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                                  holla · Rust project  mbp · local 
+                                                                                                                                                                
+  Here                                                                                                                                                          
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›  
+                                                                                                                                                                
+    Suggested here                                                                                               cargo build                     cargo · here   
+  › cargo build   cargo    here  Cargo.toml here · used 3 times here                                                                                            
+    cargo test    cargo    here  Cargo.toml here · used 3 times here                                             Does       build the debug profile ·           
+    Pull          git      here  used 20 times here                                                                         compiler diagnostics stay in the    
+    cargo check   cargo    here  Cargo.toml here · used once here                                                           activity                            
+    Run check     task     here  defined by ~/work/holla/mise.toml                                               Runs       cargo build                         
+                                                                                                                 In         ~/work/holla                        
+    Recent here                                                                                                  Host       mbp · local                         
+    everything used here is suggested above                                                                      Scope      here                                
+                                                                                                                 Why        Cargo.toml here · used 3 times      
+    Explore                                                                                                                 here                                
+     Tasks   Git   Files   Disk   Services   System                                                              Changes    see the command                     
+    System · mbp  explore  host  available on this host                                                          Risk       mutating                            
+                                                                                                                 Data       live · 2 s ago                      
+                                                                                                                 Gate       runs directly                       
+                                                                                                                 Alt+Enter  Pin · Alias · Why here?             
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+ ~/work/holla   main                                                                                                                         truecolor · 160×50 
+                                Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities                                  

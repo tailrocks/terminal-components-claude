@@ -1,40 +1,40 @@
-  holla❯    File   Go   Help                                                           no project  devbox · development
-
-  Here    Upgrade everything ! ×
- ────────━━━━━━━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────
-  Upgrade everything · 5 of 7 done · 1 blocked · 1 failed                                     finished · 14 s · devbox
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────────  71% !
-
-        step                                                         ╭─ 06 Upgrade selected mise tools ────── failed ─╮
- ▎ ✓ 01 Preflight                    –      ·     1 s                │  $ mise upgrade --exclude go                   │
- ▎ ✓ 02 Refresh Debian metadata      01     a     2 s                │  mise node@26.1.0 · downloading node-v26.1.0-l │
- ▎ ✓ 03 Review Debian upgrades       02     a     1 s                │  inux-x64.tar.xz                               │
- ▎ ✓ 04 Apply Debian upgrades        03     a     8 s                │  mise node@26.1.0 · checksum mismatch · expect │
- ▎ ✓ 05 Inspect global mise tools    01     b     2 s                │  ed 9f3a… got 4c11…                            │
- ▎ ! 06 Upgrade selected mise tools  05     b     5 s · exit 1…      │  mise ERROR failed to install node@26.1.0      │
- ▎ – 07 Package cleanup              04     a     excluded           │  exit status 1                                 │
- ▎ · 08 Final verification           04 06  join  blocked…           │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     ╰────────────────────────────────────────────────╯
-
-  5 succeeded · 1 failed · 1 never started · 1 excluded
-  Next  ▎Outdated tools
-
- ~                                    finished · 5 ok · 1 failed                                     truecolor · 120×40
-                  ↑↓ Step  Enter Maximise output  r Retry  k Skip  x Close  Esc Here    ! Upgrade everything · 1 failed
+  holla❯    File   Go   Help                                                           no project  devbox · development 
+                                                                                                                        
+  Here    Upgrade everything ! ×                                                                                        
+ ────────━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────── 
+  Upgrade everything · 5 of 7 done · 1 blocked · 1 failed                                     finished · 14 s · devbox  
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────────  71% !                                                          
+                                                                                                                        
+        step                                                         ╭─ 06 Upgrade selected mise tools ────── failed ─╮ 
+   ✓ 01 Preflight                    –      ·     1 s                │  $ mise upgrade --exclude go                   │ 
+   ✓ 02 Refresh Debian metadata      01     a     2 s                │  mise node@26.1.0 · downloading node-v26.1.0-l │ 
+   ✓ 03 Review Debian upgrades       02     a     1 s                │  inux-x64.tar.xz                               │ 
+   ✓ 04 Apply Debian upgrades        03     a     8 s                │  mise node@26.1.0 · checksum mismatch · expect │ 
+   ✓ 05 Inspect global mise tools    01     b     2 s                │  ed 9f3a… got 4c11…                            │ 
+ ▎ ! 06 Upgrade selected mise tools  05     b     5 s · exit 1…      │  mise ERROR failed to install node@26.1.0      │ 
+   – 07 Package cleanup              04     a     excluded           │  exit status 1                                 │ 
+   · 08 Final verification           04 06  join  blocked…           │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     ╰────────────────────────────────────────────────╯ 
+                                                                                                                        
+  5 succeeded · 1 failed · 1 never started · 1 excluded                                                                 
+  Next   Outdated tools                                                                                                 
+                                                                                                                        
+ ~                                    finished · 5 ok · 1 failed                                     truecolor · 120×40 
+                  ↑↓ Step  Enter Maximise output  r Retry  k Skip  x Close  Esc Here    ! Upgrade everything · 1 failed 
