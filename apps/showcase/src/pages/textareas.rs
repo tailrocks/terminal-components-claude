@@ -303,16 +303,16 @@ impl Page for TextAreasPage {
         });
     }
 
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if self.state.is_editing() {
-            vec![
+            &[
                 ("Enter", "Newline"),
                 ("Esc", "Done"),
                 ("Shift+↑↓", "Select"),
                 ("Tab", "Next"),
             ]
         } else {
-            vec![("Enter", "Edit"), ("↑ ↓", "Scroll")]
+            &[("Enter", "Edit"), ("↑ ↓", "Scroll")]
         }
     }
 

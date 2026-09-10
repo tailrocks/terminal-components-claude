@@ -317,13 +317,13 @@ impl Page for ScrollingPage {
         );
     }
 
-    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(LOG_VIEW).contains(StateFlags::FOCUSED) {
-            vec![("↑ ↓", "Scroll"), ("f", "Follow"), ("G", "End")]
+            &[("↑ ↓", "Scroll"), ("f", "Follow"), ("G", "End")]
         } else if ui.state(LIST_VIEW).contains(StateFlags::FOCUSED) {
-            vec![("↑ ↓", "Move"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
+            &[("↑ ↓", "Move"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
         } else {
-            vec![("↑ ↓", "Scroll"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
+            &[("↑ ↓", "Scroll"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
         }
     }
 }

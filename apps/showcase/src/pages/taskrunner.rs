@@ -473,11 +473,11 @@ impl Page for TaskRunnerPage {
         });
     }
 
-    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(STEPS).contains(StateFlags::FOCUSED) {
-            vec![("↑ ↓", "Move"), ("← →", "Fold")]
+            &[("↑ ↓", "Move"), ("← →", "Fold")]
         } else {
-            vec![("r", "Run pipeline"), ("Enter", "Activate")]
+            &[("r", "Run pipeline"), ("Enter", "Activate")]
         }
     }
 }

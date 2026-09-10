@@ -1008,6 +1008,33 @@ fn paint_inspector(ui: &mut Ui<'_>, area: Rect, app: &App) {
     });
 }
 
+/// Paint one footer hint at the cursor column if it fits before `reserved`.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the footer paints pre-resolved part styles without re-resolving per hint"
+)]
+fn paint_hint(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    x: &mut u16,
+    reserved: u16,
+    key_style: PaintStyle,
+    action_style: PaintStyle,
+    key: &str,
+    action: &str,
+) {
+    let key_width = width(key);
+    let action_width = width(action);
+    let hint_width = key_width.saturating_add(action_width).saturating_add(3);
+    if x.saturating_add(hint_width).saturating_add(reserved) > area.right() {
+        return;
+    }
+    ui.paint_str(Rect::new(*x, area.y, key_width, 1), key, key_style);
+    *x = x.saturating_add(key_width.saturating_add(1));
+    ui.paint_str(Rect::new(*x, area.y, action_width, 1), action, action_style);
+    *x = x.saturating_add(action_width.saturating_add(2));
+}
+
 fn paint_footer(
     ui: &mut Ui<'_>,
     area: Rect,
@@ -1016,6 +1043,7 @@ fn paint_footer(
     page_editing: bool,
     status: Option<&str>,
 ) {
+    const TAB_NEXT: (&str, &str) = ("Tab", "Next");
     if area.is_empty() {
         return;
     }
@@ -1043,31 +1071,37 @@ fn paint_footer(
     } else {
         &[]
     };
-    let hints: Vec<(&str, &str)> = if nav_focused {
-        nav_hints.to_vec()
-    } else {
-        let mut hints = page_hints.to_vec();
-        if !page_editing {
-            hints.push(("Tab", "Next"));
-        }
-        hints
-    };
+    // Allocation-free iteration: the navigation hints replace the page hints
+    // while the navigation owns focus, and the "Tab / Next" entry is appended
+    // only when the page body owns focus and is not in an editing mode that
+    // consumes it.
+    let tab_next = !nav_focused && !page_editing;
     let mut x = area.x.saturating_add(1);
     let reserved = status.map_or(14, |message| width(message).saturating_add(3));
-    for (key, action) in hints {
-        let key_width = width(key);
-        let action_width = width(action);
-        let hint_width = key_width.saturating_add(action_width).saturating_add(3);
-        if x.saturating_add(hint_width).saturating_add(reserved) > area.right() {
-            break;
-        }
-        ui.paint_str(Rect::new(x, area.y, key_width, 1), key, key_style);
-        x = x.saturating_add(key_width.saturating_add(1));
-        ui.paint_str(Rect::new(x, area.y, action_width, 1), action, action_style);
-        x = x.saturating_add(action_width.saturating_add(2));
-        if x >= area.right() {
-            break;
-        }
+    let page_hints: &[(&str, &str)] = if nav_focused { &[] } else { page_hints };
+    for &(key, action) in nav_hints.iter().chain(page_hints.iter()) {
+        paint_hint(
+            ui,
+            area,
+            &mut x,
+            reserved,
+            key_style,
+            action_style,
+            key,
+            action,
+        );
+    }
+    if tab_next {
+        paint_hint(
+            ui,
+            area,
+            &mut x,
+            reserved,
+            key_style,
+            action_style,
+            TAB_NEXT.0,
+            TAB_NEXT.1,
+        );
     }
     if let Some(message) = status {
         let message_width = width(message);
@@ -1251,7 +1285,7 @@ impl TuiApp for App {
             ui,
             shell.footer,
             ui.state(NAV).contains(StateFlags::FOCUSED),
-            &page_hints,
+            page_hints,
             page_editing,
             self.status.as_ref().map(|(status, _)| status.0.as_str()),
         );

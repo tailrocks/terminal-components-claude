@@ -216,9 +216,9 @@ impl Sample {
     }
 }
 
-/// Like [`bench`], but each iteration explicitly marks its measured sections.
+/// Like [`bench()`], but each iteration explicitly marks its measured sections.
 /// Use when a public lifecycle requires untimed setup between operations.
-/// Always retain a separate [`bench`] measurement of the complete lifecycle.
+/// Always retain a separate [`bench()`] measurement of the complete lifecycle.
 pub fn bench_sampled(warm: usize, iters: usize, f: &mut dyn FnMut(&mut Sample)) -> Stats {
     let iters = iters.max(1);
     for _ in 0..warm {

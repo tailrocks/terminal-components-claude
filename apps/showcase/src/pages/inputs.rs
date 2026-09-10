@@ -299,7 +299,7 @@ impl Page for InputsPage {
         });
     }
 
-    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         let editing = if ui.state(NAME).contains(StateFlags::FOCUSED) {
             self.name_state.is_editing()
         } else if ui.state(BRANCH).contains(StateFlags::FOCUSED) {
@@ -308,14 +308,14 @@ impl Page for InputsPage {
             false
         };
         if editing {
-            vec![
+            &[
                 ("Enter", "Commit"),
                 ("Esc", "Cancel"),
                 ("Shift+← →", "Select"),
                 ("Ctrl+U", "Clear"),
             ]
         } else {
-            vec![("Enter", "Edit")]
+            &[("Enter", "Edit")]
         }
     }
 

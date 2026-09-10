@@ -270,8 +270,8 @@ impl Page for ProgressPage {
         );
     }
 
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
-        vec![("Enter", "Activate")]
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
+        &[("Enter", "Activate")]
     }
 }
 

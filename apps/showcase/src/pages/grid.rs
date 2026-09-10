@@ -350,11 +350,11 @@ impl Page for GridPage {
         );
     }
 
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if self.state.is_editing() {
-            vec![("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next cell")]
+            &[("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next cell")]
         } else {
-            vec![
+            &[
                 ("↑↓←→", "Cell"),
                 ("Enter", "Edit"),
                 ("s", "Sort"),

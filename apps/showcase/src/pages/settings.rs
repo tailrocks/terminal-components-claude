@@ -440,13 +440,13 @@ impl Page for SettingsPage {
         });
     }
 
-    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(TAB).contains(StateFlags::FOCUSED) {
-            vec![("← →", "Switch tab"), ("1 2 3", "Jump")]
+            &[("← →", "Switch tab"), ("1 2 3", "Jump")]
         } else if ui.state(MEMBERS).contains(StateFlags::FOCUSED) {
-            vec![("↑ ↓ ← →", "Cell"), ("Enter", "Edit"), ("s", "Sort")]
+            &[("↑ ↓ ← →", "Cell"), ("Enter", "Edit"), ("s", "Sort")]
         } else {
-            vec![("Enter", "Edit / activate"), ("Ctrl+S", "Save")]
+            &[("Enter", "Edit / activate"), ("Ctrl+S", "Save")]
         }
     }
 }

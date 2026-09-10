@@ -5,6 +5,10 @@
 pub(crate) enum ActivityState {
     Running,
     Waiting,
+    #[expect(
+        dead_code,
+        reason = "P2+ completes activities; P1 only seeds and renders"
+    )]
     Succeeded,
     Failed,
     Detached,

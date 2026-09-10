@@ -4,7 +4,6 @@
 // Fixture contract lands whole; P2+ renders into the parts P1 only seeds.
 pub(crate) mod accounting;
 pub(crate) mod action;
-#[expect(dead_code, reason = "P2+ renders into the parts P1 only seeds")]
 pub(crate) mod activity;
 pub(crate) mod debian;
 pub(crate) mod disk;
@@ -12,7 +11,6 @@ pub(crate) mod disk;
 pub(crate) mod docker;
 pub(crate) mod effect;
 pub(crate) mod fixtures;
-#[expect(dead_code, reason = "P2+ renders into the parts P1 only seeds")]
 pub(crate) mod git;
 pub(crate) mod github;
 pub(crate) mod host;

@@ -593,13 +593,13 @@ impl Page for PanelsPage {
         );
     }
 
-    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(NESTED_LIST).contains(StateFlags::FOCUSED) {
-            vec![("↑ ↓", "Move"), ("Enter", "Choose")]
+            &[("↑ ↓", "Move"), ("Enter", "Choose")]
         } else if ui.state(LOG_VIEW).contains(StateFlags::FOCUSED) {
-            vec![("↑ ↓", "Scroll"), ("f", "Follow tail"), ("g G", "Ends")]
+            &[("↑ ↓", "Scroll"), ("f", "Follow tail"), ("g G", "Ends")]
         } else {
-            vec![("↑ ↓", "Scroll"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
+            &[("↑ ↓", "Scroll"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
         }
     }
 }

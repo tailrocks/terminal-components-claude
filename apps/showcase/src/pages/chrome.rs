@@ -364,11 +364,11 @@ impl Page for ChromePage {
         );
     }
 
-    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(BAR).contains(StateFlags::FOCUSED) {
-            vec![("← →", "Menu"), ("Enter", "Open")]
+            &[("← →", "Menu"), ("Enter", "Open")]
         } else {
-            vec![
+            &[
                 ("↑↓", "Move"),
                 ("m", "Context menu"),
                 ("right-click", "Context menu"),

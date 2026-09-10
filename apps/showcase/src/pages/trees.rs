@@ -318,8 +318,8 @@ impl Page for TreesPage {
         );
     }
 
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
-        vec![
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
+        &[
             ("↑ ↓", "Move"),
             ("← →", "Fold / unfold"),
             ("Enter", "Open"),

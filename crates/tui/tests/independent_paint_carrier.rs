@@ -1,3 +1,5 @@
+//! Paint-style patches ride their own channel without leaking across styles.
+#![allow(clippy::unwrap_used, reason = "test lifecycle assertions")]
 use junie_tui::theme::PaintStyle;
 use junie_tui::{ColorLevel, FgStep, Modifier, Rect, Role, StylePatch, Surface, Theme};
 use junie_tui_testing::Scene;

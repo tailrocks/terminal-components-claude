@@ -368,16 +368,16 @@ impl Page for ListsPage {
         );
     }
 
-    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(MULTI).contains(StateFlags::FOCUSED) {
-            vec![
+            &[
                 ("↑ ↓", "Move"),
                 ("Space", "Toggle"),
                 ("a", "All / none"),
                 ("Shift+↓", "Range"),
             ]
         } else {
-            vec![("↑ ↓", "Move"), ("Enter", "Choose"), ("g G", "Ends")]
+            &[("↑ ↓", "Move"), ("Enter", "Choose"), ("g G", "Ends")]
         }
     }
 }

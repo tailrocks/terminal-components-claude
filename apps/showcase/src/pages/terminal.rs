@@ -346,9 +346,9 @@ impl Page for TerminalPage {
         );
     }
 
-    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(OUTPUT).contains(StateFlags::FOCUSED) {
-            vec![
+            &[
                 ("↑ ↓", "Scroll"),
                 ("Home End", "Oldest / live"),
                 ("f", "Follow"),
@@ -357,9 +357,9 @@ impl Page for TerminalPage {
                 ("Esc", "Clear"),
             ]
         } else if ui.state(RAIL).contains(StateFlags::FOCUSED) {
-            vec![("↑ ↓", "Move"), ("wheel", "Scroll")]
+            &[("↑ ↓", "Move"), ("wheel", "Scroll")]
         } else {
-            vec![("Enter", "Activate"), ("drag ┃", "Resize")]
+            &[("Enter", "Activate"), ("drag ┃", "Resize")]
         }
     }
 }

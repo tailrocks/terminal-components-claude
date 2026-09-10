@@ -479,28 +479,28 @@ impl Page for FormsPage {
         );
     }
 
-    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if self.summary_state.is_editing() || self.details_state.is_editing() {
-            vec![
+            &[
                 ("Enter", "Commit"),
                 ("Esc", "Cancel"),
                 ("Tab", "Next field"),
             ]
         } else if ui.state(PRIORITY).contains(StateFlags::FOCUSED) {
-            vec![("↑ ↓", "Choose"), ("Ctrl+S", "Submit")]
+            &[("↑ ↓", "Choose"), ("Ctrl+S", "Submit")]
         } else if ui.state(CONFIRM).contains(StateFlags::FOCUSED)
             || ui.state(RUN_TESTS).contains(StateFlags::FOCUSED)
             || ui.state(OPEN_PR).contains(StateFlags::FOCUSED)
             || ui.state(AUTO_APPROVE).contains(StateFlags::FOCUSED)
             || ui.state(NOTIFY).contains(StateFlags::FOCUSED)
         {
-            vec![("Space", "Toggle"), ("Ctrl+S", "Submit")]
+            &[("Space", "Toggle"), ("Ctrl+S", "Submit")]
         } else if ui.state(SAVE).contains(StateFlags::FOCUSED)
             || ui.state(RESET).contains(StateFlags::FOCUSED)
         {
-            vec![("Enter", "Activate"), ("Ctrl+S", "Submit")]
+            &[("Enter", "Activate"), ("Ctrl+S", "Submit")]
         } else {
-            vec![("Enter", "Edit"), ("Ctrl+S", "Submit")]
+            &[("Enter", "Edit"), ("Ctrl+S", "Submit")]
         }
     }
 

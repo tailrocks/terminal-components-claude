@@ -260,8 +260,8 @@ impl Page for OverviewPage {
         );
     }
 
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
-        vec![("[ ]", "Pages"), ("i", "Inspector")]
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
+        &[("[ ]", "Pages"), ("i", "Inspector")]
     }
 }
 

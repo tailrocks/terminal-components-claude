@@ -1154,11 +1154,11 @@ impl Page for PickersPage {
         }
     }
 
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if self.open_kind.is_some() {
-            vec![("Esc", "Close")]
+            &[("Esc", "Close")]
         } else {
-            vec![("Enter", "Open")]
+            &[("Enter", "Open")]
         }
     }
 }

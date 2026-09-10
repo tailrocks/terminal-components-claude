@@ -298,8 +298,8 @@ impl Page for SidebarsPage {
         );
     }
 
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
-        vec![("↑ ↓", "Move"), ("Enter", "Open")]
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
+        &[("↑ ↓", "Move"), ("Enter", "Open")]
     }
 }
 

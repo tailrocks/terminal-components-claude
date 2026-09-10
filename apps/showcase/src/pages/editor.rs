@@ -321,17 +321,17 @@ impl Page for EditorPage {
         );
     }
 
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if self.completion_state.is_open() {
-            vec![("↑ ↓", "Move"), ("Enter", "Accept"), ("Esc", "Close")]
+            &[("↑ ↓", "Move"), ("Enter", "Accept"), ("Esc", "Close")]
         } else if self.state.is_editing() {
-            vec![
+            &[
                 ("Ctrl+Space", "Complete"),
                 ("Ctrl+R", "Run block"),
                 ("Esc", "Done"),
             ]
         } else {
-            vec![
+            &[
                 ("i", "Edit"),
                 ("Ctrl+R", "Run block"),
                 ("{ }", "Blocks"),

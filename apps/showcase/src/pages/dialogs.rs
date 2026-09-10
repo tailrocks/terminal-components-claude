@@ -281,7 +281,7 @@ impl Page for DialogsPage {
         });
     }
 
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
-        vec![("Enter", "Open")]
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
+        &[("Enter", "Open")]
     }
 }

@@ -337,9 +337,9 @@ impl Page for ChipsPage {
         );
     }
 
-    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(CHIPS).contains(StateFlags::FOCUSED) {
-            vec![
+            &[
                 ("← →", "Move"),
                 ("Space", "Toggle"),
                 ("Enter", "Edit / add"),
@@ -347,9 +347,9 @@ impl Page for ChipsPage {
                 ("X", "Clear all"),
             ]
         } else if ui.state(SELECT).contains(StateFlags::FOCUSED) {
-            vec![("Enter", "Open"), ("↑ ↓", "Choose"), ("Esc", "Close")]
+            &[("Enter", "Open"), ("↑ ↓", "Choose"), ("Esc", "Close")]
         } else {
-            Vec::new()
+            &[]
         }
     }
 }
