@@ -1272,6 +1272,7 @@ impl App {
                 },
                 matched: r.matched.clone(),
                 disabled: false,
+                key: String::new(),
             })
             .collect();
         p.set_items(items);
@@ -1328,6 +1329,7 @@ impl App {
                 },
                 matched: vec![],
                 disabled: false,
+                key: String::new(),
             })
             .collect();
         p.set_items(items);
@@ -1354,6 +1356,7 @@ impl App {
                 tag: if *s == current { Some("current") } else { None },
                 matched: vec![],
                 disabled: false,
+                key: String::new(),
             })
             .collect();
         p.set_items(items);
@@ -1482,6 +1485,7 @@ impl App {
                                     tag: if i == w.active { Some("active") } else { None },
                                     matched: vec![],
                                     disabled: false,
+                                    key: String::new(),
                                 })
                                 .collect();
                             p.set_items(items);

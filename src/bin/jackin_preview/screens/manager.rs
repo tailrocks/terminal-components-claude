@@ -411,6 +411,7 @@ impl ManagerScreen {
             tag: None,
             matched: vec![],
             disabled: false,
+            key: String::new(),
         });
         targets.push((Agent::ClaudeCode, Some("__shell__".into())));
         p.set_items(items);
@@ -1649,6 +1650,7 @@ fn agent_rows(
             tag,
             matched: vec![],
             disabled,
+            key: String::new(),
         });
         targets.push((a, offer.preselected.clone()));
     }
