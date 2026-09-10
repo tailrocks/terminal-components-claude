@@ -1,0 +1,41 @@
+name: holla-fable audit tools
+on:
+  push:
+    branches: [holla-fable]
+    paths: [.github/workflows/holla-fable-audit-bootstrap.yml]
+permissions:
+  contents: read
+jobs:
+  tools:
+    if: github.ref == 'refs/heads/holla-fable'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Prepare offline compiler and public dependency cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.88.0 --profile minimal --component rustfmt --component clippy
+          cargo +1.88.0 fetch --locked
+          command -v tmux || { sudo apt-get update -qq; sudo apt-get install -y tmux; }
+          mkdir -p audit-tools/runtime-libs
+          cp "$(command -v tmux)" audit-tools/tmux
+          ldd audit-tools/tmux
+          for lib in /usr/lib/x86_64-linux-gnu/libutempter.so.0*; do
+            if [ -f "$lib" ]; then cp -L "$lib" audit-tools/runtime-libs/; fi
+          done
+          tar --exclude=share --exclude=etc -czf audit-tools/rust-offline.tar.gz \
+            -C "$HOME/.rustup/toolchains" 1.88.0-x86_64-unknown-linux-gnu \
+            -C "$HOME/.cargo" registry
+      - uses: actions/upload-artifact@v4
+        with:
+          name: holla-fable-offline-tools
+          path: audit-tools/
+          compression-level: 0
+          retention-days: 1
+          if-no-files-found: error
