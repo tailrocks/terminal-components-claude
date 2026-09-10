@@ -98,12 +98,17 @@ impl GitState {
 
     /// Merged-branch candidates: sorted unique, current and primary
     /// excluded, capped at 30 with the total (OP13).
+    /// Merged branches that may be deleted: never the current or primary
+    /// branch, never one checked out in a worktree (`+ name` in git's
+    /// listing, or named in `occupied`).
     pub fn merged_candidates(&self) -> (Vec<String>, usize) {
         let mut v: Vec<String> = self
             .merged
             .iter()
-            .map(|b| b.trim_start_matches(['*', '+', ' ']).to_owned())
+            .filter(|b| !b.trim_start().starts_with('+'))
+            .map(|b| b.trim_start_matches(['*', ' ']).to_owned())
             .filter(|b| Some(b.as_str()) != self.branch.as_deref() && b != &self.primary)
+            .filter(|b| !self.occupied.contains(b))
             .collect();
         v.sort();
         v.dedup();

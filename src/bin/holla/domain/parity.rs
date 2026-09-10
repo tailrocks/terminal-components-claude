@@ -138,7 +138,7 @@ fn discovery(motion: Motion) -> World {
     w.tools = [
         "git", "cargo", "docker", "mise", "just", "make", "task", "brew", "gradle", "idea", "npm",
         "ssh", "kill", "ps", "lsof", "less", "find", "sh", "open", "mdfind", "psql", "lazygit",
-        "trash",
+        "trash", "gh",
     ]
     .iter()
     .map(|s| s.to_string())
@@ -544,7 +544,7 @@ fn docker(motion: Motion) -> World {
     w.docker.compose = Some(Compose {
         file: format!("{root}/compose.yaml"),
         dir: root.clone(),
-        name: "stack".into(),
+        name: "acme".into(),
         services: vec!["db".into(), "api".into(), "worker".into()],
     });
     w.docker.fail_stage = Some("stop".into());
