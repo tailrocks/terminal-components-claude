@@ -66,6 +66,10 @@ pub struct FinderPage {
     split: bool,
     /// Rows are rebuilt when this changes.
     dirty: bool,
+    /// The whole query is selected: the next edit replaces it.
+    select_all: bool,
+    undo: Vec<String>,
+    redo: Vec<String>,
     last_tick: u64,
 }
 
@@ -88,6 +92,9 @@ impl FinderPage {
             explore_areas: vec![],
             split: true,
             dirty: true,
+            select_all: false,
+            undo: vec![],
+            redo: vec![],
             last_tick: u64::MAX,
         }
     }
@@ -115,7 +122,21 @@ impl FinderPage {
     fn rebuild(&mut self, w: &World) {
         let keep = self.current_id();
         self.items = w.items();
-        let ranked = search(&self.items, &self.query, self.scope, self.group);
+        let learned = if crate::domain::ranking::Query::parse(&self.query).is_empty() {
+            None
+        } else {
+            w.memory
+                .usage
+                .learned_for(&self.query, &w.host.name)
+                .map(str::to_owned)
+        };
+        let ranked = crate::domain::ranking::search_with(
+            &self.items,
+            &self.query,
+            self.scope,
+            self.group,
+            learned.as_deref(),
+        );
         let has_query = !crate::domain::ranking::Query::parse(&self.query).is_empty();
         let mut rows = vec![];
         if let Some(g) = self.group {
@@ -162,17 +183,17 @@ impl FinderPage {
                     rows.push(Row::Item(r.index, r.clone()));
                 }
             }
-            // recent here: by last use, not already shown
-            let mut recent: Vec<&Ranked> = ranked
+            // recent here: the usage store's projection (HP02) · at most five,
+            // positive frecency only, deterministic ties, not already shown
+            let projection = w
+                .memory
+                .usage
+                .recent(&w.location.cwd, &w.host.name, w.now_secs());
+            let recent: Vec<&Ranked> = projection
                 .iter()
-                .filter(|r| {
-                    self.items[r.index].last_used_secs.is_some() && !used.contains(&r.index)
-                })
+                .filter_map(|(id, _)| ranked.iter().find(|r| self.items[r.index].id == *id))
+                .filter(|r| !used.contains(&r.index))
                 .collect();
-            recent.sort_by_key(|r| {
-                std::cmp::Reverse(self.items[r.index].last_used_secs.unwrap_or(0))
-            });
-            let recent: Vec<&Ranked> = recent.into_iter().take(3).collect();
             rows.push(Row::Blank);
             rows.push(Row::Heading("Recent here".into()));
             if recent.is_empty() {
@@ -338,6 +359,54 @@ impl FinderPage {
         self.query = q;
         self.dirty = true;
         self.scroll.jump_start();
+    }
+
+    /// One user edit: remembered for undo, drops the redo branch, clears a
+    /// whole-query selection.
+    fn edit(&mut self, q: String) {
+        if q == self.query {
+            self.select_all = false;
+            return;
+        }
+        self.undo.push(self.query.clone());
+        if self.undo.len() > 100 {
+            self.undo.remove(0);
+        }
+        self.redo.clear();
+        self.select_all = false;
+        self.set_query(q);
+    }
+
+    fn undo(&mut self) -> bool {
+        let Some(prev) = self.undo.pop() else {
+            return false;
+        };
+        self.redo.push(self.query.clone());
+        self.select_all = false;
+        self.set_query(prev);
+        true
+    }
+
+    fn redo(&mut self) -> bool {
+        let Some(next) = self.redo.pop() else {
+            return false;
+        };
+        self.undo.push(self.query.clone());
+        self.select_all = false;
+        self.set_query(next);
+        true
+    }
+
+    fn delete_word(&mut self) {
+        let trimmed = self.query.trim_end();
+        let cut = trimmed
+            .char_indices()
+            .rev()
+            .find(|(_, c)| c.is_whitespace())
+            .map(|(i, _)| i + 1)
+            .unwrap_or(0);
+        let q = self.query[..cut].to_owned();
+        self.edit(q);
     }
 
     fn primary_hint(&self) -> Hint {
@@ -640,7 +709,9 @@ impl FinderPage {
             } else {
                 self.query.clone()
             };
-            let st = if focused {
+            let st = if self.select_all {
+                fs.fg(t.canvas).bg(t.accent)
+            } else if focused {
                 fs.add_modifier(Modifier::UNDERLINED)
                     .underline_color(t.accent)
             } else {
@@ -1037,17 +1108,78 @@ impl Screen for FinderPage {
                 Outcome::Changed
             }
             KeyCode::Enter => self.activate_current(cx),
-            KeyCode::Backspace => {
-                if self.query.pop().is_some() {
-                    self.dirty = true;
-                    Outcome::Changed
+            KeyCode::Char('a') if key.ctrl() => {
+                self.select_all = !self.query.is_empty();
+                cx.status(if self.select_all {
+                    "Query selected · typing replaces it"
                 } else {
-                    Outcome::Consumed
+                    "Nothing to select"
+                });
+                Outcome::Changed
+            }
+            KeyCode::Char('z') if key.ctrl() && !key.shift() => {
+                cx.status(if self.undo() {
+                    "Undone"
+                } else {
+                    "Nothing to undo"
+                });
+                Outcome::Changed
+            }
+            KeyCode::Char('y') | KeyCode::Char('Z') if key.ctrl() => {
+                cx.status(if self.redo() {
+                    "Redone"
+                } else {
+                    "Nothing to redo"
+                });
+                Outcome::Changed
+            }
+            KeyCode::Char('z') if key.ctrl() && key.shift() => {
+                cx.status(if self.redo() {
+                    "Redone"
+                } else {
+                    "Nothing to redo"
+                });
+                Outcome::Changed
+            }
+            KeyCode::Char('w') if key.ctrl() => {
+                if self.select_all {
+                    self.edit(String::new());
+                } else {
+                    self.delete_word();
+                }
+                Outcome::Changed
+            }
+            KeyCode::Char('u') if key.ctrl() => {
+                self.edit(String::new());
+                Outcome::Changed
+            }
+            KeyCode::Backspace => {
+                if self.select_all {
+                    self.edit(String::new());
+                    return Outcome::Changed;
+                }
+                let mut q = self.query.clone();
+                // one grapheme, never one code unit
+                let cut =
+                    unicode_segmentation::UnicodeSegmentation::grapheme_indices(q.as_str(), true)
+                        .next_back()
+                        .map(|(i, _)| i);
+                match cut {
+                    Some(i) => {
+                        q.truncate(i);
+                        self.edit(q);
+                        Outcome::Changed
+                    }
+                    None => Outcome::Consumed,
                 }
             }
             KeyCode::Esc => {
+                if self.select_all {
+                    self.select_all = false;
+                    return Outcome::Changed;
+                }
                 if !self.query.is_empty() {
-                    self.set_query(String::new());
+                    self.edit(String::new());
                     return Outcome::Changed;
                 }
                 if self.scope != Scope::Here {
@@ -1057,13 +1189,33 @@ impl Screen for FinderPage {
                 Outcome::Ignored
             }
             KeyCode::Char(c) if !key.ctrl() && !key.alt() => {
-                let mut q = self.query.clone();
+                let mut q = if self.select_all {
+                    String::new()
+                } else {
+                    self.query.clone()
+                };
                 q.push(c);
-                self.set_query(q);
+                self.edit(q);
                 Outcome::Changed
             }
             _ => Outcome::Ignored,
         }
+    }
+
+    fn on_paste(&mut self, text: &str, _w: &mut World) -> Outcome {
+        // a pasted block is one edit on one line
+        let flat: String = text.split(['\n', '\r']).collect::<Vec<_>>().join(" ");
+        let flat = flat.trim().to_owned();
+        if flat.is_empty() {
+            return Outcome::Consumed;
+        }
+        let q = if self.select_all {
+            flat
+        } else {
+            format!("{}{flat}", self.query)
+        };
+        self.edit(q);
+        Outcome::Changed
     }
 
     fn on_click(&mut self, id: WidgetId, _pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {

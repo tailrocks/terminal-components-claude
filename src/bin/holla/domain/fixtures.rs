@@ -11,7 +11,9 @@ use crate::domain::plan::{Plan, Step};
 use crate::domain::scripts;
 use crate::domain::stack::*;
 use crate::scenario::{Motion, Scenario};
-use crate::sim::world::{Source, World};
+use crate::sim::fs::{BLOCK, Fs};
+use crate::sim::world::{Persisted, Source, World};
+use std::collections::BTreeSet;
 
 const HOME: &str = "/Users/alex";
 
@@ -393,6 +395,57 @@ fn disk_full() -> DiskState {
         ],
         candidates: vec![
             Candidate {
+                path: format!("{HOME}/Library/Caches/com.apple.dt.Xcode"),
+                family: Family::ApplicationCaches,
+                project: None,
+                gb: 1.9,
+                items: 4_120,
+                inactive_days: Some(40),
+                why: "Xcode download cache · regenerated on demand".into(),
+                regenerate: "Xcode re-downloads what it needs".into(),
+                active_process: None,
+                privilege: None,
+                method: Method::Trash,
+                confidence: Confidence::High,
+                shares_with: None,
+                found_at: 12,
+                protected: false,
+            },
+            Candidate {
+                path: format!("{HOME}/.npm/_cacache"),
+                family: Family::PackageCaches,
+                project: None,
+                gb: 2.3,
+                items: 61_002,
+                inactive_days: Some(21),
+                why: "npm content-addressable cache · lockfiles restore it".into(),
+                regenerate: "npm install refills it".into(),
+                active_process: None,
+                privilege: None,
+                method: Method::Tool("npm cache clean --force".into()),
+                confidence: Confidence::High,
+                shares_with: None,
+                found_at: 14,
+                protected: false,
+            },
+            Candidate {
+                path: format!("{HOME}/Downloads/Xcode_16.xip"),
+                family: Family::LargeFiles,
+                project: None,
+                gb: 7.8,
+                items: 1,
+                inactive_days: Some(90),
+                why: "installer archive · already expanded".into(),
+                regenerate: "downloadable again from Apple".into(),
+                active_process: None,
+                privilege: None,
+                method: Method::Trash,
+                confidence: Confidence::Medium,
+                shares_with: None,
+                found_at: 16,
+                protected: false,
+            },
+            Candidate {
                 path: format!("{HOME}/work/frontend/node_modules"),
                 family: Family::ProjectArtifacts,
                 project: Some("frontend".into()),
@@ -670,6 +723,10 @@ fn pg_acme(blocked: bool) -> PgState {
     }
 }
 
+pub fn mise_holla_pub(trusted: bool) -> MiseState {
+    mise_holla(trusted)
+}
+
 fn mise_holla(trusted: bool) -> MiseState {
     MiseState {
         installed: true,
@@ -910,6 +967,10 @@ fn mise_acme(child_trusted: bool) -> MiseState {
     }
 }
 
+pub fn docker_acme_pub() -> DockerState {
+    docker_acme()
+}
+
 fn docker_acme() -> DockerState {
     DockerState {
         daemon: Ok(()),
@@ -995,6 +1056,8 @@ fn docker_acme() -> DockerState {
             ],
         }),
         cleanup_uses: 2,
+        compose_plugin: true,
+        fail_stage: None,
     }
 }
 
@@ -1130,11 +1193,32 @@ fn docker_devbox() -> DockerState {
         reclaimable_gb: 18.4,
         compose: None,
         cleanup_uses: 9,
+        compose_plugin: true,
+        fail_stage: None,
     }
 }
 
 fn memory_common() -> RankingMemory {
     let now = crate::clock::EPOCH_SECS;
+    let mut usage = UsageStore::default();
+    let holla = format!("{HOME}/work/holla");
+    let acme = format!("{HOME}/work/acme");
+    usage.seed("mise.task.test", Some(&holla), "mbp", 6, now - 3_600);
+    usage.seed("mise.task.lint", Some(&holla), "mbp", 3, now - 86_400);
+    usage.seed("git.pull", None, "mbp", 41, now - 7_200);
+    usage.seed("git.pull", Some(&holla), "mbp", 9, now - 7_200);
+    usage.seed("docker.cleanup", None, "devbox", 9, now - 5 * 86_400);
+    usage.seed("docker.logs.api", Some(&acme), "mbp", 4, now - 86_400);
+    usage.seed(
+        "mise.task.//apps/frontend:dev",
+        Some(&acme),
+        "mbp",
+        12,
+        now - 1_800,
+    );
+    usage.seed("deploy.preview", Some(&acme), "mbp", 7, now - 2 * 86_400);
+    usage.seed("system.resources", None, "mbp", 2, now - 3 * 86_400);
+    usage.learn_query("docker clean", "docker.cleanup", "devbox", now - 5 * 86_400);
     RankingMemory {
         pins: vec![],
         aliases: vec![
@@ -1144,80 +1228,80 @@ fn memory_common() -> RankingMemory {
             ("dc".into(), "docker.cleanup".into()),
         ],
         hidden: vec![],
-        usage: vec![
-            UsageRecord {
-                item: "mise.task.test".into(),
-                path: Some(format!("{HOME}/work/holla")),
-                host: "mbp".into(),
-                count: 6,
-                last_secs: now - 3_600,
-            },
-            UsageRecord {
-                item: "mise.task.lint".into(),
-                path: Some(format!("{HOME}/work/holla")),
-                host: "mbp".into(),
-                count: 3,
-                last_secs: now - 86_400,
-            },
-            UsageRecord {
-                item: "git.pull".into(),
-                path: None,
-                host: "mbp".into(),
-                count: 41,
-                last_secs: now - 7_200,
-            },
-            UsageRecord {
-                item: "git.pull".into(),
-                path: Some(format!("{HOME}/work/holla")),
-                host: "mbp".into(),
-                count: 9,
-                last_secs: now - 7_200,
-            },
-            UsageRecord {
-                item: "docker.cleanup".into(),
-                path: None,
-                host: "devbox".into(),
-                count: 9,
-                last_secs: now - 5 * 86_400,
-            },
-            UsageRecord {
-                item: "docker.logs.api".into(),
-                path: Some(format!("{HOME}/work/acme")),
-                host: "mbp".into(),
-                count: 4,
-                last_secs: now - 86_400,
-            },
-            UsageRecord {
-                item: "mise.task.//apps/frontend:dev".into(),
-                path: Some(format!("{HOME}/work/acme")),
-                host: "mbp".into(),
-                count: 12,
-                last_secs: now - 1_800,
-            },
-            UsageRecord {
-                item: "workflow.deploy".into(),
-                path: Some(format!("{HOME}/work/acme")),
-                host: "mbp".into(),
-                count: 7,
-                last_secs: now - 2 * 86_400,
-            },
-            UsageRecord {
-                item: "system.resources".into(),
-                path: None,
-                host: "mbp".into(),
-                count: 2,
-                last_secs: now - 3 * 86_400,
-            },
-        ],
+        usage,
         personalization: true,
         preferred_tools: vec![("system.monitor".into(), "btm".into())],
     }
 }
 
+fn platform_for(os: Os, home: &str) -> Platform {
+    match os {
+        Os::MacOs => Platform {
+            trash: TrashBackend::MacNative,
+            opener: Some("open".into()),
+            opener_fails: None,
+            spotlight: Spotlight::Empty,
+            osc52: true,
+            osc52_limit: 100_000,
+            xdg_config_home: format!("{home}/.config"),
+            xdg_cache_home: format!("{home}/.cache"),
+            subreaper: false,
+            process_probe: Ok(()),
+            dataless_failure: None,
+        },
+        Os::Debian => Platform {
+            trash: TrashBackend::FreeDesktop,
+            opener: Some("xdg-open".into()),
+            opener_fails: None,
+            spotlight: Spotlight::Unavailable("Spotlight is macOS only · use the tree scan".into()),
+            osc52: true,
+            osc52_limit: 100_000,
+            xdg_config_home: format!("{home}/.config"),
+            xdg_cache_home: format!("{home}/.cache"),
+            subreaper: true,
+            process_probe: Ok(()),
+            dataless_failure: None,
+        },
+    }
+}
+
+const COMMON_TOOLS: [&str; 12] = [
+    "git", "ssh", "kill", "ps", "lsof", "less", "find", "sh", "lazygit", "trash", "mise", "psql",
+];
+
+pub fn base_world(scenario: Scenario, motion: Motion, host: Host, location: Location) -> World {
+    base(scenario, motion, host, location)
+}
+
 fn base(scenario: Scenario, motion: Motion, host: Host, location: Location) -> World {
     let mut clock = Clock::new();
     clock.running = motion != Motion::Paused;
+    let platform = platform_for(host.os, &location.home);
+    let tools: BTreeSet<String> = COMMON_TOOLS.iter().map(|s| s.to_string()).collect();
     World {
+        fs: Fs::new(),
+        tools,
+        cargo: CargoState::default(),
+        brew: None,
+        gradle: GradleState::default(),
+        upgrade: UpgradeState::default(),
+        platform,
+        outputs: ToolOutputs::default(),
+        custom_global: None,
+        custom_project: None,
+        trust: crate::domain::custom::TrustStore::default(),
+        sudo_cached: true,
+        service_failures: vec![],
+        task_failures: vec![],
+        ops_log: crate::domain::cleanup::OpsLog {
+            path: format!("{}/.cache/holla/ops.log", location.home),
+            ..Default::default()
+        },
+        size_cache: crate::domain::cleanup::SizeCache::default(),
+        persisted: Persisted::default(),
+        reports: vec![],
+        scan: None,
+        fs_latency: vec![],
         scenario,
         clock,
         tick: 0,
@@ -1240,6 +1324,7 @@ fn base(scenario: Scenario, motion: Motion, host: Host, location: Location) -> W
         apt: None,
         memory: memory_common(),
         activities: vec![],
+        batches: vec![],
         plans: vec![],
         sources: vec![],
         scripts: scripts::scripts(),
@@ -1248,7 +1333,6 @@ fn base(scenario: Scenario, motion: Motion, host: Host, location: Location) -> W
         scan_started: None,
         next_activity: 0,
         trusted_now: vec![],
-        workflows: vec![],
         healed_units: vec![],
     }
 }
@@ -1261,7 +1345,7 @@ fn sources_for(motion: Motion, list: &[(&str, u64)], fails: &[(&str, u64, &str)]
 }
 
 pub fn world_for(scenario: Scenario, motion: Motion) -> World {
-    match scenario {
+    let mut w = match scenario {
         Scenario::FirstUse => first_use(motion),
         Scenario::RustDirty => rust_dirty(motion),
         Scenario::MonorepoRoot => monorepo(motion, false),
@@ -1273,7 +1357,357 @@ pub fn world_for(scenario: Scenario, motion: Motion) -> World {
         Scenario::RemoteHost => remote_host(motion),
         Scenario::LaunchFailure => launch_failure(motion),
         Scenario::HardCases => hard_cases(motion),
+        other => crate::domain::parity::world_for(other, motion),
+    };
+    seed_world(&mut w);
+    w
+}
+
+/// A project `.holla.toml` with the given actions; trusted when asked.
+fn seed_custom(
+    w: &mut World,
+    root: &str,
+    actions: &[(&str, &str, &[&str], &str, &str)],
+    trusted: bool,
+) {
+    let mut text = String::from("# project actions\n");
+    for (id, label, argv, danger, desc) in actions {
+        let args: Vec<String> = argv.iter().map(|a| format!("\"{a}\"")).collect();
+        text.push_str(&format!(
+            "[[action]]\nid = \"{id}\"\nlabel = \"{label}\"\ncommand = [{}]\ndanger = \"{danger}\"\ndescription = \"{desc}\"\n\n",
+            args.join(", ")
+        ));
     }
+    let path = format!("{root}/.holla.toml");
+    w.fs.text(&path, &text, 3);
+    let cfg = crate::domain::custom::parse_config(
+        &path,
+        crate::domain::custom::Origin::Project,
+        &text,
+        &["git.pull"],
+        &[],
+    );
+    if trusted {
+        let _ = w.trust.approve(&cfg.digest, &path, root);
+    }
+    for (_, _, argv, _, _) in actions {
+        w.tools.insert(argv[0].to_string());
+    }
+    w.custom_project = Some(cfg);
+}
+
+/// Derive the filesystem, the tool set and the persisted stores from the
+/// scenario state so every flow reads one coherent world.
+pub fn seed_world(w: &mut World) {
+    seed_tools(w);
+    seed_fs(w);
+    w.persisted.frecency = Some(w.memory.usage.serialize());
+    w.persisted.trust = Some(w.trust.serialize());
+}
+
+fn seed_tools(w: &mut World) {
+    if w.mise.installed {
+        w.tools.insert("mise".into());
+    } else {
+        w.tools.remove("mise");
+    }
+    match &w.docker.daemon {
+        Err(r) if r.contains("not installed") => {
+            w.tools.remove("docker");
+        }
+        _ => {
+            w.tools.insert("docker".into());
+        }
+    }
+    if w.location
+        .project
+        .as_ref()
+        .is_some_and(|p| matches!(p.kind, ProjectKind::Rust { .. }))
+        || w.location
+            .children
+            .iter()
+            .any(|c| matches!(c.kind, ProjectKind::Rust { .. }))
+    {
+        w.tools.insert("cargo".into());
+    }
+    if w.github.logged_in
+        || matches!(
+            w.source_state("github"),
+            crate::sim::world::SourceState::Failed(_)
+        )
+    {
+        w.tools.insert("gh".into());
+    }
+    if w.system.btm_installed {
+        w.tools.insert("btm".into());
+    }
+    if w.pg.as_ref().is_some_and(|p| p.pg_activity_installed) {
+        w.tools.insert("pg_activity".into());
+    }
+    if w.host.role == HostRole::Production {
+        w.tools.insert("systemctl".into());
+        w.tools.insert("journalctl".into());
+        w.tools.insert("sudo".into());
+    }
+    if w.apt.is_some() {
+        w.tools.insert("apt-get".into());
+        w.tools.insert("apt".into());
+        w.tools.insert("sudo".into());
+    }
+    if w.host.os == Os::MacOs {
+        w.tools.insert("open".into());
+        w.tools.insert("mdfind".into());
+    } else {
+        w.tools.insert("xdg-open".into());
+    }
+    if w.brew.is_some() {
+        w.tools.insert("brew".into());
+    }
+    if w.upgrade.amp {
+        w.tools.insert("amp".into());
+    }
+}
+
+/// A file whose allocated size is `bytes`, rounded to blocks.
+fn sized(fs: &mut Fs, path: &str, bytes: u64, age_days: i64) {
+    fs.file(path, bytes.max(1), age_days);
+}
+
+fn gb(gb: f32) -> u64 {
+    (gb as f64 * 1024.0 * 1024.0 * 1024.0) as u64 / BLOCK * BLOCK
+}
+
+fn seed_fs(w: &mut World) {
+    let home = w.location.home.clone();
+    let cwd = w.location.cwd.clone();
+    let now = w.now_secs();
+    let mut fs = std::mem::take(&mut w.fs);
+    // special files every host has: a device node is listed, never previewed
+    fs.device("/dev/null");
+    for f in &w.disk.filesystems {
+        if !fs.volumes.iter().any(|v| v.mount == f.mount) {
+            fs.volume(&f.mount, gb(f.total_gb as f32), gb(f.used_gb as f32));
+        }
+    }
+    if fs.volumes.is_empty() {
+        fs.volume("/", gb(500.0), gb(200.0));
+    }
+    fs.dir(&home, 400);
+    fs.dir(&cwd, 3);
+    fs.dir(&format!("{home}/.Trash"), 1);
+    // home folders the overview lists and the finder indexes
+    for (d, age) in [
+        ("Documents", 12),
+        ("Downloads", 1),
+        ("Desktop", 2),
+        ("Pictures", 90),
+        ("Library", 30),
+        ("work", 0),
+    ] {
+        fs.dir(&format!("{home}/{d}"), age);
+    }
+    fs.text(
+        &format!("{home}/Documents/notes.md"),
+        "# Notes\n\n- review the release\n- café ☕ 東京\n",
+        4,
+    );
+    fs.text(&format!("{home}/Documents/README.md"), "readme\n", 40);
+    fs.text(
+        &format!("{home}/Downloads/report-2026-08.pdf.txt"),
+        "report\n",
+        20,
+    );
+    sized(
+        &mut fs,
+        &format!("{home}/Downloads/installer.dmg"),
+        2 * 1024 * 1024 * 1024,
+        30,
+    );
+    fs.dir(&format!("{home}/Library/Caches/com.apple.dt.Xcode"), 45);
+    sized(
+        &mut fs,
+        &format!("{home}/Library/Caches/com.apple.dt.Xcode/index.db"),
+        900 * 1024 * 1024,
+        45,
+    );
+    fs.dir(&format!("{home}/Library/Logs/DiagnosticReports"), 20);
+    sized(
+        &mut fs,
+        &format!("{home}/Library/Logs/DiagnosticReports/crash.ips"),
+        40_000,
+        20,
+    );
+    fs.dir(
+        &format!("{home}/Library/Mobile Documents/com~apple~CloudDocs"),
+        1,
+    );
+    fs.text(
+        &format!("{home}/Library/Mobile Documents/com~apple~CloudDocs/cloud.txt"),
+        "cloud\n",
+        1,
+    );
+    fs.dir(&format!("{home}/Library/Keychains"), 200);
+    sized(
+        &mut fs,
+        &format!("{home}/Library/Keychains/login.keychain-db"),
+        100_000,
+        2,
+    );
+    // projects
+    let mut roots: Vec<(String, ProjectKind)> = vec![];
+    if let Some(p) = &w.location.project {
+        roots.push((p.root.clone(), p.kind.clone()));
+    }
+    if let Some(p) = &w.location.workspace {
+        roots.push((p.root.clone(), p.kind.clone()));
+    }
+    for c in &w.location.children {
+        roots.push((c.root.clone(), c.kind.clone()));
+    }
+    for (root, kind) in &roots {
+        fs.dir(root, 2);
+        match kind {
+            ProjectKind::Rust { .. } => {
+                fs.text(
+                    &format!("{root}/Cargo.toml"),
+                    "[package]\nname = \"crate\"\n",
+                    5,
+                );
+                fs.text(&format!("{root}/src/main.rs"), "fn main() {}\n", 1);
+            }
+            ProjectKind::Node { manager } => {
+                fs.text(&format!("{root}/package.json"), "{\"name\":\"frontend\",\"scripts\":{\"dev\":\"vite --host\",\"build\":\"vite build\",\"test\":\"vitest run\",\"lint\":\"eslint .\"}}\n", 5);
+                let lock = match *manager {
+                    "pnpm" => "pnpm-lock.yaml",
+                    "yarn" => "yarn.lock",
+                    "bun" => "bun.lockb",
+                    _ => "package-lock.json",
+                };
+                fs.text(&format!("{root}/{lock}"), "lockfileVersion: 9\n", 5);
+            }
+            ProjectKind::Gradle => {
+                fs.text(
+                    &format!("{root}/build.gradle.kts"),
+                    "plugins { id(\"com.android.application\") }\n",
+                    5,
+                );
+                fs.text(&format!("{root}/gradlew"), "#!/bin/sh\n", 5);
+                fs.text(
+                    &format!("{root}/settings.gradle.kts"),
+                    "rootProject.name = \"android\"\n",
+                    5,
+                );
+            }
+            ProjectKind::Python => {
+                fs.text(
+                    &format!("{root}/pyproject.toml"),
+                    "[project]\nname = \"worker\"\n",
+                    5,
+                );
+            }
+            ProjectKind::MiseMonorepo | ProjectKind::Collection | ProjectKind::Service => {}
+        }
+    }
+    for g in &w.git {
+        fs.dir(&g.path, 2);
+        if g.git_file {
+            fs.text(
+                &format!("{}/.git", g.path),
+                "gitdir: ../.git/worktrees/x\n",
+                2,
+            );
+        } else {
+            fs.dir(&format!("{}/.git", g.path), 2);
+            fs.text(
+                &format!("{}/.git/HEAD", g.path),
+                &format!(
+                    "ref: refs/heads/{}\n",
+                    g.branch.clone().unwrap_or("main".into())
+                ),
+                1,
+            );
+        }
+        for m in &g.modified {
+            fs.text(&format!("{}/{m}", g.path), "modified\n", 0);
+        }
+    }
+    for cfg in &w.mise.configs {
+        let mut text = String::new();
+        for t in &cfg.tasks {
+            text.push_str(&format!(
+                "[tasks.{}]\nrun = \"{}\"\ndescription = \"{}\"\n\n",
+                t.name, t.run, t.description
+            ));
+        }
+        fs.text(&cfg.path, &text, 3);
+    }
+    if let Some(c) = &w.docker.compose {
+        fs.text(
+            &c.file,
+            &format!(
+                "services:\n{}",
+                c.services
+                    .iter()
+                    .map(|s| format!("  {s}: {{}}\n"))
+                    .collect::<String>()
+            ),
+            10,
+        );
+    }
+    // disk candidates and large entries become real subtrees
+    let cands = w.disk.candidates.clone();
+    for c in &cands {
+        let age = i64::from(c.inactive_days.unwrap_or(0));
+        let bytes = gb(c.gb);
+        fs.dir(&c.path, age);
+        let per = (bytes / 3).max(BLOCK);
+        sized(&mut fs, &format!("{}/a.bin", c.path), per, age);
+        sized(&mut fs, &format!("{}/b.bin", c.path), per, age);
+        sized(
+            &mut fs,
+            &format!("{}/c/d.bin", c.path),
+            bytes.saturating_sub(2 * per).max(BLOCK),
+            age,
+        );
+        if c.inactive_days.is_none() {
+            fs.touch(&c.path, -1);
+        }
+    }
+    for l in &w.disk.large.clone() {
+        if !fs.exists(&l.path) {
+            if l.kind == "large file" || l.kind == "container disk" {
+                sized(&mut fs, &l.path, gb(l.gb), 20);
+            } else {
+                fs.dir(&l.path, 10);
+                sized(&mut fs, &format!("{}/blob.bin", l.path), gb(l.gb), 10);
+            }
+        }
+    }
+    for p in &w.disk.protected.clone() {
+        fs.dir(p, 100);
+    }
+    if let Some(p) = &w.location.project
+        && let ProjectKind::Rust { .. } = p.kind
+    {
+        let target = format!("{}/target", p.root);
+        if fs.is_dir(&target) {
+            w.cargo.target = Some(target.clone());
+            w.cargo.target_bytes = fs.size_of(&target);
+            w.cargo.target_files = fs.subtree(&target).len() as u64;
+        }
+    }
+    // OMZ and upgrade fixtures
+    if let Some(z) = &w.upgrade.zsh_env {
+        fs.dir(z, 30);
+        fs.text(&format!("{z}/tools/upgrade.sh"), "#!/bin/sh\n", 30);
+    }
+    let omz = format!("{home}/.oh-my-zsh");
+    if w.tools.contains("brew") && !fs.exists(&omz) && w.host.os == Os::MacOs {
+        fs.dir(&omz, 200);
+        fs.text(&format!("{omz}/tools/upgrade.sh"), "#!/bin/sh\n", 200);
+    }
+    let _ = now;
+    w.fs = fs;
 }
 
 fn first_use(motion: Motion) -> World {
@@ -1287,7 +1721,7 @@ fn first_use(motion: Motion) -> World {
     let mut w = base(Scenario::FirstUse, motion, host_mbp(), loc);
     w.system = system_pressure();
     w.disk = disk_full();
-    w.memory.usage.retain(|u| u.path.is_none());
+    w.memory.usage.actions.retain(|u| u.path.is_none());
     w.mise.installed = true;
     w.mise.version = "2026.9.3".into();
     w.mise.global_tools = vec![tool("node", "26", "26.0.1", "26.1.0", true)];
@@ -1366,6 +1800,8 @@ fn rust_dirty(motion: Motion) -> World {
             services: vec!["db".into()],
         }),
         cleanup_uses: 0,
+        compose_plugin: true,
+        fail_stage: None,
     };
     w.pg = Some({
         let mut p = pg_acme(true);
@@ -1412,11 +1848,18 @@ fn rust_dirty(motion: Motion) -> World {
         ];
         d
     };
-    w.workflows = vec![(
-        "Deploy preview".into(),
-        "tools/deploy-preview.sh".into(),
+    seed_custom(
+        &mut w,
+        &root,
+        &[(
+            "deploy.preview",
+            "Deploy preview",
+            &["tools/deploy-preview.sh"],
+            "mutating",
+            "push the current branch to the preview stack",
+        )],
         true,
-    )];
+    );
     w.sources = sources_for(
         motion,
         &[
@@ -1543,18 +1986,27 @@ fn monorepo(motion: Motion, child: bool) -> World {
         ];
         d
     };
-    w.workflows = vec![
-        (
-            "Deploy preview".into(),
-            "tools/deploy-preview.sh --env preview".into(),
-            true,
-        ),
-        (
-            "Rotate local secrets".into(),
-            "tools/rotate-secrets.sh".into(),
-            false,
-        ),
-    ];
+    seed_custom(
+        &mut w,
+        &root,
+        &[
+            (
+                "deploy.preview",
+                "Deploy preview",
+                &["tools/deploy-preview.sh", "--env", "preview"],
+                "mutating",
+                "push the current branch to the preview stack",
+            ),
+            (
+                "rotate.secrets",
+                "Rotate local secrets",
+                &["tools/rotate-secrets.sh"],
+                "destructive",
+                "regenerate every local development secret",
+            ),
+        ],
+        false,
+    );
     w.sources = sources_for(
         motion,
         &[
@@ -1623,13 +2075,13 @@ fn docker_cleanup(motion: Motion) -> World {
         d
     };
     w.plans = vec![plan_docker_cleanup(&w)];
-    w.memory.usage.push(UsageRecord {
-        item: "docker.stop_all".into(),
-        path: None,
-        host: "devbox".into(),
-        count: 5,
-        last_secs: crate::clock::EPOCH_SECS - 86_400,
-    });
+    w.memory.usage.seed(
+        "docker.stop_all",
+        None,
+        "devbox",
+        5,
+        crate::clock::EPOCH_SECS - 86_400,
+    );
     w.sources = sources_for(
         motion,
         &[
@@ -1897,7 +2349,7 @@ fn activities_multi(motion: Motion) -> World {
     let api = ScopeTag::child(&format!("{root}/services/api"));
     let here = ScopeTag::here(&root);
     let host = ScopeTag::host("mbp");
-    let id = w.start_activity(
+    let id = w.start_scripted(
         "task:frontend-dev",
         "frontend dev",
         "Start frontend dev",
@@ -1912,7 +2364,7 @@ fn activities_multi(motion: Motion) -> World {
         ];
         a.started_tick = 0;
     }
-    let id = w.start_activity(
+    let id = w.start_scripted(
         "task:api-dev",
         "api dev",
         "Start api dev",
@@ -1925,7 +2377,7 @@ fn activities_multi(motion: Motion) -> World {
             ("pid".into(), "9120".into()),
         ];
     }
-    let id = w.start_activity(
+    let id = w.start_scripted(
         "task:tests",
         "api tests",
         "Run api tests",
@@ -1943,7 +2395,7 @@ fn activities_multi(motion: Motion) -> World {
             "Review 4 modified files".into(),
         ];
     }
-    let id = w.start_activity(
+    let id = w.start_scripted(
         "logs:acme",
         "logs · api worker scheduler",
         "Follow logs from api, worker and scheduler",
@@ -1958,7 +2410,7 @@ fn activities_multi(motion: Motion) -> World {
             ("errors".into(), "3 in 2 min".into()),
         ];
     }
-    let id = w.start_activity(
+    let id = w.start_scripted(
         "monitor:btm",
         "btm",
         "Open system monitor",
@@ -2081,13 +2533,13 @@ fn remote_host(motion: Motion) -> World {
         }];
         d
     };
-    w.memory.usage.push(UsageRecord {
-        item: "service.journal.payments-worker".into(),
-        path: Some("/srv/payments".into()),
-        host: "prod-eu-1".into(),
-        count: 5,
-        last_secs: crate::clock::EPOCH_SECS - 3_600,
-    });
+    w.memory.usage.seed(
+        "service.journal.payments-worker",
+        Some("/srv/payments"),
+        "prod-eu-1",
+        5,
+        crate::clock::EPOCH_SECS - 3_600,
+    );
     w.sources = sources_for(
         motion,
         &[
@@ -2118,7 +2570,7 @@ fn launch_failure(motion: Motion) -> World {
         state: "sleeping".into(),
         port: Some(5173),
     });
-    let id = w.start_activity(
+    let id = w.start_scripted(
         "task:frontend-dev-fail",
         "frontend dev",
         "Start frontend dev",
@@ -2442,6 +2894,135 @@ pub fn plan_upgrade(w: &World) -> Plan {
     .fact("Debian", &format!("{n} upgradable · {sec} security"))
     .fact("mise", "4 outdated global tools · go excluded")
     .fact("Reboot", "required after the kernel upgrade")
+    .follow_up("Outdated tools", "mise.outdated")
+}
+
+/// Every detected upgrade manager as one plan (HP13): Homebrew stages
+/// depend on each other, the other managers run beside them, and a stage
+/// listed in `UpgradeState::failing` fails exactly there.
+pub fn plan_upgrade_all(w: &World) -> Plan {
+    let host = w.host.name.clone();
+    let fails = |stage: &str| w.upgrade.failing.iter().any(|f| f == stage);
+    let mut steps = vec![];
+    let mut brew_tail: Option<usize> = None;
+    let mut managers = vec![];
+    if w.brew.is_some() {
+        managers.push("Homebrew");
+        let n = w.upgrade.brew_outdated.len();
+        let mut s = Step::new("brew-update", "brew update", &["brew update"], "/")
+            .effects(&["formulae index refreshed"])
+            .ticks(18);
+        if fails("brew update") {
+            s = s.fails();
+        }
+        steps.push(s);
+        steps.push(
+            Step::new(
+                "brew-upgrade",
+                "brew upgrade",
+                &["brew upgrade --greedy --yes"],
+                "/",
+            )
+            .after(&[0])
+            .effects(&[&format!("{n} formulae upgraded")])
+            .ticks(60),
+        );
+        steps.push(
+            Step::new(
+                "brew-cleanup",
+                "brew cleanup",
+                &["brew cleanup", "brew autoremove"],
+                "/",
+            )
+            .after(&[1])
+            .optional()
+            .effects(&["old kegs and orphans removed"])
+            .ticks(14),
+        );
+        let mut d = Step::new("brew-doctor", "brew doctor", &["brew doctor"], "/")
+            .after(&[2])
+            .optional()
+            .effects(&["warnings reported, never fixed"])
+            .ticks(10);
+        if fails("brew doctor") {
+            d = d.fails();
+        }
+        steps.push(d);
+        brew_tail = Some(3);
+        if w.host.os == Os::MacOs {
+            let c = w.upgrade.casks_outdated.len();
+            let mut s = Step::new(
+                "brew-casks",
+                "brew upgrade --cask",
+                &["brew upgrade --cask --greedy --yes"],
+                "/",
+            )
+            .after(&[0])
+            .effects(&[&format!("{c} casks upgraded")])
+            .ticks(50);
+            if fails("brew upgrade --cask") {
+                s = s.fails();
+            }
+            steps.push(s);
+        }
+    }
+    if w.mise.installed {
+        managers.push("mise");
+        let n = w.mise.outdated().len();
+        let mut s = Step::new("mise-upgrade", "mise upgrade", &["mise upgrade"], "/")
+            .effects(&[&format!("{n} tools moved to their latest versions")])
+            .ticks(40);
+        if fails("mise upgrade") {
+            s = s.fails();
+        }
+        steps.push(s);
+    }
+    if w.upgrade.amp {
+        managers.push("amp");
+        let mut s = Step::new("amp-update", "amp update", &["amp update"], "/")
+            .effects(&["amp binary replaced in place"])
+            .ticks(12);
+        if fails("amp update") {
+            s = s.fails();
+        }
+        steps.push(s);
+    }
+    if let Some(dir) = crate::domain::catalog::omz_dir(w) {
+        managers.push("Oh My Zsh");
+        let mut s = Step::new("omz-upgrade", "omz update", &["zsh -ic 'omz update'"], &dir)
+            .effects(&["framework pulled to its latest commit"])
+            .ticks(16);
+        if fails("omz") {
+            s = s.fails();
+        }
+        steps.push(s);
+    }
+    let n = steps.len();
+    steps.push(
+        Step::new(
+            "verify",
+            "Re-probe managers",
+            &["brew outdated", "mise outdated", "amp --version"],
+            "/",
+        )
+        .after(
+            &(0..n)
+                .filter(|i| brew_tail.is_none_or(|t| *i >= t || *i == 0))
+                .collect::<Vec<_>>(),
+        )
+        .effects(&["every manager reports its post-upgrade state"])
+        .ticks(12),
+    );
+    Plan::new(
+        "upgrade-all",
+        "Upgrade everything",
+        &format!("upgrade every detected manager on {host}: {}", managers.join(", ")),
+        &host,
+        steps,
+    )
+    .fact("Managers", &managers.join(", "))
+    .fact("Order", "Homebrew stages chain · the others run beside them · a failed stage stops only its own chain")
+    .fact("Availability", "re-probed right before execution · a manager that vanished is skipped, never faked")
     .follow_up("Outdated tools", "mise.outdated")
 }
 

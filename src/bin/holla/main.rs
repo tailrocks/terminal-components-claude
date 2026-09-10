@@ -82,13 +82,23 @@ fn parse_args() -> Options {
                 println!(
                     "holla — this folder, this host, right now (deterministic preview on the Junie design system)\n\n\
                      USAGE: holla [--scenario NAME] [--motion full|reduced|paused] [--frame N] [--color truecolor|256|16|none]\n\n\
-                     Scenarios: first-use, rust-dirty, monorepo-root, monorepo-child, docker-cleanup, disk-cleanup,\n\
-                     \x20          upgrade-plan, activities-multi, remote-host, launch-failure, hard-cases\n\
+                     Scenarios: {concept}\n\
+                     Parity:    {parity}\n\
                      Motion:    explicit --motion wins; otherwise HOLLA_NO_MOTION=1 selects reduced motion\n\
                      Frame:     with --motion paused, the exact fixture tick to render\n\n\
                      Keys: type to search · ↑↓ move · Enter run · Alt+Enter alternatives · Tab preview · Ctrl+↑↓ scope · Ctrl+G activities · F1 key reference · Ctrl+Q quit\n\
                      Preview: every scenario is captured under shots/h_*.png; src/bin/holla/README.md lists what each scenario shows.\n\
-                     Everything is simulated in memory; no stack command is ever executed."
+                     Everything is simulated in memory; no stack command is ever executed.",
+                    concept = Scenario::CONCEPT
+                        .iter()
+                        .map(|s| s.name())
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                    parity = Scenario::PARITY
+                        .iter()
+                        .map(|s| s.name())
+                        .collect::<Vec<_>>()
+                        .join(", ")
                 );
                 std::process::exit(0);
             }
@@ -108,6 +118,10 @@ fn main() -> std::io::Result<()> {
     let opts = parse_args();
     let theme = Theme::for_level(opts.level);
     let mut app = App::for_scenario(opts.scenario, opts.motion, opts.frame, theme);
+    if std::env::var_os("HOLLA_NO_HISTORY").is_some_and(|v| v == "1") {
+        // the opt-out: nothing is read, learned or written
+        app.world.memory.usage = crate::domain::usage::UsageStore::disabled();
+    }
     let _ = junie_tui::runtime::drain_pending_input();
     junie_tui::runtime::run(&mut app)
 }

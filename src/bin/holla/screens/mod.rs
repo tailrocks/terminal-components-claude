@@ -4,7 +4,9 @@
 //! Here tab holds a stack of pages; every other tab holds one screen.
 
 pub mod activity;
+pub mod cleanup;
 pub mod disk;
+pub mod files;
 pub mod finder;
 pub mod modals;
 pub mod plan;
@@ -108,6 +110,17 @@ pub enum Go {
     /// Close the active tab (asks when something runs).
     CloseTab,
     Quit,
+    /// Re-read the project configuration (an edit was simulated).
+    Reload,
+    /// Run an ad-hoc typed command as an activity (an OS opener, a reveal).
+    Exec {
+        label: String,
+        argv: Vec<crate::domain::exec::Command>,
+    },
+    /// Copy through the terminal's OSC 52 channel with a truthful result.
+    Osc52(String),
+    /// Analyze a path in the Disk flow.
+    Analyze(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -117,18 +130,60 @@ pub enum GateTarget {
         item: String,
         args: Vec<(String, String)>,
     },
+    /// An authorized deletion specification (HP21).
+    Cleanup(crate::domain::cleanup::DeletePlan),
 }
 
 /// A page the Here tab can hold; built lazily by the shell.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Page {
-    Finder { group: Option<&'static str> },
-    Disk { path: String },
-    PlanReview { plan: String },
+    Finder {
+        group: Option<&'static str>,
+    },
+    Disk {
+        path: String,
+    },
+    PlanReview {
+        plan: String,
+    },
     Review(GateTarget),
-    Trust { config: String, then: String },
-    Args { item: String },
-    Snapshot { kind: String },
+    Trust {
+        config: String,
+        then: String,
+    },
+    Args {
+        item: String,
+    },
+    Snapshot {
+        kind: String,
+    },
+    /// The folder browser (HP04) or a file preview at `path`.
+    Files {
+        path: String,
+        query: Option<String>,
+    },
+    /// The home file search (HP03).
+    Find,
+    /// Home folders and insight roots with cached sizes (HP19).
+    DiskOverview,
+    /// macOS Spotlight top files (HP19).
+    TopFiles,
+    /// The insight review, optionally one category (HP20).
+    Cleanup {
+        category: Option<String>,
+    },
+    /// Gate 1 for a deletion plan (HP21).
+    CleanupGate {
+        plan: crate::domain::cleanup::DeletePlan,
+    },
+    /// A cleanup report (HP22).
+    Report {
+        index: usize,
+    },
+    /// Custom-action configuration diagnostics (HP17).
+    Config {
+        path: String,
+    },
 }
 
 pub enum Request {
@@ -249,6 +304,10 @@ pub trait Screen {
     }
     /// The finder behind this screen, when it is one.
     fn as_finder(&mut self) -> Option<&mut finder::FinderPage> {
+        None
+    }
+    /// The files page behind this screen, when it is one.
+    fn as_files(&mut self) -> Option<&mut files::FilesPage> {
         None
     }
 }

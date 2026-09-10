@@ -481,6 +481,16 @@ impl SnapshotPage {
                         )
                         .tone(Tone::Muted),
                     ];
+                    if let Some(pid) = w.pg_blocker() {
+                        self.facts.push(
+                            Prop::new(
+                                "Blocker",
+                                format!("pid {pid} · cancel or terminate it to free the waiters"),
+                            )
+                            .tone(Tone::Error)
+                            .wrap(),
+                        );
+                    }
                     if let Some(l) = &p.replication_lag {
                         self.facts
                             .push(Prop::new("Replication", l.clone()).tone(Tone::Warning));
@@ -647,7 +657,7 @@ impl SnapshotPage {
                 if !mi.outdated().is_empty() {
                     fu.push((
                         "Upgrade outdated tools".into(),
-                        "mise.outdated".into(),
+                        "upgrade.mise".into(),
                         vec![],
                     ));
                 }
@@ -655,7 +665,51 @@ impl SnapshotPage {
             "disk-history" => {
                 self.title = "Cleanup history".into();
                 self.meta = host.clone();
-                self.facts = vec![Prop::new("Entries", format!("{}", w.disk.history.len())), Prop::new("Audit", "targets, method, reclaimed space, skips and failures · restoration only from Trash").tone(Tone::Muted)];
+                self.facts = vec![
+                    Prop::new("Entries", format!("{} · {} operation log records", w.disk.history.len(), w.ops_log.lines.len())),
+                    Prop::new("Log", format!("{} · JSONL v1 · append only", w.location.short(&w.ops_log.path))).tone(Tone::Muted).wrap(),
+                    Prop::new("Audit", "targets, method, reclaimed space, skips and failures · restoration only from Trash").tone(Tone::Muted),
+                ];
+                if let Some(e) = &w.ops_log.write_failure {
+                    self.facts.push(
+                        Prop::new(
+                            "Log failure",
+                            format!("{e} · deletions still ran · nothing rolled back"),
+                        )
+                        .tone(Tone::Error)
+                        .wrap(),
+                    );
+                }
+                for (i, r) in w.reports.iter().enumerate() {
+                    fu.push((
+                        format!("Report {} · {}", i + 1, truncate(&r.summary(), 40)),
+                        format!("report:{i}"),
+                        vec![],
+                    ));
+                }
+                if !w.ops_log.lines.is_empty() {
+                    self.lines.push(m("operation log · newest last"));
+                    for l in w
+                        .ops_log
+                        .lines
+                        .iter()
+                        .rev()
+                        .take(50)
+                        .collect::<Vec<_>>()
+                        .into_iter()
+                        .rev()
+                    {
+                        let tone = if l.contains("\"outcome\":\"failed\"") {
+                            Tone::Error
+                        } else if l.contains("\"outcome\":\"skipped\"") {
+                            Tone::Warning
+                        } else {
+                            Tone::Normal
+                        };
+                        self.lines.push((l.clone(), tone));
+                    }
+                    self.lines.push(m(""));
+                }
                 self.lines.push(m(&format!(
                     "{:<18}{:<44}{:<12}{:>8}   {}",
                     "when", "target", "method", "freed", "outcome"
@@ -793,6 +847,250 @@ impl SnapshotPage {
                     ));
                 }
             }
+            "brew-services" => {
+                self.title = "Homebrew services".into();
+                self.meta = host.clone();
+                match &w.brew {
+                    None => {
+                        self.facts = vec![
+                            Prop::new("Homebrew", "not on PATH · nothing to list")
+                                .tone(Tone::Error),
+                        ];
+                    }
+                    Some(b) => {
+                        let parsed: Result<Vec<String>, String> = b
+                            .list_json
+                            .clone()
+                            .and_then(|j| crate::domain::catalog::parse_brew_services(&j));
+                        let listed: Vec<String> = parsed.clone().unwrap_or_default();
+                        self.facts = vec![
+                            Prop::new("Source", match &parsed {
+                                Ok(_) => "brew services list --json · live".to_owned(),
+                                Err(e) => format!("brew services list failed · {e} · cached names are hints only"),
+                            }).tone(if parsed.is_err() { Tone::Error } else { Tone::Normal }).wrap(),
+                            Prop::new("Cache", match &b.cache {
+                                Some(c) => format!("brew-services-v{} · {} · {} names · hint for the next start", c.version, w.clock.ago(c.fetched_at), c.services.len()),
+                                None => "none · the first listing writes one".to_owned(),
+                            }).tone(Tone::Muted).wrap(),
+                            Prop::new("Services", format!("{}", listed.len())),
+                        ];
+                        if b.cache_write_fails {
+                            self.facts.push(
+                                Prop::new(
+                                    "Cache write",
+                                    "fails on this host · listings still work · nothing is retried",
+                                )
+                                .tone(Tone::Warning)
+                                .wrap(),
+                            );
+                        }
+                        self.lines.push(m(&format!(
+                            "{:<28}{:<12}{}",
+                            "service", "status", "actions"
+                        )));
+                        for name in &listed {
+                            let status = b
+                                .services
+                                .iter()
+                                .find(|s| &s.name == name)
+                                .map(|s| s.status.clone())
+                                .unwrap_or("none".into());
+                            let tone = match status.as_str() {
+                                "started" => Tone::Normal,
+                                "error" => Tone::Error,
+                                _ => Tone::Muted,
+                            };
+                            self.lines.push((
+                                format!("{:<28}{:<12}start · stop · restart", name, status),
+                                tone,
+                            ));
+                        }
+                        for name in listed.iter().take(6) {
+                            fu.push((
+                                format!("Restart {name}"),
+                                format!("brew.service.{name}.restart"),
+                                vec![],
+                            ));
+                        }
+                    }
+                }
+            }
+            k if k.starts_with("report:") => {
+                let idx: usize = k
+                    .trim_start_matches("report:")
+                    .parse()
+                    .unwrap_or(usize::MAX);
+                match w.reports.get(idx) {
+                    None => {
+                        self.title = "Cleanup report".into();
+                        self.facts = vec![
+                            Prop::new("Report", "gone · nothing was recorded for this index")
+                                .tone(Tone::Error),
+                        ];
+                    }
+                    Some(r) => {
+                        self.title = if r.dry_run {
+                            "Dry run report".into()
+                        } else {
+                            "Cleanup report".into()
+                        };
+                        self.meta = host.clone();
+                        let (details, over) = r.details();
+                        self.facts = vec![
+                            Prop::new("Outcome", r.summary())
+                                .tone(if r.incomplete() {
+                                    Tone::Warning
+                                } else {
+                                    Tone::Normal
+                                })
+                                .wrap(),
+                            Prop::new(
+                                "Mode",
+                                format!(
+                                    "{}{}",
+                                    r.mode.label(),
+                                    if r.dry_run {
+                                        " · dry run · nothing was touched"
+                                    } else {
+                                        ""
+                                    }
+                                ),
+                            ),
+                            Prop::new(
+                                "Bytes",
+                                format!(
+                                    "{} {} · {} freed now{}",
+                                    crate::sim::fs::human(r.bytes),
+                                    if r.dry_run {
+                                        "would leave the tree"
+                                    } else {
+                                        "left the tree"
+                                    },
+                                    crate::sim::fs::human(r.freed_now),
+                                    if r.mode == crate::domain::cleanup::Mode::Trash && !r.dry_run {
+                                        " · the rest returns when the Trash is emptied"
+                                    } else {
+                                        ""
+                                    }
+                                ),
+                            )
+                            .wrap(),
+                            Prop::new(
+                                "Log",
+                                format!(
+                                    "{} · {}",
+                                    w.location.short(&r.log_path),
+                                    if r.log_failures > 0 {
+                                        format!("{} write failures", r.log_failures)
+                                    } else {
+                                        "every record written".to_owned()
+                                    }
+                                ),
+                            )
+                            .tone(if r.log_failures > 0 {
+                                Tone::Error
+                            } else {
+                                Tone::Muted
+                            })
+                            .wrap(),
+                            Prop::new("Revision", format!("{:016x}", r.plan_revision))
+                                .tone(Tone::Muted),
+                        ];
+                        self.lines.push(m(&format!(
+                            "{:<14}{:>10}   {}",
+                            "outcome", "bytes", "path · reason"
+                        )));
+                        for it in &r.items {
+                            let tone = match it.outcome {
+                                crate::domain::cleanup::Outcome::Failed => Tone::Error,
+                                crate::domain::cleanup::Outcome::Skipped => Tone::Warning,
+                                _ => Tone::Normal,
+                            };
+                            self.lines.push((
+                                format!(
+                                    "{:<14}{:>10}   {}{}",
+                                    it.outcome.label(),
+                                    crate::sim::fs::human(it.bytes),
+                                    w.location.short(&it.path),
+                                    it.error
+                                        .as_ref()
+                                        .map(|e| format!(" · {e}"))
+                                        .unwrap_or_default()
+                                ),
+                                tone,
+                            ));
+                        }
+                        if over > 0 {
+                            self.lines.push(m(&format!(
+                                "{} more with the same outcome · {} shown in detail",
+                                over,
+                                details.len()
+                            )));
+                        }
+                        fu.push(("Cleanup history".into(), "disk.history".into(), vec![]));
+                    }
+                }
+            }
+            k if k.starts_with("config:") => {
+                let path = k.trim_start_matches("config:").to_owned();
+                self.title = "Custom actions".into();
+                self.meta = w.location.short(&path);
+                let cfg = w
+                    .custom_project
+                    .iter()
+                    .chain(w.custom_global.iter())
+                    .find(|c| c.path == path);
+                match cfg {
+                    None => {
+                        self.facts = vec![
+                            Prop::new("File", format!("{} · not present", w.location.short(&path))).tone(Tone::Muted).wrap(),
+                            Prop::new("Format", "TOML · [[action]] entries with id, label, argv, danger, confirm, description, keywords, group").wrap(),
+                            Prop::new("Trust", "a project file runs nothing until its content digest is approved · the global file is trusted by ownership").tone(Tone::Muted).wrap(),
+                        ];
+                        self.lines.push(m("# example"));
+                        self.lines.push(t("[[action]]"));
+                        self.lines.push(t("id = \"deploy\""));
+                        self.lines.push(t("label = \"Deploy to staging\""));
+                        self.lines
+                            .push(t("argv = [\"./scripts/deploy.sh\", \"staging\"]"));
+                        self.lines.push(t("danger = \"destructive\""));
+                    }
+                    Some(c) => {
+                        let status = w.trust.status(&c.digest, &c.path, &w.location.cwd);
+                        self.facts = vec![
+                            Prop::new("Origin", c.origin.label()),
+                            Prop::new("Digest", format!("sha256:{}", c.digest)).wrap(),
+                            Prop::new("Trust", format!("{status:?}")).wrap(),
+                            Prop::new(
+                                "Actions",
+                                format!(
+                                    "{} · {} diagnostics",
+                                    c.actions.len(),
+                                    c.diagnostics.len()
+                                ),
+                            ),
+                        ];
+                        for d in &c.diagnostics {
+                            self.lines.push(wn(&d.text()));
+                        }
+                        for a in &c.actions {
+                            self.lines.push(t(&format!(
+                                "{:<24}{:<10}{}",
+                                a.id,
+                                a.danger.label(),
+                                crate::domain::exec::Command::from_vec(
+                                    a.argv.clone(),
+                                    &w.location.cwd,
+                                    &host
+                                )
+                                .display()
+                            )));
+                        }
+                        self.lines.push(m(""));
+                        self.lines.extend(c.text.lines().map(m));
+                    }
+                }
+            }
             _ => {
                 self.title = self.kind.clone();
             }
@@ -802,7 +1100,34 @@ impl SnapshotPage {
 }
 
 impl Screen for SnapshotPage {
-    fn on_key(&mut self, key: &Key, _w: &mut World, cx: &mut Cx) -> Outcome {
+    fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
+        if let Some(path) = self.kind.strip_prefix("config:").map(str::to_owned) {
+            match key.code {
+                KeyCode::Char('r') if key.plain() => {
+                    cx.go(Go::Reload);
+                    cx.status("Re-reading the configuration files · trust is re-checked by digest");
+                    return Outcome::Changed;
+                }
+                KeyCode::Char('u') if key.plain() => {
+                    let digest = w
+                        .custom_project
+                        .iter()
+                        .chain(w.custom_global.iter())
+                        .find(|c| c.path == path)
+                        .map(|c| c.digest.clone());
+                    match digest {
+                        Some(d) if w.trust.revoke(&d) => {
+                            w.persisted.trust = Some(w.trust.serialize());
+                            cx.status("Trust revoked · the file must be reviewed again before anything runs");
+                            self.build(w);
+                        }
+                        _ => cx.status("Nothing to revoke · the file is not trusted"),
+                    }
+                    return Outcome::Changed;
+                }
+                _ => {}
+            }
+        }
         for i in 0..self.buttons.len() {
             if cx.focus.is(self.buttons[i].id) {
                 let (o, fired) = self.buttons[i].on_key(key);

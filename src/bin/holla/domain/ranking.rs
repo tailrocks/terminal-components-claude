@@ -127,6 +127,19 @@ fn word_score(item: &Item, word: &str) -> Option<(u32, Vec<usize>)> {
 /// Rank the catalogue for a query in a scope. Empty queries rank by the
 /// recommendation order; non-empty queries require every word to match.
 pub fn search(items: &[Item], raw: &str, readout: Scope, group: Option<&str>) -> Vec<Ranked> {
+    search_with(items, raw, readout, group, None)
+}
+
+/// `search` with the item remembered for this exact query (HP02): it ranks
+/// first among the rows that still match the text, below an alias, and
+/// never authorizes anything.
+pub fn search_with(
+    items: &[Item],
+    raw: &str,
+    readout: Scope,
+    group: Option<&str>,
+    learned: Option<&str>,
+) -> Vec<Ranked> {
     let q = Query::parse(raw);
     let (scope, strict) = effective_scope(readout, q.scope);
     let has_query = !q.is_empty();
@@ -218,9 +231,20 @@ pub fn search(items: &[Item], raw: &str, readout: Scope, group: Option<&str>) ->
             Signal::GlobalUse => 2,
             Signal::Default => 1,
         };
+        // a pin, a remembered query and frecency all stay inside the match
+        // bucket: a better text match is never displaced by a learned signal
         if item.pinned {
-            score += 900_000;
+            score += 90_000;
             reason = format!("pinned here · {reason}");
+        }
+        if has_query && learned == Some(item.id.as_str()) {
+            score += 80_000;
+            reason = format!("remembered for “{}” · {reason}", text);
+        }
+        if item.frecency > 0.0 {
+            // bounded: at most a quarter of one match-quality step
+            score += (item.frecency.clamp(0.0, 1.0) * crate::domain::usage::BOOST_CAP * 100_000.0)
+                as i64;
         }
         score += tier * 5_000;
         score += (item.used_here.min(50) as i64) * 100;

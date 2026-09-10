@@ -193,6 +193,77 @@ impl GatePage {
                 }
                 self.sequence = seq;
             }
+            GateTarget::Cleanup(plan) => {
+                self.title = format!(
+                    "Review · {} {}",
+                    if plan.dry_run {
+                        "dry run"
+                    } else {
+                        plan.mode.label()
+                    },
+                    plural(plan.items.len(), "item", "items")
+                );
+                let mut f = crate::screens::cleanup::plan_facts(plan, w);
+                f.push(
+                    Prop::new(
+                        "Recoverable",
+                        match (plan.mode, plan.dry_run) {
+                            (_, true) => "nothing changes".to_owned(),
+                            (crate::domain::cleanup::Mode::Trash, _) => {
+                                "yes · until the Trash is emptied".to_owned()
+                            }
+                            (crate::domain::cleanup::Mode::Permanent, _) => {
+                                "no · permanent".to_owned()
+                            }
+                        },
+                    )
+                    .tone(
+                        if plan.mode == crate::domain::cleanup::Mode::Permanent && !plan.dry_run {
+                            Tone::Error
+                        } else {
+                            Tone::Normal
+                        },
+                    ),
+                );
+                f.push(
+                    Prop::new(
+                        "Provenance",
+                        "holla cleanup · paths validated at review and again at commit",
+                    )
+                    .tone(Tone::Muted),
+                );
+                f.push(
+                    Prop::new(
+                        "Gate",
+                        if plan.dry_run {
+                            "one confirmation · nothing is removed"
+                        } else {
+                            "second gate types the target-bound phrase"
+                        },
+                    )
+                    .tone(Tone::Muted),
+                );
+                self.facts = f;
+                let verb = match (plan.mode, plan.dry_run) {
+                    (_, true) => "would-remove",
+                    (crate::domain::cleanup::Mode::Trash, _) => "trash",
+                    (crate::domain::cleanup::Mode::Permanent, _) => "remove",
+                };
+                self.sequence = plan
+                    .items
+                    .iter()
+                    .enumerate()
+                    .map(|(i, it)| {
+                        format!(
+                            "{:02}  {verb} {}  # {} · {}",
+                            i + 1,
+                            crate::domain::exec::quote(&it.path),
+                            crate::sim::fs::human(it.estimate),
+                            it.category
+                        )
+                    })
+                    .collect();
+            }
             GateTarget::Item { item, args } => {
                 let Some(it) = w.items().into_iter().find(|i| &i.id == item) else {
                     return;
@@ -234,12 +305,19 @@ impl GatePage {
                         .tone(Tone::Muted),
                 );
                 self.facts = f;
-                self.sequence = it
-                    .commands
-                    .iter()
-                    .enumerate()
-                    .map(|(i, c)| format!("{:02}  {c}", i + 1))
-                    .collect();
+                let exec = it.all_exec();
+                self.sequence = if exec.is_empty() {
+                    it.commands
+                        .iter()
+                        .enumerate()
+                        .map(|(i, c)| format!("{:02}  {c}", i + 1))
+                        .collect()
+                } else {
+                    exec.iter()
+                        .enumerate()
+                        .map(|(i, c)| format!("{:02}  {}", i + 1, c.display()))
+                        .collect()
+                };
             }
         }
     }
@@ -541,27 +619,77 @@ impl TrustPage {
                     body.push(format!("  {}", e.replacen('=', " = \"", 1) + "\""));
                 }
             }
-        } else {
+        } else if let Some(cfg) = w
+            .custom_project
+            .iter()
+            .chain(w.custom_global.iter())
+            .find(|c| c.path == self.config)
+        {
+            let dangerous = cfg
+                .actions
+                .iter()
+                .filter(|a| a.danger == crate::domain::custom::Danger::Destructive)
+                .count();
             facts.push(Prop::new(
                 "Defines",
-                "team workflows contributed by the project",
+                format!(
+                    "{} · {} destructive · {}",
+                    plural(cfg.actions.len(), "custom action", "custom actions"),
+                    dangerous,
+                    plural(cfg.diagnostics.len(), "diagnostic", "diagnostics")
+                ),
             ));
+            facts.push(Prop::new("Digest", format!("sha256:{}", cfg.digest)).wrap());
             facts.push(Prop::new(
                 "Trust scope",
-                "this exact file · renewed when the content changes",
-            ));
-            for (name, cmd, trusted) in &w.workflows {
-                body.push(format!(
-                    "[[workflow]]  # {}",
-                    if *trusted {
-                        "trusted"
-                    } else {
-                        "not yet trusted"
-                    }
-                ));
-                body.push(format!("  name = \"{name}\""));
-                body.push(format!("  run = \"{cmd}\""));
+                "the whole file by content digest · edited content is untrusted again · every action in it runs without a shell",
+            ).wrap());
+            facts.push(
+                Prop::new(
+                    "Provenance",
+                    format!(
+                        "{} · read from disk when the finder opened",
+                        cfg.origin.label()
+                    ),
+                )
+                .tone(Tone::Muted),
+            );
+            if let Some(a) = cfg.actions.iter().find(|a| a.id == self.then) {
+                let cmd = crate::domain::exec::Command::from_vec(
+                    a.argv.clone(),
+                    &w.location.cwd,
+                    &w.host.name,
+                );
+                for (k, v) in cmd.argv_facts() {
+                    facts.push(Prop::new(&k, v).wrap());
+                }
             }
+            for d in &cfg.diagnostics {
+                facts.push(Prop::new("Diagnostic", d.text()).tone(Tone::Warning).wrap());
+            }
+            facts.push(
+                Prop::new(
+                    "Then",
+                    format!(
+                        "run {} exactly as declared",
+                        self.then.trim_start_matches("custom.")
+                    ),
+                )
+                .tone(Tone::Muted),
+            );
+            body.extend(cfg.text.lines().map(str::to_owned));
+        } else {
+            facts.push(
+                Prop::new(
+                    "Defines",
+                    "nothing readable · the file is missing or unreadable",
+                )
+                .tone(Tone::Error),
+            );
+            facts.push(
+                Prop::new("Trust scope", "nothing can be trusted without content")
+                    .tone(Tone::Muted),
+            );
         }
         (facts, body)
     }
