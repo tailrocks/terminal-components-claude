@@ -73,19 +73,34 @@ cargo test --bin holla        # 53 tests: domain, ranking, plans, journeys
 | `launch-failure` | failed activity tab with honest output and `Next` follow-ups |
 | `hard-cases` | detached and rebase states, unreadable children (partial), docker and github unavailable |
 
-Cross-cutting: `--color none` must lose nothing but hue (warnings keep `▲`,
-errors a bold `!`, focus keeps `▎`), `--motion paused --frame N` is
-byte-identical across runs, resizing keeps type and scope on every row.
+Cross-cutting, in any scenario: `F1` is the full key reference; `Alt+Enter`
+on a row lists the alternatives (pin, alias, hide, why is this here?);
+`--color none` must lose nothing but hue (warnings keep `▲`, errors a bold
+`!`, focus keeps `▎`); `--motion paused --frame N` is byte-identical across
+runs; resizing keeps type and scope on every row.
+
+Which capture shows what: `h_<scenario>_<WxH>.png` are the base frames,
+`h_<scenario>_mono.png` the monochrome pass, `h_*_16.png` sixteen colours,
+`h_flow_*.png` the journeys (trust → arguments, alternatives, help,
+activities and merged logs, `btm` attached, the upgrade plan from exclusion
+to failure and retry, the disk page and its gate, the remote restart gates,
+the pg blocking tree, scope pages) and `h_p3_docker_*.png` the Docker
+cleanup from the root query through both gates, the drift revalidation,
+execution and completion.
 
 **3. Capture matrix — the full visual pass:**
 
 ```sh
-export PY=/path/to/venv/with/pillow/bin/python
-cargo build --bin holla
+python3 -m venv .venv && .venv/bin/pip install pillow   # once; PNG rendering
+source tools/env.sh                                    # exports PY
+cargo build --bin holla                                # captures run the debug binary
 tools/holla_shots.sh          # 11 scenarios × 4 sizes + mono + 16 colours
 tools/holla_flows.sh          # gates, plans, activities, snapshots, scopes
 open shots/h_*.png
 ```
+
+Captures need `tmux` on the path. Each frame lands as `.txt` (plain),
+`.ansi`, `.html` and `.png`; the `.txt` is what the tests compare against.
 
 After changing one surface, rerun only what moved and look at the PNGs:
 

@@ -76,6 +76,15 @@ disk usage, `test` the test task here, `dc` the Docker cleanup, `d` then `u`.
 The `h_*` captures in `shots/` are the review evidence
 (`tools/holla_shots.sh`, `tools/holla_flows.sh`).
 
+**Previewing holla.** Three routes, fastest first: open `shots/h_*.png`
+(every scenario at four sizes plus mono, and the gate, plan, activity,
+disk and snapshot flows); run one scenario at a time with
+`cargo run --release --bin holla -- --scenario <name>` (the table in
+`src/bin/holla/README.md` says what each scenario shows and which keys to
+press); or regenerate the matrix with `tools/holla_shots.sh` and
+`tools/holla_flows.sh` after `source tools/env.sh` (needs a Python with
+Pillow, see that file). `holla --help` prints the flags and scenarios.
+
 Every screen's first row is the application menu bar (`F10`, or click a
 label; the `jackin❯` lockup opens the app menu). Host screens share one bar —
 `File` for the screen's actions, `Go` for the Workspace manager, Account &

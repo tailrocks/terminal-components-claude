@@ -1,2 +1,5 @@
-# Python interpreter with Pillow installed (used by tools/capture.sh for PNG output)
-export PY=${PY:-/private/tmp/claude-501/-Users-donbeave-terminal-components-claude/5ee8aeed-db88-4529-ae11-c4e077bf0690/scratchpad/venv/bin/python}
+# Python interpreter with Pillow installed (used by tools/capture.sh for PNG
+# output). Create one once at the repository root:
+#   python3 -m venv .venv && .venv/bin/pip install pillow
+# then `source tools/env.sh` before running the capture scripts.
+export PY=${PY:-$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)/.venv/bin/python}
