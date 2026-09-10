@@ -1,13 +1,25 @@
 //! The catalogue: turns the world into rows. Capability (a domain being
 //! present) becomes actions (items); live state adds reasons that make some
-//! of them recommendations. Every row carries scope, risk, confirmation and
-//! the exact command it stands for.
+//! of them recommendations. Every row carries scope, risk, confirmation,
+//! provenance and the exact typed command it stands for; the display
+//! string derives from that specification, never the other way round.
+//!
+//! Providers contribute in a fixed order and are merged by canonical id:
+//! the earlier contribution wins a collision and the collision is reported
+//! as a warning, never by retargeting an existing row.
+
+use std::collections::BTreeSet;
 
 use crate::domain::action::{
     ArgSpec, Confirmation, Freshness, Item, Kind, Launch, ResultType, Risk, Signal,
 };
-use crate::domain::context::{Scope, ScopeTag};
-use crate::sim::world::{SourceState, World};
+use crate::domain::cleanup::{self, Eligibility, ProcessObservation};
+use crate::domain::context::{Os, Scope, ScopeTag};
+use crate::domain::custom::{Danger, TrustStatus};
+use crate::domain::effect::Effect;
+use crate::domain::exec::Command;
+use crate::domain::manifest;
+use crate::sim::world::{BatchMode, SourceState, World};
 
 /// Where a directory sits relative to the working directory.
 fn tag_for_dir(w: &World, dir: &str) -> ScopeTag {
@@ -70,47 +82,60 @@ fn freshness(w: &World, source: &str) -> Freshness {
     }
 }
 
-fn script_for_task(w: &World, namespaced: &str, name: &str, dir: &str) -> String {
+/// A source that has not answered yet contributes nothing: rows arrive
+/// when it completes, and the first paint never waits for it.
+fn source_ready(w: &World, source: &str) -> bool {
+    !matches!(w.source_state(source), SourceState::Loading)
+}
+
+fn cmd(w: &World, program: &str, args: &[&str], cwd: &str) -> Command {
+    Command::argv(program, args, cwd, &w.host.name)
+}
+
+fn script_for_task(w: &World, name: &str, dir: &str) -> Option<String> {
     let fail = w.scenario == crate::scenario::Scenario::LaunchFailure;
     let holla = dir.ends_with("/holla");
-    match name {
+    let key = match name {
         "dev" if dir.ends_with("apps/frontend") => {
             if fail {
-                "task:frontend-dev-fail".into()
+                "task:frontend-dev-fail"
             } else {
-                "task:frontend-dev".into()
+                "task:frontend-dev"
             }
         }
-        "dev" if dir.ends_with("services/api") => "task:api-dev".into(),
-        "test" if dir.ends_with("apps/frontend") => "task:tests-frontend".into(),
-        "migrate" => "task:migrate".into(),
-        "test" if holla || dir.ends_with("services/api") => "task:tests".into(),
-        "lint" if holla => "task:clippy".into(),
-        "setup" => "task:setup".into(),
-        "up" => "task:up".into(),
-        "dev" if dir.ends_with("/acme") => "task:eco".into(),
-        _ => format!("generic:mise run {namespaced}"),
-    }
+        "dev" if dir.ends_with("services/api") => "task:api-dev",
+        "test" if dir.ends_with("apps/frontend") => "task:tests-frontend",
+        "migrate" => "task:migrate",
+        "test" if holla || dir.ends_with("services/api") => "task:tests",
+        "lint" if holla => "task:clippy",
+        "setup" => "task:setup",
+        "up" => "task:up",
+        "dev" if dir.ends_with("/acme") => "task:eco",
+        _ => return None,
+    };
+    Some(key.into())
 }
 
 /// Fill usage, pins, aliases and hidden state from memory.
 fn apply_memory(w: &World, mut item: Item) -> Item {
     let cwd = &w.location.cwd;
     let project_root = w.location.project.as_ref().map(|p| p.root.as_str());
-    for u in &w.memory.usage {
-        if u.item != item.id {
+    let host = &w.host.name;
+    let now = w.now_secs();
+    for u in &w.memory.usage.actions {
+        if u.item != item.id || u.host != *host {
             continue;
         }
         match &u.path {
             Some(p) if p == cwd || Some(p.as_str()) == project_root => {
-                item.used_here += u.count;
-                item.last_used_secs = Some(item.last_used_secs.unwrap_or(0).max(u.last_secs));
+                item.used_here += u.count();
+                item.last_used_secs = Some(item.last_used_secs.unwrap_or(0).max(u.last_secs()));
             }
             Some(_) => {}
-            None if u.host == w.host.name => item.used_anywhere += u.count,
-            None => {}
+            None => item.used_anywhere += u.count(),
         }
     }
+    item.frecency = w.memory.usage.frecency_any(&item.id, cwd, host, now);
     if item.used_here > 0 {
         let text = if item.used_here == 1 {
             "used once here".to_owned()
@@ -157,22 +182,75 @@ fn apply_memory(w: &World, mut item: Item) -> Item {
     item
 }
 
+/// Every built-in id the catalogue can produce for this world, for custom
+/// action reservation.
+pub fn builtin_ids(w: &World) -> Vec<String> {
+    let mut items = vec![];
+    contribute(w, &mut items, false);
+    items.into_iter().map(|i| i.id).collect()
+}
+
 pub fn build(w: &World) -> Vec<Item> {
+    build_with_warnings(w).0
+}
+
+/// Build the catalogue and the discovery warnings (collisions, malformed
+/// sources). The latest warning is what the status line shows.
+pub fn build_with_warnings(w: &World) -> (Vec<Item>, Vec<String>) {
     let mut items: Vec<Item> = vec![];
-    explore(w, &mut items);
-    mise_items(w, &mut items);
-    git_items(w, &mut items);
-    rust_items(w, &mut items);
-    docker_items(w, &mut items);
-    system_items(w, &mut items);
-    disk_items(w, &mut items);
-    pg_items(w, &mut items);
-    ssh_items(w, &mut items);
-    service_items(w, &mut items);
-    workflow_items(w, &mut items);
-    file_items(w, &mut items);
-    activity_items(w, &mut items);
-    items.into_iter().map(|i| apply_memory(w, i)).collect()
+    contribute(w, &mut items, true);
+    let mut warnings = vec![];
+    let mut seen: BTreeSet<String> = BTreeSet::new();
+    let mut merged = Vec::with_capacity(items.len());
+    for it in items {
+        if !seen.insert(it.id.clone()) {
+            warnings.push(format!(
+                "duplicate action id {} from {} · the earlier definition wins",
+                it.id, it.provenance
+            ));
+            continue;
+        }
+        merged.push(it);
+    }
+    for cfg in [&w.custom_global, &w.custom_project].into_iter().flatten() {
+        for d in &cfg.diagnostics {
+            warnings.push(d.text());
+        }
+    }
+    for (name, why) in w.failed_sources() {
+        warnings.push(format!("{name}: {why}"));
+    }
+    (
+        merged.into_iter().map(|i| apply_memory(w, i)).collect(),
+        warnings,
+    )
+}
+
+fn contribute(w: &World, items: &mut Vec<Item>, with_custom: bool) {
+    // registry order: find, disk, cleanup, current folder, node, just,
+    // make, taskfile, cargo, git hygiene, repos, system, brew, docker,
+    // gradle, idea, insights, then contributed providers
+    explore(w, items);
+    file_items(w, items);
+    disk_items(w, items);
+    cleanup_items(w, items);
+    mise_items(w, items);
+    native_task_items(w, items);
+    rust_items(w, items);
+    git_items(w, items);
+    system_items(w, items);
+    upgrade_items(w, items);
+    brew_items(w, items);
+    docker_items(w, items);
+    gradle_items(w, items);
+    idea_items(w, items);
+    pg_items(w, items);
+    ssh_items(w, items);
+    service_items(w, items);
+    if with_custom {
+        custom_items(w, items);
+    }
+    activity_items(w, items);
 }
 
 fn explore(w: &World, out: &mut Vec<Item>) {
@@ -206,7 +284,7 @@ fn explore(w: &World, out: &mut Vec<Item>) {
         "Files",
         "Files",
         &["f"],
-        "nearby files, configs and logs",
+        "browse this folder, find files under home, preview safely",
     );
     ex(
         "explore.disk",
@@ -298,8 +376,6 @@ fn explore(w: &World, out: &mut Vec<Item>) {
             .reason(Signal::Context, &format!("{n} child projects discovered")),
         );
     }
-    // `System` is already a chip on the Explore row; the row form would
-    // name it twice. Kept for query matches only (hidden from Explore).
     out.push(
         Item::new(
             "scope.system",
@@ -321,8 +397,10 @@ fn explore(w: &World, out: &mut Vec<Item>) {
     );
 }
 
+// ------------------------------------------------------------------ tasks
+
 fn mise_items(w: &World, out: &mut Vec<Item>) {
-    if !w.mise.installed {
+    if !w.mise.installed || !w.tools.contains("mise") || !source_ready(w, "mise") {
         return;
     }
     let git = w.git_here();
@@ -350,13 +428,14 @@ fn mise_items(w: &World, out: &mut Vec<Item>) {
                     t.description,
                     w.location.short(&t.dir)
                 ))
-                .commands(&[&format!("mise run {}", t.namespaced)])
+                .exec(vec![cmd(w, "mise", &["run", &t.namespaced], &t.dir)])
                 .effects(&[&format!("runs `{}` in {}", t.run, w.location.short(&t.dir))])
                 .keywords(&[&t.name, &t.namespaced, "task", "mise", &t.description])
                 .group("Tasks")
                 .freshness(freshness(w, "mise"))
+                .provenance(&format!("mise task · {}", w.location.short(&cfg.path)))
                 .launch(Launch::Activity {
-                    script: script_for_task(w, &t.namespaced, &t.name, &t.dir),
+                    script: script_for_task(w, &t.name, &t.dir),
                 })
                 .reason(
                     Signal::Context,
@@ -370,16 +449,16 @@ fn mise_items(w: &World, out: &mut Vec<Item>) {
                     &format!("after {}", t.depends.join(", ")),
                 ]);
             }
-            // `test` is the preferred test action here, never a fixed id
             if t.name == "test" && tag.direction == Scope::Here {
                 item = item.aliases(&["test"]);
             }
+            // every discovered task is mutating: its recipe is the tool's,
+            // not holla's, whatever its name says
+            item = item.risk(Risk::Mutating);
             if !trusted {
-                item = item
-                    .confirm(Confirmation::Trust {
-                        config: w.location.short(&cfg.path),
-                    })
-                    .risk(Risk::Mutating);
+                item = item.confirm(Confirmation::Trust {
+                    config: w.location.short(&cfg.path),
+                });
             }
             if t.name == "test" && tag.direction == Scope::Here && git.is_some_and(|g| g.dirty()) {
                 let n = git.map(|g| g.changed() + g.untracked).unwrap_or(0);
@@ -395,7 +474,7 @@ fn mise_items(w: &World, out: &mut Vec<Item>) {
                 item = item.alt("Run with cargo test instead", "cargo.test");
             }
             if t.name == "dev" {
-                item = item.risk(Risk::Mutating).effects(&[
+                item = item.effects(&[
                     &format!(
                         "starts a long-running server in {}",
                         w.location.short(&t.dir)
@@ -403,13 +482,8 @@ fn mise_items(w: &World, out: &mut Vec<Item>) {
                     "becomes a named activity",
                 ]);
             }
-            if t.name == "up" {
-                item = item.risk(Risk::Mutating);
-            }
             if t.name == "setup" {
-                item = item
-                    .risk(Risk::Mutating)
-                    .effects(&["installs tools and dependencies for every project"]);
+                item = item.effects(&["installs tools and dependencies for every project"]);
             }
             out.push(item);
         }
@@ -437,22 +511,22 @@ fn mise_items(w: &World, out: &mut Vec<Item>) {
                 host_tag(w),
             )
             .summary("show current, requested and latest versions, then upgrade the selected tools")
-            .commands(&[
-                "mise outdated --json",
-                "mise upgrade --dry-run",
-                "mise upgrade --interactive",
-            ])
+            .exec(vec![cmd(
+                w,
+                "mise",
+                &["outdated", "--json"],
+                &w.location.cwd,
+            )])
             .effects(&names.iter().map(|s| s.as_str()).collect::<Vec<_>>())
             .keywords(&[
                 "mise", "tools", "outdated", "upgrade", "versions", "node", "python",
             ])
             .group("System")
-            .risk(Risk::Mutating)
-            .confirm(Confirmation::One)
             .freshness(freshness(w, "mise"))
             .launch(Launch::Snapshot {
                 snapshot: "mise-outdated".into(),
             })
+            .alt("Upgrade now (mise upgrade)", "upgrade.mise")
             .reason(
                 Signal::Context,
                 &format!("{} tools have newer versions", outdated.len()),
@@ -462,33 +536,33 @@ fn mise_items(w: &World, out: &mut Vec<Item>) {
     let missing = w.mise.missing();
     if !missing.is_empty() {
         let names: Vec<&str> = missing.iter().map(|t| t.name.as_str()).collect();
+        let root = w
+            .location
+            .project
+            .as_ref()
+            .map(|p| p.root.clone())
+            .unwrap_or(w.location.cwd.clone());
         out.push(
             Item::new(
                 "mise.install",
                 &format!("Install missing tools · {}", names.join(", ")),
                 Kind::Mise,
                 ResultType::Recommendation,
-                tag_for_dir(
-                    w,
-                    w.location
-                        .project
-                        .as_ref()
-                        .map(|p| p.root.as_str())
-                        .unwrap_or(&w.location.cwd),
-                ),
+                tag_for_dir(w, &root),
             )
             .summary("install the tools this configuration requests but the host lacks")
-            .commands(&[
-                "mise install --dry-run",
-                "mise install --include-task-tools",
-            ])
+            .exec(vec![cmd(
+                w,
+                "mise",
+                &["install", "--include-task-tools"],
+                &root,
+            )])
+            .effect(Effect::MiseInstall)
             .keywords(&["mise", "install", "missing", "tools"])
             .group("Tasks")
             .risk(Risk::Mutating)
             .confirm(Confirmation::One)
-            .launch(Launch::Activity {
-                script: "generic:mise install --include-task-tools".into(),
-            })
+            .launch(Launch::Activity { script: None })
             .reason(
                 Signal::Urgency,
                 &crate::screens::plural(names.len(), "tool missing", "tools missing"),
@@ -498,20 +572,201 @@ fn mise_items(w: &World, out: &mut Vec<Item>) {
     out.push(
         Item::new("mise.status", "Show mise configuration", Kind::Mise, ResultType::Resource, ScopeTag::here(&w.location.cwd))
             .summary("effective configuration from this folder through its ancestors: tools, tasks, environment, trust")
-            .commands(&["mise ls --json", "mise tasks ls --all --json", "mise trust --show"])
+            .exec(vec![cmd(w, "mise", &["ls", "--json"], &w.location.cwd), cmd(w, "mise", &["tasks", "ls", "--all", "--json"], &w.location.cwd), cmd(w, "mise", &["trust", "--show"], &w.location.cwd)])
             .keywords(&["mise", "config", "tools", "trust", "env"])
             .group("Tasks")
             .freshness(freshness(w, "mise"))
             .launch(Launch::Snapshot { snapshot: "mise".into() })
             .reason(Signal::Default, &format!("{} configuration files in effect", w.mise.configs.len())),
     );
+    if let Some(Err(e)) = &w.outputs.mise_tasks {
+        out.push(
+            Item::new(
+                "mise.discovery",
+                "mise tasks",
+                Kind::Mise,
+                ResultType::Resource,
+                ScopeTag::here(&w.location.cwd),
+            )
+            .summary(&format!(
+                "mise tasks ls failed · {e} · its output was not used"
+            ))
+            .keywords(&["mise", "tasks"])
+            .group("Tasks")
+            .freshness(Freshness::Unavailable(e.clone()))
+            .launch(Launch::Snapshot {
+                snapshot: "mise".into(),
+            })
+            .reason(Signal::Default, "discovery failed"),
+        );
+    }
 }
 
+/// Native package.json / Just / Make / Taskfile adapters (HP07).
+fn native_task_items(w: &World, out: &mut Vec<Item>) {
+    let cwd = w.location.cwd.clone();
+    let here = ScopeTag::here(&cwd);
+    let read = |name: &str| -> Option<String> {
+        match &w.fs.get(&format!("{cwd}/{name}"))?.content {
+            crate::sim::fs::Content::Text(t) => Some(t.clone()),
+            _ => Some(String::new()),
+        }
+    };
+    let mut discoveries: Vec<(manifest::Discovery, Kind, &'static str, &'static str)> = vec![];
+    // node: package.json without a runner check
+    if w.fs.exists(&format!("{cwd}/package.json")) {
+        let locks: Vec<&str> = ["pnpm-lock.yaml", "yarn.lock", "bun.lock", "bun.lockb"]
+            .into_iter()
+            .filter(|l| w.fs.exists(&format!("{cwd}/{l}")))
+            .collect();
+        let pj = read("package.json");
+        discoveries.push((
+            manifest::node_scripts(&cwd, pj.as_deref(), &locks),
+            Kind::Node,
+            "Node scripts",
+            "package.json",
+        ));
+    }
+    if w.tools.contains("just")
+        && let Some(file) = ["justfile", "Justfile", ".justfile"]
+            .into_iter()
+            .find(|f| w.fs.exists(&format!("{cwd}/{f}")))
+    {
+        let summary = w
+            .outputs
+            .just_summary
+            .clone()
+            .unwrap_or(Err("just --summary was not run".into()));
+        discoveries.push((
+            manifest::just_recipes(&cwd, file, summary.as_deref().map_err(String::as_str)),
+            Kind::Just,
+            "Just",
+            file,
+        ));
+    }
+    if w.tools.contains("make") && w.fs.exists(&format!("{cwd}/Makefile")) {
+        discoveries.push((
+            manifest::make_discovery(&cwd, read("Makefile").as_deref()),
+            Kind::Make,
+            "Make",
+            "Makefile",
+        ));
+    }
+    if w.tools.contains("task")
+        && let Some(file) = ["Taskfile.yml", "Taskfile.yaml"]
+            .into_iter()
+            .find(|f| w.fs.exists(&format!("{cwd}/{f}")))
+    {
+        let listing = w
+            .outputs
+            .task_list
+            .clone()
+            .unwrap_or(Err("task --list --json was not run".into()));
+        discoveries.push((
+            manifest::taskfile_tasks(&cwd, file, listing.as_deref().map_err(String::as_str)),
+            Kind::Taskfile,
+            "Taskfile",
+            file,
+        ));
+    }
+    // mise: the tool's own listing is authoritative only when it succeeded;
+    // tasks already known from the configuration chain are not duplicated
+    if w.tools.contains("mise")
+        && let Some(Ok(text)) = &w.outputs.mise_tasks
+    {
+        let mut d = manifest::mise_tasks(&cwd, Ok(text));
+        let known: std::collections::BTreeSet<String> = w
+            .mise
+            .configs
+            .iter()
+            .flat_map(|c| {
+                c.tasks
+                    .iter()
+                    .map(|t| format!("mise.task.{}", t.namespaced))
+            })
+            .collect();
+        d.tasks.retain(|t| {
+            !known.contains(&t.id) && !known.contains(&format!("mise.task.//:{}", t.name))
+        });
+        if !d.tasks.is_empty() {
+            discoveries.push((d, Kind::Mise, "mise", "mise tasks ls"));
+        }
+    }
+    for (d, kind, label, file) in discoveries {
+        let runner_present = w.tools.contains(&d.runner);
+        for t in &d.tasks {
+            let argv: Vec<&str> = t.argv.iter().skip(1).map(String::as_str).collect();
+            let mut item = Item::new(
+                &t.id,
+                &format!("{} {}", d.runner, t.name),
+                kind,
+                ResultType::Action,
+                here.clone(),
+            )
+            .summary(&if t.description.is_empty() {
+                format!(
+                    "{} {} from {file} · the recipe runs through {}",
+                    label.trim_end_matches('s'),
+                    t.name,
+                    d.runner
+                )
+            } else {
+                format!("{} · {}", t.description, file)
+            })
+            .exec(vec![cmd(w, &t.argv[0], &argv, &cwd)])
+            .keywords(&[&t.name, label, file, &d.runner, "task", "script"])
+            .group("Tasks")
+            .risk(Risk::Mutating)
+            .provenance(&format!("{file} · {}", d.title(label)))
+            .launch(Launch::Activity { script: None })
+            .reason(Signal::Context, &format!("{file} here"));
+            if !runner_present {
+                item = item.freshness(Freshness::Unavailable(format!(
+                    "{} is not on PATH",
+                    d.runner
+                )));
+            }
+            if d.capped() {
+                item.cap_note = Some(format!(
+                    "{} · first {} of {}",
+                    d.title(label),
+                    d.tasks.len(),
+                    d.total
+                ));
+            }
+            out.push(item);
+        }
+        if let Some(diag) = &d.diagnostic {
+            out.push(
+                Item::new(
+                    &format!("{}.discovery", d.source),
+                    &format!("{label} · {file}"),
+                    kind,
+                    ResultType::Resource,
+                    here.clone(),
+                )
+                .summary(&format!("{diag} · no task was invented"))
+                .keywords(&[label, file, "discovery"])
+                .group("Tasks")
+                .freshness(Freshness::Unavailable(diag.clone()))
+                .launch(Launch::Files { path: cwd.clone() })
+                .reason(Signal::Default, "discovery diagnostic"),
+            );
+        }
+    }
+}
+
+// ------------------------------------------------------------------ git
+
 fn git_items(w: &World, out: &mut Vec<Item>) {
+    if !w.tools.contains("git") || !source_ready(w, "git") {
+        return;
+    }
     if let Some(g) = w.git_here() {
         git_here_items(w, g, out);
     }
     git_children_items(w, out);
+    git_sibling_items(w, out);
     github_items(w, out);
 }
 
@@ -523,6 +778,15 @@ fn git_here_items(w: &World, g: &crate::domain::stack::GitState, out: &mut Vec<I
         .branch
         .clone()
         .unwrap_or_else(|| format!("detached @ {}", g.head_short));
+    let prov = format!(
+        "built-in · {} in {}",
+        if g.git_file {
+            ".git file"
+        } else {
+            ".git directory"
+        },
+        root_short
+    );
     out.push(
         Item::new(
             "git.status",
@@ -532,16 +796,40 @@ fn git_here_items(w: &World, g: &crate::domain::stack::GitState, out: &mut Vec<I
             tag.clone(),
         )
         .summary(&format!(
-            "worktree, branch, upstream and stash state of {root_short}"
+            "full git status of {root_short}: branch, upstream, staged, unstaged, untracked, stash"
         ))
-        .commands(&[&g.status_cmd()])
+        .exec(vec![cmd(w, "git", &["-C", &g.path, "status"], &g.path)])
         .keywords(&["git", "status", "branch", "worktree", "changes"])
         .group("Git")
         .freshness(fresh.clone())
+        .provenance(&prov)
         .launch(Launch::Snapshot {
             snapshot: "git".into(),
         })
+        .alt("Short status", "git.status_short")
         .reason(Signal::Context, &format!("on {branch}")),
+    );
+    out.push(
+        Item::new(
+            "git.status_short",
+            "Show short status",
+            Kind::Git,
+            ResultType::Resource,
+            tag.clone(),
+        )
+        .summary("git status --short as an activity")
+        .exec(vec![cmd(
+            w,
+            "git",
+            &["-C", &g.path, "status", "--short"],
+            &g.path,
+        )])
+        .keywords(&["git", "status", "short"])
+        .group("Git")
+        .freshness(fresh.clone())
+        .provenance(&prov)
+        .launch(Launch::Activity { script: None })
+        .reason(Signal::Default, "available"),
     );
     if g.dirty() {
         let n = g.changed() + g.untracked;
@@ -554,9 +842,9 @@ fn git_here_items(w: &World, g: &crate::domain::stack::GitState, out: &mut Vec<I
                 tag.clone(),
             )
             .summary("show the changed files with their diff stat before committing or syncing")
-            .commands(&[
-                &format!("git -C {} status --short", g.path),
-                &format!("git -C {} diff --stat", g.path),
+            .exec(vec![
+                cmd(w, "git", &["-C", &g.path, "status", "--short"], &g.path),
+                cmd(w, "git", &["-C", &g.path, "diff", "--stat"], &g.path),
             ])
             .keywords(&["git", "diff", "changes", "modified", "review", "dirty"])
             .group("Git")
@@ -571,6 +859,11 @@ fn git_here_items(w: &World, g: &crate::domain::stack::GitState, out: &mut Vec<I
             ),
         );
     }
+    let pull_args: Vec<&str> = if g.pull_config == "ff-only" {
+        vec!["-C", &g.path, "pull", "--ff-only"]
+    } else {
+        vec!["-C", &g.path, "pull"]
+    };
     let mut pull = Item::new(
         "git.pull",
         "Pull",
@@ -579,18 +872,29 @@ fn git_here_items(w: &World, g: &crate::domain::stack::GitState, out: &mut Vec<I
         tag.clone(),
     )
     .summary(&format!(
-        "fast-forward {root_short} to {}",
+        "{} {root_short} from {}",
+        if g.pull_config == "ff-only" {
+            "fast-forward"
+        } else {
+            "pull (configured strategy)"
+        },
         g.upstream.clone().unwrap_or("its upstream".into())
     ))
-    .commands(&[&format!("git -C {} pull --ff-only", g.path)])
+    .exec(vec![cmd(w, "git", &pull_args, &g.path)])
+    .effect(if g.pull_config == "ff-only" {
+        Effect::GitPull(g.path.clone())
+    } else {
+        Effect::GitPullMerge(g.path.clone())
+    })
     .keywords(&["git", "pull", "sync", "fetch", "update", "behind"])
     .group("Git")
     .risk(Risk::Mutating)
     .freshness(fresh.clone())
-    .launch(Launch::Activity {
-        script: "git:pull".into(),
-    })
+    .provenance(&prov)
+    .launch(Launch::Activity { script: None })
     .alt("Fetch only", "git.fetch")
+    .alt("Pull with merge", "git.pull_merge")
+    .alt("Pull with rebase", "git.pull_rebase")
     .alt("Push", "git.push");
     if g.behind > 0 && !g.diverged {
         pull = pull
@@ -605,7 +909,7 @@ fn git_here_items(w: &World, g: &crate::domain::stack::GitState, out: &mut Vec<I
     } else if let Some(r) = g.block_reason() {
         pull = pull
             .effects(&[&format!(
-                "blocked · {r} · nothing runs until it is resolved"
+                "blocked · {r} · the command fails without changing anything"
             )])
             .confirm(Confirmation::One)
             .reason(Signal::Context, &format!("blocked · {r}"));
@@ -615,35 +919,116 @@ fn git_here_items(w: &World, g: &crate::domain::stack::GitState, out: &mut Vec<I
             .reason(Signal::Default, "up to date");
     }
     out.push(pull);
-    if g.ahead > 0 {
+    for (id, label, strategy, args) in [
+        (
+            "git.pull_merge",
+            "Pull with merge",
+            "merge",
+            vec!["-C", g.path.as_str(), "pull", "--no-rebase"],
+        ),
+        (
+            "git.pull_rebase",
+            "Pull with rebase",
+            "rebase",
+            vec!["-C", g.path.as_str(), "pull", "--rebase"],
+        ),
+    ] {
         out.push(
-            Item::new(
-                "git.push",
-                "Push",
-                Kind::Git,
-                ResultType::Action,
-                tag.clone(),
-            )
-            .summary(&format!(
-                "push {} commits of {branch} to {}",
-                g.ahead,
-                g.upstream.clone().unwrap_or("origin".into())
-            ))
-            .commands(&[
-                &format!("git -C {} push --dry-run", g.path),
-                &format!("git -C {} push", g.path),
-            ])
-            .keywords(&["git", "push", "upload", "ahead"])
-            .group("Git")
-            .risk(Risk::Mutating)
-            .confirm(Confirmation::One)
-            .freshness(fresh.clone())
-            .launch(Launch::Activity {
-                script: format!("generic:git -C {} push", g.path),
-            })
-            .reason(Signal::Context, &format!("{} commits ahead", g.ahead)),
+            Item::new(id, label, Kind::Git, ResultType::Action, tag.clone())
+                .summary(&format!("pull {root_short} with the {strategy} strategy · diverged history is integrated, not refused"))
+                .exec(vec![cmd(w, "git", &args, &g.path)])
+                .effect(Effect::GitPullMerge(g.path.clone()))
+                .keywords(&["git", "pull", strategy, "diverged"])
+                .group("Git")
+                .risk(Risk::Mutating)
+                .confirm(Confirmation::One)
+                .freshness(fresh.clone())
+                .provenance(&prov)
+                .launch(Launch::Activity { script: None })
+                .effects(&[if strategy == "rebase" { "local commits are replayed on top of the remote" } else { "a merge commit joins both histories" }])
+                .reason(Signal::Default, if g.diverged { "history has diverged" } else { "ordinary pull behaviour" }),
         );
     }
+    out.push(
+        Item::new(
+            "git.fetch",
+            "Fetch and prune",
+            Kind::Git,
+            ResultType::Action,
+            tag.clone(),
+        )
+        .summary(&format!(
+            "update remote refs of {root_short} and drop deleted branches · nothing local changes"
+        ))
+        .exec(vec![cmd(
+            w,
+            "git",
+            &["-C", &g.path, "fetch", "--prune"],
+            &g.path,
+        )])
+        .effect(Effect::GitFetch(g.path.clone()))
+        .keywords(&["git", "fetch", "prune", "remote"])
+        .group("Git")
+        .risk(Risk::Mutating)
+        .freshness(fresh.clone())
+        .provenance(&prov)
+        .launch(Launch::Activity { script: None })
+        .reason(Signal::Default, "available"),
+    );
+    let mut push = Item::new(
+        "git.push",
+        "Push",
+        Kind::Git,
+        ResultType::Action,
+        tag.clone(),
+    )
+    .summary(&format!(
+        "push {branch} of {root_short} to {}",
+        g.upstream.clone().unwrap_or("its upstream".into())
+    ))
+    .exec(vec![cmd(w, "git", &["-C", &g.path, "push"], &g.path)])
+    .effect(Effect::GitPush(g.path.clone()))
+    .keywords(&["git", "push", "upload", "ahead"])
+    .group("Git")
+    .risk(Risk::Mutating)
+    .confirm(Confirmation::One)
+    .freshness(fresh.clone())
+    .provenance(&prov)
+    .launch(Launch::Activity { script: None })
+    .alt("Push dry run", "git.push_dry");
+    push = if g.ahead > 0 {
+        push.reason(Signal::Context, &format!("{} commits ahead", g.ahead))
+            .effects(&[&format!("{} commits reach the remote", g.ahead)])
+    } else if g.upstream.is_none() {
+        push.reason(Signal::Default, "no upstream · push will fail and say so")
+    } else {
+        push.reason(Signal::Default, "nothing to push")
+    };
+    if let Some(r) = &g.push_rejected {
+        push = push.effects(&[&format!("the remote rejects it ({r}) · nothing changes")]);
+    }
+    out.push(push);
+    out.push(
+        Item::new(
+            "git.push_dry",
+            "Push dry run",
+            Kind::Git,
+            ResultType::Action,
+            tag.clone(),
+        )
+        .summary("show what a push would send")
+        .exec(vec![cmd(
+            w,
+            "git",
+            &["-C", &g.path, "push", "--dry-run"],
+            &g.path,
+        )])
+        .keywords(&["git", "push", "dry"])
+        .group("Git")
+        .freshness(fresh.clone())
+        .launch(Launch::Activity { script: None })
+        .reason(Signal::Default, "read-only"),
+    );
     if g.branch.as_deref() != Some(g.primary.as_str()) {
         let mut sw = Item::new(
             "git.switch_primary",
@@ -656,7 +1041,13 @@ fn git_here_items(w: &World, g: &crate::domain::stack::GitState, out: &mut Vec<I
             "switch {root_short} to its resolved primary branch {}",
             g.primary
         ))
-        .commands(&[&format!("git -C {} switch {}", g.path, g.primary)])
+        .exec(vec![cmd(
+            w,
+            "git",
+            &["-C", &g.path, "switch", &g.primary],
+            &g.path,
+        )])
+        .effect(Effect::GitSwitch(g.path.clone(), g.primary.clone()))
         .keywords(&[
             "git",
             "checkout main",
@@ -668,12 +1059,15 @@ fn git_here_items(w: &World, g: &crate::domain::stack::GitState, out: &mut Vec<I
         .group("Git")
         .risk(Risk::Mutating)
         .freshness(fresh.clone())
-        .launch(Launch::Activity {
-            script: format!("generic:git -C {} switch {}", g.path, g.primary),
-        })
+        .provenance(&prov)
+        .launch(Launch::Activity { script: None })
         .reason(
             Signal::Context,
-            &format!("primary branch resolves to {}", g.primary),
+            &format!(
+                "primary branch resolves to {} ({})",
+                g.primary,
+                g.default_from.unwrap_or("no default")
+            ),
         );
         if let Some(r) = g.block_reason() {
             sw = sw
@@ -682,11 +1076,87 @@ fn git_here_items(w: &World, g: &crate::domain::stack::GitState, out: &mut Vec<I
         }
         out.push(sw);
     }
+    // hygiene: only when the primary branch resolves (OP10)
+    if g.default_from.is_some() && g.command_failure.is_none() {
+        let (cands, total) = g.merged_candidates();
+        out.push(
+            Item::new(
+                "git.gc",
+                "Garbage-collect the repository",
+                Kind::Git,
+                ResultType::Action,
+                tag.clone(),
+            )
+            .summary(&format!(
+                "git gc in {root_short} · packs objects, no aggressive flag"
+            ))
+            .exec(vec![cmd(w, "git", &["-C", &g.path, "gc"], &g.path)])
+            .effect(Effect::GitGc(g.path.clone()))
+            .keywords(&["git", "gc", "hygiene", "pack", "garbage"])
+            .group("Git")
+            .risk(Risk::Mutating)
+            .freshness(fresh.clone())
+            .provenance(&prov)
+            .launch(Launch::Activity { script: None })
+            .reason(
+                Signal::Default,
+                if g.gc_needed {
+                    "loose objects piling up"
+                } else {
+                    "available"
+                },
+            ),
+        );
+        if !cands.is_empty() {
+            let mut args: Vec<&str> = vec!["-C", &g.path, "branch", "-d", "--"];
+            args.extend(cands.iter().map(String::as_str));
+            let title = if total > cands.len() {
+                format!("Delete {} of {total} merged branches", cands.len())
+            } else {
+                format!("Delete {} merged branches", cands.len())
+            };
+            out.push(
+                Item::new("git.delete_merged", &title, Kind::Git, ResultType::Action, tag.clone())
+                    .summary(&format!("branches merged into {} · {} · safe deletion only (-d): Git refuses unmerged or checked-out branches", g.primary, cands.join(", ")))
+                    .exec(vec![cmd(w, "git", &args, &g.path)])
+                    .effect(Effect::GitDeleteBranches(g.path.clone(), cands.clone()))
+                    .effects(&[&format!("{} branch refs removed · reflog keeps the commits · never -D", cands.len())])
+                    .keywords(&["git", "branch", "delete", "merged", "hygiene", "cleanup"])
+                    .group("Git")
+                    .risk(Risk::Destructive)
+                    .confirm(Confirmation::One)
+                    .freshness(fresh.clone())
+                    .provenance(&prov)
+                    .launch(Launch::Activity { script: None })
+                    .reason(Signal::Context, &format!("{total} merged into {}", g.primary)),
+            );
+        }
+    } else if g.command_failure.is_some() {
+        out.push(
+            Item::new("git.hygiene_unavailable", "Git hygiene", Kind::Git, ResultType::Resource, tag.clone())
+                .summary(&format!("git could not resolve the repository ({}) · fetch, gc and branch cleanup are hidden until it can", g.command_failure.clone().unwrap_or_default()))
+                .keywords(&["git", "hygiene"])
+                .group("Git")
+                .freshness(Freshness::Unavailable(g.command_failure.clone().unwrap_or_default()))
+                .launch(Launch::Snapshot { snapshot: "git".into() })
+                .reason(Signal::Default, "unavailable"),
+        );
+    } else {
+        out.push(
+            Item::new("git.hygiene_unavailable", "Git hygiene · no default branch", Kind::Git, ResultType::Resource, tag.clone())
+                .summary("origin/HEAD is unset and neither main nor master exists · merged-branch review needs a default branch")
+                .keywords(&["git", "hygiene", "default", "branch"])
+                .group("Git")
+                .freshness(Freshness::Unavailable("no default branch".into()))
+                .launch(Launch::Snapshot { snapshot: "git".into() })
+                .reason(Signal::Default, "unavailable"),
+        );
+    }
     if g.in_progress.is_some() || g.conflicts > 0 {
         out.push(
             Item::new("git.tui", "Resolve the rebase in lazygit", Kind::Git, ResultType::Handoff, tag.clone())
                 .summary("conflict and history work goes to the specialist Git TUI; holla returns when it exits")
-                .commands(&[&format!("lazygit -p {}", g.path)])
+                .exec(vec![cmd(w, "lazygit", &["-p", &g.path], &g.path)])
                 .keywords(&["git", "rebase", "conflicts", "lazygit", "resolve", "merge"])
                 .group("Git")
                 .freshness(fresh.clone())
@@ -703,7 +1173,7 @@ fn git_here_items(w: &World, g: &crate::domain::stack::GitState, out: &mut Vec<I
                 tag.clone(),
             )
             .summary("history, staging and rebasing in the specialist Git TUI")
-            .commands(&[&format!("lazygit -p {}", g.path)])
+            .exec(vec![cmd(w, "lazygit", &["-p", &g.path], &g.path)])
             .keywords(&["git", "lazygit", "history", "stage", "commit"])
             .group("Git")
             .launch(Launch::Handoff {
@@ -722,7 +1192,12 @@ fn git_here_items(w: &World, g: &crate::domain::stack::GitState, out: &mut Vec<I
                 tag.clone(),
             )
             .summary("list stashed changes")
-            .commands(&[&format!("git -C {} stash list", g.path)])
+            .exec(vec![cmd(
+                w,
+                "git",
+                &["-C", &g.path, "stash", "list"],
+                &g.path,
+            )])
             .keywords(&["git", "stash"])
             .group("Git")
             .launch(Launch::Snapshot {
@@ -739,53 +1214,232 @@ fn git_children_items(w: &World, out: &mut Vec<Item>) {
         .git
         .iter()
         .filter(|x| Some(&x.path) != here.as_ref())
+        .filter(|x| x.path.starts_with(&format!("{}/", w.location.cwd)))
         .collect();
-    if !children.is_empty() {
-        let dirty = children.iter().filter(|x| x.dirty()).count();
-        let behind = children.iter().filter(|x| x.behind > 0).count();
-        let n = children.iter().filter(|x| x.worktree_of.is_none()).count();
-        let ctag = ScopeTag::child(&w.location.cwd);
-        out.push(
-            Item::new("git.status_all", &format!("Status across {n} child projects"), Kind::Git, ResultType::Recommendation, ctag.clone())
-                .summary("inspect every discovered Git project in parallel · worktrees deduplicated, submodules marked")
-                .commands(&["git -C <each> status --porcelain=v2 --branch --show-stash"])
-                .keywords(&["git", "status", "children", "projects", "all", "collection", "workspace"])
-                .group("Git")
-                .freshness(freshness(w, "children"))
-                .launch(Launch::Snapshot { snapshot: "git-all".into() })
-                .reason(Signal::Urgency, &format!("{dirty} dirty · {behind} behind")),
-        );
-        out.push(
-            Item::new("git.pull_all", "Pull every child project", Kind::Plan, ResultType::Flow, ctag.clone())
-                .summary("fast-forward-only pulls across the eligible projects, as a reviewable plan with exclusions")
-                .commands(&["git -C <each> pull --ff-only"])
-                .keywords(&["git", "pull", "sync projects", "all", "children", "synchronize"])
-                .group("Git")
-                .risk(Risk::Mutating)
-                .confirm(Confirmation::One)
-                .launch(Launch::Plan { plan: "git-pull-all".into() })
-                .reason(Signal::Context, &format!("{behind} projects behind · {dirty} blocked by local changes")),
-        );
-        out.push(
-            Item::new("git.switch_all", "Switch every project to its primary branch", Kind::Plan, ResultType::Flow, ctag)
-                .summary("resolve each project's primary branch (main, master, develop…) and switch the eligible ones")
-                .commands(&["git -C <each> switch <primary>"])
-                .keywords(&["git", "checkout main", "checkout master", "switch to default", "switch to primary branch", "children"])
-                .group("Git")
-                .risk(Risk::Mutating)
-                .confirm(Confirmation::One)
-                .launch(Launch::Plan { plan: "git-switch-primary".into() })
-                .reason(Signal::Default, "primary branch resolved per project, never hard-coded"),
-        );
+    if children.is_empty() || w.location.children.is_empty() {
+        return;
     }
+    let dirty = children.iter().filter(|x| x.dirty()).count();
+    let behind = children.iter().filter(|x| x.behind > 0).count();
+    let n = children.iter().filter(|x| x.worktree_of.is_none()).count();
+    let ctag = ScopeTag::child(&w.location.cwd);
+    let statuses: Vec<Command> = children
+        .iter()
+        .map(|g| {
+            cmd(
+                w,
+                "git",
+                &["-C", &g.path, "status", "--porcelain=v2", "--branch"],
+                &g.path,
+            )
+        })
+        .collect();
+    out.push(
+        Item::new(
+            "git.status_all",
+            &format!("Status across {n} child projects"),
+            Kind::Git,
+            ResultType::Recommendation,
+            ctag.clone(),
+        )
+        .summary("inspect every discovered Git project · worktrees deduplicated, submodules marked")
+        .exec(statuses)
+        .keywords(&[
+            "git",
+            "status",
+            "children",
+            "projects",
+            "all",
+            "collection",
+            "workspace",
+        ])
+        .group("Git")
+        .freshness(freshness(w, "children"))
+        .launch(Launch::Snapshot {
+            snapshot: "git-all".into(),
+        })
+        .reason(Signal::Urgency, &format!("{dirty} dirty · {behind} behind")),
+    );
+    out.push(
+        Item::new("git.pull_all", "Pull every child project", Kind::Plan, ResultType::Flow, ctag.clone())
+            .summary("fast-forward-only pulls across the eligible projects, as a reviewable plan with exclusions")
+            .exec(children.iter().map(|g| cmd(w, "git", &["-C", &g.path, "pull", "--ff-only"], &g.path)).collect())
+            .keywords(&["git", "pull", "sync projects", "all", "children", "synchronize"])
+            .group("Git")
+            .risk(Risk::Mutating)
+            .confirm(Confirmation::One)
+            .launch(Launch::Plan { plan: "git-pull-all".into() })
+            .reason(Signal::Context, &format!("{behind} projects behind · {dirty} blocked by local changes")),
+    );
+    out.push(
+        Item::new("git.switch_all", "Switch every project to its primary branch", Kind::Plan, ResultType::Flow, ctag)
+            .summary("resolve each project's primary branch (main, master, develop…) and switch the eligible ones")
+            .exec(children.iter().map(|g| cmd(w, "git", &["-C", &g.path, "switch", &g.primary], &g.path)).collect())
+            .keywords(&["git", "checkout main", "checkout master", "switch to default", "switch to primary branch", "children"])
+            .group("Git")
+            .risk(Risk::Mutating)
+            .confirm(Confirmation::One)
+            .launch(Launch::Plan { plan: "git-switch-primary".into() })
+            .reason(Signal::Default, "primary branch resolved per project, never hard-coded"),
+    );
+}
+
+/// Immediate child repositories of cwd (OP05): sorted names, more than one
+/// required for the batch group.
+fn sibling_repos(w: &World) -> Vec<&crate::domain::stack::GitState> {
+    let cwd = &w.location.cwd;
+    let mut v: Vec<&crate::domain::stack::GitState> = w
+        .git
+        .iter()
+        .filter(|g| {
+            crate::sim::fs::Fs::parent(&g.path).as_deref() == Some(cwd.as_str())
+                && (w.fs.exists(&format!("{}/.git", g.path)) || true)
+        })
+        .collect();
+    v.sort_by(|a, b| a.name().cmp(b.name()));
+    v
+}
+
+fn git_sibling_items(w: &World, out: &mut Vec<Item>) {
+    let repos = sibling_repos(w);
+    if repos.len() < 2 {
+        return;
+    }
+    let names: Vec<&str> = repos.iter().map(|g| g.name()).collect();
+    let ctag = ScopeTag::child(&w.location.cwd);
+    let count = repos.len();
+    let member =
+        |g: &crate::domain::stack::GitState, label: &str, args: &[&str], effect: Option<Effect>| {
+            (
+                format!("{label} {}", g.name()),
+                vec![cmd(w, "git", args, &g.path)],
+                effect,
+                tag_for_dir(w, &g.path),
+            )
+        };
+    let prov = format!(
+        "built-in · {} immediate repositories under {}",
+        count,
+        w.location.cwd_short()
+    );
+    out.push(
+        Item::new(
+            "git.pull-all",
+            &format!("Pull {count} sibling repositories"),
+            Kind::Git,
+            ResultType::Action,
+            ctag.clone(),
+        )
+        .summary(&format!(
+            "git pull in parallel in each of {} · each repository keeps its own output and result",
+            names.join(", ")
+        ))
+        .batch(
+            BatchMode::Parallel,
+            repos
+                .iter()
+                .map(|g| {
+                    member(
+                        g,
+                        "pull",
+                        &["-C", &g.path, "pull"],
+                        Some(Effect::GitPull(g.path.clone())),
+                    )
+                })
+                .collect(),
+        )
+        .keywords(&["git", "pull", "all", "siblings", "repositories", "batch"])
+        .group("Git")
+        .risk(Risk::Mutating)
+        .confirm(Confirmation::One)
+        .provenance(&prov)
+        .reason(Signal::Context, &format!("{count} repositories here")),
+    );
+    out.push(
+        Item::new("git.push-all", &format!("Push {count} sibling repositories"), Kind::Git, ResultType::Action, ctag.clone())
+            .summary(&format!("git push in parallel in each of {} · rejections and missing upstreams are reported per repository", names.join(", ")))
+            .batch(BatchMode::Parallel, repos.iter().map(|g| member(g, "push", &["-C", &g.path, "push"], Some(Effect::GitPush(g.path.clone())))).collect())
+            .keywords(&["git", "push", "all", "siblings", "batch"])
+            .group("Git")
+            .risk(Risk::Mutating)
+            .confirm(Confirmation::One)
+            .provenance(&prov)
+            .reason(Signal::Default, "available"),
+    );
+    out.push(
+        Item::new(
+            "git.status-all",
+            &format!("Short status of {count} sibling repositories"),
+            Kind::Git,
+            ResultType::Action,
+            ctag.clone(),
+        )
+        .summary("git status --short in each repository, one after another")
+        .batch(
+            BatchMode::Sequential,
+            repos
+                .iter()
+                .map(|g| member(g, "status", &["-C", &g.path, "status", "--short"], None))
+                .collect(),
+        )
+        .keywords(&["git", "status", "all", "siblings", "batch"])
+        .group("Git")
+        .provenance(&prov)
+        .reason(Signal::Default, "read-only"),
+    );
+    let mut members = vec![];
+    let mut mirrored = 0;
+    for g in &repos {
+        members.push(member(
+            g,
+            "push origin ·",
+            &["-C", &g.path, "push", "origin"],
+            Some(Effect::GitPushRemote(g.path.clone(), "origin".into())),
+        ));
+        if g.has_remote("gitlab") {
+            mirrored += 1;
+            members.push(member(
+                g,
+                "push gitlab ·",
+                &["-C", &g.path, "push", "gitlab"],
+                Some(Effect::GitPushRemote(g.path.clone(), "gitlab".into())),
+            ));
+        } else {
+            members.push((
+                format!("push gitlab · {} (no gitlab remote)", g.name()),
+                vec![Command::internal(
+                    "skipped: no gitlab remote",
+                    &g.path,
+                    &w.host.name,
+                )],
+                None,
+                tag_for_dir(w, &g.path),
+            ));
+        }
+    }
+    out.push(
+        Item::new("git.push-all-remotes", &format!("Push {count} repositories to origin and GitLab"), Kind::Git, ResultType::Action, ctag)
+            .summary(&format!("push origin always; push gitlab where `git remote get-url gitlab` succeeds ({mirrored} of {count}) · no other remote is pushed"))
+            .batch(BatchMode::Parallel, members)
+            .keywords(&["git", "push", "gitlab", "mirror", "remotes", "batch"])
+            .group("Git")
+            .risk(Risk::Mutating)
+            .confirm(Confirmation::One)
+            .provenance(&prov)
+            .effects(&[&format!("origin in {count} repositories · gitlab in {mirrored}")])
+            .reason(Signal::Default, &format!("{mirrored} repositories have a gitlab remote")),
+    );
 }
 
 fn github_items(w: &World, out: &mut Vec<Item>) {
+    if !w.tools.contains("gh") {
+        return;
+    }
     if w.github.logged_in {
         out.push(
             Item::new("github.clone", "Clone a GitHub repository…", Kind::Git, ResultType::Action, ScopeTag::here(&w.location.cwd))
                 .summary(&format!("choose a repository from {} or its organizations, review owner, protocol, destination and primary branch, then clone", w.github.account))
-                .commands(&["gh repo clone <owner>/<repository> <destination>", "gh auth status --active", "gh org list --limit 100", "gh repo list <owner> --limit 100 --no-archived"])
+                .exec(vec![cmd(w, "gh", &["repo", "clone", "<owner>/<repository>", "<destination>"], &w.location.cwd)])
                 .keywords(&["clone", "github", "gh", "repository", "checkout"])
                 .group("Git")
                 .risk(Risk::Mutating)
@@ -801,7 +1455,7 @@ fn github_items(w: &World, out: &mut Vec<Item>) {
                     ArgSpec::choice("protocol", &["ssh", "https"], 0),
                     ArgSpec::text("destination", "folder", &w.location.cwd_short()).help("never overwrites an existing folder"),
                 ])
-                .launch(Launch::Activity { script: "generic:gh repo clone".into() })
+                .launch(Launch::Activity { script: None })
                 .reason(Signal::Default, &format!("logged in as {}", w.github.account)),
         );
     } else if let SourceState::Failed(r) = w.source_state("github") {
@@ -814,7 +1468,7 @@ fn github_items(w: &World, out: &mut Vec<Item>) {
                 ScopeTag::here(&w.location.cwd),
             )
             .summary("cloning needs an active gh login")
-            .commands(&["gh auth login"])
+            .exec(vec![cmd(w, "gh", &["auth", "login"], &w.location.cwd)])
             .keywords(&["clone", "github", "gh"])
             .group("Git")
             .freshness(Freshness::Unavailable(r))
@@ -824,67 +1478,87 @@ fn github_items(w: &World, out: &mut Vec<Item>) {
     }
 }
 
+// ------------------------------------------------------------------ cargo
+
 fn rust_items(w: &World, out: &mut Vec<Item>) {
+    let cwd = w.location.cwd.clone();
+    // legacy: the manifest must be in cwd and cargo on PATH
+    let manifest_here = w.fs.exists(&format!("{cwd}/Cargo.toml"));
     let Some(p) = &w.location.project else {
         return;
     };
     let crate::domain::context::ProjectKind::Rust { workspace, member } = &p.kind else {
         return;
     };
+    if !w.tools.contains("cargo") {
+        return;
+    }
     let tag = tag_for_dir(w, &p.root);
-    let ws = if *workspace { " --workspace" } else { "" };
+    let ws = *workspace;
     let fresh = freshness(w, "cargo");
-    let mut push = |id: &str, label: &str, cmd: &str, summary: &str, kw: &[&str], risk: Risk| {
-        out.push(
-            Item::new(id, label, Kind::Rust, ResultType::Action, tag.clone())
-                .summary(summary)
-                .commands(&[cmd])
-                .keywords(kw)
-                .group("Tasks")
-                .risk(risk)
-                .freshness(fresh.clone())
-                .launch(Launch::Activity {
-                    script: format!("generic:{cmd}"),
-                })
-                .reason(Signal::Context, "Cargo.toml here"),
-        );
+    let run_dir = if manifest_here {
+        cwd.clone()
+    } else {
+        p.root.clone()
     };
-    push(
-        "cargo.check",
-        "cargo check",
-        &format!("cargo check{ws}"),
-        "type-check every target without producing binaries",
-        &["cargo", "check", "compile", "build"],
-        Risk::ReadOnly,
-    );
+    let prov = format!("built-in · Cargo.toml in {}", w.location.short(&run_dir));
+    let mut push =
+        |id: &str, label: &str, args: &[&str], summary: &str, kw: &[&str], risk: Risk| {
+            out.push(
+                Item::new(id, label, Kind::Rust, ResultType::Action, tag.clone())
+                    .summary(summary)
+                    .exec(vec![cmd(w, "cargo", args, &run_dir)])
+                    .keywords(kw)
+                    .group("Tasks")
+                    .risk(risk)
+                    .freshness(fresh.clone())
+                    .provenance(&prov)
+                    .launch(Launch::Activity { script: None })
+                    .reason(Signal::Context, "Cargo.toml here"),
+            );
+        };
+    let ws_flag: Vec<&'static str> = if ws { vec!["--workspace"] } else { vec![] };
+    let with = |base: &[&'static str]| -> Vec<&'static str> {
+        let mut v: Vec<&'static str> = base.to_vec();
+        v.extend(ws_flag.iter().copied());
+        v
+    };
     push(
         "cargo.build",
         "cargo build",
-        &format!("cargo build{ws}"),
-        "build the debug profile",
+        &with(&["build"]),
+        "build the debug profile · compiler diagnostics stay in the activity",
         &["cargo", "build", "compile"],
-        Risk::ReadOnly,
+        Risk::Mutating,
     );
     push(
         "cargo.test",
         "cargo test",
-        &format!("cargo test{ws}"),
-        "run the tests with the built-in harness",
+        &with(&["test"]),
+        "run the tests with the built-in harness · failures are named",
         &["cargo", "test", "tests"],
-        Risk::ReadOnly,
+        Risk::Mutating,
     );
     push(
         "cargo.clippy",
         "cargo clippy",
-        &format!("cargo clippy{ws} --all-targets -- -D warnings"),
-        "lint every target with warnings denied",
+        &["clippy", "--all-targets", "--all-features"],
+        "lint every target and feature · warnings do not fail the run",
         &["cargo", "clippy", "lint"],
+        Risk::Mutating,
+    );
+    push(
+        "cargo.check",
+        "cargo check",
+        &with(&["check"]),
+        "type-check every target without producing binaries",
+        &["cargo", "check", "compile"],
         Risk::ReadOnly,
     );
     push(
         "cargo.fmt",
         "cargo fmt --check",
-        "cargo fmt --all -- --check",
+        &["fmt", "--all", "--", "--check"],
         "check formatting",
         &["cargo", "fmt", "format"],
         Risk::ReadOnly,
@@ -893,52 +1567,112 @@ fn rust_items(w: &World, out: &mut Vec<Item>) {
         push(
             "cargo.run",
             &format!("cargo run -p {m}"),
-            &format!("cargo run -p {m}"),
+            &["run", "-p", m],
             "run the member this folder belongs to",
             &["cargo", "run"],
-            Risk::ReadOnly,
+            Risk::Mutating,
         );
     }
-    if let Some(c) = w
-        .disk
-        .candidates
-        .iter()
-        .find(|c| c.path == format!("{}/target", p.root))
-    {
-        out.push(
-            Item::new("cargo.clean", &format!("cargo clean · {:.1} GB", c.gb), Kind::Cleanup, ResultType::Action, tag.clone())
-                .summary(&format!("remove the resolved target directory {} · {} items · regenerated by the next build", w.location.short(&c.path), c.items))
-                .commands(&["cargo clean --dry-run --verbose", "cargo clean"])
-                .effects(&[&format!("{:.1} GB freed · next build recompiles everything", c.gb)])
-                .keywords(&["cargo", "clean", "target", "artifacts", "space"])
-                .group("Disk")
-                .risk(Risk::Destructive)
-                .confirm(Confirmation::One)
-                .launch(Launch::Activity { script: "generic:cargo clean".into() })
-                .reason(Signal::Context, &format!("{:.1} GB generated artifacts", c.gb)),
-        );
+    let cg = &w.cargo;
+    let mut clean = Item::new("cargo.clean", &match cg.target {
+        Some(_) => format!("cargo clean · {}", crate::sim::fs::human(cg.target_bytes)),
+        None => "cargo clean".into(),
+    }, Kind::Cleanup, ResultType::Action, tag.clone())
+        .summary(&match &cg.target {
+            Some(t) => format!("remove the resolved target directory {} · {} files · tool-native permanent removal, not Trash · rebuilt by the next build", w.location.short(t), cg.target_files),
+            None => "no target directory resolved · cargo clean would remove nothing".into(),
+        })
+        .exec(vec![cmd(w, "cargo", &["clean"], &run_dir)])
+        .keywords(&["cargo", "clean", "target", "artifacts", "space"])
+        .group("Disk")
+        .risk(Risk::Destructive)
+        .confirm(Confirmation::One)
+        .freshness(fresh.clone())
+        .provenance(&prov)
+        .launch(Launch::Activity { script: None })
+        .alt("Show what clean would remove (dry run)", "cargo.clean_dry")
+        .reason(Signal::Context, &match &cg.target {
+            Some(_) => format!("{} of generated artifacts", crate::sim::fs::human(cg.target_bytes)),
+            None => "nothing to remove".into(),
+        });
+    if let Some(t) = &cg.target {
+        clean = clean.effect(Effect::CargoClean(t.clone()));
+        let mut effects = vec![format!(
+            "{} freed by cargo itself · permanent · next build recompiles everything",
+            crate::sim::fs::human(cg.target_bytes)
+        )];
+        if let Some(s) = &cg.target_shared_with {
+            effects.push(format!("shared target: {s} loses its artifacts too"));
+        }
+        if !t.starts_with(&run_dir) {
+            effects.push(format!(
+                "custom target directory outside the project: {}",
+                w.location.short(t)
+            ));
+        }
+        let e: Vec<&str> = effects.iter().map(String::as_str).collect();
+        clean = clean.effects(&e);
     }
+    out.push(clean);
+    out.push(
+        Item::new(
+            "cargo.clean_dry",
+            "cargo clean dry run",
+            Kind::Rust,
+            ResultType::Action,
+            tag,
+        )
+        .summary("list what cargo clean would remove · nothing is deleted")
+        .exec(vec![cmd(
+            w,
+            "cargo",
+            &["clean", "--dry-run", "--verbose"],
+            &run_dir,
+        )])
+        .keywords(&["cargo", "clean", "dry"])
+        .group("Disk")
+        .freshness(fresh)
+        .launch(Launch::Activity { script: None })
+        .reason(Signal::Default, "read-only"),
+    );
 }
 
+// ------------------------------------------------------------------ docker
+
 fn docker_items(w: &World, out: &mut Vec<Item>) {
+    if !w.tools.contains("docker") || !source_ready(w, "docker") {
+        return;
+    }
     let d = &w.docker;
     let htag = host_tag(w);
     let fresh = freshness(w, "docker");
+    let cwd = w.location.cwd.clone();
+    let compose_file = [
+        "docker-compose.yml",
+        "docker-compose.yaml",
+        "compose.yml",
+        "compose.yaml",
+    ]
+    .into_iter()
+    .find(|f| w.fs.exists(&format!("{cwd}/{f}")))
+    .map(|f| format!("{cwd}/{f}"));
     if let Err(reason) = &d.daemon {
-        // no docker at all is an absent capability, not a failed one
-        if reason.contains("not installed") {
-            return;
-        }
         out.push(
-            Item::new("docker.daemon", "Docker", Kind::Docker, ResultType::Resource, htag)
+            Item::new("docker.daemon", "Docker", Kind::Docker, ResultType::Resource, htag.clone())
                 .summary("the Docker daemon could not be reached; container actions are unavailable until it is")
-                .commands(&["docker info"])
+                .exec(vec![cmd(w, "docker", &["info"], &cwd)])
                 .keywords(&["docker", "containers", "daemon"])
                 .group("Services")
                 .freshness(Freshness::Unavailable(reason.clone()))
                 .launch(Launch::Snapshot { snapshot: "docker-unavailable".into() })
                 .reason(Signal::Default, "capability present, daemon unreachable"),
         );
+        // the executable alone enables the legacy system actions; they will
+        // fail truthfully against the daemon
+        docker_system_items(w, out, &htag, &fresh);
+        if let Some(f) = compose_file {
+            docker_compose_items(w, out, &f);
+        }
         return;
     }
     out.push(
@@ -954,7 +1688,7 @@ fn docker_items(w: &World, out: &mut Vec<Item>) {
             d.containers.len(),
             d.running()
         ))
-        .commands(&["docker ps -a --size"])
+        .exec(vec![cmd(w, "docker", &["ps", "-a", "--size"], &cwd)])
         .keywords(&["docker", "containers", "ps", "list", "running"])
         .group("Services")
         .freshness(fresh.clone())
@@ -972,7 +1706,7 @@ fn docker_items(w: &World, out: &mut Vec<Item>) {
             htag.clone(),
         )
         .summary("images, containers, volumes and build cache with reclaimable space")
-        .commands(&["docker system df", "docker system df -v"])
+        .exec(vec![cmd(w, "docker", &["system", "df"], &cwd)])
         .keywords(&["docker", "disk", "space", "usage", "df", "reclaimable"])
         .group("Services")
         .freshness(fresh.clone())
@@ -1001,7 +1735,12 @@ fn docker_items(w: &World, out: &mut Vec<Item>) {
             c.image,
             if c.running { "running" } else { "exited" }
         ))
-        .commands(&[&format!("docker logs -f --since 10m {}", c.name)])
+        .exec(vec![cmd(
+            w,
+            "docker",
+            &["logs", "-f", "--since", "10m", &c.name],
+            &cwd,
+        )])
         .keywords(&[
             "docker",
             "logs",
@@ -1014,9 +1753,9 @@ fn docker_items(w: &World, out: &mut Vec<Item>) {
         .freshness(fresh.clone())
         .launch(Launch::Activity {
             script: if c.name == "acme-api-1" {
-                "docker:logs-api".into()
+                Some("docker:logs-api".into())
             } else {
-                format!("generic:docker logs -f --since 10m {}", c.name)
+                None
             },
         })
         .alt("Restart", &format!("docker.restart.{}", c.name))
@@ -1027,38 +1766,172 @@ fn docker_items(w: &World, out: &mut Vec<Item>) {
             _ => item.reason(Signal::Default, "exited"),
         };
         out.push(item);
+        out.push(
+            Item::new(
+                &format!("docker.restart.{}", c.name),
+                &format!("Restart {}", c.name),
+                Kind::Docker,
+                ResultType::Action,
+                htag.clone(),
+            )
+            .summary(&format!(
+                "docker restart {} · the container comes back and its health is re-observed",
+                c.name
+            ))
+            .exec(vec![cmd(w, "docker", &["restart", &c.name], &cwd)])
+            .effect(Effect::DockerRestart(c.name.clone()))
+            .keywords(&["docker", "restart", &c.name])
+            .group("Services")
+            .risk(Risk::Mutating)
+            .confirm(Confirmation::One)
+            .freshness(fresh.clone())
+            .launch(Launch::Activity { script: None })
+            .reason(Signal::Default, "container action"),
+        );
+        out.push(
+            Item::new(
+                &format!("docker.stop.{}", c.name),
+                &format!("Stop {}", c.name),
+                Kind::Docker,
+                ResultType::Action,
+                htag.clone(),
+            )
+            .summary(&format!(
+                "docker stop {} · graceful stop with the default 10 s timeout · nothing is removed",
+                c.name
+            ))
+            .exec(vec![cmd(w, "docker", &["stop", &c.name], &cwd)])
+            .effect(Effect::DockerStop(c.name.clone()))
+            .keywords(&["docker", "stop", &c.name])
+            .group("Services")
+            .risk(Risk::Mutating)
+            .confirm(Confirmation::One)
+            .freshness(fresh.clone())
+            .launch(Launch::Activity { script: None })
+            .reason(Signal::Default, "container action"),
+        );
     }
-    if let Some(comp) = &d.compose {
-        let ctag = tag_for_dir(w, &comp.dir);
-        let app_services: Vec<&str> = comp
-            .services
-            .iter()
-            .filter(|s| !matches!(s.as_str(), "db" | "redis"))
-            .map(|s| s.as_str())
-            .collect();
+    if let Some(f) = compose_file {
+        docker_compose_items(w, out, &f);
+    }
+    docker_system_items(w, out, &htag, &fresh);
+}
+
+fn docker_compose_items(w: &World, out: &mut Vec<Item>, file: &str) {
+    let d = &w.docker;
+    let dir = crate::sim::fs::Fs::parent(file).unwrap_or(w.location.cwd.clone());
+    let ctag = tag_for_dir(w, &dir);
+    let fresh = freshness(w, "docker");
+    let name = d
+        .compose
+        .as_ref()
+        .map(|c| c.name.clone())
+        .unwrap_or_else(|| dir.rsplit('/').next().unwrap_or("compose").to_owned());
+    let prov = format!(
+        "built-in · {} · daemon and plugin are not checked at discovery",
+        w.location.short(file)
+    );
+    let services: Vec<String> = d
+        .compose
+        .as_ref()
+        .map(|c| c.services.clone())
+        .unwrap_or_default();
+    let app_services: Vec<&str> = services
+        .iter()
+        .filter(|s| !matches!(s.as_str(), "db" | "redis"))
+        .map(String::as_str)
+        .collect();
+    if !app_services.is_empty() {
+        let mut args = vec!["compose", "logs", "-f", "--tail", "200"];
+        args.extend(app_services.iter().copied());
         out.push(
             Item::new("docker.compose_logs", &format!("Follow logs from {}", app_services.join(", ")), Kind::Docker, ResultType::Action, ctag.clone())
-                .summary(&format!("project-aware multi-service logs of Compose project {} · each stream keeps its identity", comp.name))
-                .commands(&[&format!("docker compose logs -f --tail 200 {}", app_services.join(" "))])
+                .summary(&format!("project-aware multi-service logs of Compose project {name} · each stream keeps its identity"))
+                .exec(vec![cmd(w, "docker", &args, &dir)])
                 .keywords(&["docker", "compose", "logs", "service logs", "follow", "api", "worker", "scheduler"])
                 .group("Services")
                 .freshness(fresh.clone())
-                .launch(Launch::Activity { script: "logs:acme".into() })
-                .reason(Signal::Context, &format!("Compose project {} defined here", comp.name)),
+                .provenance(&prov)
+                .launch(Launch::Activity { script: Some("logs:acme".into()) })
+                .reason(Signal::Context, &format!("Compose project {name} defined here")),
         );
+    }
+    out.push(
+        Item::new(
+            "compose.logs",
+            "Show recent Compose logs",
+            Kind::Docker,
+            ResultType::Action,
+            ctag.clone(),
+        )
+        .summary(&format!(
+            "docker compose logs --tail 200 for project {name} · a finite snapshot, no follow"
+        ))
+        .exec(vec![cmd(
+            w,
+            "docker",
+            &["compose", "logs", "--tail", "200"],
+            &dir,
+        )])
+        .keywords(&["docker", "compose", "logs", "recent", "tail"])
+        .group("Services")
+        .freshness(fresh.clone())
+        .provenance(&prov)
+        .launch(Launch::Activity { script: None })
+        .reason(Signal::Default, "read-only"),
+    );
+    out.push(
+        Item::new(
+            "compose.up",
+            "Start the Compose project",
+            Kind::Docker,
+            ResultType::Action,
+            ctag.clone(),
+        )
+        .summary(&format!(
+            "docker compose up -d for project {name} · {} services",
+            services.len()
+        ))
+        .exec(vec![cmd(w, "docker", &["compose", "up", "-d"], &dir)])
+        .effect(Effect::ComposeUp)
+        .keywords(&["docker", "compose", "up", "start"])
+        .group("Services")
+        .risk(Risk::Mutating)
+        .confirm(Confirmation::One)
+        .freshness(fresh.clone())
+        .provenance(&prov)
+        .launch(Launch::Activity { script: None })
+        .reason(Signal::Default, "project containers"),
+    );
+    out.push(
+        Item::new("compose.down", "Stop the Compose project", Kind::Docker, ResultType::Action, ctag.clone())
+            .summary(&format!("docker compose down for project {name} · containers and the network are removed · volumes are kept (no --volumes)"))
+            .exec(vec![cmd(w, "docker", &["compose", "down"], &dir)])
+            .effect(Effect::ComposeDown)
+            .effects(&["project containers and network removed · named volumes stay"])
+            .keywords(&["docker", "compose", "down", "stop"])
+            .group("Services")
+            .risk(Risk::Mutating)
+            .confirm(Confirmation::One)
+            .freshness(fresh.clone())
+            .provenance(&prov)
+            .launch(Launch::Activity { script: None })
+            .reason(Signal::Default, "project containers only"),
+    );
+    if d.compose.is_some() {
         out.push(
             Item::new(
                 "docker.compose_ps",
                 "Show Compose services",
                 Kind::Docker,
                 ResultType::Resource,
-                ctag.clone(),
+                ctag,
             )
-            .summary(&format!("services of {} with state and health", comp.name))
-            .commands(&["docker compose ps --all"])
+            .summary(&format!("services of {name} with state and health"))
+            .exec(vec![cmd(w, "docker", &["compose", "ps", "--all"], &dir)])
             .keywords(&["docker", "compose", "services", "health"])
             .group("Services")
-            .freshness(fresh.clone())
+            .freshness(fresh)
             .launch(Launch::Snapshot {
                 snapshot: "compose-ps".into(),
             })
@@ -1067,35 +1940,28 @@ fn docker_items(w: &World, out: &mut Vec<Item>) {
                 &format!("{} unhealthy", d.unhealthy().len()),
             ),
         );
-        out.push(
-            Item::new(
-                "docker.compose_down",
-                "Stop the Compose project",
-                Kind::Docker,
-                ResultType::Action,
-                ctag,
-            )
-            .summary(&format!(
-                "stop and remove the containers of {} · volumes are kept",
-                comp.name
-            ))
-            .commands(&["docker compose stop", "docker compose down"])
-            .keywords(&["docker", "compose", "down", "stop"])
-            .group("Services")
-            .risk(Risk::Mutating)
-            .confirm(Confirmation::One)
-            .launch(Launch::Activity {
-                script: "generic:docker compose down".into(),
-            })
-            .reason(Signal::Default, "project containers only"),
-        );
     }
+}
+
+fn docker_system_items(w: &World, out: &mut Vec<Item>, htag: &ScopeTag, fresh: &Freshness) {
+    let d = &w.docker;
+    let cwd = w.location.cwd.clone();
     let running: Vec<&str> = d
         .containers
         .iter()
         .filter(|c| c.running)
         .map(|c| c.name.as_str())
         .collect();
+    let all: Vec<&str> = d.containers.iter().map(|c| c.name.as_str()).collect();
+    let ids = |names: &[&str]| -> Vec<Command> {
+        if names.is_empty() {
+            return vec![];
+        }
+        let mut stop = vec!["stop"];
+        stop.extend(names.iter().copied());
+        vec![cmd(w, "docker", &stop, &cwd)]
+    };
+    let prov = "built-in · docker on PATH · IDs captured at review (docker ps -qa)";
     out.push(
         Item::new(
             "docker.stop_all",
@@ -1109,7 +1975,8 @@ fn docker_items(w: &World, out: &mut Vec<Item>) {
             running.len(),
             w.host.name
         ))
-        .commands(&[&format!("docker stop {}", running.join(" "))])
+        .exec(ids(&running))
+        .effect(Effect::DockerStopAll)
         .effects(&[&format!(
             "{} containers stop · data and images stay",
             running.len()
@@ -1119,27 +1986,34 @@ fn docker_items(w: &World, out: &mut Vec<Item>) {
         .risk(Risk::Mutating)
         .confirm(Confirmation::One)
         .freshness(fresh.clone())
-        .launch(Launch::Activity {
-            script: format!("generic:docker stop {}", running.join(" ")),
-        })
+        .provenance(prov)
+        .launch(Launch::Activity { script: None })
         .reason(
             Signal::Context,
             &format!("{} running on {}", running.len(), w.host.name),
         ),
     );
-    let all: Vec<&str> = d.containers.iter().map(|c| c.name.as_str()).collect();
+    let mut remove_cmds = ids(&running);
+    if !all.is_empty() {
+        let mut rm = vec!["rm"];
+        rm.extend(all.iter().copied());
+        remove_cmds.push(cmd(w, "docker", &rm, &cwd));
+    }
     out.push(
         Item::new("docker.remove_all", "Stop and remove all containers", Kind::Docker, ResultType::Action, htag.clone())
-            .summary(&format!("stop the running containers, then remove every container on {} · images and volumes stay", w.host.name))
-            .commands(&[&format!("docker stop {}", running.join(" ")), &format!("docker rm {}", all.join(" ")), "docker ps -a"])
+            .summary(&format!("stop the running containers, then remove every captured container on {} (running and stopped) · images and volumes stay · rm runs only after stop succeeds", w.host.name))
+            .exec(remove_cmds)
+            .effect(Effect::DockerRemoveAll)
             .effects(&[&format!("{} containers removed · writable layers lost", all.len())])
-            .keywords(&["docker", "remove", "rm", "all", "containers", "reset", "clean", "cleanup"])
+            .keywords(&["docker", "remove", "rm", "all", "containers", "reset", "clean", "cleanup", "stop-all"])
             .group("Services")
             .risk(Risk::Destructive)
             .confirm(Confirmation::TwoGate { phrase: format!("REMOVE ALL CONTAINERS ON {}", w.host.name), broad: false })
             .freshness(fresh.clone())
-            .launch(Launch::Activity { script: format!("generic:docker rm {}", all.join(" ")) })
-            .reason(Signal::Default, &format!("{} containers on {}", all.len(), w.host.name)),
+            .provenance(prov)
+            .launch(Launch::Activity { script: None })
+            .alt("Stop only", "docker.stop_all")
+            .reason(Signal::Default, &if all.is_empty() { "no containers · a successful no-op".to_owned() } else { format!("{} containers on {}", all.len(), w.host.name) }),
     );
     out.push(
         Item::new(
@@ -1153,7 +2027,13 @@ fn docker_items(w: &World, out: &mut Vec<Item>) {
             "remove every image not used by a container · {} images · {:.1} GB",
             d.images, d.images_gb
         ))
-        .commands(&["docker image prune -a"])
+        .exec(vec![cmd(
+            w,
+            "docker",
+            &["image", "prune", "-a", "--force"],
+            &cwd,
+        )])
+        .effect(Effect::DockerImagesPrune)
         .effects(&[&format!(
             "{:.1} GB freed · images re-pull on next use",
             d.images_gb
@@ -1167,9 +2047,8 @@ fn docker_items(w: &World, out: &mut Vec<Item>) {
             phrase: format!("REMOVE ALL IMAGES ON {}", w.host.name),
             broad: false,
         })
-        .launch(Launch::Activity {
-            script: "generic:docker image prune -a".into(),
-        })
+        .provenance(prov)
+        .launch(Launch::Activity { script: None })
         .reason(Signal::Default, &format!("{} dangling", d.dangling_images)),
     );
     out.push(
@@ -1184,65 +2063,105 @@ fn docker_items(w: &World, out: &mut Vec<Item>) {
             "remove custom networks no container uses · {}",
             d.networks
         ))
-        .commands(&["docker network prune"])
+        .exec(vec![cmd(
+            w,
+            "docker",
+            &["network", "prune", "--force"],
+            &cwd,
+        )])
+        .effect(Effect::DockerNetworkPrune)
         .keywords(&["docker", "network", "prune", "clean", "cleanup"])
         .group("Services")
         .risk(Risk::Mutating)
         .confirm(Confirmation::One)
-        .launch(Launch::Activity {
-            script: "generic:docker network prune".into(),
-        })
+        .provenance(prov)
+        .launch(Launch::Activity { script: None })
         .reason(Signal::Default, "available on this host"),
     );
     out.push(
         Item::new("docker.volume_prune", "Prune unused volumes", Kind::Docker, ResultType::Action, htag.clone())
             .summary(&format!("remove every volume no container uses · {} named · {:.1} GB · named volumes hold durable data", d.named_volumes(), d.volumes_gb()))
-            .commands(&["docker volume prune -a"])
+            .exec(vec![cmd(w, "docker", &["volume", "prune", "-a", "--force"], &cwd)])
+            .effect(Effect::DockerVolumePrune)
             .effects(&[&format!("{:.1} GB freed · permanent", d.volumes_gb())])
             .keywords(&["docker", "volumes", "prune", "data", "clean", "cleanup"])
             .group("Services")
             .risk(Risk::Destructive)
             .confirm(Confirmation::TwoGate { phrase: format!("PRUNE ALL VOLUMES ON {}", w.host.name), broad: false })
-            .launch(Launch::Activity { script: "generic:docker volume prune -a".into() })
+            .provenance(prov)
+            .launch(Launch::Activity { script: None })
             .reason(Signal::Default, &format!("{} volumes", d.volumes.len())),
     );
     out.push(
+        Item::new("docker.builder_prune", "Prune builder cache", Kind::Docker, ResultType::Action, htag.clone())
+            .summary(&format!("docker builder prune -f · {:.1} GB · independent of the full cleanup · buildx caches are a separate expansion", d.builder_cache_gb))
+            .exec(vec![cmd(w, "docker", &["builder", "prune", "-f"], &cwd)])
+            .effect(Effect::DockerBuilderPrune)
+            .keywords(&["docker", "builder", "buildx", "cache", "prune", "clean", "cleanup"])
+            .group("Services")
+            .risk(Risk::Destructive)
+            .confirm(Confirmation::One)
+            .provenance(prov)
+            .launch(Launch::Activity { script: None })
+            .alt("Prune buildx caches too", "docker.buildx_prune")
+            .reason(Signal::Context, &format!("{:.1} GB of build cache", d.builder_cache_gb)),
+    );
+    out.push(
         Item::new(
-            "docker.builder_prune",
-            "Prune builder cache",
+            "docker.buildx_prune",
+            "Prune buildx caches",
             Kind::Docker,
             ResultType::Action,
             htag.clone(),
         )
-        .summary(&format!(
-            "remove build cache · {:.1} GB · rebuilt on the next build",
-            d.builder_cache_gb
-        ))
-        .commands(&["docker builder prune -a", "docker buildx prune -a"])
-        .keywords(&[
-            "docker", "builder", "buildx", "cache", "prune", "clean", "cleanup",
-        ])
+        .summary("docker buildx prune -a -f · builder instances beyond the default")
+        .exec(vec![cmd(
+            w,
+            "docker",
+            &["buildx", "prune", "-a", "-f"],
+            &cwd,
+        )])
+        .effect(Effect::DockerBuilderPrune)
+        .keywords(&["docker", "buildx", "prune"])
         .group("Services")
-        .risk(Risk::Mutating)
+        .risk(Risk::Destructive)
         .confirm(Confirmation::One)
-        .launch(Launch::Activity {
-            script: "generic:docker builder prune -a".into(),
-        })
-        .reason(
-            Signal::Context,
-            &format!("{:.1} GB of build cache", d.builder_cache_gb),
-        ),
+        .launch(Launch::Activity { script: None })
+        .reason(Signal::Default, "expansion beyond the legacy builder prune"),
     );
+    let mut all_cmds = ids(&running);
+    if !all.is_empty() {
+        let mut rm = vec!["rm"];
+        rm.extend(all.iter().copied());
+        all_cmds.push(cmd(w, "docker", &rm, &cwd));
+    }
+    all_cmds.push(cmd(w, "docker", &["image", "prune", "-a", "--force"], &cwd));
+    all_cmds.push(cmd(w, "docker", &["network", "prune", "--force"], &cwd));
+    all_cmds.push(cmd(w, "docker", &["system", "prune", "--force"], &cwd));
+    all_cmds.push(cmd(
+        w,
+        "docker",
+        &["volume", "prune", "-a", "--force"],
+        &cwd,
+    ));
+    all_cmds.push(cmd(
+        w,
+        "docker",
+        &["builder", "prune", "-a", "--force"],
+        &cwd,
+    ));
+    all_cmds.push(cmd(w, "docker", &["system", "df"], &cwd));
     out.push(
-        Item::new("docker.cleanup", "Clean Docker completely", Kind::Plan, ResultType::Flow, htag)
-            .summary(&format!("remove all user-removable Docker state on {}: containers, images, networks, volumes, system data, build cache · as a reviewable plan", w.host.name))
-            .commands(&[&format!("docker stop {}", running.join(" ")), &format!("docker rm {}", all.join(" ")), "docker image prune -a --force", "docker network prune --force", "docker volume prune -a --force", "docker builder prune -a --force", "docker buildx prune -a --force", "docker system df"])
+        Item::new("docker.cleanup", "Clean Docker completely", Kind::Plan, ResultType::Flow, htag.clone())
+            .summary(&format!("remove all user-removable Docker state on {}: containers, all images, networks, system data, volumes, build cache · as a reviewable plan", w.host.name))
+            .exec(all_cmds)
             .effects(&[&format!("{} containers · {} images · {} volumes · ~{:.1} GB reclaimed · permanent", d.containers.len(), d.images, d.volumes.len(), d.reclaimable_gb)])
             .keywords(&["docker", "docker cleanup", "docker clean", "clean", "prune", "everything", "reset", "remove all", "complete"])
             .group("Services")
             .risk(Risk::Destructive)
             .confirm(Confirmation::TwoGate { phrase: format!("REMOVE ALL DOCKER DATA ON {}", w.host.name), broad: true })
-            .freshness(fresh)
+            .freshness(fresh.clone())
+            .provenance(prov)
             .launch(Launch::Plan { plan: "docker-cleanup".into() })
             .alt("Stop all containers only", "docker.stop_all")
             .alt("Prune builder cache only", "docker.builder_prune")
@@ -1250,13 +2169,16 @@ fn docker_items(w: &World, out: &mut Vec<Item>) {
     );
 }
 
+// ------------------------------------------------------------------ system
+
 fn system_items(w: &World, out: &mut Vec<Item>) {
     let s = &w.system;
     let htag = host_tag(w);
     let fresh = freshness(w, "system");
+    let cwd = w.location.cwd.clone();
     let mut res = Item::new("system.resources", "Show system resources", Kind::System, ResultType::Resource, htag.clone())
         .summary("CPU, load, memory, swap, pressure, disk and network snapshot; then hand off to btm for continuous monitoring")
-        .commands(&["holla snapshot system", "btm"])
+        .exec(vec![Command::internal("holla snapshot system", &cwd, &w.host.name)])
         .keywords(&["system", "resources", "cpu", "memory", "load", "pressure", "what uses cpu", "what uses memory", "slow"])
         .group("System")
         .freshness(fresh.clone())
@@ -1279,11 +2201,11 @@ fn system_items(w: &World, out: &mut Vec<Item>) {
         )
     };
     out.push(res);
-    if s.btm_installed {
+    if s.btm_installed && w.tools.contains("btm") {
         out.push(
             Item::new("system.monitor", "Open btm", Kind::System, ResultType::Handoff, htag.clone())
                 .summary("persistent deep monitoring in the specialist tool; the activity keeps running while you return to holla")
-                .commands(&["btm"])
+                .exec(vec![cmd(w, "btm", &[], &cwd)])
                 .keywords(&["btm", "bottom", "monitor", "top", "htop", "processes", "system monitor"])
                 .group("System")
                 .freshness(fresh.clone())
@@ -1300,7 +2222,12 @@ fn system_items(w: &World, out: &mut Vec<Item>) {
             htag.clone(),
         )
         .summary("processes by CPU and memory with their hierarchy")
-        .commands(&["ps -eo pid,ppid,pcpu,rss,stat,comm --forest"])
+        .exec(vec![cmd(
+            w,
+            "ps",
+            &["-eo", "pid,ppid,pcpu,rss,stat,comm", "--forest"],
+            &cwd,
+        )])
         .keywords(&["process", "processes", "tree", "ps", "pid"])
         .group("System")
         .freshness(fresh.clone())
@@ -1318,7 +2245,12 @@ fn system_items(w: &World, out: &mut Vec<Item>) {
             htag.clone(),
         )
         .summary("which process listens on a port, with its PID and parent")
-        .commands(&["lsof -nP -iTCP:<port> -sTCP:LISTEN"])
+        .exec(vec![cmd(
+            w,
+            "lsof",
+            &["-nP", "-iTCP:<port>", "-sTCP:LISTEN"],
+            &cwd,
+        )])
         .keywords(&[
             "port",
             "listen",
@@ -1337,13 +2269,13 @@ fn system_items(w: &World, out: &mut Vec<Item>) {
     out.push(
         Item::new("system.kill", "Stop a process…", Kind::System, ResultType::Action, htag.clone())
             .summary("send a signal to one process after reviewing its identity, hierarchy and likely effect")
-            .commands(&["kill -TERM <pid>"])
+            .exec(vec![cmd(w, "kill", &["-<signal>", "<pid>"], &cwd)])
             .keywords(&["kill", "stop process", "signal", "terminate"])
             .group("System")
             .risk(Risk::Destructive)
             .confirm(Confirmation::One)
             .args(vec![ArgSpec::text("pid", "process id", "").required(), ArgSpec::choice("signal", &["TERM", "INT", "KILL"], 0)])
-            .launch(Launch::Activity { script: "generic:kill -TERM".into() })
+            .launch(Launch::Activity { script: None })
             .reason(Signal::Default, "reviewed before sending"),
     );
     if w.apt.is_some() {
@@ -1351,7 +2283,7 @@ fn system_items(w: &World, out: &mut Vec<Item>) {
         out.push(
             Item::new("system.upgrade", "Upgrade everything on this system", Kind::Plan, ResultType::Flow, htag.clone())
                 .summary(&format!("Debian packages and global mise tools on {} as a dependency graph: preflight, parallel discovery, review, apply, optional cleanup, verification", w.host.name))
-                .commands(&["sudo apt-get update", "apt list --upgradable", "sudo apt-get upgrade -y", "mise outdated --json", "mise upgrade", "sudo apt-get autoremove --purge -y"])
+                .exec(vec![cmd(w, "sudo", &["apt-get", "update"], "/"), cmd(w, "apt", &["list", "--upgradable"], "/"), cmd(w, "sudo", &["apt-get", "upgrade", "-y"], "/"), cmd(w, "mise", &["outdated", "--json"], "/"), cmd(w, "mise", &["upgrade"], "/"), cmd(w, "sudo", &["apt-get", "autoremove", "--purge", "-y"], "/")])
                 .effects(&[&format!("{n} Debian packages · 4 mise tools · reboot required")])
                 .keywords(&["upgrade", "update", "everything", "apt", "packages", "system", "debian", "mise"])
                 .group("System")
@@ -1364,22 +2296,496 @@ fn system_items(w: &World, out: &mut Vec<Item>) {
     }
 }
 
+// ------------------------------------------------------------------ upgrade managers
+
+/// Where Oh My Zsh lives: `$ZSH` when it is an existing directory, else
+/// `~/.oh-my-zsh`; the script's existence is not checked (OP51/OP57).
+pub fn omz_dir(w: &World) -> Option<String> {
+    if let Some(z) = &w.upgrade.zsh_env
+        && w.fs.is_dir(z)
+    {
+        return Some(z.clone());
+    }
+    let home = format!("{}/.oh-my-zsh", w.location.home);
+    w.fs.is_dir(&home).then_some(home)
+}
+
+fn upgrade_items(w: &World, out: &mut Vec<Item>) {
+    let htag = host_tag(w);
+    let cwd = w.location.cwd.clone();
+    let brew = w.tools.contains("brew") && w.brew.is_some();
+    let mise = w.tools.contains("mise") && w.mise.installed;
+    let amp = w.tools.contains("amp") && w.upgrade.amp;
+    let omz = omz_dir(w);
+    let managers: Vec<&str> = [
+        brew.then_some("brew"),
+        mise.then_some("mise"),
+        amp.then_some("amp"),
+        omz.as_ref().map(|_| "oh-my-zsh"),
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
+    if managers.is_empty() {
+        return;
+    }
+    let prov = format!("built-in · detected: {}", managers.join(", "));
+    let brew_stages = |cask: bool| -> Vec<Command> {
+        let up: Vec<&str> = if cask {
+            vec!["upgrade", "--cask", "--greedy", "--yes"]
+        } else {
+            vec!["upgrade", "--greedy", "--yes"]
+        };
+        vec![
+            cmd(w, "brew", &["update"], &cwd),
+            cmd(w, "brew", &up, &cwd),
+            cmd(w, "brew", &["cleanup"], &cwd),
+            cmd(w, "brew", &["autoremove"], &cwd),
+            cmd(w, "brew", &["doctor"], &cwd),
+        ]
+    };
+    if brew {
+        let n = w.upgrade.brew_outdated.len();
+        out.push(
+            Item::new("upgrade.brew-packages", "Upgrade Homebrew packages", Kind::Upgrade, ResultType::Action, htag.clone())
+                .summary(&format!("brew update, upgrade --greedy --yes, cleanup, autoremove, doctor as separate stages · a later stage still runs after an earlier failure unless cancelled · {n} outdated"))
+                .batch(BatchMode::Sequential, brew_stages(false).into_iter().map(|c| { let effect = (c.args.first().map(String::as_str) == Some("upgrade")).then_some(Effect::BrewUpgrade(false)); (format!("brew {}", c.args.join(" ")), vec![c], effect, htag.clone()) }).collect())
+                .keywords(&["brew", "homebrew", "upgrade", "packages", "update", "formulae"])
+                .group("System")
+                .risk(Risk::Mutating)
+                .confirm(Confirmation::One)
+                .provenance(&prov)
+                .reason(if n > 0 { Signal::Context } else { Signal::Default }, &format!("{n} outdated formulae")),
+        );
+        if w.host.os == Os::MacOs {
+            let n = w.upgrade.casks_outdated.len();
+            out.push(
+                Item::new("upgrade.brew-casks", "Upgrade Homebrew casks", Kind::Upgrade, ResultType::Action, htag.clone())
+                    .summary(&format!("brew update, upgrade --cask --greedy --yes, cleanup, autoremove, doctor · macOS only · {n} outdated casks"))
+                    .batch(BatchMode::Sequential, brew_stages(true).into_iter().map(|c| { let effect = (c.args.first().map(String::as_str) == Some("upgrade")).then_some(Effect::BrewUpgrade(true)); (format!("brew {}", c.args.join(" ")), vec![c], effect, htag.clone()) }).collect())
+                    .keywords(&["brew", "cask", "casks", "upgrade", "applications"])
+                    .group("System")
+                    .risk(Risk::Mutating)
+                    .confirm(Confirmation::One)
+                    .provenance(&prov)
+                    .reason(Signal::Default, &format!("{n} outdated casks")),
+            );
+        }
+    }
+    if mise {
+        let n = w.mise.outdated().len();
+        out.push(
+            Item::new(
+                "upgrade.mise",
+                "Upgrade mise-managed tools",
+                Kind::Upgrade,
+                ResultType::Action,
+                htag.clone(),
+            )
+            .summary(&format!(
+                "mise upgrade · {n} outdated tools reach their latest versions"
+            ))
+            .exec(vec![cmd(w, "mise", &["upgrade"], &cwd)])
+            .effect(Effect::MiseUpgrade)
+            .keywords(&["mise", "upgrade", "tools", "versions"])
+            .group("System")
+            .risk(Risk::Mutating)
+            .confirm(Confirmation::One)
+            .provenance(&prov)
+            .launch(Launch::Activity { script: None })
+            .reason(
+                if n > 0 {
+                    Signal::Context
+                } else {
+                    Signal::Default
+                },
+                &format!("{n} outdated tools"),
+            ),
+        );
+    }
+    if amp {
+        out.push(
+            Item::new(
+                "upgrade.amp",
+                "Upgrade the Amp CLI",
+                Kind::Upgrade,
+                ResultType::Action,
+                htag.clone(),
+            )
+            .summary("amp update")
+            .exec(vec![cmd(w, "amp", &["update"], &cwd)])
+            .effect(Effect::AmpUpdate)
+            .keywords(&["amp", "update", "upgrade"])
+            .group("System")
+            .risk(Risk::Mutating)
+            .provenance(&prov)
+            .launch(Launch::Activity { script: None })
+            .reason(Signal::Default, "amp on PATH"),
+        );
+    }
+    if let Some(dir) = &omz {
+        let script = format!("{dir}/tools/upgrade.sh");
+        out.push(
+            Item::new(
+                "upgrade.oh-my-zsh",
+                "Upgrade Oh My Zsh",
+                Kind::Upgrade,
+                ResultType::Action,
+                htag.clone(),
+            )
+            .summary(&format!(
+                "sh {script} · resolved from {}",
+                if w.upgrade.zsh_env.as_deref() == Some(dir.as_str()) {
+                    "$ZSH"
+                } else {
+                    "~/.oh-my-zsh"
+                }
+            ))
+            .exec(vec![Command::from_vec(
+                vec!["sh".into(), script.clone()],
+                &cwd,
+                &w.host.name,
+            )])
+            .effect(Effect::OmzUpgrade)
+            .keywords(&["oh-my-zsh", "omz", "zsh", "upgrade", "shell"])
+            .group("System")
+            .risk(Risk::Mutating)
+            .provenance(&prov)
+            .launch(Launch::Activity { script: None })
+            .reason(Signal::Default, "Oh My Zsh directory found"),
+        );
+    }
+    out.push(
+        Item::new("upgrade.all", "Upgrade everything", Kind::Plan, ResultType::Flow, htag)
+            .summary(&format!("every detected manager as one plan with independent branches: {} · Homebrew stages depend on each other, the others run beside them · availability is re-probed before execution", managers.join(", ")))
+            .exec(vec![])
+            .keywords(&["upgrade", "everything", "all", "update", "managers"])
+            .group("System")
+            .risk(Risk::Mutating)
+            .confirm(Confirmation::One)
+            .provenance(&prov)
+            .launch(Launch::Plan { plan: "upgrade-all".into() })
+            .reason(Signal::Context, &format!("{} managers detected", managers.len())),
+    );
+}
+
+// ------------------------------------------------------------------ brew services
+
+/// Parse `brew services list --json`: a top-level array or a `services`
+/// array; nonempty string names, sorted, deduplicated; malformed rows
+/// ignored (OP39).
+pub fn parse_brew_services(text: &str) -> Result<Vec<String>, String> {
+    use manifest::{Json, parse_json};
+    let json = parse_json(text).map_err(|e| format!("brew services list --json: {e}"))?;
+    let arr = match &json {
+        Json::Arr(a) => a.clone(),
+        Json::Obj(_) => match json.get("services") {
+            Some(Json::Arr(a)) => a.clone(),
+            _ => return Err("brew services list --json: no services array".into()),
+        },
+        _ => return Err("brew services list --json: unexpected shape".into()),
+    };
+    let mut names: Vec<String> = arr
+        .iter()
+        .filter_map(|s| s.get("name").and_then(Json::as_str))
+        .map(str::trim)
+        .filter(|n| !n.is_empty())
+        .map(str::to_owned)
+        .collect();
+    names.sort();
+    names.dedup();
+    Ok(names)
+}
+
+/// Names from a fresh cache, else the tool; `(names, cache_state)`.
+pub fn brew_service_names(w: &World) -> (Result<Vec<String>, String>, String) {
+    let Some(b) = &w.brew else {
+        return (Err("brew is not installed".into()), "no brew".into());
+    };
+    let now = w.now_secs();
+    if let Some(c) = &b.cache
+        && c.version == 1
+        && now.saturating_sub(c.fetched_at) <= 300
+    {
+        return (
+            Ok(c.services.clone()),
+            format!("cached · {} s old", now.saturating_sub(c.fetched_at)),
+        );
+    }
+    let state = match &b.cache {
+        Some(c) if c.version != 1 => format!("cache version {} ignored · refreshed", c.version),
+        Some(_) => "cache stale · refreshed".into(),
+        None if b.cache_text.is_some() => "cache corrupt · refreshed".into(),
+        None => "no cache · probed".into(),
+    };
+    match &b.list_json {
+        Ok(t) => (parse_brew_services(t), state),
+        Err(e) => (Err(format!("brew services list failed: {e}")), state),
+    }
+}
+
+fn brew_items(w: &World, out: &mut Vec<Item>) {
+    if !w.tools.contains("brew") || w.brew.is_none() || !source_ready(w, "brew") {
+        return;
+    }
+    let htag = host_tag(w);
+    let cwd = w.location.cwd.clone();
+    let (names, cache_state) = brew_service_names(w);
+    let linux = w.brew.as_ref().is_some_and(|b| b.linux);
+    let prov = format!(
+        "built-in · brew services list --json · {cache_state}{}",
+        if linux { " · Linuxbrew" } else { "" }
+    );
+    let names = match names {
+        Ok(n) => n,
+        Err(e) => {
+            out.push(
+                Item::new(
+                    "brew.services",
+                    "Homebrew services",
+                    Kind::Brew,
+                    ResultType::Resource,
+                    htag,
+                )
+                .summary(&format!("{e} · no service actions were invented"))
+                .keywords(&["brew", "services"])
+                .group("Services")
+                .freshness(Freshness::Unavailable(e.clone()))
+                .provenance(&prov)
+                .launch(Launch::Snapshot {
+                    snapshot: "brew-services".into(),
+                })
+                .reason(Signal::Default, "discovery failed"),
+            );
+            return;
+        }
+    };
+    if names.is_empty() {
+        return;
+    }
+    let total_actions = names.len() * 3;
+    let shown: Vec<&String> = names.iter().take(10).collect();
+    let cap = if total_actions > 30 {
+        Some(format!("Homebrew services (30 of {total_actions})"))
+    } else {
+        None
+    };
+    for name in shown {
+        let status = w
+            .brew
+            .as_ref()
+            .and_then(|b| b.services.iter().find(|s| &s.name == name))
+            .map(|s| s.status.clone())
+            .unwrap_or("unknown".into());
+        for verb in ["start", "stop", "restart"] {
+            let mut item = Item::new(&format!("brew.service.{name}.{verb}"), &format!("{} {name}", capitalize(verb)), Kind::Brew, ResultType::Action, htag.clone())
+                .summary(&format!("brew services {verb} {name} · currently {status} · every verb is offered whatever the status says"))
+                .exec(vec![cmd(w, "brew", &["services", verb, name], &cwd)])
+                .effect(Effect::BrewService(name.clone(), verb.into()))
+                .keywords(&["brew", "service", "services", name, verb, "homebrew"])
+                .group("Services")
+                .risk(Risk::Mutating)
+                .provenance(&prov)
+                .launch(Launch::Activity { script: None })
+                .reason(Signal::Context, &status);
+            if let Some(c) = &cap {
+                item.cap_note = Some(c.clone());
+            }
+            out.push(item);
+        }
+    }
+    out.push(
+        Item::new(
+            "brew.services",
+            &cap.clone().unwrap_or("Homebrew services".into()),
+            Kind::Brew,
+            ResultType::Resource,
+            htag,
+        )
+        .summary(&format!(
+            "{} services · {cache_state} · status is re-observed after every verb",
+            names.len()
+        ))
+        .exec(vec![cmd(w, "brew", &["services", "list", "--json"], &cwd)])
+        .keywords(&["brew", "services", "homebrew", "list"])
+        .group("Services")
+        .provenance(&prov)
+        .launch(Launch::Snapshot {
+            snapshot: "brew-services".into(),
+        })
+        .reason(Signal::Default, &format!("{} services", names.len())),
+    );
+}
+
+fn capitalize(s: &str) -> String {
+    let mut c = s.chars();
+    match c.next() {
+        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+        None => String::new(),
+    }
+}
+
+// ------------------------------------------------------------------ gradle / idea
+
+fn gradle_items(w: &World, out: &mut Vec<Item>) {
+    let cwd = w.location.cwd.clone();
+    let here = ScopeTag::here(&cwd);
+    let installed = w.tools.contains("gradle");
+    let build_file = ["build.gradle", "build.gradle.kts"]
+        .into_iter()
+        .find(|f| w.fs.exists(&format!("{cwd}/{f}")));
+    if installed && let Some(f) = build_file {
+        let prov = format!("built-in · gradle on PATH · {f} here");
+        let g = &w.gradle;
+        for (verb, label, summary, risk) in [
+            (
+                "clean",
+                "gradle clean",
+                "tool-native clean of build outputs · external deletion by Gradle, not Trash",
+                Risk::Mutating,
+            ),
+            (
+                "build",
+                "gradle build",
+                "compile, test and assemble",
+                Risk::Mutating,
+            ),
+            ("test", "gradle test", "run the test suites", Risk::Mutating),
+        ] {
+            let mut item = Item::new(
+                &format!("gradle.{verb}"),
+                label,
+                Kind::Gradle,
+                ResultType::Action,
+                here.clone(),
+            )
+            .summary(summary)
+            .exec(vec![cmd(w, "gradle", &[verb], &cwd)])
+            .keywords(&["gradle", verb, "build", "java", "kotlin"])
+            .group("Tasks")
+            .risk(risk)
+            .provenance(&prov)
+            .launch(Launch::Activity { script: None })
+            .reason(Signal::Context, &format!("{f} here"));
+            if verb == "clean" {
+                item = item.effect(Effect::GradleClean(cwd.clone()));
+            }
+            if g.wrapper {
+                item = item.alt(
+                    "Use the wrapper (./gradlew) instead",
+                    &format!("gradlew.{verb}"),
+                );
+            }
+            out.push(item);
+            if g.wrapper {
+                out.push(
+                    Item::new(
+                        &format!("gradlew.{verb}"),
+                        &format!("./gradlew {verb}"),
+                        Kind::Gradle,
+                        ResultType::Action,
+                        here.clone(),
+                    )
+                    .summary(&format!("{summary} · through the project's wrapper"))
+                    .exec(vec![cmd(w, "./gradlew", &[verb], &cwd)])
+                    .keywords(&["gradlew", "wrapper", verb])
+                    .group("Tasks")
+                    .risk(risk)
+                    .provenance("expansion · gradlew here")
+                    .launch(Launch::Activity { script: None })
+                    .reason(Signal::Default, "wrapper present"),
+                );
+            }
+        }
+    } else if !installed && build_file.is_some() && w.gradle.wrapper {
+        out.push(
+            Item::new(
+                "gradlew.build",
+                "./gradlew build",
+                Kind::Gradle,
+                ResultType::Action,
+                here.clone(),
+            )
+            .summary("gradle is not on PATH · the project wrapper still builds")
+            .exec(vec![cmd(w, "./gradlew", &["build"], &cwd)])
+            .keywords(&["gradlew", "wrapper", "build"])
+            .group("Tasks")
+            .risk(Risk::Mutating)
+            .provenance("expansion · gradlew here · legacy needs gradle on PATH")
+            .launch(Launch::Activity { script: None })
+            .reason(Signal::Default, "wrapper only"),
+        );
+    }
+    if installed {
+        // recursive cleanup whenever gradle is on PATH: no manifest needed
+        let cands = cleanup::walk_candidates(&w.fs, &cwd, &|p, is_dir| {
+            is_dir && (p.ends_with("/.gradle") || p.ends_with("/build"))
+        });
+        let bytes: u64 = cands.iter().map(|p| w.fs.size_of(p)).sum();
+        let daemon = if w.gradle.daemon_running {
+            "a daemon is running · gradle --stop is the first step"
+        } else {
+            "no daemon running"
+        };
+        out.push(
+            Item::new("gradle.clean-all", &format!("Clean Gradle outputs under {} · {}", w.location.cwd_short(), crate::sim::fs::human(bytes)), Kind::Cleanup, ResultType::Flow, here)
+                .summary(&format!("gradle --stop, then move every .gradle and build directory below this folder (depth 5, no symlinks, no node_modules) to the Trash · {} candidates · {daemon}", cands.len()))
+                .exec(vec![cmd(w, "gradle", &["--stop"], &cwd)])
+                .keywords(&["gradle", "clean", "cleanup", "build", ".gradle", "recursive", "trash"])
+                .group("Disk")
+                .risk(Risk::Destructive)
+                .confirm(Confirmation::One)
+                .provenance("built-in · gradle on PATH · shared candidate walker")
+                .launch(Launch::Cleanup { category: Some("gradle.clean-all".into()) })
+                .reason(if cands.is_empty() { Signal::Default } else { Signal::Context }, &if cands.is_empty() { "no candidates · a successful no-op".to_owned() } else { format!("{} candidates", cands.len()) }),
+        );
+    }
+}
+
+fn idea_items(w: &World, out: &mut Vec<Item>) {
+    let cwd = w.location.cwd.clone();
+    let here = ScopeTag::here(&cwd);
+    let applicable = w.fs.is_dir(&format!("{cwd}/.idea")) || w.tools.contains("idea");
+    if !applicable {
+        return;
+    }
+    let cands = cleanup::walk_candidates(&w.fs, &cwd, &|p, is_dir| {
+        (is_dir && p.ends_with("/.idea")) || (!is_dir && p.ends_with(".iml"))
+    });
+    let bytes: u64 = cands.iter().map(|p| w.fs.size_of(p)).sum();
+    out.push(
+        Item::new("idea.clean", &format!("Clean IntelliJ metadata under {} · {}", w.location.cwd_short(), crate::sim::fs::human(bytes)), Kind::Idea, ResultType::Flow, here)
+            .summary(&format!("move every .idea directory and lowercase .iml file below this folder (depth 5, no symlinks, no node_modules, nothing nested) to the Trash · {} candidates · no IDE shutdown step exists in the baseline", cands.len()))
+            .exec(vec![])
+            .keywords(&["idea", "intellij", "jetbrains", ".idea", ".iml", "clean", "cleanup", "metadata"])
+            .group("Disk")
+            .risk(Risk::Destructive)
+            .confirm(Confirmation::One)
+            .provenance(&format!("built-in · {}", if w.fs.is_dir(&format!("{cwd}/.idea")) { ".idea here" } else { "idea on PATH" }))
+            .launch(Launch::Cleanup { category: Some("idea.clean".into()) })
+            .reason(if cands.is_empty() { Signal::Default } else { Signal::Context }, &if cands.is_empty() { "no candidates · a successful no-op".to_owned() } else { format!("{} candidates", cands.len()) }),
+    );
+}
+
+// ------------------------------------------------------------------ disk / cleanup
+
 fn disk_items(w: &World, out: &mut Vec<Item>) {
     let d = &w.disk;
     let here = ScopeTag::here(&w.location.cwd);
     let htag = host_tag(w);
     let fresh = freshness(w, "filesystem");
     let mut usage = Item::new("disk.usage", "Analyze disk usage", Kind::Disk, ResultType::Flow, here.clone())
-        .summary("largest-first view of this folder that deepens as the scan streams; select rebuildable artifacts for cleanup")
-        .commands(&[&format!("holla disk analyze {}", w.location.cwd)])
-        .keywords(&["disk", "usage", "why disk full", "space", "largest", "du", "analyze", "full"])
+        .summary("largest-first tree of this folder that deepens as the scan streams; select any entry or rebuildable artifacts for cleanup")
+        .exec(vec![Command::internal("holla disk analyze", &w.location.cwd, &w.host.name)])
+        .keywords(&["disk", "usage", "why disk full", "space", "largest", "du", "analyze", "full", "scan here"])
         .aliases(&["du"])
         .page_aliases(&["u"])
         .group("Disk")
         .freshness(fresh.clone())
         .launch(Launch::Disk { path: w.location.cwd.clone() })
-        .alt("Analyze the home folder", "disk.usage_home")
-        .alt("Analyze a volume", "disk.usage_volume");
+        .alt("Disk overview (home folders)", "disk.overview")
+        .alt("Analyze a custom path…", "disk.scan-custom")
+        .alt("Top files on this Mac", "disk.top-files");
     if let Some(fs) = d.root_fs()
         && fs.pct() >= 90
     {
@@ -1395,23 +2801,55 @@ fn disk_items(w: &World, out: &mut Vec<Item>) {
     }
     out.push(usage);
     out.push(
+        Item::new("disk.overview", "Disk overview", Kind::Disk, ResultType::Flow, htag.clone())
+            .summary("immediate home folders alphabetically, then detected insight roots · cached sizes with their age, unscanned otherwise · choosing a row starts a live analysis")
+            .exec(vec![Command::internal("holla disk overview", &w.location.home, &w.host.name)])
+            .keywords(&["disk", "home", "overview", "usage"])
+            .page_aliases(&["h"])
+            .group("Disk")
+            .launch(Launch::Disk { path: String::new() })
+            .reason(Signal::Default, "available"),
+    );
+    out.push(
         Item::new(
-            "disk.usage_home",
-            "Analyze the home folder",
+            "disk.scan-custom",
+            "Analyze a custom path…",
             Kind::Disk,
-            ResultType::Flow,
-            ScopeTag::host(&w.host.name),
+            ResultType::Action,
+            htag.clone(),
         )
-        .summary("largest-first view of the home directory")
-        .commands(&[&format!("holla disk analyze {}", w.location.home)])
-        .keywords(&["disk", "home", "usage"])
-        .page_aliases(&["h"])
+        .summary("an absolute existing file or directory · validated inline before the scan starts")
+        .exec(vec![Command::internal(
+            "holla disk analyze <path>",
+            &w.location.cwd,
+            &w.host.name,
+        )])
+        .keywords(&["disk", "path", "custom", "analyze", "folder"])
         .group("Disk")
+        .args(vec![
+            ArgSpec::text("path", "absolute path", &w.location.cwd)
+                .required()
+                .help("must exist · relative paths are rejected"),
+        ])
         .launch(Launch::Disk {
-            path: w.location.home.clone(),
+            path: "<path>".into(),
         })
         .reason(Signal::Default, "available"),
     );
+    let mut top = Item::new("disk.top-files", "Top files on this Mac", Kind::Disk, ResultType::Flow, htag.clone())
+        .summary("Spotlight query for regular files of 100 MiB or more · top 50 by allocated size · a scope of its own, no tree scan needed")
+        .exec(vec![cmd(w, "mdfind", &["-0", "kMDItemFSSize >= 104857600"], &w.location.home)])
+        .keywords(&["top", "files", "largest", "spotlight", "big files", "mdfind"])
+        .group("Disk")
+        .page_aliases(&["t"])
+        .launch(Launch::TopFiles)
+        .reason(Signal::Default, "macOS Spotlight");
+    if w.host.os != Os::MacOs {
+        top = top.freshness(Freshness::Unavailable(
+            "Spotlight is unavailable on Linux · use the tree scan".into(),
+        ));
+    }
+    out.push(top);
     let local: Vec<&crate::domain::stack::Candidate> = d
         .candidates
         .iter()
@@ -1437,9 +2875,10 @@ fn disk_items(w: &World, out: &mut Vec<Item>) {
                 ),
                 stale
             ))
-            .commands(&[&format!(
-                "holla disk analyze {} --artifacts",
-                w.location.cwd
+            .exec(vec![Command::internal(
+                "holla disk analyze --artifacts",
+                &w.location.cwd,
+                &w.host.name,
             )])
             .keywords(&[
                 "artifacts",
@@ -1464,7 +2903,7 @@ fn disk_items(w: &World, out: &mut Vec<Item>) {
             out.push(
                 Item::new("disk.clean_children", &format!("Clean developer artifacts under {}", w.location.cwd_short()), Kind::Plan, ResultType::Flow, ScopeTag::child(&w.location.cwd))
                     .summary("Cargo targets, Gradle outputs and Node dependency trees beneath their owning projects as a plan · shared targets serialised, independent projects in parallel")
-                    .commands(&["cargo clean", "./gradlew clean", "trash <node_modules>", "pnpm store prune"])
+                    .exec(vec![cmd(w, "cargo", &["clean"], &w.location.cwd), cmd(w, "./gradlew", &["clean"], &w.location.cwd), cmd(w, "trash", &["<node_modules>"], &w.location.cwd), cmd(w, "pnpm", &["store", "prune"], &w.location.cwd)])
                     .effects(&[&format!("~{:.1} GB reclaimable · recent and unverifiable data stays unselected", d.reclaimable_gb())])
                     .keywords(&["clean", "artifacts", "children", "rust", "gradle", "node", "cleanup", "build"])
                     .group("Disk")
@@ -1475,24 +2914,16 @@ fn disk_items(w: &World, out: &mut Vec<Item>) {
             );
         }
     }
-    if !d.history.is_empty() {
+    if !d.history.is_empty() || !w.ops_log.lines.is_empty() || !w.reports.is_empty() {
         out.push(
-            Item::new(
-                "disk.history",
-                "Show cleanup history",
-                Kind::Disk,
-                ResultType::Resource,
-                htag.clone(),
-            )
-            .summary("what was removed, how, how much came back, and what was skipped")
-            .commands(&["holla disk history"])
-            .keywords(&["history", "cleanup", "audit", "reclaimed"])
-            .page_aliases(&["y"])
-            .group("Disk")
-            .launch(Launch::Snapshot {
-                snapshot: "disk-history".into(),
-            })
-            .reason(Signal::Default, &format!("{} entries", d.history.len())),
+            Item::new("disk.history", "Show cleanup history", Kind::Disk, ResultType::Resource, htag.clone())
+                .summary("every requested item with its outcome: removed, trashed, would-remove, failed, skipped · the operation log at ~/.cache/holla/ops.log")
+                .exec(vec![Command::internal("holla disk history", &w.location.cwd, &w.host.name)])
+                .keywords(&["history", "cleanup", "audit", "reclaimed", "log", "ops.log"])
+                .page_aliases(&["y"])
+                .group("Disk")
+                .launch(Launch::Snapshot { snapshot: "disk-history".into() })
+                .reason(Signal::Default, &format!("{} log records", w.ops_log.lines.len() + d.history.len())),
         );
     }
     // destructive, first-class, always present
@@ -1504,24 +2935,210 @@ fn disk_items(w: &World, out: &mut Vec<Item>) {
     out.push(
         Item::new("disk.delete_all", "Delete everything inside this folder", Kind::Cleanup, ResultType::Action, here)
             .summary(&format!("remove every file and folder below {} including hidden and nested content · the folder itself stays", w.location.cwd_short()))
-            .commands(&[&format!("find {} -mindepth 1 -delete", w.location.cwd)])
+            .exec(vec![cmd(w, "find", &[&w.location.cwd, "-mindepth", "1", "-delete"], &w.location.cwd)])
+            .effect(Effect::DeleteAll(w.location.cwd.clone()))
             .effects(&[&match items {
                 Some((n, gb)) => format!("{n} items · {gb:.1} GB · permanent"),
-                None => "every item below the folder · permanent".to_owned(),
+                None => format!("{} entries below the folder · permanent", w.fs.subtree(&w.location.cwd).len()),
             }])
             .keywords(&["delete", "everything", "empty", "folder", "rm -rf", "wipe", "clear"])
             .group("Disk")
             .risk(Risk::Destructive)
             .confirm(Confirmation::TwoGate { phrase: format!("DELETE EVERYTHING IN {}", w.location.cwd), broad: false })
-            .launch(Launch::Activity { script: format!("generic:find {} -mindepth 1 -delete", w.location.cwd) })
+            .launch(Launch::Activity { script: None })
             .reason(Signal::Default, "always available · two gates"),
     );
 }
+
+/// Process observation for a guard name from the world's process table.
+pub fn observe_process(w: &World, name: &str) -> ProcessObservation {
+    if let Err(e) = &w.platform.process_probe {
+        return ProcessObservation::Unknown(e.clone());
+    }
+    if w.system
+        .top
+        .iter()
+        .any(|p| p.name == name || p.name.starts_with(&format!("{name} ")))
+    {
+        ProcessObservation::Running
+    } else {
+        ProcessObservation::NotRunning
+    }
+}
+
+/// Detected insight categories with their candidates and eligibility.
+pub fn insight_candidates(w: &World) -> Vec<InsightCategory> {
+    let home = w.location.home.clone();
+    let mut out = vec![];
+    for cat in &cleanup::CATEGORIES {
+        if !cleanup::detected(cat, w.host.os, &home, &w.fs, &w.tools) {
+            continue;
+        }
+        let mut roots: Vec<String> = cat.roots.iter().map(|r| format!("{home}/{r}")).collect();
+        if cat.id == "pnpm.store" {
+            let resolved = w
+                .outputs
+                .pnpm_store_path
+                .clone()
+                .unwrap_or(Err("pnpm store path was not run".into()));
+            let (root, _) =
+                cleanup::pnpm_store_root(&home, resolved.as_deref().map_err(String::as_str));
+            roots = vec![root];
+        }
+        if cat.id == "uv.cache" {
+            roots = vec![format!("{}/uv", w.platform.xdg_cache_home)];
+        }
+        let mut paths: Vec<String> = vec![];
+        if cat.id == "project.artifacts" {
+            let mut scan_roots = vec![format!("{home}/Projects")];
+            if let Some(parent) = crate::sim::fs::Fs::parent(&w.location.cwd) {
+                scan_roots.push(parent);
+            }
+            let existing: Vec<String> = scan_roots.into_iter().filter(|r| w.fs.is_dir(r)).collect();
+            paths = cleanup::find_artifacts(&w.fs, &existing);
+        } else {
+            for r in &roots {
+                if cat.children_of_root {
+                    if let Ok(children) = w.fs.list(r) {
+                        paths.extend(
+                            children
+                                .iter()
+                                .filter(|c| c.is_dir())
+                                .map(|c| c.path.clone()),
+                        );
+                    }
+                } else if w.fs.exists(r) {
+                    paths.push(r.clone());
+                }
+            }
+        }
+        let process = match cat.guard_process {
+            Some(name) => observe_process(w, name),
+            None => ProcessObservation::NotRunning,
+        };
+        let mut cands = vec![];
+        for p in paths {
+            let node = w.fs.get(&p);
+            let age = node.and_then(|n| cleanup::age_days(n.mtime, w.now_secs()));
+            let scan = w.fs.scan(
+                &p,
+                &crate::sim::fs::ScanOptions {
+                    include_hidden: true,
+                    ..Default::default()
+                },
+            );
+            cands.push(InsightCandidate {
+                path: p.clone(),
+                bytes: scan.allocated,
+                partial: scan.errors() > 0,
+                age_days: age,
+                eligibility: cleanup::eligibility(cat, age, &process),
+            });
+        }
+        cands.sort_by(|a, b| b.bytes.cmp(&a.bytes).then_with(|| a.path.cmp(&b.path)));
+        out.push(InsightCategory {
+            category: cat,
+            candidates: cands,
+            process,
+        });
+    }
+    out
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InsightCandidate {
+    pub path: String,
+    pub bytes: u64,
+    /// Sizing hit an unreadable entry: the number is a lower bound.
+    pub partial: bool,
+    pub age_days: Option<i64>,
+    pub eligibility: Eligibility,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InsightCategory {
+    pub category: &'static cleanup::Category,
+    pub candidates: Vec<InsightCandidate>,
+    pub process: ProcessObservation,
+}
+
+impl InsightCategory {
+    pub fn bytes(&self) -> u64 {
+        self.candidates.iter().map(|c| c.bytes).sum()
+    }
+}
+
+fn cleanup_items(w: &World, out: &mut Vec<Item>) {
+    let htag = host_tag(w);
+    let cats = insight_candidates(w);
+    let total: u64 = cats.iter().map(InsightCategory::bytes).sum();
+    out.push(
+        Item::new("cleanup.review-all", "Review cleanup candidates", Kind::Cleanup, ResultType::Flow, htag.clone())
+            .summary(&format!("{} detected categories · {} · rebuilt-on-demand and safe-if-old candidates start selected, review-first never does, too-recent ones stay visible but ineligible", cats.len(), crate::sim::fs::human(total)))
+            .exec(vec![Command::internal("holla cleanup review", &w.location.home, &w.host.name)])
+            .keywords(&["cleanup", "clean", "caches", "insights", "review", "space", "free"])
+            .group("Disk")
+            .page_aliases(&["c"])
+            .launch(Launch::Cleanup { category: None })
+            .reason(if total > 5 * 1024 * 1024 * 1024 { Signal::Urgency } else { Signal::Default }, &format!("{} across {} categories", crate::sim::fs::human(total), cats.len())),
+    );
+    for c in &cats {
+        let cat = c.category;
+        let tool_kw = cat.id.split('.').next().unwrap_or("");
+        out.push(
+            Item::new(
+                &format!("cleanup.{}", cat.id),
+                &format!("Clean {} · {}", cat.label, crate::sim::fs::human(c.bytes())),
+                Kind::Cleanup,
+                ResultType::Action,
+                htag.clone(),
+            )
+            .summary(&format!(
+                "{} · {} · {} · {}",
+                cat.note,
+                cat.safety.label(),
+                if cat.min_age_days > 0 {
+                    format!("older than {} d", cat.min_age_days)
+                } else {
+                    "any age".into()
+                },
+                crate::screens::plural(c.candidates.len(), "candidate", "candidates")
+            ))
+            .exec(vec![Command::internal(
+                &format!("holla cleanup review --category {}", cat.id),
+                &w.location.home,
+                &w.host.name,
+            )])
+            .keywords(&["cleanup", "clean", cat.label, tool_kw, cat.id])
+            .group("Disk")
+            .launch(Launch::Cleanup {
+                category: Some(cat.id.into()),
+            })
+            .reason(
+                Signal::Default,
+                &format!(
+                    "{} · {}",
+                    cat.safety.label(),
+                    if cat.macos_only {
+                        "macOS"
+                    } else {
+                        "all platforms"
+                    }
+                ),
+            ),
+        );
+    }
+}
+
+// ------------------------------------------------------------------ pg / ssh / services
 
 fn pg_items(w: &World, out: &mut Vec<Item>) {
     let Some(p) = &w.pg else {
         return;
     };
+    if !source_ready(w, "postgres") {
+        return;
+    }
     let tag = w
         .location
         .project
@@ -1530,6 +3147,7 @@ fn pg_items(w: &World, out: &mut Vec<Item>) {
         .unwrap_or_else(|| host_tag(w));
     let fresh = freshness(w, "postgres");
     let blocked = p.blocked();
+    let cwd = w.location.cwd.clone();
     out.push(
         Item::new(
             "pg.activity",
@@ -1542,7 +3160,15 @@ fn pg_items(w: &World, out: &mut Vec<Item>) {
             "{} · connections {}/{} · sessions by state, wait event, query and transaction age",
             p.label, p.connections, p.max_connections
         ))
-        .commands(&["SELECT pid, state, wait_event, now() - xact_start FROM pg_stat_activity"])
+        .exec(vec![cmd(
+            w,
+            "psql",
+            &[
+                "-c",
+                "SELECT pid, state, wait_event, now() - xact_start FROM pg_stat_activity",
+            ],
+            &cwd,
+        )])
         .keywords(&[
             "postgres",
             "postgresql",
@@ -1569,7 +3195,7 @@ fn pg_items(w: &World, out: &mut Vec<Item>) {
         out.push(
             Item::new("pg.blocking", "Who is blocking the database?", Kind::Postgres, ResultType::Recommendation, tag.clone())
                 .summary("blocker dependency tree with query and transaction ages, wait state, database, user, client and affected sessions")
-                .commands(&["SELECT pid, pg_blocking_pids(pid), state, wait_event_type, query FROM pg_stat_activity WHERE cardinality(pg_blocking_pids(pid)) > 0"])
+                .exec(vec![cmd(w, "psql", &["-c", "SELECT pid, pg_blocking_pids(pid), state, wait_event_type, query FROM pg_stat_activity WHERE cardinality(pg_blocking_pids(pid)) > 0"], &cwd)])
                 .keywords(&["blocking", "blocked", "lock", "who is blocking", "postgres", "waiting", "stuck"])
                 .group("Services")
                 .freshness(fresh.clone())
@@ -1579,16 +3205,19 @@ fn pg_items(w: &World, out: &mut Vec<Item>) {
                 .reason(Signal::Urgency, &format!("{} sessions blocked for {age} min", blocked.len())),
         );
         if let Some(b) = p.blockers().first() {
+            let cancel_sql = format!("SELECT pg_cancel_backend({})", b.pid);
+            let term_sql = format!("SELECT pg_terminate_backend({})", b.pid);
             out.push(
                 Item::new("pg.cancel", &format!("Cancel the blocking query (PID {})", b.pid), Kind::Postgres, ResultType::Action, tag.clone())
                     .summary(&format!("pg_cancel_backend({}) · {} · {} · idle in transaction for {} min · revalidated immediately before running", b.pid, b.user, b.app, b.txn_secs / 60))
-                    .commands(&[&format!("SELECT pg_cancel_backend({})", b.pid)])
+                    .exec(vec![cmd(w, "psql", &["-c", &cancel_sql], &cwd)])
+                    .effect(Effect::PgCancel(b.pid))
                     .effects(&["the current query is cancelled · the session stays connected"])
                     .keywords(&["cancel", "query", "postgres", "blocking", "pid"])
                     .group("Services")
                     .risk(Risk::Destructive)
                     .confirm(Confirmation::One)
-                    .launch(Launch::Activity { script: format!("generic:psql -c 'SELECT pg_cancel_backend({})'", b.pid) })
+                    .launch(Launch::Activity { script: None })
                     .alt("Terminate the backend instead", "pg.terminate")
                     .reason(Signal::Context, "offered before termination"),
             );
@@ -1604,7 +3233,8 @@ fn pg_items(w: &World, out: &mut Vec<Item>) {
                     "pg_terminate_backend({}) · disconnects {}@{} · use after cancel fails",
                     b.pid, b.user, b.app
                 ))
-                .commands(&[&format!("SELECT pg_terminate_backend({})", b.pid)])
+                .exec(vec![cmd(w, "psql", &["-c", &term_sql], &cwd)])
+                .effect(Effect::PgTerminate(b.pid))
                 .effects(&["the session is disconnected · its transaction rolls back"])
                 .keywords(&["terminate", "kill", "backend", "postgres", "session"])
                 .group("Services")
@@ -1613,18 +3243,16 @@ fn pg_items(w: &World, out: &mut Vec<Item>) {
                     phrase: format!("TERMINATE BACKEND {} ON {}", b.pid, w.host.name),
                     broad: false,
                 })
-                .launch(Launch::Activity {
-                    script: format!("generic:psql -c 'SELECT pg_terminate_backend({})'", b.pid),
-                })
+                .launch(Launch::Activity { script: None })
                 .reason(Signal::Default, "cancel comes first"),
             );
         }
     }
-    if p.pg_activity_installed {
+    if p.pg_activity_installed && w.tools.contains("pg_activity") {
         out.push(
             Item::new("pg.handoff", "Open pg_activity", Kind::Postgres, ResultType::Handoff, tag)
                 .summary(&format!("live PostgreSQL activity in the specialist tool · {} · password never on the command line", p.label))
-                .commands(&[&format!("pg_activity -h {} -p {} -U {} -d {}", p.host, p.port, p.user, p.db)])
+                .exec(vec![cmd(w, "pg_activity", &["-h", &p.host, "-p", &p.port.to_string(), "-U", &p.user, "-d", &p.db], &cwd)])
                 .keywords(&["pg_activity", "postgres", "monitor", "live", "top"])
                 .group("Services")
                 .freshness(fresh)
@@ -1635,6 +3263,10 @@ fn pg_items(w: &World, out: &mut Vec<Item>) {
 }
 
 fn ssh_items(w: &World, out: &mut Vec<Item>) {
+    if !w.tools.contains("ssh") {
+        return;
+    }
+    let cwd = w.location.cwd.clone();
     for a in &w.ssh.aliases {
         if a.alias == w.host.name {
             continue;
@@ -1656,11 +3288,12 @@ fn ssh_items(w: &World, out: &mut Vec<Item>) {
                 .unwrap_or_default(),
             a.role
         ))
-        .commands(&[&format!("ssh {}", a.alias)])
+        .exec(vec![cmd(w, "ssh", &[&a.alias], &cwd)])
         .effects(&[&format!("interactive session on {}", a.host)])
         .keywords(&["ssh", "connect", "remote", &a.alias, &a.host, &a.role])
         .group("System")
         .freshness(freshness(w, "ssh"))
+        .provenance(&format!("ssh config · {}", w.location.short(&a.from_file)))
         .launch(Launch::Handoff {
             tool: format!("ssh {}", a.alias),
         })
@@ -1680,11 +3313,13 @@ fn ssh_items(w: &World, out: &mut Vec<Item>) {
 }
 
 fn service_items(w: &World, out: &mut Vec<Item>) {
-    if w.host.role != crate::domain::context::HostRole::Production {
+    if w.host.role != crate::domain::context::HostRole::Production || !w.tools.contains("systemctl")
+    {
         return;
     }
     let tag = ScopeTag::remote(&w.host.name);
     let fresh = freshness(w, "systemd");
+    let cwd = w.location.cwd.clone();
     let services = [
         ("payments", "active · 2 h", false),
         (
@@ -1696,7 +3331,6 @@ fn service_items(w: &World, out: &mut Vec<Item>) {
         ("postgresql", "active · 41 d", false),
     ];
     for (name, state, degraded) in services {
-        // a unit holla restarted this session is healed, honestly
         let healed = w.healed_units.iter().any(|u| u == name);
         let degraded = degraded && !healed;
         let state = if healed {
@@ -1712,7 +3346,7 @@ fn service_items(w: &World, out: &mut Vec<Item>) {
             tag.clone(),
         )
         .summary(&format!("systemd unit {name}.service · {state}"))
-        .commands(&[&format!("systemctl status {name}")])
+        .exec(vec![cmd(w, "systemctl", &["status", name], &cwd)])
         .keywords(&["service", "status", "systemd", name, "health"])
         .group("Services")
         .freshness(fresh.clone())
@@ -1736,15 +3370,20 @@ fn service_items(w: &World, out: &mut Vec<Item>) {
                 tag.clone(),
             )
             .summary(&format!("journalctl -u {name} -f"))
-            .commands(&[&format!("journalctl -u {name} -f -n 200")])
+            .exec(vec![cmd(
+                w,
+                "journalctl",
+                &["-u", name, "-f", "-n", "200"],
+                &cwd,
+            )])
             .keywords(&["logs", "journal", "service logs", name, "follow"])
             .group("Services")
             .freshness(fresh.clone())
             .launch(Launch::Activity {
                 script: if name == "payments-worker" {
-                    "journal:payments-worker".into()
+                    Some("journal:payments-worker".into())
                 } else {
-                    format!("generic:journalctl -u {name} -f")
+                    None
                 },
             })
             .reason(
@@ -1769,13 +3408,19 @@ fn service_items(w: &World, out: &mut Vec<Item>) {
                 tag.clone(),
             )
             .summary(&format!(
-                "systemctl restart {name} on {} · production · in-flight requests are dropped",
-                w.host.name
+                "systemctl restart {name} on {} · production · in-flight requests are dropped{}",
+                w.host.name,
+                if w.sudo_cached {
+                    ""
+                } else {
+                    " · sudo asks for a password"
+                }
             ))
-            .commands(&[
-                &format!("sudo systemctl restart {name}"),
-                &format!("systemctl status {name}"),
+            .exec(vec![
+                cmd(w, "sudo", &["systemctl", "restart", name], &cwd),
+                cmd(w, "systemctl", &["status", name], &cwd),
             ])
+            .effect(Effect::ServiceRestart(name.into()))
             .effects(&[&format!(
                 "{name} restarts · brief outage on {}",
                 w.host.name
@@ -1787,63 +3432,204 @@ fn service_items(w: &World, out: &mut Vec<Item>) {
                 phrase: format!("RESTART {} ON {}", name.to_uppercase(), w.host.name),
                 broad: false,
             })
-            .launch(Launch::Activity {
-                script: format!("generic:sudo systemctl restart {name}"),
-            })
+            .launch(Launch::Activity { script: None })
             .reason(Signal::Default, "production host · two gates"),
         );
     }
 }
 
-fn workflow_items(w: &World, out: &mut Vec<Item>) {
-    let root = w
-        .location
-        .project
-        .as_ref()
-        .map(|p| p.root.clone())
-        .unwrap_or(w.location.cwd.clone());
-    for (name, cmd, trusted) in &w.workflows {
-        let id = format!(
-            "workflow.{}",
-            name.to_lowercase().split_whitespace().next().unwrap_or("x")
-        );
-        let mut item = Item::new(
-            &id,
-            name,
-            Kind::Personal,
-            ResultType::Action,
-            tag_for_dir(w, &root),
-        )
-        .summary(&format!(
-            "team workflow from {}/.holla/workflows.toml",
-            w.location.short(&root)
-        ))
-        .commands(&[cmd])
-        .keywords(&[
-            "workflow",
-            "deploy",
-            "team",
-            "personal",
-            &name.to_lowercase(),
-        ])
-        .group("Tasks")
-        .risk(Risk::Mutating)
-        .launch(Launch::Activity {
-            script: format!("generic:{cmd}"),
-        })
-        .alt("Set an alias…", &format!("{id}.alias"))
-        .reason(Signal::Context, "provenance: project workflow file");
-        if !trusted {
-            item = item.confirm(Confirmation::Trust {
-                config: format!("{}/.holla/workflows.toml", w.location.short(&root)),
-            });
+// ------------------------------------------------------------------ custom actions
+
+fn custom_items(w: &World, out: &mut Vec<Item>) {
+    let cwd = w.location.cwd.clone();
+    for cfg in [&w.custom_global, &w.custom_project].into_iter().flatten() {
+        let origin = cfg.origin;
+        let dir = crate::sim::fs::Fs::parent(&cfg.path).unwrap_or(cwd.clone());
+        for a in &cfg.actions {
+            let run_dir = match origin {
+                crate::domain::custom::Origin::Global => cwd.clone(),
+                crate::domain::custom::Origin::Project => dir.clone(),
+            };
+            let argv: Vec<&str> = a.argv.iter().skip(1).map(String::as_str).collect();
+            let mut command = cmd(w, &a.argv[0], &argv, &run_dir);
+            if a.argv[0] == "sh" && a.argv.get(1).map(String::as_str) == Some("-c") {
+                command.kind = crate::domain::exec::ExecKind::Shell;
+            }
+            let status = w.trust.status(&cfg.digest, &cfg.path, &run_dir);
+            let trusted =
+                origin == crate::domain::custom::Origin::Global || status == TrustStatus::Trusted;
+            let risk = match a.danger {
+                Danger::Safe => Risk::ReadOnly,
+                Danger::Mutating => Risk::Mutating,
+                Danger::Destructive => Risk::Destructive,
+            };
+            let kws: Vec<&str> = a
+                .keywords
+                .iter()
+                .map(String::as_str)
+                .chain(["custom", a.group.as_str()])
+                .collect();
+            let mut item = Item::new(
+                &a.id,
+                &a.label,
+                Kind::Personal,
+                ResultType::Action,
+                tag_for_dir(w, &run_dir),
+            )
+            .summary(&if a.description.is_empty() {
+                format!(
+                    "{} action from {}",
+                    origin.label(),
+                    w.location.short(&cfg.path)
+                )
+            } else {
+                a.description.clone()
+            })
+            .exec(vec![command])
+            .keywords(&kws)
+            .group("Tasks")
+            .risk(risk)
+            .provenance(&format!(
+                "{} config · {} action[{}] · sha256 {}…",
+                origin.label(),
+                w.location.short(&cfg.path),
+                a.index,
+                &cfg.digest[..12]
+            ))
+            .launch(Launch::Activity {
+                script: Some(a.argv.join(" ")),
+            })
+            .alt("Set an alias…", &format!("{}.alias", a.id))
+            .alt("Show configuration diagnostics", "custom.config")
+            .reason(
+                Signal::Context,
+                &format!(
+                    "{} · {}",
+                    a.group,
+                    if trusted {
+                        "trusted"
+                    } else {
+                        match status {
+                            TrustStatus::Moved => {
+                                "⚠ unreviewed · same bytes were trusted at another path"
+                            }
+                            TrustStatus::LegacyDigestOnly => {
+                                "⚠ unreviewed · legacy digest-only record"
+                            }
+                            _ => "⚠ unreviewed",
+                        }
+                    }
+                ),
+            );
+            if a.danger == Danger::Destructive || a.confirm {
+                item = item.confirm(Confirmation::One);
+            }
+            if !trusted {
+                item = item.confirm(Confirmation::Trust {
+                    config: w.location.short(&cfg.path),
+                });
+                item.trust_key = Some((cfg.path.clone(), cfg.digest.clone()));
+            }
+            out.push(item);
         }
-        out.push(item);
+    }
+    let any = w.custom_global.is_some() || w.custom_project.is_some();
+    if any {
+        let diags: usize = [&w.custom_global, &w.custom_project]
+            .into_iter()
+            .flatten()
+            .map(|c| c.diagnostics.len())
+            .sum();
+        let actions: usize = [&w.custom_global, &w.custom_project]
+            .into_iter()
+            .flatten()
+            .map(|c| c.actions.len())
+            .sum();
+        out.push(
+            Item::new(
+                "custom.config",
+                "Custom action configuration",
+                Kind::Personal,
+                ResultType::Resource,
+                ScopeTag::here(&cwd),
+            )
+            .summary(&format!(
+                "{} valid actions · {} diagnostics · {}{}",
+                actions,
+                diags,
+                w.custom_global
+                    .as_ref()
+                    .map(|c| w.location.short(&c.path))
+                    .unwrap_or("no global config".into()),
+                w.custom_project
+                    .as_ref()
+                    .map(|c| format!(" · {}", w.location.short(&c.path)))
+                    .unwrap_or_default()
+            ))
+            .exec(vec![])
+            .keywords(&[
+                "custom",
+                "config",
+                "actions.toml",
+                ".holla.toml",
+                "diagnostics",
+                "trust",
+            ])
+            .group("Tasks")
+            .freshness(if diags > 0 {
+                Freshness::Partial {
+                    loaded: actions,
+                    total: actions + diags,
+                }
+            } else {
+                Freshness::Live { age_ms: 0 }
+            })
+            .launch(Launch::Config {
+                path: w
+                    .custom_project
+                    .as_ref()
+                    .or(w.custom_global.as_ref())
+                    .map(|c| c.path.clone())
+                    .unwrap_or_default(),
+            })
+            .reason(
+                Signal::Default,
+                if diags > 0 {
+                    "some entries were skipped"
+                } else {
+                    "configuration ok"
+                },
+            ),
+        );
     }
 }
 
+// ------------------------------------------------------------------ files
+
 fn file_items(w: &World, out: &mut Vec<Item>) {
     let here = ScopeTag::here(&w.location.cwd);
+    let cwd = w.location.cwd.clone();
+    // always available, no tool prerequisite (I-F01)
+    out.push(
+        Item::new("find.files", "Find files under home…", Kind::Files, ResultType::Flow, ScopeTag::host(&w.host.name))
+            .summary(&format!("search {} · exact name and stem first, then name substring, then fuzzy · at most 100 results · hidden, ignored and iCloud entries excluded", w.location.short(&w.location.home)))
+            .exec(vec![Command::internal("holla find", &w.location.home, &w.host.name)])
+            .keywords(&["find", "files", "search", "locate", "file", "home"])
+            .group("Files")
+            .page_aliases(&["/"])
+            .launch(Launch::Find)
+            .reason(Signal::Default, "always available"),
+    );
+    out.push(
+        Item::new("browse.files", &format!("Browse {}", w.location.cwd_short()), Kind::Files, ResultType::Flow, here.clone())
+            .summary("real directory listing with kind, size, modified time and hidden entries · Enter previews a file safely · exact-path jump with g")
+            .exec(vec![Command::internal("holla browse", &cwd, &w.host.name)])
+            .keywords(&["browse", "folder", "directory", "files", "ls", "explore"])
+            .group("Files")
+            .page_aliases(&["b"])
+            .launch(Launch::Files { path: cwd.clone() })
+            .reason(Signal::Default, "always available"),
+    );
     if let Some(cfg) = w.mise.configs.first() {
         out.push(
             Item::new(
@@ -1854,16 +3640,10 @@ fn file_items(w: &World, out: &mut Vec<Item>) {
                 ),
                 Kind::Files,
                 ResultType::Resource,
-                tag_for_dir(
-                    w,
-                    cfg.path
-                        .rsplit_once('/')
-                        .map(|(d, _)| d)
-                        .unwrap_or(&w.location.cwd),
-                ),
+                tag_for_dir(w, cfg.path.rsplit_once('/').map(|(d, _)| d).unwrap_or(&cwd)),
             )
             .summary(&format!(
-                "open {} in $EDITOR · {} tasks · {}",
+                "preview {} · {} tasks · {}",
                 w.location.short(&cfg.path),
                 cfg.tasks.len(),
                 if cfg.trusted {
@@ -1872,10 +3652,12 @@ fn file_items(w: &World, out: &mut Vec<Item>) {
                     "not trusted"
                 }
             ))
-            .commands(&[&format!("$EDITOR {}", cfg.path)])
+            .exec(vec![Command::internal("holla preview", &cwd, &w.host.name)])
             .keywords(&["open", "config", "mise.toml", "edit", "file"])
             .group("Files")
-            .launch(Launch::Insert)
+            .launch(Launch::Files {
+                path: cfg.path.clone(),
+            })
             .reason(Signal::Default, "config here"),
         );
     }
@@ -1896,39 +3678,40 @@ fn file_items(w: &World, out: &mut Vec<Item>) {
                     ResultType::Resource,
                     tag_for_dir(w, &p.root),
                 )
-                .summary(&format!(
-                    "open {}/{m} in $EDITOR",
-                    w.location.short(&p.root)
-                ))
-                .commands(&[&format!("$EDITOR {}/{m}", p.root)])
+                .summary(&format!("preview {}/{m}", w.location.short(&p.root)))
+                .exec(vec![Command::internal(
+                    "holla preview",
+                    &p.root,
+                    &w.host.name,
+                )])
                 .keywords(&["open", "config", m, "manifest", "edit"])
                 .group("Files")
-                .launch(Launch::Insert)
+                .launch(Launch::Files {
+                    path: format!("{}/{m}", p.root),
+                })
                 .reason(Signal::Default, "manifest here"),
             );
         }
     }
     if w.docker.compose.is_some() || w.host.role == crate::domain::context::HostRole::Production {
         let (path, size) = if w.host.role == crate::domain::context::HostRole::Production {
-            ("/var/log/payments/payments.log", "212 MB")
+            ("/var/log/payments/payments.log".to_owned(), "212 MB")
         } else {
-            ("logs/api.log", "2.1 MB")
+            (format!("{cwd}/logs/api.log"), "2.1 MB")
         };
         out.push(
             Item::new(
                 "file.log",
-                &format!("Open {path}"),
+                &format!("Open {}", w.location.short(&path)),
                 Kind::Files,
                 ResultType::Resource,
                 here.clone(),
             )
             .summary(&format!("nearby log file · {size} · opens in the pager"))
-            .commands(&[&format!("less +F {path}")])
+            .exec(vec![cmd(w, "less", &["+F", &path], &cwd)])
             .keywords(&["log", "logs", "file", "api.log", "tail"])
             .group("Files")
-            .launch(Launch::Activity {
-                script: format!("generic:less +F {path}"),
-            })
+            .launch(Launch::Activity { script: None })
             .reason(Signal::Default, &format!("{size} nearby")),
         );
     }
@@ -1940,11 +3723,14 @@ fn file_items(w: &World, out: &mut Vec<Item>) {
             ResultType::Action,
             here,
         )
-        .summary(&format!("copies {} to the clipboard", w.location.cwd))
-        .commands(&[&format!("printf %s {} | pbcopy", w.location.cwd)])
+        .summary(&format!(
+            "copies {} to the clipboard through the terminal (OSC 52)",
+            cwd
+        ))
+        .exec(vec![Command::internal("osc52 copy", &cwd, &w.host.name)])
         .keywords(&["copy", "path", "pwd", "folder", "clipboard"])
         .group("Files")
-        .launch(Launch::Insert)
+        .launch(Launch::Copy { value: cwd.clone() })
         .reason(Signal::Default, "available"),
     );
 }
@@ -1961,12 +3747,17 @@ fn activity_items(w: &World, out: &mut Vec<Item>) {
                 a.scope.clone(),
             )
             .summary(&format!(
-                "{} · started by {} · {} lines retained",
+                "{} · started by {} · {} lines retained{}",
                 state,
                 a.origin,
-                a.output.len()
+                a.output.len(),
+                if a.dropped > 0 {
+                    format!(" · {} dropped", a.dropped)
+                } else {
+                    String::new()
+                }
             ))
-            .commands(&[])
+            .exec(a.argv.clone())
             .keywords(&["activity", "running", "tab", &a.name, state])
             .group("Activities")
             .launch(Launch::OpenActivity { id: a.id.clone() })
@@ -1982,7 +3773,9 @@ fn activity_items(w: &World, out: &mut Vec<Item>) {
                     "{} {state} · {}",
                     match a.state {
                         crate::domain::activity::ActivityState::Running
-                        | crate::domain::activity::ActivityState::Detached => "⠋",
+                        | crate::domain::activity::ActivityState::Detached
+                        | crate::domain::activity::ActivityState::Cancelling
+                        | crate::domain::activity::ActivityState::Queued => "⠋",
                         crate::domain::activity::ActivityState::Succeeded => "✓",
                         crate::domain::activity::ActivityState::Failed => "!",
                         crate::domain::activity::ActivityState::Stopped => "○",
@@ -2033,6 +3826,37 @@ mod tests {
     }
 
     #[test]
+    fn display_commands_derive_from_the_typed_spec_everywhere() {
+        for s in Scenario::ALL {
+            let w = world_for(s, Motion::Reduced);
+            for it in w.items() {
+                if it.batch.is_empty() {
+                    assert_eq!(
+                        it.commands,
+                        crate::domain::exec::displays(&it.exec),
+                        "{s:?} {}",
+                        it.id
+                    );
+                } else {
+                    let all: Vec<String> = it
+                        .batch
+                        .iter()
+                        .flat_map(|(_, c, _, _)| crate::domain::exec::displays(c))
+                        .collect();
+                    assert_eq!(it.commands, all, "{s:?} {}", it.id);
+                }
+                for c in it.all_exec() {
+                    assert!(
+                        !c.program.is_empty(),
+                        "{s:?} {} has an empty program",
+                        it.id
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
     fn monorepo_child_ranks_local_first_and_keeps_parent_ecosystem_rows() {
         let w = world_for(Scenario::MonorepoChild, Motion::Reduced);
         let items = w.items();
@@ -2068,11 +3892,19 @@ mod tests {
             c.confirmation.phrase().as_deref(),
             Some("I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox")
         );
+        assert!(
+            c.commands
+                .iter()
+                .any(|c| c == "docker system prune --force")
+        );
         let d = items.iter().find(|i| i.id == "disk.delete_all").unwrap();
         assert_eq!(
             d.confirmation.phrase().as_deref(),
             Some("DELETE EVERYTHING IN /work/scratch")
         );
+        let rm = items.iter().find(|i| i.id == "docker.remove_all").unwrap();
+        assert_eq!(rm.exec.len(), 2, "stop then rm as two commands");
+        assert!(rm.exec[0].args.iter().all(|a| a != "--force"));
     }
 
     #[test]
@@ -2088,6 +3920,7 @@ mod tests {
             r.confirmation.phrase().as_deref(),
             Some("RESTART PAYMENTS ON prod-eu-1")
         );
+        assert_eq!(r.exec[0].program, "sudo");
         let l = labels(&w, "", Scope::Here);
         assert!(l.iter().any(|x| x.contains("payments-worker")), "{l:?}");
         assert!(
@@ -2132,5 +3965,16 @@ mod tests {
         assert!(l.iter().any(|x| x.contains("primary branch")), "{l:?}");
         let l = labels(&w, "sync projects", Scope::Here);
         assert_eq!(l[0], "Pull every child project", "{l:?}");
+    }
+
+    #[test]
+    fn brew_json_accepts_both_schemas_and_rejects_malformed_rows() {
+        let a = parse_brew_services(r#"[{"name":"redis","status":"started"},{"name":" "},{"status":"none"},{"name":"postgresql@17"},{"name":"redis"}]"#).unwrap();
+        assert_eq!(a, vec!["postgresql@17", "redis"]);
+        let b = parse_brew_services(r#"{"services":[{"name":"b"},{"name":"a"}]}"#).unwrap();
+        assert_eq!(b, vec!["a", "b"]);
+        assert!(parse_brew_services("{}").is_err());
+        assert!(parse_brew_services("nope").is_err());
+        assert!(parse_brew_services("[]").unwrap().is_empty());
     }
 }

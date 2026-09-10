@@ -37,7 +37,9 @@ use crate::domain::context::{HostRole, Scope};
 use crate::domain::plan::PlanPhase;
 use crate::scenario::{Motion, Scenario};
 use crate::screens::activity::ActivityTab;
+use crate::screens::cleanup::CleanupPage;
 use crate::screens::disk::DiskPage;
+use crate::screens::files::FilesPage;
 use crate::screens::finder::FinderPage;
 use crate::screens::modals::{TextLine, TextModal};
 use crate::screens::plan::{PlanReviewPage, PlanTab};
@@ -118,6 +120,11 @@ pub struct App {
     pending_gate: Option<GateTarget>,
     pending_confirm: Option<(String, Vec<(String, String)>)>,
     pub clipboard_gen: u32,
+    /// The quit was confirmed: every live activity is being stopped and the
+    /// shell leaves once the last one has settled.
+    pub quitting: bool,
+    /// The query that led to the last invocation, for query learning.
+    pub last_query: Option<String>,
 }
 
 impl App {
@@ -155,6 +162,8 @@ impl App {
             pending_gate: None,
             pending_confirm: None,
             clipboard_gen: 0,
+            quitting: false,
+            last_query: None,
         };
         app.start();
         // frames advance through the scripted timeline, then freeze
@@ -328,10 +337,22 @@ impl App {
             if let Some(top) = self.modals.last_mut()
                 && let Modal::Picker(p) = &mut top.modal
             {
-                let cursor = p.cursor;
-                p.set_items(items);
-                p.set_cursor(cursor);
+                p.refresh_items(items);
             }
+        }
+        if self.quitting {
+            let live = self.world.live_activities();
+            if live == 0 {
+                self.quit = true;
+            } else {
+                let text = format!(
+                    "stopping {} · {} still cancelling · quitting when every process is gone",
+                    crate::screens::plural(live, "activity", "activities"),
+                    self.world.cancelling()
+                );
+                self.status = Some((text, Tone::Secondary, self.world.now_ms() + 5_000));
+            }
+            out = Outcome::Changed;
         }
         // every screen on every tab ticks so background tabs keep their state
         let active = self.active;
@@ -365,10 +386,29 @@ impl App {
                     let exit = a.exit.unwrap_or(0);
                     if *ok {
                         self.set_status(&format!("{name} finished · exit 0"), Tone::Secondary);
+                    } else if a.state == ActivityState::Stopped {
+                        self.set_status(&format!("{name} stopped · exit {exit}"), Tone::Secondary);
                     } else {
                         self.set_status(&format!("{name} failed · exit {exit}"), Tone::Error);
                     }
                 }
+                out = Outcome::Changed;
+            }
+            Msg::BatchDone { id, ok } => {
+                let label = self
+                    .world
+                    .batches
+                    .iter()
+                    .find(|b| &b.id == id)
+                    .map(|b| {
+                        let (okn, failed, cancelled, _) = b.tally(&self.world);
+                        format!(
+                            "{} · {okn} ok · {failed} failed · {cancelled} cancelled",
+                            b.label
+                        )
+                    })
+                    .unwrap_or_default();
+                self.set_status(&label, if *ok { Tone::Secondary } else { Tone::Error });
                 out = Outcome::Changed;
             }
             Msg::PlanDone { plan } => {
@@ -416,6 +456,14 @@ impl App {
         if let Some(top) = self.modals.last_mut() {
             return match &mut top.modal {
                 Modal::Dialog(d) => d.on_paste(text),
+                Modal::Picker(p) => {
+                    // one QueryChanged per paste, never one per grapheme
+                    let (o, ev) = p.on_paste(text);
+                    if top.tag.kind == "files-jump" {
+                        return self.files_jump_event(ev, o);
+                    }
+                    o.or(Outcome::Changed)
+                }
                 _ => Outcome::Consumed,
             };
         }
@@ -858,25 +906,33 @@ impl App {
         let mut v = vec![];
         for a in &self.world.activities {
             let glyph = match a.state {
-                ActivityState::Running => "⠋",
+                ActivityState::Running | ActivityState::Queued => "⠋",
+                ActivityState::Cancelling => "◐",
                 ActivityState::Succeeded => "✓",
                 ActivityState::Failed => "!",
                 ActivityState::Stopped | ActivityState::Detached => "○",
             };
+            let mut detail = format!(
+                "{} · {} · {}",
+                a.state.label(),
+                a.scope.word,
+                crate::screens::ticks_label(a.duration_ticks(self.world.tick))
+            );
+            if a.waiting.is_some() {
+                detail = format!("{detail} · waiting for input");
+            }
             v.push(PickerItem {
                 label: a.name.clone(),
-                detail: format!(
-                    "{} · {} · {}",
-                    a.state.label(),
-                    a.scope.word,
-                    crate::screens::ticks_label(a.duration_ticks(self.world.tick))
-                ),
+                detail,
                 glyph,
                 group: "activities",
-                tag: None,
+                tag: a
+                    .waiting
+                    .as_ref()
+                    .map(|p| if p.secret { "password" } else { "input" }),
                 matched: vec![],
                 disabled: false,
-                key: String::new(),
+                key: a.id.clone(),
             });
         }
         for p in &self.world.plans {
@@ -901,7 +957,7 @@ impl App {
                     tag: None,
                     matched: vec![],
                     disabled: false,
-                    key: String::new(),
+                    key: format!("plan:{}", p.id),
                 });
             }
         }
@@ -957,7 +1013,19 @@ impl App {
                     action: Some(1), ..
                 } = result
                 {
-                    self.quit = true;
+                    let n = self.world.stop_all();
+                    if n == 0 {
+                        self.quit = true;
+                    } else {
+                        self.quitting = true;
+                        self.set_status(
+                            &format!(
+                                "stopping {} · quitting when every process is gone",
+                                crate::screens::plural(n, "activity", "activities")
+                            ),
+                            Tone::Secondary,
+                        );
+                    }
                 }
                 return Outcome::Changed;
             }
@@ -1006,21 +1074,26 @@ impl App {
             }
             "activities" => {
                 if let ModalResult::Picked(i) = result {
-                    let n = self.world.activities.len();
-                    if i < n {
-                        let id = self.world.activities[i].id.clone();
-                        self.open_activity_tab(&id, true);
-                    } else {
-                        let plans: Vec<String> = self
-                            .world
-                            .plans
-                            .iter()
-                            .filter(|p| p.phase != PlanPhase::Review)
-                            .map(|p| p.id.clone())
-                            .collect();
-                        if let Some(pid) = plans.get(i - n) {
-                            self.open_plan_tab(pid);
+                    // the row's identity, never its index: rows refresh
+                    // while the picker is open
+                    let key = match &entry.modal {
+                        Modal::Picker(p) => p.items.get(i).map(|it| it.key.clone()),
+                        _ => None,
+                    };
+                    match key.as_deref() {
+                        Some(k) if k.starts_with("plan:") => {
+                            let pid = k.trim_start_matches("plan:").to_owned();
+                            if self.world.plan(&pid).is_some() {
+                                self.open_plan_tab(&pid);
+                            } else {
+                                self.set_status("That plan is gone", Tone::Secondary);
+                            }
                         }
+                        Some(k) if self.world.activity(k).is_some() => {
+                            let id = k.to_owned();
+                            self.open_activity_tab(&id, true);
+                        }
+                        _ => self.set_status("That activity is gone", Tone::Secondary),
                     }
                 }
                 return Outcome::Changed;
@@ -1081,6 +1154,9 @@ impl App {
             }
             Modal::Picker(p) => {
                 let (o, ev) = p.on_key(&key);
+                if top.tag.kind == "files-jump" {
+                    return self.files_jump_event(ev, o);
+                }
                 match ev {
                     Some(PickerEvent::Chosen(i)) | Some(PickerEvent::ChosenAlt(i)) => {
                         let entry = self.pop_modal().unwrap();
@@ -1118,6 +1194,108 @@ impl App {
         }
     }
 
+    /// The jump picker (HP04): the query re-supplies suggestions, Enter
+    /// resolves an exact path over the selected suggestion, and a failed
+    /// jump keeps the picker open with the error in its status row.
+    fn files_jump_event(&mut self, ev: Option<PickerEvent>, o: Outcome) -> Outcome {
+        let active = self.active;
+        let query = match self.modals.last() {
+            Some(ModalEntry {
+                modal: Modal::Picker(p),
+                ..
+            }) => p.query.clone(),
+            _ => return o.or(Outcome::Consumed),
+        };
+        match ev {
+            Some(PickerEvent::QueryChanged) | Some(PickerEvent::Back) => {
+                let rows = self
+                    .tabs
+                    .get_mut(active)
+                    .and_then(|t| t.stack.last_mut())
+                    .and_then(|s| s.as_files())
+                    .map(|f| {
+                        f.set_jump_error(None);
+                        f.jump_rows(&query, &self.world)
+                    });
+                if let Some((items, status)) = rows
+                    && let Some(ModalEntry {
+                        modal: Modal::Picker(p),
+                        ..
+                    }) = self.modals.last_mut()
+                {
+                    p.refresh_items(items);
+                    p.status = status;
+                }
+                Outcome::Changed
+            }
+            Some(PickerEvent::Chosen(_)) | Some(PickerEvent::ChosenAlt(_)) => {
+                let selected = match self.modals.last() {
+                    Some(ModalEntry {
+                        modal: Modal::Picker(p),
+                        ..
+                    }) => p.current_key().map(str::to_owned),
+                    _ => None,
+                };
+                let mut cx = Cx {
+                    focus: &mut self.focus,
+                    ring: &self.ring,
+                    requests: vec![],
+                };
+                let outcome = self
+                    .tabs
+                    .get_mut(active)
+                    .and_then(|t| t.stack.last_mut())
+                    .and_then(|s| s.as_files())
+                    .map(
+                        |f| match f.jump_target(&query, selected.as_deref(), &self.world) {
+                            None => Err("Type a path or choose a suggestion".to_owned()),
+                            Some(target) => f
+                                .perform_jump(&target, &self.world, &mut cx)
+                                .map(|_| target),
+                        },
+                    );
+                let requests = std::mem::take(&mut cx.requests);
+                match outcome {
+                    Some(Ok(target)) => {
+                        self.pop_modal();
+                        let short = self.world.location.short(&target);
+                        self.set_status(&format!("Jumped to {short}"), Tone::Secondary);
+                        self.apply_requests(requests, active);
+                    }
+                    Some(Err(e)) => {
+                        let rows = self
+                            .tabs
+                            .get_mut(active)
+                            .and_then(|t| t.stack.last_mut())
+                            .and_then(|s| s.as_files())
+                            .map(|f| {
+                                f.set_jump_error(Some(e.clone()));
+                                f.jump_rows(&query, &self.world)
+                            });
+                        if let Some((items, status)) = rows
+                            && let Some(ModalEntry {
+                                modal: Modal::Picker(p),
+                                ..
+                            }) = self.modals.last_mut()
+                        {
+                            p.refresh_items(items);
+                            p.status = status;
+                        }
+                    }
+                    None => {
+                        self.pop_modal();
+                    }
+                }
+                Outcome::Changed
+            }
+            Some(PickerEvent::Cancelled) => {
+                self.pop_modal();
+                Outcome::Changed
+            }
+            _ => o.or(Outcome::Consumed),
+        }
+    }
+
     fn modal_click(&mut self, id: WidgetId, pos: Position) -> Outcome {
         let Some(top) = self.modals.last_mut() else {
             return Outcome::Ignored;
@@ -1140,7 +1318,11 @@ impl App {
                 out.or(Outcome::Changed)
             }
             Modal::Picker(p) => {
-                if let Some(PickerEvent::Chosen(i)) = p.on_click(id) {
+                let ev = p.on_click(id);
+                if top.tag.kind == "files-jump" {
+                    return self.files_jump_event(ev, Outcome::Changed);
+                }
+                if let Some(PickerEvent::Chosen(i)) = ev {
                     let entry = self.pop_modal().unwrap();
                     return self.deliver(entry, ModalResult::Picked(i));
                 }
@@ -1376,7 +1558,16 @@ impl App {
 
     pub fn go(&mut self, g: Go) {
         match g {
-            Go::Run { item, args } => self.run_item(&item, args),
+            Go::Run { item, args } => {
+                self.last_query = self
+                    .tabs
+                    .first_mut()
+                    .and_then(|t| t.stack.first_mut())
+                    .and_then(|s| s.as_finder())
+                    .map(|f| f.query.clone())
+                    .filter(|q| !q.trim().is_empty());
+                self.run_item(&item, args)
+            }
             Go::Alternatives { item, anchor } => self.open_alternatives(&item, anchor),
             Go::Push(page) => {
                 self.activate_tab(0);
@@ -1412,6 +1603,53 @@ impl App {
             Go::ConfirmPlan(id) => self.confirm_plan(&id),
             Go::Gate1Accepted(target) => self.open_gate2(target),
             Go::Trusted { config, then } => {
+                let custom = self
+                    .world
+                    .custom_project
+                    .as_ref()
+                    .filter(|c| c.path == config)
+                    .cloned();
+                if let Some(cfg) = custom {
+                    // the file is re-read at approval: an edit during review
+                    // revokes the review instead of trusting unseen bytes
+                    let now_text = match self.world.fs.get(&cfg.path).map(|n| &n.content) {
+                        Some(crate::sim::fs::Content::Text(t)) => t.clone(),
+                        _ => String::new(),
+                    };
+                    let now_digest = crate::domain::digest::sha256_hex(now_text.as_bytes());
+                    if now_digest != cfg.digest {
+                        self.pop_page();
+                        self.reload_project_config();
+                        self.set_status(
+                            "The configuration changed during review · nothing was trusted or run · review again",
+                            Tone::Error,
+                        );
+                        return;
+                    }
+                    let cwd = self
+                        .find_item(&then)
+                        .map(|i| i.scope.runs_in.clone())
+                        .unwrap_or(self.world.location.cwd.clone());
+                    match self.world.trust.approve(&cfg.digest, &cfg.path, &cwd) {
+                        Ok(text) => {
+                            self.world.persisted.trust = Some(text);
+                            self.pop_page();
+                            self.set_status(
+                                &format!(
+                                    "Trusted {} · this exact content at this path",
+                                    self.world.location.short(&config)
+                                ),
+                                Tone::Secondary,
+                            );
+                            self.run_item(&then, vec![]);
+                        }
+                        Err(e) => {
+                            self.pop_page();
+                            self.set_status(&format!("{e} · nothing was run"), Tone::Error);
+                        }
+                    }
+                    return;
+                }
                 if !self.world.trusted_now.contains(&config) {
                     self.world.trusted_now.push(config.clone());
                 }
@@ -1436,10 +1674,42 @@ impl App {
             Go::Restart(id) => self.run_derived(&format!("activity.{id}.restart"), ""),
             Go::CloseTab => self.request_close_tab(),
             Go::Quit => {
-                if self.world.live_activities() > 0 {
+                if self.quitting {
+                    self.set_status(
+                        "Already stopping · the shell leaves when every process is gone",
+                        Tone::Secondary,
+                    );
+                } else if self.world.live_activities() > 0 {
                     self.open_quit_confirm();
                 } else {
                     self.quit = true;
+                }
+            }
+            Go::Reload => {
+                self.reload_project_config();
+                self.enter_top();
+            }
+            Go::Exec { label, argv } => {
+                let scope = crate::domain::context::ScopeTag::here(&self.world.location.cwd);
+                let script = self.world.script_for(None, &argv);
+                let aid = self.world.start_activity(
+                    argv,
+                    script,
+                    &label,
+                    &label,
+                    ActivityKind::Task,
+                    scope,
+                );
+                self.open_activity_tab(&aid, true);
+            }
+            Go::Osc52(value) => self.copy_osc52(value),
+            Go::Analyze(path) => {
+                self.activate_tab(0);
+                if !self.world.fs.exists(&path) {
+                    self.set_status(&format!("{path}: no such file or directory"), Tone::Error);
+                } else {
+                    self.world.start_scan(&path);
+                    self.push_page(Page::Disk { path });
                 }
             }
         }
@@ -1457,7 +1727,50 @@ impl App {
             Page::Trust { config, then } => Box::new(TrustPage::new(&config, &then)),
             Page::Args { item } => Box::new(ArgsPage::new(&item, &self.world)),
             Page::Snapshot { kind } => Box::new(SnapshotPage::new(&kind, &self.world)),
+            Page::Files { path, query } => {
+                Box::new(FilesPage::new(&path, query.as_deref(), &self.world))
+            }
+            Page::Find => Box::new(FilesPage::find(&self.world)),
+            Page::DiskOverview => Box::new(DiskPage::overview()),
+            Page::TopFiles => Box::new(DiskPage::top_files()),
+            Page::Cleanup { category } => Box::new(CleanupPage::new(category.as_deref())),
+            Page::CleanupGate { plan } => {
+                Box::new(GatePage::new(GateTarget::Cleanup(plan), &self.world))
+            }
+            Page::Report { index } => {
+                Box::new(SnapshotPage::new(&format!("report:{index}"), &self.world))
+            }
+            Page::Config { path } => {
+                Box::new(SnapshotPage::new(&format!("config:{path}"), &self.world))
+            }
         }
+    }
+
+    /// Re-parse the project configuration from the filesystem (an edit,
+    /// a relocation, a restart).
+    fn reload_project_config(&mut self) {
+        let Some(cfg) = self.world.custom_project.clone() else {
+            return;
+        };
+        let text = match self.world.fs.get(&cfg.path).map(|n| &n.content) {
+            Some(crate::sim::fs::Content::Text(t)) => t.clone(),
+            _ => String::new(),
+        };
+        let builtin = crate::domain::catalog::builtin_ids(&self.world);
+        let builtin_refs: Vec<&str> = builtin.iter().map(String::as_str).collect();
+        let reserved: Vec<String> = self
+            .world
+            .custom_global
+            .as_ref()
+            .map(|g| g.actions.iter().map(|a| a.id.clone()).collect())
+            .unwrap_or_default();
+        self.world.custom_project = Some(crate::domain::custom::parse_config(
+            &cfg.path,
+            cfg.origin,
+            &text,
+            &builtin_refs,
+            &reserved,
+        ));
     }
 
     fn push_page(&mut self, page: Page) {
@@ -1557,8 +1870,21 @@ impl App {
         match self.tabs[i].kind.clone() {
             TabKind::Activity(id) => {
                 let tick = self.world.tick;
-                if stop && let Some(a) = self.world.activity_mut(&id) {
+                if stop
+                    && let Some(a) = self.world.activity_mut(&id)
+                    && a.state.live()
+                {
+                    // the tab stays until the process group is gone: a
+                    // stop is a request, not a result
                     a.stop(tick);
+                    self.set_status(
+                        "Stopping · the tab closes once the process is gone",
+                        Tone::Secondary,
+                    );
+                    return;
+                }
+                if self.world.activity(&id).is_some_and(|a| a.state.live()) {
+                    return;
                 }
                 self.world.activities.retain(|a| a.id != id);
             }
@@ -1585,10 +1911,30 @@ impl App {
             self.set_status(&format!("{id} is no longer available here"), Tone::Error);
             return;
         };
+        if let crate::domain::action::Freshness::Unavailable(why) = &it.freshness
+            && !matches!(
+                it.launch,
+                Launch::Snapshot { .. }
+                    | Launch::Files { .. }
+                    | Launch::Insert
+                    | Launch::Config { .. }
+            )
+        {
+            self.set_status(&format!("{} is unavailable · {why}", it.label), Tone::Error);
+            return;
+        }
         // trust first: a contributed or untrusted definition is reviewed before it runs
         if let Confirmation::Trust { .. } = &it.confirmation {
             let config = self.config_path_for(&it);
-            if !self.world.trusted_now.contains(&config) {
+            let trusted = match &it.trust_key {
+                Some((path, digest)) => {
+                    let cwd = it.scope.runs_in.clone();
+                    self.world.trust.status(digest, path, &cwd)
+                        == crate::domain::custom::TrustStatus::Trusted
+                }
+                None => self.world.trusted_now.contains(&config),
+            };
+            if !trusted {
                 self.activate_tab(0);
                 self.push_page(Page::Trust {
                     config,
@@ -1607,7 +1953,7 @@ impl App {
         }
         // plans are always reviewed on their own page
         if let Launch::Plan { plan } = &it.launch {
-            self.world.record_use(&it.id);
+            self.remember_use(&it.id);
             self.activate_tab(0);
             self.push_page(Page::PlanReview { plan: plan.clone() });
             return;
@@ -1625,16 +1971,39 @@ impl App {
         }
     }
 
+    /// Record the use and the query that led to it, before the result is
+    /// known (failed invocations count too). Nothing is learned while
+    /// history is disabled.
+    fn remember_use(&mut self, id: &str) {
+        self.world.record_use(id);
+        if let Some(q) = self.last_query.take()
+            && !q.trim().is_empty()
+        {
+            let host = self.world.host.name.clone();
+            let now = self.world.now_secs();
+            self.world.memory.usage.learn_query(&q, id, &host, now);
+        }
+        self.persist_usage();
+    }
+
+    /// Save the usage store the way a production launch would: merge with
+    /// what is on disk, then replace it. A save failure is shown, never
+    /// fatal.
+    fn persist_usage(&mut self) {
+        let now = self.world.now_secs();
+        let on_disk = self.world.persisted.frecency.clone();
+        match self.world.memory.usage.save(on_disk.as_deref(), now) {
+            Ok(text) => self.world.persisted.frecency = Some(text),
+            Err(e) if self.world.memory.usage.enabled => {
+                self.set_status(&format!("history not saved · {e}"), Tone::Error);
+            }
+            Err(_) => {}
+        }
+    }
+
     fn config_path_for(&self, it: &Item) -> String {
-        if it.id.starts_with("workflow.") {
-            let root = self
-                .world
-                .location
-                .project
-                .as_ref()
-                .map(|p| p.root.clone())
-                .unwrap_or(self.world.location.cwd.clone());
-            return format!("{root}/.holla/workflows.toml");
+        if let Some((path, _)) = &it.trust_key {
+            return path.clone();
         }
         self.world
             .mise
@@ -1693,6 +2062,7 @@ impl App {
             "upgrade" => crate::domain::fixtures::plan_upgrade(&self.world),
             "git-pull-all" => crate::domain::fixtures::plan_git_pull_all(&self.world),
             "git-switch-primary" => crate::domain::fixtures::plan_git_switch_primary(&self.world),
+            "upgrade-all" => crate::domain::fixtures::plan_upgrade_all(&self.world),
             _ => {
                 let sel: Vec<String> = self
                     .world
@@ -1811,6 +2181,31 @@ impl App {
                     "Execute".to_owned(),
                 )
             }
+            GateTarget::Cleanup(plan) => {
+                let facts = crate::screens::cleanup::plan_facts(plan, &self.world);
+                let code: Vec<String> = plan.items.iter().map(|i| i.path.clone()).collect();
+                (
+                    format!(
+                        "{} {} items",
+                        if plan.dry_run {
+                            "Dry run"
+                        } else if plan.mode == crate::domain::cleanup::Mode::Permanent {
+                            "Permanently delete"
+                        } else {
+                            "Trash"
+                        },
+                        plan.items.len()
+                    ),
+                    facts,
+                    code,
+                    plan.phrase(),
+                    if plan.dry_run {
+                        "Dry run".to_owned()
+                    } else {
+                        "Execute".to_owned()
+                    },
+                )
+            }
         };
         let confirm = Button::danger(WidgetId::of("gate2").sub("ok"), &confirm_label);
         let mut d = Dialog::facts(
@@ -1875,6 +2270,32 @@ impl App {
                 self.enter_top();
                 self.execute_item(&item, args);
             }
+            GateTarget::Cleanup(plan) => {
+                // the gate revalidates: a plan whose fingerprint drifted
+                // since review is refused before any effect
+                let outcome = crate::screens::cleanup::commit(&plan, &mut self.world);
+                match outcome {
+                    Ok(index) => {
+                        while self.tabs[0].stack.len() > 1 {
+                            self.tabs[0].stack.pop();
+                        }
+                        self.push_page(Page::Report { index });
+                        let summary = self.world.reports[index].summary();
+                        self.set_status(
+                            &summary,
+                            if self.world.reports[index].incomplete() {
+                                Tone::Error
+                            } else {
+                                Tone::Secondary
+                            },
+                        );
+                    }
+                    Err(e) => {
+                        self.set_status(&e, Tone::Error);
+                        self.enter_top();
+                    }
+                }
+            }
         }
     }
 
@@ -1900,7 +2321,7 @@ impl App {
         let Some(it) = self.find_item(id) else {
             return;
         };
-        self.world.record_use(id);
+        self.remember_use(id);
         match it.launch.clone() {
             Launch::Activity { script } => {
                 let name = Self::activity_name(&it);
@@ -1923,26 +2344,66 @@ impl App {
                 } else {
                     ActivityKind::Task
                 };
-                let script = if !args.is_empty() && script.starts_with("generic:") {
-                    format!(
-                        "{script} {}",
-                        args.iter()
-                            .map(|(k, v)| format!("--{k} {v}"))
-                            .collect::<Vec<_>>()
-                            .join(" ")
-                    )
-                } else {
-                    script
-                };
-                let aid =
-                    self.world
-                        .start_activity(&script, &name, &it.label, kind, it.scope.clone());
-                let effect = crate::domain::effect::Effect::for_item(&it.id, &self.world);
+                // launch-time arguments fill their placeholders in the typed
+                // spec; they are never appended as free text
+                let argv: Vec<crate::domain::exec::Command> = it
+                    .exec
+                    .iter()
+                    .map(|c| {
+                        let mut c = c.clone();
+                        for a in &mut c.args {
+                            for (k, v) in &args {
+                                let ph = format!("<{k}>");
+                                if a.contains(&ph) {
+                                    *a = a.replace(&ph, v);
+                                }
+                            }
+                        }
+                        if c.program == "kill"
+                            && let Some(sig) = args.iter().find(|(k, _)| k == "signal")
+                        {
+                            c.args[0] = format!("-{}", sig.1);
+                        }
+                        c
+                    })
+                    .collect();
+                if argv.is_empty() && script.is_none() {
+                    self.set_status(
+                        &format!(
+                            "{} has no executable specification in this preview",
+                            it.label
+                        ),
+                        Tone::Error,
+                    );
+                    return;
+                }
+                let script = self.world.script_for(script.as_deref(), &argv);
+                let aid = self.world.start_activity(
+                    argv,
+                    script,
+                    &name,
+                    &it.label,
+                    kind,
+                    it.scope.clone(),
+                );
                 if let Some(a) = self.world.activity_mut(&aid) {
                     if !args.is_empty() {
-                        a.insights = args.clone();
+                        // launch arguments are insights; secrets never are
+                        a.insights = args
+                            .iter()
+                            .filter(|(k, _)| !it.args.iter().any(|s| &s.name == k && s.secret))
+                            .cloned()
+                            .collect();
                     }
-                    a.effect = effect;
+                    a.effect = it.effect.clone();
+                    if it.id == "system.kill"
+                        && let Some(pid) = args
+                            .iter()
+                            .find(|(k, _)| k == "pid")
+                            .and_then(|(_, v)| v.trim().parse::<u32>().ok())
+                    {
+                        a.effect = Some(crate::domain::effect::Effect::KillProcess(pid));
+                    }
                 }
                 self.open_activity_tab(&aid, true);
                 self.set_status(
@@ -1953,12 +2414,49 @@ impl App {
                     Tone::Secondary,
                 );
             }
+            Launch::Batch => {
+                let members: Vec<_> = it
+                    .batch
+                    .iter()
+                    .map(|(name, argv, effect, scope)| {
+                        let script = self.world.script_for(None, argv);
+                        (
+                            name.clone(),
+                            argv.clone(),
+                            script,
+                            effect.clone(),
+                            scope.clone(),
+                        )
+                    })
+                    .collect();
+                let ids =
+                    self.world
+                        .start_batch(&it.id, &it.label, it.batch_mode, members, &it.label);
+                if let Some(first) = ids.first() {
+                    let first = first.clone();
+                    self.open_activity_tab(&first, true);
+                }
+                self.set_status(
+                    &format!(
+                        "{} · {} started {}",
+                        it.label,
+                        crate::screens::plural(ids.len(), "activity", "activities"),
+                        match it.batch_mode {
+                            crate::sim::world::BatchMode::Parallel =>
+                                "in parallel · Ctrl+G lists them",
+                            crate::sim::world::BatchMode::Sequential =>
+                                "one after another · Ctrl+G lists them",
+                        }
+                    ),
+                    Tone::Secondary,
+                );
+            }
             Launch::Handoff { tool } => {
                 let script = match tool.as_str() {
                     "btm" => "monitor:btm".to_owned(),
                     "pg_activity" => "monitor:pg_activity".to_owned(),
                     t if t.starts_with("ssh ") => format!("ssh:{}", t.trim_start_matches("ssh ")),
-                    t => format!("generic:{t}"),
+                    t => format!("handoff:{t}"),
                 };
                 let kind = if tool.starts_with("ssh ") {
                     ActivityKind::Ssh {
@@ -1967,9 +2465,16 @@ impl App {
                 } else {
                     ActivityKind::Monitor { tool: tool.clone() }
                 };
-                let aid =
-                    self.world
-                        .start_activity(&script, &tool, &it.label, kind, it.scope.clone());
+                let argv = it.exec.clone();
+                let script = self.world.script_for(Some(&script), &argv);
+                let aid = self.world.start_activity(
+                    argv,
+                    script,
+                    &tool,
+                    &it.label,
+                    kind,
+                    it.scope.clone(),
+                );
                 self.open_activity_tab(&aid, true);
                 self.set_status(
                     &format!("{tool} opened as an activity · Enter attaches, Ctrl+] detaches"),
@@ -1977,12 +2482,51 @@ impl App {
                 );
             }
             Launch::Disk { path } => {
-                if self.world.scan_started.is_none() {
-                    self.world.scan_started = Some(self.world.tick);
-                }
+                let path = if path == "<path>" {
+                    args.iter()
+                        .find(|(k, _)| k == "path")
+                        .map(|(_, v)| v.trim().to_owned())
+                        .unwrap_or_default()
+                } else {
+                    path
+                };
                 self.activate_tab(0);
+                if path.is_empty() {
+                    self.push_page(Page::DiskOverview);
+                    return;
+                }
+                if !path.starts_with('/') {
+                    self.set_status(&format!("{path}: the path must be absolute"), Tone::Error);
+                    return;
+                }
+                if !self.world.fs.exists(&path) {
+                    self.set_status(&format!("{path}: no such file or directory"), Tone::Error);
+                    return;
+                }
+                self.world.start_scan(&path);
                 self.push_page(Page::Disk { path });
             }
+            Launch::Files { path } => {
+                self.activate_tab(0);
+                self.push_page(Page::Files { path, query: None });
+            }
+            Launch::Find => {
+                self.activate_tab(0);
+                self.push_page(Page::Find);
+            }
+            Launch::Cleanup { category } => {
+                self.activate_tab(0);
+                self.push_page(Page::Cleanup { category });
+            }
+            Launch::TopFiles => {
+                self.activate_tab(0);
+                self.push_page(Page::TopFiles);
+            }
+            Launch::Config { path } => {
+                self.activate_tab(0);
+                self.push_page(Page::Config { path });
+            }
+            Launch::Copy { value } => self.copy_osc52(value),
             Launch::Group(g) => {
                 self.activate_tab(0);
                 self.push_page(Page::Finder { group: Some(g) });
@@ -2008,21 +2552,45 @@ impl App {
                 self.push_page(Page::PlanReview { plan });
             }
             Launch::Insert => {
-                if it.id == "file.reveal" {
-                    let p = self.world.location.cwd.clone();
-                    self.copy(p);
-                } else {
-                    let cmd = it.commands.first().cloned().unwrap_or_default();
-                    self.set_status(
-                        &format!(
-                            "Inserted into the shell: {} · holla returns to the prompt",
-                            truncate(&cmd, 40)
-                        ),
-                        Tone::Secondary,
-                    );
-                }
+                let cmd = it.commands.first().cloned().unwrap_or_default();
+                self.set_status(
+                    &format!(
+                        "Inserted into the shell: {} · holla returns to the prompt",
+                        truncate(&cmd, 40)
+                    ),
+                    Tone::Secondary,
+                );
             }
         }
+    }
+
+    /// Copy through the terminal's OSC 52 channel: the result names the
+    /// actual destination and never claims success the terminal cannot
+    /// deliver (I-F11).
+    pub fn copy_osc52(&mut self, value: String) {
+        let p = &self.world.platform;
+        if !p.osc52 {
+            self.set_status(
+                "Not copied · this terminal does not accept OSC 52 · no system clipboard is wired",
+                Tone::Error,
+            );
+            return;
+        }
+        let encoded = value.len().div_ceil(3) * 4;
+        if encoded > p.osc52_limit {
+            self.set_status(
+                &format!("Not copied · {encoded} encoded bytes exceed the terminal's {} byte OSC 52 limit", p.osc52_limit),
+                Tone::Error,
+            );
+            return;
+        }
+        let shown = truncate(&value.replace('\n', " · "), 40);
+        self.world.clipboard = Some(value);
+        self.clipboard_gen += 1;
+        self.set_status(
+            &format!("Copied to the terminal clipboard (OSC 52, flushed) · {shown}"),
+            Tone::Secondary,
+        );
     }
 
     // --------------------------------------------------------- alternatives
@@ -2116,9 +2684,16 @@ impl App {
             .strip_prefix("mise.task.")
             .and_then(|s| s.strip_suffix(".dry"))
         {
-            let cmd = format!("mise run --dry-run {ns}");
+            let argv = vec![crate::domain::exec::Command::argv(
+                "mise",
+                &["run", "--dry-run", ns],
+                &scope.runs_in,
+                &self.world.host.name,
+            )];
+            let script = self.world.script_for(None, &argv);
             let aid = self.world.start_activity(
-                &format!("generic:{cmd}"),
+                argv,
+                script,
                 &format!("{} · dry run", ns.trim_start_matches("//")),
                 "Dry run",
                 ActivityKind::Task,
@@ -2126,47 +2701,6 @@ impl App {
             );
             self.open_activity_tab(&aid, true);
             self.set_status("Dry run started · nothing executes", Tone::Secondary);
-            return;
-        }
-        if alt == "git.fetch" {
-            let aid = self.world.start_activity(
-                "generic:git fetch --prune",
-                "git fetch",
-                "Fetch only",
-                ActivityKind::Task,
-                scope,
-            );
-            self.open_activity_tab(&aid, true);
-            return;
-        }
-        if let Some(name) = alt.strip_prefix("docker.restart.") {
-            let aid = self.world.start_activity(
-                &format!("generic:docker restart {name}"),
-                &format!("restart {name}"),
-                "Restart",
-                ActivityKind::Task,
-                scope,
-            );
-            if let Some(a) = self.world.activity_mut(&aid) {
-                a.effect = Some(crate::domain::effect::Effect::DockerRestart(
-                    name.to_owned(),
-                ));
-            }
-            self.open_activity_tab(&aid, true);
-            return;
-        }
-        if let Some(name) = alt.strip_prefix("docker.stop.") {
-            let aid = self.world.start_activity(
-                &format!("generic:docker stop {name}"),
-                &format!("stop {name}"),
-                "Stop",
-                ActivityKind::Task,
-                scope,
-            );
-            if let Some(a) = self.world.activity_mut(&aid) {
-                a.effect = Some(crate::domain::effect::Effect::DockerStop(name.to_owned()));
-            }
-            self.open_activity_tab(&aid, true);
             return;
         }
         if let Some(rest) = alt.strip_prefix("ssh.")
@@ -2183,11 +2717,18 @@ impl App {
                 if let Some(a) = self.world.activity_mut(aid) {
                     a.stop(tick);
                 }
-                self.set_status("Stopped · output kept", Tone::Secondary);
+                self.set_status(
+                    "Stop requested · output kept · the state settles once the process is gone",
+                    Tone::Secondary,
+                );
                 return;
             }
             if let Some(aid) = rest.strip_suffix(".restart") {
                 if let Some(a) = self.world.activity_mut(aid) {
+                    if a.state.live() {
+                        self.set_status("Still running · stop it first", Tone::Secondary);
+                        return;
+                    }
                     a.restart(tick);
                     a.advance(tick);
                 }
@@ -2196,12 +2737,6 @@ impl App {
                 self.set_status("Restarted", Tone::Secondary);
                 return;
             }
-        }
-        if alt == "disk.usage_volume" {
-            self.world.scan_started = Some(tick);
-            self.activate_tab(0);
-            self.push_page(Page::Disk { path: "/".into() });
-            return;
         }
         if alt.ends_with(".alias") {
             self.menu_action(MenuAction::Alias, origin);
@@ -2434,7 +2969,8 @@ impl App {
                     item = item.closable();
                     if let Some(a) = self.world.activity(id) {
                         match a.state {
-                            ActivityState::Running => item.busy = true,
+                            ActivityState::Running | ActivityState::Cancelling => item.busy = true,
+                            ActivityState::Queued => item = item.suffix("…"),
                             ActivityState::Failed => item.error = true,
                             ActivityState::Succeeded => item = item.suffix("✓"),
                             ActivityState::Stopped | ActivityState::Detached => {

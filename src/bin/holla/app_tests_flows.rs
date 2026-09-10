@@ -388,13 +388,52 @@ fn scope_axis_and_tokens_narrow_and_widen() {
 fn disk_cleanup_selects_by_freshness_and_gates_on_the_path() {
     let mut h = H::new(Scenario::DiskCleanup, Motion::Paused, 80, 120, 40);
     assert!(h.text().contains("Here › Disk › Usage"));
-    assert!(h.text().contains("[✓] backend › target"), "{}", h.text());
+    assert!(h.text().contains("scan complete"), "{}", h.text());
     assert!(
-        h.text().contains("[ ] frontend › dist"),
-        "recent artifacts start unselected"
+        h.text().contains("3 selected"),
+        "stale, confident artifacts start selected: {}",
+        h.text()
     );
-    assert!(h.text().contains("activity unknown"));
-    assert!(h.text().contains("scan complete"));
+    // largest first: the tree opens on the root with its children collapsed
+    assert!(
+        h.row(12).contains("work") && h.row(12).contains("100%"),
+        "{}",
+        h.row(12)
+    );
+    assert!(
+        h.row(13).contains("backend") && h.row(13).contains("◐"),
+        "a folder holding a selection is marked: {}",
+        h.row(13)
+    );
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Right);
+    // the opened folder lists largest first: the selected target leads
+    assert!(h.text().contains("✓ target"), "{}", h.text());
+    h.key(KeyCode::Down);
+    assert!(
+        h.text().contains("Candidate"),
+        "facts name the candidate: {}",
+        h.text()
+    );
+    assert!(
+        h.text().contains("selected · Space unselects"),
+        "{}",
+        h.text()
+    );
+    // a fresh artifact is not preselected
+    h.key(KeyCode::Left);
+    h.key(KeyCode::Left);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Down);
+    assert!(h.text().contains("✓ node_modules"), "{}", h.text());
+    h.key(KeyCode::Down);
+    assert!(h.text().contains("~/work/frontend/dist"), "{}", h.text());
+    assert!(
+        h.text().contains("not selected · Space selects"),
+        "recent artifacts start unselected: {}",
+        h.text()
+    );
     h.key(KeyCode::Char('c'));
     assert!(
         h.text().contains("Clean developer artifacts under ~/work"),
@@ -412,10 +451,11 @@ fn disk_cleanup_selects_by_freshness_and_gates_on_the_path() {
         "{}",
         h.text()
     );
-    // the streaming scan at an early frame shows fewer candidates
+    // the streaming scan at an early frame is explicit about progress
     let early = H::new(Scenario::DiskCleanup, Motion::Paused, 10, 120, 40);
-    assert!(early.text().contains("scanning"));
-    assert!(!early.text().contains("~/Library/Logs"));
+    assert!(early.text().contains("scanning ·"), "{}", early.text());
+    assert!(early.text().contains("entries"));
+    assert!(!early.text().contains("scan complete"));
 }
 
 #[test]
@@ -674,6 +714,15 @@ fn esc_ladder_and_quit_rules() {
     assert!(a.text().contains("Stop and quit"));
     a.key(KeyCode::Right);
     a.key(KeyCode::Enter);
+    assert!(!a.app.quit, "quitting waits until every process is gone");
+    assert!(a.app.world.cancelling() > 0);
+    assert!(
+        a.text().contains("quitting when every process is gone"),
+        "{}",
+        a.text()
+    );
+    a.ticks(20);
+    assert!(a.app.world.live_activities() == 0);
     assert!(a.app.quit);
 }
 

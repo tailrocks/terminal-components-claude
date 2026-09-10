@@ -3,7 +3,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::domain::activity::{LineTone, Script, ScriptLine, line, service, toned};
+use crate::domain::activity::{LineTone, Script, line, service, toned};
 
 pub fn scripts() -> BTreeMap<String, Script> {
     let mut m = BTreeMap::new();
@@ -678,14 +678,4 @@ pub fn step_outputs() -> BTreeMap<String, Vec<String>> {
         ],
     );
     m
-}
-
-/// A short one-line script used when an item has no dedicated one.
-pub fn one_shot(cmd: &str, lines: &[&str]) -> Script {
-    let mut v: Vec<ScriptLine> = vec![line(0, &format!("$ {cmd}"))];
-    for (i, l) in lines.iter().enumerate() {
-        v.push(line(2 + i as u64, l));
-    }
-    let end = 3 + lines.len() as u64;
-    Script::ending(v, end, 0)
 }

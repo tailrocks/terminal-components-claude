@@ -28,6 +28,25 @@ pub struct GitState {
     pub in_progress: Option<String>,
     pub modified: Vec<String>,
     pub diverged: bool,
+    /// `.git` is a file (a worktree or submodule) rather than a directory.
+    pub git_file: bool,
+    /// Where the primary branch came from: `origin/HEAD`, a local `main`
+    /// or `master` fallback, or nothing.
+    pub default_from: Option<&'static str>,
+    /// Branches merged into the primary branch (other than current/primary).
+    pub merged: Vec<String>,
+    /// Branches checked out in another worktree: Git refuses `-d` for them.
+    pub occupied: Vec<String>,
+    /// Remote name → URL; a `gitlab` remote enables the mirror push.
+    pub remote_urls: Vec<(String, String)>,
+    /// Push is rejected by the remote with this reason.
+    pub push_rejected: Option<String>,
+    /// The configured pull strategy: `ff-only`, `merge` or `rebase`.
+    pub pull_config: &'static str,
+    /// Git itself fails on this repository (corrupt, missing binary here).
+    pub command_failure: Option<String>,
+    /// The repository has merge conflicts in flight after a non-ff pull.
+    pub gc_needed: bool,
 }
 
 impl GitState {
@@ -51,7 +70,46 @@ impl GitState {
             in_progress: None,
             modified: vec![],
             diverged: false,
+            git_file: false,
+            default_from: Some("origin/HEAD"),
+            merged: vec![],
+            occupied: vec![],
+            remote_urls: vec![(
+                "origin".into(),
+                format!(
+                    "git@github.com:acme/{}.git",
+                    path.rsplit('/').next().unwrap_or("repo")
+                ),
+            )],
+            push_rejected: None,
+            pull_config: "ff-only",
+            command_failure: None,
+            gc_needed: false,
         }
+    }
+
+    pub fn name(&self) -> &str {
+        self.path.rsplit('/').next().unwrap_or(&self.path)
+    }
+
+    pub fn has_remote(&self, name: &str) -> bool {
+        self.remote_urls.iter().any(|(n, _)| n == name)
+    }
+
+    /// Merged-branch candidates: sorted unique, current and primary
+    /// excluded, capped at 30 with the total (OP13).
+    pub fn merged_candidates(&self) -> (Vec<String>, usize) {
+        let mut v: Vec<String> = self
+            .merged
+            .iter()
+            .map(|b| b.trim_start_matches(['*', '+', ' ']).to_owned())
+            .filter(|b| Some(b.as_str()) != self.branch.as_deref() && b != &self.primary)
+            .collect();
+        v.sort();
+        v.dedup();
+        let total = v.len();
+        v.truncate(30);
+        (v, total)
     }
 
     pub fn dirty(&self) -> bool {
@@ -203,6 +261,10 @@ pub struct DockerState {
     pub compose: Option<Compose>,
     /// Times the host-wide cleanup ran on this host.
     pub cleanup_uses: u32,
+    /// The Compose plugin is installed.
+    pub compose_plugin: bool,
+    /// A stage of a multi-step operation fails: `stop`, `rm`, `images`…
+    pub fail_stage: Option<String>,
 }
 
 impl DockerState {
@@ -219,6 +281,8 @@ impl DockerState {
             reclaimable_gb: 0.0,
             compose: None,
             cleanup_uses: 0,
+            compose_plugin: true,
+            fail_stage: None,
         }
     }
     pub fn running(&self) -> usize {
@@ -608,15 +672,7 @@ pub struct AptState {
 
 // ------------------------------------------------------------------ memory
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct UsageRecord {
-    pub item: String,
-    /// `None` counts as global use.
-    pub path: Option<String>,
-    pub host: String,
-    pub count: u32,
-    pub last_secs: i64,
-}
+pub use crate::domain::usage::UsageStore;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct RankingMemory {
@@ -626,7 +682,7 @@ pub struct RankingMemory {
     pub aliases: Vec<(String, String)>,
     /// (path, item id)
     pub hidden: Vec<(String, String)>,
-    pub usage: Vec<UsageRecord>,
+    pub usage: UsageStore,
     pub personalization: bool,
     /// (item id, tool)
     pub preferred_tools: Vec<(String, String)>,
@@ -634,22 +690,7 @@ pub struct RankingMemory {
 
 impl RankingMemory {
     pub fn used(&mut self, item: &str, path: Option<&str>, host: &str, now_secs: i64) {
-        if let Some(u) = self
-            .usage
-            .iter_mut()
-            .find(|u| u.item == item && u.path.as_deref() == path && u.host == host)
-        {
-            u.count += 1;
-            u.last_secs = now_secs;
-        } else {
-            self.usage.push(UsageRecord {
-                item: item.into(),
-                path: path.map(str::to_owned),
-                host: host.into(),
-                count: 1,
-                last_secs: now_secs,
-            });
-        }
+        self.usage.used(item, path, host, now_secs);
     }
 
     pub fn alias_for(&self, item: &str) -> Option<&str> {
@@ -688,9 +729,135 @@ impl RankingMemory {
 
     /// Forget every learned signal for `item`, keeping pins and aliases.
     pub fn reset(&mut self, item: &str) {
-        self.usage.retain(|u| u.item != item);
+        self.usage.forget(item);
         self.hidden.retain(|(_, it)| it != item);
     }
+}
+
+// ------------------------------------------------------------------ brew
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BrewService {
+    pub name: String,
+    /// `started`, `stopped`, `error`, `none`.
+    pub status: String,
+}
+
+/// `brew-services-v1.json` (OP40).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BrewCache {
+    pub version: u32,
+    pub fetched_at: i64,
+    pub services: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BrewState {
+    /// `brew services list --json` as the tool returned it.
+    pub list_json: Result<String, String>,
+    /// Live status per service for outcomes.
+    pub services: Vec<BrewService>,
+    pub cache: Option<BrewCache>,
+    /// The persisted cache text as found on disk (may be corrupt).
+    pub cache_text: Option<String>,
+    pub cache_write_fails: bool,
+    /// Whether `brew` is Linuxbrew.
+    pub linux: bool,
+    /// Verbs that fail for a service: (service, verb, reason).
+    pub failing: Vec<(String, String, String)>,
+}
+
+// ------------------------------------------------------------------ cargo
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct CargoState {
+    /// The build fails with this compiler error.
+    pub build_error: Option<String>,
+    pub test_failures: u32,
+    pub clippy_warnings: u32,
+    /// The resolved target directory (`cargo metadata` target_directory),
+    /// which may be shared or custom; `None` when there is none.
+    pub target: Option<String>,
+    pub target_files: u64,
+    pub target_bytes: u64,
+    /// Another workspace shares this target directory.
+    pub target_shared_with: Option<String>,
+}
+
+// ------------------------------------------------------------------ gradle
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct GradleState {
+    pub daemon_running: bool,
+    pub stop_fails: Option<String>,
+    pub build_fails: bool,
+    pub test_fails: bool,
+    pub wrapper: bool,
+}
+
+// ------------------------------------------------------------------ upgrade managers
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct UpgradeState {
+    /// `$ZSH` when set; the resolved directory wins over `~/.oh-my-zsh`.
+    pub zsh_env: Option<String>,
+    pub amp: bool,
+    /// Stages that fail on this host: `brew update`, `brew doctor`,
+    /// `amp update`, `mise upgrade`, `omz`, `brew upgrade --cask`.
+    pub failing: Vec<String>,
+    /// Outdated brew packages `(name, from, to)`.
+    pub brew_outdated: Vec<(String, String, String)>,
+    pub casks_outdated: Vec<(String, String, String)>,
+}
+
+// ------------------------------------------------------------------ platform
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TrashBackend {
+    MacNative,
+    FreeDesktop,
+    Unavailable(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Spotlight {
+    /// `(path, allocated bytes)` for regular files ≥ 100 MiB.
+    Available(Vec<(String, u64)>),
+    Empty,
+    Timeout,
+    Unavailable(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Platform {
+    pub trash: TrashBackend,
+    /// `open`, `xdg-open`, or none.
+    pub opener: Option<String>,
+    /// The opener fails with this message.
+    pub opener_fails: Option<String>,
+    pub spotlight: Spotlight,
+    /// The terminal accepts OSC 52.
+    pub osc52: bool,
+    /// Largest OSC 52 payload the terminal accepts (bytes, base64).
+    pub osc52_limit: usize,
+    pub xdg_config_home: String,
+    pub xdg_cache_home: String,
+    pub subreaper: bool,
+    /// `pgrep` works; otherwise process guards report unknown.
+    pub process_probe: Result<(), String>,
+    /// Dataless-file policy could not be set (macOS only).
+    pub dataless_failure: Option<String>,
+}
+
+// ------------------------------------------------------------------ tool outputs
+
+/// Discovery command output fixtures (what the tools said).
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct ToolOutputs {
+    pub just_summary: Option<Result<String, String>>,
+    pub task_list: Option<Result<String, String>>,
+    pub mise_tasks: Option<Result<String, String>>,
+    pub pnpm_store_path: Option<Result<String, String>>,
 }
 
 #[cfg(test)]
@@ -751,8 +918,8 @@ mod tests {
         m.used("git.pull", Some("/w"), "mbp", 10);
         m.used("git.pull", Some("/w"), "mbp", 20);
         m.used("git.pull", None, "mbp", 30);
-        assert_eq!(m.usage.len(), 2);
-        assert_eq!(m.usage[0].count, 2);
+        assert_eq!(m.usage.actions.len(), 2);
+        assert_eq!(m.usage.actions[0].count(), 2);
         m.set_alias("gp", "git.pull");
         m.set_alias("gp", "git.push");
         assert_eq!(m.alias_for("git.push"), Some("gp"));

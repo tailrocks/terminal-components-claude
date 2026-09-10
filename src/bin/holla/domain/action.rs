@@ -6,6 +6,9 @@
 //! a recommendation is an `Item` with a live-state reason.
 
 use crate::domain::context::ScopeTag;
+use crate::domain::effect::Effect;
+use crate::domain::exec::Command;
+use crate::sim::world::BatchMode;
 
 /// The type word shown in the row's `type` column (D-6).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -24,6 +27,14 @@ pub enum Kind {
     Activity,
     Explore,
     Personal,
+    Node,
+    Just,
+    Make,
+    Taskfile,
+    Brew,
+    Gradle,
+    Idea,
+    Upgrade,
 }
 
 impl Kind {
@@ -42,7 +53,15 @@ impl Kind {
             Kind::Plan => "plan",
             Kind::Activity => "activity",
             Kind::Explore => "explore",
-            Kind::Personal => "workflow",
+            Kind::Personal => "custom",
+            Kind::Node => "script",
+            Kind::Just => "recipe",
+            Kind::Make => "target",
+            Kind::Taskfile => "task",
+            Kind::Brew => "service",
+            Kind::Gradle => "gradle",
+            Kind::Idea => "idea",
+            Kind::Upgrade => "upgrade",
         }
     }
 }
@@ -239,10 +258,25 @@ impl ArgSpec {
 /// What Enter does once every gate has passed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Launch {
-    /// Start a named activity that streams output.
-    Activity { script: String },
+    /// Start an activity: the item's `exec` runs; `script` names a fixture
+    /// script when one exists, else the outcome table decides.
+    Activity { script: Option<String> },
+    /// Start several activities as one batch.
+    Batch,
     /// Open the Disk flow for a path.
     Disk { path: String },
+    /// Open the Files page (browser) at a path.
+    Files { path: String },
+    /// Open the home file search.
+    Find,
+    /// Open the Cleanup review, optionally filtered to one category.
+    Cleanup { category: Option<String> },
+    /// Open the macOS Top files scope.
+    TopFiles,
+    /// Copy a value to the clipboard (a path).
+    Copy { value: String },
+    /// Open a configuration diagnostics page.
+    Config { path: String },
     /// Open a domain page: the finder filtered to one Explore group.
     Group(&'static str),
     /// Open a plan for review.
@@ -260,7 +294,7 @@ pub enum Launch {
 }
 
 /// One row the root can show.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Item {
     /// Stable identity for direct invocation and memory (`git.pull`).
     pub id: String,
@@ -301,6 +335,21 @@ pub struct Item {
     pub hidden: bool,
     /// The preferred specialist tool, when the user chose one.
     pub preferred_tool: Option<String>,
+    /// The exact executed specification; `commands` is its display form.
+    pub exec: Vec<Command>,
+    /// What a successful run changes in the world.
+    pub effect: Option<Effect>,
+    /// Members of a batch action: name, spec, effect, scope.
+    pub batch: Vec<(String, Vec<Command>, Option<Effect>, ScopeTag)>,
+    pub batch_mode: BatchMode,
+    /// Where the definition came from: provider, file and entry.
+    pub provenance: String,
+    /// Trust binding for a contributed definition: (path, digest).
+    pub trust_key: Option<(String, String)>,
+    /// Bounded listing note (`30 of 42 scripts`).
+    pub cap_note: Option<String>,
+    /// Ranking score contributions filled by the catalogue.
+    pub frecency: f64,
 }
 
 /// An alternative operation on the same resource (CONCEPT §6.5).
@@ -340,6 +389,53 @@ impl Item {
             pinned: false,
             hidden: false,
             preferred_tool: None,
+            exec: vec![],
+            effect: None,
+            batch: vec![],
+            batch_mode: BatchMode::Parallel,
+            provenance: "built-in".into(),
+            trust_key: None,
+            cap_note: None,
+            frecency: 0.0,
+        }
+    }
+    /// The typed specification; the display commands derive from it.
+    pub fn exec(mut self, cmds: Vec<Command>) -> Self {
+        self.commands = crate::domain::exec::displays(&cmds);
+        self.exec = cmds;
+        self
+    }
+    pub fn effect(mut self, e: Effect) -> Self {
+        self.effect = Some(e);
+        self
+    }
+    pub fn provenance(mut self, p: &str) -> Self {
+        self.provenance = p.into();
+        self
+    }
+    pub fn batch(
+        mut self,
+        mode: BatchMode,
+        members: Vec<(String, Vec<Command>, Option<Effect>, ScopeTag)>,
+    ) -> Self {
+        self.commands = members
+            .iter()
+            .flat_map(|(_, c, _, _)| crate::domain::exec::displays(c))
+            .collect();
+        self.batch = members;
+        self.batch_mode = mode;
+        self.launch = Launch::Batch;
+        self
+    }
+    /// Every command this row would execute, batch members included.
+    pub fn all_exec(&self) -> Vec<Command> {
+        if self.batch.is_empty() {
+            self.exec.clone()
+        } else {
+            self.batch
+                .iter()
+                .flat_map(|(_, c, _, _)| c.clone())
+                .collect()
         }
     }
     pub fn risk(mut self, r: Risk) -> Self {
@@ -352,10 +448,6 @@ impl Item {
     }
     pub fn summary(mut self, s: &str) -> Self {
         self.summary = s.into();
-        self
-    }
-    pub fn commands(mut self, c: &[&str]) -> Self {
-        self.commands = c.iter().map(|s| (*s).to_owned()).collect();
         self
     }
     pub fn effects(mut self, e: &[&str]) -> Self {
