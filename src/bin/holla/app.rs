@@ -509,9 +509,12 @@ impl App {
             if key.ctrl() && matches!(key.code, KeyCode::Char(']') | KeyCode::Char('5')) {
                 return self.with_top(|s, w, cx| s.on_key(&key, w, cx));
             }
-            return self
-                .with_top(|s, w, cx| s.on_key(&key, w, cx))
-                .or(Outcome::Consumed);
+            let o = self.with_top(|s, w, cx| s.on_key(&key, w, cx));
+            // a key the editing owner does not take (an Alt chord in input
+            // mode) still reaches the shell chords below
+            if o != Outcome::Ignored {
+                return o;
+            }
         }
         let typing = self.top().is_some_and(|s| s.typing_hot());
         // global chords
@@ -1960,6 +1963,16 @@ impl App {
         }
         match &it.confirmation {
             Confirmation::None | Confirmation::Trust { .. } => self.execute_item(&it.id, args),
+            // a review page (cleanup, disk, top files, find) gates the
+            // deletion itself: opening it is navigation, never a confirmation
+            Confirmation::One
+                if matches!(
+                    it.launch,
+                    Launch::Cleanup { .. } | Launch::Disk { .. } | Launch::TopFiles | Launch::Find
+                ) =>
+            {
+                self.execute_item(&it.id, args)
+            }
             Confirmation::One => self.open_confirm_one(&it, args),
             Confirmation::TwoGate { .. } => {
                 self.activate_tab(0);
