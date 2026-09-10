@@ -1,0 +1,97 @@
+name: holla-fable audit
+
+on:
+  push:
+    branches: [holla-fable]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: holla-fable-audit-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  inventory:
+    if: github.ref == 'refs/heads/holla-fable'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Record branch snapshot and coverage index
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p audit-evidence
+          printf 'branch=holla-fable\ncommit=%s\n' "$GITHUB_SHA" > audit-evidence/provenance.txt
+          git archive --format=tar.gz --output=audit-evidence/source.tar.gz HEAD
+          {
+            printf '\n=== Source files ===\n'
+            find src tests tools -type f | LC_ALL=C sort
+            printf '\n=== Public declarations, methods and fields (source index, not a semantic completeness claim) ===\n'
+            grep -RnE '^[[:space:]]*pub([[:space:]]|\()' src --include='*.rs' || true
+            printf '\n=== Interaction, rendering and test entry points ===\n'
+            grep -RnE 'fn (on_|handle|render|test_)|#\[test\]|enum (Page|Scenario|VisualState)|struct VisualState' src tests --include='*.rs' || true
+            printf '\n=== Existing visual evidence ===\n'
+            find shots tests -type f | LC_ALL=C sort
+          } > audit-evidence/source-index.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: holla-fable-source-${{ github.sha }}
+          path: audit-evidence/
+          retention-days: 7
+          if-no-files-found: error
+
+  verify:
+    if: github.ref == 'refs/heads/holla-fable'
+    runs-on: ubuntu-22.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [format, clippy, tests]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Install declared minimum Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.88.0 --profile minimal --component rustfmt --component clippy
+          rustup override set 1.88.0
+          rustc --version
+          cargo --version
+      - name: Verify
+        env:
+          CHECK: ${{ matrix.check }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p audit-evidence
+          case "$CHECK" in
+            format) cargo fmt --check 2>&1 | tee audit-evidence/format.log ;;
+            clippy) cargo clippy --all-targets -- -D warnings 2>&1 | tee audit-evidence/clippy.log ;;
+            tests) cargo test 2>&1 | tee audit-evidence/tests.log ;;
+            *) exit 2 ;;
+          esac
+      - name: Build preview binaries for rendered review
+        if: matrix.check == 'tests' && success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --bins
+          tar -czf audit-evidence/preview-binaries.tar.gz -C target/debug showcase tablepro jackin-preview holla
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: holla-fable-${{ matrix.check }}-${{ github.sha }}
+          path: audit-evidence/
+          retention-days: 7
+          if-no-files-found: warn
