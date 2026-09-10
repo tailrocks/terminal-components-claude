@@ -9,7 +9,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 export BIN=target/debug/holla
 export PY=${PY:-python3}
-SCENARIOS=${SCENARIOS:-"first-use rust-dirty monorepo-root monorepo-child docker-cleanup disk-cleanup upgrade-plan activities-multi remote-host launch-failure hard-cases"}
+SCENARIOS=${SCENARIOS:-"first-use rust-dirty monorepo-root monorepo-child docker-cleanup disk-cleanup upgrade-plan activities-multi remote-host launch-failure hard-cases parity-discovery parity-history parity-files parity-browser parity-git-current parity-git-batch parity-task-sources parity-cargo parity-docker parity-brew-services parity-gradle parity-idea parity-upgrade-managers parity-executor parity-task-input parity-custom-actions parity-disk-scan parity-disk-navigation parity-insights parity-delete-safety parity-cleanup-results parity-platforms parity-platforms-linux"}
 SIZES=${SIZES:-"80x24 100x30 120x40 160x50"}
 COLORS=${COLORS:-"truecolor mono"}
 shot() { tools/capture.sh shot "$1" >/dev/null; }

@@ -10,6 +10,11 @@
 # CAPTURE_SESSION, CAPTURE_SOCKET. PRESERVE_NO_COLOR=1 passes the caller's
 # NO_COLOR value through; by default captures use the explicit --color flag.
 # A dedicated tmux socket keeps capture settings away from personal sessions.
+# Every shot writes <name>.manifest.json (source and binary digests, scenario
+# arguments, geometry, colour environment, tool and font versions) next to
+# the frame, and the PNG's <name>.png.fidelity.json says whether the raster
+# is exact or approximate and why. Text captures are authoritative for
+# content; PNGs are review aids at the fidelity the sidecar states.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 S=${CAPTURE_SESSION:-junie_cap}
@@ -36,6 +41,7 @@ case "$cmd" in
       printf -v quoted_no_color '%q' "${NO_COLOR:-}"
       color_env="NO_COLOR=$quoted_no_color"
     fi
+    printf '%s' "${ARGS:-}" > "$SHOT_DIR/.args"
     tm kill-session -t "=$S" 2>/dev/null || true
     tm -f /dev/null new-session -d -s "$S" -c "$PWD" -x "$cols" -y "$rows" \
       "exec env $color_env TERM=xterm-256color COLORTERM=truecolor $quoted_bin $quoted_args 2>$quoted_stderr"
@@ -78,8 +84,60 @@ case "$cmd" in
     tm capture-pane -t "=$S:" -e -p -N > "$SHOT_DIR/$name.ansi"
     tm display -p -t "=$S:" "#{cursor_x} #{cursor_y} #{cursor_flag}" > "$SHOT_DIR/$name.cursor"
     tm capture-pane -t "=$S:" -p -N > "$SHOT_DIR/$name.txt"
+    if [ ! -x target/debug/examples/cells ]; then
+      cargo build -q --example cells
+    fi
     "$PY" -B tools/ansi2html.py "$SHOT_DIR/$name.ansi" "$SHOT_DIR/$name.html" "$cols" "$rows"
     "$PY" -B tools/ansi2png.py "$SHOT_DIR/$name.ansi" "$SHOT_DIR/$name.png" "$cols" "$rows" "$SHOT_DIR/$name.cursor"
+    # provenance: what produced this frame, from which source and binary
+    git_rev=$(git rev-parse HEAD 2>/dev/null || echo unknown)
+    git_dirty=$([ -n "$(git status --porcelain 2>/dev/null)" ] && echo true || echo false)
+    bin_sha=$(shasum -a 256 "$BIN" | cut -d' ' -f1)
+    ansi_sha=$(shasum -a 256 "$SHOT_DIR/$name.ansi" | cut -d' ' -f1)
+    shot_args=$(cat "$SHOT_DIR/.args" 2>/dev/null || true)
+    "$PY" -B - "$SHOT_DIR/$name" "$cols" "$rows" "$git_rev" "$git_dirty" "$BIN" "$bin_sha" "$ansi_sha" "$shot_args" "$(tmux -V)" "$(uname -sr)" <<'PYEOF'
+import json, sys, os, datetime
+name, cols, rows, rev, dirty, binp, bin_sha, ansi_sha, args, tmux, host = sys.argv[1:12]
+fid = {}
+try:
+    with open(name + ".png.fidelity.json", encoding="utf-8") as f:
+        fid = json.load(f)
+except OSError:
+    pass
+manifest = {
+    "capture": os.path.basename(name),
+    "source": {"git": rev, "dirty": dirty == "true"},
+    "binary": {"path": binp, "sha256": bin_sha},
+    "arguments": args,
+    "geometry": {"cols": int(cols), "rows": int(rows)},
+    "environment": {
+        "TERM": "xterm-256color",
+        "COLORTERM": "truecolor",
+        "NO_COLOR": "preserved" if os.environ.get("PRESERVE_NO_COLOR") == "1" else "unset",
+    },
+    "tools": {
+        "tmux": tmux,
+        "python": sys.version.split()[0],
+        "pillow": fid.get("pillow"),
+        "cells": "target/debug/examples/cells (unicode-segmentation + unicode-width of the library)",
+    },
+    "host": host,
+    "ansi_sha256": ansi_sha,
+    "fonts": [{k: f.get(k) for k in ("role", "family", "style", "path", "sha256")} for f in fid.get("fonts", [])],
+    "png": {
+        "approximate": fid.get("approximate"),
+        "missing": len(fid.get("missing", [])),
+        "unshaped": len(fid.get("unshaped", [])),
+        "clipped": len(fid.get("clipped", [])),
+        "controls": len(fid.get("controls", [])),
+        "raqm": fid.get("raqm"),
+    },
+    "captured_at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+    "review": "pending inspection",
+}
+with open(name + ".manifest.json", "w", encoding="utf-8") as f:
+    json.dump(manifest, f, indent=1)
+PYEOF
     echo "$SHOT_DIR/$name.png ($cols x $rows)"
     ;;
   resize)
