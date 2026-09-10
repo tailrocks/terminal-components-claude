@@ -5,7 +5,7 @@ use junie_tui::{
     Response, Ui, Variant, id, layout,
 };
 
-use super::{Page, frame, lines};
+use super::{Page, PageUpdate, frame, lines};
 
 const OPEN_CONFIRM: Id = id!("dialogs.confirm.open");
 const OPEN_PROMPT: Id = id!("dialogs.prompt.open");
@@ -82,7 +82,7 @@ impl DialogsPage {
         .patch_part(DIALOG_PARTS)
     }
 
-    fn prompt<'a>(error: Option<&'a str>) -> Dialog<'a> {
+    fn prompt(error: Option<&str>) -> Dialog<'_> {
         Dialog::prompt(PROMPT, "Rename task", "Task name")
             .error(error)
             .patch_part(DIALOG_PARTS)
@@ -110,7 +110,7 @@ impl Page for DialogsPage {
         "Dialogs"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
         let _ = open_panel();
         let _ = results_panel();
@@ -179,7 +179,10 @@ impl Page for DialogsPage {
             }
         }
         response |= action.erase();
-        response
+        // Both phases build the same launcher and result cards (§13).
+        let _ = open_panel();
+        let _ = results_panel();
+        response.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -278,7 +281,7 @@ impl Page for DialogsPage {
         });
     }
 
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
-        vec![("Enter", "Open")]
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
+        &[("Enter", "Open")]
     }
 }

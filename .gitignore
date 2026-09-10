@@ -1,7 +1,7 @@
 /target
 baseline/**/*.png
 baseline/**/*.html
-tools/__pycache__/
+tools/**/__pycache__/
 shots/.capture-state/
 # The matrix lock and its crash-recovery staging directories are generated
 # before capture provenance snapshots Git state; neither is evidence.

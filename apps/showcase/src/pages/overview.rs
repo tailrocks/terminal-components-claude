@@ -1,14 +1,15 @@
 //! Overview screen: the public-facade contract and its stable sample data.
 
+use junie_tui::author::PaintStyle;
 use junie_tui::{
-    Brand, Chord, DerivedHintBar, Empty, EmptyState, Family, FgStep, FieldSpec, Form, FrameRead,
-    HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, ItemKey, KeyCode,
-    KeyHint, Meter, Panel, PanelKind, Part, Props, PropsList, PropsRow, PropsState, Rect, Response,
-    Role, ScrollRegion, SplitAxis, SplitPane, StateFlags, Style, StylePatch, Surface, TooSmall, Ui,
-    Variant, Wizard, id, layout, width, wrap,
+    Brand, Chord, DerivedHintBar, Empty, EmptyState, Family, FgStep, FieldSpec, Form, HelpOverlay,
+    HelpOverlayState, HelpSection, Hint, HintBar, HintLayer, Id, ItemKey, KeyCode, KeyHint, Meter,
+    Panel, PanelKind, Part, Props, PropsList, PropsRow, PropsState, Rect, Role, ScrollRegion,
+    SplitAxis, SplitPane, StateFlags, StylePatch, Surface, TooSmall, Ui, Variant, Wizard, id,
+    layout, width, wrap,
 };
 
-use super::{Page, author::AuthorBadge, frame, theme_fg};
+use super::{Page, PageUpdate, author::AuthorBadge, frame};
 
 const BRAND: Id = id!("overview.brand");
 const AUTHOR: Id = id!("overview.author");
@@ -113,7 +114,7 @@ fn brand() -> Brand<'static> {
 fn inventory_hints() -> HintLayer {
     HintLayer {
         hints: vec![Hint {
-            chord: Chord::key(KeyCode::Char('i')),
+            key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('i'))),
             label: "inspect",
             priority: 50,
         }],
@@ -187,8 +188,7 @@ impl Page for OverviewPage {
         "Overview"
     }
 
-    fn update(&mut self, cx: &mut junie_tui::Cx<'_>) -> Response<()> {
-        component_roster();
+    fn update(&mut self, cx: &mut junie_tui::Cx<'_>) -> PageUpdate {
         let mut response = brand().update(cx).erase();
         response |= self.author.update(cx);
         let hints = inventory_hints();
@@ -214,7 +214,7 @@ impl Page for OverviewPage {
         let _ = HintBar::new(HINT_BAR, &hints);
         let _ = derived_hint_bar();
         let _ = TooSmall::new(TOO_SMALL, "showcase");
-        response
+        response.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -260,15 +260,15 @@ impl Page for OverviewPage {
         );
     }
 
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
-        vec![("[ ]", "Pages"), ("i", "Inspector")]
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
+        &[("[ ]", "Pages"), ("i", "Inspector")]
     }
 }
 
-fn overview_style(ui: &mut Ui<'_>, part: Part, flags: StateFlags) -> Style {
+fn overview_style(ui: &mut Ui<'_>, part: Part, flags: StateFlags) -> PaintStyle {
     ui.style(Family::PANEL, Variant::DEFAULT, part, flags)
         .style
-        .bg(ui.bg())
+        .with_bg_from(ui.surface_style())
 }
 
 fn draw_tokens(ui: &mut Ui<'_>, area: Rect) {
@@ -288,28 +288,32 @@ fn draw_tokens(ui: &mut Ui<'_>, area: Rect) {
         ..area
     };
     tokens_panel().draw(ui, area, |ui, inner| {
-        let primary = ui.surface_style().fg(theme_fg(ui, FgStep::Primary));
-        let muted = ui.surface_style().fg(theme_fg(ui, FgStep::Faint));
+        let primary = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
+        let muted = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
         let colors = [
-            ui.theme().bg(Surface::Canvas),
-            ui.theme().bg(Surface::Surface),
-            ui.theme().bg(Surface::Elevated),
-            ui.theme().bg(Surface::Overlay),
-            ui.theme().bg(Surface::Field),
-            ui.theme().bg(Surface::Popover),
-            ui.theme().color.border_subtle,
-            ui.theme().color.border_strong,
-            theme_fg(ui, FgStep::Primary),
-            theme_fg(ui, FgStep::Secondary),
-            theme_fg(ui, FgStep::Muted),
-            theme_fg(ui, FgStep::Faint),
-            ui.theme().color.accent,
-            ui.theme().color.accent_hover,
-            ui.theme().color.accent_pressed,
-            ui.theme().color.accent_tint,
-            ui.theme().color.danger,
-            ui.theme().color.warning,
-            ui.theme().color.info,
+            Role::Surface(Surface::Canvas),
+            Role::Surface(Surface::Surface),
+            Role::Surface(Surface::Elevated),
+            Role::Surface(Surface::Overlay),
+            Role::Surface(Surface::Field),
+            Role::Surface(Surface::Popover),
+            Role::BorderSubtle,
+            Role::BorderStrong,
+            Role::Fg(FgStep::Primary),
+            Role::Fg(FgStep::Secondary),
+            Role::Fg(FgStep::Muted),
+            Role::Fg(FgStep::Faint),
+            Role::Accent,
+            Role::AccentHover,
+            Role::AccentPressed,
+            Role::AccentTint,
+            Role::Danger,
+            Role::Warning,
+            Role::Info,
         ];
         let two_columns = inner.height < token_count && inner.width >= 40;
         let per_column = if two_columns {
@@ -342,7 +346,7 @@ fn draw_tokens(ui: &mut Ui<'_>, area: Rect) {
                 }
                 let x = inner.x.saturating_add(column.saturating_mul(column_width));
                 let mut swatch = ui.surface_style();
-                swatch.bg = Some(*color);
+                swatch = swatch.patch(ui.paint_patch(&StylePatch::new().set_bg(*color)));
                 ui.fill(Rect::new(x, y, 4, 1), swatch);
                 ui.paint_str(Rect::new(x.saturating_add(4), y, 1, 1), "▏", muted);
                 ui.paint_str(
@@ -370,7 +374,7 @@ fn draw_tokens(ui: &mut Ui<'_>, area: Rect) {
     });
 }
 
-fn draw_principles(ui: &mut Ui<'_>, area: Rect, _author: &AuthorBadge) {
+fn draw_principles(ui: &mut Ui<'_>, area: Rect, author: &AuthorBadge) {
     if area.is_empty() {
         return;
     }
@@ -438,11 +442,19 @@ fn draw_principles(ui: &mut Ui<'_>, area: Rect, _author: &AuthorBadge) {
     if legend_area.is_empty() {
         return;
     }
+    let author_y = legend_area.bottom().saturating_sub(1);
     let state_area = Rect {
-        height: legend_area.height,
+        height: legend_area.height.saturating_sub(1),
         ..legend_area
     };
     draw_state_language(ui, state_area);
+    let author_area = Rect::new(
+        area.x,
+        author_y,
+        area.width,
+        area.bottom().saturating_sub(author_y).min(1),
+    );
+    author.draw(ui, author_area);
 }
 
 fn draw_state_language(ui: &mut Ui<'_>, state_area: Rect) {
@@ -458,16 +470,17 @@ fn draw_state_language(ui: &mut Ui<'_>, state_area: Rect) {
                 break;
             }
             let marker_color = match index {
-                0 | 2 | 3 => ui.theme().color.accent,
-                1 => theme_fg(ui, FgStep::Secondary),
-                4 => ui.theme().color.danger,
-                5 => theme_fg(ui, FgStep::Primary),
-                _ => theme_fg(ui, FgStep::Faint),
+                0 | 2 | 3 => Role::Accent,
+                1 => Role::Fg(FgStep::Secondary),
+                4 => Role::Danger,
+                5 => Role::Fg(FgStep::Primary),
+                _ => Role::Fg(FgStep::Faint),
             };
             ui.paint_str(
                 Rect::new(inner.x, y, 1, 1),
                 glyph,
-                ui.surface_style().fg(marker_color),
+                ui.surface_style()
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(marker_color))),
             );
             ui.paint_str(
                 Rect::new(
@@ -477,7 +490,8 @@ fn draw_state_language(ui: &mut Ui<'_>, state_area: Rect) {
                     1,
                 ),
                 label,
-                ui.surface_style().fg(theme_fg(ui, FgStep::Secondary)),
+                ui.surface_style()
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)))),
             );
         }
     });

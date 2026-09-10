@@ -1,0 +1,24 @@
+ ▪  [1mTablePro[0m  Connections  6 saved                     no color · 80×24  ? help 
+                                                                                
+ ╭─ Connections ────────────────────────────────────────────────────────── 6 ─╮ 
+ │                                                                            │ 
+ │ ▎ Filter connections                                                       │ 
+ │ ▎▾ Personal                                                              [1m [0m │ 
+ │ ▎    · Local PostgreSQL                                                pg  │ 
+ │ ▎▾ Acme                                                                    │ 
+ │ ▎    · Development                                                     pg  │ 
+ │ ▎    ◇ Staging                                                         pg  │ 
+ │ ▎    ◆ Analytics                                                    mysql  │ 
+ │ ▎    ◆ Production                                                      pg  │ 
+ │ ▎    · Scratch                                                     sqlite  │ 
+ │                                                                            │ 
+ │                                                                            │ 
+ │                                                                            │ 
+ │                                                                            │ 
+ │                                                                            │ 
+ │                                                                            │ 
+ │                                                                            │ 
+ │                                                                            │ 
+ ╰────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                
+ [1m↑ ↓[0m Move  [1mEnter[0m Connect  [1m/[0m Filter  [1mCtrl+N[0m New  [1mTab[0m Next                        

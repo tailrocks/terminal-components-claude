@@ -2135,3 +2135,193 @@ PR #1 (`codex/main-holla-integration` → main, OPEN) verified against local mai
 Conclusion: migration complete; nothing further to port. Local scratch (`.codex-target-*`,
 `.mbx-target-*`, untracked parity artifacts) removed; patterns gitignored. Temporary verifier
 agent definition removed after use.
+
+
+## Main-based Holla integration checkpoint — 2026-09-08
+
+Execution authority: `docs/plans/main-holla-integration-task.md`; resumable plan:
+`docs/plans/main-holla-integration.md`. Earlier claims/routing/scope are historical.
+Main is implementation base and Holla product reference; four applications are
+required. No main reset, tree replacement, baseline blessing or merge occurred.
+
+### Completed and measured
+
+- Pins unchanged after fetch: MAIN_BASE c12cad8728755cd2d03eefdd8e02891143fca86d;
+  HOLLA_REFERENCE 794b095c196562d38f1b6f7ce379c128af2a023d.
+- Original dirty checkout preserved. Candidate worktree/branch is isolated at
+  `../terminal-components-integration`, `codex/main-holla-integration`; reference
+  `../terminal-components-holla-reference` is detached, with external builds.
+- Full reachable two-document history reviewed: 484 commits, 68 parent-relative
+  changes, 64 snapshots; exact reconstruction and independent coverage audit.
+  Current contract and detailed reports copied to docs/audit/main-holla/history.
+  This is history evidence, not implementation completion.
+- Dialog compiler repair fa99577: recovered actual extracted chrome. Independently
+  reviewed at exact commit with 16/16 dialog tests passing. No blocker found.
+- Menu stderr side effect removed in 74073e2: 8/8 scoped tests; library Clippy passes.
+- Perf shell correction integrated as 245c810: explicit pipefail, binding shell
+  tests, advisory dependency on blocking job. Integrator independently ran all
+  three tests; 40 pipeline executions plus pipefail-removal mutation. Real
+  benchmarks still required; thresholds unchanged.
+- Panel badge compiler/API repair integrated as ec7c965: real styled/clipped
+  badge and public tests; worker 42 scoped cases pass, prior panel render
+  baselines unchanged. Integrator reviewed patch; full visual badge tone remains
+  theme work, not certified Holla parity.
+- Candidate ec7c965f5ddc0137878d09f75d66be8558c9da58: Rust 1.88 workspace
+  all-target/all-feature check passes with three existing TablePro lint-expectation
+  warnings. Stable all-target/all-feature enumeration finds 2,470 tests. Full
+  no-fail-fast run: 2,451 passed, 18 failed, 1 ignored; eight targets fail (app visual,
+  architecture, shared grid render, Showcase/TablePro perf, frozen parity archive).
+  Stable full Clippy fails on existing app violations. Logs/identities/results
+  remain external in initial/repaired-*; no failures suppressed.
+- Pinned Holla stable/MSRV tests: 269/269 pass. Stable build/fmt/Clippy and MSRV
+  check pass. Historical 499 recipes have TXT/ANSI/cursor, but all 499 HTML and PNG
+  are absent. Provenance ambiguity must be resolved before regeneration.
+- Holla initial 80x24 actual capture and image inspected, with source/binary/tool
+  hashes; separate independent tui-test run opens help/dismisses/resizes. An
+  initial NO_COLOR-contaminated capture remains explicitly invalid for truecolor.
+- Real 80x24 Showcase mouse (4,3) reproduction: pinned reference opens Buttons;
+  candidate stays Overview. Recorded both binary hashes/screens/cursor/commands
+  in external showcase/click-4-3-reference and click-4-3-candidate.
+
+### Current, next and remaining
+
+- Sidebar worker owns only NavList, Showcase shell and dedicated tests in
+  `codex/showcase-sidebar-repair` worktree; failing reference-derived tests,
+  compact shared geometry, removal of overpaint and EnterContent focus transfer.
+- Runtime audit proposes explicit monotonic time/lifecycle/presented geometry;
+  integrator retains sole shared runtime write ownership. No runtime replacement
+  yet. Foundation must precede dependent time/interaction migrations.
+- Holla exhaustive branch/prose/DESIGN review completed; semantic report and
+  hashes copied to docs/audit/main-holla. Source
+  findings include confirmation target/risk bypasses in reference simulations;
+  they need narrow reproduced, tested, independently reviewed corrections.
+- All app/component restoration, Holla migration, full tool qualification,
+  historical-artifact recovery, canonical production-view evidence, mutation/
+  terminal tests, performance proof, independent reviews and final PR/main
+  integration remain open. No full goal or parity completion claim.
+## Consolidation checkpoint — gate sweep and parity disposition (2026-09-09)
+
+Scope: branch `codex/main-holla-integration` after the semantic union merge
+(c3b51b96), guard-base fallback fix (f2860496) and capture-matrix refresh
+(da38e52e). This records the full CI-gate sweep and the disposition of the one
+gate that remains red.
+
+### Gate sweep at HEAD (all steps from `.github/workflows/ci.yml` `gates` job)
+
+- MSRV compile check (`cargo check --locked --workspace --all-targets
+  --all-features`): **pass**. By contrast, `main` itself was red at this exact
+  step: every recorded CI run fails there — 316 of 316 runs at the time of
+  writing (checked 2026-09-09), 4 dead-code errors in
+  `apps/showcase` (`AuthorBadge::draw` never used among them). The union keeps
+  the `overview.rs` page that calls `author.draw`, so the consolidation repairs
+  main's red build.
+- Format, Clippy (`-D warnings`): **pass** after three union repairs:
+  `panel.rs` `badge_lane_width` removed a redundant closure and a `u16` cast;
+  `apps/showcase/src/lib.rs` dropped seven stale `clippy::expect` entries whose
+  lint sites no longer exist in the merged pages (removal re-arms the lints, so
+  this is stricter, not weaker); `apps/jackin-preview/tests/visual.rs` dropped
+  an unused `FeedbackClock` import.
+- Test (`cargo test --locked --workspace --all-features`): **pass** (capture
+  matrix contract was repaired earlier by da38e52e).
+- Boundary set: all 40 checks pass except `parity_contract`. Run locally with
+  `BLESS_GUARD_BASE=origin/main` (CI supplies `github.event.before`/base ref);
+  without an explicit base the bless-guard check fails closed by design.
+
+### `parity_contract` disposition: pre-existing red on both parent lines
+
+Triage of all 499 recipes against the frozen `baseline/before` captures with a
+tolerant (non-fail-fast) driver: **60 byte-exact matches, 379 mismatches, 60
+run failures** (triage performed at da38e52e; the two later commits,
+0a1688ee and b9bfd758, touch only lints, a test pin and docs, so the
+behavioral result carries to HEAD). The first failure of the fail-fast
+replay — which stopped at recipe 244 of 499 — was root-caused, not guessed:
+`tablepro_grid_header_hover_120x40` never reaches its `order_number` anchor
+(a run failure, not a byte mismatch) because startup focus diverges — the
+historical binary focuses the explorer tree (Down×5 + Enter opens orders)
+while the current shell focuses the query editor. The identical divergence
+reproduces with `main`'s own pre-merge binary (af1e752e), so it is inherited
+from both parents and not introduced by the consolidation. `main`'s CI never
+even reaches this step (red earlier at the MSRV compile check).
+
+Repair paths considered and refused:
+
+1. Regenerate `baseline/before` — refused. The directory is frozen historical
+   evidence of the pre-refactor binaries; immutability is the contract that
+   makes the gate mean anything.
+2. Declare 439 recipes reviewed exceptions — refused. A gate with 88% of its
+   rows excepted is vacuous. In any case the approve path cannot express it:
+   `parity --approve` (and `tools/parity_approve.py`) promotes replay evidence
+   only after exact artifact equality, so it is a promotion mechanism for
+   matching replays, not an exception mechanism — there is no per-recipe
+   waiver lane to widen.
+3. Change application behavior to match the captures — refused. The merged
+   line's rendering is the reviewed semantic-paint pipeline whose 594 digest
+   pairs are re-blessed under `COMPONENT_ARCHITECTURE.md` §20.10 item 39 and
+   classified by the bless guard; rewinding app behavior to 2026-09-04-era
+   captures would discard exactly the newer behavior the consolidation is
+   required to preserve.
+4. Delete or skip the check — refused. A valid test's failure is not
+   permission to remove it.
+5. Re-point the gate's oracle at a new capture generation — considered and
+   refused. `classify_baseline` freezes only the documented trees, so a new
+   `baseline/generations/<gen>/` tree and a re-pointed `HISTORICAL_MANIFEST`
+   would be mechanically possible; `main`'s pre-merge binary even survives at
+   `/private/tmp/probe-main` for fresh captures. Refused because re-pointing
+   `HISTORICAL_MANIFEST` redefines the required gate's oracle — weakening by
+   redefinition, the same refusal as (4) in different clothes — and a parallel
+   additional oracle would not make `parity_contract` pass, only coexist with
+   its redness. Reconciling with the genuine historical evidence stays the
+   honest successor path.
+
+Outcome: `parity_contract` stays registered and stays red, honestly. The
+authoritative behavioral evidence for the merged pipeline is the frozen
+digest/perf baselines re-blessed under ledger item 39, plus the 112-cell
+capture matrix (da38e52e); the parity archive documents the pre-refactor
+world it can no longer be compared against byte-for-byte. Reconciliation
+(recovering historical HTML/PNG artifacts or re-establishing a comparably
+strict historical gate) remains open work for a successor effort, not
+something this consolidation may fake with a waiver.
+
+## Post-cleanup verification (2026-09-09)
+
+The disposition ledger (`docs/audit/consolidation/disposition-ledger.md`) was
+committed (`569167ee`), the branch was pushed to
+`origin/codex/main-holla-integration`, and PR #1's description was updated
+with the consolidation outcome. Cleanup then executed with zero failures:
+
+- 231 scratch worktrees removed (`git worktree remove --force`), evidence
+  snapshot taken beforehand (`/tmp/cleanup-log-083908.txt`); `probe-main`
+  included (SUPERSEDED, evidence preserved above).
+- 111 dispositioned local branches deleted; the only remaining local
+  branches are `main` (protected, `af1e752e`, in sync with `origin/main`,
+  never modified by the consolidation) and `codex/main-holla-integration`
+  (the integration branch, `569167ee`).
+- `git worktree prune --dry-run` reports nothing; the integration checkout
+  is clean.
+
+The GOAL2 consolidation is complete up to the standing open items: the
+inherited red `parity_contract` (honest red, refusal paths documented
+above) and the successor work rejected with root causes in the ledger
+(manager rewrite, item-row part-patch threading, showcase WIP fixtures).
+
+## Final workspace and remote-branch cleanup (2026-09-09)
+
+GOAL2's end state was tightened further after the ledger was recorded:
+
+- The 91 stale `codex/*` branches on `origin` were deleted; the remote now
+  has exactly three branches: `main` (protected, `af1e752e`), `holla`
+  (the frozen pre-refactor product line, `794b095`), and
+  `codex/main-holla-integration` (this branch, `378d51c9`, PR #1's head).
+- The five remaining scratch directories under `~/Projects` were removed:
+  `terminal-components-claude-holla` (a full clone whose `holla` branch
+  equalled `origin/holla`, plus two linked `/private/tmp` worktrees at
+  clean main-line ancestors), and the four non-git evidence/capture
+  scratch directories (`terminal-components-evidence`,
+  `terminal-components-integration-evidence`,
+  `terminal-components-integration-target`,
+  `terminal-components-target-dialog-review`). Nothing unique was lost:
+  the clone's branches were in sync with origin and every deleted remote
+  branch name is covered by the disposition ledger.
+- End state: two local clones (`terminal-components-claude` on `main`,
+  `terminal-components-integration` on `codex/main-holla-integration`)
+  and three remote branches.

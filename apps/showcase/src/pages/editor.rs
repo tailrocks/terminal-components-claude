@@ -4,11 +4,11 @@ use std::ops::Range;
 
 use junie_tui::{
     CodeAction, CodeEditor, CodeEditorState, Completion, CompletionState, Cx, DiffView,
-    DiffViewState, Id, Item, ItemKey, Panel, Part, Props, Rect, Response, StateFlags, Surface,
-    SyntaxRole, TabBehavior, Ui, Variant, id, layout,
+    DiffViewState, Id, Item, ItemKey, Panel, Part, Props, Rect, StateFlags, Surface, SyntaxRole,
+    TabBehavior, Ui, Variant, id, layout,
 };
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const EDITOR: Id = id!("editor.code");
 const EDITOR_PANEL: Id = id!("editor.code.panel");
@@ -59,24 +59,22 @@ fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxRole)> {
     let bytes = src.as_bytes();
     let mut spans = Vec::new();
     let mut i = 0;
-    while i < bytes.len() {
+    while let Some(&byte) = bytes.get(i) {
         if !src.is_char_boundary(i) {
             i = i.saturating_add(1);
             continue;
         }
-        let Some(&byte) = bytes.get(i) else {
-            break;
-        };
         if byte == b'/' && bytes.get(i.saturating_add(1)) == Some(&b'/') {
-            let end = src[i..].find('\n').map_or(bytes.len(), |n| i + n);
+            let end = src[i..]
+                .find('\n')
+                .map_or(bytes.len(), |n| i.saturating_add(n));
             spans.push((i..end, SyntaxRole::Comment));
             i = end;
             continue;
         }
         if byte == b'"' {
-            let end = src
-                .get(i.saturating_add(1)..)
-                .and_then(|rest| rest.find('"'))
+            let end = src[i.saturating_add(1)..]
+                .find('"')
                 .map_or(bytes.len(), |n| i.saturating_add(n).saturating_add(2));
             spans.push((i..end, SyntaxRole::Str));
             i = end;
@@ -84,12 +82,11 @@ fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxRole)> {
         }
         if byte.is_ascii_digit() {
             let mut end = i;
-            while let Some(&next) = bytes.get(end) {
-                if next.is_ascii_digit() || next == b'_' || next == b'.' {
-                    end = end.saturating_add(1);
-                } else {
-                    break;
-                }
+            while bytes
+                .get(end)
+                .is_some_and(|byte| byte.is_ascii_digit() || *byte == b'_' || *byte == b'.')
+            {
+                end = end.saturating_add(1);
             }
             spans.push((i..end, SyntaxRole::Number));
             i = end;
@@ -97,12 +94,11 @@ fn highlight(src: &str) -> Vec<(Range<usize>, SyntaxRole)> {
         }
         if byte.is_ascii_alphabetic() || byte == b'_' {
             let mut end = i;
-            while let Some(&next) = bytes.get(end) {
-                if next.is_ascii_alphanumeric() || next == b'_' {
-                    end = end.saturating_add(1);
-                } else {
-                    break;
-                }
+            while bytes
+                .get(end)
+                .is_some_and(|byte| byte.is_ascii_alphanumeric() || *byte == b'_')
+            {
+                end = end.saturating_add(1);
             }
             let Some(word) = src.get(i..end) else {
                 i = end;
@@ -141,7 +137,7 @@ fn blocks(src: &str) -> Vec<Range<usize>> {
     let mut out = Vec::new();
     let mut start = None;
     let mut end = 0;
-    let mut offset = 0;
+    let mut offset = 0_usize;
     for line in src.split_inclusive('\n') {
         if line.trim().is_empty() {
             if let Some(start) = start.take() {
@@ -151,9 +147,9 @@ fn blocks(src: &str) -> Vec<Range<usize>> {
             if start.is_none() {
                 start = Some(offset);
             }
-            end = offset + line.trim_end_matches('\n').len();
+            end = offset.saturating_add(line.trim_end_matches('\n').len());
         }
-        offset += line.len();
+        offset = offset.saturating_add(line.len());
     }
     if let Some(start) = start {
         out.push(start..end);
@@ -173,7 +169,11 @@ fn completion() -> Completion<'static, Item<'static>> {
     Completion::new(COMPLETION).max_rows(3)
 }
 
-fn editor_panel<'a>(meta: &'a str) -> Panel<'a> {
+fn diff() -> DiffView<'static> {
+    DiffView::new(DIFF, None)
+}
+
+fn editor_panel(meta: &str) -> Panel<'_> {
     Panel::new(EDITOR_PANEL).title("retry.rs").meta(meta)
 }
 
@@ -181,8 +181,13 @@ fn state_panel() -> Panel<'static> {
     Panel::new(STATE_PANEL).title("State")
 }
 
-fn diff() -> DiffView<'static> {
-    DiffView::new(DIFF, None)
+/// Both phases label the editor card from the same live block count (§13).
+fn editor_meta(state: &CodeEditorState) -> String {
+    if state.is_editing() {
+        String::from("running ")
+    } else {
+        format!("{} blocks ", editor().blocks(state).len())
+    }
 }
 
 /// The editor's durable document and semantic spans are initialized from the
@@ -214,14 +219,10 @@ impl Default for EditorPage {
 
 impl Page for EditorPage {
     fn title(&self) -> &'static str {
-        // The shell still uses the stable PageId title as its lookup key; the
-        // historical visible heading is painted by the frame below.
-        "Editor"
+        "Code editor"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let _ = editor_panel("");
-        let _ = state_panel();
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let editor_response = editor().update(cx, &mut self.state);
         if let Some(action) = editor_response.action_ref() {
             self.last = match action {
@@ -236,22 +237,18 @@ impl Page for EditorPage {
             .update_for(EDITOR, cx, &mut self.completion_state, SUGGESTIONS)
             .erase();
         result |= diff().update(cx, &mut self.diff_state).erase();
-        result.erase()
+        // Both phases build the same two cards (§13); the draw pass reaches
+        // the completion constructor beside them.
+        let _ = editor_panel(&editor_meta(&self.state));
+        let _ = state_panel();
+        result.erase().into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        let _ = completion();
-        // The historical narrow layout shortens the page heading so the
-        // route title remains visible beside the shell's compact header.
-        let heading = if area.width < 80 {
-            "Editor"
-        } else {
-            "Code editor"
-        };
         frame(
             ui,
             area,
-            heading,
+            self.title(),
             "Blocks, tones, diagnostics and completion; the gutter says where you are",
             |ui, body| {
                 let left_width = (body.width.saturating_mul(62) / 100).max(40);
@@ -268,73 +265,12 @@ impl Page for EditorPage {
                 } else {
                     layout::split_h(body, left_width)
                 };
+                // The completion list renders through the state panel's readout,
+                // but the draw pass still builds the same props as update (§13).
+                let _ = completion();
                 let blocks = editor().blocks(&self.state).len();
-                let blocks_meta = if self.state.is_editing() {
-                    "running".to_owned()
-                } else {
-                    format!("{blocks} blocks")
-                };
-                let editor_meta = format!("{blocks_meta} ");
-                editor_panel(&editor_meta).draw(ui, code_area, |ui, inner| {
-                    editor().draw(ui, inner, &self.state);
-                    let gutter = ui.with_surface(Surface::Surface, |ui| {
-                        ui.style(
-                            junie_tui::Family::CODE,
-                            Variant::DEFAULT,
-                            Part::GUTTER,
-                            StateFlags::FOCUSED,
-                        )
-                        .style
-                    });
-                    let marker = ui.with_surface(Surface::Surface, |ui| {
-                        ui.style(
-                            junie_tui::Family::CODE,
-                            Variant::DEFAULT,
-                            Part::MARKER,
-                            StateFlags::ACTIVE,
-                        )
-                        .style
-                    });
-                    ui.paint_str(
-                        Rect {
-                            x: inner.x,
-                            y: inner.y,
-                            width: 1,
-                            height: 1,
-                        },
-                        "▎",
-                        gutter,
-                    );
-                    ui.paint_str(
-                        Rect {
-                            x: inner.x.saturating_add(1),
-                            y: inner.y,
-                            width: 1,
-                            height: 1,
-                        },
-                        "›",
-                        marker,
-                    );
-                    let footer = ui.with_surface(Surface::Surface, |ui| {
-                        ui.style(
-                            junie_tui::Family::CODE,
-                            Variant::DEFAULT,
-                            Part::META,
-                            StateFlags::empty(),
-                        )
-                        .style
-                    });
-                    ui.paint_str(
-                        Rect {
-                            x: inner.right().saturating_sub(10),
-                            y: inner.y.saturating_add(5),
-                            width: 10,
-                            height: 1,
-                        },
-                        "1–5 of 26",
-                        footer,
-                    );
-                });
+                editor_panel(&editor_meta(&self.state))
+                    .draw(ui, code_area, |ui, inner| self.draw_code(ui, inner));
 
                 let block = editor()
                     .current_block(&self.state)
@@ -346,7 +282,7 @@ impl Page for EditorPage {
                     })
                     .map_or_else(
                         || "between blocks".to_owned(),
-                        |index| format!("{} of {blocks}", index + 1),
+                        |index| format!("{} of {blocks}", index.saturating_add(1)),
                     );
                 let rows = [
                     (
@@ -385,17 +321,17 @@ impl Page for EditorPage {
         );
     }
 
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if self.completion_state.is_open() {
-            vec![("↑ ↓", "Move"), ("Enter", "Accept"), ("Esc", "Close")]
+            &[("↑ ↓", "Move"), ("Enter", "Accept"), ("Esc", "Close")]
         } else if self.state.is_editing() {
-            vec![
+            &[
                 ("Ctrl+Space", "Complete"),
                 ("Ctrl+R", "Run block"),
                 ("Esc", "Done"),
             ]
         } else {
-            vec![
+            &[
                 ("i", "Edit"),
                 ("Ctrl+R", "Run block"),
                 ("{ }", "Blocks"),
@@ -406,5 +342,90 @@ impl Page for EditorPage {
 
     fn editing(&self, _ui: &Ui<'_>) -> bool {
         self.state.is_editing()
+    }
+}
+
+impl EditorPage {
+    fn draw_code(&self, ui: &mut Ui<'_>, inner: Rect) {
+        editor().draw(ui, inner, &self.state);
+        let gutter = ui.with_surface(Surface::Surface, |ui| {
+            ui.style(
+                junie_tui::Family::CODE,
+                Variant::DEFAULT,
+                Part::GUTTER,
+                StateFlags::FOCUSED,
+            )
+            .style
+        });
+        let marker = ui.with_surface(Surface::Surface, |ui| {
+            ui.style(
+                junie_tui::Family::CODE,
+                Variant::DEFAULT,
+                Part::MARKER,
+                StateFlags::ACTIVE,
+            )
+            .style
+        });
+        ui.paint_str(
+            Rect {
+                x: inner.x,
+                y: inner.y,
+                width: 1,
+                height: 1,
+            },
+            "▎",
+            gutter,
+        );
+        ui.paint_str(
+            Rect {
+                x: inner.x.saturating_add(1),
+                y: inner.y,
+                width: 1,
+                height: 1,
+            },
+            "›",
+            marker,
+        );
+        let footer = ui.with_surface(Surface::Surface, |ui| {
+            ui.style(
+                junie_tui::Family::CODE,
+                Variant::DEFAULT,
+                Part::META,
+                StateFlags::empty(),
+            )
+            .style
+        });
+        ui.paint_str(
+            Rect {
+                x: inner.right().saturating_sub(10),
+                y: inner.y.saturating_add(5),
+                width: 10,
+                height: 1,
+            },
+            "1–5 of 26",
+            footer,
+        );
+    }
+}
+
+#[cfg(test)]
+mod lexer_tests {
+    use super::*;
+
+    #[test]
+    fn highlight_keeps_utf8_boundaries_and_token_roles() {
+        let source = "é 12_000.5 λ \"hi💚\" // café\nlet retry()";
+        let spans = highlight(source);
+        let tokens: Vec<_> = spans
+            .iter()
+            .map(|(range, role)| (source.get(range.clone()), *role))
+            .collect();
+        assert!(tokens.iter().all(|(text, _)| text.is_some()));
+        assert!(tokens.contains(&(Some("12_000.5"), SyntaxRole::Number)));
+        assert!(tokens.contains(&(Some("\"hi💚\""), SyntaxRole::Str)));
+        assert!(tokens.contains(&(Some("// café"), SyntaxRole::Comment)));
+        assert!(tokens.contains(&(Some("let"), SyntaxRole::Keyword)));
+        assert!(tokens.contains(&(Some("retry"), SyntaxRole::Function)));
+        assert!(highlight("").is_empty());
     }
 }

@@ -91,9 +91,15 @@ pub struct Region {
     /// The frame generation.
     pub generation: u32,
     scroll: Option<(Axes, Headroom)>,
+    pointer_enabled: bool,
 }
 
 impl Region {
+    /// Whether this geometry participates in pointer hit testing and capture.
+    pub const fn pointer_enabled(&self) -> bool {
+        self.pointer_enabled
+    }
+
     /// The scroll axes and headroom of a `Scroll` region.
     pub const fn scroll(&self) -> Option<(Axes, Headroom)> {
         self.scroll
@@ -105,6 +111,7 @@ impl Region {
 pub struct Registry {
     regions: Vec<Region>,
     generation: u32,
+    has_pointer_exclusions: bool,
 }
 
 impl Default for Registry {
@@ -119,6 +126,7 @@ impl Registry {
         Registry {
             regions: Vec::new(),
             generation,
+            has_pointer_exclusions: false,
         }
     }
 
@@ -126,6 +134,7 @@ impl Registry {
     pub(crate) fn reset(&mut self, generation: u32) {
         self.regions.clear();
         self.generation = generation;
+        self.has_pointer_exclusions = false;
     }
 
     /// The generation.
@@ -179,6 +188,29 @@ impl Registry {
         dup
     }
 
+    pub(crate) fn register_keyboard_control(
+        &mut self,
+        owner: Id,
+        area: Rect,
+        layer: LayerId,
+    ) -> Option<Diagnostic> {
+        if area.is_empty() {
+            return None;
+        }
+        let diagnostic = self.register_control(owner, area, layer);
+        // Registration order must not let earlier decoration or later parts
+        // regain pointer authority for a keyboard-only owner.
+        for region in self
+            .regions
+            .iter_mut()
+            .filter(|region| region.owner == owner)
+        {
+            region.pointer_enabled = false;
+        }
+        self.has_pointer_exclusions = true;
+        diagnostic
+    }
+
     /// Register a `Part` region under `owner`.
     pub fn register_part(&mut self, owner: Id, part: PartRef, area: Rect, layer: LayerId) {
         self.push(owner, part, area, layer, RegionKind::Part, None);
@@ -220,6 +252,11 @@ impl Registry {
         if area.is_empty() {
             return;
         }
+        let pointer_enabled = !self.has_pointer_exclusions
+            || !self
+                .regions
+                .iter()
+                .any(|region| region.owner == owner && !region.pointer_enabled);
         self.regions.push(Region {
             owner,
             part,
@@ -228,6 +265,7 @@ impl Registry {
             kind,
             generation: self.generation,
             scroll,
+            pointer_enabled,
         });
     }
 
@@ -255,7 +293,9 @@ impl Registry {
         self.regions
             .iter()
             .enumerate()
-            .filter(|(_, r)| r.kind != RegionKind::Scroll && r.area.contains(pos))
+            .filter(|(_, r)| {
+                r.pointer_enabled && r.kind != RegionKind::Scroll && r.area.contains(pos)
+            })
             .max_by_key(|(i, r)| (r.layer, *i))
             .map(|(_, r)| Self::hit_of(r, pos))
     }
@@ -270,7 +310,8 @@ impl Registry {
             .iter()
             .enumerate()
             .filter(|(_, r)| {
-                r.layer == layer
+                r.pointer_enabled
+                    && r.layer == layer
                     && matches!(r.kind, RegionKind::Control | RegionKind::Part)
                     && r.area.contains(pos)
             })
@@ -286,7 +327,8 @@ impl Registry {
             .iter()
             .enumerate()
             .filter(|(_, r)| {
-                r.kind == RegionKind::Scroll
+                r.pointer_enabled
+                    && r.kind == RegionKind::Scroll
                     && r.area.contains(pos)
                     && r.scroll.is_some_and(|(axes, _)| axes.handles(axis))
             })

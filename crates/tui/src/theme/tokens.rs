@@ -130,6 +130,33 @@ impl SyntaxTokens {
     }
 }
 
+/// Background policy for the unfilled share of a block meter.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum MeterFillRest {
+    /// An explicit theme color, narrowed with the other color tokens.
+    Color(Color),
+    /// Apply pinned ordered color comparisons to the inherited surface.
+    /// Quantized aliases follow the same branch order as the reference theme.
+    ReferenceLift,
+}
+
+pub(crate) trait TokenMapper {
+    fn color(&mut self, color: Color) -> Color;
+    fn meter_rest(&mut self, rest: MeterFillRest) -> MeterFillRest;
+}
+struct ColorMapper<'a, F>(&'a mut F);
+impl<F: FnMut(Color) -> Color> TokenMapper for ColorMapper<'_, F> {
+    fn color(&mut self, color: Color) -> Color {
+        (self.0)(color)
+    }
+    fn meter_rest(&mut self, rest: MeterFillRest) -> MeterFillRest {
+        match rest {
+            MeterFillRest::Color(color) => MeterFillRest::Color(self.color(color)),
+            MeterFillRest::ReferenceLift => rest,
+        }
+    }
+}
+
 /// Meter colours.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct MeterTokens {
@@ -142,7 +169,7 @@ pub struct MeterTokens {
     /// The track.
     pub track: Color,
     /// The unfilled remainder.
-    pub fill_rest: Color,
+    pub fill_rest: MeterFillRest,
     /// Stale data.
     pub stale: Color,
     /// Unknown value.
@@ -160,7 +187,7 @@ impl MeterTokens {
             medium,
             high,
             track: Color::Reset,
-            fill_rest: Color::Reset,
+            fill_rest: MeterFillRest::Color(Color::Reset),
             stale: Color::Reset,
             unknown: Color::Reset,
             series: [low, medium, high, low, medium, high],
@@ -170,6 +197,10 @@ impl MeterTokens {
     /// Apply `f` to every colour (exhaustive destructure).
     #[must_use]
     pub fn map_colors(&self, f: &mut impl FnMut(Color) -> Color) -> MeterTokens {
+        self.map_with(&mut ColorMapper(f))
+    }
+
+    pub(crate) fn map_with(&self, mapper: &mut impl TokenMapper) -> MeterTokens {
         let MeterTokens {
             low,
             medium,
@@ -181,14 +212,14 @@ impl MeterTokens {
             series,
         } = *self;
         MeterTokens {
-            low: f(low),
-            medium: f(medium),
-            high: f(high),
-            track: f(track),
-            fill_rest: f(fill_rest),
-            stale: f(stale),
-            unknown: f(unknown),
-            series: series.map(&mut *f),
+            low: mapper.color(low),
+            medium: mapper.color(medium),
+            high: mapper.color(high),
+            track: mapper.color(track),
+            fill_rest: mapper.meter_rest(fill_rest),
+            stale: mapper.color(stale),
+            unknown: mapper.color(unknown),
+            series: series.map(|color| mapper.color(color)),
         }
     }
 }
@@ -272,6 +303,10 @@ impl ColorTokens {
     /// Exhaustive destructure: adding a field is a compile error here.
     #[must_use]
     pub fn map_colors(&self, f: &mut impl FnMut(Color) -> Color) -> ColorTokens {
+        self.map_with(&mut ColorMapper(f))
+    }
+
+    pub(crate) fn map_with(&self, mapper: &mut impl TokenMapper) -> ColorTokens {
         let ColorTokens {
             surfaces,
             field,
@@ -310,45 +345,64 @@ impl ColorTokens {
             meter,
         } = *self;
         ColorTokens {
-            surfaces: surfaces.map(&mut *f),
-            field: f(field),
-            field_hover: f(field_hover),
-            fg: fg.map(&mut *f),
-            on_accent: f(on_accent),
-            on_danger: f(on_danger),
-            on_surface_inverse: f(on_surface_inverse),
-            border_subtle: f(border_subtle),
-            border_strong: f(border_strong),
-            accent: f(accent),
-            accent_hover: f(accent_hover),
-            accent_pressed: f(accent_pressed),
-            accent_tint: f(accent_tint),
-            focus: f(focus),
-            focus_ring: f(focus_ring),
-            selection_bg: f(selection_bg),
-            selection_fg: f(selection_fg),
-            highlight_bg: f(highlight_bg),
-            highlight_fg: f(highlight_fg),
-            highlight_danger_bg: f(highlight_danger_bg),
-            highlight_danger_fg: f(highlight_danger_fg),
-            backdrop_fg: f(backdrop_fg),
-            backdrop_bg: f(backdrop_bg),
-            danger: f(danger),
-            danger_soft: f(danger_soft),
-            danger_tint: f(danger_tint),
-            warning: f(warning),
-            warning_tint: f(warning_tint),
-            success: f(success),
-            info: f(info),
-            disabled_fg: f(disabled_fg),
-            disabled_bg: f(disabled_bg),
-            read_only_fg: f(read_only_fg),
-            syntax: syntax.map_colors(f),
-            meter: meter.map_colors(f),
+            surfaces: surfaces.map(|color| mapper.color(color)),
+            field: mapper.color(field),
+            field_hover: mapper.color(field_hover),
+            fg: fg.map(|color| mapper.color(color)),
+            on_accent: mapper.color(on_accent),
+            on_danger: mapper.color(on_danger),
+            on_surface_inverse: mapper.color(on_surface_inverse),
+            border_subtle: mapper.color(border_subtle),
+            border_strong: mapper.color(border_strong),
+            accent: mapper.color(accent),
+            accent_hover: mapper.color(accent_hover),
+            accent_pressed: mapper.color(accent_pressed),
+            accent_tint: mapper.color(accent_tint),
+            focus: mapper.color(focus),
+            focus_ring: mapper.color(focus_ring),
+            selection_bg: mapper.color(selection_bg),
+            selection_fg: mapper.color(selection_fg),
+            highlight_bg: mapper.color(highlight_bg),
+            highlight_fg: mapper.color(highlight_fg),
+            highlight_danger_bg: mapper.color(highlight_danger_bg),
+            highlight_danger_fg: mapper.color(highlight_danger_fg),
+            backdrop_fg: mapper.color(backdrop_fg),
+            backdrop_bg: mapper.color(backdrop_bg),
+            danger: mapper.color(danger),
+            danger_soft: mapper.color(danger_soft),
+            danger_tint: mapper.color(danger_tint),
+            warning: mapper.color(warning),
+            warning_tint: mapper.color(warning_tint),
+            success: mapper.color(success),
+            info: mapper.color(info),
+            disabled_fg: mapper.color(disabled_fg),
+            disabled_bg: mapper.color(disabled_bg),
+            read_only_fg: mapper.color(read_only_fg),
+            syntax: syntax.map_colors(&mut |color| mapper.color(color)),
+            meter: meter.map_with(mapper),
         }
     }
 
-    /// Every colour, in field order (for tests and pinning).
+    /// Every semantic slot in field order, including the typed fill-rest policy.
+    pub fn semantic_colors(&self) -> Vec<MeterFillRest> {
+        struct Collect(Vec<MeterFillRest>);
+        impl TokenMapper for Collect {
+            fn color(&mut self, color: Color) -> Color {
+                self.0.push(MeterFillRest::Color(color));
+                color
+            }
+            fn meter_rest(&mut self, rest: MeterFillRest) -> MeterFillRest {
+                self.0.push(rest);
+                rest
+            }
+        }
+        let mut collect = Collect(Vec::with_capacity(73));
+        let _ = self.map_with(&mut collect);
+        collect.0
+    }
+
+    /// Every concrete colour, in field order. Symbolic policies are omitted.
+    /// Use `semantic_colors` when stable semantic-slot positions matter.
     pub fn colors(&self) -> Vec<Color> {
         let mut out = Vec::with_capacity(72);
         let _ = self.map_colors(&mut |c| {

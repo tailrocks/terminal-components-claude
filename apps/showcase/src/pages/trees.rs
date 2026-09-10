@@ -1,14 +1,13 @@
 //! Keyed tree navigation with stable branch expansion.
 
 use junie_tui::{
-    Cx, Family, FgStep, GlyphRole, Id, ItemKey, Panel, PanelKind, Part, Rect, Response, Role,
-    RowUi, StateFlags, StylePatch, Track, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id,
-    layout,
+    Cx, Family, FgStep, GlyphRole, Id, ItemKey, Panel, PanelKind, Part, Rect, Role, RowUi,
+    StateFlags, StylePatch, Track, Tree, TreeAction, TreeNode, TreeState, Ui, Variant, id, layout,
 };
 
 use crate::data::{TREE, TREE_LABELS};
 
-use super::{Page, frame, theme_fg};
+use super::{Page, PageUpdate, frame};
 
 const PROJECT: Id = id!("trees.project");
 const TREE_GUTTER: &[(Part, StylePatch)] = &[(
@@ -79,6 +78,15 @@ fn project_tree()
         .patch_part(TREE_GUTTER)
 }
 
+/// The one project-card constructor (§13), shared by update and draw.
+fn project_panel(meta: &str) -> Panel<'_> {
+    Panel::new(PROJECT)
+        .kind(PanelKind::Card)
+        .title("Project")
+        .meta(meta)
+        .patch_part(PANEL_PARTS)
+}
+
 fn position_label(state: &TreeState) -> String {
     let scroll = state.scroll();
     if !scroll.overflows() {
@@ -87,7 +95,7 @@ fn position_label(state: &TreeState) -> String {
     let range = scroll.visible_range();
     format!(
         "{}–{} of {}",
-        range.start + 1,
+        range.start.saturating_add(1),
         range.end,
         scroll.content_len()
     )
@@ -126,7 +134,7 @@ fn paint_disclosure_glyphs(ui: &mut Ui<'_>, area: Rect, state: &TreeState) {
                     .saturating_add(node.depth().saturating_mul(2)),
                 y: area
                     .y
-                    .saturating_add((display_index - visible_start) as u16),
+                    .saturating_add((display_index.saturating_sub(visible_start)) as u16),
                 width: 1,
                 height: 1,
             };
@@ -158,14 +166,6 @@ fn label_for(key: Option<ItemKey>) -> &'static str {
             .and_then(|index| TREE_LABELS.get(index).map(|(label, _)| *label))
     })
     .unwrap_or("src")
-}
-
-fn project_panel<'a>(meta: &'a str) -> Panel<'a> {
-    Panel::new(PROJECT)
-        .kind(PanelKind::Card)
-        .title("Project")
-        .meta(meta)
-        .patch_part(PANEL_PARTS)
 }
 
 /// Project navigation owns expansion by stable item key. No depth-derived key
@@ -208,8 +208,7 @@ impl Page for TreesPage {
         "Trees"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let _ = project_panel("");
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let result = project_tree().update(cx, &mut self.state, TREE);
         if let Some(action) = result.action_ref() {
             self.last = match action {
@@ -222,7 +221,8 @@ impl Page for TreesPage {
                 self.chosen = Some(*key);
             }
         }
-        result.erase()
+        let _ = project_panel(&position_label(&self.state));
+        result.erase().into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -267,8 +267,12 @@ impl Page for TreesPage {
                                 StateFlags::empty(),
                             )
                             .style;
-                        let primary = ui.surface_style().fg(theme_fg(ui, FgStep::Primary));
-                        let faint = ui.surface_style().fg(theme_fg(ui, FgStep::Faint));
+                        let primary = ui.surface_style().patch(
+                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
+                        );
+                        let faint = ui.surface_style().patch(
+                            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))),
+                        );
                         for (offset, (text, style)) in [
                             (selection, primary),
                             (hint, faint),
@@ -299,7 +303,7 @@ impl Page for TreesPage {
                         StateFlags::empty(),
                     )
                     .style
-                    .fg(theme_fg(ui, FgStep::Faint));
+                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
                 let _ = ui.paint_str(
                     Rect {
                         x: selection.x.saturating_add(2),
@@ -314,8 +318,8 @@ impl Page for TreesPage {
         );
     }
 
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
-        vec![
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
+        &[
             ("↑ ↓", "Move"),
             ("← →", "Fold / unfold"),
             ("Enter", "Open"),

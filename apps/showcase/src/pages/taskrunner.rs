@@ -1,20 +1,21 @@
 //! A cancellable task runner using the public lifecycle rail.
 
+use junie_tui::author::PaintStyle;
 use std::{cmp::Ordering, time::Duration};
 
 use junie_tui::{
     ActionKey, Button, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, ItemKey, Modifier,
-    Rect, Response, RowUi, StateFlags, StepState, Steps, StepsAction, StepsState, Style, Surface,
-    Track, Ui, Variant, id, layout, width,
+    Rect, Response, RowUi, StateFlags, StepState, Steps, StepsAction, StepsState, Surface, Track,
+    Ui, Variant, id, layout, width,
 };
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const RUN: Id = id!("taskrunner.run");
 const CANCEL: Id = id!("taskrunner.cancel");
 const STEPS: Id = id!("taskrunner.steps");
 const CANCEL_DIALOG: Id = id!("taskrunner.cancel.dialog");
-pub(crate) const RUN_COMMAND: ActionKey = ActionKey::custom("showcase.taskrunner.run");
+pub(crate) const RUN_COMMAND: ActionKey = ActionKey::application("showcase.taskrunner.run");
 
 #[derive(Clone, Debug)]
 struct RunStep {
@@ -70,7 +71,7 @@ fn cancel_dialog() -> Dialog<'static> {
 
 fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
     let mut surface = ui.surface_style();
-    surface.sub_modifier = Modifier::all();
+    surface = surface.remove_modifier(Modifier::all());
     let mut panel = ui.with_surface(Surface::Surface, |ui| {
         ui.style(
             junie_tui::Family::PANEL,
@@ -80,7 +81,7 @@ fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
         )
         .style
     });
-    panel.sub_modifier = Modifier::all();
+    panel = panel.remove_modifier(Modifier::all());
     ui.fill(body, surface);
     ui.fill(
         Rect {
@@ -133,11 +134,18 @@ fn style(
     variant: Variant,
     part: junie_tui::Part,
     flags: StateFlags,
-) -> Style {
+) -> PaintStyle {
     ui.with_surface(surface, |ui| ui.style(family, variant, part, flags).style)
 }
 
-fn paint_segment(ui: &mut Ui<'_>, body: Rect, row: u16, prefix: &str, text: &str, style: Style) {
+fn paint_segment(
+    ui: &mut Ui<'_>,
+    body: Rect,
+    row: u16,
+    prefix: &str,
+    text: &str,
+    style: PaintStyle,
+) {
     let x = body.x.saturating_add(width(prefix));
     ui.paint_str(
         Rect {
@@ -157,109 +165,14 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, running: bool, frame: usize, me
     } else {
         String::new()
     };
-    let panel = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Variant::DEFAULT,
-        junie_tui::Part::CONTAINER,
-        StateFlags::empty(),
-    );
-    let title = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Variant::DEFAULT,
-        junie_tui::Part::DETAIL,
-        StateFlags::empty(),
-    );
-    let detail = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Variant::DEFAULT,
-        junie_tui::Part::HELP,
-        StateFlags::empty(),
-    );
-    let meta = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::EMPTY,
-        Variant::DEFAULT,
-        junie_tui::Part::HELP,
-        StateFlags::empty(),
-    );
-    let primary = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::BUTTON,
-        Variant::PRIMARY,
-        junie_tui::Part::CONTAINER,
-        StateFlags::empty(),
-    );
-    let primary_gutter = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::BUTTON,
-        Variant::PRIMARY,
-        junie_tui::Part::GUTTER,
-        StateFlags::empty(),
-    );
+    let [panel, title, detail, meta, primary, primary_gutter] = historical_palette(ui);
     let canvas = ui.with_surface(Surface::Canvas, |ui| ui.surface_style());
-    let rail = ui.with_surface(Surface::Surface, |ui| ui.surface_style().fg(ui.bg()));
+    let rail = ui.with_surface(Surface::Surface, |ui| {
+        ui.surface_style().with_fg_from_bg(ui.surface_style())
+    });
 
-    paint_segment(ui, body, 0, "  ", "Targets", title);
-    paint_segment(
-        ui,
-        body,
-        0,
-        "  Targets                         ",
-        "Pipeline",
-        title,
-    );
-    if running {
-        paint_segment(
-            ui,
-            body,
-            0,
-            "  Targets                         ",
-            "Pipeline · running",
-            detail,
-        );
-    } else {
-        paint_segment(
-            ui,
-            body,
-            0,
-            "  Targets                         Pipeline    ",
-            "0 of 6 done",
-            meta,
-        );
-    }
-    for (row, text) in [
-        (2, "▾ payments-gateway"),
-        (3, "  ▾ build"),
-        (4, "      compile"),
-        (5, "      lint"),
-        (6, "      typecheck"),
-        (7, "  ▾ test"),
-        (8, "      unit"),
-        (9, "      integration"),
-        (10, "      e2e"),
-        (11, "  ▾ deploy"),
-        (12, "      staging"),
-        (13, "      production"),
-        (14, "▾ shared-libs"),
-        (15, "    compile"),
-        (16, "    publish"),
-    ] {
-        paint_segment(ui, body, row, "  ", "▎", rail);
-        paint_segment(ui, body, row, "  ▎", text, panel);
-        if let Some(marker) = text.find('▾') {
-            let prefix = format!("  ▎{}", &text[..marker]);
-            paint_segment(ui, body, row, &prefix, "▾", title);
-        }
-    }
+    paint_pipeline_heading(ui, body, running, [title, detail, meta]);
+    paint_targets(ui, body, [rail, panel, title]);
     for (row, prefix, text) in [
         (2, "  ▎▾ payments-gateway             ", "compile"),
         (3, "  ▎  ▾ build                      ", "lint"),
@@ -293,7 +206,6 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, running: bool, frame: usize, me
                 y: body.y.saturating_add(row),
                 width: 2,
                 height: 1,
-                ..body
             },
             canvas,
         );
@@ -309,38 +221,25 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, running: bool, frame: usize, me
         },
         primary,
     );
-    paint_segment(
-        ui,
-        body,
-        9,
-        "  ▎      integration              ",
-        "▎Run pipeline",
-        primary,
-    );
-    paint_segment(
-        ui,
-        body,
-        9,
-        "  ▎      integration              ",
-        "▎",
-        primary_gutter,
-    );
-    paint_segment(
-        ui,
-        body,
-        12,
-        "  ▎      staging                  ",
-        "Log",
-        title,
-    );
-    paint_segment(
-        ui,
-        body,
-        12,
-        "  ▎      staging                  Log         ",
-        "· following",
-        meta,
-    );
+    let segments: [(u16, &str, &str, PaintStyle); 4] = [
+        (
+            9,
+            "  ▎      integration              ",
+            "▎Run pipeline",
+            primary,
+        ),
+        (9, "  ▎      integration              ", "▎", primary_gutter),
+        (12, "  ▎      staging                  ", "Log", title),
+        (
+            12,
+            "  ▎      staging                  Log         ",
+            "· following",
+            meta,
+        ),
+    ];
+    for (row, prefix, text, style) in segments {
+        paint_segment(ui, body, row, prefix, text, style);
+    }
     let ready = if running || message != "pipeline idle" {
         message
     } else {
@@ -479,7 +378,7 @@ impl Page for TaskRunnerPage {
         }
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut result = Response::ignored();
         let run = run_button(self.running).update(cx);
         if run.activated() {
@@ -524,7 +423,7 @@ impl Page for TaskRunnerPage {
             }
             result |= dialog.erase();
         }
-        result
+        result.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -574,11 +473,126 @@ impl Page for TaskRunnerPage {
         });
     }
 
-    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(STEPS).contains(StateFlags::FOCUSED) {
-            vec![("↑ ↓", "Move"), ("← →", "Fold")]
+            &[("↑ ↓", "Move"), ("← →", "Fold")]
         } else {
-            vec![("r", "Run pipeline"), ("Enter", "Activate")]
+            &[("r", "Run pipeline"), ("Enter", "Activate")]
         }
+    }
+}
+
+fn historical_palette(ui: &mut Ui<'_>) -> [PaintStyle; 6] {
+    let [panel, title, detail, meta, primary, primary_gutter] = [
+        (
+            Surface::Surface,
+            junie_tui::Family::PANEL,
+            Variant::DEFAULT,
+            junie_tui::Part::CONTAINER,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::PANEL,
+            Variant::DEFAULT,
+            junie_tui::Part::DETAIL,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::PANEL,
+            Variant::DEFAULT,
+            junie_tui::Part::HELP,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::EMPTY,
+            Variant::DEFAULT,
+            junie_tui::Part::HELP,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::BUTTON,
+            Variant::PRIMARY,
+            junie_tui::Part::CONTAINER,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::BUTTON,
+            Variant::PRIMARY,
+            junie_tui::Part::GUTTER,
+            StateFlags::empty(),
+        ),
+    ]
+    .map(|(surface, family, variant, part, flags)| {
+        style(ui, surface, family, variant, part, flags)
+    });
+    [panel, title, detail, meta, primary, primary_gutter]
+}
+
+fn paint_targets(ui: &mut Ui<'_>, body: Rect, [rail, panel, title]: [PaintStyle; 3]) {
+    for (row, text) in [
+        (2, "▾ payments-gateway"),
+        (3, "  ▾ build"),
+        (4, "      compile"),
+        (5, "      lint"),
+        (6, "      typecheck"),
+        (7, "  ▾ test"),
+        (8, "      unit"),
+        (9, "      integration"),
+        (10, "      e2e"),
+        (11, "  ▾ deploy"),
+        (12, "      staging"),
+        (13, "      production"),
+        (14, "▾ shared-libs"),
+        (15, "    compile"),
+        (16, "    publish"),
+    ] {
+        let segments: [(u16, &str, &str, PaintStyle); 2] =
+            [(row, "  ", "▎", rail), (row, "  ▎", text, panel)];
+        for (row, prefix, text, style) in segments {
+            paint_segment(ui, body, row, prefix, text, style);
+        }
+        if let Some(marker) = text.find('▾') {
+            let prefix = format!("  ▎{}", &text[..marker]);
+            paint_segment(ui, body, row, &prefix, "▾", title);
+        }
+    }
+}
+
+fn paint_pipeline_heading(
+    ui: &mut Ui<'_>,
+    body: Rect,
+    running: bool,
+    [title, detail, meta]: [PaintStyle; 3],
+) {
+    let segments: [(u16, &str, &str, PaintStyle); 2] = [
+        (0, "  ", "Targets", title),
+        (0, "  Targets                         ", "Pipeline", title),
+    ];
+    for (row, prefix, text, style) in segments {
+        paint_segment(ui, body, row, prefix, text, style);
+    }
+    if running {
+        paint_segment(
+            ui,
+            body,
+            0,
+            "  Targets                         ",
+            "Pipeline · running",
+            detail,
+        );
+    } else {
+        paint_segment(
+            ui,
+            body,
+            0,
+            "  Targets                         Pipeline    ",
+            "0 of 6 done",
+            meta,
+        );
     }
 }

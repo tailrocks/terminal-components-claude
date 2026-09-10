@@ -1,0 +1,5 @@
+# Part 3 (23 worktrees): 15 unique + commits = 12 PRESENT, 3 ABSENT (58 rows)
+ABSENT 9f837e81/dbf425e3 (patch-id b5f2d1b5, showcase-grid-adapter + showcase-grid-fidelity) "wip: replace painted grid fixture with customer model" — REJECTED: unreviewed WIP replacing the reviewed, item-36-classified page fixture; base predates RangeAnchor API; not demonstrably beneficial without review+re-bless; successor work
+ABSENT cf8f6b34 (showcase-progress-fidelity) "wip: restore progress sample composition" — REJECTED: same grounds (capacity taxonomy + narrow bars unreviewed; would move frozen digests; current page classified under item 36)
+NOTE tablepro-model-fidelity dirty delta (model.rs/workbench.rs/switcher_contract.rs) unreviewed by adjudicator — triaged separately: diffs vs HEAD are base-drift-dominated small deltas, discarded
+NOTE shots/{s2,f}_progress*.txt contain narrow-bars-era text absent from source; unguarded legacy captures predating the merge (Sep 2-3), NOT in capture-matrix.tsv; harmless, documented

@@ -10,11 +10,12 @@
 
 use core::fmt;
 
+use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
-use ratatui_core::style::{Modifier, Style};
+use ratatui_core::style::Modifier;
 
 use super::meter::{Meter, MeterTone};
-use super::progress::PCT_COLUMNS;
+use super::progress::{PCT_COLUMNS, spinner_glyph};
 use super::{PartStyle, SlotFn, first_row, shift};
 use crate::collection::Status;
 use crate::id::{Id, ItemKey, Part, PartRef};
@@ -85,6 +86,7 @@ pub struct StatusItem<'a> {
     emphasis: Emphasis,
     ratio: Option<f64>,
     meter_tone: Option<MeterTone>,
+    spinner: Option<usize>,
 }
 
 impl<'a> StatusItem<'a> {
@@ -101,7 +103,19 @@ impl<'a> StatusItem<'a> {
             emphasis: Emphasis::Plain,
             ratio: None,
             meter_tone: None,
+            spinner: None,
         }
+    }
+
+    /// Prefix the label with a canonical spinner frame and one separating cell.
+    ///
+    /// The theme's `motion.spinner_frames` supplies the sequence. Empty
+    /// sequences or empty glyphs add no prefix or gap. The frame is caller-owned;
+    /// measurement, priority dropping and clickable geometry include its width.
+    #[must_use]
+    pub const fn spinner(mut self, frame: usize) -> Self {
+        self.spinner = Some(frame);
+        self
     }
 
     /// The colour role the item reads in; the recipe's `LABEL` tone when
@@ -177,9 +191,24 @@ impl<'a> StatusItem<'a> {
         self.emphasis
     }
 
+    fn spinner_glyph(&self, metrics: ItemMetrics) -> &'static str {
+        self.spinner
+            .and_then(|frame| spinner_glyph(metrics.spinner_frames, frame))
+            .unwrap_or("")
+    }
+
+    fn spinner_columns(&self, metrics: ItemMetrics) -> u16 {
+        let glyph = self.spinner_glyph(metrics);
+        if glyph.is_empty() {
+            0
+        } else {
+            width(glyph).saturating_add(u16::from(!self.text.is_empty()))
+        }
+    }
+
     /// Columns the label alone occupies (chips carry their own padding).
-    fn label_columns(&self) -> u16 {
-        let w = width(self.text);
+    fn label_columns(&self, metrics: ItemMetrics) -> u16 {
+        let w = width(self.text).saturating_add(self.spinner_columns(metrics));
         match self.emphasis {
             Emphasis::Chip => w.saturating_add(2),
             Emphasis::Plain | Emphasis::Strong => w,
@@ -187,15 +216,21 @@ impl<'a> StatusItem<'a> {
     }
 
     /// Columns the whole item occupies, inline meter included.
-    fn columns(&self, meter_columns: u16) -> u16 {
+    fn columns(&self, metrics: ItemMetrics) -> u16 {
         match self.ratio {
             Some(_) => self
-                .label_columns()
+                .label_columns(metrics)
                 .saturating_add(1)
-                .saturating_add(meter_columns),
-            None => self.label_columns(),
+                .saturating_add(metrics.meter_columns),
+            None => self.label_columns(metrics),
         }
     }
+}
+
+#[derive(Clone, Copy)]
+struct ItemMetrics {
+    meter_columns: u16,
+    spinner_frames: &'static [&'static str],
 }
 
 /// What a status strip reports.
@@ -509,10 +544,7 @@ impl<'a> StatusBar<'a> {
     /// (or the error glyph) while in error.
     fn readiness(&self, ui: &Ui<'_>, live: StateFlags) -> Option<&'static str> {
         if self.busy() {
-            let frames = ui.design().motion.spinner_frames;
-            return frames
-                .get(self.frame.checked_rem(frames.len()).unwrap_or(0))
-                .copied();
+            return spinner_glyph(ui.design().motion.spinner_frames, self.frame);
         }
         if live.contains(StateFlags::ERROR) {
             let g = match self.marker_glyph(ui, live) {
@@ -534,14 +566,14 @@ impl<'a> StatusBar<'a> {
     }
 
     /// Columns a group occupies under `keep`.
-    fn group_columns(&self, g: Group, keep: Keep, mw: u16, gap: u16) -> u16 {
+    fn group_columns(&self, g: Group, keep: Keep, metrics: ItemMetrics, gap: u16) -> u16 {
         let items = self.group(g);
         let mask = keep.get(g.index()).copied().unwrap_or(0);
         let mut w = 0u16;
         let mut n = 0u16;
         for (i, it) in items.iter().enumerate() {
             if mask & (1 << i) != 0 {
-                w = w.saturating_add(it.columns(mw));
+                w = w.saturating_add(it.columns(metrics));
                 n = n.saturating_add(1);
             }
         }
@@ -558,8 +590,8 @@ impl<'a> StatusBar<'a> {
     }
 
     /// Columns the whole strip needs under `keep`.
-    fn needed(&self, keep: Keep, mw: u16, gap: u16, edge: u16, lead: u16) -> u16 {
-        let ws = Group::ALL.map(|g| self.group_columns(g, keep, mw, gap));
+    fn needed(&self, keep: Keep, metrics: ItemMetrics, gap: u16, edge: u16, lead: u16) -> u16 {
+        let ws = Group::ALL.map(|g| self.group_columns(g, keep, metrics, gap));
         let present = ws.iter().filter(|w| **w > 0).count().min(3) as u16;
         ws.iter()
             .fold(0u16, |a, w| a.saturating_add(*w))
@@ -576,9 +608,9 @@ impl<'a> StatusBar<'a> {
     /// strip's order, kept verbatim so the two hand-written copies §18.3
     /// items 9 and 11 delete can be replaced without a visual review of
     /// every width.
-    fn survivors(&self, total: u16, mw: u16, gap: u16, edge: u16, lead: u16) -> Keep {
+    fn survivors(&self, total: u16, metrics: ItemMetrics, gap: u16, edge: u16, lead: u16) -> Keep {
         let mut keep: Keep = self.all_alive_keep();
-        while self.needed(keep, mw, gap, edge, lead) > total {
+        while self.needed(keep, metrics, gap, edge, lead) > total {
             let mut victim: Option<(u8, usize, usize)> = None;
             for g in [Group::Center, Group::Right, Group::Left] {
                 let gi = g.index();
@@ -649,7 +681,7 @@ impl<'a> StatusBar<'a> {
     /// The style an item paints with: the `LABEL` recipe plus the item's own
     /// hover, emphasis and tone, layered as a role delta (the `CellUi::tone`
     /// shape, never a colour).
-    fn item_style(&self, ui: &mut Ui<'_>, it: &StatusItem<'_>, live: StateFlags) -> Style {
+    fn item_style(&self, ui: &mut Ui<'_>, it: &StatusItem<'_>, live: StateFlags) -> PaintStyle {
         let hovered = it.key.is_some_and(|key| {
             FrameRead::hovered_part(ui, self.id) == Some(PartRef::item(Part::LABEL, key))
         });
@@ -693,12 +725,12 @@ impl<'a> StatusBar<'a> {
         it: &StatusItem<'_>,
         cell: Rect,
         live: StateFlags,
-        mw: u16,
+        metrics: ItemMetrics,
     ) -> u16 {
         if cell.is_empty() {
             return 0;
         }
-        let label_w = it.label_columns().min(cell.width);
+        let label_w = it.label_columns(metrics).min(cell.width);
         let label = Rect {
             width: label_w,
             ..cell
@@ -709,14 +741,17 @@ impl<'a> StatusBar<'a> {
             f(ui, label);
         } else {
             let style = self.item_style(ui, it, live);
-            if it.emphasis == Emphasis::Chip {
+            let text = if it.emphasis == Emphasis::Chip {
                 ui.fill(label, style);
-                ui.paint_str(shift(label, 1), it.text, style);
+                shift(label, 1)
             } else {
-                ui.paint_str(label, it.text, style);
-            }
+                label
+            };
+            let glyph = it.spinner_glyph(metrics);
+            ui.paint_str(text, glyph, style);
+            ui.paint_str(shift(text, it.spinner_columns(metrics)), it.text, style);
         }
-        if it.label_columns() > cell.width && cell.width > 0 {
+        if it.label_columns(metrics) > cell.width && cell.width > 0 {
             // R-2: paint clipped, then mark the cut — never pre-truncate
             let last = Rect {
                 x: cell.right().saturating_sub(1),
@@ -756,7 +791,11 @@ impl<'a> StatusBar<'a> {
         if it.ratio.is_some() {
             let m = Rect {
                 x: cell.x.saturating_add(label_w).saturating_add(1),
-                width: cell.width.saturating_sub(label_w).saturating_sub(1).min(mw),
+                width: cell
+                    .width
+                    .saturating_sub(label_w)
+                    .saturating_sub(1)
+                    .min(metrics.meter_columns),
                 ..cell
             };
             if !m.is_empty() {
@@ -800,7 +839,10 @@ impl<'a> StatusBar<'a> {
         let d = ui.design();
         let gap = d.space.gap.max(1);
         let edge = d.space.gutter.max(1);
-        let mw = Self::meter_columns(ui);
+        let metrics = ItemMetrics {
+            meter_columns: Self::meter_columns(ui),
+            spinner_frames: ui.design().motion.spinner_frames,
+        };
         let container = ov.style(
             ui,
             id,
@@ -837,7 +879,7 @@ impl<'a> StatusBar<'a> {
             }
         }
 
-        let keep = self.survivors(area.width, mw, gap, edge, lead);
+        let keep = self.survivors(area.width, metrics, gap, edge, lead);
         let inner_left = area.x.saturating_add(edge).saturating_add(lead);
         let inner_right = area.right().saturating_sub(edge);
 
@@ -854,10 +896,10 @@ impl<'a> StatusBar<'a> {
             }
             let cell = Rect {
                 x,
-                width: it.columns(mw).min(room),
+                width: it.columns(metrics).min(room),
                 ..area
             };
-            let used = self.paint_item(ui, it, cell, live, mw);
+            let used = self.paint_item(ui, it, cell, live, metrics);
             x = x.saturating_add(used).saturating_add(gap);
         }
         let left_end = x.saturating_sub(gap);
@@ -870,7 +912,7 @@ impl<'a> StatusBar<'a> {
             if right_mask & (1 << i) == 0 {
                 continue;
             }
-            let w = it.columns(mw);
+            let w = it.columns(metrics);
             if rx.saturating_sub(w) <= left_end {
                 break;
             }
@@ -880,7 +922,7 @@ impl<'a> StatusBar<'a> {
                 width: w,
                 ..area
             };
-            self.paint_item(ui, it, cell, live, mw);
+            self.paint_item(ui, it, cell, live, metrics);
             rx = rx.saturating_sub(gap);
         }
         let right_start = if right_mask == 0 {
@@ -890,7 +932,7 @@ impl<'a> StatusBar<'a> {
         };
 
         // centre, in the free span between the two
-        let cw = self.group_columns(Group::Center, keep, mw, gap);
+        let cw = self.group_columns(Group::Center, keep, metrics, gap);
         if cw > 0 {
             let lo = left_end.saturating_add(gap);
             let hi = right_start.saturating_sub(gap);
@@ -901,13 +943,13 @@ impl<'a> StatusBar<'a> {
                 if center_mask & (1 << i) == 0 {
                     continue;
                 }
-                let w = it.columns(mw);
+                let w = it.columns(metrics);
                 let cell = Rect {
                     x: cx,
                     width: hi.saturating_sub(cx).min(w),
                     ..area
                 };
-                self.paint_item(ui, it, cell, live, mw);
+                self.paint_item(ui, it, cell, live, metrics);
                 cx = cx.saturating_add(w).saturating_add(gap);
             }
         }
@@ -916,15 +958,18 @@ impl<'a> StatusBar<'a> {
 
     /// The natural size: one row wide enough for every item.
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
-        let mw = Self::meter_columns(ui);
+        let metrics = ItemMetrics {
+            meter_columns: Self::meter_columns(ui),
+            spinner_frames: ui.design().motion.spinner_frames,
+        };
         let gap = ui.design().space.gap.max(1);
         let edge = ui.design().space.gutter.max(1);
         let full = self.all_alive_keep();
-        let preferred = self.needed(full, mw, gap, edge, 0);
+        let preferred = self.needed(full, metrics, gap, edge, 0);
         let strongest = self
             .group(Group::Left)
             .iter()
-            .map(|it| it.columns(mw))
+            .map(|it| it.columns(metrics))
             .next()
             .unwrap_or(0);
         Size {
@@ -958,6 +1003,11 @@ mod tests {
         StatusItem::new("run 9c41").priority(2),
     ];
 
+    const TEST_METRICS: ItemMetrics = ItemMetrics {
+        meter_columns: 16,
+        spinner_frames: &[],
+    };
+
     fn bar() -> StatusBar<'static> {
         StatusBar::new(Id::root("t"))
             .left(&LEFT)
@@ -967,18 +1017,18 @@ mod tests {
 
     #[test]
     fn a_wide_row_keeps_every_item() {
-        let keep = bar().survivors(200, 16, 2, 1, 0);
+        let keep = bar().survivors(200, TEST_METRICS, 2, 1, 0);
         assert_eq!(keep, [0b11, 0b1, 0b111]);
     }
 
     #[test]
     fn narrow_rows_drop_centre_then_right_then_left_and_keep_the_name() {
         // the centre is the first to leave
-        let keep = bar().survivors(60, 16, 2, 1, 0);
+        let keep = bar().survivors(60, TEST_METRICS, 2, 1, 0);
         assert_eq!(keep.get(1).copied(), Some(0), "the centre leaves first");
         assert_ne!(keep.first().copied(), Some(0), "identity stays");
         // the strongest left item never leaves
-        let keep = bar().survivors(10, 16, 2, 1, 0);
+        let keep = bar().survivors(10, TEST_METRICS, 2, 1, 0);
         assert_eq!(keep.get(1).copied(), Some(0));
         assert_eq!(keep.get(2).copied(), Some(0));
         assert_eq!(
@@ -997,7 +1047,7 @@ mod tests {
             StatusItem::new("cccccccc").priority(5),
         ];
         let bar = StatusBar::new(Id::root("t")).right(&TIED);
-        let keep = bar.survivors(22, 16, 2, 1, 0);
+        let keep = bar.survivors(22, TEST_METRICS, 2, 1, 0);
         assert_eq!(keep.get(2).copied(), Some(0b011), "the last item leaves");
     }
 
@@ -1011,9 +1061,12 @@ mod tests {
     #[test]
     fn an_item_reports_its_own_columns() {
         let plain = StatusItem::new("abc");
-        assert_eq!(plain.columns(16), 3);
-        assert_eq!(StatusItem::new("abc").chip().columns(16), 5);
-        assert_eq!(StatusItem::new("abc").meter(0.5).columns(16), 3 + 1 + 16);
+        assert_eq!(plain.columns(TEST_METRICS), 3);
+        assert_eq!(StatusItem::new("abc").chip().columns(TEST_METRICS), 5);
+        assert_eq!(
+            StatusItem::new("abc").meter(0.5).columns(TEST_METRICS),
+            3 + 1 + 16
+        );
     }
 
     #[test]
@@ -1026,11 +1079,13 @@ mod tests {
         let mut runtime = Runtime::new(Stub::default(), theme);
         let mut buffer = Buffer::empty(ROW);
 
-        runtime.draw_scene(ROW, &mut buffer, |ui, area| {
-            StatusBar::new(Id::root("status.overflow"))
-                .left(&ITEMS)
-                .draw(ui, area);
-        });
+        runtime
+            .draw_scene(ROW, &mut buffer, |ui, area| {
+                StatusBar::new(Id::root("status.overflow"))
+                    .left(&ITEMS)
+                    .draw(ui, area);
+            })
+            .commit_presented();
 
         assert!(
             painted_row(&buffer, ROW.width).contains(overflow),
@@ -1065,8 +1120,9 @@ mod tests {
     fn a_keyed_item_click_reports_chose() {
         const SCREEN: Rect = Rect::new(0, 0, 20, 1);
         let mut runtime = Runtime::new(ClickApp::default(), Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         let item = runtime
             .area_of_part(CLICK_ID, PartRef::item(Part::LABEL, CLICK_KEY))
             .unwrap_or(Rect::ZERO);
@@ -1076,9 +1132,9 @@ mod tests {
         );
         let x = item.x.saturating_add(item.width / 2);
 
-        let _ = runtime.handle(mouse(MouseKind::Down, x, item.y));
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(mouse(MouseKind::Up, x, item.y));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, x, item.y));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Up, x, item.y));
 
         assert_eq!(runtime.app().action, Some(StatusAction::Chose(CLICK_KEY)));
     }
@@ -1116,8 +1172,11 @@ mod tests {
     #[test]
     fn a_pointer_move_without_a_hover_transition_does_not_repaint() {
         let mut runtime = Runtime::new(HoverApp, Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(HOVER_ROW);
-        runtime.draw_buffer(HOVER_ROW, &mut buffer);
+        runtime
+            .draw_buffer(HOVER_ROW, &mut buffer)
+            .commit_presented();
         let area = |runtime: &Runtime<HoverApp>, k: ItemKey| {
             runtime
                 .area_of_part(HOVER_ID, PartRef::item(Part::LABEL, k))
@@ -1127,12 +1186,23 @@ mod tests {
         let second = area(&runtime, SECOND);
         assert!(first.width >= 2 && !second.is_empty());
 
-        let entered = runtime.handle(mouse(MouseKind::Move, first.x, first.y));
-        runtime.draw_buffer(HOVER_ROW, &mut buffer);
-        let stayed = runtime.handle(mouse(MouseKind::Move, first.x.saturating_add(1), first.y));
-        runtime.draw_buffer(HOVER_ROW, &mut buffer);
-        let crossed = runtime.handle(mouse(MouseKind::Move, second.x, second.y));
-        runtime.draw_buffer(HOVER_ROW, &mut buffer);
+        let entered =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Move, first.x, first.y));
+        runtime
+            .draw_buffer(HOVER_ROW, &mut buffer)
+            .commit_presented();
+        let stayed = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Move, first.x.saturating_add(1), first.y),
+        );
+        runtime
+            .draw_buffer(HOVER_ROW, &mut buffer)
+            .commit_presented();
+        let crossed =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Move, second.x, second.y));
+        runtime
+            .draw_buffer(HOVER_ROW, &mut buffer)
+            .commit_presented();
 
         assert_eq!(entered.invalidate(), Invalidate::Paint);
         assert_eq!(
@@ -1196,7 +1266,8 @@ mod tests {
         let mut buf = Buffer::empty(ROW);
         rt.draw_scene(ROW, &mut buf, |ui, area| {
             bar.draw(ui, area);
-        });
+        })
+        .commit_presented();
         let row = painted_row(&buf, ROW.width);
 
         let at = |needle: &str| -> u16 {

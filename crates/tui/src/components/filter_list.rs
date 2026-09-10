@@ -189,6 +189,17 @@ const BINDINGS: &[Binding<FilterListCmd>] = &[
     ),
 ];
 
+/// Ownership of the visible item projection.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum FilterPolicy {
+    /// Match the query against semantic labels, preserving source order.
+    #[default]
+    Label,
+    /// The caller supplies already filtered and ranked items.
+    /// Query editing and keyed navigation remain owned by the component.
+    Caller,
+}
+
 /// Durable query, cursor, filtered-index and scroll state.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct FilterListState {
@@ -290,10 +301,12 @@ impl Reconcile for FilterListState {
 pub struct FilterList<'a, T, R = super::picker::ItemRow> {
     id: Id,
     row: R,
+    item_layout: super::picker::ItemRowLayout,
     empty: Option<EmptyState<'a>>,
     status: Status,
     frame: usize,
     searchable: bool,
+    filter: FilterPolicy,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
@@ -316,10 +329,12 @@ impl<T> FilterList<'_, T, super::picker::ItemRow> {
         Self {
             id,
             row: super::picker::ItemRow,
+            item_layout: super::picker::ItemRowLayout::Compact,
             empty: None,
             status: Status::Ready,
             frame: 0,
             searchable: true,
+            filter: FilterPolicy::Label,
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
@@ -328,7 +343,21 @@ impl<T> FilterList<'_, T, super::picker::ItemRow> {
     }
 }
 
+impl<T> FilterList<'_, T, super::picker::ItemRow> {
+    /// Opt into aligned semantic columns, measured over the filtered projection.
+    #[must_use]
+    pub const fn item_layout(mut self, layout: super::picker::ItemRowLayout) -> Self {
+        self.item_layout = layout;
+        self
+    }
+}
+
 impl<'a, T, R> FilterList<'a, T, R> {
+    pub(crate) const fn with_item_layout(mut self, layout: super::picker::ItemRowLayout) -> Self {
+        self.item_layout = layout;
+        self
+    }
+
     /// Styled parts.
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
@@ -350,10 +379,12 @@ impl<'a, T, R> FilterList<'a, T, R> {
         FilterList {
             id: self.id,
             row,
+            item_layout: super::picker::ItemRowLayout::Compact,
             empty: self.empty,
             status: self.status,
             frame: self.frame,
             searchable: self.searchable,
+            filter: self.filter,
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
@@ -376,6 +407,12 @@ impl<'a, T, R> FilterList<'a, T, R> {
     #[must_use]
     pub const fn frame(mut self, frame: usize) -> Self {
         self.frame = frame;
+        self
+    }
+    /// Select who filters the visible items; query editing is independent.
+    #[must_use]
+    pub const fn filter(mut self, policy: FilterPolicy) -> Self {
+        self.filter = policy;
         self
     }
     /// Whether printable input edits the query.
@@ -501,13 +538,18 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             .unwrap_or(12)
     }
 
-    fn rebuild(st: &mut FilterListState, items: &[T]) {
+    /// Reconcile selection and scroll against current semantic item keys.
+    ///
+    /// Call after replacing a caller-owned projection in response to query or
+    /// scope changes, before drawing. This consumes no input and emits no action.
+    pub fn reconcile(&self, st: &mut FilterListState, items: &[T]) {
         st.matches.clear();
-        st.matches.extend(
-            items.iter().enumerate().filter_map(|(i, item)| {
-                contains_folded(item.as_item().label, &st.query).then_some(i)
-            }),
-        );
+        st.matches
+            .extend(items.iter().enumerate().filter_map(|(i, item)| {
+                (self.filter == FilterPolicy::Caller
+                    || contains_folded(item.as_item().label, &st.query))
+                .then_some(i)
+            }));
         st.initialized = true;
         let matches = &st.matches;
         let _ = st.core.reconcile_with(
@@ -681,7 +723,7 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         st: &mut FilterListState,
         items: &[T],
     ) -> Response<FilterListAction> {
-        Self::rebuild(st, items);
+        self.reconcile(st, items);
         let mut acc = Acc::new();
         let bar = self
             .scrollbar()
@@ -747,6 +789,93 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
         acc.finish(self.id)
     }
 
+    fn draw_rows(
+        &self,
+        ui: &mut Ui<'_>,
+        content: Rect,
+        st: &FilterListState,
+        items: &[T],
+        live: StateFlags,
+    ) {
+        let identity = !st.initialized && st.query.is_empty();
+        let visible_len = if identity {
+            items.len()
+        } else {
+            st.matches.len()
+        };
+        let columns = (self.item_layout == super::picker::ItemRowLayout::Columns).then(|| {
+            super::picker::ItemColumns::measure(
+                (0..visible_len).filter_map(|i| {
+                    let source = if identity {
+                        Some(i)
+                    } else {
+                        st.matches.get(i).copied()
+                    };
+                    source
+                        .and_then(|index| items.get(index))
+                        .map(AsItem::as_item)
+                }),
+                content.width,
+            )
+        });
+        let mut last_group = "";
+        let view = ScrollRegion::view(st.core.scroll(), content, visible_len);
+        for (row_i, filtered_i) in view.visible_range().enumerate() {
+            let source = if identity {
+                Some(filtered_i)
+            } else {
+                st.matches.get(filtered_i).copied()
+            };
+            let Some(item) = source.and_then(|index| items.get(index)) else {
+                break;
+            };
+            let semantic = item.as_item();
+            let mut flags = self.status.flags();
+            if st.core.cursor() == Some(semantic.key) {
+                flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
+                if self.row_is_pressed(ui, semantic.key) {
+                    flags |= StateFlags::PRESSED;
+                }
+            }
+            if semantic.disabled {
+                flags |= StateFlags::DISABLED;
+                flags.remove(StateFlags::PRESSED);
+            }
+            let row = Rect {
+                x: content.x,
+                y: content
+                    .y
+                    .saturating_add(row_i.min(usize::from(u16::MAX)) as u16),
+                width: content.width,
+                height: 1,
+            };
+            let visible = !row.intersection(ui.full()).is_empty();
+            let mut row_ui = RowUi::new(
+                ui,
+                self.id,
+                Family::PICKER,
+                Variant::DEFAULT,
+                flags,
+                semantic.key,
+                row,
+            );
+            if let Some(columns) = &columns {
+                let group = semantic.group.unwrap_or("");
+                columns.paint(
+                    semantic,
+                    !group.is_empty() && group != last_group,
+                    &mut row_ui,
+                );
+                if visible {
+                    last_group = group;
+                }
+            } else {
+                self.row.row(item, &mut row_ui);
+            }
+            ui.register_part(self.id, PartRef::item(Part::ROW, semantic.key), row);
+        }
+    }
+
     /// Draw the last computed filtered rows.
     pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &FilterListState, items: &[T]) -> Rect {
         if area.is_empty() {
@@ -788,60 +917,22 @@ impl<T: AsItem, R: RowFn<T>> FilterList<'_, T, R> {
             if let Some(slot) = self.ov.slot_for(Part::EMPTY) {
                 slot(ui, content);
             } else {
-                let _ = self.ov.style(
-                    ui,
-                    self.id,
-                    Family::PICKER,
-                    Variant::DEFAULT,
-                    Part::EMPTY,
-                    live,
-                );
-                empty.draw(ui, content, 0);
+                let inherited = self
+                    .ov
+                    .style(
+                        ui,
+                        self.id,
+                        Family::PICKER,
+                        Variant::DEFAULT,
+                        Part::EMPTY,
+                        live,
+                    )
+                    .style;
+                empty.draw_inherited(ui, content, 0, inherited);
             }
             return area;
         }
-        let view = ScrollRegion::view(st.core.scroll(), content, visible_len);
-        for (row_i, filtered_i) in view.visible_range().enumerate() {
-            let source = if identity {
-                Some(filtered_i)
-            } else {
-                st.matches.get(filtered_i).copied()
-            };
-            let Some(item) = source.and_then(|index| items.get(index)) else {
-                break;
-            };
-            let semantic = item.as_item();
-            let mut flags = self.status.flags();
-            if st.core.cursor() == Some(semantic.key) {
-                flags |= live & (StateFlags::FOCUSED | StateFlags::FOCUS_VISIBLE);
-                if self.row_is_pressed(ui, semantic.key) {
-                    flags |= StateFlags::PRESSED;
-                }
-            }
-            if semantic.disabled {
-                flags |= StateFlags::DISABLED;
-                flags.remove(StateFlags::PRESSED);
-            }
-            let row = Rect {
-                x: content.x,
-                y: content
-                    .y
-                    .saturating_add(row_i.min(usize::from(u16::MAX)) as u16),
-                width: content.width,
-                height: 1,
-            };
-            let mut row_ui = RowUi::new(
-                ui,
-                self.id,
-                Family::PICKER,
-                Variant::DEFAULT,
-                flags,
-                semantic.key,
-                row,
-            );
-            self.row.row(item, &mut row_ui);
-            ui.register_part(self.id, PartRef::item(Part::ROW, semantic.key), row);
-        }
+        self.draw_rows(ui, content, st, items, live);
         area
     }
 }
@@ -908,10 +999,10 @@ mod tests {
     fn filtering_borrowed_domain_items_reuses_one_index_buffer() {
         let items = [Domain("alpha"), Domain("beta"), Domain("gamma")];
         let mut state = FilterListState::default();
-        FilterList::<Domain, ItemRow>::rebuild(&mut state, &items);
+        FilterList::<Domain, ItemRow>::new(Id::root("test")).reconcile(&mut state, &items);
         let capacity = state.matches.capacity();
         state.set_query("a");
-        FilterList::<Domain, ItemRow>::rebuild(&mut state, &items);
+        FilterList::<Domain, ItemRow>::new(Id::root("test")).reconcile(&mut state, &items);
         assert_eq!(state.matches.capacity(), capacity);
     }
 
@@ -922,7 +1013,7 @@ mod tests {
             Item::new(ItemKey::num(2), "two"),
         ];
         let mut state = FilterListState::default();
-        FilterList::<Item<'_>, ItemRow>::rebuild(&mut state, &items);
+        FilterList::<Item<'_>, ItemRow>::new(Id::root("test")).reconcile(&mut state, &items);
         state.core.set_cursor(1, ItemKey::num(2));
         state.core.scroll_mut().apply_layout(1, items.len());
         state.core.scroll_mut().scroll_to(0);

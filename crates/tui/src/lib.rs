@@ -29,6 +29,7 @@ pub(crate) mod hit;
 pub(crate) mod id;
 pub(crate) mod intent;
 pub(crate) mod keymap;
+pub(crate) mod keys;
 pub(crate) mod layer;
 pub mod layout;
 pub(crate) mod measure;
@@ -49,8 +50,16 @@ pub mod author;
 pub use id::{Id, ItemKey, Part, PartRef};
 // runtime
 #[cfg(feature = "crossterm")]
-pub use runtime::session::{DefaultTerminal, TerminalSession, chain_panic_hook, run};
-pub use runtime::{App, Runtime, UpdateCause};
+pub use runtime::session::{
+    DefaultTerminal, TerminalSession, chain_panic_hook, run, run_with_feedback_clock,
+};
+pub use runtime::{
+    ActivationFeedback, ActivationKey, App, ClockError, FeedbackClock, FeedbackClockError, Moment,
+    PaintedFrame, PendingInput, RenderSnapshot, RenderSnapshotError, Runtime, SimulationMoment,
+    TypingPolicy, UpdateCause,
+};
+#[cfg(feature = "testing")]
+pub use runtime::{ProjectedFrame, RenderModel};
 // phases
 #[cfg(feature = "testing")]
 pub use ui::StyledQuery;
@@ -58,13 +67,14 @@ pub use ui::{Cx, FrameRead, LayoutFacts, ReferenceState, ReferenceTarget, Ui};
 // events, intents, responses
 pub use event::{Axis, Chord, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
 pub use intent::{FocusVia, Intent, IntentIter, Phase};
+pub use keys::{MediaKeyCode, ModifierKeyCode};
 pub use response::{Activated, Flow, Invalidate, Response, StateFlags};
 // keymaps, actions, diagnostics
 pub use action::{Action, ActionKey};
 pub use diagnostics::Diagnostic;
 pub use keymap::{
-    Binding, BindingState, BindingTableId, Bindings, Hint, HintLayer, KeyMap, KeyPhase,
-    binding_conflicts,
+    Binding, BindingState, BindingTableId, Bindings, ChordCase, Hint, HintKey, HintLayer, KeyMap,
+    KeyPhase, binding_conflicts,
 };
 // focus, hit, capture, scroll
 pub use capture::Capture;
@@ -78,10 +88,11 @@ pub use layer::{
 };
 // theme
 pub use theme::{
-    Align, BorderSet, ColorLevel, ColorTokens, Density, DesignTokens, FG_STEPS, Family, FgStep,
-    GlyphRole, MONO_RULES_PER_FAMILY, MeterRole, MeterThresholds, Modifier, MonoRule, Overlay,
-    OverlayRule, PartMetrics, Resolved, Role, SURFACE_LEVELS, Slot, StylePatch, Surface,
-    SyntaxRole, Theme, ThemeBuilder, Variant,
+    Align, BorderSet, CapabilityPalettes, ColorLevel, ColorTokens, Density, DesignTokens, FG_STEPS,
+    Family, FgStep, GlyphRole, MONO_RULES_PER_FAMILY, MeterFillRest, MeterRole, MeterThresholds,
+    Modifier, MonoRule, Overlay, OverlayRule, PaintStyle, PartMetrics, Resolved, Role,
+    SURFACE_LEVELS, Slot, StyleDefaults, StylePatch, Surface, SyntaxRole, Theme, ThemeBuilder,
+    Variant,
 };
 // layout and measurement
 pub use layout::{Insets, Maximized, RowAlign, SplitAxis, SplitModel, Track};
@@ -89,8 +100,9 @@ pub use measure::{Constraints, Measure, Size};
 // text — `text` is `pub(crate)` (Appendix B.3 item 2): `grapheme_width`,
 // `is_word_char` and `thousands` are internal, and the rest is curated here
 pub use text::{
-    CursorPos, EditAction, EditOutcome, Extend, Motion, Span, TextBuffer, TextEditorCore, fuzzy,
-    truncate, truncate_middle, width, wrap, wrapped_rows,
+    CursorPos, EditAction, EditOutcome, Extend, FuzzyBoundary, Motion, Span, TextBuffer,
+    TextEditorCore, fuzzy, fuzzy_with_boundary, truncate, truncate_middle, width, wrap,
+    wrapped_rows,
 };
 // collections
 pub use collection::{
@@ -119,8 +131,8 @@ pub use components::{
 // components — work packages 4C/4E (tree and containers)
 pub use components::{
     CellPos, NodeKind, Panel, PanelKind, SplitAction, SplitCmd, SplitPane, SplitPaneState,
-    TextViewport, Tree, TreeAction, TreeCmd, TreeNode, TreeState, ViewportAction, ViewportCmd,
-    ViewportLine, ViewportState,
+    TextViewport, Tree, TreeAction, TreeBranchActivation, TreeBranchClick, TreeCmd, TreeNode,
+    TreeState, ViewportAction, ViewportCmd, ViewportLine, ViewportState,
 };
 #[cfg(feature = "testing")]
 pub use components::{ViewportWorkProbe, ViewportWorkSnapshot};
@@ -133,16 +145,17 @@ pub use components::{
 pub use components::{
     AsItem, CommandPalette, Completion, CompletionAction, CompletionCmd, CompletionController,
     CompletionState, ContextMenu, EnterPolicy, FieldKind, FieldMut, FieldRef, FieldSpan, FieldSpec,
-    FilterList, FilterListAction, FilterListCmd, FilterListState, Form, FormAction, FormData,
-    FormState, GroupKey, HelpAction, HelpCmd, HelpOverlay, HelpOverlayState, HelpSection, Item,
-    ItemRow, Menu, MenuAction, MenuBar, MenuCmd, MenuItem, MenuState, Picker, PickerAction,
-    PickerChain, PickerChainAction, PickerChainCmd, PickerChainState, PickerStage, PickerState,
-    ScopeKey, Wizard, WizardAction, WizardCmd, WizardState, WizardStep,
+    FilterList, FilterListAction, FilterListCmd, FilterListState, FilterPolicy, Form, FormAction,
+    FormData, FormState, GroupKey, HelpAction, HelpCmd, HelpOverlay, HelpOverlayState, HelpSection,
+    Item, ItemRow, ItemRowLayout, Menu, MenuAction, MenuBar, MenuCmd, MenuItem, MenuState, Picker,
+    PickerAction, PickerChain, PickerChainAction, PickerChainCmd, PickerChainState, PickerStage,
+    PickerState, ScopeKey, Wizard, WizardAction, WizardCmd, WizardState, WizardStep,
 };
 // components — work package 4I (grid)
 pub use components::{
     CellAction, CellRef, Column, ColumnKey, EditIntent, GRID_MAX_COLUMNS, Grid, GridAction,
-    GridCmd, GridEditor, GridModel, GridState, NavUnit, SortDir,
+    GridCell, GridCmd, GridColumnFit, GridCursorError, GridEditor, GridGutter, GridHeaderSizing,
+    GridModel, GridSortIndicator, GridState, NavUnit, SortDir, WidthSample, WidthSampleError,
 };
 // components — work package 4H (code editor and diff)
 pub use components::{

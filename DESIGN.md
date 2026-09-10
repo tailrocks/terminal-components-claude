@@ -368,7 +368,7 @@ its whole hierarchy from those.
 | Metadata (counts, sizes, timestamps) | text-muted, right-aligned in the row |
 | Helper text | text-muted below the field |
 | Hint | bold key + muted action, `Esc Cancel` |
-| Status message | text-secondary, right edge of the footer |
+| Status message | text-secondary, right edge of the footer; a warning status carries `▲`, so the weight survives monochrome |
 | Warning / dirty | warning tone plus `•` or `▲` |
 | Error | error tone plus bold `!` |
 | Disabled | text-faint, no modifiers |
@@ -569,6 +569,7 @@ Shape is glyph vocabulary on a character grid.
 | `▎` | keyboard focus | first column of every focused row or control; title row of a focused card |
 | `›` | current or chosen item | lists, tables, selects, the current block in the editor; also the path separator |
 | `✓` | checked, selected row, completed | checkboxes, multi-select lists, grid row selection, finished progress |
+| `✗` | failed | failed plan steps, failed activities, failed checks |
 | `•` | modified, pending | dirty grid rows, dirty tabs, the pending bar |
 | `+` / `−` | inserted / deleted row | grid change slot |
 | `!` | error, diagnostic | after a field, in a tab, in a grid row, in the editor gutter, after a failed progress bar |
@@ -801,6 +802,14 @@ Tab still reaches them.
   close; `n` new when allowed. **Mouse**: click activates, `×` closes,
   `‹N`/`N›` scroll the strip. **Rule**: every tab strip in the product uses
   this widget so the treatment cannot drift.
+- **Exception — the tonal entity strip**: when the strip lists *entities with
+  their own state* (named activities: running `●` / waiting `…` / succeeded
+  `✓` / failed `✗` / detached `−`) rather than documents, render it manually
+  on one row: cells ` {glyph} {n} {name} `, the active cell inverted (fg
+  canvas, bg the state tone), inactive cells on the row plane with the state
+  tone coloring the whole cell, hit ids per entity, overflow clips right. Tabs
+  stays the rule for documents; this pattern exists because per-item tones
+  are the strip's information, not decoration.
 
 #### Panel (card and frame) and scroll panel
 
@@ -1069,7 +1078,10 @@ Tab still reaches them.
   last action; `Enter` in the field only moves focus).
 - **Anatomy**: dimmed backdrop (footer excluded), centred rounded elevated
   surface `54` wide (`66` for facts) with a `3×2` inset, bold title, body,
-  right-aligned actions with one-cell gaps.
+  right-aligned actions with one-cell gaps. The width is content-driven:
+  when a dialog's facts are the decision (policies, resolution previews),
+  widen `Dialog.width` per instance until the longest fact renders without
+  truncation — a truncated policy is a hidden fact.
 - **Keys**: `←→`/`h l` between enabled actions, `Enter`/`Space`, `Esc` and
   `n` cancel, `y` confirms (text bodies only). Nothing leaks to the page.
 

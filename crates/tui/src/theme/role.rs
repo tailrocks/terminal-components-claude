@@ -156,6 +156,10 @@ pub enum Role {
     CurrentSurface,
     /// The background one ladder step above the current surface.
     RaisedSurface,
+    /// Junie row hover plane: `Canvas → Elevated`, `Surface/Elevated → Overlay`,
+    /// `Field → FieldHover`, and `Overlay/Popover/FieldHover → Popover`.
+    /// Unlike `RaisedSurface`, this expresses interaction rather than ladder depth.
+    HoverSurface,
     /// A specific surface's background.
     Surface(Surface),
     /// A foreground ladder step.
@@ -236,4 +240,18 @@ pub enum Align {
     Center,
     /// Right.
     Right,
+}
+
+impl Role {
+    /// Retain the source surface's neutral backdrop plane in per-cell
+    /// provenance; modal dimming happens after the source scope has exited.
+    pub(crate) const fn painted(self, surface: Surface) -> Self {
+        match self {
+            Self::HoverSurface => Self::Surface(match surface {
+                Surface::Canvas | Surface::Field => Surface::Elevated,
+                _ => Surface::Overlay,
+            }),
+            other => other,
+        }
+    }
 }

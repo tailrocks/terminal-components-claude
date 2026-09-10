@@ -17,6 +17,9 @@ use crate::layer::LayerId;
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Diagnostic {
+    /// Hover-dependent geometry did not converge within four presentations.
+    /// Hover stays suppressed until the next admitted pointer move.
+    HoverLayoutDidNotSettle,
     /// Two `Control` regions registered the same id in one frame.
     DuplicateId {
         /// The id.
@@ -31,6 +34,15 @@ pub enum Diagnostic {
         /// The writer.
         owner: Id,
         /// The layer it wrote from.
+        layer: LayerId,
+    },
+    /// More than one admissible fallback editor was declared on one layer.
+    TypingTargetConflict {
+        /// The first editor.
+        a: Id,
+        /// The other editor.
+        b: Id,
+        /// The active layer.
         layer: LayerId,
     },
     /// An owner with a `Control`/`Part` region drained nothing (§3.3 step 9).

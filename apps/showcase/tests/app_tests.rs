@@ -146,7 +146,7 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
             press(h, KeyCode::End);
             type_text(h, "-visited");
             press(h, KeyCode::Enter);
-            assert!(h.text().contains("operator-visited"));
+            assert!(h.text().contains("payments-gateway-visited"));
             press(h, KeyCode::Enter);
             type_text(h, "discarded");
             press(h, KeyCode::Esc);
@@ -244,13 +244,18 @@ fn exercise_page_state(h: &mut Harness<App>, page: PageId) {
         }
         PageId::Progress => {
             let before = h.snapshot().digest();
-            h.ticks(1);
+            let _ = h.advance(std::time::Duration::from_millis(80));
             assert_ne!(
                 before,
                 h.snapshot().digest(),
-                "progress tick did not repaint"
+                "elapsed progress deadline did not repaint"
             );
-            assert!(h.text().contains("72%") || h.text().contains("73%"));
+            let text = h.text();
+            let building = require(
+                text.lines().find(|line| line.contains("Building")),
+                "live progress bar",
+            );
+            assert!(building.trim_end().ends_with(" 1%"));
         }
         PageId::Scrolling => {
             let (x, y) = require(h.find("Row 001"), "scroll list row");
@@ -609,13 +614,47 @@ fn editable_table_commit_cancel_and_validation() {
 }
 
 #[test]
+fn button_toggle_variants_remain_live_without_hidden_choice_controls() {
+    let mut h = harness(PageId::Buttons);
+    let root = Id::root("showcase_app::pages::buttons::buttons");
+    let auto = root.index(4);
+    let verbose = root.index(5);
+    let auto_area = require(h.area_of(auto), "Auto-approve button");
+    let verbose_area = require(h.area_of(verbose), "Verbose button");
+    assert!(area_text(&h, auto_area).contains("○ Auto-approve"));
+    assert!(area_text(&h, verbose_area).contains("● Verbose"));
+    click(&mut h, auto_area.x + 2, auto_area.y);
+    assert!(area_text(&h, auto_area).contains("● Auto-approve"));
+    assert!(h.text().contains("Auto-approve on"));
+    click(&mut h, verbose_area.x + 2, verbose_area.y);
+    assert!(area_text(&h, verbose_area).contains("○ Verbose"));
+    assert!(h.text().contains("Verbose off"));
+    assert!(h.diagnostics().is_empty());
+}
+
+#[test]
+fn input_defaults_match_the_reference_project_and_empty_branch() {
+    let h = harness(PageId::Inputs);
+    let project = Id::root("showcase_app::pages::inputs::inputs.name");
+    let branch = Id::root("showcase_app::pages::inputs::inputs.branch");
+    assert_eq!(
+        area_text(&h, require(h.area_of(project), "project input")).trim(),
+        "▎ payments-gateway"
+    );
+    assert_eq!(
+        area_text(&h, require(h.area_of(branch), "branch input")).trim(),
+        "▎ feat/…"
+    );
+}
+
+#[test]
 fn input_editing_commit_and_revert() {
     let mut h = harness(PageId::Inputs);
     press(&mut h, KeyCode::Tab);
     press(&mut h, KeyCode::End);
     type_text(&mut h, "-v2");
     press(&mut h, KeyCode::Enter);
-    assert!(h.text().contains("operator-v2"));
+    assert!(h.text().contains("payments-gateway-v2"));
     press(&mut h, KeyCode::Enter);
     type_text(&mut h, "XX");
     press(&mut h, KeyCode::Esc);
@@ -624,7 +663,11 @@ fn input_editing_commit_and_revert() {
     press(&mut h, KeyCode::End);
     type_text(&mut h, "-v2");
     press(&mut h, KeyCode::Tab);
-    assert!(h.text().contains("payments-gateway-v2"));
+    let branch = Id::root("showcase_app::pages::inputs::inputs.branch");
+    assert_eq!(
+        area_text(&h, require(h.area_of(branch), "branch input")).trim(),
+        "▎ -v2"
+    );
 }
 
 #[test]
@@ -682,15 +725,21 @@ fn modal_traps_focus_and_restores_it() {
 #[test]
 fn prompt_dialog_validates_and_returns_value() {
     let mut h = harness(PageId::Dialogs);
+    let field = Id::root("showcase_app::pages::dialogs::dialogs.prompt.layer").part(Part::FIELD);
     press(&mut h, KeyCode::Tab);
     press(&mut h, KeyCode::Tab);
     press(&mut h, KeyCode::Enter);
     assert!(h.text().contains("Rename task"));
-    press(&mut h, KeyCode::Enter);
+    assert_eq!(h.focus(), Some(field));
+    assert!(h.state_of(field).contains(StateFlags::EDITING));
+    // Published focus starts editing before the next key reaches the prompt.
     press(&mut h, KeyCode::Enter);
     assert!(h.text().contains("Name cannot be empty"));
+    assert!(!h.state_of(field).contains(StateFlags::EDITING));
     press(&mut h, KeyCode::Enter);
+    assert!(h.state_of(field).contains(StateFlags::EDITING));
     type_text(&mut h, "Ship it");
+    assert!(h.text().contains("Ship it"));
     press(&mut h, KeyCode::Enter);
     assert!(h.text().contains("Task: Ship it"));
 }
@@ -796,7 +845,7 @@ fn quit_keys() {
     press(&mut h, KeyCode::Tab);
     type_text(&mut h, "q");
     assert!(!h.app().quit(), "printable q belongs to the active editor");
-    assert!(h.text().contains("operatorq"));
+    assert!(h.text().contains("payments-gatewayq"));
     press(&mut h, KeyCode::Esc);
     control(&mut h, 'c');
     assert!(h.app().quit());
@@ -885,7 +934,7 @@ fn custom_theme_injection_repaints_every_page() {
 }
 
 #[test]
-fn panels_page_keeps_historical_card_composition() {
+fn local_override_page_shows_three_distinct_buttons() {
     let buttons = harness(PageId::Buttons);
     let primary = cell_style(&buttons, "Run task");
     let secondary = cell_style(&buttons, "Preview");
@@ -897,17 +946,51 @@ fn panels_page_keeps_historical_card_composition() {
     let panels = harness(PageId::Panels);
     assert!(panels.text().contains("Titled card"));
     assert!(panels.text().contains("Card · scrollable"));
+    let patched_title = cell_style(&panels, "Titled card");
+    assert_eq!(
+        patched_title.0,
+        require(
+            Theme::junie()
+                .color
+                .fg
+                .get(junie_tui::FgStep::Secondary.index())
+                .copied(),
+            "secondary foreground token"
+        )
+    );
+    assert!(!patched_title.2.contains(Modifier::BOLD));
+    let page_title = panels.cell(26, 2);
+    assert_eq!(page_title.symbol(), "P");
+    assert_eq!(
+        page_title.fg,
+        require(
+            Theme::junie()
+                .color
+                .fg
+                .get(junie_tui::FgStep::Primary.index())
+                .copied(),
+            "primary foreground token"
+        )
+    );
+    assert!(page_title.modifier.contains(Modifier::BOLD));
     assert!(panels.diagnostics().is_empty(), "Panels diagnostics");
 }
 
 #[test]
-fn local_override_page_shows_three_distinct_buttons() {
-    let buttons = harness(PageId::Buttons);
-    let primary = cell_style(&buttons, "Run task");
-    let secondary = cell_style(&buttons, "Preview");
-    let danger = cell_style(&buttons, "Delete branch");
-
-    assert_ne!(primary, secondary, "primary and secondary overrides merged");
-    assert_ne!(primary, danger, "primary and danger overrides merged");
-    assert_ne!(secondary, danger, "secondary and danger overrides merged");
+fn application_navigation_help_and_inspector_commands_keep_their_routes() {
+    let mut h = harness(PageId::Overview);
+    press(&mut h, KeyCode::Char(']'));
+    assert_eq!(h.app().page(), PageId::Buttons);
+    press(&mut h, KeyCode::Char('['));
+    assert_eq!(h.app().page(), PageId::Overview);
+    press(&mut h, KeyCode::Char('?'));
+    assert!(h.text().contains("Keyboard & mouse"));
+    assert!(h.top_layer().index() > LayerId::PAGE.index());
+    press(&mut h, KeyCode::Esc);
+    assert_eq!(h.top_layer(), LayerId::PAGE);
+    press(&mut h, KeyCode::Char('i'));
+    assert!(h.text().contains("Inspector · on"));
+    press(&mut h, KeyCode::Char('i'));
+    assert!(!h.text().contains("Inspector · on"));
+    assert!(!h.app().quit());
 }

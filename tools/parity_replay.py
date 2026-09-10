@@ -563,9 +563,18 @@ def main() -> int:
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
             futures = [pool.submit(replay_one, item) for item in enumerate(rows, start=1)]
-            for future in concurrent.futures.as_completed(futures):
-                recipe_id, dirty = future.result()
-                dirty_by_recipe[recipe_id] = dirty
+            try:
+                for future in concurrent.futures.as_completed(futures):
+                    recipe_id, dirty = future.result()
+                    dirty_by_recipe[recipe_id] = dirty
+            except BaseException:
+                # The serial loop stopped at the first failure; restore that.
+                # Cancel every queued recipe and stop accepting new work
+                # without waiting here (in-flight recipes still run their own
+                # capture cleanup); the `with` block then joins the workers
+                # before the original error propagates.
+                pool.shutdown(wait=False, cancel_futures=True)
+                raise
 
     evidence = [HEADER]
     for row in rows:

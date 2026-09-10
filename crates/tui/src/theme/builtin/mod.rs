@@ -563,6 +563,8 @@ fn chip(m: &mut PartMap<PartRecipe>) {
 
 fn grid(m: &mut PartMap<PartRecipe>) {
     row_like(m);
+    // Optional header prefixes supply their semantic tone below explicit overrides.
+    m.entry(Part::ICON).base = p();
     part(m, Part::ROW, p());
     part(m, Part::CELL, p())
         .when(
@@ -640,7 +642,23 @@ pub(crate) fn default_recipes() -> Recipes {
             }
             Family::HINTBAR => bars(&mut r.parts),
             Family::KEYHINT => keyhint(&mut r.parts),
-            Family::PROGRESS | Family::METER => progress(&mut r.parts),
+            Family::PROGRESS => progress(&mut r.parts),
+            Family::METER => {
+                // Meter supplies role defaults through the shared authored
+                // defaults stage; state and explicit recipes stay above them.
+                part(&mut r.parts, Part::LABEL, p());
+                part(&mut r.parts, Part::TRACK, p());
+                part(&mut r.parts, Part::ICON, p())
+                    .when(
+                        StateFlags::ERROR,
+                        p().set_fg(Role::Danger).set_glyph(GlyphRole::Error),
+                    )
+                    .when(
+                        StateFlags::CHECKED,
+                        p().set_fg(Role::Fg(FgStep::Secondary))
+                            .set_glyph(GlyphRole::ProgressDone),
+                    );
+            }
             Family::EMPTY => empty(&mut r.parts),
             Family::BRAND => brand(&mut r.parts),
             Family::TOO_SMALL => too_small(&mut r.parts),

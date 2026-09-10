@@ -4,7 +4,7 @@
 //! public application facade and domain adapter. Allocation budgets belong to
 //! a separate harness because the old backend is outside this package.
 
-use junie_tui::{Axis, ColumnKey, GridModel, ItemKey, KeyCode, SortDir, Theme};
+use junie_tui::{Axis, ColumnKey, GridModel, ItemKey, KeyCode, Part, PartRef, SortDir, Theme};
 use junie_tui_testing::{Harness, perf};
 use tablepro_app::{ColType, QueryOutcome, ResultGrid, ResultSet, TableProApp, Value};
 
@@ -25,19 +25,38 @@ fn full_result_app() -> TableProApp {
 }
 
 #[test]
-fn frame_tablepro_grid_500x12_120x40() {
+fn frame_tablepro_grid_500x14_120x40() {
     let mut harness =
         Harness::new(full_result_app(), Theme::junie(), 120, 40).with_auto_draw(false);
 
     let stats = perf::bench(2, perf::iters(100), &mut || harness.draw());
     assert!(
         stats.allocs < 100,
-        "frame_tablepro_grid_500x12_120x40 exceeded 100 allocs: {}",
+        "frame_tablepro_grid_500x14_120x40 exceeded 100 allocs: {}",
         stats.allocs
     );
 
     assert_eq!(harness.app().result().row_count(), 500);
-    assert!(harness.find("Results").is_some());
+    let Some((id, view)) = harness.app().workbench.active_grid() else {
+        unreachable!("query result grid");
+    };
+    assert_eq!(view.columns.len(), 14);
+    let Some(header) = harness.area_of_part(id, PartRef::item(Part::HEADER, ItemKey::num(1)))
+    else {
+        unreachable!("registered result column header");
+    };
+    let header_text: String = (header.x..header.right())
+        .filter_map(|x| harness.buffer().cell((x, header.y)))
+        .map(junie_tui::Cell::symbol)
+        .collect();
+    assert_eq!(header_text.split_whitespace().next(), Some("id"));
+    let Some(first) = harness.app().result().cell(0, 0) else {
+        unreachable!("first result cell");
+    };
+    let Some((x, y)) = harness.find(first.text) else {
+        unreachable!("rendered result value");
+    };
+    assert!(x >= header.x && x < header.right() && y > header.y);
     assert!(harness.diagnostics().is_empty());
 }
 
@@ -193,7 +212,7 @@ fn perf_tablepro_baseline() {
     });
     perf::report_to(
         concat!(env!("CARGO_MANIFEST_DIR"), "/tests/perf_baseline.txt"),
-        "frame_tablepro_grid_500x12_120x40",
+        "frame_tablepro_grid_500x14_120x40",
         &stats,
     );
 }

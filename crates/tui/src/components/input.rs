@@ -648,6 +648,17 @@ impl TextInputState {
         }
     }
 
+    /// Compare the text the editor currently displays without exposing its draft.
+    /// Redacted snapshots cannot authorize an action on the original secret.
+    pub(crate) fn visible_text_equals(&self, committed: &str, expected: &str) -> bool {
+        !self.redacted_snapshot
+            && if self.is_editing() {
+                self.draft.text() == expected
+            } else {
+                committed == expected
+            }
+    }
+
     pub(crate) const fn is_sensitive(&self) -> bool {
         self.draft.is_sensitive()
     }
@@ -914,16 +925,24 @@ pub(crate) fn redacted_text(text: &str) -> String {
 /// ## Invariants
 /// `draw` never commits, cancels or validates (it takes `&TextInputState`);
 /// a secret draft is masked while editing and never reaches `Debug`; the
-/// hardware cursor is written only while editing and focused.
+/// hardware cursor belongs to focus by default; an explicit fallback policy
+/// may publish the active draft as cursor owner without moving focus.
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "placeholder visibility, editability, availability and pointer admission are independent borrowed configuration"
+)]
 pub struct TextInput<'a> {
     id: Id,
     value: Option<&'a str>,
     placeholder: Option<&'a str>,
+    placeholder_while_editing: bool,
     validate: Option<&'a dyn Validate>,
     blur: BlurPolicy,
+    typing_policy: crate::TypingPolicy,
     secret: Option<SecretPolicy>,
     read_only: bool,
     disabled: bool,
+    pointer_enabled: bool,
     status: Status,
     ov: PartStyle<'a>,
 }
@@ -935,9 +954,11 @@ impl fmt::Debug for TextInput<'_> {
             .field("value", &self.value.map(|_| "[redacted]"))
             .field("placeholder", &self.placeholder)
             .field("blur", &self.blur)
+            .field("typing_policy", &self.typing_policy)
             .field("secret", &self.secret)
             .field("read_only", &self.read_only)
             .field("disabled", &self.disabled)
+            .field("pointer_enabled", &self.pointer_enabled)
             .field("status", &self.status)
             .finish_non_exhaustive()
     }
@@ -960,11 +981,14 @@ impl<'a> TextInput<'a> {
             id,
             value: None,
             placeholder: None,
+            placeholder_while_editing: false,
             validate: None,
             blur: BlurPolicy::CommitAndValidate,
+            typing_policy: crate::TypingPolicy::Focused,
             secret: None,
             read_only: false,
             disabled: false,
+            pointer_enabled: true,
             status: Status::Ready,
             ov: PartStyle::new(),
         }
@@ -984,6 +1008,14 @@ impl<'a> TextInput<'a> {
         self
     }
 
+    /// Also show the placeholder for an empty active draft, preserving its cursor.
+    /// Disabled by default; this changes painting only, not editing ownership.
+    #[must_use]
+    pub const fn placeholder_while_editing(mut self, enabled: bool) -> Self {
+        self.placeholder_while_editing = enabled;
+        self
+    }
+
     /// The validator run on commit.
     #[must_use]
     pub const fn validate(mut self, v: &'a dyn Validate) -> Self {
@@ -995,6 +1027,15 @@ impl<'a> TextInput<'a> {
     #[must_use]
     pub const fn blur(mut self, p: BlurPolicy) -> Self {
         self.blur = p;
+        self
+    }
+
+    /// Publish an alternate typing target without moving navigation focus.
+    /// Fallback routing requires an active editable draft and compatible
+    /// presented geometry. Commit and cancel remain primary-focus actions.
+    #[must_use]
+    pub const fn typing_policy(mut self, policy: crate::TypingPolicy) -> Self {
+        self.typing_policy = policy;
         self
     }
 
@@ -1020,6 +1061,14 @@ impl<'a> TextInput<'a> {
     #[must_use]
     pub const fn disabled(mut self, yes: bool) -> Self {
         self.disabled = yes;
+        self
+    }
+
+    /// Allow pointer activation and caret positioning (enabled by default).
+    /// Disabling pointer input preserves keyboard editing, focus and geometry.
+    #[must_use]
+    pub const fn pointer_enabled(mut self, enabled: bool) -> Self {
+        self.pointer_enabled = enabled;
         self
     }
 
@@ -1060,11 +1109,14 @@ impl<'a> TextInput<'a> {
             id: self.id,
             value: self.value,
             placeholder: self.placeholder,
+            placeholder_while_editing: self.placeholder_while_editing,
             validate: self.validate,
             blur: self.blur,
+            typing_policy: self.typing_policy,
             secret: self.secret,
             read_only: self.read_only,
             disabled: self.disabled || inherited,
+            pointer_enabled: self.pointer_enabled,
             status: self.status,
             ov: self.ov,
         }
@@ -1171,7 +1223,7 @@ impl<'a> TextInput<'a> {
                     phase: Phase::Press | Phase::Click,
                     local,
                     ..
-                } if editable => {
+                } if editable && self.pointer_enabled => {
                     if !st.is_editing() {
                         st.begin(value.expose());
                     }
@@ -1180,7 +1232,7 @@ impl<'a> TextInput<'a> {
                     st.draft.set_cursor_line_col(0, col);
                     acc.changed();
                 }
-                Intent::Pointer { .. } => acc.consumed(),
+                Intent::Pointer { .. } if self.pointer_enabled => acc.consumed(),
                 Intent::Cancel if st.is_editing() => {
                     st.cancel();
                     acc.action(TextAction::Cancelled);
@@ -1316,8 +1368,26 @@ impl<'a> TextInput<'a> {
             height: 1,
         };
         ui.register_decor(self.id, PartRef::of(Part::TEXT), inner);
-        ui.register_editor(self.id, area, focusability, declared);
+        if self.pointer_enabled {
+            ui.register_editor(self.id, area, focusability, declared);
+        } else {
+            ui.register_keyboard_editor(self.id, area, focusability, declared);
+        }
         ui.publish_bindings(self.id, live, BINDINGS);
+        if let crate::TypingPolicy::Fallback { cursor } = self.typing_policy {
+            ui.publish_typing_target(
+                self.id,
+                BINDINGS,
+                |cmd| !matches!(cmd, TextCmd::Commit | TextCmd::Cancel),
+                cursor,
+            );
+        }
+        let owns_cursor = live.contains(StateFlags::FOCUSED)
+            || (editing
+                && matches!(
+                    self.typing_policy,
+                    crate::TypingPolicy::Fallback { cursor: true }
+                ));
         let ov = self.ov;
         let id = self.id;
         let style = |ui: &mut Ui<'_>, part: Part| {
@@ -1342,77 +1412,97 @@ impl<'a> TextInput<'a> {
         } else {
             self.value.unwrap_or("")
         };
-        if shown.is_empty() && !editing {
-            if let Some(p) = self.placeholder {
-                let ps = style(ui, Part::PLACEHOLDER);
-                match ov.slot_for(Part::PLACEHOLDER) {
-                    Some(f) => f(ui, inner),
-                    None => {
-                        ui.paint_str(inner, p, ps.style);
+        if !shown.is_empty() || editing {
+            if inner.width > 0 {
+                let ts = style(ui, Part::TEXT);
+                let cursor_col = if editing {
+                    st.draft.cursor_pos().col
+                } else {
+                    0
+                };
+                let hs = if editing {
+                    let w = usize::from(inner.width);
+                    let hs = usize::from(st.draft.hscroll());
+                    if cursor_col < hs {
+                        cursor_col
+                    } else if cursor_col >= hs.saturating_add(w) {
+                        cursor_col.saturating_add(1).saturating_sub(w)
+                    } else {
+                        hs
+                    }
+                } else {
+                    0
+                };
+                let secret_policy = self
+                    .secret
+                    .or_else(|| st.is_sensitive().then_some(SecretPolicy::default()));
+                let total = match secret_policy {
+                    Some(_) => graphemes(shown).count(),
+                    None => usize::from(width(shown)),
+                };
+                let mut run = inner;
+                if hs > 0 {
+                    let used = ui.glyph(run, GlyphRole::Ellipsis, ts.style);
+                    run = shift(run, used);
+                }
+                let skip = if hs > 0 { hs.saturating_add(1) } else { 0 };
+                let overflow_right = total > hs.saturating_add(usize::from(inner.width));
+                if overflow_right {
+                    run.width = run.width.saturating_sub(1);
+                }
+                if let Some(policy) = secret_policy {
+                    paint_masked(ui, run, shown, skip, editing, policy, ts.style);
+                } else {
+                    let start = byte_at_col(shown, skip);
+                    ui.paint_str(run, shown.get(start..).unwrap_or(""), ts.style);
+                }
+                if overflow_right {
+                    let last = cell_at(inner, inner.right().saturating_sub(1));
+                    ui.glyph(last, GlyphRole::Ellipsis, ts.style);
+                }
+                if owns_cursor && self.editable() {
+                    let cursor_col = if editing {
+                        cursor_col
+                    } else {
+                        usize::from(width(shown))
+                    };
+                    let cx = inner
+                        .x
+                        .saturating_add(
+                            cursor_col.saturating_sub(hs).min(usize::from(u16::MAX)) as u16
+                        )
+                        .min(inner.right());
+                    if matches!(
+                        self.typing_policy,
+                        crate::TypingPolicy::Fallback { cursor: true }
+                    ) {
+                        ui.offer_typing_cursor(self.id, Position::new(cx, inner.y));
+                    } else {
+                        ui.set_cursor(self.id, Position::new(cx, inner.y));
                     }
                 }
-            }
-        } else if inner.width > 0 {
-            let ts = style(ui, Part::TEXT);
-            let cursor_col = if editing {
-                st.draft.cursor_pos().col
-            } else {
-                0
-            };
-            let hs = if editing {
-                let w = usize::from(inner.width);
-                let hs = usize::from(st.draft.hscroll());
-                if cursor_col < hs {
-                    cursor_col
-                } else if cursor_col >= hs.saturating_add(w) {
-                    cursor_col.saturating_add(1).saturating_sub(w)
+            } else if owns_cursor && self.editable() {
+                if matches!(
+                    self.typing_policy,
+                    crate::TypingPolicy::Fallback { cursor: true }
+                ) {
+                    ui.offer_typing_cursor(self.id, Position::new(inner.x, inner.y));
                 } else {
-                    hs
+                    ui.set_cursor(self.id, Position::new(inner.x, inner.y));
                 }
-            } else {
-                0
-            };
-            let secret_policy = self
-                .secret
-                .or_else(|| st.is_sensitive().then_some(SecretPolicy::default()));
-            let total = match secret_policy {
-                Some(_) => graphemes(shown).count(),
-                None => usize::from(width(shown)),
-            };
-            let mut run = inner;
-            if hs > 0 {
-                let used = ui.glyph(run, GlyphRole::Ellipsis, ts.style);
-                run = shift(run, used);
             }
-            let skip = if hs > 0 { hs.saturating_add(1) } else { 0 };
-            let overflow_right = total > hs.saturating_add(usize::from(inner.width));
-            if overflow_right {
-                run.width = run.width.saturating_sub(1);
+        }
+        if let Some(p) = self
+            .placeholder
+            .filter(|_| shown.is_empty() && (!editing || self.placeholder_while_editing))
+        {
+            let ps = style(ui, Part::PLACEHOLDER);
+            match ov.slot_for(Part::PLACEHOLDER) {
+                Some(f) => f(ui, inner),
+                None => {
+                    ui.paint_str(inner, p, ps.style);
+                }
             }
-            if let Some(policy) = secret_policy {
-                paint_masked(ui, run, shown, skip, editing, policy, ts.style);
-            } else {
-                let start = byte_at_col(shown, skip);
-                ui.paint_str(run, shown.get(start..).unwrap_or(""), ts.style);
-            }
-            if overflow_right {
-                let last = cell_at(inner, inner.right().saturating_sub(1));
-                ui.glyph(last, GlyphRole::Ellipsis, ts.style);
-            }
-            if live.contains(StateFlags::FOCUSED) && self.editable() {
-                let cursor_col = if editing {
-                    cursor_col
-                } else {
-                    usize::from(width(shown))
-                };
-                let cx = inner
-                    .x
-                    .saturating_add(cursor_col.saturating_sub(hs).min(usize::from(u16::MAX)) as u16)
-                    .min(inner.right());
-                ui.set_cursor(self.id, Position::new(cx, inner.y));
-            }
-        } else if live.contains(StateFlags::FOCUSED) && self.editable() {
-            ui.set_cursor(self.id, Position::new(inner.x, inner.y));
         }
         let readiness_cell = cell_at(area, area.right().saturating_sub(1));
         if validation_error {
@@ -1498,7 +1588,7 @@ fn paint_masked(
     skip: usize,
     editing: bool,
     policy: SecretPolicy,
-    style: ratatui_core::style::Style,
+    style: crate::theme::PaintStyle,
 ) {
     let total = graphemes(shown).count().saturating_sub(skip);
     let tail = if editing {
@@ -1614,12 +1704,16 @@ mod tests {
             },
             Theme::junie(),
         );
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(Input::Key(Key {
-            code: KeyCode::Enter,
-            mods: KeyModifiers::NONE,
-        }));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            Input::Key(Key {
+                code: KeyCode::Enter,
+                mods: KeyModifiers::NONE,
+            }),
+        );
         runtime.app().state.clone()
     }
 
@@ -1649,13 +1743,15 @@ mod tests {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(SCREEN);
         let state = TextInputState::default();
-        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-            let mut input = TextInput::new(ID).value("value");
-            if let Some(status) = status {
-                input = input.status(status);
-            }
-            input.draw(ui, area, &state);
-        });
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                let mut input = TextInput::new(ID).value("value");
+                if let Some(status) = status {
+                    input = input.status(status);
+                }
+                input.draw(ui, area, &state);
+            })
+            .commit_presented();
         buffer
     }
 
@@ -1819,7 +1915,8 @@ mod tests {
         for _ in 0..3 {
             rt.draw_scene(SCREEN, &mut buf, |ui, a| {
                 TextInput::new(ID).value("ada").draw(ui, a, &st);
-            });
+            })
+            .commit_presented();
         }
         assert_eq!(st.error().map(|e| e.code), Some(Some("dup")));
         st.set_error(None);
@@ -1890,18 +1987,22 @@ mod tests {
             });
             let mut runtime = Runtime::new(Stub::default(), theme);
             let mut buffer = Buffer::empty(SCREEN);
-            runtime.draw_scene(SCREEN, &mut buffer, |ui, _| {
-                if stale_runtime_editing {
-                    ui.declare_state(ID, StateFlags::EDITING);
-                }
-            });
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                    if stale_runtime_editing {
+                        ui.declare_state(ID, StateFlags::EDITING);
+                    }
+                })
+                .commit_presented();
             let mut state = TextInputState::default();
             if real_editing {
                 state.begin("value");
             }
-            runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-                TextInput::new(ID).value("value").draw(ui, area, &state);
-            });
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                    TextInput::new(ID).value("value").draw(ui, area, &state);
+                })
+                .commit_presented();
             buffer
                 .cell(Position::new(1, 0))
                 .map(|cell| cell.bg)
@@ -1926,7 +2027,8 @@ mod tests {
                 .secret(SecretPolicy::default())
                 .value(SECRET)
                 .draw(ui, a, &st);
-        });
+        })
+        .commit_presented();
         let mut row = String::new();
         for x in 0..SCREEN.width {
             if let Some(c) = buf.cell(Position::new(x, 0)) {
@@ -1998,9 +2100,11 @@ mod tests {
         state.begin(SECRET);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-            TextInput::new(ID).value(SECRET).draw(ui, area, &state);
-        });
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                TextInput::new(ID).value(SECRET).draw(ui, area, &state);
+            })
+            .commit_presented();
         let frame: String = buffer
             .content()
             .iter()
@@ -2083,13 +2187,15 @@ mod tests {
             ),
             (Part::ICON, StylePatch::new().set_glyph(GlyphRole::NewTab)),
         ];
-        runtime.draw_scene(area, &mut buffer, |ui, area| {
-            TextInput::new(ID)
-                .value("value")
-                .status(Status::Error)
-                .patch_part(&patches)
-                .draw(ui, area, &st);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                TextInput::new(ID)
+                    .value("value")
+                    .status(Status::Error)
+                    .patch_part(&patches)
+                    .draw(ui, area, &st);
+            })
+            .commit_presented();
         assert_eq!(
             buffer
                 .cell(Position::new(11, 0))
@@ -2098,13 +2204,15 @@ mod tests {
         );
 
         st.set_error(None);
-        runtime.draw_scene(area, &mut buffer, |ui, area| {
-            TextInput::new(ID)
-                .value("value")
-                .status(Status::Error)
-                .patch_part(&patches)
-                .draw(ui, area, &st);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                TextInput::new(ID)
+                    .value("value")
+                    .status(Status::Error)
+                    .patch_part(&patches)
+                    .draw(ui, area, &st);
+            })
+            .commit_presented();
         assert_eq!(
             buffer
                 .cell(Position::new(11, 0))
@@ -2113,22 +2221,26 @@ mod tests {
         );
 
         st.set_error(Some(FieldError::new("invalid")));
-        runtime.draw_scene(area, &mut buffer, |ui, area| {
-            TextInput::new(ID)
-                .value("value")
-                .status(Status::Error)
-                .slot(Part::MARKER, &marker)
-                .draw(ui, area, &st);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                TextInput::new(ID)
+                    .value("value")
+                    .status(Status::Error)
+                    .slot(Part::MARKER, &marker)
+                    .draw(ui, area, &st);
+            })
+            .commit_presented();
         assert_eq!(marker_calls.get(), 1);
         st.set_error(None);
-        runtime.draw_scene(area, &mut buffer, |ui, area| {
-            TextInput::new(ID)
-                .value("value")
-                .status(Status::Error)
-                .slot(Part::ICON, &icon)
-                .draw(ui, area, &st);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                TextInput::new(ID)
+                    .value("value")
+                    .status(Status::Error)
+                    .slot(Part::ICON, &icon)
+                    .draw(ui, area, &st);
+            })
+            .commit_presented();
         assert_eq!(icon_calls.get(), 1);
         assert_eq!(seen.get(), Some(Rect::new(11, 0, 1, 1)));
         assert_eq!(

@@ -1,0 +1,6 @@
+# Part 1 (24 worktrees): 29 unique + commits = 28 PRESENT, 1 DRIFT, 0 ABSENT
+DRIFT hintbar-review 37c45f39 "clarify grid draft reader contract" — docs-only 2-line rewrite; substance carried at crates/tui/src/components/grid.rs:813-814 with reworded phrasing; nothing to re-port. DISPOSITION: ACCEPTED (content present; drift cosmetic)
+PRESENT all other commits; capture lineage ddd8abd5/ddd8abd5-group = patch-duplicate re-commits of app-inventory's 47ac27da/7e8a36cc/12fb562b/55c7dc08/fd62e3a7/cb7a78af
+DIRTY capture-root-review: M xtask/src/capture_build.rs = stale revert of env_hash signature; TARGET keeps newer env_hash(root) + .cargo/config ancestor scan → DISCARD
+DIRTY grid-presentation: M grid.rs (fetch presentation) + ?? tests/grid_fetch_presentation.rs — both fully in TARGET (grid.rs:1261-1263,1419-1436,3807-3827; test byte-identical) → DISCARD
+NOTE 6 gutter/prefix/header/presentation/preview/train worktrees reduce to shared c775889a; 4 sampling/fetch/sentinel reduce to 1470a0c1

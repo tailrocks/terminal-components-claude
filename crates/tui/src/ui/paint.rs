@@ -1,9 +1,9 @@
 //! Painting (`COMPONENT_ARCHITECTURE.md` §5 R3, §17.0 A2, §22.2 items 1–2, 16, 18).
 //!
 //! Every method clips to the current area and marks the layer's
-//! written-cell bitset. `paint_str` *is* `Buffer::set_stringn`; `paint_spans`
-//! walks the spans and paints each through `Buffer::set_span`, allocating
-//! nothing;
+//! written-cell bitset. Cell, string, and span painters share Ratatui
+//! grapheme/width semantics in one allocation-free writer that also records
+//! provenance;
 //! `paint_cell` resets the cells a wide grapheme shadows; `fill` and
 //! `dim_layer` are deliberate re-implementations of `ratatui_widgets::{Fill,
 //! Dimmed}` because foreign widgets cannot mark the bitset or walk roles.
@@ -11,124 +11,175 @@
 use ratatui_core::buffer::{Buffer, CellWidth};
 use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier, Style};
-use ratatui_core::text::Span as RawSpan;
 
-use super::{CellRoles, Ui};
+use super::Ui;
 use crate::text::Span;
-use crate::theme::{FgStep, GlyphRole, Role, Surface, Theme};
+use crate::text::measure::graphemes;
+use crate::theme::{FgStep, GlyphRole, PaintStyle, Role, Surface, Theme};
 
 impl Ui<'_> {
-    /// Paint one grapheme at `pos`. The cells shadowed by a wide grapheme
-    /// are reset, as `set_stringn` does, so the diff stays correct (R‑6).
-    pub fn paint_cell(&mut self, pos: Position, symbol: &str, s: Style) {
-        if !self.clip.contains(pos) {
-            return;
-        }
-        let w = usize::from(if symbol.contains(char::is_control) {
-            0
-        } else {
-            symbol.cell_width()
-        });
-        if w == 0 {
-            return;
-        }
-        let right = self.clip.right();
-        let buf = self.buffer();
-        if let Some(c) = buf.cell_mut(pos) {
-            c.set_symbol(symbol).set_style(s);
-        }
-        let mut x = pos.x.saturating_add(1);
-        let end = pos.x.saturating_add(w as u16);
-        while x < end && x < right {
-            if let Some(c) = buf.cell_mut(Position::new(x, pos.y)) {
-                c.reset();
-            }
-            x = x.saturating_add(1);
-        }
-        let mut px = pos.x;
-        while px < end && px < right {
-            self.mark(Position::new(px, pos.y));
-            px = px.saturating_add(1);
+    /// Paint graphemes at `pos`, refusing any grapheme wider than the clip.
+    pub fn paint_cell(&mut self, pos: Position, symbol: &str, s: impl Into<PaintStyle>) {
+        if self.clip.contains(pos) {
+            self.paint_str(
+                Rect::new(pos.x, pos.y, self.clip.right().saturating_sub(pos.x), 1),
+                symbol,
+                s,
+            );
         }
     }
 
-    /// Paint `text` from `area`'s origin, clipped to `area.width` and the
-    /// clip rect. Returns the columns written. Never pre-truncates (R‑2).
-    pub fn paint_str(&mut self, area: Rect, text: &str, s: Style) -> u16 {
+    /// Paint text with Ratatui's grapheme and width semantics. Lead cells
+    /// retain the supplied origin; shadow cells reset both bytes and origin.
+    /// This single walk is shared by cell, string, span, and glyph painters.
+    pub fn paint_str(&mut self, area: Rect, text: &str, s: impl Into<PaintStyle>) -> u16 {
         let area = area.intersection(self.clip);
         if area.is_empty() {
             return 0;
         }
-        let (end, _) = self
-            .buffer()
-            .set_stringn(area.x, area.y, text, usize::from(area.width), s);
-        let written = end.saturating_sub(area.x);
-        self.mark_area(Rect {
-            x: area.x,
-            y: area.y,
-            width: written,
-            height: 1,
-        });
-        written
+        let s = s.into();
+        self.paint_graphemes(area, graphemes(text).map(|(_, symbol)| (symbol, s)))
     }
 
-    /// Multi-style single-line paint: each `Span`'s role is resolved against
-    /// the live theme and surface and written through `Buffer::set_span`
-    /// (R‑3 — the same `set_stringn` width accounting as `paint_str`), one
-    /// span at a time with **no intermediate allocation** (§20.9-6, R5).
-    /// `base` is the part style the spans inherit. Returns the columns
-    /// written.
-    pub fn paint_spans(&mut self, area: Rect, spans: &[Span<'_>], base: Style) -> u16 {
+    /// Paint text with bold emphasis at original-label grapheme ordinals.
+    ///
+    /// Out-of-range and repeated indices are harmless. Control graphemes keep
+    /// their original ordinals but are not painted. Clipping, wide continuations,
+    /// and semantic channel provenance use the same writer as `paint_str`.
+    pub fn paint_matched(
+        &mut self,
+        area: Rect,
+        text: &str,
+        matched: &[usize],
+        base: impl Into<PaintStyle>,
+    ) -> u16 {
         let area = area.intersection(self.clip);
-        if area.is_empty() || spans.is_empty() {
+        if area.is_empty() {
             return 0;
         }
-        let base_roles = self.roles;
-        let right = area.right();
+        let base = base.into();
+        self.paint_graphemes(
+            area,
+            graphemes(text).enumerate().map(|(index, (_, symbol))| {
+                let style = if matched.contains(&index) {
+                    base.add_modifier(Modifier::BOLD)
+                } else {
+                    base
+                };
+                (symbol, style)
+            }),
+        )
+    }
+
+    // Both callers supply their already-clipped row. Keeping the write walk
+    // here makes continuation clearing and provenance identical for all text.
+    fn paint_graphemes<'s>(
+        &mut self,
+        area: Rect,
+        symbols: impl Iterator<Item = (&'s str, PaintStyle)>,
+    ) -> u16 {
+        let mut x = area.x;
+        let mut remaining = area.width;
+        for (symbol, s) in symbols.filter(|(symbol, _)| !symbol.contains(char::is_control)) {
+            let width = symbol.cell_width();
+            if width == 0 {
+                continue;
+            }
+            let Some(rest) = remaining.checked_sub(width) else {
+                break;
+            };
+            remaining = rest;
+            let pos = Position::new(x, area.y);
+            if let Some(cell) = self.buffer().cell_mut(pos) {
+                cell.set_symbol(symbol).set_style(s.into_style());
+            }
+            self.mark(pos, Some(s));
+            let end = x.saturating_add(width);
+            x = x.saturating_add(1);
+            while x < end {
+                let pos = Position::new(x, area.y);
+                if let Some(cell) = self.buffer().cell_mut(pos) {
+                    cell.reset();
+                }
+                self.mark(pos, None);
+                x = x.saturating_add(1);
+            }
+        }
+        x.saturating_sub(area.x)
+    }
+
+    /// Paint middle-truncated text without allocating, preserving semantic style.
+    ///
+    /// The visible width after ancestor clipping is the truncation budget, as
+    /// with `paint_str`. Widths below five use end truncation. Returns columns
+    /// painted; wide continuations and control graphemes use the shared writer.
+    pub fn paint_middle(&mut self, area: Rect, text: &str, s: impl Into<PaintStyle>) -> u16 {
+        let area = area.intersection(self.clip);
+        if area.is_empty() {
+            return 0;
+        }
+        let s = s.into();
+        let mut used = 0u16;
+        for part in crate::text::measure::middle_parts(text, area.width) {
+            used = used.saturating_add(self.paint_str(
+                Rect::new(
+                    area.x.saturating_add(used),
+                    area.y,
+                    area.width.saturating_sub(used),
+                    area.height,
+                ),
+                part,
+                s,
+            ));
+        }
+        used
+    }
+
+    /// Paint semantic spans with no allocation, inheriting `base` independently
+    /// for each span. Width and continuation handling share the string writer.
+    pub fn paint_spans(
+        &mut self,
+        area: Rect,
+        spans: &[Span<'_>],
+        base: impl Into<PaintStyle>,
+    ) -> u16 {
+        let area = area.intersection(self.clip);
+        if area.is_empty() {
+            return 0;
+        }
+        let base = base.into();
         let mut x = area.x;
         for sp in spans {
-            if x >= right {
+            if x >= area.right() {
                 break;
             }
             let mut st = base.add_modifier(sp.add);
-            if let Some(r) = sp.role
-                && let Some(c) =
-                    crate::theme::resolve::bind_role(self.theme_ref(), r, self.surface())
-            {
-                st = st.fg(c);
+            if let Some(role) = sp.role {
+                st = st.patch(self.paint_patch(&crate::theme::StylePatch::new().set_fg(role)));
             }
-            self.set_roles(CellRoles {
-                fg: sp.role.or(base_roles.fg),
-                bg: base_roles.bg,
-            });
-            let width = right.saturating_sub(x);
-            let (end, _) = self
-                .buffer()
-                .set_span(x, area.y, &RawSpan::styled(sp.text, st), width);
-            self.mark_area(Rect {
-                x,
-                y: area.y,
-                width: end.saturating_sub(x),
-                height: 1,
-            });
-            x = end;
+            x = x.saturating_add(self.paint_str(
+                Rect::new(x, area.y, area.right().saturating_sub(x), 1),
+                sp.text,
+                st,
+            ));
         }
-        self.set_roles(base_roles);
         x.saturating_sub(area.x)
     }
 
     /// Restyle `area` without touching symbols (`Buffer::set_style`).
-    pub fn paint_style(&mut self, area: Rect, s: Style) {
+    pub fn paint_style(&mut self, area: Rect, s: impl Into<PaintStyle>) {
+        let s = s.into();
         let area = area.intersection(self.clip);
         if area.is_empty() {
             return;
         }
-        self.buffer().set_style(area, s);
-        self.mark_area(area);
+        self.buffer().set_style(area, s.into_style());
+        self.mark_area(area, Some(s));
     }
 
     /// Fill `area` with spaces in `s` (per-position `set_symbol(" ")`).
-    pub fn fill(&mut self, area: Rect, s: Style) {
+    pub fn fill(&mut self, area: Rect, s: impl Into<PaintStyle>) {
+        let s = s.into();
         let area = area.intersection(self.clip);
         if area.is_empty() {
             return;
@@ -137,24 +188,17 @@ impl Ui<'_> {
             let buf = self.buffer();
             for pos in area.positions() {
                 if let Some(c) = buf.cell_mut(pos) {
-                    c.set_symbol(" ").set_style(s);
+                    c.set_symbol(" ").set_style(s.into_style());
                 }
             }
         }
-        self.mark_area(area);
+        self.mark_area(area, Some(s));
     }
 
     /// A quiet rule across `area`'s first row (`GlyphRole::RuleQuiet`).
     pub fn rule(&mut self, area: Rect) {
         let g = self.theme_ref().design.glyphs.get(GlyphRole::RuleQuiet);
-        let fg =
-            crate::theme::resolve::bind_role(self.theme_ref(), Role::BorderSubtle, self.surface);
-        let mut s = Style::new();
-        s.fg = fg;
-        self.set_roles(CellRoles {
-            fg: Some(Role::BorderSubtle),
-            bg: None,
-        });
+        let s = self.paint_patch(&crate::theme::StylePatch::new().set_fg(Role::BorderSubtle));
         let row = Rect {
             x: area.x,
             y: area.y,
@@ -168,7 +212,8 @@ impl Ui<'_> {
     }
 
     /// Draw the theme border set around `area` in `s`; returns the inner rect.
-    pub fn frame(&mut self, area: Rect, s: Style) -> Rect {
+    pub fn frame(&mut self, area: Rect, s: impl Into<PaintStyle>) -> Rect {
+        let s = s.into();
         let area = area.intersection(self.clip);
         if area.width < 2 || area.height < 2 {
             return Rect::ZERO;
@@ -199,7 +244,8 @@ impl Ui<'_> {
     }
 
     /// Paint a glyph role at `area`'s origin; returns the columns written.
-    pub fn glyph(&mut self, area: Rect, g: GlyphRole, s: Style) -> u16 {
+    pub fn glyph(&mut self, area: Rect, g: GlyphRole, s: impl Into<PaintStyle>) -> u16 {
+        let s = s.into();
         let sym = self.theme_ref().design.glyphs.get(g);
         self.paint_str(area, sym, s)
     }
@@ -208,7 +254,7 @@ impl Ui<'_> {
     /// marks the whole clip rect written.
     pub fn raw(&mut self) -> (&mut Buffer, Rect) {
         let clip = self.clip;
-        self.mark_area(clip);
+        self.mark_area(clip, None);
         (self.buffer(), clip)
     }
 
@@ -328,7 +374,7 @@ mod tests {
     use ratatui_core::style::{Color, Modifier, Style};
 
     use super::super::cx::LastFrame;
-    use super::super::{CellRoles, FrameState, Ui, UiCore};
+    use super::super::{FrameState, Ui, UiCore};
     use crate::theme::{FgStep, Role, Surface, Theme};
 
     const SCREEN: Rect = Rect {
@@ -361,14 +407,12 @@ mod tests {
         steps: u8,
     ) -> ratatui_core::buffer::Cell {
         let ((), page) = with_ui(theme, |ui| {
-            ui.set_roles(CellRoles {
-                fg: Some(fg),
-                bg: Some(Role::CurrentSurface),
-            });
-            let style = Style::new()
-                .fg(crate::theme::resolve::bind_role(theme, fg, Surface::Canvas)
-                    .unwrap_or(Color::Reset))
-                .add_modifier(modifier);
+            let style = ui.paint_patch(
+                &crate::theme::StylePatch::new()
+                    .set_fg(fg)
+                    .set_bg(Role::CurrentSurface)
+                    .add(modifier),
+            );
             ui.paint_cell(Position::ORIGIN, symbol, style);
             ui.dim_layer(SCREEN, steps);
         });
@@ -387,10 +431,6 @@ mod tests {
     fn dim_layer_zero_steps_is_byte_identical() {
         for theme in [Theme::junie(), Theme::paper()] {
             let (before, after) = with_ui(&theme, |ui| {
-                ui.set_roles(CellRoles {
-                    fg: Some(Role::Fg(FgStep::Primary)),
-                    bg: Some(Role::CurrentSurface),
-                });
                 ui.paint_str(
                     SCREEN,
                     "ok",
@@ -398,10 +438,6 @@ mod tests {
                         .fg(fg_of(&theme, FgStep::Primary))
                         .add_modifier(Modifier::ITALIC | Modifier::BOLD),
                 );
-                ui.set_roles(CellRoles {
-                    fg: Some(Role::Success),
-                    bg: None,
-                });
                 ui.paint_cell(
                     Position::new(4, 1),
                     "x",

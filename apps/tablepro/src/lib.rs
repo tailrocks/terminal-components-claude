@@ -3,23 +3,22 @@
 //! Database semantics stay in application-owned adapters; terminal behavior
 //! is reached only through the public `junie-tui` facade.
 #![forbid(unsafe_code)]
-#![expect(
-    clippy::too_many_lines,
-    reason = "historical compatibility renderer keeps each fixed surface in one paint pass"
-)]
+mod cli;
 mod connections;
 mod db;
 mod domain;
 mod filter_editor;
 mod grid_model;
 mod model;
+mod quick_switcher;
 mod sql;
 mod tabs;
 mod workbench;
 
 mod app;
 
-pub use app::{MIN_HEIGHT, MIN_WIDTH, QueryOutcome, Screen, Surface, TableProApp, run, run_with};
+pub use app::{MIN_HEIGHT, MIN_WIDTH, QueryOutcome, Screen, Surface, TableProApp, run_with};
+pub use cli::run;
 /// Stable id for the connection name field.
 pub const CONNECTION_NAME: junie_tui::Id = connections::field::NAME;
 pub use connections::{ConnectionDraft, ConnectionsScreen, form_fields};
@@ -27,9 +26,12 @@ pub use db::{Catalog, ColType, Connection, SafeMode, Table, Value};
 pub use domain::{PendingEdits, ResultGrid};
 pub use filter_editor::{Filter, FilterOp};
 pub use grid_model::{ResultGridModel, StructureModel, TableGridModel, preview_for};
-pub use model::{Completion, History, SwitchItem, SwitchTarget, SwitcherIndex, complete};
+pub use model::{
+    Completion, CompletionBatch, CompletionKind, History, SwitchItem, SwitchTarget, SwitcherIndex,
+    auto_trigger, complete, completion_batch,
+};
 pub use sql::{Decision, ParseError, ResultSet, gate, parse};
-pub use tabs::{ExplorerItem, HistoryTab, QueryTab, Tab, TabKey, TableTab};
+pub use tabs::{ExplorerItem, GridView, HistoryTab, QueryTab, Tab, TabKey, TabRecord, TableTab};
 pub use workbench::Workbench;
 
 #[cfg(test)]
@@ -59,7 +61,9 @@ mod tablepro {
             vec![Value::Int(8), Value::Text("Grace".to_owned())],
         ]);
         assert!(pending.set(0, 1, Value::Text("Ada Lovelace".to_owned())));
-        let inserted = pending.insert_row(2);
+        let Some(inserted) = pending.insert_row(2) else {
+            unreachable!("available row key");
+        };
         assert!(pending.set(inserted, 0, Value::Int(9)));
         assert!(pending.set(inserted, 1, Value::Text("Lin".to_owned())));
         assert!(pending.delete_row(1));
@@ -80,7 +84,9 @@ mod tablepro {
         let original = vec![vec![Value::Int(7), Value::Text("pending".to_owned())]];
         let mut pending = PendingEdits::new(original.clone());
         assert!(pending.set(0, 1, Value::Text("changed".to_owned())));
-        let inserted = pending.insert_row(1);
+        let Some(inserted) = pending.insert_row(1) else {
+            unreachable!("available row key");
+        };
         assert!(pending.set(inserted, 0, Value::Int(99)));
 
         pending.clear();

@@ -1,0 +1,392 @@
+[
+  {
+    "page_source": "src/bin/showcase/pages/buttons.rs",
+    "sha256": "d1fa173bba9f736d9512ca0c3c74ea027f9837492eb920cee2f407a2731c612b",
+    "migration_destination": "apps/showcase/src/pages/buttons.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 186
+      },
+      {
+        "function": "hints",
+        "line": 225
+      },
+      {
+        "function": "animating",
+        "line": 229
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/chips.rs",
+    "sha256": "d9708d9a75278e55cdb4cd23455b9e0ef5f1742c029cdac8065dd3fd1d406af7",
+    "migration_destination": "apps/showcase/src/pages/chips.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 270
+      },
+      {
+        "function": "hints",
+        "line": 321
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/chrome.rs",
+    "sha256": "3eac46a0af8b6d59ad3577fb14e42bbf04941b84ab1ec51a1bff3de31b232c2f",
+    "migration_destination": "apps/showcase/src/pages/chrome.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 250
+      },
+      {
+        "function": "hints",
+        "line": 363
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/dialogs.rs",
+    "sha256": "68977008f2d93fcc7330624e3e38d364bfd5e855e4a51f5ffc27181d53d28ea4",
+    "migration_destination": "apps/showcase/src/pages/dialogs.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 155
+      },
+      {
+        "function": "hints",
+        "line": 212
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/editable.rs",
+    "sha256": "43b98cdd4ca6afd3955bcaea70bb6f55380865587c4d44bf36437b96790854f5",
+    "migration_destination": "apps/showcase/src/pages/editable.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 117
+      },
+      {
+        "function": "editing",
+        "line": 165
+      },
+      {
+        "function": "hints",
+        "line": 169
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/editor.rs",
+    "sha256": "a5d8b84346eb146cdaa63a98cc941ac56a6206bf768eae9854cfe24c86703564",
+    "migration_destination": "apps/showcase/src/pages/editor.rs",
+    "functions": [
+      {
+        "function": "editing",
+        "line": 312
+      },
+      {
+        "function": "animating",
+        "line": 315
+      },
+      {
+        "function": "handle",
+        "line": 438
+      },
+      {
+        "function": "hints",
+        "line": 546
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/forms.rs",
+    "sha256": "8c9dd62b8229227b7f1977daa632fb0f8e376731c4e2c0985a22b67bcb29a901",
+    "migration_destination": "apps/showcase/src/pages/forms.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 203
+      },
+      {
+        "function": "editing",
+        "line": 344
+      },
+      {
+        "function": "animating",
+        "line": 348
+      },
+      {
+        "function": "hints",
+        "line": 352
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/grid.rs",
+    "sha256": "9ad8fa52d30641ce0f68d6b37bfc39d7269eca2db5433c19b1a605ff8fc70088",
+    "migration_destination": "apps/showcase/src/pages/grid.rs",
+    "functions": [
+      {
+        "function": "editing",
+        "line": 301
+      },
+      {
+        "function": "animating",
+        "line": 304
+      },
+      {
+        "function": "handle",
+        "line": 325
+      },
+      {
+        "function": "hints",
+        "line": 383
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/inputs.rs",
+    "sha256": "1e4a2c27b32fed420a564cad685cacce1512047da428a82347f5cd5cc6a6c328",
+    "migration_destination": "apps/showcase/src/pages/inputs.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 205
+      },
+      {
+        "function": "editing",
+        "line": 241
+      },
+      {
+        "function": "hints",
+        "line": 245
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/lists.rs",
+    "sha256": "563269e4c6d004c946e1dc0c207c55aa7cacf270f0497cebeefbecebf1f00e20",
+    "migration_destination": "apps/showcase/src/pages/lists.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 151
+      },
+      {
+        "function": "hints",
+        "line": 196
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/overview.rs",
+    "sha256": "cd54036bb94c03c72755052957121a2edd5e9664d863474f3763216e3a821659",
+    "migration_destination": "apps/showcase/src/pages/overview.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 182
+      },
+      {
+        "function": "hints",
+        "line": 186
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/panels.rs",
+    "sha256": "89df90d6d04b25abff540edc0e6a4b35259862f422fc17c1f1dec44687586895",
+    "migration_destination": "apps/showcase/src/pages/panels.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 160
+      },
+      {
+        "function": "hints",
+        "line": 214
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/pickers.rs",
+    "sha256": "088cec84f5525e5e45c592dc286c948c94095cf0a4f45ba77b610e65965824f0",
+    "migration_destination": "apps/showcase/src/pages/pickers.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 375
+      },
+      {
+        "function": "hints",
+        "line": 433
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/progress.rs",
+    "sha256": "a02044f1766f5f72373f4fb13ac992679743b6e3825779371eaec83efd36783a",
+    "migration_destination": "apps/showcase/src/pages/progress.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 180
+      },
+      {
+        "function": "animating",
+        "line": 240
+      },
+      {
+        "function": "hints",
+        "line": 244
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/scrolling.rs",
+    "sha256": "9a6663eebe6bd6b249412f34b57ec4012e5b61956c7e031db487b4e75c89afcf",
+    "migration_destination": "apps/showcase/src/pages/scrolling.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 103
+      },
+      {
+        "function": "animating",
+        "line": 172
+      },
+      {
+        "function": "hints",
+        "line": 176
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/settings.rs",
+    "sha256": "b56d40387c412e31d8ca9c59456317a058eca4c9b38c91403397c4182addeba8",
+    "migration_destination": "apps/showcase/src/pages/settings.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 276
+      },
+      {
+        "function": "editing",
+        "line": 534
+      },
+      {
+        "function": "hints",
+        "line": 538
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/sidebars.rs",
+    "sha256": "6d6a07d90b385586fecf924cc2b73c921a15507b56519d7f750da7e0d71d0685",
+    "migration_destination": "apps/showcase/src/pages/sidebars.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 334
+      },
+      {
+        "function": "hints",
+        "line": 366
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/tables.rs",
+    "sha256": "447b14cda5566ea1b2d01cdd224913fb09ac5ba91fde8206b4d2f393a4c4f4b0",
+    "migration_destination": "apps/showcase/src/pages/tables.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 131
+      },
+      {
+        "function": "hints",
+        "line": 172
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/taskrunner.rs",
+    "sha256": "ea144f428c2b42fdd478f7f72e7e8ded6419c8d912a6135a0aff616184edcce8",
+    "migration_destination": "apps/showcase/src/pages/taskrunner.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 364
+      },
+      {
+        "function": "animating",
+        "line": 474
+      },
+      {
+        "function": "hints",
+        "line": 478
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/terminal.rs",
+    "sha256": "3a5f99ac56eea07914e131e06dc154a0a3eaee807c23a32105c0f39ce517e644",
+    "migration_destination": "apps/showcase/src/pages/terminal.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 271
+      },
+      {
+        "function": "animating",
+        "line": 368
+      },
+      {
+        "function": "hints",
+        "line": 372
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/textareas.rs",
+    "sha256": "9727ec51c05984d9e48adc5fce6d8565852dbe2eadd5e3ddb0508453ba79ddf4",
+    "migration_destination": "apps/showcase/src/pages/textareas.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 80
+      },
+      {
+        "function": "editing",
+        "line": 142
+      },
+      {
+        "function": "hints",
+        "line": 146
+      }
+    ]
+  },
+  {
+    "page_source": "src/bin/showcase/pages/trees.rs",
+    "sha256": "424c10e6149f3420f0ed7d3bca8835a48cf78ceca57671abf9866c074642fada",
+    "migration_destination": "apps/showcase/src/pages/trees.rs",
+    "functions": [
+      {
+        "function": "handle",
+        "line": 106
+      },
+      {
+        "function": "hints",
+        "line": 137
+      }
+    ]
+  }
+]

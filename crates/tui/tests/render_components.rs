@@ -1088,12 +1088,12 @@ fn draw_hint_bar(st: St, status: Status, ui: &mut Ui<'_>, area: Rect) {
         } else {
             vec![
                 Hint {
-                    chord: Chord::key(KeyCode::Enter),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Enter)),
                     label: "Open",
                     priority: 80,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Esc),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Esc)),
                     label: "Close",
                     priority: 70,
                 },
@@ -1363,7 +1363,7 @@ fn draw_menu_bar(st: St, ui: &mut Ui<'_>, area: Rect) {
 fn draw_help_overlay(st: St, ui: &mut Ui<'_>, area: Rect) {
     let layer = HintLayer {
         hints: vec![Hint {
-            chord: Chord::key(KeyCode::Enter),
+            key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Enter)),
             label: "Choose",
             priority: 80,
         }],
@@ -1858,14 +1858,24 @@ fn scroll_region_fixture_exposes_the_complete_bar_at_both_matrix_sizes() {
                     .expect("matrix position is inside the scene")
                     .symbol()
             };
-            assert!(
-                symbol_at(0) == glyphs.track || symbol_at(0) == glyphs.thumb,
-                "{st:?} at {width}x{height} has no full-height track"
+            // Full-track geometry (pinned by scrollbar_full_track) lets the
+            // thumb cover the cap rows at the extremes, so a cap row shows the
+            // begin/end glyph unless the thumb rests on it.
+            let cap = |symbol: &str, expected: &str, label: String| {
+                assert!(
+                    symbol == expected || symbol == glyphs.thumb,
+                    "{label}: expected {expected} or the thumb, got {symbol}"
+                );
+            };
+            cap(
+                symbol_at(0),
+                glyphs.begin,
+                format!("{st:?} at {width}x{height}"),
             );
-            assert!(
-                symbol_at(height.saturating_sub(1)) == glyphs.track
-                    || symbol_at(height.saturating_sub(1)) == glyphs.thumb,
-                "{st:?} at {width}x{height} has no full-height track"
+            cap(
+                symbol_at(height.saturating_sub(1)),
+                glyphs.end,
+                format!("{st:?} at {width}x{height}"),
             );
             assert!(
                 (0..height).any(|y| symbol_at(y) == glyphs.track),
@@ -1886,10 +1896,12 @@ fn scroll_region_fixture_exposes_the_complete_bar_at_both_matrix_sizes() {
                 })
                 .collect();
             let expected: Vec<Position> = if st == St::Pressed {
-                let mut expected_state = ScrollState::new(SCROLL_FIXTURE_ROWS);
-                expected_state.set_viewport(usize::from(height));
-                let (_, thumb_len) = expected_state.thumb(usize::from(height));
-                (0..thumb_len).map(|y| Position::new(x, y as u16)).collect()
+                let thumb_end = match (width, height) {
+                    (120, 40) => 20,
+                    (40, 10) => 1,
+                    _ => unreachable!("SIZES contains only the two matrix sizes"),
+                };
+                (0..thumb_end).map(|y| Position::new(x, y)).collect()
             } else {
                 Vec::new()
             };

@@ -5,8 +5,8 @@
 use core::fmt;
 use core::marker::PhantomData;
 
+use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
-use ratatui_core::style::Style;
 
 use super::form::InheritedFormState;
 use super::scroll_region::ScrollRegion;
@@ -874,7 +874,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
         st: &SelectState,
         items: &[T],
         live: StateFlags,
-        field: Style,
+        field: PaintStyle,
     ) {
         if cell.is_empty() {
             return;
@@ -1034,15 +1034,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Select<'_, T, K, R> {
                     if let Some(f) = ov.slot_for(Part::EMPTY) {
                         f(ui, list);
                     } else {
-                        let _ = ov.style(
-                            ui,
-                            id,
-                            Family::SELECT,
-                            Variant::DEFAULT,
-                            Part::EMPTY,
-                            StateFlags::empty(),
-                        );
-                        e.draw(ui, list, 0);
+                        let inherited = ov
+                            .style(
+                                ui,
+                                id,
+                                Family::SELECT,
+                                Variant::DEFAULT,
+                                Part::EMPTY,
+                                StateFlags::empty(),
+                            )
+                            .style;
+                        e.draw_inherited(ui, list, 0, inherited);
                     }
                     return;
                 }
@@ -1229,22 +1231,23 @@ mod tests {
             closed: 0,
         };
         let mut rt = Runtime::new(app, Theme::junie());
+        let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert_eq!(rt.focus(), Some(SEL));
-        let _ = rt.handle(press(KeyCode::Enter));
-        rt.draw_buffer(SCREEN, &mut buf);
+        let _ = crate::runtime::stub::deliver(&mut rt, press(KeyCode::Enter));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert!(rt.app().st.is_open(), "Enter opened the popup");
         assert!(rt.is_open(SEL), "the popover layer is open");
         // browse away from the committed value without committing
-        let _ = rt.handle(press(KeyCode::Down));
-        rt.draw_buffer(SCREEN, &mut buf);
+        let _ = crate::runtime::stub::deliver(&mut rt, press(KeyCode::Down));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert_eq!(rt.app().st.cursor(), Some(ItemKey::index(1)));
         assert_eq!(rt.app().st.value(), Some(ItemKey::index(0)));
         assert_eq!(rt.app().closed, 0);
 
-        let _ = rt.handle(press(KeyCode::Tab));
-        rt.draw_buffer(SCREEN, &mut buf);
+        let _ = crate::runtime::stub::deliver(&mut rt, press(KeyCode::Tab));
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert_eq!(rt.focus(), Some(OTHER), "Tab moved focus off the field");
         assert!(!rt.is_open(SEL), "the popover layer was dismissed");
         assert!(!rt.app().st.is_open(), "the component agrees it is closed");
@@ -1274,10 +1277,11 @@ mod tests {
         let theme = Theme::junie();
         let chosen = theme.design.glyphs.get(GlyphRole::Chosen);
         let mut runtime = Runtime::new(app, theme);
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(press(KeyCode::Enter));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, press(KeyCode::Enter));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
 
         let count = (SCREEN.y..SCREEN.bottom())
             .flat_map(|y| (SCREEN.x..SCREEN.right()).map(move |x| Position::new(x, y)))
@@ -1379,7 +1383,8 @@ mod tests {
         let mut buf = Buffer::empty(SCREEN);
         rt.draw_scene(SCREEN, &mut buf, |ui, a| {
             s.draw(ui, a, &st, &engines);
-        });
+        })
+        .commit_presented();
         let mut row0 = String::new();
         for x in 0..SCREEN.width {
             if let Some(c) = buf.cell(Position::new(x, 0)) {
@@ -1421,7 +1426,8 @@ mod tests {
             disabled: true,
         };
         let mut rt = Runtime::new(app, Theme::junie());
-        let _ = rt.handle(Input::Tick);
+        let _ = rt.initialize();
+        let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
         assert_eq!(rt.app().st, SelectState::default());
     }
 
@@ -1436,8 +1442,9 @@ mod tests {
             disabled: true,
         };
         let mut rt = Runtime::new(app, Theme::junie());
+        let _ = rt.initialize();
         for _ in 0..3 {
-            let _ = rt.handle(Input::Tick);
+            let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
         }
         assert_eq!(
             rt.app().st,
@@ -1445,7 +1452,7 @@ mod tests {
             "three disabled frames accrued nothing"
         );
         rt.app_mut().disabled = false;
-        let _ = rt.handle(Input::Tick);
+        let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
         assert_eq!(
             rt.app().st.cursor(),
             Some(ItemKey::index(0)),
@@ -1475,7 +1482,8 @@ mod tests {
         let mut buf = Buffer::empty(SCREEN);
         rt.draw_scene(SCREEN, &mut buf, |ui, a| {
             s.draw(ui, a, &st, &items);
-        });
+        })
+        .commit_presented();
         buf
     }
 
@@ -1486,9 +1494,11 @@ mod tests {
         state.set_value(value);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-            select.draw(ui, area, &state, &items);
-        });
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                select.draw(ui, area, &state, &items);
+            })
+            .commit_presented();
         buffer
     }
 
@@ -1508,9 +1518,11 @@ mod tests {
         };
         let mut runtime = Runtime::new(Stub::default(), theme);
         let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, area| {
-            select.draw(ui, area, &state, &["alpha"]);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                select.draw(ui, area, &state, &["alpha"]);
+            })
+            .commit_presented();
         let marker = Position::new(area.right().saturating_sub(2), area.y);
         (
             buffer
@@ -1555,15 +1567,17 @@ mod tests {
         let state = SelectState::default();
         let mut runtime = Runtime::new(Stub::default(), Theme::junie().downgrade(ColorLevel::Mono));
         let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, area| {
-            ui.reference(
-                Some(crate::ReferenceTarget::new(
-                    SEL,
-                    crate::ReferenceState::FOCUSED | crate::ReferenceState::PRESSED,
-                )),
-                |ui| select.draw(ui, area, &state, &["alpha"]),
-            );
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                ui.reference(
+                    Some(crate::ReferenceTarget::new(
+                        SEL,
+                        crate::ReferenceState::FOCUSED | crate::ReferenceState::PRESSED,
+                    )),
+                    |ui| select.draw(ui, area, &state, &["alpha"]),
+                );
+            })
+            .commit_presented();
 
         assert_eq!(
             buffer

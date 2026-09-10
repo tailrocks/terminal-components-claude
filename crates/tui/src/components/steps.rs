@@ -1406,9 +1406,11 @@ mod tests {
             let rail = Steps::new(RAIL).slot(part, &replacement);
             let mut runtime = Runtime::new(Stub::default(), Theme::junie());
             let mut buffer = Buffer::empty(area);
-            runtime.draw_scene(area, &mut buffer, |ui, rect| {
-                rail.draw(ui, rect, &StepsState::new(), &items);
-            });
+            runtime
+                .draw_scene(area, &mut buffer, |ui, rect| {
+                    rail.draw(ui, rect, &StepsState::new(), &items);
+                })
+                .commit_presented();
             assert_eq!(
                 calls.get() > 0,
                 matches!(part, Part::GUTTER | Part::ICON | Part::TRACK | Part::THUMB),
@@ -1425,9 +1427,11 @@ mod tests {
         let render = |rail: &Steps<'_, S>| {
             let mut runtime = Runtime::new(Stub::default(), Theme::junie());
             let mut buffer = Buffer::empty(area);
-            runtime.draw_scene(area, &mut buffer, |ui, rect| {
-                rail.draw(ui, rect, &steps_state, &items);
-            });
+            runtime
+                .draw_scene(area, &mut buffer, |ui, rect| {
+                    rail.draw(ui, rect, &steps_state, &items);
+                })
+                .commit_presented();
             let row = runtime.area_of_part(RAIL, PartRef::item(Part::ROW, ItemKey::index(0)));
             (buffer, row)
         };
@@ -1502,16 +1506,20 @@ mod tests {
         let area = Rect::new(0, 0, 40, 1);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, rect| {
-            rail.draw(ui, rect, &StepsState::new(), &items);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, rect| {
+                rail.draw(ui, rect, &StepsState::new(), &items);
+            })
+            .commit_presented();
         let mut plain_runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut plain = Buffer::empty(area);
-        plain_runtime.draw_scene(area, &mut plain, |ui, rect| {
-            Steps::new(RAIL)
-                .step(&state)
-                .draw(ui, rect, &StepsState::new(), &items);
-        });
+        plain_runtime
+            .draw_scene(area, &mut plain, |ui, rect| {
+                Steps::new(RAIL)
+                    .step(&state)
+                    .draw(ui, rect, &StepsState::new(), &items);
+            })
+            .commit_presented();
 
         assert_ne!(
             buffer.cell(Position::new(2, 0)).map(|cell| cell.bg),
@@ -1551,9 +1559,11 @@ mod tests {
         let area = Rect::new(0, 0, 20, 5);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, rect| {
-            rail.draw(ui, rect, &StepsState::new(), &items);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, rect| {
+                rail.draw(ui, rect, &StepsState::new(), &items);
+            })
+            .commit_presented();
 
         let track_cell = buffer.cell(Position::new(19, 3)).expect("track cell");
         assert!(track_cell.modifier.contains(Modifier::UNDERLINED));
@@ -1606,18 +1616,22 @@ mod tests {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(area);
 
-        runtime.draw_scene(area, &mut buffer, |ui, rect| {
-            rail.draw(ui, rect, &state, &items);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, rect| {
+                rail.draw(ui, rect, &state, &items);
+            })
+            .commit_presented();
         assert_eq!(
             accesses.get(),
             5,
             "one cold frontier probe plus four visible-row state reads"
         );
         accesses.set(0);
-        runtime.draw_scene(area, &mut buffer, |ui, rect| {
-            rail.draw(ui, rect, &state, &items);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, rect| {
+                rail.draw(ui, rect, &state, &items);
+            })
+            .commit_presented();
         assert_eq!(
             accesses.get(),
             5,
@@ -1626,9 +1640,11 @@ mod tests {
 
         items[0].state.set(StepState::Done);
         accesses.set(0);
-        runtime.draw_scene(area, &mut buffer, |ui, rect| {
-            rail.draw(ui, rect, &state, &items);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, rect| {
+                rail.draw(ui, rect, &state, &items);
+            })
+            .commit_presented();
         assert_eq!(
             accesses.get(),
             6,

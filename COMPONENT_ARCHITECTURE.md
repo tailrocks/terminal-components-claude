@@ -262,10 +262,12 @@ Runtime::draw(&mut self, frame: &mut Frame)
                         (d) else the first reachable entry in any scope (§25 MI-2),
                         (e) else None.
                       `focus_visible` is true iff the last input was a key.
-                      Focus restoration is staged at close_layer and applied here; until
-                      then FocusState::current is the restore target and key resolution
-                      uses it even though it is absent from the last ring — the one
-                      documented exception to "resolve against last frame" (§21 item 15).
+                      Focus restoration is staged at close_layer and validated here only
+                      after successful live publication. Closing owners receive FocusOut;
+                      historical openers receive no FocusIn until the new ring proves
+                      admissibility. Invalid openers use the reconciliation ladder above.
+                      Input remains retained until publication and settlement complete
+                      (publication amendment to historical §21 item 15).
  15. cursor           the single retained cursor write is kept iff
                       `layer == top_layer && FocusState::current() == owner`; otherwise
                       dropped (debug diagnostic). Then frame.set_cursor_position or hide.
@@ -641,6 +643,10 @@ Innermost scrollable that covers the point **and** handles the axis wins (innerm
 
 `ui.set_cursor(owner: Id, pos: Position)` records `(layer, owner, pos)`. The runtime keeps the write iff `layer == top_layer && FocusState::current() == owner`; otherwise it drops it and records `Diagnostic::CursorRejected`. A `set_cursor` from a suppressed (inert) layer is discarded silently; `CursorRejected` is recorded only for a non-inert lower layer or an unfocused owner. <!-- amended by §21 item 15 --> A background `TextInput` still flagged `EDITING` can never place the cursor under a dialog (today only draw order prevents it). <!-- amended by §25 F6 --> When two owners on the same layer write in one frame (two `EDITING` inputs in a `Form`), `Ui::set_cursor` keeps the best candidate by `(layer, owner-is-focused)` — a request whose owner carries `FOCUSED`, then the higher layer, then the later write — never the first arrival; `CursorRejected` is recorded for the loser only when it is non-inert (`cursor::the_focused_owners_write_wins_on_the_same_layer`). Components write unconditionally; filtering is the runtime's job.
 
+**Explicit typing-owner amendment (Holla integration).** The preceding focused-owner rule remains the default, including the retained `cursor::the_focused_owners_write_wins_on_the_same_layer` obligation and §25 F6 history. An editor may explicitly publish `TypingPolicy::Fallback { cursor }`. Complete candidate-frame geometry admits exactly one enabled, editable, actively editing target on the top admissible layer; ambiguous targets produce `Diagnostic::TypingTargetConflict` and no fallback. A primary editor blocks another editor's fallback, including when the primary editor is idle or read-only. Fallback owns text/paste and its filtered shared editing bindings without moving navigation focus or manufacturing focus callbacks. Owner-scoped `KeyMap::bind_before_typing` supplies contextual product exceptions; ordinary bare capture bindings yield to typing. The filtered author seam accepts a synchronous generic `Fn(C) -> bool`, never a stored function pointer. `Ui::offer_typing_cursor` is a conditional caret offer paired with a same-owner, same-layer `publish_typing_target(..., true)` declaration. Completed typing resolution silently ignores well-formed unselected offers (including another primary editor or an overlay barrier); undeclared offers remain diagnosed. Raw `Ui::set_cursor` retains the preceding rejection obligations without exception.
+
+When `cursor` is true, the admitted fallback owner replaces the default focused cursor owner. Cursor requests are pooled until complete geometry is known, then filtered by this resolved owner and the existing layer/inert barrier; draw order cannot choose a different owner. Only successful presentation publishes typing and cursor facts. Aborted frames, model changes and unsettled focus cannot authorize input. Pure bound Scene projections resolve the same explicit snapshot/model into inspection output without publishing live ownership or running updates. Historical focused-only tests remain; `typing_owner::fallback_edits_shared_unicode_draft_and_keeps_query_caret_without_moving_row_focus`, `typing_owner::modal_and_aborted_publication_cannot_reuse_background_typing_or_scoped_commands`, and `typing_owner::bound_scene_preserves_fallback_cursor_cells_and_model_with_zero_warm_allocations` cover the explicit extension.
+
 ### 8.5 Invalidation (confirms INT B10)
 
 `Invalidate` on `Response` is the return channel. Out-of-band sources use `cx.request_repaint()` and `cx.request_repaint_after(Duration)`, which the runtime folds into a repaint deadline — deleting the per-app `animating()`/`tick_interval()` heuristics (**[F]** `showcase:308-324`, `tablepro:192-197`, `jackin:299-320`). Cadence values (`tick_ms` 80, `idle_tick_ms` 400, `press_flash_ms` 140, `status_ms` 4000/5000) are design tokens. `Invalidate::Layout` ships from day one but currently behaves as `Paint`; it is reserved for layout caching and is asserted only for ordering.
@@ -648,6 +654,10 @@ Innermost scrollable that covers the point **and** handles the axis wins (innerm
 ### 8.6 Hover, press, activation, double-click, click-outside — runtime-owned
 
 Hover never changes focus. Hover is suppressed after any key press until the pointer moves (`DESIGN.md:648`). An uncaptured move resolves the top live non-decorative part, updates hover, enqueues exactly one `Phase::Move`, and requests `Paint` only when visible hover changes; it never presses, focuses or activates. Press records the target; release activates only on the same target (or inside a capture area). Keyboard and mouse activation produce the identical action (conformance test). Double-click is a 500 ms same-target window, owned by the runtime, delivered as `Phase::DoubleClick`; the obsolete `was_focused` click argument disappears (**[F]** `input.rs:247-261` and five app call sites). "Click outside" is `hit.layer < top_layer || hit.is_none()` — a real outside test rather than "the hit returned None"; it is real because `Registry::hit(pos)` returns the topmost region *regardless of layer* and the runtime compares layers (§21 item 12). Esc is offered to the focused component first and to the top layer's `Dismiss.esc` only in the bubble phase (§3.3 step 8, §21 item 3). <!-- amended by §21 items 3, 12; §67 -->
+
+**Explicit feedback-clock amendment (exact Holla/Jackin simulation fidelity).** Activation feedback remains one runtime-owned `(owner, part, expiry)` record. Construction selects `FeedbackClock::Elapsed` by default or `Simulation { initial: SimulationMoment }` before initialization. Simulation time is a distinct absolute type, initialized from the already-seeked fixture epoch and synchronized only from domain-owned time after an admitted coalesced step. Wrong-policy/backwards synchronization rejects atomically; equal synchronization is idempotent. Input count, arbitrary `Input::Tick`, drawing and elapsed clock movement cannot age simulation feedback. Its expiry never enters wall `next_deadline`; paused simulation can retain feedback without an idle polling loop.
+
+`Cx::activation_feedback` observes that record immediately after synchronization, so an application can select its source-prescribed domain cadence without copying flash state. `flash_activation`/`flash_activation_part` are explicit semantic requests, not a blanket keyboard policy: Holla Home/menu/modal keyboard exclusions remain product-owned. A request may name a future routed owner and stable row part; it grants no focus/input authority, and owner disappearance does not cancel the source-visible cadence before expiry. Visible state and Scene snapshots use normal owner/part/layer rules; held press/capture remains independent. Default elapsed140 behavior and exact simulation80/160/coalesced-delay/paused behavior are separate selected policies, not a timing exception. Tests: `feedback_clock::full_and_reduced_feedback_match_source_ordinary_and_delayed_coalesced_steps`, `feedback_clock::paused_feedback_has_no_wall_deadline_or_idle_spin_and_keeps_nonzero_epoch`, `feedback_clock::future_owner_and_stable_row_part_keep_cadence_without_granting_focus_or_input`.
 
 ---
 
@@ -932,6 +942,7 @@ pub struct Theme {
     pub design: DesignTokens,
     pub recipes: Recipes,
     pub capability: Capability,   // { color: ColorLevel } — UnicodeLevel deleted (§21 item 19); exactly one field, pinned by `architecture::capability_has_no_unicode_field` (§24 M2)
+    pub capability_palettes: Option<std::sync::Arc<CapabilityPalettes>>, // authored semantic output; §11.4 integration amendment
 }
 impl Theme {
     pub fn junie() -> Theme;                      // the approved default, values unchanged
@@ -1025,6 +1036,46 @@ Then, and only then, roles bind to colours against `(theme.color, ui.surface(), 
 **Invariant:** overlays are borrowed and never mutate the `Theme`. `conformance::local_override_does_not_mutate_the_theme` asserts the theme is byte-identical before and after a scoped render.
 
 ### 11.4 Capability downgrade and the mono rule
+
+**Integration amendment — authored semantic capability palettes.** The exact
+`downgrade_color` algorithms below remain the generic RGB conversion contract
+introduced by `95ab652` (Adjudication J, item 29). They do not replace explicitly
+authored semantic output. Pinned Holla `794b095` uses approximate cube/gray
+selection and a four-level monochrome ladder; substituting generic nearest
+conversion changes the approved Junie picture. `Theme::junie()` therefore
+declares named token tables matching that reference at ANSI256 and Mono, covering
+all 73 current semantic slots. TrueColor and ANSI16 retain their existing values.
+`Theme::paper()` and `Theme::from_tokens()` declare no table and keep generic
+conversion, including the existing light-theme foreground repair.
+
+`Theme::capability_palettes` is an explicit optional `Arc<CapabilityPalettes>`;
+the carrier contains the source TrueColor tokens and optional target token
+tables. `ThemeBuilder::capability_palettes` installs one;
+`clear_capability_palettes` restores generic conversion. Direct `Theme` literals
+must now provide this field (`None` for generic themes). This is an intentional
+experimental public construction change, not an inferred theme identity.
+
+On downgrade, each semantic slot compares its current value with that *same
+slot's* actual last-projected value at the current capability (or the declared
+initial capability value before the first projection). This includes exact
+outputs of conversions through levels without authored tables; recomputing
+them from the TrueColor source loses the actual conversion path. Matching eligible slots use
+the authored target; changed slots use generic conversion. No color searches
+identify roles. A changed slot loses authored eligibility in the resulting
+theme, so a later quantization collision cannot reattach it during chained
+downgrades. Copy-on-write carrier metadata isolates clones. Missing target
+tables use generic conversion; repeated same-level downgrade remains a no-op;
+`for_level` still never widens. Builder seed changes and their derived dependants
+obey the same source guards. Installing a fresh carrier explicitly resets its
+eligibility and projection history. Theme equality and the testing fingerprint include actual table
+contents and eligibility, never just an allocation address. Runtime theme
+replacement continues to invalidate all derived caches.
+
+The `Theme::downgrade` sketch below is the no-table path; authored guarded output
+is composed after generic mapping and light-theme repair. Generic conversion
+tests remain exact; separate tests pin all Junie authored slots and chained,
+mutated, custom and Paper behavior. Neither app-specific RGB branches nor
+blanket snapshot reacceptance are authorized by this amendment.
 
 ```rust
 impl ColorTokens {
@@ -1739,7 +1790,7 @@ One `#[cfg(test)] mod tests` per module. Names are given verbatim; the module pa
 `key_release_is_dropped`, `unmapped_mouse_button_is_dropped`, `mouse_carries_modifiers`, `chord_hashes_by_code_and_mods`, `secondary_up_is_modelled`, `wheel_carries_axis_and_delta`, `paste_reaches_only_an_editing_owner`.
 
 **`focus.rs`** — traversal, scopes, restoration, disabled/read-only
-`tab_cycles_forward_and_backward`, `shift_tab_is_the_exact_reverse`, `disabled_entries_are_registered_but_skipped`, `read_only_entries_stay_in_the_ring`, `click_only_entries_are_never_reachable`, `trap_confines_traversal_to_the_scope`, `trap_wraps_inside_the_scope`, `nested_scopes_resolve_innermost_first`, `scope_restore_returns_focus_to_the_opener`, `reconcile_prefers_nearest_surviving_entry_by_previous_index`, `reconcile_falls_back_to_scope_first_enabled`, `reconcile_falls_back_to_innermost_active_scope`, `reconcile_yields_none_when_nothing_is_reachable`, `focus_visible_is_true_only_after_a_key`, `trap_is_armed_when_the_layer_is_pushed_not_when_it_draws`, `restore_target_receives_keys_before_the_next_draw` (§21 item 15). <!-- amended by §25 MI‑3 --> `read_only_entries_stay_in_the_ring`, `click_only_entries_are_never_reachable` and `restore_target_receives_keys_before_the_next_draw` are runtime-level tests (the mechanism lives in `Ui::register_entry` and `Runtime`, not in `FocusRing`); `innermost_scope` is the **latest** scope on the highest layer (MI‑1).
+`tab_cycles_forward_and_backward`, `shift_tab_is_the_exact_reverse`, `disabled_entries_are_registered_but_skipped`, `read_only_entries_stay_in_the_ring`, `click_only_entries_are_never_reachable`, `trap_confines_traversal_to_the_scope`, `trap_wraps_inside_the_scope`, `nested_scopes_resolve_innermost_first`, `scope_restore_returns_focus_to_the_opener`, `reconcile_prefers_nearest_surviving_entry_by_previous_index`, `reconcile_falls_back_to_scope_first_enabled`, `reconcile_falls_back_to_innermost_active_scope`, `reconcile_yields_none_when_nothing_is_reachable`, `focus_visible_is_true_only_after_a_key`, `trap_is_armed_when_the_layer_is_pushed_not_when_it_draws`, `restore_target_receives_retained_key_after_the_next_publication` (§21 item 15). <!-- amended by §25 MI‑3 --> `read_only_entries_stay_in_the_ring`, `click_only_entries_are_never_reachable` and `restore_target_receives_retained_key_after_the_next_publication` are runtime-level tests (the mechanism lives in `Ui::register_entry` and `Runtime`, not in `FocusRing`); `innermost_scope` is the **latest** scope on the highest layer (MI‑1). Publication-contract migration: this replaces the historical restore_target_receives_keys_before_the_next_draw obligation; the restored owner still receives the original next key, now retained until its geometry is successfully presented rather than routed against a stale frame.
 
 **`hit.rs`** — hit ordering, layers, scroll routing
 `last_registration_wins`, `higher_layer_shadows_lower` (strengthened: the lower layer is registered **last**), `a_lower_layer_region_registered_later_does_not_shadow_a_higher_one` (§25 F8: `hit()` selects `max_by_key(|r| (r.layer, index))`), `hit_returns_a_lower_layer_region_for_the_outside_click_test` (§21 item 12), `inert_below_registers_nothing` (runtime-level, §25 MI‑3), `hit_returns_part_ref_not_a_derived_id`, `hit_scroll_returns_the_innermost_handler_of_the_axis`, `hit_scroll_returns_a_region_at_zero_headroom`, `hit_scroll_skips_regions_that_do_not_handle_the_axis`, `duplicate_id_is_reported_as_a_diagnostic_not_a_panic`, `empty_rects_are_rejected`, `generation_bump_invalidates_stale_regions`.
@@ -2178,7 +2229,7 @@ Mapping of the seven "must keep working" facts from **[F]** APP §6:
 | `frame_showcase_lists_120x40` | **213 allocs/frame** (`tests/perf_baseline.txt`; ≈ 160 was a pre-measurement estimate) <!-- corrected by §37 -->, 57 hits, 4 ring | **< 20 allocs/frame**; hits recorded and classified in `docs/visual-changes.md`, no unexplained growth > 25 % (P8, §21 item 30); ring ≥ 4 |
 | `frame_showcase_lists_80x24` | report | ≤ `frame_showcase_lists_120x40` |
 | `frame_showcase_dialog_open` | full background still registered | hits **< 25 %** of `frame_showcase_lists_120x40` (`inert_below`) |
-| `frame_tablepro_grid_500x12_120x40` | **1 030 allocs/frame, 176 hits** (the `hits ≤ 320` target is already met on the *pre*-refactor tree) <!-- corrected by §37 --> | **< 100 allocs/frame**; hits ≤ 320 |
+| `frame_tablepro_grid_500x14_120x40` | **1 030 allocs/frame, 176 hits** (the `hits ≤ 320` target is already met on the *pre*-refactor tree) <!-- corrected by §37 --> | **< 100 allocs/frame**; hits ≤ 320 |
 | `frame_jackin_manager_100rows_120x40` | **499 allocs/frame** <!-- corrected by §37 --> | **< 60 allocs/frame** (rows rebuilt on world generation change only) |
 | `frame_jackin_capsule_4panes_120x40` | **1 080 602 allocs/frame, 74 131 917 B** (`tests/perf_baseline.txt:6`; the performance audit's "≈ 480 000 / ~15 MB" was a pre-measurement estimate, not a measurement) <!-- corrected by §32.6 --> | **< 200 allocs/frame** |
 | `key_showcase_down_lists` | includes `describe_key` `String` | **0 allocs/event** |
@@ -2759,7 +2810,19 @@ impl<'a, T, K: KeyFn<T>, R: RowFn<T>> ChipBar<'a, T, K, R> {
 }
 impl<'a> Grid<'a> {                                                   // no `M` on the props (§21 item 1, B15)
     pub const PARTS: &'static [Part] = &[Part::CONTAINER, Part::HEADER, Part::ROW, Part::CELL,
-                                         Part::TRACK, Part::THUMB, Part::OVERFLOW, Part::EMPTY, Part::ACTIONS];
+                                         Part::TRACK, Part::THUMB, Part::OVERFLOW, Part::EMPTY, Part::ACTIONS,
+                                         Part::GUTTER, Part::MARKER, Part::CHANGE, Part::ROW_NUMBER, Part::ICON];
+    // Detailed gutter amendment: GUTTER/MARKER/CHANGE/ROW_NUMBER are optional surfaces.
+    // Compact (default) retains its ROW-based two-cell paint and existing slots.
+    // Detailed separates focus/check/change/source-number cells in the shared
+    // Grid geometry; these four slots replace only their clipped cell content.
+    // CHANGE and ROW_NUMBER are builtin parts 34 and 35; no whole-grid Status.
+    // ICON is a real optional per-column header-prefix surface, not Status.
+    // Prefix defaults resolve below explicit ICON overrides; HEADER slot replaces all.
+    pub fn header_prefixes(self, prefixes: &'a [(ColumnKey, GlyphRole, Role)]) -> Self;
+    pub fn gutter(self, layout: GridGutter) -> Self;
+    pub fn right_reserve(self, cells: u16) -> Self;
+    pub fn part_defaults(self, defaults: &'a [(Part, StylePatch)]) -> Self;
     pub fn new(id: Id, columns: &'a [Column<'a>]) -> Self;
     pub fn nav(self, u: NavUnit) -> Self;        pub fn select_mode(self, m: SelectMode) -> Self;
     pub fn empty(self, e: EmptyState<'a>) -> Self;
@@ -3995,7 +4058,7 @@ These are **amendments to §3–§15**, not advice. Each folds a `docs/audit/per
 | 2 | **The §11.1 A3 memo cache is allocation-free and statically sized.** <!-- amended by §27 (Adjudication O1) --> A `[(u64, u32, StylePatch); 256]` behind **one** `Box`, owned by the runtime's frame core (`self.core.style_cache`) and reused across frames, keyed by a 64-bit mix of `(Family, Variant, Part, StateFlags, overlay_stack_hash)` with the low bit forced so `0` stays the empty sentinel, and cleared by a generation stamp rather than by zeroing. The 256 entries are grouped into **128 two-way sets**, insert-at-most-recent. ~~A `[Option<(u64, Resolved)>; 256]` direct-mapped array embedded in `Ui`~~ is **struck** on all four counts: there is no `Option` (the sentinel is `key \| 1`), the value is a `StylePatch` and not a `Resolved` (as this cell's own prose already said), the array lives behind a `Box` on the runtime core rather than by value in `Ui`, and it is not ~~direct-mapped~~. A one-way table of 256 entries cannot meet §16.6's ≥ 90 % hit rate for *any* realistic key set: with `k` hot keys the expected number of colliding pairs is `C(k,2)/256`, and a colliding pair in a round-robin loop misses on **every** access. `style_resolve_10k_parts` touches 32 keys (4 parts × 8 states); `C(32,2)/256 ≈ 1.94` pairs collide, ≈ 3.65 keys thrash, and the measured rate is **87.2 %** whatever the hash — this is the birthday load of 32 keys over 256 buckets, not a property of FNV, so no re-hashing recovers it, and only a perfect hash over a statically known key set would, which this key set is not. A realistic frame resolves 100–300 distinct tuples, so 87.2 % is a synthetic *best* case, not a floor. Two ways make a miss require three keys in one set (`C(32,3)/128² ≈ 0.28` expected sets, ≈ 99.7 % expected hit rate), which is what makes the memo's health assertable at all. The array shape, the single construction-time allocation, the absence of any per-frame allocation or growth, and the generation stamp are **unchanged**. <!-- amended by §25 §4(f); §26 --> `Surface` is deliberately **out** of the key: the memo caches §11.3 steps 1–5, which are role-level and surface-independent, and roles bind to colours afterwards in `bind`, per query. The stored value is therefore a `StylePatch`, not a `Resolved`. The memo serves the **painting path only**; `Ui::resolve` (the `&self` path `Measure::measure` uses) bypasses it entirely, so a measurement can never evict a painting entry. No `HashMap`, no `Vec`, no per-frame allocation, no growth. A miss recomputes; <!-- amended by §27 (Adjudication O1) --> ~~there is no eviction policy to get wrong~~ is **struck** — the eviction policy is exactly *shift way 0 into way 1, insert at way 0, promote a way-1 hit*, bounded at two entries, O(1), and independent of the key count. Generation-stamp clearing must handle wrap: at `u32::MAX` the stamp is reset to 1 **and the slots filled**, or a slot stamped with the original generation 1 becomes a false hit serving a stale `StylePatch` (`theme::cache_generation_wrap_does_not_serve_a_stale_entry`). `Ui` keeps a running `stack_hash: u64` updated on `with_overlay` push/pop so no per-query stack hash is computed (P3), and `Ui` is constructed once per `Runtime`/`Scene` and reused, never per frame (P4). | §11.1 A3 | `style_resolve_10k_parts`, `render_twice_allocates_the_same` |
 | 3 | **`ItemKey` reconcile uses a generation stamp cache.** Every `XState` with a cursor stores `(cursor_key, cursor_index, stamp)` where `stamp = (len, key(first), key(last))`. `reconcile` returns `Unchanged` immediately when the stamp matches; on a mismatch it first probes the cached index (`key(&items[i]) == cursor_key`) and only then scans. `XState::invalidate()` is public for callers who mutate in place. 100 000 rows never re-hash per frame. (R1) | §12.2 | `list_100k_rows_render` — **< 500 allocs/frame**, ns ≤ 1.5× `list_1k_rows_render`; `event_dispatch_is_not_o_n` — 0 allocs, ns within 3× of the 100-row click |
 | 4 | **Overlay lookup is a linear scan over a `&'static` slice, short-circuited when empty.** `Overlay::new(&'static [(Family, Variant, Part, StateFlags, StylePatch)])`; the resolution loop returns before touching the stack when `stack.is_empty()`, which is the overwhelmingly common case. No hashing on the style path. (R3) | §11.3 step 5 | `style_resolve_10k_parts_with_two_overlays` — 0 allocations, ns ≤ 2× the empty-stack case |
-| 5 | **`Id` debug names are populated at construction, never at registration.** `id!` expands to a `const` path and the debug label travels with the `Id` itself (`DebugLabel { root, tail }`, `Tail::Item(k)` inline), so there is no names side table and no side table in any build; nothing is populated at registration and no `debug-ids` feature is needed (R4; §7.1 amended, names side table struck — §21 item 22). | §7.1 | `debug_and_release_alloc_counts_match` — `frame_tablepro_grid_500x12_120x40` reports identical allocation counts in debug and release |
+| 5 | **`Id` debug names are populated at construction, never at registration.** `id!` expands to a `const` path and the debug label travels with the `Id` itself (`DebugLabel { root, tail }`, `Tail::Item(k)` inline), so there is no names side table and no side table in any build; nothing is populated at registration and no `debug-ids` feature is needed (R4; §7.1 amended, names side table struck — §21 item 22). | §7.1 | `debug_and_release_alloc_counts_match` — `frame_tablepro_grid_500x14_120x40` reports identical allocation counts in debug and release |
 | 6 | **`RowUi`/`CellUi` paint via a single grapheme walk with no intermediate `String`.** `RowUi::label`, `meta`, `trailing` and `CellUi` write cells directly and pad in place. `ui::text::{fit, fit_right}` are **deleted from every render path** and survive only for non-render callers. §12.2's `RowUi` contract is amended to forbid intermediate allocation. (R5) | §12.2 | `fit_10k_grapheme_line_to_80` — the `RowUi` equivalent records **0** allocations; `frame_showcase_lists_120x40` drops from ≈160 to **< 20** allocs/frame; `grid_500x12_render` **< 100** |
 | 7 | **`TextViewport` streams cells and caches an exact wrapped-row index.** A painted cell is transient source coordinates plus display width/span style; no owned grapheme `String` or full cell matrix exists. `ui.cache::<ViewportLayout>(id)` holds the complete `usize` wrapped-row prefix required by exact visual-row scrolling. It rebuilds on cold key, reflow or explicit invalidation, extends on append, and performs zero index work on an unchanged warm frame. Painting walks only visible content. This replaces the legacy two full owned-cell layouts per frame; it does not promise document-independent cold reflow, which is impossible for arbitrary borrowed text. Same-length mutation is observable only after the required `ViewportState::invalidate()` call. (§12.4; R8.) | §14.1, §12.4 | `viewport_100k_lines_push`: allocations independent of prior length and indexed-line count equals the appended suffix; `viewport_layout_10k_grapheme_line`: zero per-grapheme allocations; `viewport_100k_lines_render`: after one unmeasured prime, exactly zero allocations, zero prefix-index visits, and equal visible-row visits for 1k/100k (`PERF_STRICT` ns ratio ≤1.5×); correctness tests `same_length_offscreen_rewrap_after_invalidate_updates_total_end_thumb_and_mapping`, `wrapped_prefix_matches_bruteforce`, and `generation_saturation_never_reuses_stale_layout` |
 | 8 | **`Tree` flatten is incremental and keyed.** The flat index is rebuilt only for the affected subtree on expand/collapse, `expanded` is `HashSet<ItemKey>` (no `Vec<usize>` hashing), rows borrow `label`/`meta` from the source nodes, and filtering does not lowercase per node per level. The flat index is consumed per draw and filtered by a query that changes in `update`, so it lives in `ui.cache::<TreeIndex>(id)` (R8, §21 item 2), rebuilt when the cached `(expand_generation, query_hash)` stamp differs from `TreeState`'s; `TreeState` holds only `expanded: HashSet<ItemKey>` and the generation. §12.4's "`Tree` keeps hierarchy, lazy children" is amended with this storage requirement. (perf §6.3, §5.2) | §12.4 | `tree_100k_nodes_flatten` — allocs **< 10 × viewport** per toggle; `tree_100k_nodes_render` — allocs/frame independent of node count; `key_tree_toggle_10k` |
@@ -4068,6 +4131,11 @@ Every item below changes rendered output relative to the reviewed baseline. Each
 | 32 | **First-generation per-app visual baselines.** Each migrated application owns a checked-in cell-exact baseline under `apps/<app>/tests/baselines/`. These keys are first-generation evidence for the application surfaces and are never treated as an implicit approval of future movement. `{scope: first-generation}` | Slice 5–7 application code must be reviewable as rendered output, not only by substring assertions. A fresh capture matrix and independent visual review compare the app frames with the matching frozen before evidence where one exists. | `xtask capture-matrix` artifacts under `shots/`, app visual tests, and a `docs/visual-changes.md` entry listing the exact generated key pattern and review disposition. A later movement cites the applicable defect/fix item or is a regression. |
 | 33 | **First-generation per-app performance baselines.** Each migrated application owns its measured rows under `apps/<app>/tests/perf_baseline.txt`; the frozen root performance file remains the before-image. `{scope: first-generation}` | Application performance must be measured through the shared allocator/timing harness after migration. Missing or empty per-app files are a failure, and a later allocation/byte increase is a regression. | `architecture::app_baselines_exist`, package-qualified perf targets with `PERF_BLESS=1`, CI's no-rebless diff, and the `PERF` lines uploaded as build artifacts. |
 | 34 | **Migrated app visual repair baselines.** Exactly 144 existing Showcase digest keys move after two demonstrated fixes: the Paper/ANSI16 foreground ladder is repaired for light surfaces (88 keys), and the shared Grid/Table geometry and header presentation are corrected (the remaining 56 Data grid and Tables keys across all themes and colour levels). `{scope: truecolor}` | The fresh visual audit found unreadable `#e5e5e5` labels on `#ffffff` in Paper/ANSI16 and stale shared grid/table output after the TablePro header/active-cell fixes. This row authorizes only the exact repaired cells below; it does not authorize unrelated app or component drift. | `apps/showcase/tests/visual.rs::showcase_visual_baseline`, a regenerated 96-cell `xtask capture-matrix`, and a fresh independent visual review of representative Paper/ANSI16, Grid/Table, TablePro and Jackin frames. Reject any unaccounted key, geometry/content drift, or remaining contrast defect. |
+| 35 | **Empty regions inherit the owning style; hover lifts only the hovered row.** The empty branches of `List`, `Grid`, `FilterList`/`Picker` route through `EmptyState::draw_inherited`, so the owner's EMPTY-part style fills the whole empty rect; NavList's container/header fills add `StateFlags::HOVERED` to their difference masks and Junie's LIST row-hover plane moves to `HoverSurface`. Exactly 20 retained truecolor component keys move; frame text is identical before and after for every one of them. `{scope: truecolor}` | An empty component with unstyled blank cells and a hover tint that lifted gaps, headers and unrelated rows were demonstrated defects of the shared path; the corrections remove the enabling condition rather than patching call sites. | The no-BLESS frame-text dumps (byte-identical text, style-only movement), the sidebar contract `row_hover_does_not_lift_headers_gaps_or_other_rows`, and the `render::components::*::empty`/`nav_list::hovered` digests; the exact claims live in `docs/visual-changes.md` Item 35. Reject any text or geometry change on these keys. |
+| 36 | **Showcase: coverage expansion unified with the historical page flows, pinned to the Holla shell.** The merged 22 pages are the reviewed single-constructor coverage line plus the main line's historical flows, and two Holla production-parity corrections (Editor heading always `Code editor`; capability cluster needs two cells of clearance from the breadcrumb). Every retained Showcase cell moves for that union — exactly 672 keys (168 truecolor and 504 mono/ANSI16/ANSI256) — and the Editor page's 32 cells are recorded for the first time under its corrected `Code editor` name. `{scope: truecolor}` | Both source lines were reviewed separately; the union is the deliberate rendering, and the Holla reference fixtures turned two divergences from taste questions into measurable defects. | `holla-page-headings.tsv` (352 rows) and `holla-shell-headers.tsv` (355 rows) from the Holla 794b095 binary, `showcase_visual_baseline`, and the exact claims in `docs/visual-changes.md` Item 36; a refreshed capture matrix and independent review remain required. Reject unaccounted pages, dropped component coverage, or further reference-fixture divergence. |
+| 37 | **TablePro: the merged shell is the union of the recorded historical restoration and the branch's role-owned corrections, re-blessed.** Legacy tree gutters resolve `Role::OnSurfaceInverse`, the embedded Grid carries the detailed-gutter and full-height-track corrections, and item 35 flows through the embedded components. Exactly 168 retained TablePro keys move (84 truecolor and 84 mono/ANSI16/ANSI256). `{scope: truecolor}` | Two divergent lines of deliberate corrections were unified; the recorded cells must describe the merged rendering, not either parent's. | `tablepro_visual_baseline`, the tablepro unit and interaction suites, and the exact claims in `docs/visual-changes.md` Item 37; refreshed captures and independent review remain required. Reject any surface whose movement is not explained by the union. |
+| 38 | **Jackin: the scenario matrix is re-blessed over the shared recipe corrections.** The eight-scenario app, its contracts, rain timing and duration wording are untouched; the styling corrections (badge recipe, authored capability palettes, item 35) flow into the recorded cells. Exactly 64 retained Jackin keys move (32 truecolor and 32 mono — the authored mono palette is one of the corrections). `{scope: truecolor}` | The committed matrix predated the recipe corrections; blessing records the same scenarios under the merged theme pipeline without any behavioral change to authorize. | `jackin_visual_baseline`, the jackin unit suites, and the exact claims in `docs/visual-changes.md` Item 38; refreshed captures and independent review remain required. Reject any scenario-contract or timing change — those remain closing-clause regressions. |
+| 39 | **crates/tui: the component digests are re-blessed to the merged semantic-paint pipeline.** The merged component rendering is the union of the branch's reviewed corrections (items 22–31 and 35) and the main line's historical restoration (§7d); the recorded crates/tui digests predate one side of that union and are re-blessed once over it. Exactly 594 retained component keys move (54 truecolor and 540 mono/ANSI16/ANSI256). `{scope: truecolor}` | Both source lines were reviewed separately; the union is the deliberate rendering, and each family's frame-text guarantee lives in the item that introduced it. | `render_components`, the exact claims in `docs/visual-changes.md` Item 39, and the Holla reference fixtures at the app level. Reject any key outside the merged diff or any per-family guarantee contradicted by it. |
 
 The TextViewport exact-layout adjudication changes no pixels: it corrects cache cardinality, invalidation and performance-accounting contracts only. No component digest or visual baseline movement is authorized.
 
@@ -4201,7 +4269,7 @@ Shared, contended files are handled by convention rather than by ownership: `com
 
 * **Files:** `apps/tablepro/**` in full, including the new `src/grid_model.rs` (the `GridModel`/`GridEditor` adapter carrying `CellValue`, `PendingChanges`, `UndoAction`, `RowState` derivation, validators, `cmp_cells`, insert/duplicate/delete/discard/undo, `primary`/`nullable`/`references`/`enum_values`, `pending_label`, the Save/Discard/Preview action bar) and `src/filter_editor.rs`.
 * DOM §1.6's 22-capability mapping is the migration checklist; each capability is ticked off against a retained or new test before the slice closes.
-* **Gate:** the §26 set scoped to `-p junie-tui -p tablepro` plus `cargo run -p xtask -- doc-check`; all 23 existing tests green; <!-- corrected by §32.6 --> `grid_500x12_load` and `frame_tablepro_grid_500x12_120x40` meet their §16.6 thresholds; `apps/tablepro/tests/baselines/tablepro.txt` regenerated once with every difference classified; captures of connection, editor, grid, tabs, dialog, menu, picker and results surfaces reviewed.
+* **Gate:** the §26 set scoped to `-p junie-tui -p tablepro` plus `cargo run -p xtask -- doc-check`; all 23 existing tests green; <!-- corrected by §32.6 --> `grid_500x12_load` and `frame_tablepro_grid_500x14_120x40` meet their §16.6 thresholds; `apps/tablepro/tests/baselines/tablepro.txt` regenerated once with every difference classified; captures of connection, editor, grid, tabs, dialog, menu, picker and results surfaces reviewed.
 
 ### Slice 7 — Jackin (one owner)
 
@@ -4750,6 +4818,9 @@ pub enum RegionKind {
 **Item 15 — M29: cursor rejection under `inert_below`; focus-restore staging.** Amends §8.4, §3.3 step 14, §16.2 case 17, §16.1 `focus.rs`.
 
 (a) §8.4: *a `set_cursor` from a suppressed (inert) layer is discarded silently; `CursorRejected` is recorded only for a non-inert lower layer or an unfocused owner.* Case 17 is exercised with a `Popover` (pointer barrier only, no `inert_below`). (b) §3.3 step 14: *focus restoration is staged at `close_layer` and applied at the next draw's reconcile. Until then, `FocusState::current` is the restore target and key resolution uses it even though it is absent from the last ring; this is the one documented exception to "resolve against last frame".* New test `focus::restore_target_receives_keys_before_the_next_draw`.
+
+**Publication restoration amendment:** the historical immediate-opener exception above is superseded. Close lifecycle and the closing owner's `FocusOut` remain immediate, but restoration grants no focus or `FocusIn` until successful live publication validates the opener against the new ring and live layers. Removed, disabled or trapped-out openers use ordinary survivor reconciliation. Fresh programmatic focus remains distinct and may name a newly introduced owner. Dropped/aborted paints and Scene projection cannot acknowledge restoration. The retained obligation remains `focus::restore_target_receives_retained_key_after_the_next_publication`: the same original next key reaches the valid opener after publication and explicit settlement. `focus_restoration::escape_does_not_restore_removed_opener` covers the formerly phantom callback path; `layer::nested_layers_each_trap` retains its target/trap assertions and observes callbacks after explicit settlement.
+
 
 **Item 16 — M3, M5: `Ui::layer` arity; `Id::part` versus `PartRef`.** Amends §3.3 step 12, §7.1, §16.4 item 3, §17.0 A8.
 
@@ -8251,9 +8322,10 @@ buffer/region containment, and update/draw geometry agreement.
 ## §65 Adjudication — Grid readiness is local data, not a whole-grid status <!-- amended by §65 -->
 
 **Status: accepted.** Delete Grid's draft `.status(Status)` API, field, and global readiness
-propagation; do not add `Part::ICON`. §12.3's kept surface never included whole-grid status, no
-production caller uses it, and Grid's exact nine-part list remains
-`[CONTAINER,HEADER,ROW,CELL,TRACK,THUMB,OVERFLOW,EMPTY,ACTIONS]`.
+propagation. §12.3's kept surface never included whole-grid status and no production caller
+uses it. The original nine-part list is preserved by default rendering. A7 now explicitly
+adds real optional detailed-gutter surfaces and a per-column header-prefix `ICON`; that
+prefix is not a whole-grid readiness affordance and does not restore `.status(Status)`.
 
 The legacy behavior was local: an empty grid used `EmptyState::Loading/Error`, while a pending
 fetch row owned its spinner/text. It never broadcast BUSY or ERROR over loaded rows. Initial
@@ -8658,3 +8730,73 @@ item 19 itself was created to avoid.
 **Acceptance.** `bless-guard` recognises items 32 and 33 and the per-app baseline paths;
 `xtask::frozen_baselines_are_never_touched` continues to refuse the root paths; and the item 19
 citation for application baselines is rejected rather than silently accepted.
+
+
+## 75. Reviewed recovery of absent historical renderings
+
+The user-authorized main-based integration task and independent review recorded
+in [the historical regeneration approval](docs/historical-regeneration-approval.md)
+authorize one narrow exception to the blanket frozen-addition refusal in §16.3,
+§36 and §49. Exactly 499 HTML and 499 PNG renderings may be added only where the
+comparison base has no blob and the installed bytes match the immutable reviewed
+manifest from generator commit c051c8fa61c2fd67eb06e122dd91fd2553c8c810. The
+manifest SHA-256 is e2dcdb2952e5cbd283b841ce055962c4d961dfa967d43c879bdbc49a5abdb6cb.
+
+Every existing original artifact remains immutable. Existing blobs, including
+empty blobs, never qualify for this exception; edits, replacements, renames and
+deletions remain refused. Missing or altered manifest, review, original input or
+expected output, an unrelated comparison base, and unreviewed HTML/PNG additions
+fail closed. The full 998-file installation is required, including ignored files.
+
+These artifacts are **regenerated historical renderings, not recovered original
+image bytes**. The retained historical renderer's limitations and the unknown
+original executable hash remain explicit. Font license and generation provenance
+live outside the frozen artifact directory. This amendment does not authorize
+baseline key blessing, candidate snapshot approval, or pinned-Holla acceptance.
+
+
+## Meter semantic rest policy amendment
+
+`MeterTokens::fill_rest` is now `MeterFillRest`, either `Color(Color)` or
+`ReferenceLift`. This is an explicit experimental API migration: existing custom
+struct literals and assignments must wrap their color in `MeterFillRest::Color`.
+The symbolic policy applies the pinned Holla reference lift to the resolved
+current surface color: compare Canvas first (return Elevated), then Surface or Elevated
+(return Overlay), then Field (return FieldHover), else return Popover. Ordering
+is normative after capability conversion or custom token aliasing; comparing the
+semantic Surface enum instead changes reference output when colors coincide.
+This is an explicitly authored color policy, not RGB inference of painted roles.
+The typed carrier retains `Role::HoverSurface` and its original source surface
+for delayed dimming provenance; the generic `Theme::raise` ladder is separate.
+
+Junie defaults recover the pinned Meter roles: Low uses secondary text, Stale
+uses faint text, and Block rest lifts its inherited surface. Paper retains its
+concrete rest color and existing low/stale defaults. Explicit custom rest colors
+and low/stale tokens remain authoritative; component part defaults and theme,
+subtree, instance and part overrides retain the established resolver precedence.
+Quota lifecycle remains application-owned.
+
+Capability projection traverses all 73 typed semantic slots. `ColorTokens::colors`
+returns only concrete colors (72 for symbolic Junie); callers needing stable slot
+positions must use `semantic_colors`. Generic downgrade transforms concrete colors
+only. Authored capability palettes may change a slot between concrete and symbolic
+policy; actual prior projection and sticky per-slot eligibility protect direct
+mutations across missing palettes and repeated conversion chains. No palette
+position is inferred from color equality or a variable-length color list.
+
+This source correction does not approve changed digests or baseline files. The
+existing 16-frame Meter preservation assertion remains unchanged pending independent
+review of canonical before/after cells and pinned-source role derivation.
+
+## ScrollRegion scrollbar visibility amendment
+
+`ScrollRegion` gains `scrollbar_visible(bool)` (default `true`); `NavList`
+forwards it as `NavList::scrollbar_visible`. When false, the shared wheel
+routing and cursor reveal stay active, `draw` returns the full `area` (no
+scrollbar column is reserved), no track or thumb is painted or registered, and
+`measure` shrinks its minimum to `1 × 1`. A pointer part targeting the bar of a
+region whose scrollbar is hidden is consumed without scrolling, and an active
+thumb capture is released when the scrollbar hides mid-drag. This amends the
+"Scrolling is shared" contract's content-rect clause: the returned rect is
+`area` minus one scrollbar column only when the content overflows **and** the
+scrollbar is visible.

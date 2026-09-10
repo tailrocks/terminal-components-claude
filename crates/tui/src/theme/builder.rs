@@ -56,6 +56,23 @@ impl ThemeBuilder {
         }
     }
 
+    /// Install authored semantic capability palettes. Source guards preserve
+    /// generic conversion for independently changed tokens and dependants.
+    #[must_use]
+    pub fn capability_palettes(mut self, mut palettes: super::CapabilityPalettes) -> Self {
+        palettes.eligible.fill(true);
+        palettes.projected = None;
+        self.theme.capability_palettes = Some(std::sync::Arc::new(palettes));
+        self
+    }
+
+    /// Use generic conversion for every semantic token at limited capability.
+    #[must_use]
+    pub fn clear_capability_palettes(mut self) -> Self {
+        self.theme.capability_palettes = None;
+        self
+    }
+
     /// Set the accent; re-derives its dependants unless set explicitly.
     #[must_use]
     pub fn accent(mut self, c: Color) -> Self {
@@ -568,7 +585,9 @@ pub(crate) fn derive_unset(c: &mut ColorTokens) {
     fill(&mut me.medium, || c.warning);
     fill(&mut me.high, || c.danger);
     fill(&mut me.track, || c.border_subtle);
-    fill(&mut me.fill_rest, || c.fg[3]);
+    if let super::MeterFillRest::Color(color) = &mut me.fill_rest {
+        fill(color, || c.fg[3]);
+    }
     fill(&mut me.stale, || c.fg[2]);
     fill(&mut me.unknown, || c.fg[3]);
     let series_default = [me.low, me.medium, me.high, c.info, c.accent, c.fg[1]];

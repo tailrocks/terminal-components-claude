@@ -71,6 +71,7 @@ fn role_style(theme: &Theme, patch: StylePatch) -> Style {
             Surface::Canvas,
         )
         .style
+        .into_style()
 }
 
 /// Resolve a tone to a theme style.  Dim is index arithmetic over the

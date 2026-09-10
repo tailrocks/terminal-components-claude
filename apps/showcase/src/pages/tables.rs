@@ -2,13 +2,13 @@
 
 use junie_tui::{
     Align, CellRef, Column, ColumnKey, Cx, EmptyState, Family, FgStep, Grid, GridAction, GridModel,
-    GridState, Id, ItemKey, NavUnit, Panel, PanelKind, Part, Rect, Response, Role, RowDecor,
-    RowTotal, SortDir, StateFlags, StylePatch, Track, Ui, Variant, id, layout,
+    GridState, Id, ItemKey, NavUnit, Panel, PanelKind, Part, Rect, Role, RowDecor, RowTotal,
+    SortDir, StateFlags, StylePatch, Track, Ui, Variant, id, layout,
 };
 
 use crate::data::{TASKS, TaskRow, TaskStatus};
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const TABLE: Id = id!("tables.tasks");
 const CHECKS: Id = id!("tables.checks");
@@ -282,9 +282,9 @@ fn legacy_table(
     model: &TableModel,
     state: &GridState,
     sort: Option<(ColumnKey, SortDir)>,
-    header_style: junie_tui::Style,
-    row_style: junie_tui::Style,
+    styles: (junie_tui::author::PaintStyle, junie_tui::author::PaintStyle),
 ) {
+    let (header_style, row_style) = styles;
     if area.is_empty() {
         return;
     }
@@ -429,10 +429,7 @@ fn table() -> Grid<'static> {
         .patch_part(PART_PATCH)
 }
 
-fn table_view() -> Grid<'static> {
-    table()
-}
-
+/// The one checks-card constructor (§13), reached from update and from draw.
 fn checks_panel() -> Panel<'static> {
     Panel::new(CHECKS)
         .kind(PanelKind::Card)
@@ -472,8 +469,7 @@ impl Page for TablesPage {
         "Tables"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let _ = checks_panel();
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let action = table().update(cx, &mut self.state, &self.model);
         if let Some(GridAction::Sort(key, direction)) = action.action_ref() {
             self.model.sort(*key, *direction);
@@ -497,7 +493,8 @@ impl Page for TablesPage {
             // The historical page only changes the sort label for a sort;
             // cursor motion leaves the current header status intact.
         }
-        action.erase()
+        let _ = checks_panel();
+        action.erase().into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -513,7 +510,7 @@ impl Page for TablesPage {
             );
             let tasks = regions.first().copied().unwrap_or(body);
             let task_meta = if self.sort.is_some() {
-                let rows = table_view().rows_label(ui, &self.state, &self.model);
+                let rows = table().rows_label(ui, &self.state, &self.model);
                 format!(
                     "{} · {}",
                     self.last,
@@ -528,34 +525,7 @@ impl Page for TablesPage {
                 .meta(&task_meta)
                 .patch_part(PANEL_PARTS)
                 .draw(ui, tasks, |ui, inner| {
-                    let grid_area = Rect {
-                        x: inner.x,
-                        width: inner.width,
-                        ..inner
-                    };
-                    table_view().draw(ui, grid_area, &self.state, &self.model);
-                    let header = ui.style(
-                        Family::GRID,
-                        Variant::DEFAULT,
-                        Part::HEADER,
-                        StateFlags::empty(),
-                    );
-                    let row_style = ui.style(
-                        Family::GRID,
-                        Variant::DEFAULT,
-                        Part::ROW,
-                        StateFlags::empty(),
-                    );
-                    legacy_table(
-                        ui,
-                        grid_area,
-                        body.width,
-                        &self.model,
-                        &self.state,
-                        self.sort,
-                        header.style,
-                        row_style.style,
-                    );
+                    self.draw_tasks(ui, inner, body.width);
                 });
             paint_card_meta(ui, tasks, &task_meta);
             if let Some(checks) = regions.get(2).copied() {
@@ -598,11 +568,11 @@ impl Page for TablesPage {
         });
     }
 
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if self.state.is_editing() {
-            vec![("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next cell")]
+            &[("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next cell")]
         } else {
-            vec![
+            &[
                 ("↑ ↓", "Move"),
                 ("← →", "Columns"),
                 ("s", "Sort column"),
@@ -613,5 +583,37 @@ impl Page for TablesPage {
 
     fn editing(&self, _ui: &Ui<'_>) -> bool {
         self.state.is_editing()
+    }
+}
+
+impl TablesPage {
+    fn draw_tasks(&self, ui: &mut Ui<'_>, inner: Rect, body_width: u16) {
+        let grid_area = Rect {
+            x: inner.x,
+            width: inner.width,
+            ..inner
+        };
+        table().draw(ui, grid_area, &self.state, &self.model);
+        let header = ui.style(
+            Family::GRID,
+            Variant::DEFAULT,
+            Part::HEADER,
+            StateFlags::empty(),
+        );
+        let row_style = ui.style(
+            Family::GRID,
+            Variant::DEFAULT,
+            Part::ROW,
+            StateFlags::empty(),
+        );
+        legacy_table(
+            ui,
+            grid_area,
+            body_width,
+            &self.model,
+            &self.state,
+            self.sort,
+            (header.style, row_style.style),
+        );
     }
 }

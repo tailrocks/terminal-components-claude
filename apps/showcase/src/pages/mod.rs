@@ -5,17 +5,33 @@
 //! application package a consumer of the public `junie-tui` facade rather than
 //! a second component implementation.
 
-use junie_tui::{
-    Color, Family, FgStep, FrameRead, Part, Rect, Response, StateFlags, Ui, Variant, truncate,
-    width,
-};
+use junie_tui::{Family, Part, Rect, Response, StateFlags, Ui, Variant, width};
+
+/// Product intent returned to the shell, which owns its display lifetime.
+pub(crate) struct PageStatus(pub(crate) String);
+
+/// A page preserves the component response metadata while returning any
+/// status change from the same update; no later outbox drain is required.
+pub(crate) struct PageUpdate {
+    pub(crate) response: Response<()>,
+    pub(crate) status: Option<PageStatus>,
+}
+
+impl From<Response<()>> for PageUpdate {
+    fn from(response: Response<()>) -> Self {
+        Self {
+            response,
+            status: None,
+        }
+    }
+}
 
 /// A stateful screen in the showcase.
 pub(crate) trait Page: Send {
     /// Stable navigation title.
     fn title(&self) -> &'static str;
     /// Drain this screen's runtime intents.
-    fn update(&mut self, cx: &mut junie_tui::Cx<'_>) -> Response<()>;
+    fn update(&mut self, cx: &mut junie_tui::Cx<'_>) -> PageUpdate;
     /// Handle an application-level command before component intents run.
     fn command(
         &mut self,
@@ -27,25 +43,13 @@ pub(crate) trait Page: Send {
     /// Draw this screen into the shell's content rectangle.
     fn draw(&self, ui: &mut Ui<'_>, area: Rect);
     /// Contextual footer hints for the focused page or layer.
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
-        Vec::new()
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
+        &[]
     }
     /// Whether the focused page control is in edit mode.
     fn editing(&self, _ui: &Ui<'_>) -> bool {
         false
     }
-}
-
-/// Read a configured foreground without exposing an unchecked array access to
-/// application code. `FgStep` is closed today, but this remains safe if the
-/// token table or enum grows independently.
-pub(crate) fn theme_fg(ui: &Ui<'_>, step: FgStep) -> Color {
-    ui.theme()
-        .color
-        .fg
-        .get(step.index())
-        .copied()
-        .unwrap_or_default()
 }
 
 /// Draw a screen frame and hand its inset body to the page.
@@ -83,15 +87,14 @@ pub(crate) fn frame(
     let title_area = Rect { height: 1, ..area };
     let title_width = width(title).min(area.width);
     ui.paint_str(title_area, title, title_style);
-    if !meta.is_empty() && area.width > title_width.saturating_add(2) {
+    if !meta.is_empty() && area.width > title_width.saturating_add(4) {
         let meta_area = Rect {
             x: area.x.saturating_add(title_width).saturating_add(2),
-            width: area.width.saturating_sub(title_width).saturating_sub(2),
+            width: area.width.saturating_sub(title_width).saturating_sub(3),
             height: 1,
             ..area
         };
-        let fitted = truncate(meta, meta_area.width);
-        ui.paint_str(meta_area, &fitted, meta_style);
+        paint_clipped_meta(ui, meta_area, meta, meta_style);
     }
     let body_area = Rect {
         y: area.y.saturating_add(2),
@@ -99,6 +102,31 @@ pub(crate) fn frame(
         ..area
     };
     body(ui, body_area);
+}
+
+fn paint_clipped_meta(
+    ui: &mut Ui<'_>,
+    meta_area: Rect,
+    meta: &str,
+    meta_style: junie_tui::author::PaintStyle,
+) {
+    if meta_area.is_empty() {
+        return;
+    }
+    if width(meta) <= meta_area.width {
+        ui.paint_str(meta_area, meta, meta_style);
+    } else {
+        let budget = Rect {
+            width: meta_area.width.saturating_sub(1),
+            ..meta_area
+        };
+        let used = ui.paint_str(budget, meta, meta_style);
+        ui.paint_str(
+            Rect::new(meta_area.x.saturating_add(used), meta_area.y, 1, 1),
+            "…",
+            meta_style,
+        );
+    }
 }
 
 /// Paint a set of lines with one-cell spacing, clipping at the body edge.
@@ -143,3 +171,56 @@ pub(crate) mod taskrunner;
 pub(crate) mod terminal;
 pub(crate) mod textareas;
 pub(crate) mod trees;
+
+#[cfg(test)]
+mod clipping_tests {
+    use super::paint_clipped_meta;
+    use junie_tui::{App, Cx, FgStep, Rect, Response, Role, StylePatch, Theme, Ui};
+    use junie_tui_testing::Harness;
+
+    struct Sample {
+        columns: u16,
+        text: &'static str,
+    }
+    impl App for Sample {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+        fn draw(&self, ui: &mut Ui<'_>) {
+            let style = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)));
+            paint_clipped_meta(ui, Rect::new(0, 0, self.columns, 1), self.text, style);
+        }
+    }
+
+    #[test]
+    fn clipped_meta_preserves_combining_and_wide_boundaries() {
+        for (columns, text, expected) in [
+            (0, "e\u{301}中x", ""),
+            (1, "e\u{301}中x", "…"),
+            (2, "e\u{301}中x", "e\u{301}…"),
+            (3, "e\u{301}中x", "e\u{301}…"),
+            (4, "e\u{301}中x", "e\u{301}中x"),
+            (1, "中a", "…"),
+            (2, "中a", "…"),
+            (3, "中a", "中a"),
+        ] {
+            let h = Harness::new(Sample { columns, text }, Theme::junie(), 8, 1);
+            assert_eq!(h.text().trim_end(), expected, "columns={columns}");
+            assert_eq!(
+                h.cell(columns, 0).symbol(),
+                " ",
+                "clip must not escape its area"
+            );
+            if columns > 0 {
+                assert_eq!(
+                    Some(h.cell(0, 0).fg),
+                    Theme::junie()
+                        .color
+                        .fg
+                        .get(FgStep::Secondary.index())
+                        .copied()
+                );
+            }
+        }
+    }
+}

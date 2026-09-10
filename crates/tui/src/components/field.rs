@@ -331,7 +331,8 @@ mod tests {
                     .help("The person's display name.")
                     .draw(ui, a, &st);
             });
-        });
+        })
+        .commit_presented();
         assert!(
             !rt.registry().delivers_to(INPUT),
             "the control registered a live region under a reference field"

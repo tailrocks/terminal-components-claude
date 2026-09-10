@@ -1,0 +1,178 @@
+[
+  {
+    "name": "installed-exact",
+    "argv": [
+      "/Users/donbeave/Projects/terminal-components-integration-evidence/target-historical-assets/debug/xtask",
+      "bless-guard"
+    ],
+    "base": "1318e85",
+    "exit": 0,
+    "stdout": "baseline_moves_are_classified: base 1318e85\nbaseline_moves_are_classified: 0 moved key(s), 0 added key(s) across 8 baseline file(s)\nok   baseline_moves_are_classified\n",
+    "stderr": ""
+  },
+  {
+    "name": "malformed-manifest",
+    "argv": [
+      "/Users/donbeave/Projects/terminal-components-integration-evidence/target-historical-assets/debug/xtask",
+      "bless-guard"
+    ],
+    "base": "1318e85",
+    "exit": 1,
+    "stdout": "FAIL baseline_moves_are_classified\nhistorical addition: hash mismatch for tools/historical-render/pins.json\n",
+    "stderr": "xtask: 1 check(s) failed: baseline_moves_are_classified\n"
+  },
+  {
+    "name": "tampered-manifest",
+    "argv": [
+      "/Users/donbeave/Projects/terminal-components-integration-evidence/target-historical-assets/debug/xtask",
+      "bless-guard"
+    ],
+    "base": "1318e85",
+    "exit": 1,
+    "stdout": "FAIL baseline_moves_are_classified\nhistorical addition: hash mismatch for tools/historical-render/pins.json\n",
+    "stderr": "xtask: 1 check(s) failed: baseline_moves_are_classified\n"
+  },
+  {
+    "name": "tampered-output",
+    "argv": [
+      "/Users/donbeave/Projects/terminal-components-integration-evidence/target-historical-assets/debug/xtask",
+      "bless-guard"
+    ],
+    "base": "1318e85",
+    "exit": 1,
+    "stdout": "FAIL baseline_moves_are_classified\nhistorical addition: hash mismatch for baseline/before/showcase_overview_default_80x24.png\n",
+    "stderr": "xtask: 1 check(s) failed: baseline_moves_are_classified\n"
+  },
+  {
+    "name": "changed-original",
+    "argv": [
+      "/Users/donbeave/Projects/terminal-components-integration-evidence/target-historical-assets/debug/xtask",
+      "bless-guard"
+    ],
+    "base": "1318e85",
+    "exit": 1,
+    "stdout": "FAIL baseline_moves_are_classified\nhistorical addition: hash mismatch for baseline/before/showcase_overview_default_80x24.ansi\n",
+    "stderr": "xtask: 1 check(s) failed: baseline_moves_are_classified\n"
+  },
+  {
+    "name": "tampered-review",
+    "argv": [
+      "/Users/donbeave/Projects/terminal-components-integration-evidence/target-historical-assets/debug/xtask",
+      "bless-guard"
+    ],
+    "base": "1318e85",
+    "exit": 1,
+    "stdout": "FAIL baseline_moves_are_classified\nhistorical addition: hash mismatch for docs/historical-regeneration/independent-review.md\n",
+    "stderr": "xtask: 1 check(s) failed: baseline_moves_are_classified\n"
+  },
+  {
+    "name": "tampered-provenance",
+    "argv": [
+      "/Users/donbeave/Projects/terminal-components-integration-evidence/target-historical-assets/debug/xtask",
+      "bless-guard"
+    ],
+    "base": "1318e85",
+    "exit": 1,
+    "stdout": "FAIL baseline_moves_are_classified\nhistorical addition: hash mismatch for docs/historical-regeneration/PROVENANCE.json\n",
+    "stderr": "xtask: 1 check(s) failed: baseline_moves_are_classified\n"
+  },
+  {
+    "name": "missing-output",
+    "argv": [
+      "/Users/donbeave/Projects/terminal-components-integration-evidence/target-historical-assets/debug/xtask",
+      "bless-guard"
+    ],
+    "base": "1318e85",
+    "exit": 1,
+    "stdout": "FAIL baseline_moves_are_classified\nhistorical addition: cannot inspect baseline/before/showcase_overview_default_80x24.png: No such file or directory (os error 2)\n",
+    "stderr": "xtask: 1 check(s) failed: baseline_moves_are_classified\n"
+  },
+  {
+    "name": "unreviewed-ignored-output",
+    "argv": [
+      "/Users/donbeave/Projects/terminal-components-integration-evidence/target-historical-assets/debug/xtask",
+      "bless-guard"
+    ],
+    "base": "1318e85",
+    "exit": 1,
+    "stdout": "FAIL baseline_moves_are_classified\nhistorical addition: unreviewed output UNREVIEWED_MUTATION.png\n",
+    "stderr": "xtask: 1 check(s) failed: baseline_moves_are_classified\n"
+  },
+  {
+    "name": "symlink-output",
+    "argv": [
+      "/Users/donbeave/Projects/terminal-components-integration-evidence/target-historical-assets/debug/xtask",
+      "bless-guard"
+    ],
+    "base": "1318e85",
+    "exit": 1,
+    "stdout": "FAIL baseline_moves_are_classified\nhistorical addition: baseline/before/showcase_overview_default_80x24.png is not a regular file\n",
+    "stderr": "xtask: 1 check(s) failed: baseline_moves_are_classified\n"
+  },
+  {
+    "name": "invalid-base",
+    "argv": [
+      "/Users/donbeave/Projects/terminal-components-integration-evidence/target-historical-assets/debug/xtask",
+      "bless-guard"
+    ],
+    "base": "not-a-revision",
+    "exit": 1,
+    "stdout": "FAIL baseline_moves_are_classified\nbless-guard base revision `not-a-revision` (from BLESS_GUARD_BASE) does not resolve. Falling back to HEAD here would compare the tree with itself and pass vacuously, which is the failure this gate exists to prevent, so the guard stops instead. In CI the checkout needs `fetch-depth: 0`; locally set BLESS_GUARD_BASE to a revision that exists.\n",
+    "stderr": "xtask: 1 check(s) failed: baseline_moves_are_classified\n"
+  },
+  {
+    "name": "unrelated-base",
+    "argv": [
+      "/Users/donbeave/Projects/terminal-components-integration-evidence/target-historical-assets/debug/xtask",
+      "bless-guard"
+    ],
+    "base": "c12cad8728755cd2d03eefdd8e02891143fca86d^",
+    "exit": 1,
+    "stdout": "FAIL baseline_moves_are_classified\nhistorical addition: git [\"merge-base\", \"--is-ancestor\", \"c12cad8728755cd2d03eefdd8e02891143fca86d\", \"c12cad8728755cd2d03eefdd8e02891143fca86d^\"] failed: \n",
+    "stderr": "xtask: 1 check(s) failed: baseline_moves_are_classified\n"
+  },
+  {
+    "name": "restored-exact",
+    "argv": [
+      "/Users/donbeave/Projects/terminal-components-integration-evidence/target-historical-assets/debug/xtask",
+      "bless-guard"
+    ],
+    "base": "1318e85",
+    "exit": 0,
+    "stdout": "baseline_moves_are_classified: base 1318e85\nbaseline_moves_are_classified: 0 moved key(s), 0 added key(s) across 8 baseline file(s)\nok   baseline_moves_are_classified\n",
+    "stderr": ""
+  },
+  {
+    "name": "parity-inventory",
+    "argv": [
+      "/Users/donbeave/Projects/terminal-components-integration-evidence/target-historical-assets/debug/xtask",
+      "parity",
+      "--dry-run"
+    ],
+    "base": "1318e85",
+    "exit": 0,
+    "stdout": "parity dry-run: 499 recipes mapped; showcase=208 tablepro=108 jackin=183\nparity dry-run: 7014 replay input events parsed\nparity dry-run: current replay evidence is required at parity/evidence.tsv; no output approved\n",
+    "stderr": ""
+  },
+  {
+    "name": "current-acceptance-remains-unapproved",
+    "argv": [
+      "/Users/donbeave/Projects/terminal-components-integration-evidence/target-historical-assets/debug/xtask",
+      "parity"
+    ],
+    "base": "1318e85",
+    "exit": 1,
+    "stdout": "",
+    "stderr": "xtask: cannot inspect parity replay evidence parity/evidence.tsv: No such file or directory (os error 2)\n"
+  },
+  {
+    "name": "nested-ignored-output",
+    "argv": [
+      "/Users/donbeave/Projects/terminal-components-integration-evidence/target-historical-assets/debug/xtask",
+      "bless-guard"
+    ],
+    "exit": 1,
+    "stdout": "FAIL baseline_moves_are_classified\nhistorical addition: unreviewed output baseline/before/nested-mutation/UNREVIEWED.png\n",
+    "stderr": "xtask: 1 check(s) failed: baseline_moves_are_classified\n"
+  }
+]

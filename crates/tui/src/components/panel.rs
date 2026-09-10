@@ -36,7 +36,7 @@ pub enum PanelKind {
 /// selects the bordered pane.
 ///
 /// ## Ownership
-/// The caller owns the title and the meta text (`&'a str`) and the
+/// The caller owns the title, meta and badge text (`&'a str`) and the
 /// `focused` predicate. `Panel` is stateless (§3: no `PanelState`) and the
 /// runtime owns nothing on its behalf beyond the decorative hit regions
 /// `draw` registers.
@@ -90,7 +90,7 @@ pub enum PanelKind {
 ///
 /// ## Parts
 /// `CONTAINER` (the fill), `GUTTER` (the container focus bar), `TITLE`,
-/// `DETAIL` (the right-aligned meta), `BADGE` (the semantic label), `BORDER`
+/// `DETAIL` (the right-aligned meta), `BADGE` (padded, before meta), `BORDER`
 /// (framed only).
 ///
 /// ## Overrides
@@ -186,13 +186,15 @@ impl<'a> Panel<'a> {
         self
     }
 
-    /// A short semantic label painted between the title and meta text.
+    /// A padded badge before the right-aligned metadata, styled by `Part::BADGE`.
     ///
     /// The `PANEL/BADGE` recipe owns its colors and emphasis; callers supply
     /// only the label, so capability downgrade and theme mapping stay shared.
+    /// Empty badges are absent. A badge is hidden when its complete text,
+    /// padding and gaps cannot fit alongside the title and metadata.
     #[must_use]
-    pub const fn badge(mut self, b: &'a str) -> Self {
-        self.badge = Some(b);
+    pub const fn badge(mut self, text: &'a str) -> Self {
+        self.badge = if text.is_empty() { None } else { Some(text) };
         self
     }
 
@@ -289,6 +291,30 @@ impl<'a> Panel<'a> {
         r
     }
 
+    /// The head-row width the badge lane needs to sit beside the title and
+    /// the metadata, or `None` without a badge. The single source of truth
+    /// shared by `measure` (which reports it as the preferred width) and
+    /// `head` (which falls back to the no-badge layout below it), so the two
+    /// can never disagree about when the badge fits.
+    fn badge_lane_width(&self) -> Option<u16> {
+        let title_w = self.title.map_or(0, crate::text::width);
+        let meta_w = self.meta.map_or(0, crate::text::width);
+        let badge_w = self.badge.map(crate::text::width)?;
+        // Head starts two cells in and ends before the corner. Each framed
+        // text run reserves its existing border padding.
+        Some(
+            title_w
+                .saturating_add(meta_w)
+                .saturating_add(badge_w)
+                .saturating_add(7)
+                .saturating_add(if self.kind == PanelKind::Framed {
+                    1u16.saturating_add(2u16.saturating_mul(u16::from(self.meta.is_some())))
+                } else {
+                    0
+                }),
+        )
+    }
+
     /// The natural size: the chrome plus one content cell.
     pub fn measure(&self, ui: &Ui<'_>, c: Constraints) -> Size {
         let side = match self.kind {
@@ -299,14 +325,11 @@ impl<'a> Panel<'a> {
         let chrome_h = self.top_inset().saturating_add(1);
         let title_w = self.title.map_or(0, crate::text::width);
         let meta_w = self.meta.map_or(0, crate::text::width);
-        let badge_w = self
-            .badge
-            .map_or(0, |b| crate::text::width(b).saturating_add(2));
         let head = title_w
-            .saturating_add(badge_w)
             .saturating_add(meta_w)
-            .saturating_add(u16::from(badge_w != 0 || meta_w != 0))
+            .saturating_add(u16::from(meta_w != 0))
             .saturating_add(2);
+        let head = self.badge_lane_width().map_or(head, |lane| lane.max(head));
         Size {
             min: (chrome_w.saturating_add(1), chrome_h.saturating_add(1)),
             preferred: (
@@ -364,14 +387,42 @@ impl<'a> Panel<'a> {
         self.head(ui, area, live, container.style);
     }
 
+    /// Paint the badge into `rect`: the slot replacement when one is
+    /// configured, otherwise the padded label composited over the panel's
+    /// surface (§22 R‑9) so the badge never resets the plane it sits on.
+    fn draw_badge(&self, ui: &mut Ui<'_>, rect: Rect, live: StateFlags) {
+        let Some(text) = self.badge.filter(|_| !rect.is_empty()) else {
+            return;
+        };
+        let style = self.ov.style(
+            ui,
+            self.id,
+            Family::PANEL,
+            Variant::DEFAULT,
+            Part::BADGE,
+            live,
+        );
+        ui.with_area(rect, |ui| {
+            if let Some(paint) = self.ov.slot_for(Part::BADGE) {
+                paint(ui, rect);
+            } else {
+                ui.fill(rect, style.over(ui.surface_style()));
+                ui.paint_str(
+                    Rect {
+                        x: rect.x.saturating_add(1),
+                        y: rect.y,
+                        width: rect.width.saturating_sub(2),
+                        height: 1,
+                    },
+                    text,
+                    style.style,
+                );
+            }
+        });
+    }
+
     /// The head row: focus gutter, title, badge and right-aligned meta.
-    fn head(
-        &self,
-        ui: &mut Ui<'_>,
-        area: Rect,
-        live: StateFlags,
-        fill: ratatui_core::style::Style,
-    ) {
+    fn head(&self, ui: &mut Ui<'_>, area: Rect, live: StateFlags, fill: crate::theme::PaintStyle) {
         let head = first_row(area);
         if head.is_empty() || area.width < 3 {
             return;
@@ -401,10 +452,15 @@ impl<'a> Panel<'a> {
         // The head span never touches the gutter or either frame corner.
         let span_w = area.width.saturating_sub(3);
 
-        // Preserve the established title/meta geometry when no badge is
-        // present. The badge lane below is additive; it must not perturb the
-        // protected panel layout used by existing callers and fixtures.
-        if self.badge.is_none() {
+        // Preserve the established title/meta geometry whenever the badge
+        // lane is absent or does not fit: the lane appears only at the width
+        // `measure` promises it, and below that the additive lane must not
+        // perturb the protected panel layout used by existing callers and
+        // fixtures.
+        if self
+            .badge_lane_width()
+            .is_none_or(|needed| area.width < needed)
+        {
             self.head_without_badge(ui, area, live, fill);
             return;
         }
@@ -456,22 +512,8 @@ impl<'a> Panel<'a> {
             }
         }
 
-        if let (Some(b), Some(rect)) = (self.badge, badge_rect) {
-            if let Some(f) = ov.slot_for(Part::BADGE) {
-                f(ui, rect);
-            } else {
-                let s = ov.style(ui, id, Family::PANEL, Variant::DEFAULT, Part::BADGE, live);
-                ui.fill(rect, s.style);
-                ui.paint_str(
-                    Rect {
-                        x: rect.x.saturating_add(1),
-                        width: rect.width.saturating_sub(2),
-                        ..rect
-                    },
-                    b,
-                    s.style,
-                );
-            }
+        if let Some(rect) = badge_rect {
+            self.draw_badge(ui, rect, live);
         }
 
         if let (Some(m), Some(rect)) = (self.meta, meta_rect) {
@@ -489,7 +531,7 @@ impl<'a> Panel<'a> {
         ui: &mut Ui<'_>,
         area: Rect,
         live: StateFlags,
-        fill: ratatui_core::style::Style,
+        fill: crate::theme::PaintStyle,
     ) {
         let head = first_row(area);
         let text_x = area.x.saturating_add(2);
@@ -560,7 +602,7 @@ fn paint_label(
     block: Rect,
     text: &str,
     pad: u16,
-    style: ratatui_core::style::Style,
+    style: crate::theme::PaintStyle,
 ) {
     let inner = Rect {
         x: block.x.saturating_add(pad),
@@ -606,7 +648,8 @@ mod tests {
                 seen.set(inner);
                 42
             });
-        });
+        })
+        .commit_presented();
         assert_eq!(answer, 42);
         assert_eq!(calls.get(), 1);
         assert_eq!(seen.get(), area);
@@ -626,7 +669,8 @@ mod tests {
                     ui.paint_str(row, "ZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ", style);
                 }
             });
-        });
+        })
+        .commit_presented();
         for pos in SCREEN.positions() {
             let is_z = buf.cell(pos).is_some_and(|cell| cell.symbol() == "Z");
             assert_eq!(is_z, inner.contains(pos), "body clip mismatch at {pos:?}");
@@ -677,7 +721,8 @@ mod tests {
                     }
                 }
             }
-        });
+        })
+        .commit_presented();
     }
 
     /// The head row is confined to `area.x + 1 ..= area.right() - 2`, so a
@@ -700,7 +745,8 @@ mod tests {
                 .title("a title far too long for this panel")
                 .meta("and a meta as well")
                 .draw(ui, area, |_, inner| inner);
-        });
+        })
+        .commit_presented();
         let b = Theme::junie().design.borders;
         assert_eq!(symbol_at(&buf, 0, 0), b.top_left);
         assert_eq!(symbol_at(&buf, 19, 0), b.top_right);
@@ -731,7 +777,8 @@ mod tests {
                     .title("Files")
                     .focused(focused)
                     .draw(ui, area, |_, inner| inner);
-            });
+            })
+            .commit_presented();
             symbol_at(&buf, 1, 0)
         };
         assert_eq!(render(true), bar, "a focused panel paints no focus bar");
@@ -754,7 +801,8 @@ mod tests {
                 .kind(PanelKind::Framed)
                 .title("Files")
                 .draw(ui, a, |_, inner| inner);
-        });
+        })
+        .commit_presented();
         assert!(!rt.ring().is_registered(ID));
         assert_eq!(rt.ring().reachable().count(), 0);
         assert!(rt.area_of(ID).is_some(), "the container is not addressable");
@@ -772,7 +820,8 @@ mod tests {
                     .title("Files")
                     .draw(ui, a, |_, inner| inner);
             });
-        });
+        })
+        .commit_presented();
         assert!(rt.area_of(ID).is_none());
     }
 
@@ -807,7 +856,8 @@ mod tests {
                     p = p.patch_part(&ps);
                 }
                 p.draw(ui, area, |_, inner| inner);
-            });
+            })
+            .commit_presented();
             buf
         };
         let plain = render(None);
@@ -851,7 +901,8 @@ mod tests {
                     p = p.slot(part, &marker);
                 }
                 p.draw(ui, area, |_, inner| inner);
-            });
+            })
+            .commit_presented();
             buf
         };
         let plain = render(None);

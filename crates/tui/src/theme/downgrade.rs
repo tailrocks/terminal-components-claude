@@ -4,6 +4,8 @@
 //! the 24-step greyscale and the 16 xterm defaults; `Theme::downgrade` maps
 //! every token through `ColorTokens::map_colors`, then protects the
 //! foreground ladder of light themes from ANSI16's bright grey entries.
+//! Explicit authored capability tables compose over that generic result by
+//! semantic slot and source provenance; they never change RGB conversion.
 
 use ratatui_core::style::{Color, Modifier};
 
@@ -259,6 +261,53 @@ fn repair_ansi16_light_foreground(source: &ColorTokens, mapped: &mut ColorTokens
     }
 }
 
+struct PaletteProjection<'a> {
+    source: &'a [super::MeterFillRest],
+    target: &'a [super::MeterFillRest],
+    generic: &'a [super::MeterFillRest],
+    eligible: &'a mut [bool],
+    index: usize,
+    level: ColorLevel,
+}
+impl PaletteProjection<'_> {
+    fn project(&mut self, current: super::MeterFillRest) -> super::MeterFillRest {
+        let i = self.index;
+        self.index = self.index.saturating_add(1);
+        if let Some((((expected, authored), generic), eligible)) = self
+            .source
+            .get(i)
+            .zip(self.target.get(i))
+            .zip(self.generic.get(i))
+            .zip(self.eligible.get_mut(i))
+        {
+            if current != *expected {
+                *eligible = false;
+            }
+            if *eligible { *authored } else { *generic }
+        } else {
+            match current {
+                super::MeterFillRest::Color(color) => {
+                    super::MeterFillRest::Color(downgrade_color(color, self.level))
+                }
+                super::MeterFillRest::ReferenceLift => current,
+            }
+        }
+    }
+}
+impl super::tokens::TokenMapper for PaletteProjection<'_> {
+    fn color(&mut self, current: Color) -> Color {
+        // Ordinary fields are Color in every typed source/target. A symbolic
+        // target cannot be authored at one of these positions.
+        match self.project(super::MeterFillRest::Color(current)) {
+            super::MeterFillRest::Color(color) => color,
+            super::MeterFillRest::ReferenceLift => downgrade_color(current, self.level),
+        }
+    }
+    fn meter_rest(&mut self, current: super::MeterFillRest) -> super::MeterFillRest {
+        self.project(current)
+    }
+}
+
 impl Theme {
     /// Every token mapped through [`downgrade_color`]; at `Mono` the mono
     /// fallback rules are applied by resolution (§11.4). Works for any theme.
@@ -278,6 +327,39 @@ impl Theme {
         out.color = self.color.map_colors(&mut |c| downgrade_color(c, level));
         if level == ColorLevel::Ansi16 {
             repair_ansi16_light_foreground(&self.color, &mut out.color);
+        }
+        if let Some(palettes) = &self.capability_palettes {
+            let expected = palettes
+                .projected
+                .filter(|(level, _)| *level == self.capability.color)
+                .map(|(_, tokens)| tokens)
+                .or_else(|| palettes.get(self.capability.color))
+                .unwrap_or_else(|| {
+                    let mut expected = palettes
+                        .source
+                        .map_colors(&mut |c| downgrade_color(c, self.capability.color));
+                    if self.capability.color == ColorLevel::Ansi16 {
+                        repair_ansi16_light_foreground(&palettes.source, &mut expected);
+                    }
+                    expected
+                });
+            let source = expected.semantic_colors();
+            let target = palettes.get(level).unwrap_or(out.color).semantic_colors();
+            let generic = out.color.semantic_colors();
+            let mut eligibility = palettes.eligible.clone();
+            out.color = self.color.map_with(&mut PaletteProjection {
+                source: &source,
+                target: &target,
+                generic: &generic,
+                eligible: &mut eligibility,
+                index: 0,
+                level,
+            });
+            if let Some(palettes) = &mut out.capability_palettes {
+                let palettes = std::sync::Arc::make_mut(palettes);
+                palettes.eligible = eligibility;
+                palettes.projected = Some((level, out.color));
+            }
         }
         out
     }
@@ -608,11 +690,22 @@ fn select_mono_rules() -> [MonoRule; 3] {
 /// [`ThemeBuilder::mono_rules`](super::ThemeBuilder::mono_rules), and
 /// [`Theme::downgrade`] adds none.
 pub(crate) fn apply_mono_fallback(
+    acc: StylePatch,
+    recipes: &Recipes,
+    family: Family,
+    part: Part,
+    live: StateFlags,
+) -> StylePatch {
+    apply_mono_with_defaults(acc, recipes, family, part, live, None)
+}
+
+pub(crate) fn apply_mono_with_defaults(
     mut acc: StylePatch,
     recipes: &Recipes,
     family: Family,
     part: Part,
     live: StateFlags,
+    authored: Option<&[MonoRule]>,
 ) -> StylePatch {
     let rules = mono_rules();
     let extra = mono_rules_extra();
@@ -628,7 +721,7 @@ pub(crate) fn apply_mono_fallback(
     // Whole-set semantics: an authored manifest *replaces* the built-in one
     // for that family, so a theme can retarget or silence it, and repeating
     // the call cannot accumulate duplicates.
-    let targeted: &[MonoRule] = recipes.mono_rules(family).unwrap_or(builtin);
+    let targeted: &[MonoRule] = recipes.mono_rules(family).or(authored).unwrap_or(builtin);
     for (rule_part, when, patch) in rules.iter().chain(extra.iter()).chain(targeted) {
         let applies = family != Family::SCROLLBAR
             || *rule_part != Part::CONTAINER
@@ -653,7 +746,7 @@ mod tests {
 
     #[test]
     fn downgrade_maps_every_token_exhaustively() {
-        let t = Theme::junie();
+        let t = Theme::from_tokens(Theme::junie().color);
         let d = t.downgrade(ColorLevel::Ansi256);
         for c in d.color.colors() {
             assert!(!matches!(c, Color::Rgb(..)), "{c:?} survived the downgrade");
@@ -818,7 +911,7 @@ mod tests {
     /// still be wrong if the colours moved.
     #[test]
     fn for_level_narrows_but_never_widens() {
-        let mono = Theme::junie().downgrade(ColorLevel::Mono);
+        let mono = Theme::from_tokens(Theme::junie().color).downgrade(ColorLevel::Mono);
         let widened = mono.for_level(ColorLevel::TrueColor);
         assert_eq!(
             widened.capability.color,

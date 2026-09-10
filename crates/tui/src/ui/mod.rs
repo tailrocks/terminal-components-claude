@@ -43,13 +43,37 @@ pub(crate) struct CellRoles {
     pub(crate) bg: Option<Role>,
 }
 
+impl CellRoles {
+    /// Apply exactly the same channel inheritance as the painted attributes.
+    fn patch(self, style: Option<crate::theme::PaintStyle>) -> Self {
+        match style {
+            Some(style) => Self {
+                fg: if style.fg.is_none() {
+                    self.fg
+                } else {
+                    style.fg_role.map(|(role, surface)| role.painted(surface))
+                },
+                bg: if style.bg.is_none() {
+                    self.bg
+                } else {
+                    style.bg_role.map(|(role, surface)| role.painted(surface))
+                },
+            },
+            None => Self::default(),
+        }
+    }
+}
+
 /// Per-frame output the runtime consumes after `app.draw` (§3.3 steps 12–15).
 #[derive(Debug, Default)]
 pub(crate) struct FrameState {
     pub(crate) registry: Registry,
     pub(crate) ring: FocusRing,
     pub(crate) layers: LayerPool,
-    pub(crate) cursor: Option<CursorRequest>,
+    pub(crate) cursors: Vec<CursorRequest>,
+    pub(crate) typing: Vec<crate::runtime::typing::TypingDeclaration>,
+    pub(crate) typing_bindings: BindingRegistry,
+    pub(crate) typing_resolved: crate::runtime::typing::TypingResolved,
     pub(crate) layout: Vec<(Id, LayoutFacts)>,
     pub(crate) declared: Vec<(Id, StateFlags)>,
     pub(crate) bindings: BindingRegistry,
@@ -165,7 +189,10 @@ impl FrameState {
         self.registry.reset(generation);
         self.ring.reset();
         self.layers.begin();
-        self.cursor = None;
+        self.cursors.clear();
+        self.typing.clear();
+        self.typing_bindings.reset();
+        self.typing_resolved = crate::runtime::typing::TypingResolved::default();
         self.layout.clear();
         self.declared.clear();
         self.bindings.reset();
@@ -301,7 +328,6 @@ pub struct Ui<'f> {
     layer: LayerId,
     inert: bool,
     reference: Option<ReferenceScope>,
-    roles: CellRoles,
 }
 
 impl core::fmt::Debug for Ui<'_> {
@@ -338,7 +364,6 @@ impl<'f> Ui<'f> {
             layer: LayerId::PAGE,
             inert,
             reference: None,
-            roles: CellRoles::default(),
         }
     }
 
@@ -356,7 +381,6 @@ impl<'f> Ui<'f> {
             layer: self.layer,
             inert: self.inert,
             reference: self.reference,
-            roles: self.roles,
         }
     }
 
@@ -454,12 +478,59 @@ impl<'f> Ui<'f> {
             &self.core.overlays,
             self.core.stack_hash,
         );
-        let r = crate::theme::resolve::bind(self.theme, acc, None, self.surface);
-        self.roles = CellRoles {
-            fg: acc.fg.get(),
-            bg: acc.bg.get(),
-        };
-        r
+        crate::theme::resolve::bind(self.theme, acc, None, self.surface)
+    }
+
+    /// Shared child style: defaults, owning logical part, explicit child overrides.
+    pub(crate) fn style_inherited(
+        &self,
+        family: Family,
+        variant: Variant,
+        part: Part,
+        flags: StateFlags,
+        inherited: crate::theme::PaintStyle,
+    ) -> Resolved {
+        crate::theme::resolve::bind_inherited(
+            self.theme,
+            (family, variant, part),
+            flags,
+            &self.core.overlays,
+            self.surface,
+            inherited,
+        )
+    }
+
+    /// Resolve component-author defaults without installing a theme recipe.
+    ///
+    /// Precedence: defaults, declared family/variant/state recipe, generic and
+    /// authored Mono fallback, explicit theme/scope overrides, then `local`.
+    /// A theme's targeted Mono manifest replaces the author's whole manifest.
+    /// Unknown families use these opted-in defaults instead of the neutral
+    /// recipe; ordinary [`Ui::style`] keeps its existing neutral fallback.
+    /// Different defaults never alias in the ordinary style cache.
+    pub fn style_defaults(
+        &self,
+        family: Family,
+        variant: Variant,
+        part: Part,
+        flags: StateFlags,
+        defaults: crate::theme::StyleDefaults<'_>,
+        local: Option<&crate::theme::StylePatch>,
+    ) -> Resolved {
+        crate::theme::resolve::bind_defaults(
+            self.theme,
+            (family, variant, part),
+            flags,
+            &self.core.overlays,
+            self.surface,
+            defaults,
+            local,
+        )
+    }
+
+    /// Bind a semantic patch directly against the current surface.
+    pub fn paint_patch(&self, patch: &crate::theme::StylePatch) -> crate::theme::PaintStyle {
+        crate::theme::resolve::bind(self.theme, *patch, None, self.surface).style
     }
 
     /// Resolve with a per-instance patch (precedence 6).
@@ -480,11 +551,6 @@ impl<'f> Ui<'f> {
             &self.core.overlays,
             self.core.stack_hash,
         );
-        let merged = acc.merge(*patch);
-        self.roles = CellRoles {
-            fg: merged.fg.get(),
-            bg: merged.bg.get(),
-        };
         crate::theme::resolve::bind(self.theme, acc, Some(patch), self.surface)
     }
 
@@ -565,7 +631,7 @@ impl<'f> Ui<'f> {
     /// `theme.bg(ui.surface())`, `fg` is `Role::Fg(FgStep::Primary)` bound on
     /// that surface, no modifiers. The **left** operand of §11.3's final
     /// layering — write it as `resolved.over(ui.surface_style())`.
-    pub fn surface_style(&self) -> ratatui_core::style::Style {
+    pub fn surface_style(&self) -> crate::theme::PaintStyle {
         let mut st = ratatui_core::style::Style::new();
         st.bg = Some(self.theme.bg(self.surface));
         st.fg = crate::theme::resolve::bind_role(
@@ -573,7 +639,12 @@ impl<'f> Ui<'f> {
             Role::Fg(crate::theme::FgStep::Primary),
             self.surface,
         );
-        st
+        crate::theme::PaintStyle::bound(
+            st,
+            Some(Role::Fg(crate::theme::FgStep::Primary)),
+            Some(Role::Surface(self.surface)),
+            self.surface,
+        )
     }
 
     /// Resolve `part` once and paint with it: equivalent to binding
@@ -659,7 +730,14 @@ impl<'f> Ui<'f> {
         f(&mut nested)
     }
 
-    fn register_entry(&mut self, id: Id, area: Rect, f: Focusability, swallows_typing: bool) {
+    fn register_entry(
+        &mut self,
+        id: Id,
+        area: Rect,
+        f: Focusability,
+        swallows_typing: bool,
+        pointer_enabled: bool,
+    ) {
         if self.registrations_suppressed() || area.is_empty() {
             return;
         }
@@ -667,7 +745,14 @@ impl<'f> Ui<'f> {
         if area.is_empty() {
             return;
         }
-        if let Some(d) = self.frame.registry.register_control(id, area, self.layer) {
+        let diagnostic = if pointer_enabled {
+            self.frame.registry.register_control(id, area, self.layer)
+        } else {
+            self.frame
+                .registry
+                .register_keyboard_control(id, area, self.layer)
+        };
+        if let Some(d) = diagnostic {
             self.frame.diagnostics.push(d);
         }
         self.register_focus_entry(id, area, f, swallows_typing);
@@ -695,7 +780,7 @@ impl<'f> Ui<'f> {
 
     /// Register a `Control` region and its ring entry.
     pub fn register_control(&mut self, id: Id, area: Rect, f: Focusability) {
-        self.register_entry(id, area, f, false);
+        self.register_entry(id, area, f, false, true);
     }
 
     /// Register a hidden keyboard focus stop without creating a hit region.
@@ -716,7 +801,22 @@ impl<'f> Ui<'f> {
     /// and declares `flags` (`EDITING` while an edit is in flight), so
     /// paste and bare-`Char` capture chords are routed correctly.
     pub fn register_editor(&mut self, id: Id, area: Rect, f: Focusability, flags: StateFlags) {
-        self.register_entry(id, area, f, true);
+        self.register_entry(id, area, f, true, true);
+        self.declare_state(id, flags);
+    }
+
+    /// Register an editor with real geometry and ordinary keyboard ownership,
+    /// excluding its control, parts, decoration and scroll regions from pointer
+    /// hit testing and capture. Exclusion applies regardless of registration
+    /// order for this owner in the frame; it does not disable keyboard editing.
+    pub fn register_keyboard_editor(
+        &mut self,
+        id: Id,
+        area: Rect,
+        f: Focusability,
+        flags: StateFlags,
+    ) {
+        self.register_entry(id, area, f, true, false);
         self.declare_state(id, flags);
     }
 
@@ -766,6 +866,39 @@ impl<'f> Ui<'f> {
             flags
         };
         if let Some(action) = self.frame.bindings.publish(owner, flags, self.layer, table) {
+            self.frame
+                .diagnostics
+                .push(Diagnostic::DuplicateBindingAction { owner, action });
+        }
+    }
+
+    /// Declare a fallback typing editor and its existing editing bindings.
+    /// `include` runs synchronously; it is never retained as an extension point.
+    /// Eligibility is resolved only after complete frame geometry is available.
+    pub fn publish_typing_target<C: Copy + 'static>(
+        &mut self,
+        owner: Id,
+        table: &'static [Binding<C>],
+        include: impl Fn(C) -> bool,
+        cursor: bool,
+    ) {
+        if self.registrations_suppressed() {
+            return;
+        }
+        self.frame
+            .typing
+            .push(crate::runtime::typing::TypingDeclaration {
+                owner,
+                layer: self.layer,
+                cursor,
+            });
+        if let Some(action) = self.frame.typing_bindings.publish_filtered(
+            owner,
+            StateFlags::EDITING,
+            self.layer,
+            table,
+            include,
+        ) {
             self.frame
                 .diagnostics
                 .push(Diagnostic::DuplicateBindingAction { owner, action });
@@ -882,43 +1015,32 @@ impl<'f> Ui<'f> {
         self.frame.layout.push((id, l));
     }
 
-    /// Request the hardware cursor; kept iff this is the top layer and
-    /// `owner` is focused (§8.4).
+    /// Request the hardware cursor. Complete frame typing/focus ownership and
+    /// layer admissibility select the winner after all painters finish.
     pub fn set_cursor(&mut self, owner: Id, pos: Position) {
+        self.record_cursor(owner, pos, false);
+    }
+
+    /// Offer a caret conditional on this frame selecting a declared typing owner.
+    ///
+    /// Pair with `publish_typing_target(..., true)` for the same owner and layer.
+    /// Unselected declared offers are silent; an undeclared offer is diagnosed.
+    /// Raw `set_cursor` retains its ordinary ownership/layer rejection rules.
+    pub fn offer_typing_cursor(&mut self, owner: Id, pos: Position) {
+        self.record_cursor(owner, pos, true);
+    }
+
+    fn record_cursor(&mut self, owner: Id, pos: Position, typing_offer: bool) {
         if self.reference.is_some() {
             return;
         }
-        let req = CursorRequest {
+        self.frame.cursors.push(CursorRequest {
             layer: self.layer,
             owner,
             pos,
             inert: self.inert,
-            focused: self.state(owner).contains(StateFlags::FOCUSED),
-        };
-        // §8.4 makes filtering the runtime's job, so components write
-        // unconditionally: keep the *best* candidate — higher layer first,
-        // then the focused owner, then the later write — never the first
-        // arrival, which would hand the frame's only cursor slot to whoever
-        // happened to draw first (BL-6).
-        let keep = match self.frame.cursor {
-            None => true,
-            Some(cur) => (req.layer, req.focused) >= (cur.layer, cur.focused),
-        };
-        let loser = if keep {
-            let prev = self.frame.cursor;
-            self.frame.cursor = Some(req);
-            prev
-        } else {
-            Some(req)
-        };
-        if let Some(l) = loser
-            && !l.inert
-        {
-            self.frame.diagnostics.push(Diagnostic::CursorRejected {
-                owner: l.owner,
-                layer: l.layer,
-            });
-        }
+            typing_offer,
+        });
     }
 
     /// Draw layer `id`'s content. Resolves `id` to the `LayerId` assigned at
@@ -950,6 +1072,8 @@ impl<'f> Ui<'f> {
             LayerKind::Modal => ScopeMode::Trap,
             LayerKind::Popover | LayerKind::Tooltip => ScopeMode::Normal,
         };
+        // Parentage is structural stack order, not numeric adjacency: a
+        // closed LayerId leaves a gap that must not hide the real parent.
         let parent = idx
             .checked_sub(1)
             .and_then(|parent| self.frame.layers.active().get(parent))
@@ -1001,7 +1125,7 @@ impl<'f> Ui<'f> {
     /// stamp the current role over every cell `dim_layer` later walks.
     pub(crate) fn buffer_in(&mut self, area: Rect) -> (&mut Buffer, Rect) {
         let a = area.intersection(self.clip);
-        self.mark_area(a);
+        self.mark_area(a, None);
         (self.buffer(), a)
     }
 
@@ -1015,34 +1139,82 @@ impl<'f> Ui<'f> {
         }
     }
 
-    pub(crate) fn mark(&mut self, pos: Position) {
+    /// Move an internal painted cell together with its origin, then reset the
+    /// source. Unlike `raw`, this operation knows exactly which cells change.
+    pub(crate) fn move_cell(
+        &mut self,
+        src: Position,
+        dst: Position,
+        reset: crate::theme::PaintStyle,
+    ) {
+        if !self.clip.contains(src) || !self.clip.contains(dst) {
+            return;
+        }
+        let roles = match self.target {
+            Target::Page => self.roles_at(src),
+            Target::Layer(i) => self
+                .frame
+                .layers
+                .active()
+                .get(i)
+                .map_or_else(CellRoles::default, |d| d.roles_at(src)),
+        };
+        if let Some(cell) = self.buffer().cell(src).cloned() {
+            if let Some(target) = self.buffer().cell_mut(dst) {
+                *target = cell;
+            }
+            self.mark(dst, None);
+            match self.target {
+                Target::Page => {
+                    if let Some(i) = self.frame.role_index(dst)
+                        && let Some(target) = self.frame.roles.get_mut(i)
+                    {
+                        *target = roles;
+                    }
+                }
+                Target::Layer(i) => {
+                    if let Some(d) = self.frame.layers.active_mut().get_mut(i) {
+                        d.set_roles(dst, roles);
+                    }
+                }
+            }
+            if let Some(cell) = self.buffer().cell_mut(src) {
+                cell.reset();
+                cell.set_style(reset.into_style());
+            }
+            self.mark(src, None);
+            self.mark(src, Some(reset));
+        }
+    }
+
+    pub(crate) fn mark(&mut self, pos: Position, style: Option<crate::theme::PaintStyle>) {
         match self.target {
             Target::Page => {
                 if let Some(i) = self.frame.role_index(pos)
                     && let Some(r) = self.frame.roles.get_mut(i)
                 {
-                    *r = self.roles;
+                    *r = r.patch(style);
                 }
             }
             Target::Layer(i) => {
                 if let Some(d) = self.frame.layers.active_mut().get_mut(i) {
-                    d.mark(pos);
+                    d.mark(pos, style);
                 }
             }
         }
     }
 
-    pub(crate) fn mark_area(&mut self, area: Rect) {
+    pub(crate) fn mark_area(&mut self, area: Rect, style: Option<crate::theme::PaintStyle>) {
         let area = area.intersection(self.clip);
         match self.target {
             Target::Page => {
                 for pos in area.positions() {
-                    self.mark(pos);
+                    self.mark(pos, style);
                 }
             }
             Target::Layer(i) => {
                 if let Some(d) = self.frame.layers.active_mut().get_mut(i) {
-                    d.mark_area(area);
+                    d.mark_area(area, style);
                 }
             }
         }
@@ -1050,10 +1222,6 @@ impl<'f> Ui<'f> {
 
     pub(crate) const fn theme_ref(&self) -> &'f Theme {
         self.theme
-    }
-
-    pub(crate) fn set_roles(&mut self, roles: CellRoles) {
-        self.roles = roles;
     }
 
     pub(crate) fn roles_at(&self, pos: Position) -> CellRoles {
@@ -1085,7 +1253,7 @@ impl<'f> Ui<'f> {
     /// Copy layer `i`'s written cells onto the page.
     pub(crate) fn composite(&mut self, i: usize) {
         if let Some(d) = self.frame.layers.active().get(i) {
-            d.composite_onto(self.page);
+            d.composite_onto(self.page, &mut self.frame.roles);
         }
     }
 }
@@ -1125,6 +1293,14 @@ impl FrameRead for Ui<'_> {
             None
         } else {
             self.last.registry.area_of(id)
+        }
+    }
+
+    fn area_of_part(&self, owner: Id, part: PartRef) -> Option<Rect> {
+        if self.reference.is_some() {
+            None
+        } else {
+            self.last.registry.area_of_part(owner, part)
         }
     }
 
@@ -1375,7 +1551,7 @@ mod tests {
         assert!(frame.ring.entries().is_empty());
         assert!(frame.declared.is_empty());
         assert!(frame.layout.is_empty());
-        assert!(frame.cursor.is_none());
+        assert!(frame.cursors.is_empty());
         assert!(frame.bindings.get(OWNER).is_none());
         assert!(frame.diagnostics.is_empty());
         assert!(
@@ -1876,6 +2052,45 @@ mod tests {
             theme.bg(Surface::Canvas),
             "painting after the panic reaches the page outside the layer's area"
         );
+    }
+    #[test]
+    fn independent_carrier_layer_composite_keeps_origin() {
+        const LAYER: Id = Id::root("review.layer");
+        let theme = Theme::junie();
+        with_ui(&theme, |ui| {
+            let page = ui.paint_patch(
+                &StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .set_bg(Role::Surface(Surface::Canvas)),
+            );
+            ui.fill(SCREEN, page);
+            ui.frame
+                .layers
+                .push(LAYER, LayerId(1), LayerSpec::modal(LAYER), SCREEN, SCREEN);
+            ui.layer(LAYER, |ui, _| {
+                let st = ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Ghost))
+                        .set_bg(Role::Surface(Surface::Overlay)),
+                );
+                ui.paint_str(Rect::new(1, 0, 1, 1), "X", st);
+            });
+            ui.composite(0);
+            assert_eq!(
+                ui.roles_at(Position::new(1, 0)),
+                CellRoles {
+                    fg: Some(Role::Fg(FgStep::Ghost)),
+                    bg: Some(Role::Surface(Surface::Overlay))
+                },
+                "composited cells must carry layer origins, not page origins"
+            );
+            ui.dim_layer(SCREEN, 1);
+            assert_eq!(
+                ui.page.cell((1, 0)).unwrap().symbol(),
+                " ",
+                "Ghost on lower layer must erase under next modal"
+            );
+        });
     }
 
     #[test]

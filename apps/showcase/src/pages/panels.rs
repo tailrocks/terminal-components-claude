@@ -1,14 +1,15 @@
 //! Card and framed panel composition, including caller-owned overrides.
 
+use junie_tui::author::PaintStyle;
 use junie_tui::{
     Cx, Family, FgStep, FrameRead, GlyphRole, Id, ItemKey, List, ListState, Panel, PanelKind, Part,
-    Rect, Response, Role, RowUi, SelectMode, StateFlags, Style, StylePatch, TextViewport, Ui,
-    Variant, ViewportLine, ViewportState, id, layout, wrap,
+    Rect, Response, Role, RowUi, SelectMode, SplitAxis, SplitPane, SplitPaneState, StateFlags,
+    StylePatch, TextViewport, Ui, Variant, ViewportLine, ViewportState, id, layout, wrap,
 };
 
 use crate::data::{PROSE, log_lines};
 
-use super::{Page, frame, theme_fg};
+use super::{Page, PageUpdate, frame};
 
 const TITLED_CARD: Id = id!("panels.titled_card");
 const UNTITLED_CARD: Id = id!("panels.untitled_card");
@@ -18,6 +19,7 @@ const LOG_CARD: Id = id!("panels.log_card");
 const PROSE_VIEW: Id = id!("panels.prose");
 const LOG_VIEW: Id = id!("panels.log");
 const NESTED_LIST: Id = id!("panels.nested");
+const WORKBENCH: Id = id!("panels.workbench");
 const PANEL_PARTS: &[(Part, StylePatch)] = &[(
     Part::TITLE,
     StylePatch::new()
@@ -92,6 +94,8 @@ fn log_view_lines(lines: &[String]) -> Vec<ViewportLine<'_>> {
         .collect()
 }
 
+/// The one constructor per card and pane on this page (§13): both phase paths
+/// build the same props, so no per-phase tweak can go unseen.
 fn titled_card() -> Panel<'static> {
     Panel::new(TITLED_CARD)
         .title("Titled card")
@@ -109,7 +113,7 @@ fn nested_card() -> Panel<'static> {
         .patch_part(PANEL_PARTS)
 }
 
-fn framed_pane<'a>(meta: &'a str) -> Panel<'a> {
+fn framed_pane(meta: &str) -> Panel<'_> {
     Panel::new(FRAMED_PANE)
         .kind(PanelKind::Framed)
         .title("Framed · split pane")
@@ -117,11 +121,21 @@ fn framed_pane<'a>(meta: &'a str) -> Panel<'a> {
         .patch_part(PANEL_PARTS)
 }
 
-fn log_card<'a>(meta: &'a str) -> Panel<'a> {
+fn log_card(meta: &str) -> Panel<'_> {
     Panel::new(LOG_CARD)
         .title("Card · scrollable")
         .meta(meta)
         .patch_part(PANEL_PARTS)
+}
+
+/// The one split on this page (§13): the seam is focusable and resizable, so
+/// both phases build the same gap and minima.
+fn workbench_split() -> SplitPane<'static> {
+    SplitPane::new(WORKBENCH, SplitAxis::Horizontal)
+        .gap(1)
+        .min_first(10)
+        .min_second(10)
+        .resizable(true)
 }
 
 fn position_label(state: &ViewportState) -> String {
@@ -132,7 +146,7 @@ fn position_label(state: &ViewportState) -> String {
     let range = scroll.visible_range();
     format!(
         "{}–{} of {}",
-        range.start + 1,
+        range.start.saturating_add(1),
         range.end,
         scroll.content_len()
     )
@@ -156,31 +170,32 @@ fn columns(area: Rect, left_width: u16, gap: u16) -> (Rect, Rect) {
     )
 }
 
-fn fixed_rows(area: Rect, heights: &[u16]) -> Vec<Rect> {
+fn fixed_rows<const N: usize>(area: Rect, heights: &[u16; N]) -> [Rect; N] {
     let mut y = area.y;
-    let mut rows = Vec::with_capacity(heights.len());
-    for (index, height) in heights.iter().copied().enumerate() {
-        let height = if index + 1 == heights.len() {
+    let mut rows = [Rect::default(); N];
+    for (index, (row, height)) in rows.iter_mut().zip(heights.iter().copied()).enumerate() {
+        let height = if index.saturating_add(1) == heights.len() {
             area.bottom().saturating_sub(y)
         } else {
             height.min(area.bottom().saturating_sub(y))
         };
-        rows.push(Rect {
+        *row = Rect {
             x: area.x,
             y,
             width: area.width,
             height,
-        });
+        };
         y = y.saturating_add(height);
     }
     rows
 }
 
-fn panel_style(ui: &Ui<'_>, step: FgStep) -> Style {
-    ui.surface_style().fg(theme_fg(ui, step))
+fn panel_style(ui: &Ui<'_>, step: FgStep) -> PaintStyle {
+    ui.surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(step))))
 }
 
-fn wrapped_with_style(ui: &mut Ui<'_>, area: Rect, text: &str, style: Style) {
+fn wrapped_with_style(ui: &mut Ui<'_>, area: Rect, text: &str, style: PaintStyle) {
     if area.is_empty() {
         return;
     }
@@ -233,7 +248,7 @@ fn paint_legacy_scrollbar(
     text: Rect,
     state: &ViewportState,
     content_len: usize,
-    style: Style,
+    style: PaintStyle,
     gap: u16,
 ) {
     if text.is_empty() || content_len <= usize::from(text.height) {
@@ -302,9 +317,9 @@ fn paint_legacy_log(ui: &mut Ui<'_>, area: Rect, state: &ViewportState, lines: &
             break;
         };
         let style = if line.contains(" error ") {
-            base.fg(ui.theme().color.danger)
+            base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Danger)))
         } else if line.contains(" warn ") {
-            base.fg(ui.theme().color.warning)
+            base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Warning)))
         } else {
             base
         };
@@ -420,6 +435,7 @@ pub(crate) struct PanelsPage {
     prose_state: ViewportState,
     log_state: ViewportState,
     nested: ListState,
+    split: SplitPaneState,
 }
 
 impl PanelsPage {
@@ -434,6 +450,7 @@ impl PanelsPage {
             prose_state,
             log_state,
             nested: ListState::default(),
+            split: SplitPaneState::new(40),
         }
     }
 }
@@ -449,7 +466,7 @@ impl Page for PanelsPage {
         "Panels"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
         let _ = titled_card();
         let _ = untitled_card();
@@ -462,7 +479,15 @@ impl Page for PanelsPage {
         let log = log_view_lines(&self.log);
         response |= log_view().update(cx, &mut self.log_state, &log).erase();
         response |= nested_list().update(cx, &mut self.nested, TARGETS).erase();
-        response
+        response |= workbench_split().update(cx, &mut self.split).erase();
+        // The update pass builds every card and pane it will later draw (§13).
+        let _ = titled_card();
+        let _ = untitled_card();
+        let _ = nested_card();
+        let _ = framed_pane(&position_label(&self.prose_state));
+        let _ = log_card(&position_label(&self.log_state));
+        let _ = workbench_split();
+        response.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -472,29 +497,19 @@ impl Page for PanelsPage {
             self.title(),
             "Cards group; a frame only where a pane needs an edge; nothing boxed twice",
             |ui, body| {
-                let (left, right) = columns(body, body.width / 2 - 1, 2);
-                let left_rows = fixed_rows(left, &[7, 1, 6, 1, 7, 0]);
-                let Some(&title_area) = left_rows.first() else {
-                    return;
-                };
-                let Some(&untitled_area) = left_rows.get(2) else {
-                    return;
-                };
-                let Some(&nested_area) = left_rows.get(4) else {
-                    return;
-                };
+                let (left, right) = columns(body, (body.width / 2).saturating_sub(1), 2);
+                let left_rows = fixed_rows(left, &[7, 1, 6, 1, 7, 1, 1, 0]);
 
-                titled_card()
-                    .draw(ui, title_area, |ui, body| {
-                        wrapped(
-                            ui,
-                            body,
-                            "A card is a filled surface. Its title sits in the top-left and metadata on the right. It never has a border.",
-                        );
-                    });
-                paint_card_meta(ui, title_area, "surface");
+                titled_card().draw(ui, left_rows[0], |ui, body| {
+                    wrapped(
+                        ui,
+                        body,
+                        "A card is a filled surface. Its title sits in the top-left and metadata on the right. It never has a border.",
+                    );
+                });
+                paint_card_meta(ui, left_rows[0], "surface");
 
-                untitled_card().draw(ui, untitled_area, |ui, body| {
+                untitled_card().draw(ui, left_rows[2], |ui, body| {
                     wrapped(
                         ui,
                         body,
@@ -502,50 +517,49 @@ impl Page for PanelsPage {
                     );
                 });
 
-                nested_card()
-                    .draw(ui, nested_area, |ui, body| {
-                        let _ = ui.paint_str(
-                            Rect {
-                                height: 1,
-                                ..body
-                            },
-                            "Target",
-                            panel_style(ui, FgStep::Muted),
+                nested_card().draw(ui, left_rows[4], |ui, body| self.draw_nested(ui, body));
+                let _ = ui.paint_str(
+                    Rect {
+                        x: left_rows[4].x,
+                        y: left_rows[4].y.saturating_add(2),
+                        width: left_rows[4].width,
+                        height: 1,
+                    },
+                    "Target",
+                    panel_style(ui, FgStep::Muted),
+                );
+
+                let seam_caption = format!(
+                    "Split · seam at {}% · ← narrower, → wider, Home balances",
+                    self.split.percent()
+                );
+                if let Some(caption) = left_rows.get(6).copied() {
+                    let _ = ui.paint_str(caption, &seam_caption, panel_style(ui, FgStep::Muted));
+                }
+                if let Some(split_area) = left_rows.get(7).copied() {
+                    workbench_split().draw(ui, split_area, &self.split, |ui, first, second| {
+                        wrapped_muted(
+                            ui,
+                            first,
+                            "First pane. Drag the seam, or focus it and press ←/→.",
                         );
-                        let group = Rect {
-                            y: body.y.saturating_add(1),
-                            width: body.width.min(30),
-                            height: body.height.saturating_sub(1).min(3),
-                            ..body
-                        };
-                        nested_list().draw(ui, group, &self.nested, TARGETS);
-                        let note_x = group.right().saturating_add(2);
-                        if note_x.saturating_add(20) < body.right() {
-                            wrapped_muted(
-                                ui,
-                                Rect {
-                                    x: note_x,
-                                    width: body.right().saturating_sub(note_x),
-                                    ..body
-                                },
-                                "A group inside a card is a muted label plus indent. The focus bar stays on the control.",
-                            );
-                        }
+                        wrapped_muted(
+                            ui,
+                            second,
+                            "Second pane. A double-click on the seam balances both.",
+                        );
                     });
+                }
+
                 let right_rows = fixed_rows(right, &[right.height / 2, 0]);
-                let Some(&prose_area) = right_rows.first() else {
-                    return;
-                };
-                let Some(&log_row) = right_rows.get(1) else {
-                    return;
-                };
+                let [prose_row, log_row] = right_rows;
                 let prose_meta = position_label(&self.prose_state);
-                let prose_inner = framed_pane(&prose_meta).draw(ui, prose_area, |ui, body| {
+                let prose_inner = framed_pane(&prose_meta).draw(ui, prose_row, |ui, body| {
                     prose_view().draw(ui, body, &self.prose_state, &self.prose);
                     paint_legacy_prose(ui, body, &self.prose_state);
                     body
                 });
-                paint_legacy_frame_header(ui, prose_area, "Framed · split pane");
+                paint_legacy_frame_header(ui, right_rows[0], "Framed · split pane");
                 paint_legacy_scrollbar(
                     ui,
                     legacy_text_area(prose_inner),
@@ -579,13 +593,42 @@ impl Page for PanelsPage {
         );
     }
 
-    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(NESTED_LIST).contains(StateFlags::FOCUSED) {
-            vec![("↑ ↓", "Move"), ("Enter", "Choose")]
+            &[("↑ ↓", "Move"), ("Enter", "Choose")]
         } else if ui.state(LOG_VIEW).contains(StateFlags::FOCUSED) {
-            vec![("↑ ↓", "Scroll"), ("f", "Follow tail"), ("g G", "Ends")]
+            &[("↑ ↓", "Scroll"), ("f", "Follow tail"), ("g G", "Ends")]
         } else {
-            vec![("↑ ↓", "Scroll"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
+            &[("↑ ↓", "Scroll"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
+        }
+    }
+}
+
+impl PanelsPage {
+    fn draw_nested(&self, ui: &mut Ui<'_>, body: Rect) {
+        let _ = ui.paint_str(
+            Rect { height: 1, ..body },
+            "Target",
+            panel_style(ui, FgStep::Muted),
+        );
+        let group = Rect {
+            y: body.y.saturating_add(1),
+            width: body.width.min(30),
+            height: body.height.saturating_sub(1).min(3),
+            ..body
+        };
+        nested_list().draw(ui, group, &self.nested, TARGETS);
+        let note_x = group.right().saturating_add(2);
+        if note_x.saturating_add(20) < body.right() {
+            wrapped_muted(
+                ui,
+                Rect {
+                    x: note_x,
+                    width: body.right().saturating_sub(note_x),
+                    ..body
+                },
+                "A group inside a card is a muted label plus indent. The focus bar stays on the control.",
+            );
         }
     }
 }

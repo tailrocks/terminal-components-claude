@@ -18,13 +18,13 @@ fn tablepro_visual_baseline() {
                     let mut app = TableProApp::default();
                     app.set_surface(surface);
                     let harness = Harness::new(app, theme.clone(), width, height).with_color(color);
-                    let scene = harness.snapshot().named(surface.label());
-                    assert!(
-                        scene.text().contains(surface.label()),
-                        "{width}x{height} {} is missing its label",
-                        surface.label()
-                    );
-                    scene.assert_against(&BASELINE);
+                    // The restored historical shell does not echo the matrix
+                    // label on screen; the cell-exact digest keyed by that
+                    // label is the whole fixture-sanity guard.
+                    harness
+                        .snapshot()
+                        .named(surface.label())
+                        .assert_against(&BASELINE);
                 }
             }
         }

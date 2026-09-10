@@ -3,24 +3,26 @@
 //! This module owns only interaction state and paints through `tui-next`'s
 //! public facade.  Domain and simulation state stay in sibling modules.
 
+use junie_tui::author::PaintStyle;
 use std::{collections::BTreeMap, mem, time::Duration};
 
 use junie_tui::{
-    ActionKey, App as TuiApp, AsItem, Brand, Button, Chord, Color, ContextMenu, Cx, Dialog,
-    DialogAction, DialogState, FgStep, FrameRead, HelpAction, HelpOverlay, HelpOverlayState,
-    HelpSection, Hint, HintBar, HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap,
-    KeyModifiers, KeyPhase, List, ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem,
-    MenuState, Modifier, Panel, Part, PartRef, Phase, Picker, PickerAction, PickerState, Position,
-    Rect, Response, SecretPolicy, StatusBar, StatusItem, Style, Surface, Tabs, TabsAction,
-    TabsState, TextAction, TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause,
-    Variant, ViewportAction, ViewportLine, ViewportState,
+    ActionKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx, Dialog, DialogAction,
+    DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar,
+    HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, List,
+    ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState, Moment, Panel, Part,
+    PartRef, Phase, Picker, PickerAction, PickerState, Position, Reconcile, Rect, Response,
+    SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction, TextInput,
+    TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine,
+    ViewportState,
 };
 
 use crate::domain::account::{
-    Account, CredentialSource, DetectedKind, DuplicateProbe, fingerprint, tail_of,
+    Account, CredentialSource, DetectedKind, DuplicateProbe, ValidationState, fingerprint, tail_of,
 };
 use crate::domain::agent::{Agent, Provider};
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
+use crate::domain::usage::Freshness;
 use crate::domain::workspace::{Effective, EnvValue, EnvVar, env_key_error, mask};
 use crate::rain::{
     HANDOFF_LEN, INTRO_END, IntroPhase, IntroState, OutroPhase, OutroState, P1_LEN, PHRASES,
@@ -41,6 +43,27 @@ use crate::sim::launch::{BUILD_LOG, LaunchEvent, LaunchPlan, LaunchRun, Stage};
 use crate::sim::provider;
 use crate::sim::pty::{Daemon, PaneId, SplitDir};
 use crate::sim::world::{World, world_for};
+
+/// One cached projection binds domain identity, collection identity, and presentation.
+#[derive(Debug, Clone)]
+struct ManagerRow {
+    domain: ManagerRowKey,
+    key: ItemKey,
+    label: String,
+}
+
+impl ManagerRow {
+    fn new(domain: ManagerRowKey, label: String) -> Self {
+        let key = ItemKey::text(&domain.stable_key());
+        Self { domain, key, label }
+    }
+}
+
+impl std::fmt::Display for ManagerRow {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.label)
+    }
+}
 
 /// Root id for the Jackin Preview component tree.
 pub const APP: Id = Id::root("jackin.preview");
@@ -203,70 +226,8 @@ const CAPSULE_COMMANDS: &[Item<'static>] = &[
 ];
 const TICK_MS: u64 = crate::rain::TICK_MS;
 
-#[derive(Clone, Copy)]
-struct HistoricalPalette {
-    canvas: Color,
-    surface: Color,
-    card: Color,
-    field: Color,
-    primary: Color,
-    secondary: Color,
-    muted: Color,
-    border: Color,
-    seam: Color,
-    accent: Color,
-    accent_tint: Color,
-    button: Color,
-    on_accent: Color,
-    warning: Color,
-    danger: Color,
-}
-
-fn historical_palette(ui: &Ui<'_>) -> HistoricalPalette {
-    let color = &ui.theme().color;
-    HistoricalPalette {
-        canvas: ui.theme().bg(Surface::Canvas),
-        surface: ui.theme().bg(Surface::Surface),
-        card: ui.theme().bg(Surface::Elevated),
-        field: ui.theme().bg(Surface::Field),
-        primary: color
-            .fg
-            .get(FgStep::Primary.index())
-            .copied()
-            .unwrap_or_default(),
-        secondary: color
-            .fg
-            .get(FgStep::Secondary.index())
-            .copied()
-            .unwrap_or_default(),
-        muted: color
-            .fg
-            .get(FgStep::Muted.index())
-            .copied()
-            .unwrap_or_default(),
-        border: color.border_strong,
-        seam: color.border_subtle,
-        accent: color.accent,
-        accent_tint: color.accent_tint,
-        button: ui.theme().bg(Surface::Overlay),
-        on_accent: color.on_accent,
-        warning: color.warning,
-        danger: color.danger,
-    }
-}
-
-fn historical_style_from_surface(ui: &Ui<'_>, fg: Color, bg: Color, bold: bool) -> Style {
-    let mut style = ui.surface_style();
-    style.fg = Some(fg);
-    style.bg = Some(bg);
-    style.add_modifier = if bold {
-        Modifier::BOLD
-    } else {
-        Modifier::empty()
-    };
-    style.sub_modifier = Modifier::empty();
-    style
-}
+mod historical_paint;
+use historical_paint::HistoricalPalette;
 
 /// The visible product route.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -315,11 +276,10 @@ impl Route {
         }
     }
 
-    /// Virtual time cadence for one application tick.
+    /// Virtual time advanced by one admitted product tick.
     ///
-    /// This is intentionally separate from runtime repaint scheduling.  The
-    /// fixture clock and every deterministic state machine advance by this
-    /// product-owned cadence only.
+    /// Idle routes may wake every 200 ms, but still advance only 80 virtual ms.
+    /// Delayed wakes coalesce to one step; repaint/input counts never age state.
     pub const fn tick_ms(self) -> u64 {
         match self {
             Self::Intro | Self::Outro | Self::Handoff | Self::Cockpit | Self::Launch => TICK_MS,
@@ -329,7 +289,7 @@ impl Route {
             | Self::Editor
             | Self::Accounts
             | Self::Usage
-            | Self::Settings => 200,
+            | Self::Settings => 80,
         }
     }
 }
@@ -436,13 +396,14 @@ pub struct App {
     /// Read-only instance inspection state.
     pub inspect: InspectState,
     /// Cached manager projection; rebuilt only when expansion or source data changes.
-    manager_rows_cache: Vec<String>,
+    manager_rows_cache: Vec<ManagerRow>,
     manager_rows_revision: u64,
     shell_meta: String,
     manager_header: String,
     manager_header_running: usize,
     route: Route,
     motion: Motion,
+    last_tick: Option<Moment>,
     quit: bool,
     keymap: KeyMap,
     capsule_menu_state: MenuState,
@@ -500,6 +461,19 @@ pub struct App {
 }
 
 impl App {
+    // Role identity stays qualified; display comes from the matching catalog entry.
+    fn role_label<'a>(&'a self, key: &'a str) -> &'a str {
+        self.world
+            .roles
+            .iter()
+            .find(|role| {
+                key.strip_prefix(role.namespace.as_str())
+                    .and_then(|rest| rest.strip_prefix('/'))
+                    == Some(role.name.as_str())
+            })
+            .map_or(key, |role| role.name.as_str())
+    }
+
     /// Build one deterministic app scenario.
     pub fn for_scenario(scenario: Scenario, motion: Motion) -> Self {
         Self::for_scenario_at(scenario, motion, 0)
@@ -555,9 +529,7 @@ impl App {
             Scenario::Returning | Scenario::HardCases => Route::Manager,
         };
         world.clock.running = motion != Motion::Paused;
-        let frame_i64 = i64::try_from(frame).unwrap_or(i64::MAX);
-        let cadence_i64 = i64::try_from(route.tick_ms()).unwrap_or(i64::MAX);
-        world.clock.now_ms = frame_i64.saturating_mul(cadence_i64);
+        // Reference frame seeking advances cinematic/launch state, not the world clock.
         world.last_refresh_secs = world.now_secs();
         let mut launch = matches!(route, Route::Launch | Route::Cockpit).then(|| {
             LaunchRun::new(
@@ -600,6 +572,7 @@ impl App {
             manager_header_running,
             route,
             motion,
+            last_tick: None,
             quit: false,
             keymap: app_keymap(),
             capsule_menu_state: MenuState::default(),
@@ -850,6 +823,10 @@ impl App {
             .variant(Variant::PRIMARY)
     }
 
+    fn manager_list() -> List<'static, ManagerRow, impl Fn(&ManagerRow) -> ItemKey> {
+        List::new(MANAGER_LIST).key(|row: &ManagerRow| row.key)
+    }
+
     fn account_start_button() -> Button<'static> {
         Button::new(crate::screens::accounts::START, "New account").variant(Variant::PRIMARY)
     }
@@ -1053,54 +1030,61 @@ impl App {
         self.status = Some("Container info".into());
     }
 
-    fn build_manager_rows(&self) -> Vec<String> {
+    fn manager_instances(
+        &self,
+        workspace: Option<crate::domain::workspace::WorkspaceId>,
+    ) -> impl Iterator<Item = &crate::domain::instance::Instance> {
+        self.world
+            .instances
+            .iter()
+            .filter(move |instance| instance.workspace == workspace && !instance.status.hidden())
+    }
+
+    fn build_manager_rows(&self) -> Vec<ManagerRow> {
         let mut rows = Vec::new();
         for workspace in &self.world.workspaces {
             let expanded = self.manager.is_expanded(workspace.id);
             let marker = if expanded { "▾" } else { "▸" };
-            let count = self
-                .world
-                .instances
-                .iter()
-                .filter(|instance| {
-                    instance.workspace == Some(workspace.id) && !instance.status.hidden()
-                })
-                .count();
-            rows.push(format!(
-                "{marker} {} · {count} instance{}",
-                workspace.name,
-                if count == 1 { "" } else { "s" }
+            let count = self.manager_instances(Some(workspace.id)).count();
+            rows.push(ManagerRow::new(
+                ManagerRowKey::Workspace(workspace.id),
+                format!(
+                    "{marker} {} · {count} instance{}",
+                    workspace.name,
+                    if count == 1 { "" } else { "s" }
+                ),
             ));
             if expanded {
-                for instance in self.world.instances.iter().filter(|instance| {
-                    instance.workspace == Some(workspace.id) && !instance.status.hidden()
-                }) {
-                    rows.push(format!(
-                        "  {} · instance · {} · run {} · {}",
-                        instance.id,
-                        instance.status.label(),
-                        instance.run_id.short(),
-                        instance.dirty_summary()
+                for instance in self.manager_instances(Some(workspace.id)) {
+                    rows.push(ManagerRow::new(
+                        ManagerRowKey::Instance(instance.id.clone()),
+                        format!(
+                            "  {} · instance · {} · run {} · {}",
+                            instance.id,
+                            instance.status.label(),
+                            instance.run_id.short(),
+                            instance.dirty_summary()
+                        ),
                     ));
                 }
             }
         }
-        rows.push(format!("Current directory · {}", self.world.home));
-        rows.extend(
-            self.world
-                .instances
-                .iter()
-                .filter(|instance| instance.workspace.is_none() && !instance.status.hidden())
-                .map(|instance| {
-                    format!(
-                        "{} · {} · run {} · {}",
-                        instance.id,
-                        instance.status.label(),
-                        instance.run_id.short(),
-                        instance.dirty_summary()
-                    )
-                }),
-        );
+        rows.push(ManagerRow::new(
+            ManagerRowKey::CurrentDirectory,
+            format!("Current directory · {}", self.world.home),
+        ));
+        rows.extend(self.manager_instances(None).map(|instance| {
+            ManagerRow::new(
+                ManagerRowKey::Instance(instance.id.clone()),
+                format!(
+                    "{} · {} · run {} · {}",
+                    instance.id,
+                    instance.status.label(),
+                    instance.run_id.short(),
+                    instance.dirty_summary()
+                ),
+            )
+        }));
         rows
     }
 
@@ -1109,38 +1093,17 @@ impl App {
             || self.manager_rows_revision != self.manager.rows_revision()
         {
             self.manager_rows_cache = self.build_manager_rows();
+            self.manager.list.invalidate();
             self.manager_rows_revision = self.manager.rows_revision();
         }
     }
 
-    fn manager_row_at(&self, index: usize) -> Option<ManagerRowKey> {
-        let mut cursor = 0usize;
-        for workspace in &self.world.workspaces {
-            if cursor == index {
-                return Some(ManagerRowKey::Workspace(workspace.id));
-            }
-            cursor = cursor.saturating_add(1);
-            if self.manager.is_expanded(workspace.id) {
-                for instance in self.world.instances.iter().filter(|instance| {
-                    instance.workspace == Some(workspace.id) && !instance.status.hidden()
-                }) {
-                    if cursor == index {
-                        return Some(ManagerRowKey::Instance(instance.id.clone()));
-                    }
-                    cursor = cursor.saturating_add(1);
-                }
-            }
+    fn reset_manager_cursor(&mut self) {
+        self.ensure_manager_rows();
+        if let Some(row) = self.manager_rows_cache.first() {
+            self.manager.list.set_cursor(0, row.key);
+            self.manager.select_row(row.domain.clone());
         }
-        if cursor == index {
-            return Some(ManagerRowKey::CurrentDirectory);
-        }
-        cursor = cursor.saturating_add(1);
-        self.world
-            .instances
-            .iter()
-            .filter(|instance| instance.workspace.is_none() && !instance.status.hidden())
-            .nth(index.saturating_sub(cursor))
-            .map(|instance| ManagerRowKey::Instance(instance.id.clone()))
     }
 
     fn ensure_manager_header(&mut self) {
@@ -1549,17 +1512,20 @@ impl App {
         let pane = HintLayer {
             hints: vec![
                 Hint {
-                    chord: Chord::with(KeyCode::Char('b'), KeyModifiers::CONTROL),
+                    key: junie_tui::HintKey::Chord(Chord::with(
+                        KeyCode::Char('b'),
+                        KeyModifiers::CONTROL,
+                    )),
                     label: "Prefix commands",
                     priority: 90,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Char('y')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('y'))),
                     label: "Copy selection",
                     priority: 80,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::PageUp),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::PageUp)),
                     label: "Scrollback",
                     priority: 70,
                 },
@@ -1571,22 +1537,22 @@ impl App {
         let layout = HintLayer {
             hints: vec![
                 Hint {
-                    chord: Chord::key(KeyCode::Char('%')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('%'))),
                     label: "Split right",
                     priority: 90,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Char('"')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('"'))),
                     label: "Split below",
                     priority: 80,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Char('h')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('h'))),
                     label: "Focus left",
                     priority: 70,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Char('z')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('z'))),
                     label: "Zoom pane",
                     priority: 60,
                 },
@@ -1598,27 +1564,30 @@ impl App {
         let session = HintLayer {
             hints: vec![
                 Hint {
-                    chord: Chord::key(KeyCode::Char('c')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('c'))),
                     label: "New tab",
                     priority: 90,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Char('d')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('d'))),
                     label: "Detach",
                     priority: 80,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Char(',')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char(','))),
                     label: "Rename tab",
                     priority: 70,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Char('&')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('&'))),
                     label: "Close tab",
                     priority: 60,
                 },
                 Hint {
-                    chord: Chord::with(KeyCode::Char('q'), KeyModifiers::CONTROL),
+                    key: junie_tui::HintKey::Chord(Chord::with(
+                        KeyCode::Char('q'),
+                        KeyModifiers::CONTROL,
+                    )),
                     label: "Exit",
                     priority: 50,
                 },
@@ -1630,27 +1599,30 @@ impl App {
         let navigation = HintLayer {
             hints: vec![
                 Hint {
-                    chord: Chord::key(KeyCode::Left),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Left)),
                     label: "Previous tab",
                     priority: 90,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Right),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Right)),
                     label: "Next tab",
                     priority: 80,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::F(10)),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::F(10))),
                     label: "Menu",
                     priority: 70,
                 },
                 Hint {
-                    chord: Chord::with(KeyCode::Char('\\'), KeyModifiers::CONTROL),
+                    key: junie_tui::HintKey::Chord(Chord::with(
+                        KeyCode::Char('\\'),
+                        KeyModifiers::CONTROL,
+                    )),
                     label: "Command palette",
                     priority: 60,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Char('?')),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('?'))),
                     label: "Help",
                     priority: 50,
                 },
@@ -2004,16 +1976,15 @@ impl App {
             })
         {
             if self.editor_role_picker {
-                let role = self.roles.get(index).map_or_else(String::new, |role| {
-                    role.key
-                        .rsplit_once('/')
-                        .map_or_else(|| role.key.clone(), |(_, name)| name.to_owned())
-                });
+                let role = self
+                    .roles
+                    .get(index)
+                    .map_or_else(String::new, |role| role.key.clone());
                 self.editor_role_picker = false;
                 self.editor_env_role = Some(role.clone());
                 self.editor.open_env_form();
                 cx.focus(crate::screens::editor::ENV_KEY);
-                self.status = Some(format!("Add role override · {role}"));
+                self.status = Some(format!("Add role override · {}", self.role_label(&role)));
             } else {
                 self.selected_role = index;
             }
@@ -2120,8 +2091,9 @@ impl App {
         result
     }
 
-    fn update_navigation(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update_navigation(&self, cx: &mut Cx<'_>) -> (Response<()>, Option<Route>) {
         let mut result = Response::ignored();
+        let mut chosen_route = None;
         let nav = [
             (MANAGER, "Manager", Route::Manager),
             (ACCOUNTS, "Accounts", Route::Accounts),
@@ -2136,42 +2108,40 @@ impl App {
             let chosen = button.activated();
             result |= button.erase();
             if chosen {
-                self.route = route;
-                self.status = None;
+                chosen_route = Some(route);
             }
         }
-        result
+        (result, chosen_route)
     }
 
-    fn update_intro(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let button = Self::enter_button().update(cx);
-        let chosen = button.activated();
-        let result = button.erase();
-        if chosen {
+    fn enter_intro(&mut self) {
+        if self.intro.is_done() {
+            self.route = Route::Manager;
+            self.world.arbiter.complete_entry(self.world.now_ms());
+        } else {
+            self.intro.skip();
             if self.intro.is_done() {
                 self.route = Route::Manager;
                 self.world.arbiter.complete_entry(self.world.now_ms());
-            } else {
-                self.intro.skip();
-                if self.intro.is_done() {
-                    self.route = Route::Manager;
-                    self.world.arbiter.complete_entry(self.world.now_ms());
-                }
             }
         }
-        result
     }
 
     fn update_manager(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         self.ensure_manager_rows();
         let list =
-            List::new(MANAGER_LIST).update(cx, &mut self.manager.list, &self.manager_rows_cache);
+            Self::manager_list().update(cx, &mut self.manager.list, &self.manager_rows_cache);
         let list_action = list.action_ref().copied();
         let mut result = list.erase();
-        if let Some(ItemKey::Index(index)) = self.manager.list.cursor()
-            && let Some(row) = self.manager_row_at(index)
+        let selected_key = match list_action {
+            Some(ListAction::Activated(key) | ListAction::Chose(key)) => Some(key),
+            _ => self.manager.list.cursor(),
+        };
+        if let Some(key) = selected_key
+            && let Some(row) = self.manager_rows_cache.iter().find(|row| row.key == key)
+            && self.manager.selected_row() != &row.domain
         {
-            self.manager.select_row(row);
+            self.manager.select_row(row.domain.clone());
         }
         match list_action {
             Some(ListAction::Activated(_)) => {
@@ -2503,8 +2473,8 @@ impl App {
         account.issue = outcome.issue;
         account.validation = outcome
             .level
-            .map(crate::domain::account::ValidationState::Valid)
-            .unwrap_or(crate::domain::account::ValidationState::NeverValidated);
+            .map(ValidationState::Valid)
+            .unwrap_or(ValidationState::NeverValidated);
         if let Some(usage) = outcome.usage {
             account.usage = usage;
         }
@@ -2547,17 +2517,10 @@ impl App {
     }
 
     fn commit_editor_save(&mut self) {
-        self.editor.close_preview();
-        self.editor.mark_saved();
-        self.world.saved = true;
-        let id = self
-            .world
-            .workspaces
-            .first()
-            .map_or(1, |workspace| workspace.id);
-        self.world
-            .schedule(200, crate::sim::world::Msg::WorkspaceSaved { id, ok: true });
-        self.status = Some("Saving workspace…".into());
+        self.status = Some(match self.editor.begin_save(&mut self.world) {
+            Ok(_) => format!("Saving {}…", self.editor.pending.name),
+            Err(error) => error.to_string(),
+        });
     }
 
     fn update_settings(&mut self, cx: &mut Cx<'_>) -> Response<()> {
@@ -2811,7 +2774,7 @@ impl App {
         result
     }
 
-    fn update_launch(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update_launch(&mut self, cx: &mut Cx<'_>, product_tick: bool) -> Response<()> {
         let mut result = Response::ignored();
         let failed = self
             .launch
@@ -2834,22 +2797,12 @@ impl App {
                 return result;
             }
         }
-        if cx.update_cause() == UpdateCause::Tick
-            && self.motion != Motion::Paused
-            && let Some(launch) = &mut self.launch
-        {
+        if product_tick && let Some(launch) = &mut self.launch {
             let events = launch.advance();
             if !events.is_empty() {
                 self.handle_launch_events(events);
                 result |= Response::changed();
             }
-        }
-        if self
-            .launch
-            .as_ref()
-            .is_some_and(|launch| !launch.is_terminal())
-        {
-            cx.request_repaint_after(Duration::from_millis(TICK_MS));
         }
         result
     }
@@ -3200,16 +3153,16 @@ impl App {
         result | tabs_response.erase()
     }
 
-    fn update_route(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update_route(&mut self, cx: &mut Cx<'_>, product_tick: bool) -> Response<()> {
         match self.route {
-            Route::Intro => self.update_intro(cx),
+            Route::Intro => Response::ignored(),
             Route::Manager => self.update_manager(cx),
             Route::Prelude => self.update_prelude(cx),
             Route::Editor => self.update_editor(cx),
             Route::Accounts => self.update_accounts(cx),
             Route::Usage => Response::ignored(),
             Route::Settings => self.update_settings(cx),
-            Route::Launch | Route::Cockpit => self.update_launch(cx),
+            Route::Launch | Route::Cockpit => self.update_launch(cx, product_tick),
             Route::Handoff | Route::Outro => Response::ignored(),
             Route::Capsule => self.update_capsule(cx),
         }
@@ -3251,18 +3204,16 @@ impl App {
             CMD_MANAGER => {
                 if self.route == Route::Capsule && self.capsule_prefix {
                     return Some(self.capsule_prefix_key(cx, 'm'));
-                } else {
-                    if self.route == Route::Usage {
-                        self.accounts.selected_id = self.usage.manage_target().map(str::to_owned);
-                        self.route = Route::Accounts;
-                        if let Some(id) = self.accounts.selected_id.as_deref()
-                            && let Some(account) = self.world.accounts.get(id)
-                        {
-                            self.status = Some(format!("Accounts › {}", account.title()));
-                        }
-                    } else {
-                        self.route = Route::Manager;
+                } else if self.route == Route::Usage {
+                    self.accounts.selected_id = self.usage.manage_target().map(str::to_owned);
+                    self.route = Route::Accounts;
+                    if let Some(id) = self.accounts.selected_id.as_deref()
+                        && let Some(account) = self.world.accounts.get(id)
+                    {
+                        self.status = Some(format!("Accounts › {}", account.title()));
                     }
+                } else {
+                    self.route = Route::Manager;
                 }
                 Some(Response::changed())
             }
@@ -3471,10 +3422,19 @@ impl App {
                 Some(Response::changed())
             }
             CMD_MANAGER_EXPAND if self.route == Route::Manager => {
-                if let Some(workspace) = self.world.workspaces.first() {
-                    self.manager.toggle(workspace.id);
-                    self.manager.set_detail_open(true);
-                    self.ensure_manager_rows();
+                if let ManagerRowKey::Workspace(workspace) = *self.manager.selected_row() {
+                    if self.manager.is_expanded(workspace) {
+                        if let Some((index, row)) = self.manager_rows_cache.iter().enumerate().find(|(_, row)| {
+                            matches!(&row.domain, ManagerRowKey::Instance(id)
+                                if self.world.instance(id).is_some_and(|instance| instance.workspace == Some(workspace)))
+                        }) {
+                            self.manager.list.set_cursor(index, row.key);
+                            self.manager.select_row(row.domain.clone());
+                        }
+                    } else if self.manager_instances(Some(workspace)).next().is_some() {
+                        self.manager.toggle(workspace);
+                        self.ensure_manager_rows();
+                    }
                 }
                 Some(Response::changed())
             }
@@ -3514,7 +3474,7 @@ impl App {
                 self.pending_capsule_action = None;
                 self.status = Some("Detached from Capsule".into());
                 self.route = Route::Manager;
-                self.manager.list.set_cursor(0, ItemKey::index(0));
+                self.reset_manager_cursor();
                 cx.focus(MANAGER_LIST);
                 Some(Response::changed())
             }
@@ -3652,7 +3612,7 @@ impl App {
                     if self.world.running_count() > 0 {
                         self.route = Route::Manager;
                         self.active_instance = None;
-                        self.manager.list.set_cursor(0, ItemKey::index(0));
+                        self.reset_manager_cursor();
                         cx.focus(MANAGER_LIST);
                         self.status =
                             Some("Still inside the Construct · another instance is running".into());
@@ -3839,21 +3799,19 @@ impl App {
         }
     }
 
-    fn advance_virtual_state(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        if cx.update_cause() != UpdateCause::Tick || self.motion == Motion::Paused {
+    fn advance_virtual_state(&mut self, cx: &mut Cx<'_>, product_tick: bool) -> Response<()> {
+        if !product_tick {
             return Response::ignored();
         }
 
         let cadence = i64::try_from(self.route_tick_ms()).unwrap_or(i64::MAX);
         let messages = self.world.tick(cadence);
-        let mut result = if messages.is_empty() {
-            Response::ignored()
-        } else {
-            Response::changed()
-        };
+        // Time itself changes visible freshness, animation and pane projections.
+        let mut result = Response::changed();
         for message in messages {
             match message {
                 crate::sim::world::Msg::WorkspaceSaved { id, ok } => {
+                    // Unbound legacy notices cannot authorize an editor write.
                     let workspace_label = self
                         .world
                         .workspace(id)
@@ -3863,27 +3821,31 @@ impl App {
                     } else {
                         format!("Workspace {workspace_label} save failed")
                     });
-                    if ok && self.route == Route::Editor {
-                        let pending = self.editor.pending.clone();
-                        if let Some(workspace) = self
-                            .world
-                            .workspaces
-                            .iter_mut()
-                            .find(|workspace| workspace.id == id)
-                        {
-                            pending.apply_to(workspace);
-                        } else {
-                            let mut workspace = crate::domain::workspace::Workspace::new(
-                                id,
-                                self.prelude.name(),
-                                "/Users/alexey/src/new-workspace",
-                            );
-                            pending.apply_to(&mut workspace);
-                            self.world.workspaces.push(workspace);
+                }
+                crate::sim::world::Msg::EditorSaveCompleted { operation } => {
+                    use crate::domain::workspace_save::SaveResult;
+                    let saved = self.world.complete_editor_save(operation);
+                    let leave_editor = self.editor.settle_save(&saved);
+                    match saved {
+                        SaveResult::Saved { workspace, .. } => {
+                            self.status = Some(format!("Workspace {} saved", workspace.name));
+                            self.manager_rows_cache.clear();
+                            if leave_editor && self.route == Route::Editor {
+                                self.route = Route::Manager;
+                                cx.focus(MANAGER_LIST);
+                            }
                         }
-                        self.manager_rows_cache.clear();
-                        self.route = Route::Manager;
-                        cx.focus(MANAGER_LIST);
+                        SaveResult::Failed(_) => {
+                            self.status = Some(
+                                "Save failed · write failed: ~/.jackin/workspaces is not writable (EACCES) · your edits are intact · nothing was written".into(),
+                            );
+                        }
+                        SaveResult::Stale(_) => {
+                            self.status = Some(
+                                "Workspace changed · nothing was written · edits are intact".into(),
+                            );
+                        }
+                        SaveResult::Ignored => {}
                     }
                 }
                 crate::sim::world::Msg::Refreshed { ok } => {
@@ -3906,6 +3868,11 @@ impl App {
                         self.status = Some(format!("Account {account} refreshed"));
                     }
                 }
+                crate::sim::world::Msg::ManagerOperation { .. } => {
+                    // The captured Manager reducer owns and consumes operation
+                    // identities; no manager session is wired into the app yet,
+                    // so nothing can have scheduled one here.
+                }
             }
         }
 
@@ -3916,7 +3883,6 @@ impl App {
                     self.world.arbiter.complete_entry(self.world.now_ms());
                     result |= Response::changed();
                 }
-                cx.request_repaint_after(Duration::from_millis(TICK_MS));
             }
             Route::Outro => {
                 if let Some(outro) = &mut self.outro
@@ -3926,7 +3892,6 @@ impl App {
                     self.quit = true;
                     result |= Response::changed();
                 }
-                cx.request_repaint_after(Duration::from_millis(TICK_MS));
             }
             Route::Handoff => {
                 let next = self.handoff_frame.unwrap_or(0).saturating_add(1);
@@ -3935,10 +3900,6 @@ impl App {
                     self.route = Route::Capsule;
                 }
                 result |= Response::changed();
-                cx.request_repaint_after(Duration::from_millis(TICK_MS));
-            }
-            Route::Cockpit | Route::Launch => {
-                cx.request_repaint_after(Duration::from_millis(TICK_MS));
             }
             _ => {}
         }
@@ -4074,34 +4035,27 @@ impl App {
 
     /// Historical capsule composition retained at the frozen 120×40 host size.
     fn draw_historical_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
-        let palette = historical_palette(ui);
-        ui.fill(
-            area,
-            historical_style_from_surface(ui, palette.primary, palette.canvas, false),
-        );
-        let normal = historical_style_from_surface(ui, palette.primary, palette.canvas, false);
-        let brand = historical_style_from_surface(ui, palette.on_accent, palette.accent, true);
-        let secondary = historical_style_from_surface(ui, palette.secondary, palette.canvas, false);
-        let primary_bold = historical_style_from_surface(ui, palette.primary, palette.canvas, true);
-        let muted = historical_style_from_surface(ui, palette.muted, palette.canvas, false);
-        let primary_surface_bold =
-            historical_style_from_surface(ui, palette.primary, palette.card, true);
-        let muted_surface = historical_style_from_surface(ui, palette.muted, palette.card, false);
-        let secondary_surface =
-            historical_style_from_surface(ui, palette.secondary, palette.card, false);
-        let accent = historical_style_from_surface(ui, palette.accent, palette.canvas, false);
-        let seam = historical_style_from_surface(ui, palette.seam, palette.canvas, false);
-        let border = historical_style_from_surface(ui, palette.border, palette.canvas, false);
-        let warning = historical_style_from_surface(ui, palette.warning, palette.canvas, false);
-        let danger = historical_style_from_surface(ui, palette.danger, palette.canvas, false);
-        let primary_surface =
-            historical_style_from_surface(ui, palette.primary, palette.card, false);
-        let warning_surface =
-            historical_style_from_surface(ui, palette.warning, palette.card, false);
-        let border_surface = historical_style_from_surface(ui, palette.border, palette.card, false);
-        let seam_surface = historical_style_from_surface(ui, palette.seam, palette.card, false);
+        let palette = HistoricalPalette::new(ui);
+        ui.fill(area, palette.primary_on_canvas);
+        let normal = palette.primary_on_canvas;
+        let brand = palette.on_accent_on_accent_bold;
+        let secondary = palette.secondary_on_canvas;
+        let primary_bold = palette.primary_on_canvas_bold;
+        let muted = palette.muted_on_canvas;
+        let primary_surface_bold = palette.primary_on_elevated_bold;
+        let muted_surface = palette.muted_on_elevated;
+        let secondary_surface = palette.secondary_on_elevated;
+        let accent = palette.accent_on_canvas;
+        let seam = palette.seam_on_canvas;
+        let border = palette.border_on_canvas;
+        let warning = palette.warning_on_canvas;
+        let danger = palette.danger_on_canvas;
+        let primary_surface = palette.primary_on_elevated;
+        let warning_surface = palette.warning_on_elevated;
+        let border_surface = palette.border_on_elevated;
+        let seam_surface = palette.seam_on_elevated;
 
-        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: Style| {
+        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
             if y < area.bottom() && x < area.right() {
                 ui.paint_str(
                     Rect::new(x, y, area.right().saturating_sub(x), 1),
@@ -4766,7 +4720,7 @@ impl App {
         if self.editor.env_form_open {
             let heading = self.editor_env_role.as_deref().map_or_else(
                 || "New workspace environment key".to_owned(),
-                |role| format!("New {role} environment key"),
+                |role| format!("New {} environment key", self.role_label(role)),
             );
             paint_lines(ui, area, &[heading, "Key · source · value".to_owned()]);
             Self::editor_env_key_input()
@@ -4820,7 +4774,7 @@ impl App {
                 if envs.is_empty() {
                     continue;
                 }
-                lines.push(format!("Role: {role}"));
+                lines.push(format!("Role: {}", self.role_label(role)));
                 for env in envs {
                     let (value, source): (String, &str) = match &env.value {
                         EnvValue::Plain(value) => (mask(value), "plain"),
@@ -5031,7 +4985,7 @@ impl App {
             Rect { height: 2, ..area },
             std::slice::from_ref(&self.manager_header),
         );
-        List::new(MANAGER_LIST).draw(ui, list_area, &self.manager.list, &self.manager_rows_cache);
+        Self::manager_list().draw(ui, list_area, &self.manager.list, &self.manager_rows_cache);
         if self.manager.detail_open() {
             ui.paint_str(
                 Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
@@ -5063,30 +5017,26 @@ impl App {
     /// size. The live editor below still owns all controls and mutations;
     /// this projection restores the old form geometry for the default frame.
     fn draw_historical_editor(&self, ui: &mut Ui<'_>, area: Rect) {
-        let palette = historical_palette(ui);
-        ui.fill(
-            area,
-            historical_style_from_surface(ui, palette.primary, palette.canvas, false),
-        );
+        let palette = HistoricalPalette::new(ui);
+        ui.fill(area, palette.primary_on_canvas);
         let _ = Brand::new(APP.sub("editor-brand"), "jackin❯")
             .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
 
-        let normal = historical_style_from_surface(ui, palette.primary, palette.canvas, false);
-        let secondary = historical_style_from_surface(ui, palette.secondary, palette.canvas, false);
-        let muted = historical_style_from_surface(ui, palette.muted, palette.canvas, false);
-        let border = historical_style_from_surface(ui, palette.border, palette.canvas, false);
-        let seam = historical_style_from_surface(ui, palette.seam, palette.canvas, false);
-        let accent = historical_style_from_surface(ui, palette.accent, palette.canvas, false);
-        let active_tab = historical_style_from_surface(ui, palette.primary, palette.card, true);
-        let field = historical_style_from_surface(ui, palette.primary, palette.field, false);
-        let field_secondary =
-            historical_style_from_surface(ui, palette.secondary, palette.field, false);
-        let field_glyph = historical_style_from_surface(ui, palette.field, palette.field, false);
-        let button = historical_style_from_surface(ui, palette.primary, palette.button, false);
-        let button_glyph = historical_style_from_surface(ui, palette.button, palette.button, false);
-        let check = historical_style_from_surface(ui, palette.accent, palette.canvas, false);
+        let normal = palette.primary_on_canvas;
+        let secondary = palette.secondary_on_canvas;
+        let muted = palette.muted_on_canvas;
+        let border = palette.border_on_canvas;
+        let seam = palette.seam_on_canvas;
+        let accent = palette.accent_on_canvas;
+        let active_tab = palette.primary_on_elevated_bold;
+        let field = palette.primary_on_field;
+        let field_secondary = palette.secondary_on_field;
+        let field_glyph = palette.field_on_field;
+        let button = palette.primary_on_button;
+        let button_glyph = palette.button_on_button;
+        let check = palette.accent_on_canvas;
 
-        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: Style| {
+        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
             if y < area.bottom() && x < area.right() {
                 ui.paint_str(
                     Rect::new(x, y, area.right().saturating_sub(x), 1),
@@ -5147,7 +5097,7 @@ impl App {
             4,
             10,
             "Working directory *",
-            historical_style_from_surface(ui, palette.secondary, palette.canvas, true),
+            palette.secondary_on_canvas_bold,
         );
         put(
             ui,
@@ -5160,23 +5110,11 @@ impl App {
         put(ui, 66, 11, "Choose… ", button);
         put(ui, 4, 12, "Inside the Construct", border);
 
-        put(
-            ui,
-            4,
-            14,
-            "▎",
-            historical_style_from_surface(ui, palette.canvas, palette.canvas, false),
-        );
+        put(ui, 4, 14, "▎", palette.canvas_on_canvas);
         put(ui, 5, 14, "[✓]", check);
         put(ui, 8, 14, " Keep awake               ", normal);
         put(ui, 34, 14, "macOS only", border);
-        put(
-            ui,
-            4,
-            15,
-            "▎",
-            historical_style_from_surface(ui, palette.canvas, palette.canvas, false),
-        );
+        put(ui, 4, 15, "▎", palette.canvas_on_canvas);
         put(ui, 5, 15, "[✓]", check);
         put(
             ui,
@@ -5197,78 +5135,24 @@ impl App {
         put(ui, 50, 18, "▾", field_secondary);
         put(ui, 51, 18, " ", field);
 
-        put(
-            ui,
-            97,
-            37,
-            "▎",
-            historical_style_from_surface(ui, palette.canvas, palette.canvas, false),
-        );
+        put(ui, 97, 37, "▎", palette.canvas_on_canvas);
         put(ui, 98, 37, "Cancel ", secondary);
-        put(
-            ui,
-            108,
-            37,
-            "▎",
-            historical_style_from_surface(ui, palette.card, palette.card, false),
-        );
-        put(
-            ui,
-            109,
-            37,
-            "Save… ",
-            historical_style_from_surface(ui, palette.border, palette.card, false),
-        );
+        put(ui, 108, 37, "▎", palette.elevated_on_elevated);
+        put(ui, 109, 37, "Save… ", palette.border_on_elevated);
 
-        put(
-            ui,
-            25,
-            39,
-            "← →",
-            historical_style_from_surface(ui, palette.primary, palette.canvas, true),
-        );
+        put(ui, 25, 39, "← →", palette.primary_on_canvas_bold);
         put(ui, 29, 39, "Tab", muted);
-        put(
-            ui,
-            34,
-            39,
-            "1–5",
-            historical_style_from_surface(ui, palette.primary, palette.canvas, true),
-        );
+        put(ui, 34, 39, "1–5", palette.primary_on_canvas_bold);
         put(ui, 38, 39, "Jump", muted);
-        put(
-            ui,
-            44,
-            39,
-            "Enter",
-            historical_style_from_surface(ui, palette.primary, palette.canvas, true),
-        );
+        put(ui, 44, 39, "Enter", palette.primary_on_canvas_bold);
         put(ui, 50, 39, "Body", muted);
-        put(
-            ui,
-            56,
-            39,
-            "[ ]",
-            historical_style_from_surface(ui, palette.primary, palette.canvas, true),
-        );
+        put(ui, 56, 39, "[ ]", palette.primary_on_canvas_bold);
         put(ui, 60, 39, "Switch tab", muted);
-        put(
-            ui,
-            72,
-            39,
-            "Ctrl+S",
-            historical_style_from_surface(ui, palette.primary, palette.canvas, true),
-        );
+        put(ui, 72, 39, "Ctrl+S", palette.primary_on_canvas_bold);
         put(ui, 79, 39, "Save", muted);
-        put(
-            ui,
-            85,
-            39,
-            "Esc",
-            historical_style_from_surface(ui, palette.primary, palette.canvas, true),
-        );
+        put(ui, 85, 39, "Esc", palette.primary_on_canvas_bold);
         put(ui, 89, 39, "Back", muted);
-        let edge = historical_style_from_surface(ui, palette.primary, palette.canvas, false);
+        let edge = palette.primary_on_canvas;
         ui.paint_cell(
             Position::new(
                 area.right().saturating_sub(2),
@@ -5303,26 +5187,22 @@ impl App {
     /// size.  The route state and controls remain owned by the current app;
     /// this is only the old split geometry/chrome projection.
     fn draw_historical_manager(&self, ui: &mut Ui<'_>, area: Rect) {
-        let palette = historical_palette(ui);
-        ui.fill(
-            area,
-            historical_style_from_surface(ui, palette.primary, palette.canvas, false),
-        );
+        let palette = HistoricalPalette::new(ui);
+        ui.fill(area, palette.primary_on_canvas);
         let _ = Brand::new(APP.sub("manager-brand"), "jackin❯")
             .draw(ui, Rect::new(area.x.saturating_add(1), area.y, 9, 1));
 
-        let chrome = historical_style_from_surface(ui, palette.primary, palette.canvas, false);
-        let secondary = historical_style_from_surface(ui, palette.secondary, palette.canvas, false);
-        let muted = historical_style_from_surface(ui, palette.muted, palette.canvas, false);
-        let border = historical_style_from_surface(ui, palette.border, palette.canvas, false);
-        let seam = historical_style_from_surface(ui, palette.seam, palette.canvas, false);
-        let card = historical_style_from_surface(ui, palette.primary, palette.surface, false);
-        let card_secondary =
-            historical_style_from_surface(ui, palette.secondary, palette.surface, false);
-        let card_muted = historical_style_from_surface(ui, palette.muted, palette.surface, false);
-        let card_border = historical_style_from_surface(ui, palette.border, palette.surface, false);
+        let chrome = palette.primary_on_canvas;
+        let secondary = palette.secondary_on_canvas;
+        let muted = palette.muted_on_canvas;
+        let border = palette.border_on_canvas;
+        let seam = palette.seam_on_canvas;
+        let card = palette.primary_on_surface;
+        let card_secondary = palette.secondary_on_surface;
+        let card_muted = palette.muted_on_surface;
+        let card_border = palette.border_on_surface;
 
-        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: Style| {
+        let put = |ui: &mut Ui<'_>, x: u16, y: u16, text: &str, style: PaintStyle| {
             if y < area.bottom() && x < area.right() {
                 ui.paint_str(
                     Rect::new(x, y, area.right().saturating_sub(x), 1),
@@ -5335,31 +5215,19 @@ impl App {
         put(ui, 12, area.y, " File ", secondary);
         put(ui, 19, area.y, " Go ", secondary);
         put(ui, 24, area.y, " Help ", secondary);
-        put(
-            ui,
-            76,
-            area.y,
-            "Workspaces",
-            historical_style_from_surface(ui, palette.secondary, palette.canvas, false),
-        );
+        put(ui, 76, area.y, "Workspaces", palette.secondary_on_canvas);
         put(
             ui,
             88,
             area.y,
             "inside the Construct",
-            historical_style_from_surface(ui, palette.secondary, palette.canvas, false),
+            palette.secondary_on_canvas,
         );
         put(ui, 110, area.y, "2 running", muted);
 
         ui.fill(Rect::new(40, 2, area.width.saturating_sub(41), 36), card);
         put(ui, 1, 2, "╭─ Workspaces ────────── 2 running ─╮", border);
-        put(
-            ui,
-            3,
-            2,
-            " Workspaces ",
-            historical_style_from_surface(ui, palette.primary, palette.canvas, true),
-        );
+        put(ui, 3, 2, " Workspaces ", palette.primary_on_canvas_bold);
         for y in 3..37 {
             put(ui, 1, y, "│", border);
             put(ui, 37, y, "│", border);
@@ -5369,23 +5237,14 @@ impl App {
         put(ui, 39, 2, "│", seam);
         put(ui, 39, 37, "│", seam);
 
-        ui.fill(
-            Rect::new(3, 3, 33, 1),
-            historical_style_from_surface(ui, palette.primary, palette.accent_tint, true),
-        );
-        put(
-            ui,
-            3,
-            3,
-            "▎",
-            historical_style_from_surface(ui, palette.accent, palette.accent_tint, true),
-        );
+        ui.fill(Rect::new(3, 3, 33, 1), palette.primary_on_accent_tint_bold);
+        put(ui, 3, 3, "▎", palette.accent_on_accent_tint_bold);
         put(
             ui,
             7,
             3,
             "Current directory           ",
-            historical_style_from_surface(ui, palette.accent, palette.accent_tint, true),
+            palette.accent_on_accent_tint_bold,
         );
         for (y, label) in [
             (4, "payments-platform"),
@@ -5393,23 +5252,11 @@ impl App {
             (6, "release-automation"),
             (7, "customer-portal"),
         ] {
-            put(
-                ui,
-                3,
-                y,
-                "▎",
-                historical_style_from_surface(ui, palette.canvas, palette.canvas, false),
-            );
+            put(ui, 3, y, "▎", palette.canvas_on_canvas);
             put(ui, 5, y, "▸", secondary);
             put(ui, 7, y, label, chrome);
         }
-        put(
-            ui,
-            3,
-            8,
-            "▎",
-            historical_style_from_surface(ui, palette.canvas, palette.canvas, false),
-        );
+        put(ui, 3, 8, "▎", palette.canvas_on_canvas);
         put(ui, 7, 8, "+ New workspace             ", secondary);
 
         put(
@@ -5452,20 +5299,8 @@ impl App {
             "git pull enabled · keep awake on · dirty exit ask",
             card,
         );
-        put(
-            ui,
-            42,
-            13,
-            "Instances",
-            historical_style_from_surface(ui, palette.secondary, palette.surface, true),
-        );
-        put(
-            ui,
-            101,
-            13,
-            "daemon · 3 s ago",
-            historical_style_from_surface(ui, palette.border, palette.surface, false),
-        );
+        put(ui, 42, 13, "Instances", palette.secondary_on_surface_bold);
+        put(ui, 101, 13, "daemon · 3 s ago", palette.border_on_surface);
         put(
             ui,
             42,
@@ -5478,62 +5313,44 @@ impl App {
             42,
             15,
             "◌ c41e  reviewer · Codex · preserved · dirty",
-            historical_style_from_surface(ui, palette.secondary, palette.surface, false),
+            palette.secondary_on_surface,
         );
 
-        let button = historical_style_from_surface(ui, palette.primary, palette.button, false);
+        let button = palette.primary_on_button;
         ui.fill(Rect::new(41, 36, 8, 1), button);
         ui.fill(Rect::new(51, 36, 6, 1), button);
-        put(
-            ui,
-            41,
-            36,
-            "▎",
-            historical_style_from_surface(ui, palette.button, palette.button, false),
-        );
+        put(ui, 41, 36, "▎", palette.button_on_button);
         put(ui, 42, 36, "Launch", button);
-        put(
-            ui,
-            51,
-            36,
-            "▎",
-            historical_style_from_surface(ui, palette.button, palette.button, false),
-        );
+        put(ui, 51, 36, "▎", palette.button_on_button);
         put(ui, 52, 36, "Edit", button);
 
         ui.paint_style(
             Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1),
-            historical_style_from_surface(ui, palette.primary, palette.canvas, false),
+            palette.primary_on_canvas,
         );
 
         let footer = [
-            (14, "Enter", true, palette.primary),
-            (20, "Launch", false, palette.muted),
-            (28, "n", true, palette.primary),
-            (30, "New", false, palette.muted),
-            (35, "e", true, palette.primary),
-            (37, "Edit", false, palette.muted),
-            (43, "Tab", true, palette.primary),
-            (47, "Details", false, palette.muted),
-            (56, "c", true, palette.primary),
-            (58, "Accounts", false, palette.muted),
-            (68, "u", true, palette.primary),
-            (70, "Usage", false, palette.muted),
-            (77, "s", true, palette.primary),
-            (79, "Settings", false, palette.muted),
-            (89, "?", true, palette.primary),
-            (91, "Help", false, palette.muted),
-            (97, "q", true, palette.primary),
-            (99, "Quit", false, palette.muted),
+            (14, "Enter", palette.primary_on_canvas_bold),
+            (20, "Launch", palette.muted_on_canvas),
+            (28, "n", palette.primary_on_canvas_bold),
+            (30, "New", palette.muted_on_canvas),
+            (35, "e", palette.primary_on_canvas_bold),
+            (37, "Edit", palette.muted_on_canvas),
+            (43, "Tab", palette.primary_on_canvas_bold),
+            (47, "Details", palette.muted_on_canvas),
+            (56, "c", palette.primary_on_canvas_bold),
+            (58, "Accounts", palette.muted_on_canvas),
+            (68, "u", palette.primary_on_canvas_bold),
+            (70, "Usage", palette.muted_on_canvas),
+            (77, "s", palette.primary_on_canvas_bold),
+            (79, "Settings", palette.muted_on_canvas),
+            (89, "?", palette.primary_on_canvas_bold),
+            (91, "Help", palette.muted_on_canvas),
+            (97, "q", palette.primary_on_canvas_bold),
+            (99, "Quit", palette.muted_on_canvas),
         ];
-        for (x, text, bold, fg) in footer {
-            put(
-                ui,
-                x,
-                39,
-                text,
-                historical_style_from_surface(ui, fg, palette.canvas, bold),
-            );
+        for (x, text, style) in footer {
+            put(ui, x, 39, text, style);
         }
         if ui
             .state(MANAGER_LIST)
@@ -6196,7 +6013,7 @@ impl App {
         let hints = if self.capsule_help_open {
             HintLayer {
                 hints: vec![Hint {
-                    chord: Chord::key(KeyCode::Esc),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Esc)),
                     label: "Close",
                     priority: 90,
                 }],
@@ -6208,17 +6025,17 @@ impl App {
             HintLayer {
                 hints: vec![
                     Hint {
-                        chord: Chord::key(KeyCode::Esc),
+                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Esc)),
                         label: "Close",
                         priority: 90,
                     },
                     Hint {
-                        chord: Chord::key(KeyCode::Enter),
+                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Enter)),
                         label: "Choose",
                         priority: 80,
                     },
                     Hint {
-                        chord: Chord::key(KeyCode::F(10)),
+                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::F(10))),
                         label: "Menu",
                         priority: 70,
                     },
@@ -6231,12 +6048,12 @@ impl App {
             HintLayer {
                 hints: vec![
                     Hint {
-                        chord: Chord::key(KeyCode::Char('c')),
+                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('c'))),
                         label: "New tab",
                         priority: 90,
                     },
                     Hint {
-                        chord: Chord::key(KeyCode::Char('d')),
+                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('d'))),
                         label: "Detach",
                         priority: 80,
                     },
@@ -6249,12 +6066,12 @@ impl App {
             HintLayer {
                 hints: vec![
                     Hint {
-                        chord: Chord::key(KeyCode::Tab),
+                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Tab)),
                         label: "Open diff",
                         priority: 90,
                     },
                     Hint {
-                        chord: Chord::key(KeyCode::Esc),
+                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Esc)),
                         label: "Close",
                         priority: 80,
                     },
@@ -6266,7 +6083,10 @@ impl App {
         } else {
             HintLayer {
                 hints: vec![Hint {
-                    chord: Chord::with(KeyCode::Char('B'), KeyModifiers::CONTROL),
+                    key: junie_tui::HintKey::Chord(Chord::with(
+                        KeyCode::Char('B'),
+                        KeyModifiers::CONTROL,
+                    )),
                     label: "prefix",
                     priority: 90,
                 }],
@@ -6357,23 +6177,71 @@ impl App {
     }
 }
 
-impl TuiApp for App {
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+impl App {
+    fn wake_ms(&self, cx: &Cx<'_>) -> u64 {
+        match self.route {
+            Route::Intro | Route::Outro | Route::Handoff | Route::Cockpit | Route::Launch => {
+                TICK_MS
+            }
+            Route::Capsule => 80,
+            _ if self.animating(cx) => 80,
+            _ => 200,
+        }
+    }
+
+    fn animating(&self, cx: &Cx<'_>) -> bool {
+        // Use the migrated state owners. Legacy busy/saving/browser reducers
+        // not yet represented by this app remain separate fidelity work.
+        // Shared activation feedback currently has no Cx observer; its cadence
+        // policy must be supplied by the runtime rather than a second flash clock.
+        !self.world.jobs.is_empty()
+            || self
+                .world
+                .daemons
+                .values()
+                .any(|daemon| !daemon.panes.is_empty())
+            || (self.picker_mode == Some(PickerMode::OnePassword) && cx.is_open(ACCOUNT_PICKER))
+            || (matches!(self.route, Route::Accounts | Route::Usage)
+                && self.world.accounts.accounts.iter().any(|account| {
+                    account.usage.freshness.phase == Freshness::Refreshing
+                        || (self.route == Route::Accounts
+                            && matches!(account.validation, ValidationState::Validating { .. }))
+                }))
+    }
+
+    fn update_parts(&mut self, cx: &mut Cx<'_>, product_tick: bool) -> Response<()> {
         // Keep the shell's configured props owned by one constructor.  The
         // runtime only updates parts here; drawing consumes the same panel
         // shape below, so the app cannot drift between update and draw.
         let _shell = Self::shell_panel(&self.shell_meta);
-        let mut result = self.advance_virtual_state(cx);
+        let mut result = self.advance_virtual_state(cx, product_tick);
+        // Shell controls outlive route projections: focus can leave Intro after
+        // it disappears, or traverse the header on Cockpit/Editor. Poll their
+        // normal component updates on every pass, then apply activation only
+        // after command/overlay precedence and the active route's policy.
+        let entry = Self::enter_button().update(cx);
+        let enter_chosen = entry.activated();
+        if self.route == Route::Intro {
+            result |= entry.erase();
+        }
+        let (navigation, navigation_route) = self.update_navigation(cx);
+        let navigation_enabled = matches!(
+            self.route,
+            Route::Manager | Route::Accounts | Route::Usage | Route::Settings | Route::Capsule
+        );
+        if navigation_enabled {
+            result |= navigation;
+        }
         self.ensure_manager_header();
         if let Some(command) = cx.command()
-            && let Some(result) = self.update_command(cx, command)
+            && let Some(command_result) = self.update_command(cx, command)
         {
             if self.route == Route::Manager {
                 self.ensure_manager_rows();
             }
             self.ensure_manager_header();
             self.sync_workspace_keymap();
-            return result;
+            return result | command_result;
         }
         result |= self.update_overlays(cx);
         if cx.is_open(ROLE_PICKER)
@@ -6386,18 +6254,48 @@ impl TuiApp for App {
             self.sync_workspace_keymap();
             return result;
         }
-        if matches!(
-            self.route,
-            Route::Manager | Route::Accounts | Route::Usage | Route::Settings | Route::Capsule
-        ) {
-            result |= self.update_navigation(cx);
+        if navigation_enabled && let Some(route) = navigation_route {
+            self.route = route;
+            self.status = None;
         }
-        result |= self.update_route(cx);
+        if self.route == Route::Intro && enter_chosen {
+            self.enter_intro();
+        }
+        result |= self.update_route(cx, product_tick);
         if self.route == Route::Manager {
             self.ensure_manager_rows();
         }
         self.ensure_manager_header();
         self.sync_workspace_keymap();
+        result
+    }
+}
+
+impl TuiApp for App {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let now = cx.now();
+        let interval = Duration::from_millis(self.wake_ms(cx));
+        let last = *self.last_tick.get_or_insert(now);
+        let due = last.saturating_add(interval);
+        // One admission owns every simulation reducer. Even a raw Tick cannot
+        // age the app before its deadline or twice at the same Moment.
+        let product_tick = self.motion != Motion::Paused
+            && cx.update_cause() == UpdateCause::Tick
+            && now > last
+            && now >= due;
+        if product_tick {
+            self.last_tick = Some(now);
+        }
+        let result = self.update_parts(cx, product_tick);
+        if self.motion != Motion::Paused {
+            // Recompute after route/job changes, without postponing the anchor
+            // on unrelated inputs, drawing, or settlement passes.
+            let next = self
+                .last_tick
+                .unwrap_or(now)
+                .saturating_add(Duration::from_millis(self.wake_ms(cx)));
+            cx.request_repaint_at(next);
+        }
         result
     }
 
@@ -6431,7 +6329,7 @@ impl TuiApp for App {
         let hints = if self.help_open {
             HintLayer {
                 hints: vec![Hint {
-                    chord: Chord::key(KeyCode::Esc),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Esc)),
                     label: "Close",
                     priority: 90,
                 }],
@@ -6442,7 +6340,7 @@ impl TuiApp for App {
         } else {
             HintLayer {
                 hints: vec![Hint {
-                    chord: Chord::key(KeyCode::Enter),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Enter)),
                     label: "Choose",
                     priority: 90,
                 }],
@@ -6509,15 +6407,9 @@ impl TuiApp for App {
             && self.active_instance.is_none()
             && !self.manager.detail_open()
             && self
-                .manager
-                .list
-                .cursor()
-                .is_none_or(|cursor| cursor == ItemKey::index(0))
-            && self
-                .manager
-                .list
-                .cursor()
-                .is_some_and(|key| key == ItemKey::Index(0))
+                .manager_rows_cache
+                .first()
+                .is_some_and(|row| self.manager.list.cursor() == Some(row.key))
         {
             self.draw_historical_manager(ui, full);
         }
@@ -6984,13 +6876,32 @@ mod tests {
     use super::*;
 
     #[test]
+    fn role_labels_require_an_exact_current_catalog_identity() {
+        let mut app = App::default();
+        assert_eq!(app.role_label("chainargos/backend"), "backend");
+        assert_eq!(app.role_label("other/backend"), "other/backend");
+        assert_eq!(app.role_label("chainargosx/backend"), "chainargosx/backend");
+        assert_eq!(app.role_label("chainargos/missing"), "chainargos/missing");
+        if let Some(role) = app
+            .world
+            .roles
+            .iter_mut()
+            .find(|role| role.name == "backend")
+        {
+            role.name = "renamed".into();
+        }
+        assert_eq!(app.role_label("chainargos/backend"), "chainargos/backend");
+        assert_eq!(app.role_label("chainargos/renamed"), "renamed");
+    }
+
+    #[test]
     fn default_starts_in_returning_manager() {
         let app = App::default();
         assert_eq!(app.route(), Route::Manager);
-        assert_eq!(app.world.running_count(), 1);
+        assert_eq!(app.world.running_count(), 2);
         assert_eq!(
             app.world.instances[0].run_id,
-            crate::RunId::new(0x9c41_e2f0)
+            crate::RunId::from_label("run-7f3a")
         );
     }
 
@@ -7013,5 +6924,31 @@ mod tests {
             app_keymap().lookup(KeyPhase::Capture, &key, false),
             Some(CMD_NEW_WORKSPACE)
         );
+    }
+}
+
+#[cfg(test)]
+mod paint_contract_tests {
+    use super::*;
+    #[test]
+    fn historical_failure_and_action_labels_remain_readable_in_mono() {
+        use junie_tui::{ColorLevel, Theme};
+        use junie_tui_testing::Harness;
+        for theme in [Theme::junie(), Theme::paper()] {
+            for (scenario, x, y, glyph) in [
+                (Scenario::CapsuleMulti, 103, 8, "F"),
+                (Scenario::CapsuleMulti, 2, 0, "j"),
+                (Scenario::Returning, 20, 39, "L"),
+            ] {
+                let app = App::for_scenario_at(scenario, Motion::Paused, 0);
+                let h = Harness::new(app, theme.clone(), 120, 40).with_color(ColorLevel::Mono);
+                let cell = h.cell(x, y);
+                assert_eq!(cell.symbol(), glyph);
+                assert_ne!(
+                    cell.fg, cell.bg,
+                    "critical custom text must remain readable"
+                );
+            }
+        }
     }
 }

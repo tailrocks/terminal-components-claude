@@ -2,13 +2,13 @@
 
 use junie_tui::{
     Align, CellDecor, CellRef, Column, ColumnKey, Cx, EditIntent, FgStep, FieldError, Grid,
-    GridEditor, GridModel, GridState, Id, ItemKey, NavUnit, Panel, Part, Rect, Response, Role,
-    RowDecor, RowTotal, StylePatch, Ui, id,
+    GridEditor, GridModel, GridState, Id, ItemKey, NavUnit, Panel, Part, Rect, Role, RowDecor,
+    RowTotal, StylePatch, Ui, id,
 };
 
 use crate::data::{TASKS, TaskRow, TaskStatus};
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const TABLE: Id = id!("editable.table");
 const TASKS_PANEL: Id = id!("editable.tasks.panel");
@@ -428,14 +428,14 @@ impl GridEditor for EditableModel {
             5 if text.parse::<u32>().is_err() => {
                 return Err(FieldError::new("Changes must be a whole number"));
             }
-            0 => item.name = text.to_owned(),
-            2 => item.owner = text.to_owned(),
+            0 => text.clone_into(&mut item.name),
+            2 => text.clone_into(&mut item.owner),
             4 => {
-                item.branch = text.to_owned();
-                item.branch_display = text.to_owned();
+                text.clone_into(&mut item.branch);
+                text.clone_into(&mut item.branch_display);
                 item.branch_error = false;
             }
-            5 => item.changes = text.to_owned(),
+            5 => text.clone_into(&mut item.changes),
             _ => return Err(FieldError::new("Cell is read-only")),
         }
         Ok(())
@@ -450,7 +450,13 @@ fn table() -> Grid<'static> {
     Grid::new(TABLE, &COLUMNS).nav(NavUnit::Cell)
 }
 
-fn tasks_panel<'a>(meta: &'a str) -> Panel<'a> {
+/// Both phases derive the same task-card meta line, so neither can drift.
+fn tasks_status<E: core::fmt::Display>(error: Option<E>, edits: u32) -> String {
+    error.map_or_else(|| format!("{edits} edits"), |error| error.to_string())
+}
+
+/// The one task-card constructor (§13), reached from update and from draw.
+fn tasks_panel(meta: &str) -> Panel<'_> {
     Panel::new(TASKS_PANEL)
         .title("Tasks")
         .meta(meta)
@@ -487,30 +493,23 @@ impl Page for EditablePage {
         "Editable tables"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let _ = tasks_panel("");
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let was_editing = self.state.is_editing();
         let action = table().update_editable(cx, &mut self.state, &mut self.model);
         if was_editing && !self.state.is_editing() {
             self.edits = self.edits.saturating_add(1);
         }
-        action.erase()
+        let _ = tasks_panel(&tasks_status(self.state.edit_error(), self.edits));
+        action.erase().into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        let blurb = if area.width < 60 {
-            "Navigation is reversed cell; editing is …"
-        } else if area.width < 80 {
-            "Navigation is reversed cell; editing is a cursor. They never…"
-        } else {
-            "Navigation is reversed cell; editing is a cursor. They never look alike."
-        };
+        let blurb = "Navigation is reversed cell; editing is a cursor. They never look alike.";
         frame(ui, area, self.title(), blurb, |ui, body| {
-            let card_height = (self.model.rows.len() as u16 + 4).min(body.height.saturating_sub(4));
-            let task_meta = self.state.edit_error().map_or_else(
-                || format!("{} edits", self.edits),
-                |error| error.to_string(),
-            );
+            let card_height = (self.model.rows.len() as u16)
+                .saturating_add(4)
+                .min(body.height.saturating_sub(4));
+            let task_meta = tasks_status(self.state.edit_error(), self.edits);
             tasks_panel(&task_meta).draw(
                 ui,
                 Rect {
@@ -584,11 +583,11 @@ impl Page for EditablePage {
         });
     }
 
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if self.state.is_editing() {
-            vec![("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next cell")]
+            &[("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next cell")]
         } else {
-            vec![
+            &[
                 ("↑ ↓ ← →", "Cell"),
                 ("Enter", "Edit"),
                 ("s", "Sort"),

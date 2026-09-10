@@ -7,9 +7,39 @@ use junie_tui::{
 };
 
 use crate::data::LANGUAGES;
+use crate::render_number::RenderNumber;
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
+fn list_columns(area: Rect) -> [Rect; 3] {
+    let mut widths = [0; 3];
+    layout::distribute_into(area.width, &[Track::Flex(1); 3], 2, &mut widths);
+    let mut x = area.x;
+    widths.map(|width| {
+        let start = x.min(area.right());
+        let width = width.min(area.right().saturating_sub(start));
+        x = start.saturating_add(width).saturating_add(2);
+        Rect {
+            x: start,
+            width,
+            ..area
+        }
+    })
+}
+
+fn paint_chosen(ui: &mut Ui<'_>, inner: Rect, chosen: &str, style: junie_tui::author::PaintStyle) {
+    let prefix = ui.paint_str(Rect { height: 1, ..inner }, "Chosen: ", style);
+    ui.paint_str(
+        Rect::new(
+            inner.x.saturating_add(prefix),
+            inner.y,
+            inner.width.saturating_sub(prefix),
+            1,
+        ),
+        chosen,
+        style,
+    );
+}
 const SINGLE: Id = id!("lists.single");
 const MULTI: Id = id!("lists.multi");
 const EMPTY: Id = id!("lists.empty");
@@ -159,33 +189,33 @@ fn single_list() -> List<
         .patch_part(LIST_GUTTER)
 }
 
-fn multi_list()
--> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
+/// The one multi-selection list constructor (§13): both phase paths build the
+/// same keyed, patched, disabled-aware list and differ only in the row glyph.
+fn multi_list_with(
+    row: impl Fn(&FileRow, &mut RowUi<'_>),
+) -> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
     List::new(MULTI)
         .key(file_key)
-        .row(file_row)
+        .row(row)
         .select_mode(SelectMode::Multi)
         .patch_part(LIST_GUTTER)
         .disabled_item(&file_disabled)
 }
 
-fn compact_multi_list()
+fn multi_list()
 -> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
-    multi_list().row(compact_file_row)
+    multi_list_with(file_row)
 }
 
-fn empty_list(
-    title: &'static str,
-) -> List<
-    'static,
-    &'static str,
-    impl Fn(&&'static str) -> ItemKey,
-    impl Fn(&&'static str, &mut RowUi<'_>),
-> {
-    List::new(EMPTY)
-        .key(language_key)
-        .row(language_row)
-        .empty(EmptyState::Empty { title, hint: None })
+fn compact_multi_list()
+-> List<'static, FileRow, impl Fn(&FileRow) -> ItemKey, impl Fn(&FileRow, &mut RowUi<'_>)> {
+    multi_list_with(compact_file_row)
+}
+
+/// The one empty-list constructor (§13): the update path drives it and the
+/// draw path renders it, so the empty state cannot drift between phases.
+fn empty_list(title: &'static str) -> List<'static, &'static str> {
+    List::new(EMPTY).empty(EmptyState::Empty { title, hint: None })
 }
 
 /// Two independent keyed list states; selecting a row never relies on its
@@ -209,14 +239,13 @@ impl ListsPage {
         if let Some(file) = FILES.get(1) {
             multi.checked_mut().insert(file_key(file));
         }
-        let first_language = LANGUAGES.first().copied().unwrap_or("");
-        let first_key = language_key(&first_language);
-        single.choose(Some(first_key));
+        let chosen = LANGUAGES.first().map(language_key);
+        single.choose(chosen);
         Self {
             single,
             multi,
             empty: ListState::default(),
-            chosen: Some(first_key),
+            chosen,
             last: "choose a language",
         }
     }
@@ -227,7 +256,7 @@ impl Page for ListsPage {
         "Lists"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
         let one = single_list().update(cx, &mut self.single, LANGUAGES);
         if let Some(ListAction::Chose(key) | ListAction::Activated(key)) = one.action_ref() {
@@ -247,7 +276,7 @@ impl Page for ListsPage {
         response |= many.erase();
         let empty = empty_list("No matches").update(cx, &mut self.empty, &[] as &[&str]);
         response |= empty.erase();
-        response
+        response.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -270,16 +299,13 @@ impl Page for ListsPage {
             self.title(),
             "Single and multiple selection, disabled items, scrolling, empty state",
             |ui, body| {
-                let columns =
-                    layout::columns(body, &[Track::Flex(1), Track::Flex(1), Track::Flex(1)], 2);
+                let columns = list_columns(body);
                 let height = body.height.min(18);
                 let language_column = columns.first().copied().unwrap_or(body);
                 let language = Rect {
-                    width: language_column.width.saturating_sub(if body.width >= 90 {
-                        0
-                    } else {
-                        1
-                    }),
+                    width: language_column
+                        .width
+                        .saturating_sub(u16::from(body.width < 90)),
                     height,
                     ..language_column
                 };
@@ -288,11 +314,7 @@ impl Page for ListsPage {
                     .title("Language")
                     .patch_part(PANEL_PARTS)
                     .draw(ui, language, |ui, inner| {
-                        let _ = ui.paint_str(
-                            Rect { height: 1, ..inner },
-                            &format!("Chosen: {chosen}"),
-                            detail,
-                        );
+                        paint_chosen(ui, inner, chosen, detail);
                         single_list().draw(
                             ui,
                             Rect {
@@ -304,81 +326,7 @@ impl Page for ListsPage {
                             LANGUAGES,
                         );
                     });
-                let files_column = columns.get(1).copied().unwrap_or(body);
-                let files = Rect {
-                    x: if body.width >= 90 {
-                        files_column.x
-                    } else {
-                        files_column.x.saturating_sub(1)
-                    },
-                    height,
-                    ..files_column
-                };
-                let selected = format!("{} selected", self.multi.checked().len_in(FILES.len()));
-                let mut files_panel = Panel::new(id!("lists.files")).kind(PanelKind::Card).title(
-                    if body.width < 70 {
-                        "Files to incl…"
-                    } else {
-                        "Files to include"
-                    },
-                );
-                if body.width >= 130 {
-                    files_panel = files_panel.meta(&selected);
-                }
-                files_panel
-                    .patch_part(PANEL_PARTS)
-                    .draw(ui, files, |ui, inner| {
-                        let _ = ui.paint_str(
-                            Rect { height: 1, ..inner },
-                            if body.width < 70 {
-                                "Space toggle …"
-                            } else if body.width < 90 {
-                                "Space toggle · a all…"
-                            } else if body.width < 130 {
-                                "Space toggle · a all · Sh…"
-                            } else {
-                                "Space toggle · a all · Shift+↓ range"
-                            },
-                            detail,
-                        );
-                        if body.width >= 90 && body.width < 130 {
-                            compact_multi_list().draw(
-                                ui,
-                                Rect {
-                                    y: inner.y.saturating_add(2),
-                                    height: inner.height.saturating_sub(2),
-                                    ..inner
-                                },
-                                &self.multi,
-                                FILES,
-                            );
-                        } else {
-                            multi_list().draw(
-                                ui,
-                                Rect {
-                                    y: inner.y.saturating_add(2),
-                                    height: inner.height.saturating_sub(2),
-                                    ..inner
-                                },
-                                &self.multi,
-                                FILES,
-                            );
-                        }
-                        if self.last == "multi selection changed" {
-                            let _ = ui.paint_str(
-                                Rect {
-                                    y: inner.bottom().saturating_sub(1),
-                                    height: 1,
-                                    ..inner
-                                },
-                                &format!(
-                                    "checked rows: {}",
-                                    self.multi.checked().len_in(FILES.len())
-                                ),
-                                detail,
-                            );
-                        }
-                    });
+                self.draw_files(ui, body, &columns, height, detail);
                 let search_column = columns.get(2).copied().unwrap_or(body);
                 let search = Rect {
                     x: if body.width >= 90 {
@@ -420,16 +368,109 @@ impl Page for ListsPage {
         );
     }
 
-    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(MULTI).contains(StateFlags::FOCUSED) {
-            vec![
+            &[
                 ("↑ ↓", "Move"),
                 ("Space", "Toggle"),
                 ("a", "All / none"),
                 ("Shift+↓", "Range"),
             ]
         } else {
-            vec![("↑ ↓", "Move"), ("Enter", "Choose"), ("g G", "Ends")]
+            &[("↑ ↓", "Move"), ("Enter", "Choose"), ("g G", "Ends")]
         }
+    }
+}
+
+impl ListsPage {
+    fn draw_files(
+        &self,
+        ui: &mut Ui<'_>,
+        body: Rect,
+        columns: &[Rect],
+        height: u16,
+        detail: junie_tui::author::PaintStyle,
+    ) {
+        let files_column = columns.get(1).copied().unwrap_or(body);
+        let files = Rect {
+            x: if body.width >= 90 {
+                files_column.x
+            } else {
+                files_column.x.saturating_sub(1)
+            },
+            height,
+            ..files_column
+        };
+        let selected = RenderNumber::selected(self.multi.checked().len_in(FILES.len()));
+        let mut files_panel =
+            Panel::new(id!("lists.files"))
+                .kind(PanelKind::Card)
+                .title(if body.width < 70 {
+                    "Files to incl…"
+                } else {
+                    "Files to include"
+                });
+        if body.width >= 130 {
+            files_panel = files_panel.meta(selected.as_str());
+        }
+        files_panel
+            .patch_part(PANEL_PARTS)
+            .draw(ui, files, |ui, inner| {
+                let _ = ui.paint_str(
+                    Rect { height: 1, ..inner },
+                    if body.width < 70 {
+                        "Space toggle …"
+                    } else if body.width < 90 {
+                        "Space toggle · a all…"
+                    } else if body.width < 130 {
+                        "Space toggle · a all · Sh…"
+                    } else {
+                        "Space toggle · a all · Shift+↓ range"
+                    },
+                    detail,
+                );
+                if body.width >= 90 && body.width < 130 {
+                    compact_multi_list().draw(
+                        ui,
+                        Rect {
+                            y: inner.y.saturating_add(2),
+                            height: inner.height.saturating_sub(2),
+                            ..inner
+                        },
+                        &self.multi,
+                        FILES,
+                    );
+                } else {
+                    multi_list().draw(
+                        ui,
+                        Rect {
+                            y: inner.y.saturating_add(2),
+                            height: inner.height.saturating_sub(2),
+                            ..inner
+                        },
+                        &self.multi,
+                        FILES,
+                    );
+                }
+                if self.last == "multi selection changed" {
+                    let row = Rect {
+                        y: inner.bottom().saturating_sub(1),
+                        height: 1,
+                        ..inner
+                    };
+                    let count = RenderNumber::new(self.multi.checked().len_in(FILES.len()));
+                    let prefix = ui.paint_str(row, "checked rows: ", detail);
+                    ui.paint_str(
+                        Rect::new(
+                            row.x.saturating_add(prefix),
+                            row.y,
+                            row.width.saturating_sub(prefix),
+                            1,
+                        ),
+                        count.as_str(),
+                        detail,
+                    );
+                }
+            });
     }
 }

@@ -1,0 +1,6 @@
+    Checking vt100 v0.16.2 (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-sources/tui-snap-repaired/vendor/vt100)
+    Checking termlens v0.9.0
+    Checking tuisnap v0.2.0 (/Users/donbeave/Projects/terminal-components-integration-evidence/tool-sources/tui-snap-repaired)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.97s
+mbx[cache]: 0 hits, 1 misses; 0 B downloaded, 0 B uploaded, 0 B stored locally
+mbx[savings]: 50092 compilations served. ask rustc how many it remembers doing.

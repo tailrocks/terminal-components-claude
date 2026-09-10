@@ -903,9 +903,11 @@ mod tests {
         let area = Rect::new(0, 0, 60, 4);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, rect| {
-            view.draw(ui, rect, &state);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, rect| {
+                view.draw(ui, rect, &state);
+            })
+            .commit_presented();
         assert_eq!(state, before);
         let row: String = buffer
             .content()
@@ -936,14 +938,16 @@ mod tests {
         let area = Rect::new(0, 0, 40, 4);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, rect| {
-            ui.reference(
-                Some(ReferenceTarget::new(ID, ReferenceState::FOCUSED)),
-                |ui| {
-                    view.draw(ui, rect, &state);
-                },
-            );
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, rect| {
+                ui.reference(
+                    Some(ReferenceTarget::new(ID, ReferenceState::FOCUSED)),
+                    |ui| {
+                        view.draw(ui, rect, &state);
+                    },
+                );
+            })
+            .commit_presented();
         assert!(
             !runtime.ring().is_registered(ID),
             "reference mode must leave the nested viewport inert"

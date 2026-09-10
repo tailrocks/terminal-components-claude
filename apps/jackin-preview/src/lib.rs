@@ -39,7 +39,7 @@ pub use sim::world::{World, world_for};
 
 /// Run the interactive preview through the public `junie-tui` entry point.
 pub fn run() -> std::io::Result<()> {
-    run_scenario(Scenario::Returning, Motion::Full, 0)
+    run_scenario(Scenario::FirstUse, Motion::Full, 0)
 }
 
 /// Run a pinned scenario through the public `junie-tui` entry point.

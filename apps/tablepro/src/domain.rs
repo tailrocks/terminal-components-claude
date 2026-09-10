@@ -6,127 +6,160 @@
 //! about databases, while the app never reaches into runtime internals.
 
 use junie_tui::{
-    CellDecor, CellRef, ColumnKey, EditIntent, FieldError, GridEditor, GridModel, ItemKey,
-    RowDecor, RowTotal, SortDir, StateFlags,
+    CellDecor, CellRef, ColumnKey, EditIntent, FgStep, FieldError, GlyphRole, GridEditor,
+    GridModel, ItemKey, Role, RowDecor, RowTotal, SortDir, StateFlags,
 };
 
 use crate::db::{ColType, Table, Value};
 use crate::sql;
 
+/// One row owns its identity, baseline and lifecycle through every transition.
+#[derive(Clone, PartialEq)]
+struct PendingRow {
+    key: ItemKey,
+    current: Vec<Value>,
+    original: Option<Vec<Value>>,
+    inserted: bool,
+    deleted: bool,
+}
+
+impl core::fmt::Debug for PendingRow {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("PendingRow")
+            .field("key", &self.key)
+            .field("columns", &self.current.len())
+            .field("has_baseline", &self.original.is_some())
+            .field("inserted", &self.inserted)
+            .field("deleted", &self.deleted)
+            .finish()
+    }
+}
+
 /// Application-owned pending edits over a rectangular result set.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PendingEdits {
-    // Most result sets are rendered and discarded without an edit. Keep the
-    // clean snapshot lazy so loading a large result does not clone every
-    // database value solely to support a possible later undo/save.
-    original: Option<Vec<Vec<Value>>>,
-    current: Vec<Vec<Value>>,
-    inserted: Vec<bool>,
-    deleted: Vec<bool>,
+    rows: Vec<PendingRow>,
+    // None means exhausted. Undo never rolls this allocator backward.
+    next_key: Option<u64>,
 }
 
 impl PendingEdits {
     /// Start tracking `rows` without changing them.
     pub fn new(rows: Vec<Vec<Value>>) -> Self {
-        let flags = vec![false; rows.len()];
+        let next_key = u64::try_from(rows.len())
+            .ok()
+            .and_then(|n| n.checked_add(1));
         Self {
-            original: None,
-            current: rows,
-            inserted: flags.clone(),
-            deleted: flags,
+            rows: rows
+                .into_iter()
+                .enumerate()
+                .map(|(index, current)| PendingRow {
+                    key: ItemKey::num((index as u64).saturating_add(1)),
+                    current,
+                    original: None,
+                    inserted: false,
+                    deleted: false,
+                })
+                .collect(),
+            next_key,
         }
     }
 
     /// Number of rows currently held by the result.
     pub fn row_count(&self) -> usize {
-        self.current.len()
+        self.rows.len()
     }
 
     /// Read one current cell.
     pub fn value(&self, row: usize, col: usize) -> Option<&Value> {
-        self.current.get(row).and_then(|cells| cells.get(col))
+        self.rows.get(row)?.current.get(col)
     }
 
     fn original_value(&self, row: usize, col: usize) -> Option<&Value> {
-        self.original
-            .as_ref()
-            .and_then(|rows| rows.get(row))
-            .and_then(|cells| cells.get(col))
-            .or_else(|| self.current.get(row).and_then(|cells| cells.get(col)))
-    }
-
-    fn snapshot(&mut self) {
-        if self.original.is_none() {
-            self.original = Some(self.current.clone());
-        }
+        let record = self.rows.get(row)?;
+        record.original.as_ref().unwrap_or(&record.current).get(col)
     }
 
     /// Set one cell. Returns whether the value changed.
     pub fn set(&mut self, row: usize, col: usize, value: Value) -> bool {
-        let Some(cell) = self.value(row, col) else {
+        let Some(record) = self.rows.get_mut(row) else {
+            return false;
+        };
+        let Some(cell) = record.current.get(col) else {
             return false;
         };
         if *cell == value {
             return false;
         }
-        self.snapshot();
-        let Some(cell) = self
-            .current
-            .get_mut(row)
-            .and_then(|cells| cells.get_mut(col))
-        else {
-            return false;
-        };
-        *cell = value;
+        if !record.inserted && record.original.is_none() {
+            record.original = Some(record.current.clone());
+        }
+        if let Some(cell) = record.current.get_mut(col) {
+            *cell = value;
+        }
         true
     }
 
-    /// Add a new row initialized to SQL NULLs and return its row index.
-    pub fn insert_row(&mut self, columns: usize) -> usize {
-        self.snapshot();
-        let row = self.current.len();
-        let values = vec![Value::Null; columns];
-        self.current.push(values);
-        self.inserted.push(true);
-        self.deleted.push(false);
-        row
+    /// Add a NULL row, refusing without mutation if stable keys are exhausted.
+    pub fn insert_row(&mut self, columns: usize) -> Option<usize> {
+        self.insert_values(vec![Value::Null; columns])
     }
 
-    /// Mark a row for deletion. Deleting an inserted row cancels that insert.
+    fn insert_values(&mut self, values: Vec<Value>) -> Option<usize> {
+        let key = self.next_key?;
+        let row = self.rows.len();
+        self.rows.push(PendingRow {
+            key: ItemKey::num(key),
+            current: values,
+            original: None,
+            inserted: true,
+            deleted: false,
+        });
+        self.next_key = key.checked_add(1);
+        Some(row)
+    }
+
+    /// Mark an existing row deleted, or remove a cancelled insertion.
     pub fn delete_row(&mut self, row: usize) -> bool {
-        if row >= self.deleted.len() {
-            return false;
-        }
-        self.snapshot();
-        let Some(deleted) = self.deleted.get_mut(row) else {
+        let Some(record) = self.rows.get_mut(row) else {
             return false;
         };
-        if self.inserted.get(row).copied().unwrap_or(false) {
-            if let Some(inserted) = self.inserted.get_mut(row) {
-                *inserted = false;
-            }
-            if let Some(current) = self.current.get_mut(row)
-                && let Some(original) = self.original.as_ref().and_then(|rows| rows.get(row))
-            {
-                current.clone_from(original);
-            }
+        if record.inserted {
+            self.rows.remove(row);
             return true;
         }
-        if *deleted {
+        if record.deleted {
             return false;
         }
-        *deleted = true;
+        record.deleted = true;
+        true
+    }
+
+    fn toggle_delete(&mut self, row: usize) -> bool {
+        let Some(record) = self.rows.get_mut(row) else {
+            return false;
+        };
+        if record.inserted {
+            self.rows.remove(row);
+        } else {
+            if !record.deleted
+                && let Some(original) = record.original.take()
+            {
+                record.current = original;
+            }
+            record.deleted = !record.deleted;
+        }
         true
     }
 
     /// Whether the row was inserted by the user.
     pub fn is_inserted(&self, row: usize) -> bool {
-        self.inserted.get(row).copied().unwrap_or(false)
+        self.rows.get(row).is_some_and(|record| record.inserted)
     }
 
     /// Whether the row was marked for deletion.
     pub fn is_deleted(&self, row: usize) -> bool {
-        self.deleted.get(row).copied().unwrap_or(false)
+        self.rows.get(row).is_some_and(|record| record.deleted)
     }
 
     /// Whether one cell differs from its original value.
@@ -145,19 +178,14 @@ impl PendingEdits {
     pub fn is_dirty_row(&self, row: usize) -> bool {
         self.is_inserted(row)
             || self.is_deleted(row)
-            || self
-                .current
-                .get(row)
-                .is_some_and(|cells| (0..cells.len()).any(|col| self.is_dirty(row, col)))
+            || (0..self.current_row_width(row)).any(|col| self.is_dirty(row, col))
     }
 
     /// Number of changed cells, excluding row lifecycle markers.
     pub fn dirty_cell_count(&self) -> usize {
-        self.current
-            .iter()
-            .enumerate()
-            .map(|(row, cells)| {
-                (0..cells.len())
+        (0..self.row_count())
+            .map(|row| {
+                (0..self.current_row_width(row))
                     .filter(|&col| self.is_dirty(row, col))
                     .count()
             })
@@ -166,56 +194,51 @@ impl PendingEdits {
 
     /// Row indexes with pending cell or row changes.
     pub fn dirty_rows(&self) -> Vec<usize> {
-        (0..self.current.len())
+        (0..self.row_count())
             .filter(|&row| self.is_dirty_row(row))
             .collect()
     }
 
     /// Discard pending edits and restore the loaded clean rows.
     pub fn clear(&mut self) {
-        // `clear` is the discard transition, not a save transition. Restore
-        // the immutable load snapshot and drop rows that only exist in the
-        // pending edit set; callers can then safely rebuild their display
-        // cache without silently committing user edits.
-        if let Some(original) = self.original.take() {
-            self.current = original;
+        self.rows.retain(|record| !record.inserted);
+        for record in &mut self.rows {
+            if let Some(original) = record.original.take() {
+                record.current = original;
+            }
+            record.deleted = false;
         }
-        self.inserted = vec![false; self.current.len()];
-        self.deleted = vec![false; self.current.len()];
     }
 
-    /// Reorder rows while preserving each row's pending state.
+    /// Reorder whole records; invalid permutations leave the result unchanged.
     pub fn reorder(&mut self, order: &[usize]) {
-        if let Some(original) = self.original.as_mut() {
-            let rows = core::mem::take(original);
-            *original = reorder_owned(rows, order);
+        let mut seen = vec![false; self.rows.len()];
+        if order.len() != self.rows.len()
+            || order.iter().any(|&index| {
+                let Some(slot) = seen.get_mut(index) else {
+                    return true;
+                };
+                core::mem::replace(slot, true)
+            })
+        {
+            return;
         }
-        let rows = core::mem::take(&mut self.current);
-        self.current = reorder_owned(rows, order);
-        self.inserted = reorder_flags(&self.inserted, order);
-        self.deleted = reorder_flags(&self.deleted, order);
+        let mut records: Vec<_> = core::mem::take(&mut self.rows)
+            .into_iter()
+            .map(Some)
+            .collect();
+        self.rows = order
+            .iter()
+            .filter_map(|&index| records.get_mut(index).and_then(Option::take))
+            .collect();
     }
-}
-
-fn reorder_owned(rows: Vec<Vec<Value>>, order: &[usize]) -> Vec<Vec<Value>> {
-    let mut rows: Vec<Option<Vec<Value>>> = rows.into_iter().map(Some).collect();
-    order
-        .iter()
-        .filter_map(|&index| rows.get_mut(index).and_then(Option::take))
-        .collect()
-}
-
-fn reorder_flags(flags: &[bool], order: &[usize]) -> Vec<bool> {
-    order
-        .iter()
-        .filter_map(|&index| flags.get(index).copied())
-        .collect()
 }
 
 /// Quote a database value for the deterministic SQL preview.
 pub(crate) fn sql_literal(value: &Value) -> String {
     match value {
         Value::Null => "NULL".to_owned(),
+        Value::Default => "DEFAULT".to_owned(),
         Value::Text(text) => format!("'{}'", text.replace('\'', "''")),
         Value::Int(value) => value.to_string(),
         Value::Num(value) => format!("{value:.2}"),
@@ -294,7 +317,7 @@ pub(crate) fn preview_sql(
             let mut values = Vec::new();
             for (col, (name, _)) in columns.iter().enumerate() {
                 let value = pending.value(row, col).unwrap_or(&Value::Null);
-                if !matches!(value, Value::Null) {
+                if !matches!(value, Value::Default) {
                     names.push(name.clone());
                     values.push(sql_literal(value));
                 }
@@ -326,16 +349,16 @@ pub(crate) fn preview_sql(
 
 impl PendingEdits {
     fn current_row_width(&self, row: usize) -> usize {
-        self.current.get(row).map_or(0, Vec::len)
+        self.rows.get(row).map_or(0, |record| record.current.len())
     }
 }
 
 /// A database result adapted to the generic keyed grid.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct ResultGrid {
     types: Vec<ColType>,
     pending: PendingEdits,
-    keys: Vec<ItemKey>,
+    sort: Option<(ColumnKey, SortDir)>,
     total: usize,
     editable: bool,
     source: Option<String>,
@@ -344,6 +367,22 @@ pub struct ResultGrid {
     // only scalar values that need formatting allocate a cached string.
     display: Vec<Option<String>>,
     undo: Vec<PendingEdits>,
+}
+
+impl core::fmt::Debug for ResultGrid {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("ResultGrid")
+            .field("types", &self.types)
+            .field("rows", &self.row_count())
+            .field("pending_operations", &self.pending_total())
+            .field("total", &self.total)
+            .field("editable", &self.editable)
+            .field("has_source", &self.source.is_some())
+            .field("has_read_only_reason", &self.read_only_reason.is_some())
+            .field("undo_depth", &self.undo.len())
+            .field("sort", &self.sort)
+            .finish_non_exhaustive()
+    }
 }
 
 impl ResultGrid {
@@ -362,15 +401,12 @@ impl ResultGrid {
     /// Adapt one SQL result without exposing database types to `junie-tui`.
     pub fn from_result(result: &sql::ResultSet) -> Self {
         let pending = PendingEdits::new(result.rows.clone());
-        let keys = (0..result.rows.len())
-            .map(|row| ItemKey::num((row as u64).saturating_add(1)))
-            .collect();
         let read_only_reason = (!result.editable)
             .then(|| "Read-only result: select a primary-key column to edit".to_owned());
         let mut grid = Self {
             types: result.columns.iter().map(|(_, ty)| *ty).collect(),
             pending,
-            keys,
+            sort: None,
             total: result.total,
             editable: result.editable,
             source: result.source.clone(),
@@ -407,12 +443,23 @@ impl ResultGrid {
         &self.pending
     }
 
-    /// Number of pending row inserts/deletes and cell updates.
+    /// Number of pending row updates, inserts and deletes.
+    /// Multiple changed cells in one existing row form one update.
     pub fn pending_total(&self) -> usize {
         self.pending
-            .dirty_rows()
-            .len()
-            .saturating_add(self.pending.dirty_cell_count())
+            .rows
+            .iter()
+            .enumerate()
+            .map(|(row, cells)| {
+                if self.pending.is_inserted(row) {
+                    1
+                } else {
+                    usize::from(self.pending.is_deleted(row)).saturating_add(usize::from(
+                        (0..cells.current.len()).any(|col| self.pending.is_dirty(row, col)),
+                    ))
+                }
+            })
+            .sum()
     }
 
     /// Insert a row with typed NULL/default values.
@@ -420,12 +467,47 @@ impl ResultGrid {
         if !self.editable {
             return None;
         }
-        self.undo.push(self.pending.clone());
-        let row = self.pending.insert_row(self.types.len());
-        self.keys
-            .push(ItemKey::num((self.keys.len() as u64).saturating_add(1)));
+        let before = self.pending.clone();
+        let row = self.pending.insert_row(self.types.len())?;
+        self.undo.push(before);
         self.rebuild_display();
         Some(row)
+    }
+
+    /// Insert schema-derived DEFAULT/NULL values as one undoable operation.
+    pub(crate) fn insert_row_with_defaults(&mut self, defaults: &[bool]) -> Option<usize> {
+        if !self.editable || defaults.len() != self.types.len() {
+            return None;
+        }
+        let before = self.pending.clone();
+        let values = defaults
+            .iter()
+            .map(|default| {
+                if *default {
+                    Value::Default
+                } else {
+                    Value::Null
+                }
+            })
+            .collect();
+        let row = self.pending.insert_values(values)?;
+        self.undo.push(before);
+        self.rebuild_display();
+        Some(row)
+    }
+
+    /// Toggle a row deletion; marking deletion replaces existing cell updates.
+    pub fn toggle_delete(&mut self, row: usize) -> bool {
+        if !self.editable {
+            return false;
+        }
+        let before = self.pending.clone();
+        if !self.pending.toggle_delete(row) {
+            return false;
+        }
+        self.undo.push(before);
+        self.rebuild_display();
+        true
     }
 
     /// Mark a row deleted, preserving it for undo/save preview.
@@ -446,7 +528,7 @@ impl ResultGrid {
     pub fn discard(&mut self) {
         self.undo.push(self.pending.clone());
         self.pending.clear();
-        self.rebuild_display();
+        self.restore_sort();
     }
 
     /// Restore the previous pending state, if one exists.
@@ -454,8 +536,14 @@ impl ResultGrid {
         let Some(previous) = self.undo.pop() else {
             return false;
         };
+        let next_key = self
+            .pending
+            .next_key
+            .zip(previous.next_key)
+            .map(|(a, b)| a.max(b));
         self.pending = previous;
-        self.rebuild_display();
+        self.pending.next_key = next_key;
+        self.restore_sort();
         true
     }
 
@@ -484,6 +572,7 @@ impl ResultGrid {
         if column >= self.types.len() {
             return;
         }
+        self.sort = Some((key, direction));
         let mut order: Vec<usize> = (0..self.row_count()).collect();
         order.sort_by(|&a, &b| {
             let left = self.pending.value(a, column).unwrap_or(&Value::Null);
@@ -496,20 +585,24 @@ impl ResultGrid {
             }
         });
         self.pending.reorder(&order);
-        self.keys = order
-            .iter()
-            .filter_map(|&row| self.keys.get(row).copied())
-            .collect();
         self.rebuild_display();
+    }
+
+    fn restore_sort(&mut self) {
+        if let Some((key, direction)) = self.sort {
+            self.sort(key, direction);
+        } else {
+            self.rebuild_display();
+        }
     }
 
     fn rebuild_display(&mut self) {
         self.display = self
             .pending
-            .current
+            .rows
             .iter()
             .flat_map(|row| {
-                row.iter().map(|value| match value {
+                row.current.iter().map(|value| match value {
                     Value::Text(_) | Value::Json(_) => None,
                     value => Some(value.display()),
                 })
@@ -569,10 +662,10 @@ impl GridModel for ResultGrid {
     }
 
     fn row_key(&self, row: usize) -> ItemKey {
-        self.keys
+        self.pending
+            .rows
             .get(row)
-            .copied()
-            .unwrap_or_else(|| ItemKey::index(row))
+            .map_or_else(|| ItemKey::index(row), |record| record.key)
     }
 
     fn cell(&self, row: usize, col: usize) -> Option<CellRef<'_>> {
@@ -581,6 +674,18 @@ impl GridModel for ResultGrid {
 
     fn row_decor(&self, row: usize) -> RowDecor<'_> {
         RowDecor {
+            marker: if self.pending.is_deleted(row) {
+                Some(GlyphRole::Deleted)
+            } else if self.pending.is_inserted(row) {
+                Some(GlyphRole::Inserted)
+            } else {
+                None
+            },
+            strike: self.pending.is_deleted(row),
+            tone: self
+                .pending
+                .is_deleted(row)
+                .then_some(Role::Fg(FgStep::Faint)),
             flags: if self.pending.is_dirty_row(row) {
                 StateFlags::DIRTY
             } else {
@@ -665,11 +770,151 @@ impl GridEditor for ResultGrid {
 mod tests {
     use super::*;
 
+    #[test]
+    fn exhausted_insert_is_atomic_and_undo_never_reuses_keys() {
+        let mut grid = ResultGrid::empty();
+        grid.editable = true;
+        grid.pending.next_key = Some(u64::MAX);
+        let Some(row) = grid.insert_row() else {
+            unreachable!("last key");
+        };
+        assert_eq!(grid.row_key(row), ItemKey::num(u64::MAX));
+        assert!(grid.undo());
+        let before = grid.clone();
+        assert_eq!(grid.insert_row(), None);
+        assert_eq!(grid, before);
+    }
+
+    #[test]
+    fn sorted_insert_update_delete_sql_uses_each_records_original_key() {
+        let mut pending = PendingEdits::new(vec![
+            vec![Value::Int(7), Value::Text("old".into())],
+            vec![Value::Int(9), Value::Text("other".into())],
+        ]);
+        let Some(inserted) = pending.insert_row(2) else {
+            unreachable!("key");
+        };
+        assert!(pending.set(inserted, 0, Value::Int(1)));
+        pending.reorder(&[2, 1, 0]);
+        assert!(pending.set(2, 0, Value::Int(8)));
+        assert!(pending.delete_row(1));
+        assert_eq!(
+            preview_sql(&CatalogTable::orders(), &columns(), &pending),
+            vec![
+                "UPDATE public.orders SET id = 8 WHERE id = 7;",
+                "INSERT INTO public.orders (id, name) VALUES (1, NULL);",
+                "DELETE FROM public.orders WHERE id = 9;",
+            ]
+        );
+        pending.clear();
+        assert_eq!(pending.value(0, 0), Some(&Value::Int(9)));
+        assert_eq!(pending.value(1, 0), Some(&Value::Int(7)));
+        assert!(pending.dirty_rows().is_empty());
+    }
+
+    #[test]
+    fn inserted_default_is_distinct_from_explicit_null_in_preview() {
+        let mut grid = ResultGrid::from_result(&sql::ResultSet {
+            columns: columns(),
+            rows: Vec::new(),
+            total: 0,
+            source: Some("public.orders".to_owned()),
+            duration_ms: 0,
+            editable: true,
+        });
+        let before = grid.clone();
+        assert!(grid.insert_row_with_defaults(&[true]).is_none());
+        assert_eq!(grid, before);
+        let Some(row) = grid.insert_row_with_defaults(&[true, false]) else {
+            unreachable!("insert")
+        };
+        assert_eq!(grid.pending().value(row, 0), Some(&Value::Default));
+        assert_eq!(grid.pending().value(row, 1), Some(&Value::Null));
+        assert_eq!(
+            preview_sql(&CatalogTable::orders(), &columns(), grid.pending()),
+            vec!["INSERT INTO public.orders (name) VALUES (NULL);"]
+        );
+        assert!(grid.undo());
+        assert!(grid.insert_row_with_defaults(&[true, true]).is_some());
+        assert_eq!(
+            preview_sql(&CatalogTable::orders(), &columns(), grid.pending()),
+            vec!["INSERT INTO public.orders DEFAULT VALUES;"]
+        );
+    }
+
+    #[test]
+    fn delete_toggle_replaces_updates_and_undo_restores_full_row_snapshot() {
+        let mut grid = ResultGrid::from_result(&sql::ResultSet {
+            columns: columns(),
+            rows: vec![vec![Value::Int(7), Value::Text("old".to_owned())]],
+            total: 1,
+            source: Some("public.orders".to_owned()),
+            duration_ms: 0,
+            editable: true,
+        });
+        let key = grid.row_key(0);
+        assert!(grid.commit_cell(0, 1, "edited").is_ok());
+        assert!(grid.toggle_delete(0));
+        assert_eq!(grid.pending_total(), 1);
+        assert_eq!(
+            grid.pending().value(0, 1),
+            Some(&Value::Text("old".to_owned()))
+        );
+        assert!(grid.undo());
+        assert_eq!(grid.row_key(0), key);
+        assert_eq!(
+            grid.pending().value(0, 1),
+            Some(&Value::Text("edited".to_owned()))
+        );
+        assert!(!grid.pending().is_deleted(0));
+        assert!(grid.toggle_delete(0));
+        assert!(grid.toggle_delete(0));
+        assert_eq!(grid.pending_total(), 0);
+        assert_eq!(grid.row_key(0), key);
+    }
+
     fn columns() -> Vec<(String, ColType)> {
         vec![
             ("id".to_owned(), ColType::Int),
             ("name".to_owned(), ColType::Text),
         ]
+    }
+
+    // Restores 794b095 model::tests::preview_sql_orders_updates_inserts_deletes:
+    // reverting one update preserves the independent deletion and its SQL.
+    #[test]
+    fn preview_sql_orders_updates_inserts_deletes() -> Result<(), String> {
+        let catalog = crate::db::Catalog::acme_prod();
+        let table = catalog.find(None, "orders").ok_or("orders missing")?;
+        let columns = table
+            .columns
+            .iter()
+            .map(|column| (column.name.clone(), column.ty))
+            .collect::<Vec<_>>();
+        let mut pending = PendingEdits::new(crate::db::rows(table, 0, 3));
+        let status = columns
+            .iter()
+            .position(|(name, _)| name == "status")
+            .ok_or("status missing")?;
+        let original = pending
+            .value(1, status)
+            .cloned()
+            .ok_or("original status missing")?;
+        assert!(pending.set(1, status, Value::Text("shipped".to_owned())));
+        assert!(pending.delete_row(2));
+        let sql = preview_sql(table, &columns, &pending);
+        assert_eq!(sql.len(), 2);
+        assert!(sql.first().is_some_and(|statement| {
+            statement.starts_with("UPDATE public.orders SET status = 'shipped' WHERE id = '")
+        }));
+        assert!(sql.get(1).is_some_and(|statement| {
+            statement.starts_with("DELETE FROM public.orders WHERE id = '")
+        }));
+        assert!(pending.set(1, status, original));
+        let reverted = preview_sql(table, &columns, &pending);
+        assert_eq!(reverted.len(), 1);
+        assert_eq!(reverted.first(), sql.get(1));
+        Ok(())
     }
 
     #[test]

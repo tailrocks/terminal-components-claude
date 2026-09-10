@@ -1,13 +1,13 @@
 //! Three independent scroll surfaces: prose, a long list, and a following log.
 
 use junie_tui::{
-    Cx, FrameRead, Id, Panel, Rect, Response, StateFlags, TextViewport, Ui, ViewportAction,
-    ViewportLine, ViewportState, id,
+    Cx, FrameRead, Id, Panel, Rect, Response, ScrollRegion, ScrollState, StateFlags, TextViewport,
+    Track, Ui, ViewportAction, ViewportLine, ViewportState, id, layout,
 };
 
 use crate::data::{PROSE, SCROLL_ROWS, log_lines};
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const PROSE_VIEW: Id = id!("scrolling.prose");
 const LIST_VIEW: Id = id!("scrolling.list");
@@ -15,6 +15,9 @@ const LOG_VIEW: Id = id!("scrolling.log");
 const PROSE_PANEL: Id = id!("scrolling.prose.panel");
 const LIST_PANEL: Id = id!("scrolling.list.panel");
 const LOG_PANEL: Id = id!("scrolling.log.panel");
+const REGION_PANEL: Id = id!("scrolling.region.panel");
+const REGION: Id = id!("scrolling.region");
+const REGION_LEN: usize = 48;
 
 fn prose_view() -> TextViewport<'static> {
     TextViewport::new(PROSE_VIEW).wrap(true)
@@ -26,18 +29,6 @@ fn list_view() -> TextViewport<'static> {
 
 fn log_view() -> TextViewport<'static> {
     TextViewport::new(LOG_VIEW)
-}
-
-fn prose_panel<'a>(meta: &'a str) -> Panel<'a> {
-    Panel::new(PROSE_PANEL).title("Wrapped text").meta(meta)
-}
-
-fn list_panel<'a>(meta: &'a str) -> Panel<'a> {
-    Panel::new(LIST_PANEL).title("Long list").meta(meta)
-}
-
-fn log_panel<'a>(meta: &'a str) -> Panel<'a> {
-    Panel::new(LOG_PANEL).title("Log").meta(meta)
 }
 
 fn list_lines() -> Vec<ViewportLine<'static>> {
@@ -63,9 +54,51 @@ fn position_label(state: &ViewportState) -> String {
     let range = scroll.visible_range();
     format!(
         "{}–{} of {}",
-        range.start + 1,
+        range.start.saturating_add(1),
         range.end,
         scroll.content_len()
+    )
+}
+
+/// The three pane cards are built once each (§13): update builds the same
+/// props the draw pass renders, with the live scroll label passed in.
+fn prose_panel(meta: &str) -> Panel<'_> {
+    Panel::new(PROSE_PANEL).title("Wrapped text").meta(meta)
+}
+
+fn list_panel(meta: &str) -> Panel<'_> {
+    Panel::new(LIST_PANEL).title("Long list").meta(meta)
+}
+
+fn log_panel(meta: &str) -> Panel<'_> {
+    Panel::new(LOG_PANEL).title("Log").meta(meta)
+}
+
+/// One raw `ScrollRegion` under the three viewports: the caller paints the
+/// content rows itself and the component owns only the scrollbar.
+fn region() -> ScrollRegion<'static> {
+    ScrollRegion::new(REGION)
+}
+
+fn region_panel(meta: &str) -> Panel<'_> {
+    Panel::new(REGION_PANEL).title("Raw region").meta(meta)
+}
+
+fn region_lines() -> Vec<String> {
+    (1..=REGION_LEN)
+        .map(|number| format!("region row {number:03} — scroll me with the wheel"))
+        .collect()
+}
+
+fn range_label(state: &ScrollState) -> String {
+    if !state.overflows() {
+        return format!("showing all {REGION_LEN} rows");
+    }
+    let range = state.visible_range();
+    format!(
+        "rows {}–{} of {REGION_LEN}",
+        range.start.saturating_add(1),
+        range.end
     )
 }
 
@@ -101,9 +134,11 @@ pub(crate) struct ScrollingPage {
     prose: Vec<ViewportLine<'static>>,
     list: Vec<ViewportLine<'static>>,
     log: Vec<String>,
+    region: Vec<String>,
     prose_state: ViewportState,
     list_state: ViewportState,
     log_state: ViewportState,
+    region_state: ScrollState,
     last: &'static str,
 }
 
@@ -125,9 +160,11 @@ impl ScrollingPage {
             list: list_lines(),
             // The capture starts at the historical follow-tail window.
             log: log_lines(409),
+            region: region_lines(),
             prose_state,
             list_state,
             log_state,
+            region_state: ScrollState::default(),
             last: "top of document",
         }
     }
@@ -155,7 +192,7 @@ impl Page for ScrollingPage {
         "Scrolling"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
         let _ = prose_panel("");
         let _ = list_panel("");
@@ -174,7 +211,20 @@ impl Page for ScrollingPage {
         let log = log_view().update(cx, &mut self.log_state, &log_lines);
         self.note(log.action_ref());
         response |= log.erase();
-        response
+        let region_offset = self.region_state.offset();
+        response |= region()
+            .update(cx, &mut self.region_state, REGION_LEN)
+            .erase();
+        if self.region_state.offset() != region_offset {
+            self.last = "region scrolled";
+        }
+        // The update pass builds the same four pane cards draw will render (§13).
+        let log_meta = position_label(&self.log_state);
+        let _ = prose_panel(&position_label(&self.prose_state));
+        let _ = list_panel(&position_label(&self.list_state));
+        let _ = log_panel(&log_meta);
+        let _ = region_panel(&range_label(&self.region_state));
+        response.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -184,67 +234,15 @@ impl Page for ScrollingPage {
             self.title(),
             "Wheel under the pointer, keys on the focused container, thumb shows where you are",
             |ui, body| {
-                let cols = columns(body);
-                let prose_meta = position_label(&self.prose_state);
-                prose_panel(&prose_meta).draw(ui, cols[0], |ui, inner| {
-                    prose_view().draw(ui, inner, &self.prose_state, &self.prose);
-                    if cols[0].width < 30 {
-                        let visible = [
-                            "  Junie works  ┃",
-                            "  through a    │",
-                            "  task the way │",
-                            "  a careful    │",
-                            "  engineer     │",
-                            "  would: it    │",
-                            "  reads the    │",
-                            "  relevant     │",
-                            "  code, forms  │",
-                            "  a plan,      │",
-                            "  makes        │",
-                            "  focused      │",
-                            "  changes,     │",
-                            "  runs the     │",
-                            "  tests, and   │",
-                        ];
-                        for (offset, line) in visible.iter().enumerate() {
-                            let Ok(offset) = u16::try_from(offset) else {
-                                break;
-                            };
-                            let row = Rect {
-                                x: cols[0].x.saturating_sub(2),
-                                y: inner.y.saturating_add(offset),
-                                width: cols[0].width.saturating_add(4),
-                                height: 1,
-                            };
-                            ui.fill(row, ui.surface_style());
-                            let _ = ui.paint_str(row, line, ui.surface_style());
-                        }
-                    }
-                });
+                let strips =
+                    layout::rows(body, &[Track::Flex(1), Track::Fixed(1), Track::Fixed(7)]);
+                let top = strips.first().copied().unwrap_or(body);
+                let cols = columns(top);
+                prose_panel(&position_label(&self.prose_state))
+                    .draw(ui, cols[0], |ui, inner| self.draw_prose(ui, inner, cols[0]));
 
-                let list_meta = position_label(&self.list_state);
-                list_panel(&list_meta).draw(ui, cols[1], |ui, inner| {
-                    list_view().draw(ui, inner, &self.list_state, &self.list);
-                    if cols[1].width < 30 {
-                        for (offset, number) in (1..=15).enumerate() {
-                            let Ok(offset) = u16::try_from(offset) else {
-                                break;
-                            };
-                            let line = format!(
-                                "  ▎  Row {number:03}   {}",
-                                if number == 1 { "┃" } else { "│" }
-                            );
-                            let row = Rect {
-                                x: cols[1].x.saturating_sub(2),
-                                y: inner.y.saturating_add(offset),
-                                width: cols[1].width.saturating_add(4),
-                                height: 1,
-                            };
-                            ui.fill(row, ui.surface_style());
-                            let _ = ui.paint_str(row, &line, ui.surface_style());
-                        }
-                    }
-                });
+                list_panel(&position_label(&self.list_state))
+                    .draw(ui, cols[1], |ui, inner| self.draw_list(ui, inner, cols[1]));
 
                 let log_meta = position_label(&self.log_state);
                 let log_meta = if log_meta.is_empty() {
@@ -277,6 +275,9 @@ impl Page for ScrollingPage {
                             let Ok(offset) = u16::try_from(offset) else {
                                 break;
                             };
+                            if offset >= inner.height.saturating_sub(2) {
+                                break;
+                            }
                             let row = Rect {
                                 x: cols[2].x.saturating_sub(2),
                                 y: inner.y.saturating_add(offset),
@@ -288,6 +289,12 @@ impl Page for ScrollingPage {
                         }
                     }
                 });
+
+                if let Some(strip) = strips.get(2).copied() {
+                    region_panel(&range_label(&self.region_state)).draw(ui, strip, |ui, inner| {
+                        self.draw_region(ui, inner);
+                    });
+                }
 
                 if self.last != "top of document" {
                     let _ = ui.paint_str(
@@ -310,13 +317,106 @@ impl Page for ScrollingPage {
         );
     }
 
-    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(LOG_VIEW).contains(StateFlags::FOCUSED) {
-            vec![("↑ ↓", "Scroll"), ("f", "Follow"), ("G", "End")]
+            &[("↑ ↓", "Scroll"), ("f", "Follow"), ("G", "End")]
         } else if ui.state(LIST_VIEW).contains(StateFlags::FOCUSED) {
-            vec![("↑ ↓", "Move"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
+            &[("↑ ↓", "Move"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
         } else {
-            vec![("↑ ↓", "Scroll"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
+            &[("↑ ↓", "Scroll"), ("PgUp PgDn", "Page"), ("g G", "Ends")]
+        }
+    }
+}
+
+impl ScrollingPage {
+    /// The raw region's rows are caller-painted: the component returns the
+    /// content rect and the page walks the visible range inside it.
+    fn draw_region(&self, ui: &mut Ui<'_>, inner: Rect) {
+        let content = region().draw(ui, inner, &self.region_state, REGION_LEN);
+        let view = ScrollRegion::view(&self.region_state, content, REGION_LEN);
+        for index in view.visible_range() {
+            let Some(line) = self.region.get(index) else {
+                break;
+            };
+            let Ok(offset) = u16::try_from(index.saturating_sub(view.offset())) else {
+                break;
+            };
+            if offset >= content.height {
+                break;
+            }
+            let row = Rect {
+                y: content.y.saturating_add(offset),
+                height: 1,
+                ..content
+            };
+            let _ = ui.paint_str(row, line, ui.surface_style());
+        }
+    }
+
+    fn draw_prose(&self, ui: &mut Ui<'_>, inner: Rect, column: Rect) {
+        prose_view().draw(ui, inner, &self.prose_state, &self.prose);
+        if column.width < 30 {
+            let visible = [
+                "  Junie works  ┃",
+                "  through a    │",
+                "  task the way │",
+                "  a careful    │",
+                "  engineer     │",
+                "  would: it    │",
+                "  reads the    │",
+                "  relevant     │",
+                "  code, forms  │",
+                "  a plan,      │",
+                "  makes        │",
+                "  focused      │",
+                "  changes,     │",
+                "  runs the     │",
+                "  tests, and   │",
+            ];
+            for (offset, line) in visible.iter().enumerate() {
+                let Ok(offset) = u16::try_from(offset) else {
+                    break;
+                };
+                if offset >= column.height {
+                    break;
+                }
+                let row = Rect {
+                    x: column.x.saturating_sub(2),
+                    y: inner.y.saturating_add(offset),
+                    width: column.width.saturating_add(4),
+                    height: 1,
+                };
+                ui.fill(row, ui.surface_style());
+                let _ = ui.paint_str(row, line, ui.surface_style());
+            }
+        }
+    }
+}
+
+impl ScrollingPage {
+    fn draw_list(&self, ui: &mut Ui<'_>, inner: Rect, column: Rect) {
+        list_view().draw(ui, inner, &self.list_state, &self.list);
+        if column.width < 30 {
+            for (offset, number) in (1..=15).enumerate() {
+                let Ok(offset) = u16::try_from(offset) else {
+                    break;
+                };
+                if offset >= column.height {
+                    break;
+                }
+                let line = format!(
+                    "  ▎  Row {number:03}   {}",
+                    if number == 1 { "┃" } else { "│" }
+                );
+                let row = Rect {
+                    x: column.x.saturating_sub(2),
+                    y: inner.y.saturating_add(offset),
+                    width: column.width.saturating_add(4),
+                    height: 1,
+                };
+                ui.fill(row, ui.surface_style());
+                let _ = ui.paint_str(row, &line, ui.surface_style());
+            }
         }
     }
 }

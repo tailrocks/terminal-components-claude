@@ -124,6 +124,12 @@ impl Tab {
     }
 }
 
+#[derive(Clone, PartialEq, Eq)]
+struct SaveReview {
+    original: Option<Box<Workspace>>,
+    pending: PendingWorkspace,
+}
+
 /// Durable editor state.
 #[derive(PartialEq, Eq, Default)]
 pub struct EditorState {
@@ -145,6 +151,9 @@ pub struct EditorState {
     pub env_value_input: junie_tui::TextInputState,
     /// Mutable workspace draft projected by the editor controls.
     pub pending: PendingWorkspace,
+    original: Option<Box<Workspace>>,
+    reviewed: Option<SaveReview>,
+    saving: Option<crate::domain::workspace_save::SaveTicket>,
 }
 
 impl Clone for EditorState {
@@ -161,6 +170,9 @@ impl Clone for EditorState {
             env_key_input: self.env_key_input.clone(),
             env_value_input: junie_tui::TextInputState::sensitive(),
             pending: self.pending.clone(),
+            original: self.original.clone(),
+            reviewed: self.reviewed.clone(),
+            saving: self.saving,
         }
     }
 }
@@ -231,32 +243,126 @@ impl EditorState {
         self.dirty = false;
         self.preview_open = false;
         self.pending = PendingWorkspace::from_workspace(workspace);
+        self.original = Some(Box::new(workspace.clone()));
+        self.reviewed = None;
+        self.saving = None;
         self.clear_env_form();
     }
 
     /// Mark the current draft as changed and close any stale preview.
-    pub const fn mark_dirty(&mut self) {
+    pub fn mark_dirty(&mut self) {
+        self.reviewed = None;
         self.dirty = true;
         self.preview_open = false;
     }
 
     /// Mark a successful save and close the preview.
-    pub const fn mark_saved(&mut self) {
+    pub fn mark_saved(&mut self) {
+        self.reviewed = None;
         self.dirty = false;
         self.preview_open = false;
     }
 
     /// Open the save preview only when there are pending changes.
-    pub const fn open_preview(&mut self) -> bool {
-        if self.dirty {
+    pub fn open_preview(&mut self) -> bool {
+        if self.dirty && self.saving.is_none() {
+            self.reviewed = Some(SaveReview {
+                original: self.original.clone(),
+                pending: self.pending.clone(),
+            });
             self.preview_open = true;
         }
         self.preview_open
     }
 
     /// Close a save preview without discarding the draft.
-    pub const fn close_preview(&mut self) {
+    pub fn close_preview(&mut self) {
         self.preview_open = false;
+        self.reviewed = None;
+    }
+
+    /// Bind a new configuration explicitly, clearing any previous editor ticket.
+    pub fn load_new(&mut self, pending: PendingWorkspace) {
+        self.tab = Tab::General;
+        self.pending = pending;
+        self.original = None;
+        self.reviewed = None;
+        self.saving = None;
+        self.dirty = true;
+        self.preview_open = false;
+        self.clear_env_form();
+    }
+
+    /// Whether this draft creates a configuration rather than replacing a loaded one.
+    pub const fn is_create(&self) -> bool {
+        self.original.is_none()
+    }
+
+    /// Whether this editor owns an admitted asynchronous save.
+    pub const fn is_saving(&self) -> bool {
+        self.saving.is_some()
+    }
+
+    /// Stable loaded workspace, independent of list order.
+    pub fn workspace_id(&self) -> Option<crate::domain::workspace::WorkspaceId> {
+        self.original.as_ref().map(|workspace| workspace.id)
+    }
+
+    /// Admit exactly the immutable preview; changed values require a fresh review.
+    pub fn begin_save(
+        &mut self,
+        world: &mut crate::sim::world::World,
+    ) -> Result<crate::domain::workspace_save::SaveTicket, crate::domain::workspace_save::SaveError>
+    {
+        use crate::domain::workspace_save::SaveError;
+        if self.saving.is_some() {
+            return Err(SaveError::Busy);
+        }
+        if !self.preview_open {
+            return Err(SaveError::NoReview);
+        }
+        let review = self.reviewed.take().ok_or(SaveError::NoReview)?;
+        self.preview_open = false;
+        if review.pending != self.pending || review.original != self.original {
+            return Err(SaveError::ChangedReview);
+        }
+        let mut proposed = review
+            .original
+            .as_deref()
+            .cloned()
+            .unwrap_or_else(|| review.pending.clone().into_workspace(0));
+        review.pending.apply_to(&mut proposed);
+        let ticket = world.begin_editor_write(review.original.as_deref(), proposed)?;
+        self.saving = Some(ticket);
+        Ok(ticket)
+    }
+
+    /// Settle only this editor's ticket. True means its unchanged draft is now clean.
+    /// Newer drafts remain dirty; replacing the editor cannot steal a completion.
+    pub fn settle_save(&mut self, result: &crate::domain::workspace_save::SaveResult) -> bool {
+        use crate::domain::workspace_save::SaveResult;
+        let Some(ticket) = result.ticket() else {
+            return false;
+        };
+        if self.saving != Some(ticket) {
+            return false;
+        }
+        self.saving = None;
+        self.reviewed = None;
+        self.preview_open = false;
+        match result {
+            SaveResult::Saved { workspace, .. } => {
+                let unchanged = self.pending == PendingWorkspace::from_workspace(workspace);
+                self.original = Some(workspace.clone());
+                self.dirty = !unchanged;
+                unchanged
+            }
+            SaveResult::Failed(_) | SaveResult::Stale(_) => {
+                self.dirty = true;
+                false
+            }
+            SaveResult::Ignored => false,
+        }
     }
 
     /// Open a fresh environment-variable form, dropping any previous input.

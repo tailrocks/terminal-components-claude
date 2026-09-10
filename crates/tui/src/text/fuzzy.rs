@@ -13,8 +13,23 @@ fn eq_fold(a: &str, b: &str) -> bool {
         .eq(b.chars().flat_map(char::to_lowercase))
 }
 
+/// Which separators give a substring the word-boundary ranking bonus.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum FuzzyBoundary {
+    /// Underscore, dot, space and hyphen; the default collection-search policy.
+    #[default]
+    Word,
+    /// Underscore and dot only, for identifier-oriented completion/ranking.
+    Identifier,
+}
+impl FuzzyBoundary {
+    fn contains(self, grapheme: &str) -> bool {
+        matches!(grapheme, "_" | ".") || (self == Self::Word && matches!(grapheme, " " | "-"))
+    }
+}
+
 /// Match `word` against `label`: a prefix wins (0), then a substring on a
-/// `_`/`.`/` ` boundary (10), then any substring (30), then a subsequence
+/// `_`/`.`/` `/`-` boundary (10), then any substring (30), then a subsequence
 /// (60 + position of the last match). Returns the penalty (lower is better)
 /// and the **grapheme ordinals in the original label** that matched, so a
 /// list can bold them while walking the label's graphemes.
@@ -26,6 +41,18 @@ fn eq_fold(a: &str, b: &str) -> bool {
 /// or filter incrementally (MI-10). Recorded here so it is not discovered
 /// under a profiler.
 pub fn fuzzy(label: &str, word: &str) -> Option<(u32, Vec<usize>)> {
+    fuzzy_with_boundary(label, word, FuzzyBoundary::default())
+}
+
+/// Match with an explicit boundary-bonus policy.
+///
+/// Case folding, prefix/substring/subsequence matching and original-label
+/// grapheme ordinals are identical to [`fuzzy`]; only the boundary bonus varies.
+pub fn fuzzy_with_boundary(
+    label: &str,
+    word: &str,
+    boundary: FuzzyBoundary,
+) -> Option<(u32, Vec<usize>)> {
     if word.is_empty() {
         return Some((0, Vec::new()));
     }
@@ -46,10 +73,10 @@ pub fn fuzzy(label: &str, word: &str) -> Option<(u32, Vec<usize>)> {
             if start == 0 {
                 return Some((0, idx));
             }
-            let boundary = lg
+            let at_boundary = lg
                 .get(start.saturating_sub(1))
-                .is_some_and(|g| matches!(*g, "_" | "." | " " | "-"));
-            return Some((if boundary { 10 } else { 30 }, idx));
+                .is_some_and(|grapheme| boundary.contains(grapheme));
+            return Some((if at_boundary { 10 } else { 30 }, idx));
         }
     }
     subsequence(&lg, &wg)

@@ -367,6 +367,10 @@ parts! {
     KEY = 32,
     /// A key hint's action.
     ACTION = 33,
+    /// A row change-state glyph, separate from selection.
+    CHANGE = 34,
+    /// A source row number.
+    ROW_NUMBER = 35,
 }
 
 impl Part {
@@ -600,7 +604,9 @@ mod tests {
                 assert_eq!(a == b, i == j);
             }
         }
-        assert_eq!(all.len(), 34);
+        assert_eq!(all.len(), 36);
+        assert_eq!(Part::CHANGE.raw(), 34);
+        assert_eq!(Part::ROW_NUMBER.raw(), 35);
     }
 
     #[cfg(debug_assertions)]

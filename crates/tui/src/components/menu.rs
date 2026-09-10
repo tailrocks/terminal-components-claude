@@ -12,6 +12,7 @@ use crate::event::{Chord, KeyCode};
 use crate::focus::Focusability;
 use crate::id::{Id, ItemKey, Part, PartRef};
 use crate::intent::{Intent, Phase};
+use crate::keymap::ChordCase;
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::layer::{Anchor, Dismiss, DismissReason, LayerEvent, LayerSize, LayerSpec};
 use crate::measure::{Constraints, Size};
@@ -364,24 +365,6 @@ const BAR_CONTEXT_BINDINGS: &[Binding<MenuCmd>] = &[
         MenuCmd::NextMenu,
         false,
     ),
-    binding(
-        ActionKey::custom("menu.bar.activate.down"),
-        Chord::key(KeyCode::Down),
-        MenuCmd::Activate,
-        true,
-    ),
-    binding(
-        ActionKey::custom("menu.bar.activate.enter"),
-        Chord::key(KeyCode::Enter),
-        MenuCmd::Activate,
-        false,
-    ),
-    binding(
-        ActionKey::custom("menu.bar.activate.space"),
-        Chord::key(KeyCode::Char(' ')),
-        MenuCmd::Activate,
-        false,
-    ),
 ];
 
 /// Anchored popup content. The runtime owns placement, dismissal and z-order.
@@ -447,6 +430,7 @@ pub struct ContextMenu<'a> {
     anchor: Anchor,
     title: Option<&'a str>,
     ov: PartStyle<'a>,
+    chord_case: ChordCase,
     bar_navigation: Option<(usize, usize)>,
 }
 
@@ -483,6 +467,7 @@ impl<'a> ContextMenu<'a> {
             anchor,
             title: None,
             ov: PartStyle::new(),
+            chord_case: ChordCase::Preserve,
             bar_navigation: None,
         }
     }
@@ -496,6 +481,13 @@ impl<'a> ContextMenu<'a> {
     #[must_use]
     pub const fn title(mut self, title: &'a str) -> Self {
         self.title = Some(title);
+        self
+    }
+
+    /// Display casing for shortcut characters; routing chords remain unchanged.
+    #[must_use]
+    pub const fn chord_case(mut self, case: ChordCase) -> Self {
+        self.chord_case = case;
         self
     }
 
@@ -541,7 +533,7 @@ impl<'a> ContextMenu<'a> {
         let title = self.title.map_or(0, width);
         let rows = self.items.iter().map(|item| {
             let shortcut = effective(item.action, item.chord).map_or(0, |chord| {
-                width(ChordText::of(chord).as_str()).saturating_add(2)
+                width(ChordText::with_case(chord, self.chord_case).as_str()).saturating_add(2)
             });
             width(item.label)
                 .saturating_add(shortcut)
@@ -868,7 +860,9 @@ impl<'a> ContextMenu<'a> {
         }
         let label = shift(row, 2);
         let effective_chord = ui.effective_chord(self.id, item.action, item.chord);
-        let key_width = effective_chord.map_or(0, |chord| width(ChordText::of(chord).as_str()));
+        let key_width = effective_chord.map_or(0, |chord| {
+            width(ChordText::with_case(chord, self.chord_case).as_str())
+        });
         let label = Rect {
             width: label.width.saturating_sub(key_width.saturating_add(2)),
             ..label
@@ -885,7 +879,7 @@ impl<'a> ContextMenu<'a> {
             label_style.style,
         );
         if let Some(chord) = effective_chord {
-            let text = ChordText::of(chord);
+            let text = ChordText::with_case(chord, self.chord_case);
             let key = Rect {
                 x: row.right().saturating_sub(key_width.saturating_add(1)),
                 width: key_width.min(row.width),
@@ -974,6 +968,7 @@ pub struct MenuBar<'a> {
     id: Id,
     menus: &'a [Menu<'a>],
     ov: PartStyle<'a>,
+    chord_case: ChordCase,
 }
 
 impl fmt::Debug for MenuBar<'_> {
@@ -995,7 +990,15 @@ impl<'a> MenuBar<'a> {
             id,
             menus,
             ov: PartStyle::new(),
+            chord_case: ChordCase::Preserve,
         }
+    }
+
+    /// Display casing for shortcut characters; routing chords remain unchanged.
+    #[must_use]
+    pub const fn chord_case(mut self, case: ChordCase) -> Self {
+        self.chord_case = case;
+        self
     }
 
     /// Instance patch.
@@ -1042,6 +1045,7 @@ impl<'a> MenuBar<'a> {
             anchor: self.anchor(cx, index),
             title: None,
             ov: self.ov,
+            chord_case: self.chord_case,
             bar_navigation: Some((index, self.menus.len())),
         })
     }
@@ -1190,8 +1194,8 @@ impl<'a> MenuBar<'a> {
         ui.fill(row, container.style);
         if st.open.is_none() {
             ui.register_control(self.id, row, Focusability::Focusable);
+            ui.publish_bindings(self.id, live, BAR_BINDINGS);
         }
-        ui.publish_bindings(self.id, live, BAR_BINDINGS);
         let mut x = row.x.saturating_add(1);
         for (index, menu) in self.menus.iter().enumerate() {
             let w = width(menu.label).saturating_add(2);
@@ -1264,6 +1268,7 @@ impl<'a> MenuBar<'a> {
                 anchor: Anchor::Screen(crate::layer::ScreenAlign::UpperThird),
                 title: None,
                 ov: self.ov,
+                chord_case: self.chord_case,
                 bar_navigation: Some((open, self.menus.len())),
             };
             let _ = ui.layer(self.id, |ui, layer| dropdown.draw(ui, layer, st));
@@ -1294,7 +1299,7 @@ fn paint_or_slot(
     part: Part,
     area: Rect,
     text: &str,
-    style: ratatui_core::style::Style,
+    style: crate::theme::PaintStyle,
 ) {
     if let Some(slot) = overrides.slot_for(part) {
         slot(ui, area);
@@ -1387,15 +1392,17 @@ mod tests {
             Theme::junie().downgrade(crate::ColorLevel::Mono),
         );
         let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, area| {
-            ui.reference(
-                Some(
-                    crate::ReferenceTarget::new(ID, crate::ReferenceState::PRESSED)
-                        .part(PartRef::item(Part::TITLE, ItemKey::index(0))),
-                ),
-                |ui| MenuBar::new(ID, &MENUS).draw(ui, area, &MenuState::default()),
-            );
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                ui.reference(
+                    Some(
+                        crate::ReferenceTarget::new(ID, crate::ReferenceState::PRESSED)
+                            .part(PartRef::item(Part::TITLE, ItemKey::index(0))),
+                    ),
+                    |ui| MenuBar::new(ID, &MENUS).draw(ui, area, &MenuState::default()),
+                );
+            })
+            .commit_presented();
 
         assert_eq!(
             buffer
@@ -1545,8 +1552,9 @@ mod tests {
             },
             Theme::junie(),
         );
-        runtime.draw_buffer(area, &mut buffer);
-        runtime.draw_buffer(area, &mut buffer);
+        let _ = runtime.initialize();
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
         (runtime, buffer)
     }
 
@@ -1562,18 +1570,19 @@ mod tests {
             },
             Theme::junie(),
         );
-        runtime.draw_buffer(area, &mut buffer);
-        runtime.draw_buffer(area, &mut buffer);
-        let _ = runtime.handle(Input::Key(key(KeyCode::Right)));
-        runtime.draw_buffer(area, &mut buffer);
-        let _ = runtime.handle(Input::Key(key(KeyCode::Enter)));
-        runtime.draw_buffer(area, &mut buffer);
+        let _ = runtime.initialize();
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Right)));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Enter)));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
 
         assert_eq!(runtime.app().state.open, Some(1));
         assert!(runtime.is_open(Id::root("menu.bar.shrinking")));
 
         runtime.app_mut().shrink = true;
-        let _ = runtime.handle(Input::Tick);
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
 
         assert_eq!(
             runtime.app().closed,
@@ -1594,10 +1603,11 @@ mod tests {
             },
             Theme::junie(),
         );
-        runtime.draw_buffer(area, &mut buffer);
-        runtime.draw_buffer(area, &mut buffer);
-        let _ = runtime.handle(Input::Key(key(KeyCode::Enter)));
-        runtime.draw_buffer(area, &mut buffer);
+        let _ = runtime.initialize();
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Enter)));
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
 
         assert_eq!(runtime.app().state.open, Some(0));
         assert!(
@@ -1614,21 +1624,23 @@ mod tests {
     fn dynamic_item_binding_routes_remaps_removes_and_paints_effective_chord() {
         let owner = Id::root("menu.runtime");
         let (mut runtime, mut buffer) = menu_runtime();
-        let _ = runtime.handle(Input::Key(key(KeyCode::Char('o'))));
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Char('o'))));
         assert_eq!(runtime.app().chosen, Some(OPEN));
         runtime.app_mut().chosen = None;
-        let _ = runtime.handle(Input::Key(key(KeyCode::Char('d'))));
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Char('d'))));
         assert_eq!(runtime.app().chosen, None, "disabled item was published");
 
         runtime
             .app_mut()
             .keymap
             .remap_component(owner, OPEN, Chord::key(KeyCode::F(4)));
-        let _ = runtime.handle(Input::Key(key(KeyCode::Char('o'))));
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::Char('o'))));
         assert_eq!(runtime.app().chosen, None, "old raw key activated the item");
-        let _ = runtime.handle(Input::Key(key(KeyCode::F(4))));
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::F(4))));
         assert_eq!(runtime.app().chosen, Some(OPEN));
-        runtime.draw_buffer(Rect::new(0, 0, 80, 24), &mut buffer);
+        runtime
+            .draw_buffer(Rect::new(0, 0, 80, 24), &mut buffer)
+            .commit_presented();
         let painted = buffer
             .content()
             .iter()
@@ -1639,9 +1651,11 @@ mod tests {
 
         runtime.app_mut().chosen = None;
         runtime.app_mut().keymap.remove_component(owner, OPEN);
-        let _ = runtime.handle(Input::Key(key(KeyCode::F(4))));
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Key(key(KeyCode::F(4))));
         assert_eq!(runtime.app().chosen, None);
-        runtime.draw_buffer(Rect::new(0, 0, 80, 24), &mut buffer);
+        runtime
+            .draw_buffer(Rect::new(0, 0, 80, 24), &mut buffer)
+            .commit_presented();
         let painted = buffer
             .content()
             .iter()

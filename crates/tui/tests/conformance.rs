@@ -572,7 +572,10 @@ impl Conformance for ListCase {
     fn action_key_of(a: &ListAction) -> Option<ItemKey> {
         match a {
             ListAction::Chose(k) | ListAction::Toggled(k) | ListAction::Activated(k) => Some(*k),
-            ListAction::Moved | ListAction::ToggledAll => None,
+            ListAction::Moved
+            | ListAction::ToggledAll
+            | ListAction::LeaveBackward
+            | ListAction::LeaveForward => None,
         }
     }
 
@@ -825,7 +828,20 @@ impl Conformance for DialogCase {
     }
 
     fn dynamic_bindings(_fixture: &Fixture) -> Vec<(ActionKey, Chord)> {
-        vec![(ActionKey::CANCEL, Chord::key(KeyCode::F(6)))]
+        // The dialog publishes the navigation chords per action button at draw
+        // time (`publish_dynamic_bindings`); they never live in the static
+        // table, so the conformance contract must declare them here.
+        vec![
+            (ActionKey::CANCEL, Chord::key(KeyCode::F(6))),
+            (
+                ActionKey::custom("dialog.previous-action"),
+                Chord::key(KeyCode::Left),
+            ),
+            (
+                ActionKey::custom("dialog.next-action"),
+                Chord::key(KeyCode::Right),
+            ),
+        ]
     }
 
     fn dynamic_binding_id(_action: ActionKey) -> Id {
@@ -1803,12 +1819,12 @@ impl Conformance for HintBarCase {
         let layer = HintLayer {
             hints: vec![
                 Hint {
-                    chord: Chord::key(KeyCode::Enter),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Enter)),
                     label: "Open",
                     priority: 80,
                 },
                 Hint {
-                    chord: Chord::key(KeyCode::Esc),
+                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Esc)),
                     label: "Close",
                     priority: 70,
                 },
@@ -2756,6 +2772,7 @@ impl Conformance for NavListCase {
             NavListAction::Moved(key)
             | NavListAction::Chose(key)
             | NavListAction::EnterContent(key) => Some(*key),
+            NavListAction::LeaveBackward | NavListAction::LeaveForward => None,
         }
     }
 

@@ -1325,7 +1325,7 @@ fn paint_masked_line(
     line: &str,
     skip: usize,
     policy: SecretPolicy,
-    style: ratatui_core::style::Style,
+    style: crate::theme::PaintStyle,
 ) {
     let total = graphemes(line).count().saturating_sub(skip);
     let mut cells = CellUi::new(ui.reborrow(), run, style);
@@ -1428,12 +1428,16 @@ mod tests {
             },
             Theme::junie(),
         );
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(Input::Key(Key {
-            code: KeyCode::Enter,
-            mods: KeyModifiers::NONE,
-        }));
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            Input::Key(Key {
+                code: KeyCode::Enter,
+                mods: KeyModifiers::NONE,
+            }),
+        );
         runtime.app().state.clone()
     }
 
@@ -1483,7 +1487,8 @@ mod tests {
                         .draw(ui, Rect::new(0, 0, 20, 4), &st);
                 },
             );
-        });
+        })
+        .commit_presented();
         for part in ScrollRegion::PARTS {
             assert!(
                 rt.area_of_part(ID, PartRef::of(*part)).is_none(),
@@ -1508,9 +1513,11 @@ mod tests {
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let area = Rect::new(0, 0, 24, 3);
         let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, area| {
-            TextArea::new(ID, 3).value(SECRET).draw(ui, area, &state);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                TextArea::new(ID, 3).value(SECRET).draw(ui, area, &state);
+            })
+            .commit_presented();
         let frame: String = buffer
             .content()
             .iter()
@@ -1723,9 +1730,11 @@ mod tests {
             if selected {
                 let _ = state.draft.apply(EditAction::SelectAll);
             }
-            runtime.draw_scene(area, &mut buffer, |ui, area| {
-                TextArea::new(ID, 3).value("hello").draw(ui, area, &state);
-            });
+            runtime
+                .draw_scene(area, &mut buffer, |ui, area| {
+                    TextArea::new(ID, 3).value("hello").draw(ui, area, &state);
+                })
+                .commit_presented();
             buffer
         };
         let plain = render(false);
@@ -1751,7 +1760,8 @@ mod tests {
                 .value("hello")
                 .status(status)
                 .draw(ui, a, &st);
-        });
+        })
+        .commit_presented();
         buf
     }
 
@@ -1840,7 +1850,8 @@ mod tests {
                 .status(crate::collection::Status::Busy)
                 .slot(Part::ICON, &icon)
                 .draw(ui, a, &st);
-        });
+        })
+        .commit_presented();
         assert_eq!(
             symbol_at(&buf, READINESS_X, 0),
             "Z",
@@ -1873,7 +1884,8 @@ mod tests {
                 .status(crate::collection::Status::Error)
                 .slot(Part::MARKER, &marker)
                 .draw(ui, area, &st);
-        });
+        })
+        .commit_presented();
         assert_eq!(marker_calls.get(), 1);
         assert_eq!(icon_calls.get(), 0);
         assert_eq!(symbol_at(&buf, READINESS_X, 0), "M");
@@ -1885,7 +1897,8 @@ mod tests {
                 .status(crate::collection::Status::Error)
                 .slot(Part::ICON, &icon)
                 .draw(ui, area, &st);
-        });
+        })
+        .commit_presented();
         assert_eq!(icon_calls.get(), 1);
         assert_eq!(symbol_at(&buf, READINESS_X, 0), "I");
     }
