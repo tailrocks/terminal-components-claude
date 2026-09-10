@@ -477,6 +477,12 @@ pub fn is_artifact(fs: &Fs, path: &str) -> bool {
 /// Recursively find artifacts under roots (max depth six), never descending
 /// into a found artifact or a directory symlink; roots are deduplicated.
 pub fn find_artifacts(fs: &Fs, roots: &[String]) -> Vec<String> {
+    find_artifacts_report(fs, roots).0
+}
+
+/// The artifact walk plus every directory it could not read: a skipped
+/// folder is reported so the candidate list is known to be a lower bound.
+pub fn find_artifacts_report(fs: &Fs, roots: &[String]) -> (Vec<String>, Vec<String>) {
     let mut uniq: Vec<String> = vec![];
     for r in roots {
         if !uniq.contains(r) && !uniq.iter().any(|u| r.starts_with(&format!("{u}/"))) {
@@ -484,20 +490,33 @@ pub fn find_artifacts(fs: &Fs, roots: &[String]) -> Vec<String> {
         }
     }
     let mut out = vec![];
+    let mut unreadable = vec![];
     for r in uniq {
-        walk_artifacts(fs, &r, 0, &mut out);
+        walk_artifacts(fs, &r, 0, &mut out, &mut unreadable);
     }
     out.sort();
     out.dedup();
-    out
+    unreadable.sort();
+    unreadable.dedup();
+    (out, unreadable)
 }
 
-fn walk_artifacts(fs: &Fs, dir: &str, depth: usize, out: &mut Vec<String>) {
+fn walk_artifacts(
+    fs: &Fs,
+    dir: &str,
+    depth: usize,
+    out: &mut Vec<String>,
+    unreadable: &mut Vec<String>,
+) {
     if depth > ARTIFACT_DEPTH {
         return;
     }
-    let Ok(children) = fs.list(dir) else {
-        return;
+    let children = match fs.list(dir) {
+        Ok(c) => c,
+        Err(_) => {
+            unreadable.push(dir.to_owned());
+            return;
+        }
     };
     for c in children {
         if !c.is_dir() {
@@ -507,7 +526,7 @@ fn walk_artifacts(fs: &Fs, dir: &str, depth: usize, out: &mut Vec<String>) {
             out.push(c.path.clone());
             continue;
         }
-        walk_artifacts(fs, &c.path, depth + 1, out);
+        walk_artifacts(fs, &c.path, depth + 1, out, unreadable);
     }
 }
 
