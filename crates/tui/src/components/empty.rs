@@ -314,9 +314,11 @@ mod tests {
     fn render(empty: &Empty<'_>, theme: Theme) -> Buffer {
         let mut runtime = Runtime::new(Stub::default(), theme);
         let mut buffer = Buffer::empty(AREA);
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            empty.draw(ui, area);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                empty.draw(ui, area);
+            })
+            .commit_presented();
         buffer
     }
 

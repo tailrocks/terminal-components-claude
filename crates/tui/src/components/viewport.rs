@@ -18,8 +18,9 @@ use core::ops::{ControlFlow, Range};
 #[cfg(feature = "testing")]
 use std::cell::Cell;
 
+use crate::theme::PaintStyle;
 use ratatui_core::layout::{Position, Rect};
-use ratatui_core::style::{Modifier, Style};
+use ratatui_core::style::Modifier;
 
 use super::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn};
@@ -1490,7 +1491,7 @@ impl<'a> TextViewport<'a> {
         lines: LineSet<'_>,
         from: (usize, usize),
         sel: Option<(CellPos, CellPos)>,
-        styles: (Style, Style),
+        styles: (PaintStyle, PaintStyle),
     ) {
         let (mut li, mut row) = from;
         let text_w = text.width;
@@ -1634,7 +1635,7 @@ fn paint_row(
     line_ix: usize,
     cols: (usize, usize),
     sel: Option<(CellPos, CellPos)>,
-    styles: (Style, Style),
+    styles: (PaintStyle, PaintStyle),
 ) {
     let (from, to) = cols;
     let right = rect.right();
@@ -1795,14 +1796,18 @@ mod tests {
     fn track_registration_uses_the_full_bar_geometry() {
         let mut runtime = Runtime::new(ViewportApp::default(), Theme::junie());
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
 
         let track = runtime
             .area_of_part(ID, PartRef::of(Part::TRACK))
             .expect("the overflowing viewport must register its track");
         assert_eq!(track, Rect::new(11, 0, 1, POINTER_AREA.height));
 
-        let _ = runtime.handle(mouse(MouseKind::Down, track.x, track.bottom() - 1));
+        let _ = runtime.initialize();
+        let _ = crate::runtime::stub::deliver(
+            &mut runtime,
+            mouse(MouseKind::Down, track.x, track.bottom() - 1),
+        );
         assert!(runtime.app().state.scroll.at_end());
     }
 
@@ -1819,17 +1824,18 @@ mod tests {
             },
             Theme::junie(),
         );
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
 
         let app = runtime.app_mut();
         app.lines = vec!["short", "target line"];
         app.state.invalidate();
 
-        let _ = runtime.handle(mouse(MouseKind::Down, 1, 1));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, 1, 1));
         assert!(runtime.app().state.anchor.is_some(), "press did not anchor");
         assert_eq!(runtime.capture_owner(), Some(ID), "press did not capture");
-        let _ = runtime.handle(mouse(MouseKind::Drag, 4, 1));
+        let _ = crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Drag, 4, 1));
 
         assert!(
             runtime.app().state.selection.is_some(),
@@ -1858,12 +1864,13 @@ mod tests {
             },
             Theme::junie(),
         );
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
 
         runtime.app_mut().lines = vec!["row"; 100];
-        let _ = runtime.handle(key(KeyCode::End));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::End));
 
         assert_eq!(runtime.app().state.scroll.offset(), 92);
     }
@@ -1871,25 +1878,29 @@ mod tests {
     #[test]
     fn bottom_track_click_and_thumb_drag_reach_the_end() {
         let mut runtime = Runtime::new(ViewportApp::default(), Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
 
         let track = runtime
             .area_of_part(ID, PartRef::of(Part::TRACK))
             .unwrap_or(Rect::ZERO);
         let bottom = track.bottom().saturating_sub(1);
-        let _ = runtime.handle(mouse(MouseKind::Down, track.x, bottom));
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, track.x, bottom));
         assert!(runtime.app().state.scroll.at_end());
 
         runtime.app_mut().state.scroll.scroll_to(40);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         let thumb = runtime
             .area_of_part(ID, PartRef::of(Part::THUMB))
             .unwrap_or(Rect::ZERO);
         let grab_y = thumb.bottom().saturating_sub(1);
-        let _ = runtime.handle(mouse(MouseKind::Down, thumb.x, grab_y));
-        let _ = runtime.handle(mouse(MouseKind::Drag, track.x, bottom));
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Down, thumb.x, grab_y));
+        let _ =
+            crate::runtime::stub::deliver(&mut runtime, mouse(MouseKind::Drag, track.x, bottom));
         assert!(runtime.app().state.scroll.at_end());
     }
 
@@ -1908,9 +1919,11 @@ mod tests {
             state.scroll.scroll_to(5);
             state.set_caret(Some(caret));
             for _ in 0..2 {
-                runtime.draw_scene(SCREEN, &mut buffer, |ui, _| {
-                    TextViewport::new(ID).draw(ui, area, &state, &lines);
-                });
+                runtime
+                    .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                        TextViewport::new(ID).draw(ui, area, &state, &lines);
+                    })
+                    .commit_presented();
             }
             runtime.cursor()
         };
@@ -1989,18 +2002,22 @@ mod tests {
         let viewport = TextViewport::new(ID).wrap(true).work_probe(&first);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-            viewport.draw(ui, area, &ViewportState::default(), &lines);
-        });
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                viewport.draw(ui, area, &ViewportState::default(), &lines);
+            })
+            .commit_presented();
         let cold = first.snapshot();
         assert_eq!(cold.indexed_lines, lines.len());
         assert!(cold.visible_rows > 0);
         assert_eq!(other.snapshot(), ViewportWorkSnapshot::default());
 
         first.reset();
-        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-            viewport.draw(ui, area, &ViewportState::default(), &lines);
-        });
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                viewport.draw(ui, area, &ViewportState::default(), &lines);
+            })
+            .commit_presented();
         let warm = first.snapshot();
         assert_eq!(warm.indexed_lines, 0);
         assert!(warm.visible_rows > 0);
@@ -2015,9 +2032,11 @@ mod tests {
             let viewport = TextViewport::new(ID).wrap(true).work_probe(&probe);
             let mut runtime = Runtime::new(Stub::default(), Theme::junie());
             let mut buffer = Buffer::empty(SCREEN);
-            runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-                viewport.draw(ui, area, &ViewportState::default(), &lines);
-            });
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                    viewport.draw(ui, area, &ViewportState::default(), &lines);
+                })
+                .commit_presented();
             probe.snapshot()
         };
         let a = std::thread::spawn(run);
@@ -2216,7 +2235,8 @@ mod tests {
                     TextViewport::new(ID).draw(ui, Rect::new(0, 0, 12, 3), &st, &lines);
                 },
             );
-        });
+        })
+        .commit_presented();
         assert!(rt.area_of(ID).is_none());
     }
 
@@ -2253,7 +2273,8 @@ mod tests {
         let lines = [ViewportLine::Plain("row"); 30];
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             TextViewport::new(ID).draw(ui, POINTER_AREA, &st, &lines);
-        });
+        })
+        .commit_presented();
 
         assert_eq!(rt.resolved(ID, Part::TRACK), expected);
         assert_ne!(rt.resolved(ID, Part::TRACK), scrollbar);
@@ -2419,7 +2440,8 @@ mod tests {
             let mut w = 0;
             rt.draw_scene(SCREEN, &mut buf, |ui, _| {
                 w = TextViewport::new(ID).draw(ui, area, &st, lines).width;
-            });
+            })
+            .commit_presented();
             w
         };
         assert_eq!(width_of(&short), width_of(&long));
@@ -2449,7 +2471,8 @@ mod tests {
                 ui.reference(Some(ReferenceTarget::new(ID, state)), |ui| {
                     TextViewport::new(ID).draw(ui, area, &st, &lines);
                 });
-            });
+            })
+            .commit_presented();
             buf.cell(Position::new(0, 0))
                 .map_or_else(String::new, |c| c.symbol().to_owned())
         };
@@ -2477,9 +2500,11 @@ mod tests {
                 .style;
             let mut runtime = Runtime::new(Stub::default(), theme);
             let mut buffer = Buffer::empty(SCREEN);
-            runtime.draw_scene(SCREEN, &mut buffer, |ui, _| {
-                TextViewport::new(ID).draw(ui, area, &state, &lines);
-            });
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                    TextViewport::new(ID).draw(ui, area, &state, &lines);
+                })
+                .commit_presented();
 
             let base_cell = buffer.cell(Position::new(1, 0));
             let selected_cell = buffer.cell(Position::new(2, 0));
@@ -2530,7 +2555,8 @@ mod tests {
             let mut buf = Buffer::empty(SCREEN);
             rt.draw_scene(SCREEN, &mut buf, |ui, _| {
                 TextViewport::new(ID).wrap(true).draw(ui, area, &st, &lines);
-            });
+            })
+            .commit_presented();
             frames.push(buf);
         }
         assert_eq!(
@@ -2596,7 +2622,8 @@ mod tests {
                     v = v.patch_part(&ps);
                 }
                 v.draw(ui, area, &st, &lines);
-            });
+            })
+            .commit_presented();
             buf
         };
         let plain = render(None);
@@ -2636,7 +2663,8 @@ mod tests {
                     v = v.slot(part, &marker);
                 }
                 v.draw(ui, area, &st, &lines);
-            });
+            })
+            .commit_presented();
             buf
         };
         let plain = render(None);

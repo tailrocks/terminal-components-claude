@@ -1,6 +1,6 @@
 //! Query-history, completion and quick-switcher models.
 
-use junie_tui::fuzzy;
+use junie_tui::{FuzzyBoundary, fuzzy_with_boundary};
 
 use crate::db::{Catalog, ColType, Table};
 use crate::sql::{FUNCTIONS, KEYWORDS, TokKind, tokenize};
@@ -240,235 +240,698 @@ impl History {
     }
 }
 
-/// Completion item category.
+/// Completion item category, preserving SQL context and display semantics.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum CompletionKind {
+pub enum CompletionKind {
     /// SQL keyword.
     Keyword,
-    /// Relation name.
+    /// Table name.
     Table,
+    /// View name.
+    View,
     /// Column name.
     Column,
     /// SQL function.
     Function,
+    /// Schema qualifier.
+    Schema,
+    /// Alias declared in the current statement.
+    Alias,
 }
-
-/// SQL completion item.
-#[derive(Debug, Clone, PartialEq, Eq)]
+impl CompletionKind {
+    const fn priority(self) -> u32 {
+        match self {
+            Self::Column => 100,
+            Self::Alias => 150,
+            Self::Table => 200,
+            Self::View => 210,
+            Self::Function => 300,
+            Self::Keyword => 400,
+            Self::Schema => 500,
+        }
+    }
+}
+/// One SQL completion candidate.
+#[derive(Clone, PartialEq, Eq)]
 pub struct Completion {
-    /// Text inserted into the editor.
+    /// Text inserted into the editor, including any necessary qualifier.
     pub text: String,
     /// Display label.
     pub label: String,
-    /// Completion category.
-    pub(crate) kind: CompletionKind,
-    /// Fuzzy-match score.
+    /// Type, relation or alias metadata.
+    pub detail: String,
+    /// Candidate category.
+    pub kind: CompletionKind,
+    /// Rank; lower values sort first.
     pub score: u32,
+    /// Matched grapheme ordinals in the original label.
+    pub matched: Vec<usize>,
+}
+impl core::fmt::Debug for Completion {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("Completion")
+            .field("kind", &self.kind)
+            .field("text_bytes", &self.text.len())
+            .field("label_bytes", &self.label.len())
+            .field("detail_bytes", &self.detail.len())
+            .field("score", &self.score)
+            .field("matched_count", &self.matched.len())
+            .finish()
+    }
+}
+/// Suggestions and the exact UTF-8 range they replace in the input.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CompletionBatch {
+    /// Ranked candidates.
+    pub items: Vec<Completion>,
+    /// Current word, ending at the normalized cursor boundary.
+    pub replace: core::ops::Range<usize>,
+}
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Clause {
+    Start,
+    SelectList,
+    From,
+    Where,
+    OrderBy,
+    Member,
 }
 
-/// SQL context at a cursor.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Clause {
-    /// Beginning of a statement.
-    Statement,
-    /// After a relation-introducing clause.
-    Relation,
-    /// After a projection or predicate clause.
-    Column,
-    /// General expression context.
-    Expression,
+fn normalized_cursor(source: &str, cursor: usize) -> usize {
+    let mut cursor = cursor.min(source.len());
+    while !source.is_char_boundary(cursor) {
+        cursor = cursor.saturating_sub(1);
+    }
+    cursor
 }
-
-/// Infer completion context from the preceding token.
-pub(crate) fn context(source: &str, cursor: usize) -> Clause {
-    let prefix = source.get(..cursor.min(source.len())).unwrap_or(source);
-    let tokens = tokenize(prefix);
-    let last = tokens
-        .iter()
+fn word_start(source: &str) -> usize {
+    source
+        .char_indices()
         .rev()
-        .find(|token| !matches!(token.kind, TokKind::Whitespace | TokKind::Comment))
-        .and_then(|token| prefix.get(token.start..token.end))
-        .unwrap_or_default()
-        .to_ascii_lowercase();
-    let prior = tokens
-        .iter()
-        .rev()
-        .skip(1)
-        .find(|token| !matches!(token.kind, TokKind::Whitespace | TokKind::Comment))
-        .and_then(|token| prefix.get(token.start..token.end))
-        .unwrap_or_default()
-        .to_ascii_lowercase();
-    let word = if matches!(
-        tokens.last().map(|token| token.kind),
-        Some(TokKind::Whitespace)
-    ) {
-        prior
-    } else {
-        last
-    };
-    match word.as_str() {
-        "from" | "join" | "into" | "update" => Clause::Relation,
-        "select" | "where" | "and" | "or" | "order" | "by" => Clause::Column,
-        "" => Clause::Statement,
-        _ => Clause::Expression,
-    }
+        .find(|(_, ch)| !(ch.is_alphanumeric() || *ch == '_'))
+        .map_or(0, |(index, ch)| index.saturating_add(ch.len_utf8()))
 }
-
-/// Complete the current SQL token from catalog names and SQL vocabulary.
-pub fn complete(source: &str, cursor: usize, catalog: &Catalog) -> Vec<Completion> {
-    let prefix = source.get(..cursor.min(source.len())).unwrap_or(source);
-    let needle = prefix
-        .split(|c: char| !c.is_ascii_alphanumeric() && c != '_')
-        .next_back()
-        .unwrap_or_default();
-    let clause = context(source, cursor);
-    let mut candidates: Vec<(String, CompletionKind)> = Vec::new();
-    if matches!(clause, Clause::Statement | Clause::Expression) {
-        candidates.extend(
-            KEYWORDS
-                .iter()
-                .map(|word| ((*word).to_owned(), CompletionKind::Keyword)),
-        );
+fn context(source: &str, cursor: usize) -> (&str, Clause, Option<&str>) {
+    let before = source.get(..cursor).unwrap_or_default();
+    let start = word_start(before);
+    let word = before.get(start..).unwrap_or_default();
+    let preceding = before.get(..start).unwrap_or_default();
+    if let Some(qualifier) = preceding.strip_suffix('.') {
+        return (word, Clause::Member, qualifier.get(word_start(qualifier)..));
     }
-    if matches!(clause, Clause::Relation | Clause::Expression) {
-        candidates.extend(
-            catalog
-                .tables
-                .iter()
-                .map(|table| (table.name.clone(), CompletionKind::Table)),
-        );
-    }
-    if matches!(clause, Clause::Column | Clause::Expression) {
-        candidates.extend(catalog.tables.iter().flat_map(|table| {
-            table
-                .columns
-                .iter()
-                .map(|column| (column.name.clone(), CompletionKind::Column))
-        }));
-    }
-    if matches!(clause, Clause::Expression) {
-        candidates.extend(
-            FUNCTIONS
-                .iter()
-                .map(|word| ((*word).to_owned(), CompletionKind::Function)),
-        );
-    }
-    let mut out = candidates
+    let statement_start = crate::sql::statement_at(source, cursor).map_or(0, |(start, _)| start);
+    let preceding = source.get(statement_start..start).unwrap_or_default();
+    let mut clause = Clause::Start;
+    for token in tokenize(preceding)
         .into_iter()
-        .filter_map(|(label, kind)| {
-            fuzzy(&label, needle).map(|(score, _)| Completion {
-                text: label.clone(),
-                label,
-                kind,
-                score,
-            })
+        .filter(|token| token.kind == TokKind::Keyword)
+    {
+        let keyword = preceding
+            .get(token.start..token.end)
+            .unwrap_or_default()
+            .to_ascii_uppercase();
+        clause = match keyword.as_str() {
+            "SELECT" => Clause::SelectList,
+            "FROM" | "JOIN" | "INTO" | "UPDATE" | "TABLE" => Clause::From,
+            "WHERE" | "AND" | "OR" | "ON" | "HAVING" | "SET" => Clause::Where,
+            "BY" => Clause::OrderBy,
+            _ => clause,
+        };
+    }
+    (word, clause, None)
+}
+fn tables_in_statement<'a>(
+    catalog: &'a Catalog,
+    statement: &str,
+) -> Vec<(&'a Table, Option<String>)> {
+    let tokens = tokenize(statement)
+        .into_iter()
+        .filter(|token| !matches!(token.kind, TokKind::Whitespace | TokKind::Comment))
+        .filter_map(|token| {
+            statement
+                .get(token.start..token.end)
+                .map(|text| (token.kind, text))
         })
         .collect::<Vec<_>>();
-    out.sort_by_key(|item| (item.score, item.label.to_ascii_lowercase()));
-    out.dedup_by(|left, right| left.label.eq_ignore_ascii_case(&right.label));
-    out.truncate(20);
+    let mut out = Vec::new();
+    for (index, (kind, word)) in tokens.iter().enumerate() {
+        if *kind != TokKind::Keyword
+            || !matches!(
+                word.to_ascii_uppercase().as_str(),
+                "FROM" | "JOIN" | "INTO" | "UPDATE"
+            )
+        {
+            continue;
+        }
+        let Some((TokKind::Ident, name)) = tokens.get(index.saturating_add(1)) else {
+            continue;
+        };
+        let qualified = tokens
+            .get(index.saturating_add(2))
+            .is_some_and(|(_, text)| *text == ".");
+        let (schema, name, after) = if qualified {
+            let Some((_, table)) = tokens.get(index.saturating_add(3)) else {
+                continue;
+            };
+            (
+                Some(name.trim_matches('"')),
+                table.trim_matches('"'),
+                index.saturating_add(4),
+            )
+        } else {
+            (None, name.trim_matches('"'), index.saturating_add(2))
+        };
+        let alias = tokens.get(after).and_then(|(kind, text)| {
+            if text.eq_ignore_ascii_case("AS") {
+                tokens
+                    .get(after.saturating_add(1))
+                    .filter(|(kind, _)| *kind == TokKind::Ident)
+                    .map(|(_, text)| text.trim_matches('"').to_owned())
+            } else if *kind == TokKind::Ident {
+                Some(text.trim_matches('"').to_owned())
+            } else {
+                None
+            }
+        });
+        if let Some(table) = catalog.find(schema, name) {
+            out.push((table, alias));
+        }
+    }
     out
 }
-
-/// Whether completion should open automatically at this cursor.
-#[expect(
-    dead_code,
-    reason = "completion trigger remains available to the private editor adapter"
-)]
-pub(crate) fn auto_trigger(source: &str, cursor: usize) -> bool {
-    let prefix = source.get(..cursor.min(source.len())).unwrap_or(source);
-    let ch = prefix.chars().next_back();
-    matches!(ch, Some('.' | ' ' | '\n') | None)
+struct CompletionPool<'a> {
+    word: &'a str,
+    items: Vec<Completion>,
+}
+impl CompletionPool<'_> {
+    fn push(
+        &mut self,
+        kind: CompletionKind,
+        label: &str,
+        detail: String,
+        insert: Option<String>,
+        boost: i32,
+    ) {
+        if let Some((penalty, matched)) =
+            fuzzy_with_boundary(label, self.word, FuzzyBoundary::Identifier)
+        {
+            let base = kind.priority().saturating_add(penalty);
+            let score = if boost < 0 {
+                base.saturating_sub(boost.unsigned_abs())
+            } else {
+                base.saturating_add(boost.unsigned_abs())
+            };
+            self.items.push(Completion {
+                kind,
+                label: label.to_owned(),
+                detail,
+                text: insert.unwrap_or_else(|| label.to_owned()),
+                score,
+                matched,
+            });
+        }
+    }
+}
+/// Complete a token while retaining the byte range needed to apply it safely.
+pub fn completion_batch(src: &str, cursor: usize, cat: &Catalog) -> CompletionBatch {
+    let cursor = normalized_cursor(src, cursor);
+    let (word, clause, qualifier) = context(src, cursor);
+    let stmt = crate::sql::statement_at(src, cursor)
+        .and_then(|(a, b)| src.get(a..b))
+        .unwrap_or_default();
+    let in_stmt = tables_in_statement(cat, stmt);
+    let mut pool = CompletionPool {
+        word,
+        items: Vec::new(),
+    };
+    match clause {
+        Clause::Member => {
+            member_candidates(cat, &in_stmt, qualifier.unwrap_or_default(), &mut pool);
+        }
+        Clause::From => relation_candidates(cat, &mut pool),
+        Clause::SelectList | Clause::Where | Clause::OrderBy => {
+            column_candidates(cat, &in_stmt, clause, &mut pool);
+        }
+        Clause::Start => statement_candidates(&mut pool),
+    }
+    pool.items.sort_by(|a, b| {
+        a.score
+            .cmp(&b.score)
+            .then_with(|| a.label.len().cmp(&b.label.len()))
+            .then_with(|| a.label.cmp(&b.label))
+    });
+    pool.items
+        .dedup_by(|a, b| a.label == b.label && a.kind == b.kind);
+    pool.items.truncate(60);
+    CompletionBatch {
+        items: pool.items,
+        replace: cursor.saturating_sub(word.len())..cursor,
+    }
+}
+fn member_candidates(
+    cat: &Catalog,
+    in_stmt: &[(&Table, Option<String>)],
+    q: &str,
+    pool: &mut CompletionPool<'_>,
+) {
+    // alias or table name → its columns; schema → its tables
+    let table = in_stmt
+        .iter()
+        .find(|(t, a)| {
+            a.as_deref().is_some_and(|a| a.eq_ignore_ascii_case(q))
+                || t.name.eq_ignore_ascii_case(q)
+        })
+        .map(|(t, _)| *t)
+        .or_else(|| cat.find(None, q));
+    if let Some(t) = table {
+        for c in &t.columns {
+            pool.push(CompletionKind::Column, &c.name, col_detail(c), None, 0);
+        }
+    } else if cat.schemas.iter().any(|s| s.eq_ignore_ascii_case(q)) {
+        for t in cat
+            .tables
+            .iter()
+            .filter(|t| t.schema.eq_ignore_ascii_case(q))
+        {
+            pool.push(
+                kind_of(t),
+                &t.name,
+                format!("{} · {}", t.schema, crate::sql::fmt_rows(t.row_count)),
+                None,
+                0,
+            );
+        }
+    }
+}
+fn relation_candidates(cat: &Catalog, pool: &mut CompletionPool<'_>) {
+    for t in &cat.tables {
+        if matches!(
+            t.kind,
+            crate::db::ObjectKind::Table | crate::db::ObjectKind::View
+        ) {
+            let boost = if t.schema == "public" { -50 } else { 0 };
+            let insert = if t.schema == "public" {
+                None
+            } else {
+                Some(t.qualified())
+            };
+            pool.push(
+                kind_of(t),
+                &t.name,
+                format!("{} · {} rows", t.schema, crate::sql::fmt_rows(t.row_count)),
+                insert,
+                boost,
+            );
+        }
+    }
+    for s in &cat.schemas {
+        pool.push(CompletionKind::Schema, s, "schema".into(), None, 0);
+    }
+    for k in [
+        "WHERE",
+        "ORDER BY",
+        "LIMIT",
+        "JOIN",
+        "LEFT JOIN",
+        "GROUP BY",
+    ] {
+        pool.push(CompletionKind::Keyword, k, String::new(), None, 0);
+    }
+}
+fn column_candidates(
+    cat: &Catalog,
+    in_stmt: &[(&Table, Option<String>)],
+    clause: Clause,
+    pool: &mut CompletionPool<'_>,
+) {
+    let sources: Vec<&Table> = if in_stmt.is_empty() {
+        cat.tables
+            .iter()
+            .filter(|t| !t.columns.is_empty())
+            .collect()
+    } else {
+        in_stmt.iter().map(|(t, _)| *t).collect()
+    };
+    let ambiguous = sources.len() > 1;
+    for t in &sources {
+        for c in &t.columns {
+            let label = if ambiguous && in_stmt.is_empty() {
+                format!("{}.{}", t.name, c.name)
+            } else {
+                c.name.clone()
+            };
+            let detail = if ambiguous {
+                format!("{} · {}", t.name, col_detail(c))
+            } else {
+                col_detail(c)
+            };
+            pool.push(
+                CompletionKind::Column,
+                &label,
+                detail,
+                None,
+                if in_stmt.is_empty() { 40 } else { 0 },
+            );
+        }
+    }
+    for (t, a) in in_stmt {
+        if let Some(a) = a {
+            pool.push(
+                CompletionKind::Alias,
+                a,
+                format!("alias of {}", t.name),
+                None,
+                0,
+            );
+        }
+    }
+    for f in FUNCTIONS {
+        pool.push(
+            CompletionKind::Function,
+            f,
+            "function".into(),
+            Some(format!("{f}(")),
+            0,
+        );
+    }
+    let kws: &[&str] = match clause {
+        Clause::SelectList => &[
+            "FROM", "DISTINCT", "AS", "CASE", "COUNT", "SUM", "AVG", "MAX", "MIN", "*",
+        ],
+        Clause::Where => &[
+            "AND",
+            "OR",
+            "NOT",
+            "IS NULL",
+            "IS NOT NULL",
+            "IN",
+            "LIKE",
+            "ILIKE",
+            "BETWEEN",
+            "ORDER BY",
+            "LIMIT",
+            "TRUE",
+            "FALSE",
+            "NULL",
+        ],
+        _ => &["ASC", "DESC", "LIMIT", "OFFSET"],
+    };
+    for k in kws {
+        pool.push(CompletionKind::Keyword, k, String::new(), None, 0);
+    }
+}
+fn statement_candidates(pool: &mut CompletionPool<'_>) {
+    for k in [
+        "SELECT",
+        "SELECT * FROM",
+        "INSERT INTO",
+        "UPDATE",
+        "DELETE FROM",
+        "EXPLAIN",
+        "EXPLAIN ANALYZE",
+        "WITH",
+        "CREATE TABLE",
+        "ALTER TABLE",
+        "DROP TABLE",
+        "TRUNCATE",
+        "BEGIN",
+        "COMMIT",
+        "ROLLBACK",
+    ] {
+        pool.push(CompletionKind::Keyword, k, String::new(), None, 0);
+    }
+    for k in KEYWORDS.iter().filter(|_| !pool.word.is_empty()) {
+        pool.push(CompletionKind::Keyword, k, String::new(), None, 20);
+    }
 }
 
-/// A quick-switcher target kind.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SwitchTarget {
-    /// Relation.
-    Table,
-    /// Query history entry.
-    Query,
-    /// Connection.
-    Connection,
+fn kind_of(t: &Table) -> CompletionKind {
+    if t.kind == crate::db::ObjectKind::View {
+        CompletionKind::View
+    } else {
+        CompletionKind::Table
+    }
 }
 
-/// One quick-switcher result.
+fn col_detail(c: &crate::db::Column) -> String {
+    let mut d = c.ty.sql().to_owned();
+    if c.primary {
+        d.push_str(" · pk");
+    }
+    if c.references.is_some() {
+        d.push_str(" · fk");
+    }
+    if c.nullable {
+        d.push_str(" · null");
+    }
+    d
+}
+
+/// Whether this SQL context has enough input to open completion automatically.
+pub fn auto_trigger(src: &str, cursor: usize) -> bool {
+    let (word, clause, _) = context(src, normalized_cursor(src, cursor));
+    match clause {
+        Clause::Member | Clause::From => true,
+        Clause::Where | Clause::OrderBy | Clause::SelectList => word.len() >= 2,
+        Clause::Start => word.len() >= 3,
+    }
+}
+
+/// Return ranked candidates; use [`completion_batch`] to apply a replacement.
+pub fn complete(source: &str, cursor: usize, catalog: &Catalog) -> Vec<Completion> {
+    completion_batch(source, cursor, catalog).items
+}
+
+/// An actionable switcher destination, independent of its display position.
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SwitchTarget {
+    /// Catalog table, identified by schema and name.
+    Table {
+        /// Schema name.
+        schema: String,
+        /// Table name.
+        name: String,
+    },
+    /// Catalog view, identified by schema and name.
+    View {
+        /// Schema name.
+        schema: String,
+        /// View name.
+        name: String,
+    },
+    /// Schema name.
+    Schema(String),
+    /// Database name.
+    Database(String),
+    /// Immutable owning tab identity.
+    OpenTab(crate::tabs::TabKey),
+    /// Stable history entry id.
+    Query(usize),
+    /// Additive connection destination.
+    Connection(String),
+}
+impl SwitchTarget {
+    /// Source group label, derived from the actual destination.
+    pub const fn group(&self) -> &'static str {
+        match self {
+            Self::Table { .. } => "Tables",
+            Self::View { .. } => "Views",
+            Self::Schema(_) => "Schemas",
+            Self::Database(_) => "Databases",
+            Self::OpenTab(_) => "Open tabs",
+            Self::Query(_) => "Recent queries",
+            Self::Connection(_) => "Connections",
+        }
+    }
+    const fn rank(&self) -> u32 {
+        match self {
+            Self::Table { .. } => 0,
+            Self::View { .. } => 1,
+            Self::OpenTab(_) => 2,
+            Self::Schema(_) => 3,
+            Self::Database(_) => 4,
+            Self::Query(_) => 5,
+            Self::Connection(_) => 6,
+        }
+    }
+}
+/// One quick-switcher result.
+#[derive(Clone, PartialEq, Eq)]
 pub struct SwitchItem {
-    /// Stable item key.
+    /// Stable display key; activation uses the typed target.
     pub key: String,
     /// Main label.
     pub label: String,
-    /// Secondary metadata.
+    /// Searchable path metadata.
     pub detail: String,
-    /// Target category.
+    /// Typed destination.
     pub target: SwitchTarget,
-    /// Fuzzy-match score.
+    /// Whether the represented destination is already open.
+    pub open: bool,
+    /// Rank; lower values sort first.
     pub score: u32,
+    /// Matched original-label grapheme ordinals; empty for path-only matches.
+    pub matched: Vec<usize>,
 }
-
-/// Search index for quick switching.
+impl core::fmt::Debug for SwitchItem {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("SwitchItem")
+            .field("key_bytes", &self.key.len())
+            .field("group", &self.target.group())
+            .field("label_bytes", &self.label.len())
+            .field("detail_bytes", &self.detail.len())
+            .field("open", &self.open)
+            .field("score", &self.score)
+            .field("matched_count", &self.matched.len())
+            .finish()
+    }
+}
+/// Owned snapshot of available quick-switcher destinations.
 #[derive(Debug, Clone, Default)]
 pub struct SwitcherIndex {
-    /// Indexed switch targets.
+    /// Indexed targets. Rebuild from the workbench after structural changes.
     pub items: Vec<SwitchItem>,
 }
-
 impl SwitcherIndex {
-    /// Build an index from app-owned catalog/history/connection data.
+    /// Build without open-tab metadata for standalone catalog consumers.
     pub fn from_catalog(
         catalog: &Catalog,
         history: &History,
         connections: &[crate::db::Connection],
     ) -> Self {
-        let mut items = Vec::new();
-        items.extend(catalog.tables.iter().map(|table| SwitchItem {
-            key: format!("{}.{}", table.schema, table.name),
-            label: table.name.clone(),
-            detail: format!("{} · {} rows", table.schema, table.row_count),
-            target: SwitchTarget::Table,
-            score: 0,
-        }));
-        items.extend(history.entries.iter().map(|entry| SwitchItem {
-            key: format!("history-{}", entry.id),
-            label: entry.first_line(),
-            detail: entry.when(),
-            target: SwitchTarget::Query,
-            score: 0,
-        }));
-        items.extend(connections.iter().map(|connection| SwitchItem {
-            key: format!("connection-{}", connection.name),
-            label: connection.name.clone(),
-            detail: connection.environment.label().to_owned(),
-            target: SwitchTarget::Connection,
-            score: 0,
-        }));
-        Self { items }
+        Self::build(catalog, history, connections, &[])
     }
-    /// Return ranked matches for a query.
+    pub(crate) fn from_workbench(
+        catalog: &Catalog,
+        history: &History,
+        connection: &crate::db::Connection,
+        tabs: &[crate::tabs::TabRecord],
+    ) -> Self {
+        Self::build(catalog, history, std::slice::from_ref(connection), tabs)
+    }
+    fn push(
+        &mut self,
+        key: String,
+        label: String,
+        detail: String,
+        target: SwitchTarget,
+        open: bool,
+    ) {
+        self.items.push(SwitchItem {
+            key,
+            label,
+            detail,
+            target,
+            open,
+            score: 0,
+            matched: Vec::new(),
+        });
+    }
+    fn build(
+        catalog: &Catalog,
+        history: &History,
+        connections: &[crate::db::Connection],
+        tabs: &[crate::tabs::TabRecord],
+    ) -> Self {
+        let mut index = Self::default();
+        let connection = connections
+            .first()
+            .map_or("", |connection| connection.name.as_str());
+        for table in &catalog.tables {
+            let target = match table.kind {
+                crate::db::ObjectKind::Table => SwitchTarget::Table {
+                    schema: table.schema.clone(),
+                    name: table.name.clone(),
+                },
+                crate::db::ObjectKind::View => SwitchTarget::View {
+                    schema: table.schema.clone(),
+                    name: table.name.clone(),
+                },
+                crate::db::ObjectKind::Function | crate::db::ObjectKind::Sequence => continue,
+            };
+            let open=tabs.iter().any(|record|matches!(record.payload(),crate::tabs::Tab::Table(tab) if tab.table.schema==table.schema && tab.table.name==table.name));
+            index.push(
+                table.qualified(),
+                table.name.clone(),
+                format!("{} · {connection}", table.schema),
+                target,
+                open,
+            );
+        }
+        for schema in &catalog.schemas {
+            index.push(
+                format!("schema-{schema}"),
+                schema.clone(),
+                format!("{} · {connection}", catalog.database),
+                SwitchTarget::Schema(schema.clone()),
+                false,
+            );
+        }
+        index.push(
+            format!("database-{}", catalog.database),
+            catalog.database.clone(),
+            connection.to_owned(),
+            SwitchTarget::Database(catalog.database.clone()),
+            true,
+        );
+        for record in tabs {
+            index.push(
+                format!("tab-{}", record.key().get()),
+                record.payload().label(),
+                "open tab".to_owned(),
+                SwitchTarget::OpenTab(record.key()),
+                true,
+            );
+        }
+        for entry in history.entries.iter().take(50) {
+            index.push(
+                format!("history-{}", entry.id),
+                entry.first_line(),
+                format!("{} · {}", entry.connection, entry.when()),
+                SwitchTarget::Query(entry.id),
+                false,
+            );
+        }
+        for connection in connections {
+            index.push(
+                format!("connection-{}", connection.name),
+                connection.name.clone(),
+                connection.environment.label().to_owned(),
+                SwitchTarget::Connection(connection.name.clone()),
+                false,
+            );
+        }
+        index
+    }
+    /// Rank name matches before path matches, preserving source group priorities.
     pub fn search(&self, query: &str) -> Vec<SwitchItem> {
+        let query = query.trim();
+        let path_query = query.to_lowercase();
         let mut out = self
             .items
             .iter()
             .filter_map(|item| {
-                fuzzy(&item.label, query).map(|(score, _)| {
-                    let mut copy = item.clone();
-                    copy.score = score;
-                    copy
-                })
+                let mut item = item.clone();
+                if query.is_empty() {
+                    item.score = item.target.rank().saturating_mul(10);
+                } else if let Some((penalty, matched)) =
+                    fuzzy_with_boundary(&item.label, query, FuzzyBoundary::Identifier)
+                {
+                    item.score = penalty
+                        .saturating_add(item.target.rank().saturating_mul(5))
+                        .saturating_add(if item.open { 0 } else { 3 });
+                    item.matched = matched;
+                } else if item.detail.to_lowercase().contains(&path_query) {
+                    item.score = 120u32.saturating_add(item.target.rank().saturating_mul(5));
+                    item.matched.clear();
+                } else {
+                    return None;
+                }
+                Some(item)
             })
             .collect::<Vec<_>>();
-        out.sort_by_key(|item| {
-            (
-                matches!(item.target, SwitchTarget::Table)
-                    .then_some(0)
-                    .unwrap_or(1),
-                item.score,
-                item.label.len(),
-                !item.label.eq_ignore_ascii_case(query),
-                item.label.to_ascii_lowercase(),
-            )
-        });
+        out.sort_by(|a, b| a.score.cmp(&b.score).then_with(|| a.label.cmp(&b.label)));
+        out.truncate(200);
         out
     }
 }
@@ -505,25 +968,89 @@ mod tests {
     fn history_search_is_multi_term_and() {
         let history = History::seeded();
         assert_eq!(history.search("orders pending", None, false).len(), 1);
+        let development = history.search("", Some("Development"), false);
+        assert!(!development.is_empty());
+        assert!(
+            development
+                .iter()
+                .all(|entry| entry.connection == "Development")
+        );
+        let failed = history.search("", None, true);
+        assert!(!failed.is_empty() && failed.iter().all(|entry| !entry.ok()));
     }
     #[test]
     fn completion_is_context_aware() {
         let catalog = Catalog::acme_prod();
-        assert!(
-            complete("SELECT * FROM ord", 16, &catalog)
-                .iter()
-                .any(|item| item.label == "orders")
+        let items = complete("SELECT o. FROM orders o WHERE ", 9, &catalog);
+        assert_eq!(
+            items.first().map(|item| item.kind),
+            Some(CompletionKind::Column)
         );
-    }
-    #[test]
-    fn switcher_ranks_tables_first_and_prefix_first() {
-        let catalog = Catalog::acme_prod();
-        let index =
-            SwitcherIndex::from_catalog(&catalog, &History::seeded(), &crate::db::connections());
-        let items = index.search("ord");
+        assert!(items.iter().any(|item| item.label == "total_amount"));
+        let source = "SELECT * FROM ord";
+        let batch = completion_batch(source, source.len(), &catalog);
+        assert_eq!(batch.replace, 14..17);
+        let items = batch.items;
+        assert_eq!(
+            items.first().map(|item| item.matched.as_slice()),
+            Some([0, 1, 2].as_slice())
+        );
         assert_eq!(
             items.first().map(|item| item.label.as_str()),
             Some("orders")
         );
+        assert_eq!(
+            items.first().map(|item| item.kind),
+            Some(CompletionKind::Table)
+        );
+        let source = "SELECT * FROM orders WHERE st";
+        assert_eq!(
+            complete(source, source.len(), &catalog)
+                .first()
+                .map(|item| item.label.as_str()),
+            Some("status")
+        );
+        let source = "SELECT * FROM orders WHERE status = 'x' ORDER BY cre";
+        assert_eq!(
+            complete(source, source.len(), &catalog)
+                .first()
+                .map(|item| item.label.as_str()),
+            Some("created_at")
+        );
+        let source = "SELECT * FROM analytics.";
+        assert!(
+            complete(source, source.len(), &catalog)
+                .iter()
+                .any(|item| item.label == "events")
+        );
+        assert!(auto_trigger("SELECT * FROM ", 14));
+        assert!(!auto_trigger("SELECT * FROM orders WHERE s", 28));
+    }
+    #[test]
+    fn switcher_ranks_tables_first_and_prefix_first() -> Result<(), String> {
+        let mut app = crate::app::TableProApp::default();
+        assert!(app.connect(0));
+        assert!(app.workbench.open_table("orders"));
+        let index = app.workbench.switcher();
+        let items = index.search("ord");
+        let first = items.first().ok_or("orders missing")?;
+        assert_eq!(first.label, "orders");
+        assert!(first.open);
+        assert!(items.iter().any(|item| item.label == "order_items"));
+        assert!(
+            items
+                .iter()
+                .any(|item| item.target.group() == "Recent queries")
+        );
+        let all = index.search("");
+        assert!(all.len() > 15);
+        assert_eq!(all.first().map(|item| item.target.group()), Some("Tables"));
+        assert!(
+            index
+                .search("public")
+                .iter()
+                .any(|item| item.label == "orders")
+        );
+        Ok(())
     }
 }

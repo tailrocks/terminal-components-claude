@@ -47,9 +47,10 @@ pub(crate) mod field {
 }
 
 /// Test action.
-pub(crate) const TEST: ActionKey = ActionKey::custom("tablepro.connections.test");
+pub(crate) const TEST: ActionKey = ActionKey::application("tablepro.connections.test");
 /// Save-and-connect action.
-pub(crate) const SAVE_CONNECT: ActionKey = ActionKey::custom("tablepro.connections.save-connect");
+pub(crate) const SAVE_CONNECT: ActionKey =
+    ActionKey::application("tablepro.connections.save-connect");
 
 /// Engine option labels.
 pub(crate) const ENGINES: &[&str] = &["PostgreSQL", "MySQL", "SQLite"];

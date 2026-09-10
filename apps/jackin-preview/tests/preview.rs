@@ -29,6 +29,32 @@ fn first_use_flow_enters_the_manager() {
 }
 
 #[test]
+fn cockpit_header_receives_focus_lifecycle_without_advancing_launch() {
+    let mut harness = Harness::new(
+        App::for_scenario_at(Scenario::LaunchRunning, Motion::Paused, 0),
+        Theme::junie(),
+        100,
+        30,
+    );
+    assert_eq!(harness.app().route(), Route::Cockpit);
+    assert!(harness.area_of(jackin_app::MANAGER).is_some());
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+    let before = harness.app().frame();
+    let _ = harness.key(KeyCode::Tab);
+    assert_eq!(harness.app().route(), Route::Cockpit);
+    assert_eq!(harness.app().frame(), before);
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
+}
+
+#[test]
 fn product_routes_and_account_picker_render_through_the_facade() {
     let mut harness = Harness::new(
         App::for_scenario(Scenario::Returning, Motion::Paused),
@@ -99,7 +125,9 @@ fn launch_simulation_is_deterministic_and_run_id_is_typed() {
     );
     let run_id = harness.app().launch().map(|run| run.run_id);
     assert_eq!(run_id, Some(RunId::new(0x9c41_e2f0)));
-    harness.ticks(320);
+    for _ in 0..320 {
+        let _ = harness.advance(std::time::Duration::from_millis(200));
+    }
     assert_eq!(harness.app().route(), Route::Capsule);
     assert!(harness.app().launch().is_some_and(|run| run.done));
 
@@ -196,7 +224,8 @@ fn paused_frames_freeze_the_virtual_clock() {
     let before = harness.app().world.now_ms();
     harness.ticks(20);
     assert_eq!(harness.app().world.now_ms(), before);
-    assert_eq!(harness.app().frame(), 12);
+    // Non-cinematic --frame does not seek the reference world clock.
+    assert_eq!(harness.app().frame(), 0);
 }
 
 #[test]
@@ -230,6 +259,11 @@ fn every_named_scenario_renders_a_deterministic_frame() {
             40,
         );
         assert_eq!(first.text(), second.text(), "{}", scenario.name());
-        assert!(first.diagnostics().is_empty(), "{}", scenario.name());
+        assert!(
+            first.diagnostics().is_empty(),
+            "{}: {:?}",
+            scenario.name(),
+            first.diagnostics()
+        );
     }
 }

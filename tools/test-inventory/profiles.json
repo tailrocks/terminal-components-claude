@@ -1,0 +1,60 @@
+[
+  {
+    "id": "junie-tui-all",
+    "package": "junie-tui",
+    "default_features": true,
+    "features": [],
+    "all_features": true
+  },
+  {
+    "id": "junie-tui-testing-all",
+    "package": "junie-tui-testing",
+    "default_features": true,
+    "features": [],
+    "all_features": true
+  },
+  {
+    "id": "xtask-all",
+    "package": "xtask",
+    "default_features": true,
+    "features": [],
+    "all_features": true
+  },
+  {
+    "id": "showcase-all",
+    "package": "showcase",
+    "default_features": true,
+    "features": [],
+    "all_features": true
+  },
+  {
+    "id": "tablepro-all",
+    "package": "tablepro",
+    "default_features": true,
+    "features": [],
+    "all_features": true
+  },
+  {
+    "id": "jackin-preview-all",
+    "package": "jackin-preview",
+    "default_features": true,
+    "features": [],
+    "all_features": true
+  },
+  {
+    "id": "holla-all",
+    "package": "holla",
+    "default_features": true,
+    "features": [],
+    "all_features": true
+  },
+  {
+    "id": "junie-tui-core-testing",
+    "package": "junie-tui",
+    "default_features": false,
+    "features": [
+      "testing"
+    ],
+    "all_features": false
+  }
+]

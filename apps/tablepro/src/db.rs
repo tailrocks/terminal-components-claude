@@ -770,6 +770,8 @@ impl Catalog {
 pub enum Value {
     /// SQL NULL.
     Null,
+    /// Use the database column default during insertion.
+    Default,
     /// Text value.
     Text(String),
     /// Signed integer.
@@ -786,6 +788,7 @@ impl Value {
     pub(crate) fn display(&self) -> String {
         match self {
             Value::Null => "NULL".into(),
+            Value::Default => "DEFAULT".into(),
             Value::Text(s) => s.clone(),
             Value::Int(i) => i.to_string(),
             Value::Num(n) => format!("{n:.2}"),

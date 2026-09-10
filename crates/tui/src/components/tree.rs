@@ -13,6 +13,7 @@ use core::fmt;
 use core::marker::PhantomData;
 
 use std::collections::HashMap;
+use std::sync::{Arc, Weak};
 
 use ratatui_core::layout::Rect;
 
@@ -46,6 +47,34 @@ pub enum NodeKind {
     /// [`TreeAction::Expanded`] and the caller appends the children to the
     /// slice it passes on the next frame.
     Lazy,
+}
+
+/// What Enter and double-click do on a branch. Disclosure and Space are separate.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum TreeBranchActivation {
+    /// Open or close the branch (the default).
+    #[default]
+    Toggle,
+    /// Emit `TreeAction::Activated` for the branch's stable key.
+    Activate,
+}
+
+/// What a row click does on a branch. Clicking its disclosure still toggles it.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum TreeBranchClick {
+    /// Open or close the branch (the default).
+    #[default]
+    Toggle,
+    /// Choose the branch and emit `TreeAction::Chose`.
+    Choose,
+}
+
+#[derive(Clone, Copy)]
+enum Engagement {
+    Activate,
+    Choose,
+    Click,
+    SelectedClick,
 }
 
 /// What the tree needs to know about one item: its depth, whether it opens,
@@ -341,8 +370,12 @@ const TABLE_FOLDABLE: [Binding<TreeCmd>; 18] = [
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
 pub struct TreeState {
     core: CollectionCore,
+    source_lineage: Option<Arc<()>>,
+    expansion_lineage: Option<Arc<()>>,
     expanded: KeySet,
     chosen: Option<ItemKey>,
+    // Selection transaction only; pointer feedback remains runtime-owned.
+    click_cursor: Option<ItemKey>,
     expand_generation: u64,
     source_generation: u64,
     expand_generation_saturated: bool,
@@ -363,8 +396,11 @@ impl TreeState {
     pub const fn new() -> Self {
         TreeState {
             core: CollectionCore::new(),
+            source_lineage: None,
+            expansion_lineage: None,
             expanded: KeySet::new(),
             chosen: None,
+            click_cursor: None,
             expand_generation: 0,
             source_generation: 0,
             expand_generation_saturated: false,
@@ -379,13 +415,13 @@ impl TreeState {
         self.core.cursor()
     }
 
-    /// The chosen leaf.
+    /// The chosen row (branches can be chosen with the opt-in click policy).
     #[must_use]
     pub const fn chosen(&self) -> Option<ItemKey> {
         self.chosen
     }
 
-    /// Choose a leaf, or clear the choice.
+    /// Choose a row, or clear the choice.
     pub const fn choose(&mut self, key: Option<ItemKey>) {
         self.chosen = key;
     }
@@ -405,6 +441,7 @@ impl TreeState {
     /// Open `key`.
     pub fn expand(&mut self, key: ItemKey) {
         if !self.expanded.contains(key) {
+            Self::prepare_lineage(&mut self.expansion_lineage);
             self.expanded.insert(key);
             self.record_expansion(key, true);
         }
@@ -413,6 +450,7 @@ impl TreeState {
     /// Close `key`.
     pub fn collapse(&mut self, key: ItemKey) {
         if self.expanded.contains(key) {
+            Self::prepare_lineage(&mut self.expansion_lineage);
             self.expanded.remove(key);
             self.record_expansion(key, false);
         }
@@ -420,15 +458,18 @@ impl TreeState {
 
     /// Toggle `key`; returns whether it is open afterwards.
     pub fn toggle(&mut self, key: ItemKey) -> bool {
+        Self::prepare_lineage(&mut self.expansion_lineage);
         self.expanded.toggle(key);
         let expanded = self.expanded.contains(key);
         self.record_expansion(key, expanded);
         expanded
     }
 
-    /// Open every node, without naming one (`KeySet::AllExcept(∅)`, so this
-    /// allocates nothing however large the tree is).
+    /// Open every node without materialising its keys (`KeySet::AllExcept(∅)`).
+    /// The first structural mutation establishes one constant-size lineage;
+    /// subsequent mutations allocate no lineage unless a clone diverges.
     pub fn expand_all(&mut self) {
+        Self::prepare_lineage(&mut self.expansion_lineage);
         self.expanded.all();
         self.bump_expand_generation();
         self.last_expansion = None;
@@ -437,6 +478,7 @@ impl TreeState {
     /// Close every node.
     pub fn collapse_all(&mut self) {
         if !self.expanded.is_empty() {
+            Self::prepare_lineage(&mut self.expansion_lineage);
             self.expanded.none();
             self.bump_expand_generation();
             self.last_expansion = None;
@@ -461,6 +503,7 @@ impl TreeState {
     /// edits, reorderings and replacements of an equal-length slice require
     /// this explicit invalidation before the next phase.
     pub fn invalidate(&mut self) {
+        Self::prepare_lineage(&mut self.source_lineage);
         if let Some(next) = self.source_generation.checked_add(1) {
             self.source_generation = next;
         } else {
@@ -488,6 +531,18 @@ impl TreeState {
             // Preserve correctness after saturation: every later phase must
             // rebuild instead of treating equal revisions as unchanged.
             self.expand_generation_saturated = true;
+        }
+    }
+
+    // Generations identify mutations only within one state lineage. Clones
+    // share unchanged structure, then split before either branch mutates.
+    // The index holds only a Weak, so ordinary toggles never split or allocate.
+    fn prepare_lineage(lineage: &mut Option<Arc<()>>) {
+        if lineage
+            .as_ref()
+            .is_none_or(|token| Arc::strong_count(token) > 1)
+        {
+            *lineage = Some(Arc::new(()));
         }
     }
 
@@ -563,14 +618,16 @@ impl Reconcile for TreeState {
 /// `↑`/`k`, `↓`/`j`, `PgUp`, `PgDn`, `Home`/`g`, `End`/`G`; `→`/`l` opens a
 /// closed branch or descends into an open one; `←`/`h` closes an open branch
 /// or moves to its parent; `Enter` toggles a branch and activates a leaf;
-/// `Space` chooses a leaf. When at least one node in the slice can open,
+/// `Space` chooses a leaf or toggles a branch. Opt-in `branch_activation`
+/// lets Enter activate branches without changing Space. When at least one node in the slice can open,
 /// `*` and `-` open and close everything.
 ///
 /// ## Mouse
 /// `PartRef::item(Part::ROW, k)`: press moves the cursor, click toggles a
-/// branch or chooses a leaf, double-click activates a leaf.
-/// `PartRef::item(Part::ICON, k)` is the disclosure cell: press or click
-/// toggles that node without choosing it. `TRACK`/`THUMB` and the wheel go
+/// branch or chooses a leaf, double-click activates a leaf. `branch_click`
+/// can choose branches instead; `branch_activation` also applies to double-click.
+/// `PartRef::item(Part::ICON, k)` is the disclosure cell: press moves the
+/// cursor and click toggles that node without choosing it. `TRACK`/`THUMB` and the wheel go
 /// to the embedded [`ScrollRegion`].
 ///
 /// ## Layout
@@ -625,7 +682,14 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
     row: R,
+    render_row: Option<TreeRowRenderer<'a, T>>,
     node: Option<&'a dyn Fn(&T) -> TreeNode>,
+    branch_activation: TreeBranchActivation,
+    branch_click: TreeBranchClick,
+    activate_selected_on_click: bool,
+    gutter_gap: u16,
+    disclosure_hit_width: u16,
+    cursor_selected: bool,
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
     query: Option<TreeQuery<'a, T>>,
     disabled: bool,
@@ -640,6 +704,8 @@ pub struct Tree<'a, T, K = ByIndex, R = DefaultRow> {
     fwd_slot: Option<(Part, SlotFn<'a>)>,
     _t: PhantomData<fn(&T)>,
 }
+
+type TreeRowRenderer<'a, T> = &'a dyn Fn(&mut Ui<'_>, Rect, StateFlags, ItemKey, &T);
 
 #[derive(Clone, Copy)]
 struct TreeQuery<'a, T> {
@@ -666,7 +732,14 @@ impl<T> Tree<'_, T, ByIndex, DefaultRow> {
             id,
             key: ByIndex,
             row: DefaultRow,
+            render_row: None,
             node: None,
+            branch_activation: TreeBranchActivation::Toggle,
+            branch_click: TreeBranchClick::Toggle,
+            activate_selected_on_click: false,
+            gutter_gap: 0,
+            disclosure_hit_width: 1,
+            cursor_selected: false,
             disabled_item: None,
             query: None,
             disabled: false,
@@ -709,13 +782,70 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         self
     }
 
+    /// Configure branch Enter/double-click without changing Space or disclosure toggles.
+    #[must_use]
+    pub const fn branch_activation(mut self, policy: TreeBranchActivation) -> Self {
+        self.branch_activation = policy;
+        self
+    }
+
+    /// Configure branch row-click without changing disclosure clicks.
+    #[must_use]
+    pub const fn branch_click(mut self, policy: TreeBranchClick) -> Self {
+        self.branch_click = policy;
+        self
+    }
+
+    /// Activate a row clicked while it was already the cursor at pointer press.
+    /// Defaults to false. When enabled, both single and double clicks use this
+    /// semantic selection rule, independent of the double-click deadline.
+    /// A newly selected row follows `branch_click`; disclosure clicks still
+    /// toggle, and dragging or canceling the press never activates a row.
+    #[must_use]
+    pub const fn activate_selected_on_click(mut self, enabled: bool) -> Self {
+        self.activate_selected_on_click = enabled;
+        self
+    }
+
+    /// Blank cells between the row gutter and its depth-indented prefix.
+    /// Defaults to zero. Applies to default paint and shared disclosure hits.
+    #[must_use]
+    pub const fn gutter_gap(mut self, cells: u16) -> Self {
+        self.gutter_gap = cells;
+        self
+    }
+
+    /// Disclosure hit width, starting at its glyph and clipped to the row.
+    /// Defaults to one; zero disables the disclosure hit without changing paint.
+    #[must_use]
+    pub const fn disclosure_hit_width(mut self, cells: u16) -> Self {
+        self.disclosure_hit_width = cells;
+        self
+    }
+
+    /// Present the cursor row as selected, including while unfocused.
+    /// Defaults to false (the chosen row is selected). Does not change chosen
+    /// identity, actions, focus, or expansion.
+    #[must_use]
+    pub const fn cursor_selected(mut self, enabled: bool) -> Self {
+        self.cursor_selected = enabled;
+        self
+    }
+
     /// A stable key accessor. [`TreeNode::keyed`] overrides it per node.
     pub fn key<K2: Fn(&T) -> ItemKey>(self, k: K2) -> Tree<'a, T, K2, R> {
         Tree {
             id: self.id,
             key: k,
             row: self.row,
+            render_row: self.render_row,
             node: self.node,
+            branch_activation: self.branch_activation,
+            branch_click: self.branch_click,
+            activate_selected_on_click: self.activate_selected_on_click,
+            gutter_gap: self.gutter_gap,
+            disclosure_hit_width: self.disclosure_hit_width,
+            cursor_selected: self.cursor_selected,
             disabled_item: self.disabled_item,
             query: self.query,
             disabled: self.disabled,
@@ -728,13 +858,37 @@ impl<'a, T, K, R> Tree<'a, T, K, R> {
         }
     }
 
+    /// Replace the complete visible row's paint through a borrowed callback.
+    ///
+    /// Tree retains hierarchy, scrolling, input, row hits and disclosure hits.
+    /// The callback receives the authoritative row, final flags, stable key and
+    /// borrowed item. Writes are clipped to the row and ancestor clip; no default
+    /// row painter runs. Resolve semantic styles in the callback: instance parts
+    /// and slots customize only the default painter.
+    ///
+    /// Items need not implement `Display`. Later `key` and `row` builders retain
+    /// this renderer. Shared disclosure hits remain at Tree's prefix cells.
+    #[must_use]
+    pub fn render_row(self, renderer: TreeRowRenderer<'a, T>) -> Tree<'a, T, K, impl RowFn<T>> {
+        let mut tree = self.row(|_: &T, _: &mut RowUi<'_>| {});
+        tree.render_row = Some(renderer);
+        tree
+    }
+
     /// A row painter, called only for the visible rows.
     pub fn row<R2: Fn(&T, &mut RowUi<'_>)>(self, r: R2) -> Tree<'a, T, K, R2> {
         Tree {
             id: self.id,
             key: self.key,
             row: r,
+            render_row: self.render_row,
             node: self.node,
+            branch_activation: self.branch_activation,
+            branch_click: self.branch_click,
+            activate_selected_on_click: self.activate_selected_on_click,
+            gutter_gap: self.gutter_gap,
+            disclosure_hit_width: self.disclosure_hit_width,
+            cursor_selected: self.cursor_selected,
             disabled_item: self.disabled_item,
             query: self.query,
             disabled: self.disabled,
@@ -851,6 +1005,8 @@ struct FlatRef {
 #[derive(Default)]
 struct TreeIndex {
     initialized: bool,
+    source_lineage: Option<Weak<()>>,
+    expansion_lineage: Option<Weak<()>>,
     source_generation: u64,
     expand_generation: u64,
     query_revision: Option<u64>,
@@ -859,6 +1015,7 @@ struct TreeIndex {
     rows: Vec<FlatRef>,
     by_key: HashMap<ItemKey, usize>,
     visible: Vec<usize>,
+    splice_scratch: Vec<usize>,
     foldable: bool,
     #[cfg(test)]
     source_rebuilds: usize,
@@ -871,6 +1028,14 @@ struct TreeIndex {
 }
 
 impl TreeIndex {
+    fn same_lineage(cached: Option<&Weak<()>>, current: Option<&Arc<()>>) -> bool {
+        match (cached, current) {
+            (None, None) => true,
+            (Some(cached), Some(current)) => core::ptr::eq(cached.as_ptr(), Arc::as_ptr(current)),
+            _ => false,
+        }
+    }
+
     fn sync<T, K: KeyFn<T>, R>(
         &mut self,
         tree: &Tree<'_, T, K, R>,
@@ -879,12 +1044,23 @@ impl TreeIndex {
     ) {
         let query_revision = tree.query.as_ref().map(|query| query.revision);
         let source_changed = !self.initialized
+            || !Self::same_lineage(self.source_lineage.as_ref(), state.source_lineage.as_ref())
             || self.source_generation != state.source_generation
             || state.source_generation_saturated
             || self.source_len != items.len();
         if source_changed {
             self.rebuild_source(tree, state, items, query_revision);
             return;
+        }
+        let same_expansion = Self::same_lineage(
+            self.expansion_lineage.as_ref(),
+            state.expansion_lineage.as_ref(),
+        );
+        // A never-mutated cached expansion is the known empty set. Its first
+        // change can still use the existing single-subtree splice.
+        let from_empty = self.expansion_lineage.is_none() && self.expand_generation == 0;
+        if !same_expansion {
+            self.expansion_lineage = state.expansion_lineage.as_ref().map(Arc::downgrade);
         }
         if self.query_revision != query_revision {
             self.apply_query(tree, items);
@@ -903,14 +1079,15 @@ impl TreeIndex {
             self.expand_generation = state.expand_generation;
             return;
         }
-        if self.expand_generation == state.expand_generation {
+        if same_expansion && self.expand_generation == state.expand_generation {
             return;
         }
         if self.query_active {
             self.expand_generation = state.expand_generation;
             return;
         }
-        let incremental = self.expand_generation.saturating_add(1) == state.expand_generation
+        let incremental = (same_expansion || from_empty)
+            && self.expand_generation.saturating_add(1) == state.expand_generation
             && state
                 .last_expansion
                 .is_some_and(|change| change.generation == state.expand_generation);
@@ -953,6 +1130,10 @@ impl TreeIndex {
         self.apply_query(tree, items);
         self.rebuild_visible(&state.expanded);
         self.initialized = true;
+        // Retaining the weak allocation prevents address reuse (ABA) while
+        // this cache still refers to the previous state's lineage.
+        self.source_lineage = state.source_lineage.as_ref().map(Arc::downgrade);
+        self.expansion_lineage = state.expansion_lineage.as_ref().map(Arc::downgrade);
         self.source_generation = state.source_generation;
         self.expand_generation = state.expand_generation;
         self.query_revision = query_revision;
@@ -1037,7 +1218,7 @@ impl TreeIndex {
             return;
         };
         if change.expanded {
-            let mut inserted = Vec::new();
+            self.splice_scratch.clear();
             let mut collapsed_depth: Option<u16> = None;
             for index in source.saturating_add(1)..self.rows.len() {
                 let Some(row) = self.rows.get(index).copied() else {
@@ -1053,7 +1234,7 @@ impl TreeIndex {
                 if !row.included {
                     continue;
                 }
-                inserted.push(index);
+                self.splice_scratch.push(index);
                 if matches!(row.kind, NodeKind::Parent | NodeKind::Lazy)
                     && !expanded.contains(row.key)
                 {
@@ -1062,7 +1243,7 @@ impl TreeIndex {
             }
             self.visible.splice(
                 display.saturating_add(1)..display.saturating_add(1),
-                inserted,
+                self.splice_scratch.drain(..),
             );
         } else {
             let start = display.saturating_add(1);
@@ -1132,6 +1313,7 @@ struct RowContext {
 #[derive(Clone, Copy)]
 struct PointerIntent {
     phase: Phase,
+    prior_cursor: Option<ItemKey>,
     part: PartRef,
     hint: Option<usize>,
 }
@@ -1213,7 +1395,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         index: &mut TreeIndex,
         items: &[T],
         d: usize,
-        activate: bool,
+        engagement: Engagement,
         acc: &mut Acc<TreeAction>,
     ) {
         let Some(row) = index.row(d) else {
@@ -1228,17 +1410,25 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             acc.consumed();
             return;
         }
-        if self.node_of(it).has_children() {
+        let toggles_branch = match engagement {
+            Engagement::Activate => self.branch_activation == TreeBranchActivation::Toggle,
+            Engagement::Choose => true,
+            Engagement::Click => self.branch_click == TreeBranchClick::Toggle,
+            Engagement::SelectedClick => false,
+        };
+        if self.node_of(it).has_children() && toggles_branch {
             let _ = self.toggle_at(st, index, items, d, acc);
             return;
         }
         let key = row.key;
         st.chosen = Some(key);
-        acc.action(if activate {
-            TreeAction::Activated(key)
-        } else {
-            TreeAction::Chose(key)
-        });
+        acc.action(
+            if matches!(engagement, Engagement::Activate | Engagement::SelectedClick) {
+                TreeAction::Activated(key)
+            } else {
+                TreeAction::Chose(key)
+            },
+        );
     }
 
     /// `←` / `h`: close an open branch, else move to the parent row.
@@ -1338,12 +1528,72 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
     }
 
+    fn command(
+        &self,
+        st: &mut TreeState,
+        index: &mut TreeIndex,
+        items: &[T],
+        command: TreeCmd,
+        viewport: usize,
+        acc: &mut Acc<TreeAction>,
+    ) {
+        let cur = st.core.cursor_index();
+        match command {
+            TreeCmd::Up => {
+                Self::move_to(st, index, cur.saturating_sub(1), acc);
+            }
+            TreeCmd::Down => {
+                Self::move_to(st, index, cur.saturating_add(1), acc);
+            }
+            TreeCmd::PageUp => {
+                Self::move_to(st, index, cur.saturating_sub(viewport), acc);
+            }
+            TreeCmd::PageDown => {
+                Self::move_to(st, index, cur.saturating_add(viewport), acc);
+            }
+            TreeCmd::Home => Self::move_to(st, index, 0, acc),
+            TreeCmd::End => Self::move_to(st, index, usize::MAX, acc),
+            TreeCmd::Expand => {
+                self.expand_or_descend(st, index, items, cur, acc);
+            }
+            TreeCmd::Collapse => {
+                self.collapse_or_parent(st, index, items, cur, acc);
+            }
+            TreeCmd::Activate => {
+                self.engage(st, index, items, cur, Engagement::Activate, acc);
+            }
+            TreeCmd::Choose => {
+                self.engage(st, index, items, cur, Engagement::Choose, acc);
+            }
+            TreeCmd::ExpandAll => {
+                if index.query_active {
+                    acc.consumed();
+                } else {
+                    st.expand_all();
+                    index.sync(self, st, items);
+                    acc.action(TreeAction::Moved);
+                }
+            }
+            TreeCmd::CollapseAll => {
+                if index.query_active {
+                    acc.consumed();
+                } else {
+                    st.collapse_all();
+                    index.sync(self, st, items);
+                    acc.action(TreeAction::Moved);
+                }
+            }
+        }
+    }
+
     /// The update phase: reconcile over the **visible** rows, then drain
     /// keys, pointer and wheel.
     pub fn update(&self, cx: &mut Cx<'_>, st: &mut TreeState, items: &[T]) -> Response<TreeAction> {
         if self.disabled {
+            st.click_cursor = None;
             return Response::ignored();
         }
+        let prior_cursor = st.core.cursor();
         let len = {
             let index = cx.cache::<TreeIndex>(self.id);
             index.sync(self, st, items);
@@ -1356,61 +1606,19 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         let hint_area = cx.area(self.id);
         let (intents, index) = cx.intents_with_cache::<TreeIndex>(self.id);
         let table = self.table_for(index.foldable && !index.query_active);
+        let mut released = false;
         for it in intents {
             match it {
                 Intent::Binding(action) => {
-                    let cur = st.core.cursor_index();
-                    match Binding::command(table, action) {
-                        Some(TreeCmd::Up) => {
-                            Self::move_to(st, index, cur.saturating_sub(1), &mut acc);
-                        }
-                        Some(TreeCmd::Down) => {
-                            Self::move_to(st, index, cur.saturating_add(1), &mut acc);
-                        }
-                        Some(TreeCmd::PageUp) => {
-                            Self::move_to(st, index, cur.saturating_sub(viewport), &mut acc);
-                        }
-                        Some(TreeCmd::PageDown) => {
-                            Self::move_to(st, index, cur.saturating_add(viewport), &mut acc);
-                        }
-                        Some(TreeCmd::Home) => Self::move_to(st, index, 0, &mut acc),
-                        Some(TreeCmd::End) => Self::move_to(st, index, usize::MAX, &mut acc),
-                        Some(TreeCmd::Expand) => {
-                            self.expand_or_descend(st, index, items, cur, &mut acc);
-                        }
-                        Some(TreeCmd::Collapse) => {
-                            self.collapse_or_parent(st, index, items, cur, &mut acc);
-                        }
-                        Some(TreeCmd::Activate) => {
-                            self.engage(st, index, items, cur, true, &mut acc);
-                        }
-                        Some(TreeCmd::Choose) => {
-                            self.engage(st, index, items, cur, false, &mut acc);
-                        }
-                        Some(TreeCmd::ExpandAll) => {
-                            if index.query_active {
-                                acc.consumed();
-                            } else {
-                                st.expand_all();
-                                index.sync(self, st, items);
-                                acc.action(TreeAction::Moved);
-                            }
-                        }
-                        Some(TreeCmd::CollapseAll) => {
-                            if index.query_active {
-                                acc.consumed();
-                            } else {
-                                st.collapse_all();
-                                index.sync(self, st, items);
-                                acc.action(TreeAction::Moved);
-                            }
-                        }
-                        None => {}
+                    st.click_cursor = None;
+                    if let Some(command) = Binding::command(table, action) {
+                        self.command(st, index, items, command, viewport, &mut acc);
                     }
                 }
                 Intent::Pointer {
                     phase, part, pos, ..
                 } => {
+                    released |= phase == Phase::Release;
                     let hint = hint_area.map(|a| {
                         let view = ScrollRegion::view(st.core.scroll(), a, len);
                         view.offset()
@@ -1420,12 +1628,20 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                         st,
                         index,
                         items,
-                        PointerIntent { phase, part, hint },
+                        PointerIntent {
+                            phase,
+                            prior_cursor,
+                            part,
+                            hint,
+                        },
                         &mut acc,
                     );
                 }
                 _ => {}
             }
+        }
+        if released {
+            st.click_cursor = None;
         }
         // a toggle changed how many rows there are; the scrollbar must not
         // spend a frame believing the old count
@@ -1478,18 +1694,43 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         pointer: PointerIntent,
         acc: &mut Acc<TreeAction>,
     ) {
-        let PointerIntent { phase, part, hint } = pointer;
+        let PointerIntent {
+            phase,
+            part,
+            hint,
+            prior_cursor,
+        } = pointer;
+        if matches!(phase, Phase::DragStart | Phase::Drag | Phase::DragEnd) {
+            st.click_cursor = None;
+        }
+        if phase == Phase::Press && part.part != Part::ROW {
+            st.click_cursor = None;
+        }
         let Some(key) = part.item else {
             acc.consumed();
             return;
         };
         let Some(d) = index.display_of(key, hint) else {
+            st.click_cursor = None;
             acc.consumed();
             return;
         };
+        if index
+            .row(d)
+            .and_then(|row| items.get(row.source))
+            .is_none_or(|item| self.is_disabled(item))
+        {
+            st.click_cursor = None;
+            acc.consumed();
+            return;
+        }
         if part.part == Part::ICON {
             match phase {
-                Phase::Press | Phase::Click => {
+                Phase::Press => {
+                    st.core.set_cursor(d, key);
+                    acc.changed();
+                }
+                Phase::Click => {
                     st.core.set_cursor(d, key);
                     if !self.toggle_at(st, index, items, d, acc) {
                         acc.changed();
@@ -1505,11 +1746,21 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
         match phase {
             Phase::Press => {
+                st.click_cursor =
+                    prior_cursor.filter(|cursor| self.activate_selected_on_click && *cursor == key);
                 st.core.set_cursor(d, key);
                 acc.changed();
             }
-            Phase::Click => self.engage(st, index, items, d, false, acc),
-            Phase::DoubleClick => self.engage(st, index, items, d, true, acc),
+            Phase::Click | Phase::DoubleClick if self.activate_selected_on_click => {
+                let engagement = if st.click_cursor.take() == Some(key) {
+                    Engagement::SelectedClick
+                } else {
+                    Engagement::Click
+                };
+                self.engage(st, index, items, d, engagement, acc);
+            }
+            Phase::Click => self.engage(st, index, items, d, Engagement::Click, acc),
+            Phase::DoubleClick => self.engage(st, index, items, d, Engagement::Activate, acc),
             _ => acc.consumed(),
         }
     }
@@ -1574,7 +1825,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 let index = ui.cache::<TreeIndex>(self.id);
                 (index.query_active, index.has_visible_descendant(d))
             };
-            let row = Self::row_of(
+            let mut row = Self::row_of(
                 st,
                 RowContext {
                     node: flat,
@@ -1585,6 +1836,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                     has_visible_descendant,
                 },
             );
+            if self.cursor_selected {
+                row.flags
+                    .set(StateFlags::SELECTED, st.core.cursor() == Some(row.key));
+            }
+            self.project_pointer_flags(ui, st, live, &mut row);
             self.paint_row(ui, row, indent, item);
         }
         area
@@ -1600,20 +1856,23 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
             f(ui, mid);
             return;
         }
-        let _ = self.ov.style(
-            ui,
-            self.id,
-            Family::TREE,
-            Variant::DEFAULT,
-            Part::EMPTY,
-            live,
-        );
+        let inherited = self
+            .ov
+            .style(
+                ui,
+                self.id,
+                Family::TREE,
+                Variant::DEFAULT,
+                Part::EMPTY,
+                live,
+            )
+            .style;
         self.empty
             .unwrap_or(EmptyState::Empty {
                 title: "Nothing here yet",
                 hint: None,
             })
-            .draw(ui, mid, 0);
+            .draw_inherited(ui, mid, 0, inherited);
     }
 
     /// Resolve one visible row's identity, flags and disclosure glyph.
@@ -1666,7 +1925,39 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         }
     }
 
+    fn project_pointer_flags(&self, ui: &Ui<'_>, st: &TreeState, live: StateFlags, row: &mut Row) {
+        let matches_row = |part: PartRef| {
+            part.item == Some(row.key) && matches!(part.part, Part::ROW | Part::ICON)
+        };
+        let pressed = ui.pressed_part(self.id);
+        row.flags.set(
+            StateFlags::HOVERED,
+            ui.hovered_part(self.id).is_some_and(matches_row),
+        );
+        row.flags.set(
+            StateFlags::PRESSED,
+            !row.flags.contains(StateFlags::DISABLED)
+                && (pressed.is_some_and(matches_row)
+                    || (pressed.is_none()
+                        && st.core.cursor() == Some(row.key)
+                        && live.contains(StateFlags::PRESSED))),
+        );
+    }
+
     fn paint_row(&self, ui: &mut Ui<'_>, row: Row, indent: u16, item: &T) {
+        if let Some(renderer) = self.render_row {
+            if !row.rect.intersection(ui.full()).is_empty() {
+                ui.with_area(row.rect, |ui| {
+                    renderer(ui, row.rect, row.flags, row.key, item);
+                });
+            }
+            self.register_row(ui, row, indent);
+            return;
+        }
+        self.paint_default_row(ui, row, indent, item);
+    }
+
+    fn paint_default_row(&self, ui: &mut Ui<'_>, row: Row, indent: u16, item: &T) {
         let rs = self.ov.style(
             ui,
             self.id,
@@ -1695,11 +1986,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 Slot::Inherit | Slot::Clear => ui.fill(gutter, g.style),
             }
         }
-        let fold_x = row
-            .rect
-            .x
-            .saturating_add(1)
-            .saturating_add(row.depth.saturating_mul(indent));
+        let fold_x = self.fold_x(row, indent);
         let fold = cell_at(row.rect, fold_x);
         if let Some(f) = self.ov.slot_for(Part::ICON) {
             f(ui, fold);
@@ -1723,7 +2010,16 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 Slot::Inherit if row.disclosure.is_none() && !has_icon_patch => {
                     ui.fill(fold, rs.style);
                 }
-                Slot::Inherit | Slot::Clear => ui.fill(fold, icon.style),
+                // A branch keeps painting its disclosure glyph with the ICON
+                // recipe.
+                Slot::Inherit => {
+                    if let Some(glyph) = row.disclosure {
+                        ui.glyph(fold, glyph, icon.style);
+                    } else {
+                        ui.fill(fold, icon.style);
+                    }
+                }
+                Slot::Clear => ui.fill(fold, icon.style),
             }
         }
         let marker = cell_at(row.rect, fold_x.saturating_add(1));
@@ -1754,10 +2050,27 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
         if ui.is_inert() {
             return;
         }
+        self.register_row(ui, row, indent);
+    }
+
+    fn fold_x(&self, row: Row, indent: u16) -> u16 {
+        row.rect
+            .x
+            .saturating_add(1)
+            .saturating_add(self.gutter_gap)
+            .saturating_add(row.depth.saturating_mul(indent))
+    }
+
+    fn register_row(&self, ui: &mut Ui<'_>, row: Row, indent: u16) {
         ui.register_part(self.id, PartRef::item(Part::ROW, row.key), row.rect);
-        // the disclosure is registered last so it wins hit-testing over the
-        // row it sits inside
+        // Disclosure wins hit-testing over the row, including custom painters.
         if row.disclosure.is_some() {
+            let fold = Rect {
+                x: self.fold_x(row, indent),
+                width: self.disclosure_hit_width,
+                ..row.rect
+            }
+            .intersection(row.rect);
             ui.register_part(self.id, PartRef::item(Part::ICON, row.key), fold);
         }
     }
@@ -1817,9 +2130,13 @@ mod tests {
     use ratatui_core::buffer::{Buffer, Cell as BufferCell};
     use ratatui_core::layout::{Position, Rect};
 
-    use super::{Acc, TABLE, Tree, TreeAction, TreeIndex, TreeNode, TreeState};
+    use super::{
+        Acc, PointerIntent, TABLE, Tree, TreeAction, TreeBranchClick, TreeIndex, TreeNode,
+        TreeState,
+    };
+    use crate::Phase;
     use crate::collection::RowUi;
-    use crate::id::{Id, ItemKey, Part};
+    use crate::id::{Id, ItemKey, Part, PartRef};
     use crate::response::StateFlags;
     use crate::runtime::Runtime;
     use crate::runtime::stub::Stub;
@@ -1860,6 +2177,34 @@ mod tests {
             .filter_map(|d| index.row(d))
             .filter_map(|row| items.get(row.source).map(|n| n.0))
             .collect()
+    }
+
+    #[test]
+    fn selected_click_without_prior_cursor_only_chooses() {
+        let t = tree()
+            .activate_selected_on_click(true)
+            .branch_click(TreeBranchClick::Choose);
+        let items = [N("leaf", 0, false)];
+        let mut st = TreeState::new();
+        let mut index = TreeIndex::default();
+        index.sync(&t, &st, &items);
+        let key = ItemKey::text("leaf");
+        let mut acc = Acc::new();
+        for phase in [Phase::Press, Phase::Release, Phase::Click] {
+            t.pointer(
+                &mut st,
+                &mut index,
+                &items,
+                PointerIntent {
+                    phase,
+                    prior_cursor: None,
+                    part: PartRef::item(Part::ROW, key),
+                    hint: Some(0),
+                },
+                &mut acc,
+            );
+        }
+        assert_eq!(acc.finish(TREE).action_ref(), Some(&TreeAction::Chose(key)));
     }
 
     /// A forest with two roots, each with two children, the second of which
@@ -2052,9 +2397,11 @@ mod tests {
         let area = Rect::new(0, 0, 24, items.len().max(1) as u16);
         let mut runtime = Runtime::new(Stub::default(), theme);
         let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, area| {
-            tree.draw(ui, area, state, items);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                tree.draw(ui, area, state, items);
+            })
+            .commit_presented();
         buffer
     }
 
@@ -2364,6 +2711,58 @@ mod tests {
     }
 
     #[test]
+    fn equal_source_generations_from_replaced_and_cloned_states_rebuild() {
+        let tree = tree();
+        let original = [N("alpha", 0, false), N("beta", 0, false)];
+        let reordered = [original[1], original[0]];
+        let mut first = TreeState::new();
+        first.invalidate();
+        let mut second = TreeState::new();
+        second.invalidate();
+        let mut index = TreeIndex::default();
+        index.sync(&tree, &first, &original);
+        index.sync(&tree, &second, &reordered);
+        assert_eq!(index.row(0).map(|row| row.key), Some(ItemKey::text("beta")));
+        let mut sibling = second.clone();
+        second.invalidate();
+        sibling.invalidate();
+        index.sync(&tree, &second, &reordered);
+        index.sync(&tree, &sibling, &original);
+        assert_eq!(
+            index.row(0).map(|row| row.key),
+            Some(ItemKey::text("alpha"))
+        );
+        assert_eq!(index.source_rebuilds, 4);
+        index.sync(&tree, &sibling, &original);
+        assert_eq!(index.source_rebuilds, 4);
+    }
+
+    #[test]
+    fn cached_weak_identity_prevents_replacement_address_reuse() {
+        let tree = tree();
+        let mut state = TreeState::new();
+        state.expand(ItemKey::text("alpha"));
+        let mut index = TreeIndex::default();
+        index.sync(&tree, &state, &FOREST);
+        let weak = index.expansion_lineage.as_ref().unwrap();
+        let old_address = weak.as_ptr();
+        drop(state);
+        assert!(weak.upgrade().is_none());
+        let mut replacement = TreeState::new();
+        replacement.expand(ItemKey::text("beta"));
+        assert_ne!(
+            old_address,
+            std::sync::Arc::as_ptr(replacement.expansion_lineage.as_ref().unwrap())
+        );
+        index.sync(&tree, &replacement, &FOREST);
+        assert_eq!(
+            index.source_rebuilds, 1,
+            "expansion replacement must not rescan source"
+        );
+        assert_eq!(index.visible_rebuilds, 2);
+    }
+
+    #[test]
     fn saturated_source_generation_never_reuses_a_stale_index() {
         let accesses = Cell::new(0usize);
         let counted_node = |item: &N| {
@@ -2553,15 +2952,17 @@ mod tests {
         let area = Rect::new(0, 0, 24, 2);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, area| {
-            ui.reference(
-                Some(crate::ReferenceTarget::new(
-                    TREE,
-                    crate::ReferenceState::FOCUSED,
-                )),
-                |ui| tree.draw(ui, area, &state, &items),
-            );
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, area| {
+                ui.reference(
+                    Some(crate::ReferenceTarget::new(
+                        TREE,
+                        crate::ReferenceState::FOCUSED,
+                    )),
+                    |ui| tree.draw(ui, area, &state, &items),
+                );
+            })
+            .commit_presented();
 
         assert_eq!(
             flags.borrow().as_slice(),
@@ -2582,7 +2983,14 @@ mod tests {
         index.sync(&tree, &state, &reordered);
         let mut acc = Acc::<TreeAction>::new();
 
-        tree.engage(&mut state, &mut index, &reordered, 0, false, &mut acc);
+        tree.engage(
+            &mut state,
+            &mut index,
+            &reordered,
+            0,
+            super::Engagement::Choose,
+            &mut acc,
+        );
 
         assert_eq!(
             acc.finish(TREE).action_ref(),
@@ -2688,9 +3096,11 @@ mod tests {
         let area = Rect::new(0, 0, 40, 1);
         let mut runtime = Runtime::new(Stub::default(), Theme::junie());
         let mut buffer = Buffer::empty(area);
-        runtime.draw_scene(area, &mut buffer, |ui, rect| {
-            tree.draw(ui, rect, &state, &items);
-        });
+        runtime
+            .draw_scene(area, &mut buffer, |ui, rect| {
+                tree.draw(ui, rect, &state, &items);
+            })
+            .commit_presented();
 
         for x in [0, 1, 2, 3] {
             assert!(

@@ -9,12 +9,10 @@ use crate::arbiter::Arbiter;
 use crate::clock::{Clock, EPOCH_SECS};
 use crate::domain::account::{AccountId, AccountRegistry};
 use crate::domain::agent::{Agent, AuthMode, Provider};
-use crate::domain::fixtures::{
-    self, HOME, fixture_accounts, fixture_hard_accounts, fixture_instance, fixture_roles_for,
-    fixture_workspaces_for,
-};
+use crate::domain::fixtures::{self, HOME};
 use crate::domain::instance::{Instance, InstanceStatus};
 use crate::domain::workspace::{RoleEntry, Usability, Workspace, WorkspaceId};
+use crate::domain::workspace_save::{PendingWrite, SaveError, SaveResult, SaveTicket};
 use crate::scenario::Scenario;
 use crate::sim::onepassword::SimOnePassword;
 use crate::sim::pty::Daemon;
@@ -35,9 +33,43 @@ pub struct GlobalConfig {
     pub trust: Vec<TrustRow>,
 }
 
+/// Public repository metadata from the deterministic host discovery fixture.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GithubRepo {
+    /// Namespace and repository name.
+    pub full_name: String,
+    /// Default checkout branch.
+    pub default_branch: String,
+    /// Available branches, default first.
+    pub branches: Vec<String>,
+    /// Source-authored freshness display.
+    pub updated: String,
+    /// Public repository URL; simulation never launches a host process.
+    pub url: String,
+}
+
+/// Last observed discovery health, separate from injected refresh failures.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DaemonHealth {
+    /// Discovery has not observed a failed refresh.
+    Healthy,
+    /// A refresh failed; last-good records remain visible.
+    Stale,
+}
+
 /// Typed results of deterministic asynchronous work.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Msg {
+    /// A captured editor write reached its virtual deadline.
+    EditorSaveCompleted {
+        /// Opaque World-owned write identity.
+        operation: u64,
+    },
+    /// One captured Manager operation reached its virtual deadline.
+    ManagerOperation {
+        /// Opaque identity owned and consumed by the Manager reducer.
+        operation: u64,
+    },
     /// A workspace save completed.
     WorkspaceSaved {
         /// Workspace identifier that was saved.
@@ -77,10 +109,14 @@ pub struct World {
     pub arbiter: Arbiter,
     /// Fixture home directory.
     pub home: String,
+    /// Actual current host directory; it can be unsaved.
+    pub cwd: String,
     /// Mutable host configuration.
     pub global: GlobalConfig,
     /// Durable workspace rows.
     pub workspaces: Vec<Workspace>,
+    /// Discovered public repository metadata.
+    pub github: Vec<GithubRepo>,
     /// Available role entries.
     pub roles: Vec<RoleEntry>,
     /// Persisted instance rows.
@@ -95,8 +131,18 @@ pub struct World {
     pub jobs: Vec<Job>,
     /// Whether the next refresh should fail.
     pub refresh_fails: bool,
+    /// Last observed refresh health.
+    pub daemon_health: DaemonHealth,
+    manager_operation_sequence: u64,
+    manager_review_watermark: u64,
     /// Whether a workspace was saved during this run.
     pub saved: bool,
+    /// Source allocator for newly saved configurations.
+    pub next_workspace_id: WorkspaceId,
+    /// Inject one simulated write failure, consumed only by an admitted save.
+    pub save_fails_once: bool,
+    editor_save_sequence: u64,
+    editor_writes: Vec<PendingWrite>,
     /// Last successful refresh time in fixture seconds.
     pub last_refresh_secs: i64,
     /// Last copied transcript selection, if any.
@@ -112,6 +158,125 @@ impl World {
     /// Current fixture time in milliseconds.
     pub fn now_ms(&self) -> i64 {
         self.clock.now_ms
+    }
+
+    /// Allocate a world-lifetime operation token, independent of screen replacement.
+    pub(crate) fn next_manager_operation(&mut self) -> Option<u64> {
+        let next = self.manager_operation_sequence.checked_add(1)?;
+        self.manager_operation_sequence = next;
+        Some(next)
+    }
+
+    /// Consume a review once, invalidating older UI contexts without shared clone state.
+    pub(crate) fn consume_manager_review(&mut self, review: u64) -> bool {
+        if review <= self.manager_review_watermark || review > self.manager_operation_sequence {
+            return false;
+        }
+        self.manager_review_watermark = review;
+        true
+    }
+
+    /// Admit a captured write; UI callbacks never supply its completion payload.
+    pub(crate) fn begin_editor_write(
+        &mut self,
+        expected: Option<&Workspace>,
+        mut proposed: Workspace,
+    ) -> Result<SaveTicket, SaveError> {
+        if let Some(original) = expected {
+            if self.workspace(original.id) != Some(original) {
+                return Err(SaveError::TargetChanged);
+            }
+            if self
+                .editor_writes
+                .iter()
+                .any(|write| write.ticket.workspace == original.id)
+            {
+                return Err(SaveError::Busy);
+            }
+        }
+        let operation = self
+            .editor_save_sequence
+            .checked_add(1)
+            .ok_or(SaveError::IdentityExhausted)?;
+        let id = match expected {
+            Some(original) => original.id,
+            None => {
+                let mut id = self.next_workspace_id;
+                while self.workspace(id).is_some()
+                    || self
+                        .editor_writes
+                        .iter()
+                        .any(|write| write.ticket.workspace == id)
+                {
+                    id = id.checked_add(1).ok_or(SaveError::IdentityExhausted)?;
+                }
+                // Keep a representable next source identifier after success.
+                id.checked_add(1).ok_or(SaveError::IdentityExhausted)?;
+                id
+            }
+        };
+        proposed.id = id;
+        let ticket = SaveTicket {
+            operation,
+            workspace: id,
+        };
+        let ok = !self.save_fails_once;
+        self.save_fails_once = false;
+        self.editor_save_sequence = operation;
+        self.editor_writes.push(PendingWrite {
+            ticket,
+            due_ms: self.now_ms().saturating_add(900),
+            expected: expected.cloned().map(Box::new),
+            proposed: Box::new(proposed),
+            ok,
+        });
+        self.schedule(900, Msg::EditorSaveCompleted { operation });
+        Ok(ticket)
+    }
+
+    /// Validate and consume exactly one due write, independently of the active screen.
+    pub fn complete_editor_save(&mut self, operation: u64) -> SaveResult {
+        let Some(index) = self
+            .editor_writes
+            .iter()
+            .position(|write| write.ticket.operation == operation)
+        else {
+            return SaveResult::Ignored;
+        };
+        if self
+            .editor_writes
+            .get(index)
+            .is_some_and(|write| self.now_ms() < write.due_ms)
+        {
+            return SaveResult::Ignored;
+        }
+        let write = self.editor_writes.remove(index);
+        let current = self.workspace(write.ticket.workspace);
+        if current != write.expected.as_deref() {
+            return SaveResult::Stale(write.ticket);
+        }
+        if !write.ok {
+            return SaveResult::Failed(write.ticket);
+        }
+        match write.expected {
+            Some(_) => {
+                let Some(workspace) = self.workspace_mut(write.ticket.workspace) else {
+                    return SaveResult::Stale(write.ticket);
+                };
+                *workspace = *write.proposed.clone();
+            }
+            None => {
+                self.next_workspace_id = self
+                    .next_workspace_id
+                    .max(write.ticket.workspace.saturating_add(1));
+                self.workspaces.push(*write.proposed.clone());
+            }
+        }
+        self.saved = true;
+        SaveResult::Saved {
+            ticket: write.ticket,
+            workspace: write.proposed,
+        }
     }
 
     /// Queue a message after a non-negative virtual delay.
@@ -158,6 +323,24 @@ impl World {
         self.workspaces
             .iter_mut()
             .find(|workspace| workspace.id == id)
+    }
+
+    /// Saved workspace whose mount source exactly matches the current directory.
+    ///
+    /// Uses the pinned source's literal or home-expanded mount spelling. No
+    /// prefix/descendant matching or fallback to the first workspace occurs.
+    /// Returns `None` for an unsaved directory. Reads current domain records,
+    /// so rename, removal and mount edits cannot leave a cached association.
+    pub fn cwd_workspace(&self) -> Option<&Workspace> {
+        self.workspaces.iter().find(|workspace| {
+            workspace.mounts.iter().any(|mount| {
+                let source = mount.source_label();
+                source == self.cwd
+                    || source
+                        .strip_prefix('~')
+                        .is_some_and(|rest| self.cwd.strip_prefix(self.home.as_str()) == Some(rest))
+            })
+        })
     }
 
     /// Find an instance by stable identifier.
@@ -287,7 +470,7 @@ impl World {
             None
         };
         AgentOffer {
-            configured: !ready.is_empty() || !blocked.is_none(),
+            configured: !ready.is_empty() || blocked.is_some(),
             accounts: ready,
             preselected: selected,
             blocked,
@@ -313,111 +496,70 @@ pub fn world_for(scenario: Scenario) -> World {
     let clock = Clock::new();
     let now = EPOCH_SECS;
     let op = SimOnePassword::fixture(now);
-    let populated = scenario != Scenario::FirstUse;
-    let workspaces = if populated {
-        fixture_workspaces_for(scenario)
-    } else {
-        Vec::new()
-    };
-    let accounts = if populated {
-        if scenario == Scenario::HardCases {
-            fixture_hard_accounts(&op, now)
-        } else {
-            fixture_accounts(&op, now)
-        }
-    } else {
-        AccountRegistry::default()
-    };
-    let roles = fixture_roles_for(scenario);
-    let mut instances = Vec::new();
-    if populated && !matches!(scenario, Scenario::LaunchRunning | Scenario::LaunchFailure) {
-        instances.push(fixture_instance(
-            InstanceStatus::Running,
-            crate::domain::instance::RunId::new(0x9c41_e2f0),
-            now,
-            fixtures::live_capsule(),
-        ));
-    }
-    if matches!(scenario, Scenario::AccountsMixed | Scenario::HardCases) {
-        instances.push(fixture_instance(
-            InstanceStatus::Crashed,
-            crate::domain::instance::RunId::new(0x0011_2233),
-            now,
-            crate::domain::instance::DaemonSnapshot::Unavailable,
-        ));
-    }
-    if scenario == Scenario::CapsuleMulti {
-        let mut secondary = fixture_instance(
-            InstanceStatus::Running,
-            crate::domain::instance::RunId::new(0x0a0b_0c0d),
-            now,
-            fixtures::live_capsule(),
-        );
-        secondary.id = "jk-ops".into();
-        secondary.container = "jackin-ops-platform".into();
-        secondary.role = "chainargos/reviewer".into();
-        instances.push(secondary);
-    }
-    if scenario == Scenario::LaunchFailure {
-        // A failed launch leaves an already-running session attachable.  The
-        // manager must remain useful instead of presenting an empty shell.
-        instances.push(fixture_instance(
-            InstanceStatus::Running,
-            crate::domain::instance::RunId::new(0x0e0f_1011),
-            now,
-            fixtures::live_capsule(),
-        ));
-    }
-    if scenario == Scenario::HardCases {
-        instances.push(fixture_instance(
-            InstanceStatus::PreservedDirty,
-            crate::domain::instance::RunId::new(0x0044_5566),
-            now,
-            crate::domain::instance::DaemonSnapshot::NoTabs,
-        ));
-        instances.push(fixture_instance(
-            InstanceStatus::PreservedUnpushed,
-            crate::domain::instance::RunId::new(0x0077_8899),
-            now,
-            crate::domain::instance::DaemonSnapshot::Unavailable,
-        ));
-    }
-    let running = instances
-        .iter()
-        .filter(|instance| instance.status == InstanceStatus::Running)
-        .count();
-    let mut daemons = BTreeMap::new();
-    for instance in &instances {
-        if let crate::domain::instance::DaemonSnapshot::Tabs(_) = &instance.daemon {
-            daemons.insert(
-                instance.id.clone(),
-                Daemon::from_snapshot(&instance.daemon, &instance.container, now),
-            );
-        }
-    }
-    World {
+    let mut world = World {
         scenario,
         clock,
-        arbiter: Arbiter::new(running),
+        arbiter: Arbiter::new(0),
         home: HOME.into(),
+        cwd: fixtures::PAYMENTS_WORKDIR.into(),
         global: GlobalConfig {
-            trust: vec![TrustRow {
-                source: "chainargos/the-architect".into(),
-                trusted: false,
-            }],
+            trust: vec![
+                TrustRow {
+                    source: "github.com/chainargos/roles".into(),
+                    trusted: true,
+                },
+                TrustRow {
+                    source: "github.com/acme-labs/roles-experimental".into(),
+                    trusted: false,
+                },
+                TrustRow {
+                    source: "~/roles".into(),
+                    trusted: true,
+                },
+                TrustRow {
+                    source: "git@corp:infra/roles".into(),
+                    trusted: true,
+                },
+            ],
         },
-        workspaces,
-        roles,
-        instances,
-        daemons,
-        accounts,
+        workspaces: Vec::new(),
+        roles: fixtures::fixture_roles_for(scenario),
+        instances: Vec::new(),
+        daemons: BTreeMap::new(),
+        accounts: AccountRegistry::default(),
         op,
         jobs: Vec::new(),
         refresh_fails: scenario == Scenario::HardCases,
+        daemon_health: DaemonHealth::Healthy,
+        manager_operation_sequence: 0,
+        manager_review_watermark: 0,
+        github: fixtures::pinned::github(),
         saved: false,
-        last_refresh_secs: now,
+        next_workspace_id: 100,
+        save_fails_once: scenario == Scenario::HardCases,
+        editor_save_sequence: 0,
+        editor_writes: Vec::new(),
+        last_refresh_secs: now - 3,
         clipboard: None,
+    };
+    if scenario != Scenario::FirstUse {
+        fixtures::pinned::populate(&mut world, scenario == Scenario::HardCases);
     }
+    if scenario == Scenario::OutroLast {
+        if let Some(instance) = world.instance_mut("jk-9b02") {
+            instance.status = InstanceStatus::CleanExited;
+        }
+        world.daemons.remove("jk-9b02");
+        fixtures::pinned::refresh_snapshots(&mut world);
+        world.sync_arbiter();
+        world.arbiter.entered_at_ms = Some(-8_040_000);
+    }
+    if scenario == Scenario::HardCases {
+        world.op.session = crate::sim::onepassword::OpSession::Locked;
+        world.arbiter.discovery = Err(crate::arbiter::DiscoveryError::IndexUnreadable);
+        world.arbiter.entered_at_ms = None;
+    }
+    world
 }
 
 /// What a new session knows about one agent's account choices.
@@ -458,12 +600,15 @@ mod tests {
             vec![
                 "payments-platform",
                 "infra-control-plane",
+                "release-automation",
                 "customer-portal",
-                "data-pipeline",
             ]
         );
-        assert_eq!(returning.running_count(), 1);
-        assert_eq!(returning.instances[0].run_id.value(), 0x9c41_e2f0);
+        assert_eq!(returning.running_count(), 2);
+        assert_eq!(
+            returning.instances[0].run_id,
+            crate::domain::instance::RunId::from_label("run-7f3a")
+        );
     }
 
     #[test]

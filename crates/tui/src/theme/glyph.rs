@@ -95,11 +95,13 @@ pub enum GlyphRole {
     SelectClosed,
     /// Open select disclosure.
     SelectOpen,
+    /// Primary-key header glyph, distinct from the compact primary marker.
+    PrimaryKey,
 }
 
 impl GlyphRole {
     /// Every role, in declaration order.
-    pub const ALL: [GlyphRole; 41] = [
+    pub const ALL: [GlyphRole; 42] = [
         GlyphRole::FocusBar,
         GlyphRole::Chosen,
         GlyphRole::Checked,
@@ -141,6 +143,7 @@ impl GlyphRole {
         GlyphRole::SecretMask,
         GlyphRole::SelectClosed,
         GlyphRole::SelectOpen,
+        GlyphRole::PrimaryKey,
     ];
 
     const fn index(self) -> usize {
@@ -154,13 +157,15 @@ impl GlyphRole {
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 pub struct GlyphSet {
     glyphs: [&'static str; 41],
+    primary_key: &'static str,
     scroll: scrollbar::Set<'static>,
     rule_quiet: line::Set<'static>,
     rule_active: line::Set<'static>,
 }
 
 impl GlyphSet {
-    /// A set from a full table plus the typed symbol sets.
+    /// A set from the original 41-role table plus typed symbol sets.
+    /// `PrimaryKey` defaults to `⚷`; use `set` to customize it independently.
     pub const fn new(
         glyphs: [&'static str; 41],
         scroll: scrollbar::Set<'static>,
@@ -169,6 +174,7 @@ impl GlyphSet {
     ) -> Self {
         GlyphSet {
             glyphs,
+            primary_key: "⚷",
             scroll,
             rule_quiet,
             rule_active,
@@ -182,6 +188,7 @@ impl GlyphSet {
     )]
     pub const fn get(&self, r: GlyphRole) -> &'static str {
         match r {
+            GlyphRole::PrimaryKey => self.primary_key,
             GlyphRole::ScrollTrack => self.scroll.track,
             GlyphRole::ScrollThumb => self.scroll.thumb,
             GlyphRole::RuleQuiet => self.rule_quiet.horizontal,
@@ -197,6 +204,7 @@ impl GlyphSet {
     )]
     pub const fn set(&mut self, r: GlyphRole, s: &'static str) {
         match r {
+            GlyphRole::PrimaryKey => self.primary_key = s,
             GlyphRole::ScrollTrack => self.scroll.track = s,
             GlyphRole::ScrollThumb => self.scroll.thumb = s,
             GlyphRole::RuleQuiet => self.rule_quiet.horizontal = s,
@@ -325,7 +333,8 @@ mod tests {
 
     #[test]
     fn select_roles_are_appended_without_shifting_existing_discriminants() {
-        assert_eq!(GlyphRole::ALL.len(), 41);
+        assert_eq!(GlyphRole::ALL.len(), 42);
+        assert_eq!(GlyphRole::PrimaryKey as usize, 41);
         assert_eq!(GlyphRole::SecretMask as usize, 38);
         assert_eq!(GlyphRole::SelectClosed as usize, 39);
         assert_eq!(GlyphRole::SelectOpen as usize, 40);

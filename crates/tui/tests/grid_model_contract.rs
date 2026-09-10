@@ -9,8 +9,9 @@ use junie_tui::{Buffer, Rect, Runtime, Theme};
 fn three_method_grid_model_supports_read_only_entry_points() {
     let area = Rect::new(0, 0, 20, 3);
     let mut runtime = Runtime::new(grid_model::ModelOnlyApp::default(), Theme::junie());
+    let _ = runtime.initialize();
     let mut buffer = Buffer::empty(area);
-    runtime.draw_buffer(area, &mut buffer);
+    drop(runtime.draw_buffer(area, &mut buffer));
 
     let text = buffer
         .content()

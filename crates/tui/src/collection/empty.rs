@@ -5,7 +5,7 @@ use ratatui_core::layout::Rect;
 use crate::id::Part;
 use crate::response::StateFlags;
 use crate::text::width;
-use crate::theme::{Family, GlyphRole, Slot, Variant};
+use crate::theme::{Family, GlyphRole, PaintStyle, Slot, Variant};
 use crate::ui::{FrameRead, Ui};
 
 /// Data readiness of a component; the runtime maps it onto
@@ -115,13 +115,56 @@ impl EmptyState<'_> {
         if area.is_empty() {
             return 0;
         }
+        self.paint_inherited(ui, area, frame, None)
+    }
+
+    /// Paint a collection's logical empty region with its resolved style.
+    /// The owner styles the blank region and supplies inherited channels to
+    /// title/help/icon. Owner channels replace the title defaults; help/icon
+    /// retain their distinct default tones. Explicit EMPTY child theme/scope
+    /// overrides take precedence, including Clear exposing the owner again.
+    pub fn draw_inherited(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        frame: usize,
+        inherited: PaintStyle,
+    ) -> u16 {
+        if area.is_empty() {
+            return 0;
+        }
+        ui.fill(area, inherited);
+        self.paint_inherited(ui, area, frame, Some(inherited))
+    }
+
+    fn paint_inherited(
+        &self,
+        ui: &mut Ui<'_>,
+        area: Rect,
+        frame: usize,
+        inherited: Option<PaintStyle>,
+    ) -> u16 {
         let flags = self.status().flags();
-        let title = ui
-            .style(Family::EMPTY, Variant::DEFAULT, Part::TITLE, flags)
-            .style;
+        let title = match inherited {
+            Some(inherited) => {
+                ui.style_inherited(
+                    Family::EMPTY,
+                    Variant::DEFAULT,
+                    Part::TITLE,
+                    flags,
+                    inherited,
+                )
+                .style
+            }
+            None => {
+                ui.style(Family::EMPTY, Variant::DEFAULT, Part::TITLE, flags)
+                    .style
+            }
+        };
+        let inherited = inherited.unwrap_or_default();
         let help = ui
             .style(Family::EMPTY, Variant::DEFAULT, Part::HELP, flags)
-            .style;
+            .over(inherited);
         let icon = ui.style(Family::EMPTY, Variant::DEFAULT, Part::ICON, flags);
         let glyph: Option<&str> = match self {
             EmptyState::Loading { .. } | EmptyState::Partial { .. } => {
@@ -148,7 +191,7 @@ impl EmptyState<'_> {
             },
             |ui, icon_area| {
                 if let Some(glyph) = glyph {
-                    ui.paint_str(icon_area, glyph, icon.style);
+                    ui.paint_str(icon_area, glyph, icon.over(inherited));
                 }
             },
             |ui, title_area| {

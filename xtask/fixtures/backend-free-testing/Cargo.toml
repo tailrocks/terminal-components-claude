@@ -1,0 +1,12 @@
+[package]
+name = "backend-free-testing-consumer"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.88"
+publish = false
+
+[workspace]
+
+[dependencies]
+junie-tui = { path = "../../../crates/tui", default-features = false }
+junie-tui-testing = { path = "../../../crates/tui-testing", default-features = false }

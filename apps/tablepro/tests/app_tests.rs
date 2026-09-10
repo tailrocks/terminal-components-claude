@@ -8,7 +8,7 @@
     clippy::panic
 )]
 
-use junie_tui::{Axis, GridEditor, Id, KeyCode, Theme};
+use junie_tui::{Axis, GridEditor, KeyCode, Theme};
 use junie_tui_testing::Harness;
 use tablepro_app::{
     CONNECTION_NAME, Catalog, Decision, Filter, FilterOp, History, HistoryTab, PendingEdits,
@@ -108,7 +108,7 @@ fn execution_error_marks_editor_and_result() {
 fn cancel_running_query() {
     let mut app = connected();
     let index = app.workbench.new_query("SELECT * FROM orders");
-    if let Some(Tab::Query(query)) = app.workbench.tabs.get_mut(index) {
+    if let Some(Tab::Query(query)) = index.and_then(|key| app.workbench.tab_mut(key)) {
         query.running = true;
         query.running = false;
         assert!(!query.running);
@@ -125,7 +125,7 @@ fn explain_opens_plan_tree() {
     let mut app = connected();
     let index = app.workbench.new_query("SELECT * FROM orders LIMIT 5");
     let catalog = app.workbench.catalog.clone();
-    if let Some(Tab::Query(query)) = app.workbench.tabs.get_mut(index) {
+    if let Some(Tab::Query(query)) = index.and_then(|key| app.workbench.tab_mut(key)) {
         assert!(query.explain(&catalog).is_ok());
     } else {
         panic!("new query must be active");
@@ -195,7 +195,7 @@ fn history_tab_reopens_query() {
     let mut app = connected();
     let index = app.workbench.open_history();
     assert!(matches!(
-        app.workbench.tabs.get(index),
+        index.and_then(|key| app.workbench.tab(key)),
         Some(Tab::History(_))
     ));
     assert!(!app.workbench.history.is_empty());
@@ -206,7 +206,7 @@ fn tab_strip_overflow_and_tab_list() {
     for _ in 0..12 {
         app.workbench.new_query("SELECT 1");
     }
-    assert!(app.workbench.tabs.len() >= 12);
+    assert!(app.workbench.tabs().len() >= 12);
     assert!(app.workbench.close_tab(0));
 }
 #[test]
@@ -214,11 +214,11 @@ fn pending_edits_preview_and_save() {
     let mut app = connected();
     assert!(app.workbench.open_table("orders"));
     let tab = app.workbench.active_table_mut().expect("table tab");
-    let edit = tab.result.commit_cell(0, 6, "EUR");
+    let edit = tab.result.model.commit_cell(0, 6, "EUR");
     assert!(edit.is_ok(), "edit result: {edit:?}");
     assert!(tab.result.pending_total() > 0);
     assert!(!tab.preview().is_empty());
-    tab.result.discard();
+    tab.result.model.discard();
     assert_eq!(tab.result.pending_total(), 0);
 }
 #[test]
@@ -232,9 +232,9 @@ fn safe_mode_picker_changes_level_and_strip() {
 fn mouse_opens_table_and_switches_tabs() {
     let mut app = connected();
     assert!(app.workbench.open_table("orders"));
-    let first = app.workbench.active;
+    let first = app.workbench.active_key();
     app.workbench.new_query("SELECT * FROM customers LIMIT 1");
-    assert_ne!(first, app.workbench.active);
+    assert_ne!(first, app.workbench.active_key());
 }
 #[test]
 fn every_screen_renders_at_representative_sizes() {
@@ -283,7 +283,7 @@ fn keyboard_flow_full_journey() {
     let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
     let _ = harness.key(KeyCode::Enter);
     let _ = harness.ctrl('t');
-    assert!(harness.tab_to(Id::root("tablepro.query")));
+    assert!(harness.tab_to(harness.app().query_id().expect("query id")));
     let _ = harness.type_str("SELECT * FROM customers LIMIT 3");
     let _ = harness.ctrl('r');
     assert!(harness.app().query().contains("customers"));
@@ -358,18 +358,44 @@ fn resize_across_every_supported_size() {
 #[test]
 fn focus_is_restored_after_every_overlay_closes() {
     let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
+    let opener = harness.focus();
     let _ = harness.ctrl('n');
     assert!(harness.app().connection_form_open());
+    let _ = harness.type_str("temporary name");
     let _ = harness.key(KeyCode::Esc);
+    assert!(
+        harness.app().connection_form_open(),
+        "first Esc cancels the focused field, matching reference794b095"
+    );
+    let cancel = junie_tui::Id::root("tablepro.connections.form")
+        .part(junie_tui::Part::ACTIONS)
+        .index(1);
+    // Walk the actual focus ring and scroll the form until Cancel is reachable.
+    for _ in 0..64 {
+        if harness.focus() == Some(cancel) {
+            break;
+        }
+        let _ = harness.key(KeyCode::Tab);
+    }
+    assert_eq!(harness.focus(), Some(cancel));
+    let _ = harness.key(KeyCode::Enter);
     assert!(!harness.app().connection_form_open());
+    assert!(harness.app().connection_draft().is_none());
     assert!(harness.find("Connections").is_some());
+    assert_eq!(harness.focus(), opener);
+    assert!(
+        harness.diagnostics().is_empty(),
+        "{:?}",
+        harness.diagnostics()
+    );
 }
+
 #[test]
 fn no_diagnostics_are_emitted_during_the_journey() {
     let mut harness = Harness::new(TableProApp::default(), Theme::junie(), 120, 40);
     let _ = harness.key(KeyCode::Enter);
     let _ = harness.ctrl('t');
-    assert!(harness.tab_to(Id::root("tablepro.query")));
+    assert!(harness.tab_to(harness.app().query_id().expect("query id")));
     let _ = harness.type_str("SELECT * FROM orders LIMIT 1");
     let _ = harness.ctrl('r');
     let _ = harness.resize(96, 28);

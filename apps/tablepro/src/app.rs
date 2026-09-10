@@ -1,12 +1,13 @@
 //! `TablePro` application shell built only on the public `junie-tui` facade.
 
+use junie_tui::author::{PaintStyle, StyleDefaults};
 use junie_tui::{
-    Action, ActionKey, App, Chord, Color, ColorLevel, Cx, FgStep, Field, Focusability, Form,
-    FormAction, FormState, FrameRead, Grid, GridAction, GridEditor, GridState, Id, Intent, ItemKey,
-    KeyCode, KeyMap, KeyModifiers, KeyPhase, Modifier, NodeKind, Panel, PanelKind, Part, Phase,
-    Response, Role, RowUi, Size, Span, SplitAxis, SplitPane, SplitPaneState, StylePatch, Tabs,
-    TabsAction, TabsState, TextInput, TextInputState, Theme, Tree, TreeAction, TreeNode, TreeState,
-    Ui, UpdateCause, wrap,
+    Action, ActionKey, App, Chord, Cx, Dialog, DialogAction, DialogState, FgStep, Field,
+    Focusability, Form, FormAction, FormState, FrameRead, Grid, GridAction, GridEditor, GridModel,
+    Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, Modifier, NodeKind,
+    Panel, PanelKind, Part, Phase, PickerAction, Response, Role, RowUi, Size, Span, SplitAxis,
+    SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextInput, TextInputState,
+    Theme, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, wrap,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
@@ -14,37 +15,154 @@ use crate::db::{
     self, Catalog, ColType, ConnectOutcome, Connection, Environment, ObjectKind, SafeMode,
 };
 use crate::domain::ResultGrid;
-use crate::tabs::{ExplorerItem, Tab, TableTab};
+use crate::model::SwitchTarget;
+use crate::quick_switcher::{self, QuickSwitcher};
+use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
 
 /// Minimum terminal width.
 pub const MIN_WIDTH: u16 = 72;
 /// Minimum terminal height.
 pub const MIN_HEIGHT: u16 = 20;
-const QUERY: Id = Id::root("tablepro.query");
-const RESULTS: Id = Id::root("tablepro.results");
 const CONNECTIONS: Id = Id::root("tablepro.connections.list");
 const CONNECTIONS_PANEL: Id = Id::root("tablepro.connections.panel");
 const EXPLORER: Id = Id::root("tablepro.workbench.explorer.tree");
 const EXPLORER_PANEL: Id = Id::root("tablepro.workbench.explorer.panel");
 const TAB_STRIP: Id = Id::root("tablepro.workbench.tab-strip");
 const WORKBENCH_SPLIT: Id = Id::root("tablepro.workbench.split");
-const RUN: ActionKey = ActionKey::custom("tablepro.run");
-const QUIT: ActionKey = ActionKey::custom("tablepro.quit");
-const OPEN: ActionKey = ActionKey::custom("tablepro.open");
-const NEW_QUERY: ActionKey = ActionKey::custom("tablepro.new-query");
-const HISTORY: ActionKey = ActionKey::custom("tablepro.history");
-const STRUCTURE: ActionKey = ActionKey::custom("tablepro.structure");
-const FORM: ActionKey = ActionKey::custom("tablepro.form");
-const HELP: ActionKey = ActionKey::custom("tablepro.help");
-const TAB_LIST: ActionKey = ActionKey::custom("tablepro.tab-list");
-const FILTER: ActionKey = ActionKey::custom("tablepro.filter");
-const PREVIEW: ActionKey = ActionKey::custom("tablepro.preview");
-const SAVE: ActionKey = ActionKey::custom("tablepro.save");
-const EXPLAIN: ActionKey = ActionKey::custom("tablepro.explain");
-const CLEAR_QUERY: ActionKey = ActionKey::custom("tablepro.clear-query");
-const COMPLETE: ActionKey = ActionKey::custom("tablepro.complete");
-const PALETTE: ActionKey = ActionKey::custom("tablepro.palette");
+const RUN: ActionKey = ActionKey::application("tablepro.run");
+const UNDO: ActionKey = ActionKey::application("tablepro.undo");
+const INSERT_ROW: ActionKey = ActionKey::application("tablepro.insert-row");
+const DELETE_ROW: ActionKey = ActionKey::application("tablepro.delete-row");
+const DISCARD_ROWS: ActionKey = ActionKey::application("tablepro.discard-rows");
+const QUIT: ActionKey = ActionKey::application("tablepro.quit");
+const CANCEL_OR_QUIT: ActionKey = ActionKey::application("tablepro.cancel-or-quit");
+const QUIT_DIALOG: Id = Id::root("tablepro.quit-dialog");
+const QUIT_ACTIONS: [Action<'static>; 2] = [
+    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::danger(ActionKey::CONFIRM, "Quit"),
+];
+const CLOSE_ACTIONS: [Action<'static>; 2] = [
+    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::danger(ActionKey::CONFIRM, "Close anyway"),
+];
+
+const RECONNECT_ACTIONS: [Action<'static>; 2] = [
+    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::danger(ActionKey::CONFIRM, "Reconnect"),
+];
+const DISCARD_ACTIONS: [Action<'static>; 2] = [
+    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::danger(ActionKey::CONFIRM, "Discard"),
+];
+const REPLACE_ACTIONS: [Action<'static>; 2] = [
+    Action::new(ActionKey::CANCEL, "Cancel"),
+    Action::danger(ActionKey::CONFIRM, "Run query"),
+];
+
+#[derive(Debug)]
+struct DestructiveRequest {
+    intent: DestructiveIntent,
+    owner: std::sync::Weak<()>,
+}
+
+impl DestructiveRequest {
+    fn dialog(&self) -> Dialog<'_> {
+        self.intent.dialog()
+    }
+}
+
+enum DestructiveIntent {
+    Quit {
+        question: String,
+        scope: Vec<(TabKey, u64)>,
+    },
+    CloseTab {
+        key: TabKey,
+        generation: u64,
+    },
+    Reconnect {
+        target: Box<Connection>,
+        source: Box<Connection>,
+        scope: Vec<(TabKey, u64)>,
+    },
+    DiscardRows {
+        key: TabKey,
+        generation: u64,
+        question: String,
+    },
+    ReplaceResult {
+        key: TabKey,
+        query: String,
+        generation: u64,
+        connection: Box<Connection>,
+    },
+}
+
+impl core::fmt::Debug for DestructiveIntent {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Quit { .. } => f.write_str("Quit"),
+            Self::CloseTab { key, .. } => f.debug_tuple("CloseTab").field(key).finish(),
+            Self::Reconnect { scope, .. } => f
+                .debug_struct("Reconnect")
+                .field("tabs", &scope.len())
+                .finish_non_exhaustive(),
+            Self::DiscardRows { key, .. } => f.debug_tuple("DiscardRows").field(key).finish(),
+            Self::ReplaceResult { key, .. } => f
+                .debug_struct("ReplaceResult")
+                .field("key", key)
+                .finish_non_exhaustive(),
+        }
+    }
+}
+
+impl DestructiveIntent {
+    fn dialog(&self) -> Dialog<'_> {
+        match self {
+            Self::Quit { question, .. } => {
+                Dialog::destructive(QUIT_DIALOG, "Quit TablePro?", question).actions(&QUIT_ACTIONS)
+            }
+            Self::CloseTab { .. } => Dialog::destructive(
+                QUIT_DIALOG,
+                "Close tab with unsaved work?",
+                "Pending row edits and unsaved query text in this tab will be lost.",
+            )
+            .actions(&CLOSE_ACTIONS),
+            Self::Reconnect { .. } => Dialog::destructive(
+                QUIT_DIALOG,
+                "Reconnect with unsaved work?",
+                "Pending row edits and unsaved query text in all tabs will be lost.",
+            )
+            .actions(&RECONNECT_ACTIONS),
+            Self::DiscardRows { question, .. } => {
+                Dialog::destructive(QUIT_DIALOG, "Discard unsaved changes?", question)
+                    .actions(&DISCARD_ACTIONS)
+            }
+            Self::ReplaceResult { .. } => Dialog::destructive(
+                QUIT_DIALOG,
+                "Replace results with unsaved edits?",
+                "Pending row edits in this query result will be lost.",
+            )
+            .actions(&REPLACE_ACTIONS),
+        }
+    }
+}
+
+const OPEN: ActionKey = ActionKey::application("tablepro.open");
+const NEW_QUERY: ActionKey = ActionKey::application("tablepro.new-query");
+const HISTORY: ActionKey = ActionKey::application("tablepro.history");
+const STRUCTURE: ActionKey = ActionKey::application("tablepro.structure");
+const FORM: ActionKey = ActionKey::application("tablepro.form");
+const HELP: ActionKey = ActionKey::application("tablepro.help");
+const TAB_LIST: ActionKey = ActionKey::application("tablepro.tab-list");
+const FILTER: ActionKey = ActionKey::application("tablepro.filter");
+const PREVIEW: ActionKey = ActionKey::application("tablepro.preview");
+const SAVE: ActionKey = ActionKey::application("tablepro.save");
+const EXPLAIN: ActionKey = ActionKey::application("tablepro.explain");
+const CLEAR_QUERY: ActionKey = ActionKey::application("tablepro.clear-query");
+const COMPLETE: ActionKey = ActionKey::application("tablepro.complete");
+const PALETTE: ActionKey = ActionKey::application("tablepro.palette");
 
 const CONNECTION_DETAILS: Id = Id::root("tablepro.connections.details");
 const CONTENT_FRAME: Id = Id::root("tablepro.workbench.content.frame");
@@ -139,6 +257,7 @@ enum ExplorerNode {
     },
     Object {
         item: ExplorerItem,
+        count: String,
         prefix: &'static str,
     },
 }
@@ -196,17 +315,39 @@ impl Surface {
     }
 }
 
-fn keymap() -> KeyMap {
+fn quit_keymap() -> KeyMap {
     KeyMap::new()
         .bind(
             KeyPhase::Bubble,
-            Chord::with(KeyCode::Char('r'), KeyModifiers::CONTROL),
-            RUN,
+            Chord::with(KeyCode::Char('q'), KeyModifiers::NONE),
+            QUIT,
+        )
+        .bind(
+            KeyPhase::Capture,
+            Chord::with(KeyCode::Char('c'), KeyModifiers::CONTROL),
+            CANCEL_OR_QUIT,
         )
         .bind(
             KeyPhase::Bubble,
             Chord::with(KeyCode::Char('q'), KeyModifiers::CONTROL),
             QUIT,
+        )
+}
+
+fn keymap() -> KeyMap {
+    quit_keymap()
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('u')), UNDO)
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('+')), INSERT_ROW)
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('-')), DELETE_ROW)
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('U')),
+            DISCARD_ROWS,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('r'), KeyModifiers::CONTROL),
+            RUN,
         )
         .bind(
             KeyPhase::Bubble,
@@ -315,13 +456,13 @@ pub struct TableProApp {
     connection: Connection,
     keymap: KeyMap,
     safe_mode: SafeMode,
-    query: String,
-    query_state: TextInputState,
-    columns: Vec<(String, ColType)>,
-    result: ResultGrid,
-    grid_state: GridState,
+    empty_result: ResultGrid,
     status: String,
     quit: bool,
+    destructive_intent: Option<DestructiveRequest>,
+    destructive_notice: Option<&'static str>,
+    quit_state: DialogState,
+    switcher: QuickSwitcher,
     /// Current product screen.
     pub screen: Screen,
     /// Current visual matrix surface.
@@ -356,11 +497,15 @@ impl core::fmt::Debug for TableProApp {
             .field("safe_mode", &self.safe_mode)
             .field("query", &"[redacted]")
             .field("query_state", &"<input state>")
-            .field("columns", &self.columns.len())
-            .field("result", &self.result)
+            .field("result", &self.result())
+            .field("empty_result", &self.empty_result)
             .field("grid_state", &"<grid state>")
             .field("status", &self.status)
             .field("quit", &self.quit)
+            .field("destructive_intent", &self.destructive_intent)
+            .field("has_destructive_notice", &self.destructive_notice.is_some())
+            .field("quit_state", &self.quit_state)
+            .field("switcher", &"<query and target snapshot>")
             .field("connections_screen", &self.connections_screen)
             .field("workbench", &self.workbench)
             .field("connection_nodes", &self.connection_nodes.len())
@@ -401,22 +546,20 @@ impl TableProApp {
         let connection_tree_state = initial_connection_tree_state(&connection_nodes);
         let connection_visual_tree_state = initial_connection_visual_tree_state(&connection_nodes);
         let explorer_nodes = build_explorer_nodes(&catalog);
-        let explorer_tree_state = initial_explorer_tree_state(&explorer_nodes);
+        let explorer_tree_state = initial_explorer_tree_state(&explorer_nodes, "public");
         let mut app = Self {
             safe_mode: connection.safe_mode,
             catalog: catalog.clone(),
             connections: connections.clone(),
             connection: connection.clone(),
             keymap: keymap(),
-            query:
-                "SELECT * FROM orders WHERE status = 'pending' ORDER BY total_amount DESC LIMIT 20"
-                    .to_owned(),
-            query_state: TextInputState::default(),
-            columns: Vec::new(),
-            result: ResultGrid::empty(),
-            grid_state: GridState::default(),
+            empty_result: ResultGrid::empty(),
             status: "Ready · Ctrl+R runs · Ctrl+Q quits".to_owned(),
             quit: false,
+            destructive_intent: None,
+            destructive_notice: None,
+            quit_state: DialogState::default(),
+            switcher: QuickSwitcher::default(),
             screen: Screen::Connections,
             surface: Surface::Connections,
             connections_screen: ConnectionsScreen::new(connections),
@@ -434,6 +577,9 @@ impl TableProApp {
             form_actions: Box::from(connections::form_actions()),
             form_open: false,
         };
+        app.workbench.new_query(
+            "SELECT * FROM orders WHERE status = 'pending' ORDER BY total_amount DESC LIMIT 20",
+        );
         let _ = app.execute_query();
         app
     }
@@ -443,11 +589,27 @@ impl TableProApp {
     }
     /// Current SQL text.
     pub fn query(&self) -> &str {
-        &self.query
+        match self.workbench.active() {
+            Some(Tab::Query(tab)) => &tab.query,
+            _ => "",
+        }
     }
     /// Current result adapter.
-    pub const fn result(&self) -> &ResultGrid {
-        &self.result
+    pub fn result(&self) -> &ResultGrid {
+        self.workbench
+            .active_grid()
+            .map_or(&self.empty_result, |(_, grid)| &grid.model)
+    }
+    /// Stable identity of the active SQL editor.
+    pub fn query_id(&self) -> Option<Id> {
+        match self.workbench.active() {
+            Some(Tab::Query(_)) => self.workbench.active_key().map(|key| key.control("query")),
+            _ => None,
+        }
+    }
+    /// Stable identity of the active result or structure grid.
+    pub fn result_id(&self) -> Option<Id> {
+        self.workbench.active_grid().map(|(id, _)| id)
     }
     /// Latest status text.
     pub fn status(&self) -> &str {
@@ -572,7 +734,7 @@ impl TableProApp {
         self.sync_tabs_state();
         if surface == Surface::GridCellEditing || surface == Surface::PendingChangeBar {
             if let Some(tab) = self.workbench.active_table_mut() {
-                let _ = tab.result.commit_cell(0, 6, "EUR");
+                let _ = tab.result.model.commit_cell(0, 6, "EUR");
             }
             self.sync_active_table();
         }
@@ -591,8 +753,9 @@ impl TableProApp {
             .connections
             .iter()
             .position(|connection| connection.name == "Production")
+            && let Some(connection) = self.connections.get(index).cloned()
         {
-            let _ = self.connect(index);
+            let _ = self.connect_confirmed(&connection);
         }
     }
 
@@ -617,11 +780,11 @@ impl TableProApp {
             .focused(false)
     }
 
-    fn explorer_panel() -> Panel<'static> {
+    fn explorer_panel(schema: &str) -> Panel<'_> {
         Panel::new(EXPLORER_PANEL)
             .kind(PanelKind::Framed)
             .title(" Explorer ")
-            .meta("public ")
+            .meta(schema)
             .focused(true)
             .patch_part(&FRAMED_PANEL_PATCH)
             .slot(Part::GUTTER, &preserve_frame_gutter)
@@ -661,9 +824,10 @@ impl TableProApp {
     }
 
     fn set_visual_query(&mut self, query: &str) {
-        query.clone_into(&mut self.query);
-        self.query_state = TextInputState::default();
-        self.sync_query_tab();
+        if let Some(Tab::Query(tab)) = self.workbench.active_mut() {
+            query.clone_into(&mut tab.query);
+            tab.editor_state = TextInputState::default();
+        }
     }
     /// Borrow the connected workbench.
     pub const fn workbench(&self) -> &Workbench {
@@ -675,7 +839,11 @@ impl TableProApp {
     }
     /// Borrow the draft without exposing a password string.
     pub const fn connection_draft(&self) -> Option<&ConnectionDraft> {
-        self.draft.as_ref()
+        if self.form_open {
+            self.draft.as_ref()
+        } else {
+            None
+        }
     }
     /// Close the form (kept small so deterministic tests can model Esc).
     pub fn form_open_for_test(&mut self, open: bool) {
@@ -691,12 +859,31 @@ impl TableProApp {
         self.form_open = true;
         self.surface = Surface::Connections;
     }
+    fn close_connection_form(&mut self) {
+        self.form_open = false;
+        self.form_state.zeroize();
+        // Retain a scrubbed owner until late focus transitions are drained.
+        self.draft = Some(ConnectionDraft::from_connection(&self.connection));
+    }
     /// Select a connection and open its workbench.
     pub fn connect(&mut self, index: usize) -> bool {
         let Some(connection) = self.connections.get(index).cloned() else {
             return false;
         };
-        self.connections_screen.selected = index;
+        if self.workbench.has_unsaved_work() {
+            return false;
+        }
+        self.connect_confirmed(&connection)
+    }
+
+    fn connect_confirmed(&mut self, connection: &Connection) -> bool {
+        if !self.workbench.can_insert_tab() {
+            return false;
+        }
+        let index = self.connections.iter().position(|item| item == connection);
+        if let Some(index) = index {
+            self.connections_screen.selected = index;
+        }
         if connection.outcome != ConnectOutcome::Ok {
             self.status = format!("Connection failed: {}", connection.name);
             self.connections_screen.error = Some("Connection failed; press r to retry".to_owned());
@@ -705,19 +892,15 @@ impl TableProApp {
         }
         self.safe_mode = connection.safe_mode;
         self.connection = connection.clone();
-        self.connections_screen.selected = index;
         self.connections_screen.error = None;
-        self.workbench = Workbench::new(connection.clone(), self.catalog.clone());
+        self.workbench
+            .reconnect_confirmed(connection.clone(), self.catalog.clone());
         self.workbench.new_query("");
-        self.explorer_tree_state = initial_explorer_tree_state(&self.explorer_nodes);
+        self.explorer_tree_state =
+            initial_explorer_tree_state(&self.explorer_nodes, self.workbench.current_schema());
         self.tabs_state = TabsState::default();
         self.split_state = SplitPaneState::default();
         self.sync_tabs_state();
-        self.query.clear();
-        self.query_state = TextInputState::default();
-        self.columns.clear();
-        self.result = ResultGrid::empty();
-        self.grid_state = GridState::default();
         self.screen = Screen::Workbench;
         self.surface = Surface::WorkbenchDefault;
         self.status = format!("Connected to {}", connection.name);
@@ -725,36 +908,28 @@ impl TableProApp {
     }
 
     fn sync_active_table(&mut self) {
-        let Some(Tab::Table(tab)) = self.workbench.active() else {
-            self.columns.clear();
-            self.result = ResultGrid::empty();
-            self.grid_state = GridState::default();
-            return;
-        };
-        self.columns = if tab.is_structure() {
-            tab.structure_columns()
-        } else {
-            tab.table
-                .columns
-                .iter()
-                .map(|column| (column.name.clone(), column.ty))
-                .collect()
-        };
-        self.result = if tab.is_structure() {
-            structure_grid(tab)
-        } else {
-            tab.result.clone()
-        };
-        self.grid_state = GridState::default();
+        self.sync_active_tab();
     }
 
     fn sync_tabs_state(&mut self) {
-        let active = self.workbench.active;
-        if let Some(key) = self.workbench.tabs.get(active).map(tab_key) {
+        if let Some(active) = self.workbench.active_index()
+            && let Some(key) = self.workbench.tabs().get(active).map(tab_key)
+        {
             self.tabs_state.set_active(active, key);
         } else {
             self.tabs_state = TabsState::default();
         }
+    }
+
+    /// Select a catalog schema and reconstruct its explorer expansion context.
+    pub fn select_schema(&mut self, schema: &str) -> bool {
+        if !self.workbench.select_schema(schema) {
+            return false;
+        }
+        self.explorer_nodes = build_explorer_nodes(&self.workbench.catalog);
+        reset_explorer_tree_state(&mut self.explorer_tree_state, &self.explorer_nodes, schema);
+        self.status = format!("Schema {schema}");
+        true
     }
 
     fn open_table(&mut self, item: &ExplorerItem) -> bool {
@@ -768,71 +943,28 @@ impl TableProApp {
     }
 
     fn new_query(&mut self, query: impl Into<String>) {
-        self.workbench.new_query(query);
-        self.sync_tabs_state();
-        self.query.clear();
-        self.query_state = TextInputState::default();
-        self.columns.clear();
-        self.result = ResultGrid::empty();
-        self.grid_state = GridState::default();
-        self.surface = Surface::QueryEditing;
-    }
-
-    fn sync_query_tab(&mut self) {
-        let query = self.query.clone();
-        if let Some(Tab::Query(tab)) = self.workbench.active_mut() {
-            tab.query = query;
+        if self.workbench.new_query(query).is_some() {
+            self.sync_tabs_state();
+            self.surface = Surface::QueryEditing;
         }
     }
 
     fn commit_query_edit(&mut self) {
-        let _ = self
-            .query_state
-            .commit(&mut self.query, &junie_tui::NoValidate);
-        self.sync_query_tab();
+        if let Some(Tab::Query(tab)) = self.workbench.active_mut() {
+            let _ = tab
+                .editor_state
+                .commit(&mut tab.query, &junie_tui::NoValidate);
+        }
     }
 
     fn sync_active_tab(&mut self) {
-        match self.workbench.active() {
-            Some(Tab::Table(tab)) => {
-                self.columns = if tab.is_structure() {
-                    tab.structure_columns()
-                } else {
-                    tab.table
-                        .columns
-                        .iter()
-                        .map(|column| (column.name.clone(), column.ty))
-                        .collect()
-                };
-                self.result = if tab.is_structure() {
-                    structure_grid(tab)
-                } else {
-                    tab.result.clone()
-                };
-                self.surface = if tab.is_structure() {
-                    Surface::StructureView
-                } else {
-                    Surface::TableGrid
-                };
-            }
-            Some(Tab::Query(tab)) => {
-                self.query.clone_from(&tab.query);
-                self.query_state = TextInputState::default();
-                self.columns.clear();
-                self.result = tab.result.clone().unwrap_or_else(ResultGrid::empty);
-                self.surface = Surface::QueryEditing;
-            }
-            Some(Tab::History(_)) => {
-                self.columns.clear();
-                self.result = ResultGrid::empty();
-                self.surface = Surface::HistoryTab;
-            }
-            None => {
-                self.columns.clear();
-                self.result = ResultGrid::empty();
-            }
-        }
-        self.grid_state = GridState::default();
+        self.surface = match self.workbench.active() {
+            Some(Tab::Table(tab)) if tab.is_structure() => Surface::StructureView,
+            Some(Tab::Table(_)) => Surface::TableGrid,
+            Some(Tab::Query(_)) => Surface::QueryEditing,
+            Some(Tab::History(_)) => Surface::HistoryTab,
+            None => self.surface,
+        };
         self.sync_tabs_state();
     }
     /// Change the active safe-mode policy.
@@ -844,14 +976,46 @@ impl TableProApp {
     }
     /// Run a query through the same parser, gate and executor as Ctrl+R.
     pub fn run_query(&mut self, query: impl Into<String>) -> QueryOutcome {
-        self.query = query.into();
-        self.query_state = TextInputState::default();
-        self.sync_query_tab();
+        let query = query.into();
+        if matches!(self.workbench.active(), Some(Tab::Query(tab)) if tab.has_pending_result()) {
+            return QueryOutcome::Rejected {
+                message: "Pending result edits require confirmation".to_owned(),
+            };
+        }
+        if !matches!(self.workbench.active(), Some(Tab::Query(_))) {
+            if self.workbench.new_query("").is_none() {
+                return QueryOutcome::Rejected {
+                    message: "No tab identities remain".to_owned(),
+                };
+            }
+            self.sync_active_tab();
+        }
+        self.set_visual_query(&query);
         self.execute_query()
     }
     /// Parse, gate and execute the current query.
     pub fn execute_query(&mut self) -> QueryOutcome {
-        let statement = match crate::sql::parse(self.query.trim()) {
+        if matches!(self.workbench.active(), Some(Tab::Query(tab)) if tab.has_pending_result()) {
+            return QueryOutcome::Rejected {
+                message: "Pending result edits require confirmation".to_owned(),
+            };
+        }
+        let Some(key) = self.workbench.active_key() else {
+            return QueryOutcome::Rejected {
+                message: "Active tab is not a query".to_owned(),
+            };
+        };
+        let query = self.query().to_owned();
+        self.execute_snapshot(key, &query)
+    }
+
+    fn execute_snapshot(&mut self, key: TabKey, query: &str) -> QueryOutcome {
+        if !matches!(self.workbench.tab(key), Some(Tab::Query(_))) {
+            return QueryOutcome::Rejected {
+                message: "Query tab is no longer available".to_owned(),
+            };
+        }
+        let statement = match crate::sql::parse(query.trim()) {
             Ok(statement) => statement,
             Err(error) => {
                 let out = QueryOutcome::Rejected {
@@ -893,12 +1057,14 @@ impl TableProApp {
                                 rows: result.rows.len(),
                                 editable: result.editable,
                             };
-                            self.columns.clone_from(&result.columns);
-                            self.result = ResultGrid::from_result(&result);
-                            if let Some(Tab::Query(tab)) = self.workbench.active_mut() {
-                                tab.result = Some(self.result.clone());
+                            if let Some(Tab::Query(tab)) = self.workbench.tab_mut(key) {
+                                tab.result = Some(GridView::from_result(&result));
+                                if tab.editor_state.draft_text() == Some(query) {
+                                    let _ = tab
+                                        .editor_state
+                                        .commit(&mut tab.query, &junie_tui::NoValidate);
+                                }
                             }
-                            self.grid_state = GridState::default();
                             self.status = outcome_message(&out);
                             out
                         }
@@ -949,33 +1115,497 @@ impl TableProApp {
             .actions(actions)
             .submit(connections::SAVE_CONNECT)
     }
-    fn handle_grid(&mut self, action: &GridAction) {
+    fn handle_grid(status: &mut String, action: &GridAction) {
         match action {
-            GridAction::Sort(key, direction) => {
-                self.result.sort(*key, *direction);
-                self.status = format!("Sorted column {}", key.raw());
+            GridAction::Sort(key, _) => {
+                *status = format!("Sorted column {}", key.raw());
             }
             GridAction::Copy(text) => {
-                self.status = format!("Copied {} cells", text.lines().count());
+                *status = format!("Copied {} cells", text.lines().count());
             }
-            GridAction::Activated(key) => self.status = format!("Activated row {key:?}"),
+            GridAction::Activated(key) => *status = format!("Activated row {key:?}"),
             GridAction::EditRequested(key, column) => {
-                self.status = format!("Edit requested for {key:?}, column {column:?}");
+                *status = format!("Edit requested for {key:?}, column {column:?}");
             }
             GridAction::CellAction(key, column, action) => {
-                self.status = format!("Cell action {action:?} on {key:?}/{column:?}");
+                *status = format!("Cell action {action:?} on {key:?}/{column:?}");
             }
             GridAction::FetchMore => {
-                "All deterministic demo rows are loaded".clone_into(&mut self.status);
+                "All deterministic demo rows are loaded".clone_into(status);
             }
             GridAction::Moved | GridAction::LeaveForward | GridAction::LeaveBackward => {}
         }
     }
 
+    fn request_quit(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if self.quit || cx.top_layer() != LayerId::PAGE {
+            return Response::consumed();
+        }
+        let mut pending: usize = 0;
+        let mut dirty_queries: usize = 0;
+        for record in self.workbench.tabs() {
+            match record.payload() {
+                Tab::Table(tab) => pending = pending.saturating_add(tab.result.pending_total()),
+                Tab::Query(tab) => {
+                    dirty_queries = dirty_queries.saturating_add(usize::from(tab.dirty()));
+                    if let Some(grid) = &tab.result {
+                        pending = pending.saturating_add(grid.pending_total());
+                    }
+                }
+                Tab::History(_) => {}
+            }
+        }
+        if pending == 0 && dirty_queries == 0 {
+            self.quit = true;
+            cx.quit();
+            return Response::consumed();
+        }
+        let mut parts = Vec::with_capacity(2);
+        if pending > 0 {
+            parts.push(format!(
+                "{pending} pending row change{}",
+                if pending == 1 { "" } else { "s" }
+            ));
+        }
+        if dirty_queries > 0 {
+            parts.push(format!(
+                "{dirty_queries} unsaved quer{}",
+                if dirty_queries == 1 { "y" } else { "ies" }
+            ));
+        }
+        let question = format!("{} will be lost.", parts.join(" and "));
+        let Some(scope) = self.workbench.destructive_scope() else {
+            self.stale_destructive();
+            return Response::changed();
+        };
+        self.open_destructive(cx, DestructiveIntent::Quit { question, scope });
+        Response::changed()
+    }
+
+    fn open_destructive(&mut self, cx: &mut Cx<'_>, intent: DestructiveIntent) {
+        self.destructive_notice = None;
+        cx.open_layer(QUIT_DIALOG, intent.dialog().layer(cx));
+        self.destructive_intent = Some(DestructiveRequest {
+            intent,
+            owner: self.workbench.owner_token(),
+        });
+    }
+
+    fn request_connect(&mut self, cx: &mut Cx<'_>, index: usize) {
+        let Some(target) = self.connections.get(index).cloned() else {
+            return;
+        };
+        if self.workbench.has_unsaved_work() {
+            let Some(scope) = self.workbench.destructive_scope() else {
+                self.stale_destructive();
+                return;
+            };
+            self.open_destructive(
+                cx,
+                DestructiveIntent::Reconnect {
+                    target: Box::new(target),
+                    source: Box::new(self.workbench.connection.clone()),
+                    scope,
+                },
+            );
+        } else {
+            let _ = self.connect_confirmed(&target);
+        }
+    }
+
+    fn request_query(&mut self, cx: &mut Cx<'_>) {
+        let Some(key) = self.workbench.active_key() else {
+            return;
+        };
+        let Some(Tab::Query(tab)) = self.workbench.tab(key) else {
+            return;
+        };
+        if tab.has_pending_result() {
+            let Some(generation) = self.workbench.generation(key) else {
+                self.stale_destructive();
+                return;
+            };
+            let query = tab
+                .editor_state
+                .draft_text()
+                .unwrap_or(&tab.query)
+                .to_owned();
+            self.open_destructive(
+                cx,
+                DestructiveIntent::ReplaceResult {
+                    key,
+                    query,
+                    generation,
+                    connection: Box::new(self.workbench.connection.clone()),
+                },
+            );
+        } else {
+            self.commit_query_edit();
+            let _ = self.execute_query();
+        }
+    }
+
+    fn request_close_tab(&mut self, cx: &mut Cx<'_>, key: TabKey) {
+        let Some(tab) = self.workbench.tabs().iter().find(|tab| tab.key() == key) else {
+            return;
+        };
+        if tab.dirty() {
+            let Some(generation) = self.workbench.generation(key) else {
+                self.stale_destructive();
+                return;
+            };
+            self.open_destructive(cx, DestructiveIntent::CloseTab { key, generation });
+        } else {
+            let _ = self.workbench.close_tab_confirmed(key);
+            self.sync_active_tab();
+        }
+    }
+
+    fn active_row_action(&self, cx: &Cx<'_>) -> bool {
+        self.workbench.active_grid().is_some_and(|(id, grid)| {
+            cx.state(id).contains(junie_tui::StateFlags::FOCUSED)
+                && !grid.state.is_editing()
+                && grid.model.is_editable()
+        })
+    }
+
+    fn insert_defaults(&self) -> Option<Vec<bool>> {
+        let (_, grid) = self.workbench.active_grid()?;
+        let source = grid.model.source()?;
+        let (schema, name) = source.split_once('.')?;
+        let table = self.catalog.find(Some(schema), name)?;
+        grid.columns
+            .iter()
+            .map(|(name, _)| {
+                table
+                    .columns
+                    .iter()
+                    .find(|column| column.name == *name)
+                    .map(|column| column.primary || column.generated)
+            })
+            .collect()
+    }
+
+    fn insert_active_row(&mut self) {
+        let Some(defaults) = self.insert_defaults() else {
+            return;
+        };
+        let column = defaults.iter().position(|default| !default).unwrap_or(0);
+        let Some((id, grid)) = self.workbench.active_grid_mut() else {
+            return;
+        };
+        let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable());
+        let Some(target) = columns
+            .get(column)
+            .filter(|_| column < count)
+            .map(|column| column.key)
+        else {
+            return;
+        };
+        let Some(row) = grid.model.insert_row_with_defaults(&defaults) else {
+            return;
+        };
+        let key = grid.model.row_key(row);
+        if result_grid(id, columns.get(..count).unwrap_or(&[]))
+            .move_cursor_to(&mut grid.state, &grid.model, key, target)
+            .is_err()
+        {
+            let _ = grid.model.undo();
+        }
+    }
+
+    fn toggle_active_row(&mut self) {
+        let Some((_, grid)) = self.workbench.active_grid_mut() else {
+            return;
+        };
+        let Some((key, _)) = grid.state.cursor() else {
+            return;
+        };
+        let Some(row) = (0..grid.model.row_count()).find(|row| grid.model.row_key(*row) == key)
+        else {
+            return;
+        };
+        let _ = grid.model.toggle_delete(row);
+    }
+
+    fn request_discard_rows(&mut self, cx: &mut Cx<'_>) {
+        let Some(key) = self.workbench.active_key() else {
+            return;
+        };
+        let Some((_, grid)) = self.workbench.active_grid() else {
+            return;
+        };
+        let pending = grid.pending_total();
+        if pending == 0 {
+            return;
+        }
+        let Some(generation) = self.workbench.generation(key) else {
+            self.stale_destructive();
+            return;
+        };
+        let question = format!(
+            "{pending} pending change(s) will be dropped. The rows are reloaded from the server."
+        );
+        self.open_destructive(
+            cx,
+            DestructiveIntent::DiscardRows {
+                key,
+                generation,
+                question,
+            },
+        );
+    }
+
+    fn open_switcher(&mut self, cx: &mut Cx<'_>) {
+        self.switcher.open(&self.workbench);
+        cx.open_layer(
+            quick_switcher::ID,
+            self.switcher.component().layer(cx, &self.switcher.items),
+        );
+        self.surface = Surface::QuickSwitcher;
+    }
+
+    fn update_switcher(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let was_open = cx.is_open(quick_switcher::ID);
+        let mut response =
+            self.switcher
+                .component()
+                .update(cx, &mut self.switcher.state, &self.switcher.items);
+        match response.take_action() {
+            Some(PickerAction::QueryChanged | PickerAction::Scope(_)) if was_open => {
+                self.switcher.refresh();
+            }
+            Some(PickerAction::Chosen(key) | PickerAction::ChosenAlt(key)) if was_open => {
+                let target = self
+                    .switcher
+                    .items
+                    .iter()
+                    .find(|item| ItemKey::text(&item.key) == key)
+                    .map(|item| item.target.clone());
+                cx.close_layer(quick_switcher::ID, None);
+                self.sync_active_tab();
+                if self.workbench.matches_owner(&self.switcher.owner) {
+                    if let Some(target) = target {
+                        self.choose_switch_target(cx, target);
+                    }
+                } else {
+                    "Workbench changed; reopen switcher".clone_into(&mut self.status);
+                }
+            }
+            _ => {}
+        }
+        if was_open && !cx.is_open(quick_switcher::ID) && self.surface == Surface::QuickSwitcher {
+            self.sync_active_tab();
+        }
+        response.erase()
+    }
+
+    fn choose_switch_target(&mut self, cx: &mut Cx<'_>, target: SwitchTarget) {
+        let changed = match target {
+            SwitchTarget::Table { schema, name } | SwitchTarget::View { schema, name } => {
+                let opened = self.workbench.open_table_in_schema(&schema, &name);
+                if opened {
+                    self.status = format!("Opened {schema}.{name}");
+                }
+                opened
+            }
+            SwitchTarget::OpenTab(key) => self.workbench.activate(key),
+            SwitchTarget::Query(id) => {
+                let sql = self
+                    .workbench
+                    .history
+                    .entries
+                    .iter()
+                    .find(|entry| entry.id == id)
+                    .map(|entry| entry.sql.clone());
+                sql.is_some_and(|sql| self.workbench.new_query(sql).is_some())
+            }
+            SwitchTarget::Schema(schema) => {
+                if self.select_schema(&schema) {
+                    cx.focus(EXPLORER);
+                }
+                return;
+            }
+            SwitchTarget::Database(name) => {
+                if self.workbench.catalog.database == name {
+                    cx.focus(EXPLORER);
+                }
+                return;
+            }
+            SwitchTarget::Connection(_) => false,
+        };
+        if changed {
+            self.sync_active_tab();
+            if let Some(focus) = self.query_id().or_else(|| self.result_id()) {
+                cx.focus(focus);
+            }
+        } else {
+            "Target unavailable; reopen switcher".clone_into(&mut self.status);
+            if let Some(focus) = self.query_id().or_else(|| self.result_id()) {
+                cx.focus(focus);
+            } else {
+                cx.focus(EXPLORER);
+            }
+        }
+    }
+
+    fn stale_destructive(&mut self) {
+        self.destructive_notice = Some("Work changed; request again");
+    }
+
+    fn update_destructive_dialog(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        // Keep the same control identity alive for late focus lifecycle events.
+        let fallback = DestructiveIntent::Quit {
+            question: String::new(),
+            scope: Vec::new(),
+        };
+        let intent = self
+            .destructive_intent
+            .as_ref()
+            .map_or(&fallback, |request| &request.intent);
+        let response = intent.dialog().update(cx, &mut self.quit_state);
+        if let Some(action) = response.action_ref() {
+            let confirmed = matches!(action, DialogAction::Action(ActionKey::CONFIRM))
+                && cx.is_open(QUIT_DIALOG);
+            cx.close_layer(QUIT_DIALOG, None);
+            if let Some(request) = self.destructive_intent.take()
+                && confirmed
+            {
+                if !self.workbench.matches_owner(&request.owner) {
+                    self.stale_destructive();
+                    return response.erase();
+                }
+                match request.intent {
+                    DestructiveIntent::Quit { scope, .. } => {
+                        if self.workbench.matches_scope(&scope) {
+                            if !self.quit {
+                                self.quit = true;
+                                cx.quit();
+                            }
+                        } else {
+                            self.stale_destructive();
+                        }
+                    }
+                    DestructiveIntent::CloseTab { key, generation } => {
+                        if self.workbench.generation(key) != Some(generation) {
+                            self.stale_destructive();
+                        } else if self.workbench.close_tab_confirmed(key) {
+                            self.sync_active_tab();
+                            let focus = self
+                                .query_id()
+                                .or_else(|| self.result_id())
+                                .unwrap_or(EXPLORER);
+                            cx.focus(focus);
+                        }
+                    }
+                    DestructiveIntent::Reconnect {
+                        target,
+                        source,
+                        scope,
+                    } => {
+                        if self.workbench.connection == *source
+                            && self.workbench.matches_scope(&scope)
+                        {
+                            let _ = self.connect_confirmed(&target);
+                        } else {
+                            self.stale_destructive();
+                        }
+                    }
+                    DestructiveIntent::DiscardRows {
+                        key, generation, ..
+                    } => {
+                        if self.workbench.generation(key) != Some(generation) {
+                            self.stale_destructive();
+                        } else if let Some(tab) = self.workbench.tab_mut(key)
+                            && let Some((_, grid)) = tab.grid_mut(key)
+                        {
+                            let _ = grid.state.cancel_edit();
+                            grid.model.discard();
+                        }
+                    }
+                    DestructiveIntent::ReplaceResult {
+                        key,
+                        query,
+                        generation,
+                        connection,
+                    } => {
+                        if self.workbench.connection == *connection
+                            && self.workbench.generation(key) == Some(generation)
+                        {
+                            let _ = self.execute_snapshot(key, &query);
+                        } else {
+                            self.stale_destructive();
+                        }
+                    }
+                }
+            }
+        }
+        response.erase()
+    }
+
+    fn update_tab_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut response = Response::ignored();
+        for (key, tab) in self.workbench.payloads_mut() {
+            if let Tab::Query(query) = tab {
+                response |= query_input(key.control("query"), None)
+                    .update(cx, &mut query.editor_state, &mut query.query)
+                    .erase();
+            }
+            match tab {
+                Tab::Table(table) => {
+                    let grid_response =
+                        Self::update_grid_view(cx, key.control("data"), &mut table.result);
+                    if let Some(action) = grid_response.action_ref() {
+                        Self::handle_grid(&mut self.status, action);
+                    }
+                    response |= grid_response.erase();
+                    let grid_response =
+                        Self::update_grid_view(cx, key.control("structure"), &mut table.structure);
+                    if let Some(action) = grid_response.action_ref() {
+                        Self::handle_grid(&mut self.status, action);
+                    }
+                    response |= grid_response.erase();
+                }
+                Tab::Query(query) => {
+                    if let Some(grid) = &mut query.result {
+                        let grid_response =
+                            Self::update_grid_view(cx, key.control("results"), grid);
+                        if let Some(action) = grid_response.action_ref() {
+                            Self::handle_grid(&mut self.status, action);
+                        }
+                        response |= grid_response.erase();
+                    }
+                }
+                Tab::History(_) => {}
+            }
+        }
+        response
+    }
+
+    fn update_grid_view(cx: &mut Cx<'_>, id: Id, view: &mut GridView) -> Response<GridAction> {
+        let (columns, count) = Self::column_specs(&view.columns, view.model.is_editable());
+        let grid = result_grid(id, columns.get(..count).unwrap_or(&[]));
+        let response = if view.model.is_editable() {
+            grid.update_editable(cx, &mut view.state, &mut view.model)
+        } else {
+            grid.update(cx, &mut view.state, &view.model)
+        };
+        if let Some(GridAction::Sort(key, direction)) = response.action_ref() {
+            view.model.sort(*key, *direction);
+        }
+        response
+    }
+
     fn draw_result_grid(&self, ui: &mut Ui<'_>, area: junie_tui::Rect) {
-        let (columns, column_count) = Self::column_specs(&self.columns, self.result.is_editable());
-        let visible_columns = columns.get(..column_count).unwrap_or(&[]);
-        result_grid(visible_columns).draw(ui, area, &self.grid_state, &self.result);
+        if let Some((id, grid)) = self.workbench.active_grid() {
+            let (columns, count) = Self::column_specs(&grid.columns, grid.model.is_editable());
+            result_grid(id, columns.get(..count).unwrap_or(&[])).draw(
+                ui,
+                area,
+                &grid.state,
+                &grid.model,
+            );
+        }
     }
 
     fn draw_connection_details(&self, ui: &mut Ui<'_>, area: junie_tui::Rect) {
@@ -1081,15 +1711,9 @@ impl TableProApp {
                 connection_node_key,
             );
         });
-        let mut blank = ui.surface_style();
-        blank.fg = Some(
-            ui.theme()
-                .color
-                .fg
-                .get(FgStep::Secondary.index())
-                .copied()
-                .unwrap_or_default(),
-        );
+        let blank = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
         ui.fill(
             junie_tui::Rect {
                 x: body.x.saturating_add(2),
@@ -1099,8 +1723,9 @@ impl TableProApp {
             },
             blank,
         );
-        let mut field = ui.surface_style();
-        field.bg = Some(ui.theme().color.field);
+        let field = ui.surface_style().patch(
+            ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(junie_tui::Surface::Field))),
+        );
         ui.fill(
             junie_tui::Rect {
                 x: body.right(),
@@ -1120,11 +1745,7 @@ impl TableProApp {
                     width: 1,
                     height: 1,
                 },
-                {
-                    let mut style = ui.surface_style();
-                    style.add_modifier |= Modifier::BOLD;
-                    style
-                },
+                ui.surface_style().add_modifier(Modifier::BOLD),
             );
         }
         if area.width >= 80 {
@@ -1139,7 +1760,7 @@ impl TableProApp {
     }
 
     fn draw_explorer(&self, ui: &mut Ui<'_>, area: junie_tui::Rect) {
-        let panel = Self::explorer_panel();
+        let panel = Self::explorer_panel(self.workbench.schema_caption());
         let inner = panel.inner(ui, area);
         let body = legacy_tree_body(inner);
         panel.draw(ui, area, |_, _| {});
@@ -1178,7 +1799,7 @@ impl TableProApp {
     fn draw_content(&self, ui: &mut Ui<'_>, area: junie_tui::Rect) {
         let (title, meta) = match self.workbench.active() {
             Some(Tab::Table(table)) => (
-                format!(" public › {}", table.table.name),
+                qualified_label(" ", &table.table.schema, &table.table.name),
                 Some(format!("{} cols ", table.table.columns.len())),
             ),
             Some(Tab::Query(query)) => (format!(" {}", query.name), None),
@@ -1192,9 +1813,11 @@ impl TableProApp {
         panel.draw(ui, area, |ui, inner| match self.workbench.active() {
             Some(Tab::Query(query)) => {
                 let rows = fixed_flex_pair(inner, 3);
-                Field::new("SQL query", query_input(Some(&self.query)))
-                    .plain(true)
-                    .draw(ui, rows[0], &self.query_state);
+                if let Some(id) = self.query_id() {
+                    Field::new("SQL query", query_input(id, Some(&query.query)))
+                        .plain(true)
+                        .draw(ui, rows[0], &query.editor_state);
+                }
                 if query.plan.is_some() {
                     ui.paint_str(rows[1], "Explain plan ready", ui.surface_style());
                 } else if query.error.is_some() {
@@ -1294,9 +1917,10 @@ fn outcome_message(outcome: &QueryOutcome) -> String {
     }
 }
 
-fn query_input(value: Option<&str>) -> TextInput<'_> {
-    let input =
-        TextInput::new(QUERY).placeholder("Type SQL. Ctrl+R runs the statement under the cursor.");
+fn query_input(id: Id, value: Option<&str>) -> TextInput<'_> {
+    let input = TextInput::new(id)
+        .blur(junie_tui::BlurPolicy::Keep)
+        .placeholder("Type SQL. Ctrl+R runs the statement under the cursor.");
     match value {
         Some(text) => input.value(text),
         None => input,
@@ -1319,19 +1943,6 @@ fn fixed_flex_pair(area: junie_tui::Rect, first_height: u16) -> [junie_tui::Rect
             height: area.height.saturating_sub(first),
         },
     ]
-}
-
-fn structure_grid(tab: &TableTab) -> ResultGrid {
-    let rows = tab.structure();
-    let result = crate::sql::ResultSet {
-        columns: tab.structure_columns(),
-        total: rows.len(),
-        rows,
-        source: Some(tab.table.qualified()),
-        duration_ms: 0,
-        editable: false,
-    };
-    ResultGrid::from_result(&result)
 }
 
 fn stable_key(parts: &[&str]) -> ItemKey {
@@ -1458,33 +2069,38 @@ fn build_explorer_nodes(catalog: &Catalog) -> Vec<ExplorerNode> {
                 schema: schema.clone(),
                 name: label.to_owned(),
             });
-            nodes.extend(
-                objects
-                    .into_iter()
-                    .map(|item| ExplorerNode::Object { item, prefix }),
-            );
+            nodes.extend(objects.into_iter().map(|item| ExplorerNode::Object {
+                count: compact_count(item.rows),
+                item,
+                prefix,
+            }));
         }
     }
     nodes
 }
 
-fn initial_explorer_tree_state(nodes: &[ExplorerNode]) -> TreeState {
+fn initial_explorer_tree_state(nodes: &[ExplorerNode], schema: &str) -> TreeState {
     let mut state = TreeState::default();
+    reset_explorer_tree_state(&mut state, nodes, schema);
+    state
+}
+
+fn reset_explorer_tree_state(state: &mut TreeState, nodes: &[ExplorerNode], schema: &str) {
+    state.collapse_all();
     for node in nodes.iter().filter(|node| {
         matches!(node, ExplorerNode::Database { .. })
-            || matches!(node, ExplorerNode::Schema { name } if name == "public")
-            || matches!(node, ExplorerNode::Group { name, .. } if name == "Tables")
+            || matches!(node, ExplorerNode::Schema { name } if name == schema)
+            || matches!(node, ExplorerNode::Group { schema: group_schema, name } if group_schema == schema && name == "Tables")
     }) {
         state.expand(explorer_node_key(node));
     }
     if let Some((index, node)) = nodes
         .iter()
         .enumerate()
-        .find(|(_, node)| matches!(node, ExplorerNode::Schema { name } if name == "public"))
+        .find(|(_, node)| matches!(node, ExplorerNode::Schema { .. }))
     {
         state.set_cursor(index, explorer_node_key(node));
     }
-    state
 }
 
 fn explorer_node_key(node: &ExplorerNode) -> ItemKey {
@@ -1492,7 +2108,7 @@ fn explorer_node_key(node: &ExplorerNode) -> ItemKey {
         ExplorerNode::Database { name } => stable_key(&["database", name]),
         ExplorerNode::Schema { name } => stable_key(&["schema", name]),
         ExplorerNode::Group { schema, name } => stable_key(&["object-group", schema, name]),
-        ExplorerNode::Object { item, prefix } => {
+        ExplorerNode::Object { item, prefix, .. } => {
             stable_key(&["object", &item.schema, prefix, &item.name])
         }
     }
@@ -1505,6 +2121,21 @@ fn explorer_node(node: &ExplorerNode) -> TreeNode {
         ExplorerNode::Group { .. } => TreeNode::parent(2).keyed(explorer_node_key(node)),
         ExplorerNode::Object { .. } => TreeNode::leaf(3).keyed(explorer_node_key(node)),
     }
+}
+
+fn qualified_label(prefix: &str, left: &str, right: &str) -> String {
+    let mut text = String::with_capacity(
+        prefix
+            .len()
+            .saturating_add(left.len())
+            .saturating_add(right.len())
+            .saturating_add(" › ".len()),
+    );
+    text.push_str(prefix);
+    text.push_str(left);
+    text.push_str(" › ");
+    text.push_str(right);
+    text
 }
 
 fn compact_count(rows: usize) -> String {
@@ -1522,24 +2153,27 @@ fn explorer_row(node: &ExplorerNode, row: &mut RowUi<'_>) {
         ExplorerNode::Database { name } => row.label_fmt(format_args!("▣ {name}")),
         ExplorerNode::Schema { name } => row.label_fmt(format_args!("▾ {name}")),
         ExplorerNode::Group { name, .. } => row.label(name),
-        ExplorerNode::Object { item, prefix } => {
+        ExplorerNode::Object {
+            item,
+            prefix,
+            count,
+        } => {
             row.label_spans(&[
                 Span::new(prefix).role(Role::Fg(FgStep::Muted)),
                 Span::new(" "),
                 Span::new(&item.name),
             ]);
-            let count = compact_count(item.rows);
-            row.meta(&count);
+            row.meta(count);
         }
     }
 }
 
-fn tab_key(tab: &Tab) -> ItemKey {
+fn tab_key(tab: &TabRecord) -> ItemKey {
     ItemKey::num(tab.key().get())
 }
 
-fn tab_row(tab: &Tab, row: &mut RowUi<'_>) {
-    match tab {
+fn tab_row(tab: &TabRecord, row: &mut RowUi<'_>) {
+    match tab.payload() {
         Tab::Table(table) => {
             row.label_fmt(format_args!("T {}", table.table.name));
         }
@@ -1574,7 +2208,8 @@ fn explorer_tree() -> Tree<
         .row(explorer_row)
 }
 
-fn tab_strip() -> Tabs<'static, Tab, impl Fn(&Tab) -> ItemKey, impl Fn(&Tab, &mut RowUi<'_>)> {
+fn tab_strip()
+-> Tabs<'static, TabRecord, impl Fn(&TabRecord) -> ItemKey, impl Fn(&TabRecord, &mut RowUi<'_>)> {
     Tabs::new(TAB_STRIP)
         .key(tab_key)
         .row(tab_row)
@@ -1605,8 +2240,9 @@ fn paint_legacy_tree_gutters<T>(
     let mut visible_row = 0usize;
     let first_visible = state.scroll().offset();
     let cursor = state.cursor();
-    let mut gutter_style = ui.surface_style();
-    gutter_style.fg = Some(ui.theme().color.on_surface_inverse);
+    let gutter_style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::OnSurfaceInverse)));
 
     for item in nodes {
         let descriptor = node(item);
@@ -1660,8 +2296,9 @@ fn workbench_split() -> SplitPane<'static> {
         .min_first(28)
         .min_second(20)
 }
-fn result_grid<'a>(columns: &'a [junie_tui::Column<'a>]) -> Grid<'a> {
-    Grid::new(RESULTS, columns)
+fn result_grid<'a>(id: Id, columns: &'a [junie_tui::Column<'a>]) -> Grid<'a> {
+    Grid::new(id, columns)
+        .blur(junie_tui::BlurPolicy::Keep)
         .nav(junie_tui::NavUnit::Cell)
         .select_mode(junie_tui::SelectMode::Multi)
 }
@@ -1697,13 +2334,12 @@ fn paint_legacy_filter(ui: &mut Ui<'_>, area: junie_tui::Rect, text: &str) {
     if area.is_empty() {
         return;
     }
-    let field_bg = ui.theme().color.field;
-    let mut field = ui.surface_style();
-    field.bg = Some(field_bg);
+    let field = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(junie_tui::Surface::Field))));
     ui.fill(area, field);
 
-    let mut gutter = field;
-    gutter.fg = Some(field_bg);
+    let gutter = field.with_fg_from_bg(field);
     ui.paint_str(
         junie_tui::Rect {
             width: 1.min(area.width),
@@ -1714,15 +2350,7 @@ fn paint_legacy_filter(ui: &mut Ui<'_>, area: junie_tui::Rect, text: &str) {
     );
 
     if area.width > 2 {
-        let mut label = field;
-        label.fg = Some(
-            ui.theme()
-                .color
-                .fg
-                .get(FgStep::Muted.index())
-                .copied()
-                .unwrap_or_default(),
-        );
+        let label = field.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
         ui.paint_str(
             junie_tui::Rect {
                 x: area.x.saturating_add(2),
@@ -1739,8 +2367,9 @@ fn paint_panel_tail(ui: &mut Ui<'_>, area: junie_tui::Rect) {
     if area.width < 2 || area.height == 0 {
         return;
     }
-    let mut style = ui.surface_style();
-    style.fg = Some(ui.theme().color.border_strong);
+    let style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
     ui.paint_str(
         junie_tui::Rect {
             x: area.right().saturating_sub(2),
@@ -1761,8 +2390,9 @@ fn paint_frame_title_tail(ui: &mut Ui<'_>, area: junie_tui::Rect, title: &str) {
     if x >= area.right().saturating_sub(1) || area.height == 0 {
         return;
     }
-    let mut style = ui.surface_style();
-    style.fg = Some(ui.theme().color.border_strong);
+    let style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
     ui.paint_str(
         junie_tui::Rect {
             x,
@@ -1820,7 +2450,7 @@ fn draw_header(ui: &mut Ui<'_>, area: junie_tui::Rect, app: &TableProApp) {
             Environment::Local | Environment::Development => "·",
         };
         let environment = app.connection.environment.label();
-        let path = format!("{} › public", app.connection.database);
+        let path = qualified_label("", &app.connection.database, app.workbench.current_schema());
         ui.paint_spans(
             area,
             &[
@@ -1868,11 +2498,9 @@ fn draw_header(ui: &mut Ui<'_>, area: junie_tui::Rect, app: &TableProApp) {
     );
 }
 
-fn draw_footer(ui: &mut Ui<'_>, area: junie_tui::Rect, app: &TableProApp) {
-    let base = ui.surface_style();
-    ui.fill(area, base);
-    let spans = if app.screen == Screen::Connections {
-        vec![
+fn with_footer_spans(app: &TableProApp, paint: impl FnOnce(&[Span<'static>])) {
+    if app.screen == Screen::Connections {
+        paint(&[
             Span::new(" "),
             Span::new("↑ ↓").bold(),
             Span::new(" "),
@@ -1893,10 +2521,10 @@ fn draw_footer(ui: &mut Ui<'_>, area: junie_tui::Rect, app: &TableProApp) {
             Span::new("Tab").bold(),
             Span::new(" "),
             Span::new("Next").role(Role::Fg(FgStep::Muted)),
-        ]
+        ]);
     } else {
         match app.workbench.active() {
-            Some(Tab::Table(_)) => vec![
+            Some(Tab::Table(_)) => paint(&[
                 Span::new(" "),
                 Span::new("↑ ↓←→").bold(),
                 Span::new(" "),
@@ -1917,8 +2545,8 @@ fn draw_footer(ui: &mut Ui<'_>, area: junie_tui::Rect, app: &TableProApp) {
                 Span::new("  Tab").bold(),
                 Span::new(" "),
                 Span::new("Next").role(Role::Fg(FgStep::Muted)),
-            ],
-            Some(Tab::Query(_)) => vec![
+            ]),
+            Some(Tab::Query(_)) => paint(&[
                 Span::new(" "),
                 Span::new("Enter").bold(),
                 Span::new(" "),
@@ -1935,8 +2563,8 @@ fn draw_footer(ui: &mut Ui<'_>, area: junie_tui::Rect, app: &TableProApp) {
                 Span::new("  Tab").bold(),
                 Span::new(" "),
                 Span::new("Next").role(Role::Fg(FgStep::Muted)),
-            ],
-            Some(Tab::History(_)) => vec![
+            ]),
+            Some(Tab::History(_)) => paint(&[
                 Span::new(" "),
                 Span::new("↑ ↓").bold(),
                 Span::new(" "),
@@ -1950,8 +2578,8 @@ fn draw_footer(ui: &mut Ui<'_>, area: junie_tui::Rect, app: &TableProApp) {
                 Span::new("  Tab").bold(),
                 Span::new(" "),
                 Span::new("Next").role(Role::Fg(FgStep::Muted)),
-            ],
-            None => vec![
+            ]),
+            None => paint(&[
                 Span::new(" "),
                 Span::new("Ctrl+N").bold(),
                 Span::new(" "),
@@ -1962,15 +2590,38 @@ fn draw_footer(ui: &mut Ui<'_>, area: junie_tui::Rect, app: &TableProApp) {
                 Span::new("  Tab").bold(),
                 Span::new(" "),
                 Span::new("Next").role(Role::Fg(FgStep::Muted)),
-            ],
+            ]),
         }
-    };
-    ui.paint_spans(area, &spans, base);
-    if app.screen == Screen::Workbench {
-        let right_text = format!("Connected to {}", app.connection.name);
+    }
+}
+
+fn draw_footer(ui: &mut Ui<'_>, area: junie_tui::Rect, app: &TableProApp) {
+    let base = ui.surface_style();
+    ui.fill(area, base);
+    with_footer_spans(app, |spans| {
+        ui.paint_spans(area, spans, base);
+    });
+    if let Some(notice) = app.destructive_notice {
+        let width = junie_tui::width(notice).min(area.width);
         let right = junie_tui::Rect {
-            x: area.right().saturating_sub(junie_tui::width(&right_text)),
-            width: junie_tui::width(&right_text),
+            x: area.right().saturating_sub(width),
+            width,
+            ..area
+        };
+        ui.fill(right, base);
+        ui.paint_str(right, notice, base);
+    } else if app.screen == Screen::Workbench {
+        let prefix = "Connected to ";
+        // A leading combining mark or ZWJ can join the prefix's final space.
+        // Keep one text run for measurement and painting, with one allocation.
+        let mut right_text =
+            String::with_capacity(prefix.len().saturating_add(app.connection.name.len()));
+        right_text.push_str(prefix);
+        right_text.push_str(&app.connection.name);
+        let width = junie_tui::width(&right_text);
+        let right = junie_tui::Rect {
+            x: area.right().saturating_sub(width),
+            width,
             ..area
         };
         ui.paint_spans(
@@ -2015,15 +2666,9 @@ fn draw_connection_properties(
 ) {
     let value_x = area.x.saturating_add(13);
     let value_width = area.width.saturating_sub(18).max(1);
-    let mut label_style = ui.surface_style();
-    label_style.fg = Some(
-        ui.theme()
-            .color
-            .fg
-            .get(FgStep::Muted.index())
-            .copied()
-            .unwrap_or_default(),
-    );
+    let label_style = ui
+        .surface_style()
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
     let mut y = area.y;
     for (label, value) in properties {
         let value_step = match *label {
@@ -2032,15 +2677,9 @@ fn draw_connection_properties(
             "Last used" => FgStep::Muted,
             _ => FgStep::Primary,
         };
-        let mut value_style = ui.surface_style();
-        value_style.fg = Some(
-            ui.theme()
-                .color
-                .fg
-                .get(value_step.index())
-                .copied()
-                .unwrap_or_default(),
-        );
+        let value_style = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(value_step))));
         let lines = if *label == "Safe Mode" {
             wrap(value, value_width)
         } else {
@@ -2075,6 +2714,10 @@ fn draw_connection_properties(
             y = y.saturating_add(1);
         }
     }
+    draw_connection_actions(ui, area);
+}
+
+fn draw_connection_actions(ui: &mut Ui<'_>, area: junie_tui::Rect) {
     let y = area.bottom().saturating_sub(1);
     let mut x = area.x;
     paint_action_button(
@@ -2082,8 +2725,7 @@ fn draw_connection_properties(
         x,
         y,
         "Connect",
-        ui.theme().color.accent,
-        ui.theme().color.on_accent,
+        action_paint(ui, CONNECT_LABEL, Role::Accent, Role::OnAccent),
         true,
     );
     x = x.saturating_add(11);
@@ -2092,13 +2734,12 @@ fn draw_connection_properties(
         x,
         y,
         "Edit",
-        ui.theme().color.surfaces[3],
-        ui.theme()
-            .color
-            .fg
-            .get(FgStep::Primary.index())
-            .copied()
-            .unwrap_or_default(),
+        action_paint(
+            ui,
+            EDIT_LABEL,
+            Role::Surface(junie_tui::Surface::Overlay),
+            Role::Fg(FgStep::Primary),
+        ),
         false,
     );
     x = x.saturating_add(8);
@@ -2107,13 +2748,12 @@ fn draw_connection_properties(
         x,
         y,
         "Duplicate",
-        ui.theme().color.surfaces[1],
-        ui.theme()
-            .color
-            .fg
-            .get(FgStep::Secondary.index())
-            .copied()
-            .unwrap_or_default(),
+        action_paint(
+            ui,
+            DUPLICATE_LABEL,
+            Role::Surface(junie_tui::Surface::Surface),
+            Role::Fg(FgStep::Secondary),
+        ),
         false,
     );
     x = x.saturating_add(13);
@@ -2122,10 +2762,58 @@ fn draw_connection_properties(
         x,
         y,
         "Delete…",
-        ui.theme().color.surfaces[3],
-        ui.theme().color.danger,
+        action_paint(
+            ui,
+            DELETE_LABEL,
+            Role::Surface(junie_tui::Surface::Overlay),
+            Role::Danger,
+        ),
         false,
     );
+}
+
+const CONNECTION_ACTIONS: junie_tui::Family =
+    junie_tui::Family::custom("tablepro.connection-actions");
+const CONNECT_LABEL: Part = Part::custom("connect.label");
+const EDIT_LABEL: Part = Part::custom("edit.label");
+const DUPLICATE_LABEL: Part = Part::custom("duplicate.label");
+const DELETE_LABEL: Part = Part::custom("delete.label");
+const ACTION_MONO: &[junie_tui::MonoRule] = &[
+    (
+        CONNECT_LABEL,
+        junie_tui::StateFlags::empty(),
+        StylePatch::new()
+            .set_fg(Role::Surface(junie_tui::Surface::Canvas))
+            .set_bg(Role::Fg(FgStep::Primary)),
+    ),
+    (
+        EDIT_LABEL,
+        junie_tui::StateFlags::empty(),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
+    ),
+    (
+        DUPLICATE_LABEL,
+        junie_tui::StateFlags::empty(),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
+    ),
+    (
+        DELETE_LABEL,
+        junie_tui::StateFlags::empty(),
+        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
+    ),
+];
+
+fn action_paint(ui: &Ui<'_>, part: Part, background: Role, foreground: Role) -> PaintStyle {
+    ui.style_defaults(
+        CONNECTION_ACTIONS,
+        junie_tui::Variant::DEFAULT,
+        part,
+        junie_tui::StateFlags::empty(),
+        StyleDefaults::new(StylePatch::new().set_bg(background).set_fg(foreground))
+            .mono(ACTION_MONO),
+        None,
+    )
+    .over(ui.surface_style())
 }
 
 fn paint_action_button(
@@ -2133,16 +2821,12 @@ fn paint_action_button(
     x: u16,
     y: u16,
     label: &str,
-    background: Color,
-    foreground: Color,
+    mut button: PaintStyle,
     bold: bool,
 ) {
     let width = junie_tui::width(label).saturating_add(2);
-    let mut button = ui.surface_style();
-    button.bg = Some(background);
-    button.fg = Some(foreground);
     if bold {
-        button.add_modifier |= Modifier::BOLD;
+        button = button.add_modifier(Modifier::BOLD);
     }
     ui.fill(
         junie_tui::Rect {
@@ -2153,9 +2837,9 @@ fn paint_action_button(
         },
         button,
     );
-    let mut gutter = button;
-    gutter.add_modifier.remove(Modifier::BOLD);
-    gutter.fg = Some(background);
+    let gutter = button
+        .remove_modifier(Modifier::BOLD)
+        .with_fg_from_bg(button);
     ui.paint_str(
         junie_tui::Rect {
             x,
@@ -2184,32 +2868,95 @@ impl App for TableProApp {
         reason = "update keeps public component routing and product command arbitration in one phase"
     )]
     fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let mut response = Response::ignored();
+        if cx.update_cause() == UpdateCause::Bootstrap
+            && self.screen == Screen::Workbench
+            && self.surface == Surface::QuickSwitcher
+        {
+            self.open_switcher(cx);
+        }
+        let switcher_was_open = cx.is_open(quick_switcher::ID);
+        let modal_was_open = self.destructive_intent.is_some();
+        let mut response = self.update_destructive_dialog(cx);
+        response |= self.update_tab_controls(cx);
+        if self.form_open || self.screen != Screen::Connections {
+            response |= connection_tree()
+                .update(cx, &mut self.connection_tree_state, &self.connection_nodes)
+                .erase();
+            for _ in cx.intents(CONNECTION_DETAILS) {}
+        }
+        if self.form_open || self.screen != Screen::Workbench {
+            response |= workbench_split().update(cx, &mut self.split_state).erase();
+            response |= explorer_tree()
+                .update(cx, &mut self.explorer_tree_state, &self.explorer_nodes)
+                .erase();
+            response |= tab_strip()
+                .update(cx, &mut self.tabs_state, self.workbench.tabs())
+                .erase();
+        }
+        response |= self.update_switcher(cx);
+        if switcher_was_open {
+            return response;
+        }
         // Stateless props have no update method, but their factories remain
         // the single source of configuration for both runtime phases.
         let _ = Self::connections_panel("", None);
         let _ = Self::connection_details_panel("");
-        let _ = Self::explorer_panel();
+        let _ = Self::explorer_panel(self.workbench.schema_caption());
         let _ = Self::content_panel("", None);
         if matches!(
             cx.update_cause(),
             UpdateCause::Bootstrap | UpdateCause::Event
-        ) && let Some(command) = cx.command()
+        ) && !modal_was_open
+            && cx.top_layer() == LayerId::PAGE
+            && let Some(command) = cx.command()
         {
             match command {
                 c if c == QUIT => {
-                    self.quit = true;
-                    cx.quit();
-                    response |= Response::consumed();
+                    return self.request_quit(cx);
+                }
+                c if c == CANCEL_OR_QUIT => {
+                    if cx.top_layer() != LayerId::PAGE {
+                        return Response::consumed();
+                    }
+                    if let Some(Tab::Query(query)) = self.workbench.active_mut()
+                        && query.running
+                    {
+                        query.running = false;
+                        "Query cancelled".clone_into(&mut self.status);
+                        return Response::changed();
+                    }
+                    return self.request_quit(cx);
+                }
+                c if c == INSERT_ROW || c == DELETE_ROW || c == DISCARD_ROWS => {
+                    if self.active_row_action(cx) {
+                        if c == INSERT_ROW {
+                            self.insert_active_row();
+                        } else if c == DELETE_ROW {
+                            self.toggle_active_row();
+                        } else {
+                            self.request_discard_rows(cx);
+                        }
+                        response |= Response::changed();
+                    }
+                }
+                c if c == UNDO => {
+                    if let Some((id, grid)) = self.workbench.active_grid_mut()
+                        && cx.state(id).contains(junie_tui::StateFlags::FOCUSED)
+                        && !grid.state.is_editing()
+                    {
+                        let _ = grid.model.undo();
+                        response |= Response::changed();
+                    }
                 }
                 c if c == RUN => {
-                    self.commit_query_edit();
-                    let _ = self.execute_query();
+                    self.request_query(cx);
                     response |= Response::changed();
                 }
                 c if c == OPEN => {
-                    self.surface = Surface::QuickSwitcher;
-                    response |= Response::changed();
+                    if self.screen == Screen::Workbench {
+                        self.open_switcher(cx);
+                        response |= Response::changed();
+                    }
                 }
                 c if c == NEW_QUERY => {
                     self.new_query("");
@@ -2236,17 +2983,17 @@ impl App for TableProApp {
                 _ => {}
             }
         }
-        if self.form_open {
+        let form_was_open = self.form_open;
+        if self.draft.is_some() {
             let fields = &self.form_fields;
             let actions = &self.form_actions;
             if let Some(draft) = self.draft.as_mut() {
                 let form = Self::connection_form(fields, actions);
                 let form_response = form.update(cx, &mut self.form_state, draft);
-                if let Some(action) = form_response.action_ref() {
+                if form_was_open && let Some(action) = form_response.action_ref() {
                     match action {
                         FormAction::Action(ActionKey::CANCEL) => {
-                            self.form_open = false;
-                            self.draft = None;
+                            self.close_connection_form();
                         }
                         FormAction::Action(ActionKey::SAVE | connections::SAVE_CONNECT) => {
                             if draft.validate_all().is_ok()
@@ -2257,8 +3004,11 @@ impl App for TableProApp {
                                 self.connections_screen.connections.push(connection.clone());
                                 self.rebuild_connection_nodes();
                                 if action == &FormAction::Action(connections::SAVE_CONNECT) {
-                                    let _ = self.connect(self.connections.len().saturating_sub(1));
-                                    self.form_open = false;
+                                    self.request_connect(
+                                        cx,
+                                        self.connections.len().saturating_sub(1),
+                                    );
+                                    self.close_connection_form();
                                 }
                             }
                         }
@@ -2267,6 +3017,8 @@ impl App for TableProApp {
                 }
                 response |= form_response.erase();
             }
+        }
+        if form_was_open {
             return response;
         }
         if self.screen == Screen::Connections {
@@ -2280,7 +3032,7 @@ impl App for TableProApp {
                 )
             });
             if details_clicked {
-                let _ = self.connect(self.connections_screen.selected);
+                self.request_connect(cx, self.connections_screen.selected);
                 return response | Response::changed();
             }
             let tree_response = connection_tree().update(
@@ -2299,7 +3051,7 @@ impl App for TableProApp {
                     .iter()
                     .find(|node| connection_node_key(node) == *key)
             {
-                let _ = self.connect(*index);
+                self.request_connect(cx, *index);
             }
             response |= tree_response.erase();
             return response;
@@ -2321,29 +3073,27 @@ impl App for TableProApp {
         }
         response |= tree_response.erase();
 
-        let tabs_response = tab_strip().update(cx, &mut self.tabs_state, &self.workbench.tabs);
+        let tabs_response = tab_strip().update(cx, &mut self.tabs_state, self.workbench.tabs());
         if let Some(action) = tabs_response.action_ref() {
             match *action {
                 TabsAction::Activated(key) => {
                     if let Some(index) = self
                         .workbench
-                        .tabs
+                        .tabs()
                         .iter()
                         .position(|tab| tab_key(tab) == key)
                     {
-                        self.workbench.active = index;
+                        if let Some(tab) = self.workbench.tabs().get(index) {
+                            let key = tab.key();
+                            let _ = self.workbench.activate(key);
+                        }
                         self.sync_active_tab();
                     }
                 }
                 TabsAction::Close(key) => {
-                    if let Some(index) = self
-                        .workbench
-                        .tabs
-                        .iter()
-                        .position(|tab| tab_key(tab) == key)
+                    if let Some(tab) = self.workbench.tabs().iter().find(|tab| tab_key(tab) == key)
                     {
-                        let _ = self.workbench.close_tab(index);
-                        self.sync_active_tab();
+                        self.request_close_tab(cx, tab.key());
                     }
                 }
                 TabsAction::New => self.new_query(""),
@@ -2351,29 +3101,6 @@ impl App for TableProApp {
         }
         response |= tabs_response.erase();
 
-        if matches!(self.workbench.active(), Some(Tab::Query(_))) {
-            response |= query_input(None)
-                .update(cx, &mut self.query_state, &mut self.query)
-                .erase();
-            self.sync_query_tab();
-        }
-        let grid_route = matches!(self.workbench.active(), Some(Tab::Table(_)))
-            || matches!(self.workbench.active(), Some(Tab::Query(tab)) if tab.result.is_some());
-        if grid_route {
-            let editable = self.result.is_editable();
-            let (columns, column_count) = Self::column_specs(&self.columns, editable);
-            let visible_columns = columns.get(..column_count).unwrap_or(&[]);
-            let grid = result_grid(visible_columns);
-            let grid_response = if self.result.is_editable() {
-                grid.update_editable(cx, &mut self.grid_state, &mut self.result)
-            } else {
-                grid.update(cx, &mut self.grid_state, &self.result)
-            };
-            if let Some(action) = grid_response.action_ref() {
-                self.handle_grid(action);
-            }
-            response |= grid_response.erase();
-        }
         response
     }
     fn draw(&self, ui: &mut Ui<'_>) {
@@ -2404,7 +3131,7 @@ impl App for TableProApp {
                 ui,
                 workbench_rows[0],
                 &self.tabs_state,
-                &self.workbench.tabs,
+                self.workbench.tabs(),
             );
             if self.workbench.maximized {
                 self.draw_content(ui, workbench_rows[1]);
@@ -2421,6 +3148,16 @@ impl App for TableProApp {
             }
         }
         draw_footer(ui, rows[2], self);
+        ui.layer(quick_switcher::ID, |ui, area| {
+            self.switcher
+                .component()
+                .draw(ui, area, &self.switcher.state, &self.switcher.items);
+        });
+        if let Some(intent) = self.destructive_intent.as_ref() {
+            ui.layer(QUIT_DIALOG, |ui, area| {
+                intent.dialog().draw(ui, area, &self.quit_state, |_, _| {});
+            });
+        }
     }
     fn should_quit(&self) -> bool {
         self.quit
@@ -2434,27 +3171,6 @@ impl App for TableProApp {
             preferred: (120, 36),
         }
     }
-    fn on_esc(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
-        if self.form_open {
-            self.form_open = false;
-            self.draft = None;
-            self.surface = Surface::Connections;
-            Response::changed()
-        } else {
-            Response::ignored()
-        }
-    }
-}
-
-/// Start the interactive `TablePro` binary.
-///
-/// # Errors
-///
-/// Returns the terminal runtime's I/O error when the session cannot start
-/// or restore the terminal.
-pub fn run() -> std::io::Result<()> {
-    let (theme, connect) = parse_args(std::env::args().skip(1))?;
-    run_with(theme, connect.as_deref())
 }
 
 /// Start the app with an explicit theme and optional connection name.
@@ -2474,7 +3190,7 @@ pub fn run_with(theme: Theme, connect: Option<&str>) -> std::io::Result<()> {
         else {
             return Err(std::io::Error::new(
                 std::io::ErrorKind::InvalidInput,
-                format!("unknown connection: {name}"),
+                "no connection with the requested name",
             ));
         };
         let _ = app.connect(index);
@@ -2482,66 +3198,136 @@ pub fn run_with(theme: Theme, connect: Option<&str>) -> std::io::Result<()> {
     junie_tui::run(app, theme)
 }
 
-fn parse_args<I>(args: I) -> std::io::Result<(Theme, Option<String>)>
-where
-    I: IntoIterator<Item = String>,
-{
-    let mut theme = Theme::junie();
-    let mut requested_color = None;
-    let mut connect = None;
-    let mut args = args.into_iter();
-    while let Some(arg) = args.next() {
-        match arg.as_str() {
-            "--theme" => {
-                let value = args
-                    .next()
-                    .ok_or_else(|| invalid_arg("--theme requires a value"))?;
-                theme = match value.to_ascii_lowercase().as_str() {
-                    "junie" => Theme::junie(),
-                    "paper" => Theme::paper(),
-                    _ => return Err(invalid_arg("--theme must be junie or paper")),
-                };
-            }
-            "--color" => {
-                let value = args
-                    .next()
-                    .ok_or_else(|| invalid_arg("--color requires a value"))?;
-                requested_color =
-                    Some(parse_color_level(&value).ok_or_else(|| {
-                        invalid_arg("--color must be truecolor, 256, 16, or none")
-                    })?);
-            }
-            "--connect" => {
-                connect = Some(
-                    args.next()
-                        .ok_or_else(|| invalid_arg("--connect requires a connection name"))?,
-                );
-            }
-            "-h" | "--help" => {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::InvalidInput,
-                    "usage: tablepro [--theme junie|paper] [--color truecolor|256|16|none] [--connect NAME]",
-                ));
-            }
-            _ => return Err(invalid_arg("unknown option")),
+#[cfg(test)]
+mod replacement_tests {
+    use super::*;
+    use junie_tui::GridEditor;
+    use junie_tui_testing::Harness;
+
+    fn pending() -> TableProApp {
+        let mut app = TableProApp::default();
+        app.set_surface(Surface::PendingChangeBar);
+        app.screen = Screen::Connections;
+        app
+    }
+
+    #[test]
+    fn reconnect_uses_configuration_snapshot_after_catalog_reorder() {
+        let mut h = Harness::new(pending(), Theme::junie(), 120, 40);
+        let target = h.app().connections_screen.selected;
+        let Some(expected) = h.app().connections.get(target).cloned() else {
+            unreachable!("target")
+        };
+        let _ = h.click_id(CONNECTION_DETAILS);
+        assert!(h.find("Reconnect with unsaved work?").is_some());
+        h.app_mut().connections.reverse();
+        let _ = h.key(KeyCode::Tab);
+        let _ = h.key(KeyCode::Enter);
+        assert_eq!(h.app().workbench.connection, expected);
+        assert_eq!(h.app().workbench.tabs().len(), 1);
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    }
+
+    #[test]
+    fn new_tab_after_reconnect_prompt_invalidates_captured_scope() {
+        let mut h = Harness::new(pending(), Theme::junie(), 120, 40);
+        let _ = h.click_id(CONNECTION_DETAILS);
+        let Some(key) = h.app_mut().workbench.new_query("new unsaved query") else {
+            unreachable!("key")
+        };
+        let count = h.app().workbench.tabs().len();
+        let _ = h.key(KeyCode::Tab);
+        let _ = h.key(KeyCode::Enter);
+        assert_eq!(h.app().workbench.tabs().len(), count);
+        assert_eq!(h.app().workbench.active_key(), Some(key));
+        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
+    }
+
+    #[test]
+    fn captured_connection_and_sql_debug_are_redacted_through_app() {
+        let mut app = pending();
+        app.destructive_intent = Some(DestructiveRequest {
+            owner: app.workbench.owner_token(),
+            intent: DestructiveIntent::Reconnect {
+                target: Box::new(Connection {
+                    host: "secret-reconnect-host".to_owned(),
+                    ..app.connection.clone()
+                }),
+                source: Box::new(app.connection.clone()),
+                scope: Vec::new(),
+            },
+        });
+        assert!(!format!("{app:?}").contains("secret-reconnect-host"));
+        let _ = app
+            .workbench
+            .new_query("SELECT id, currency FROM orders LIMIT 1");
+        let catalog = app.catalog.clone();
+        let Some(Tab::Query(tab)) = app.workbench.active_mut() else {
+            unreachable!("query")
+        };
+        assert!(tab.execute(&catalog).is_ok());
+        let Some(view) = tab.result.as_mut() else {
+            unreachable!("result")
+        };
+        assert!(view.model.commit_cell(0, 1, "secret-result-value").is_ok());
+        let Some(key) = app.workbench.active_key() else {
+            unreachable!("key")
+        };
+        app.destructive_intent = Some(DestructiveRequest {
+            owner: app.workbench.owner_token(),
+            intent: DestructiveIntent::ReplaceResult {
+                key,
+                query: "secret-captured-sql".to_owned(),
+                generation: 0,
+                connection: Box::new(app.connection.clone()),
+            },
+        });
+        let text = format!("{app:?}");
+        assert!(!text.contains("secret-captured-sql"));
+        assert!(!text.contains("secret-result-value"));
+    }
+}
+
+#[cfg(test)]
+mod action_namespace_tests {
+    use super::*;
+
+    #[test]
+    fn application_actions_are_isolated_and_unique() {
+        let keys = [
+            RUN,
+            UNDO,
+            INSERT_ROW,
+            DELETE_ROW,
+            DISCARD_ROWS,
+            QUIT,
+            CANCEL_OR_QUIT,
+            OPEN,
+            NEW_QUERY,
+            HISTORY,
+            STRUCTURE,
+            FORM,
+            HELP,
+            TAB_LIST,
+            FILTER,
+            PREVIEW,
+            SAVE,
+            EXPLAIN,
+            CLEAR_QUERY,
+            COMPLETE,
+            PALETTE,
+            connections::TEST,
+            connections::SAVE_CONNECT,
+        ];
+        for (index, key) in keys.iter().enumerate() {
+            assert!(
+                (0x4000..0x8000).contains(&key.raw()),
+                "application namespace: {key:?}"
+            );
+            assert!(
+                !keys.iter().take(index).any(|previous| previous == key),
+                "duplicate application action: {key:?}"
+            );
         }
-    }
-    if let Some(level) = requested_color {
-        theme = theme.for_level(level);
-    }
-    Ok((theme, connect))
-}
-
-fn invalid_arg(message: &str) -> std::io::Error {
-    std::io::Error::new(std::io::ErrorKind::InvalidInput, message)
-}
-
-fn parse_color_level(value: &str) -> Option<ColorLevel> {
-    match value.to_ascii_lowercase().as_str() {
-        "truecolor" | "24bit" => Some(ColorLevel::TrueColor),
-        "256" | "ansi256" => Some(ColorLevel::Ansi256),
-        "16" | "ansi16" => Some(ColorLevel::Ansi16),
-        "none" | "mono" => Some(ColorLevel::Mono),
-        _ => None,
     }
 }

@@ -140,12 +140,14 @@ impl ScrollState {
         self.reveal
     }
 
-    /// Called by `draw` after it knows the viewport: applies the pending
-    /// reveal and clears it.
+    /// Apply known viewport geometry. A zero-height layout cannot reveal a
+    /// row, so it retains the request until a usable viewport is available.
     pub fn apply_layout(&mut self, viewport_len: usize, content_len: usize) {
         self.viewport_len = viewport_len;
         self.content_len = content_len;
-        if let Some(i) = self.reveal.take() {
+        if viewport_len > 0
+            && let Some(i) = self.reveal.take()
+        {
             self.ensure_visible(i);
         }
         self.clamp();
@@ -304,6 +306,22 @@ mod tests {
         s.apply_layout(10, 50);
         assert_eq!(s.pending_reveal(), None);
         assert_eq!(s.offset(), 31);
+    }
+
+    #[test]
+    fn zero_viewports_retain_reveal_until_usable_layout() {
+        let mut s = ScrollState::new(50);
+        s.ensure_visible_on_next_layout(40);
+        for _ in 0..3 {
+            s.apply_layout(0, 50);
+            assert_eq!(s.pending_reveal(), Some(40));
+        }
+        s.apply_layout(10, 50);
+        assert_eq!(s.pending_reveal(), None);
+        assert_eq!(s.offset(), 31);
+        let _ = s.wheel(-5);
+        s.apply_layout(10, 50);
+        assert_eq!(s.offset(), 26, "consumed reveal does not undo a wheel");
     }
 
     #[test]

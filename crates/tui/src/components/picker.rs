@@ -3,13 +3,16 @@
 use core::marker::PhantomData;
 
 use ratatui_core::layout::{Position, Rect};
+use ratatui_core::style::Modifier;
 
-use super::filter_list::{FilterList, FilterListAction, FilterListState};
+use super::filter_list::{FilterList, FilterListAction, FilterListState, FilterPolicy};
 use super::{Acc, PartStyle, SlotFn, overlay_chrome};
 use crate::collection::{EmptyState, RowFn, RowUi};
 use crate::id::{Id, ItemKey, Part};
 use crate::layer::{Anchor, LayerSize, LayerSpec, ScreenAlign};
+use crate::layout::Track;
 use crate::response::{Response, StateFlags};
+use crate::text::width;
 use crate::theme::{Family, StylePatch, Surface, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
 
@@ -124,6 +127,101 @@ impl AsItem for Item<'_> {
     }
 }
 
+/// Built-in semantic item layout. Custom row callbacks remain authoritative.
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub enum ItemRowLayout {
+    /// Existing compact label with trailing glyph and metadata.
+    #[default]
+    Compact,
+    /// Leading glyph, aligned label/detail/tag/group columns and matched emphasis.
+    Columns,
+}
+
+/// One measurement across the complete semantic projection, not only visible rows.
+#[derive(Default)]
+pub(crate) struct ItemColumns {
+    label: u16,
+    tag: u16,
+    group: u16,
+}
+
+impl ItemColumns {
+    pub(crate) fn measure<'a>(items: impl Iterator<Item = Item<'a>>, row_width: u16) -> Self {
+        let mut columns = Self::default();
+        for item in items {
+            columns.label = columns.label.max(width(item.label));
+            columns.tag = columns.tag.max(width(item.tag.unwrap_or("")));
+            columns.group = columns.group.max(width(item.group.unwrap_or("")));
+        }
+        let limit = u16::try_from(u32::from(row_width).saturating_mul(45) / 100)
+            .unwrap_or(u16::MAX)
+            .max(6);
+        columns.label = columns.label.clamp(6, limit);
+        columns
+    }
+
+    pub(crate) fn paint(&self, item: Item<'_>, show_group: bool, row: &mut RowUi<'_>) {
+        let focused = row.flags().contains(StateFlags::FOCUSED);
+        row.gutter();
+        let mut cells = row.columns_with_gap(
+            &[
+                Track::Fixed(1),
+                Track::Fixed(1),
+                Track::Fixed(self.label),
+                Track::Fixed(2),
+                Track::Flex(1),
+                Track::Fixed(1),
+                Track::Fixed(self.tag),
+                Track::Fixed(if self.tag > 0 { 2 } else { 0 }),
+                Track::Fixed(self.group),
+                Track::Fixed(u16::from(self.group > 0)),
+            ],
+            0,
+        );
+        // A focused list fills every row from the CONTAINER recipe, whose
+        // bold bleeds into painted text. Strip it only where the resolved
+        // part style did not author bold, so theme, overlay and instance
+        // part styles stay authoritative. Color hierarchy also stays in the
+        // theme recipes: a built-in painter never tones over the resolved
+        // part style.
+        {
+            let mut icon = cells.cell_part(0, Part::ICON);
+            if !icon.authored_modifiers().contains(Modifier::BOLD) {
+                icon.remove_modifier(Modifier::BOLD);
+            }
+            icon.text(item.glyph);
+        }
+        {
+            let mut label = cells.cell_part(2, Part::LABEL);
+            if !focused && !label.authored_modifiers().contains(Modifier::BOLD) {
+                label.remove_modifier(Modifier::BOLD);
+            }
+            label.text_matched(item.label, item.matched);
+        }
+        if cells.rect(4).width >= 4 {
+            let mut meta = cells.cell_part(4, Part::META);
+            if !meta.authored_modifiers().contains(Modifier::BOLD) {
+                meta.remove_modifier(Modifier::BOLD);
+            }
+            meta.text_matched(item.detail, &[]);
+        }
+        {
+            let mut tag = cells.cell_part(6, Part::META);
+            if !tag.authored_modifiers().contains(Modifier::BOLD) {
+                tag.remove_modifier(Modifier::BOLD);
+            }
+            tag.text(item.tag.unwrap_or(""));
+        }
+        if show_group {
+            let mut group = cells.cell_part(8, Part::META);
+            if !group.authored_modifiers().contains(Modifier::BOLD) {
+                group.remove_modifier(Modifier::BOLD);
+            }
+            group.text(item.group.unwrap_or(""));
+        }
+    }
+}
+
 /// Default semantic row painter.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct ItemRow;
@@ -228,7 +326,8 @@ impl PickerState {
 /// Caller owns items and [`PickerState`]; runtime owns the modal layer and focus trap.
 ///
 /// ## Configuration
-/// `.title`, `.placeholder`, `.scopes`, `.empty`, `.row`, `.patch`, `.patch_part`, `.slot`.
+/// `.title`, `.width`, `.size`, `.searchable`, `.filter`, `.item_layout`,
+/// `.placeholder`, `.scopes`, `.align`, `.empty`, `.row`, `.patch`, `.patch_part`, `.slot`.
 ///
 /// ## Variants
 /// `Family::PICKER`, `DEFAULT`.
@@ -268,13 +367,16 @@ impl PickerState {
 pub struct Picker<'a, T, R = ItemRow> {
     id: Id,
     title: &'a str,
+    width: Option<u16>,
+    searchable: bool,
+    filter: FilterPolicy,
     placeholder: &'a str,
     scopes: &'a [ScopeKey],
-    searchable: bool,
     requested_size: Option<LayerSize>,
-    align: ScreenAlign,
+    align: Option<ScreenAlign>,
     empty: Option<EmptyState<'a>>,
     row: R,
+    item_layout: ItemRowLayout,
     patch: Option<&'a StylePatch>,
     parts: &'a [(Part, StylePatch)],
     ov: PartStyle<'a>,
@@ -300,18 +402,30 @@ impl<T> Picker<'_, T, ItemRow> {
         Self {
             id,
             title: "Choose",
+            width: None,
+            searchable: true,
+            filter: FilterPolicy::Label,
             placeholder: "Type to search…",
             scopes: &[],
-            searchable: true,
             requested_size: None,
-            align: ScreenAlign::UpperThird,
+            align: None,
             empty: None,
             row: ItemRow,
+            item_layout: ItemRowLayout::Compact,
             patch: None,
             parts: &[],
             ov: PartStyle::new(),
             _item: PhantomData,
         }
+    }
+}
+
+impl<T> Picker<'_, T, ItemRow> {
+    /// Opt into aligned semantic columns without replacing the row painter.
+    #[must_use]
+    pub const fn item_layout(mut self, layout: ItemRowLayout) -> Self {
+        self.item_layout = layout;
+        self
     }
 }
 
@@ -341,6 +455,27 @@ impl<'a, T, R> Picker<'a, T, R> {
         self.title = title;
         self
     }
+    /// Override the requested width; the layer resolver still clamps to the viewport.
+    /// Omit this option to retain semantic sizing within the theme's popup bounds.
+    #[must_use]
+    pub const fn width(mut self, width: u16) -> Self {
+        self.width = Some(width);
+        self
+    }
+    /// Select caller-owned filtering while retaining query editing and navigation.
+    #[must_use]
+    pub const fn filter(mut self, policy: FilterPolicy) -> Self {
+        self.filter = policy;
+        self
+    }
+    /// Whether the picker displays and accepts query input. Enabled by default.
+    /// Disabling clears any existing query on update or reconciliation. Caller-filtered
+    /// owners must refresh their projection when that transition reports a query change.
+    #[must_use]
+    pub const fn searchable(mut self, searchable: bool) -> Self {
+        self.searchable = searchable;
+        self
+    }
     /// Query placeholder.
     #[must_use]
     pub const fn placeholder(mut self, placeholder: &'a str) -> Self {
@@ -353,13 +488,8 @@ impl<'a, T, R> Picker<'a, T, R> {
         self.scopes = scopes;
         self
     }
-    /// Whether printable input edits the query.
-    #[must_use]
-    pub const fn searchable(mut self, yes: bool) -> Self {
-        self.searchable = yes;
-        self
-    }
-    /// Request an explicit modal size.
+    /// Request an explicit modal size. The layer resolver still clamps to the
+    /// viewport; omit this option to retain semantic sizing.
     #[must_use]
     pub const fn size(mut self, size: LayerSize) -> Self {
         self.requested_size = Some(size);
@@ -368,7 +498,7 @@ impl<'a, T, R> Picker<'a, T, R> {
     /// Choose the screen placement for this modal.
     #[must_use]
     pub const fn align(mut self, align: ScreenAlign) -> Self {
-        self.align = align;
+        self.align = Some(align);
         self
     }
     /// Empty/loading/error presentation.
@@ -382,13 +512,16 @@ impl<'a, T, R> Picker<'a, T, R> {
         Picker {
             id: self.id,
             title: self.title,
+            width: self.width,
+            searchable: self.searchable,
+            filter: self.filter,
             placeholder: self.placeholder,
             scopes: self.scopes,
-            searchable: self.searchable,
             requested_size: self.requested_size,
             align: self.align,
             empty: self.empty,
             row,
+            item_layout: ItemRowLayout::Compact,
             patch: self.patch,
             parts: self.parts,
             ov: self.ov,
@@ -420,8 +553,10 @@ impl<'a, T, R> Picker<'a, T, R> {
 impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
     fn list(&self) -> FilterList<'_, T, BorrowedRow<'_, R>> {
         let mut list = FilterList::new(self.id)
+            .searchable(self.searchable)
+            .filter(self.filter)
             .row(BorrowedRow(&self.row))
-            .searchable(self.searchable);
+            .with_item_layout(self.item_layout);
         if let Some(empty) = self.empty {
             list = list.empty(empty);
         }
@@ -438,28 +573,54 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
             return size;
         }
         let d = cx.design();
-        let natural = FilterList::<T, BorrowedRow<'_, R>>::semantic_width(items);
-        let width = natural.clamp(d.size.popup_min_width, d.size.popup_max_width);
+        let width = self.width.unwrap_or_else(|| {
+            FilterList::<T, BorrowedRow<'_, R>>::semantic_width(items)
+                .clamp(d.size.popup_min_width, d.size.popup_max_width)
+        });
         let rows = items
             .len()
             .min(usize::from(d.size.popup_max_rows))
             .max(1)
             .min(usize::from(u16::MAX)) as u16;
-        // The frame, title, query, and list each need their own rows.  The
-        // list starts three rows into the framed inner area, so reserving
-        // only `rows + 4` leaves a one-item picker with an empty viewport.
+        // Searchable pickers reserve title, query and spacing before the list.
+        // Nonsearchable pickers move the list above that query space and retain
+        // the bottom breathing room. Both request the same outer height.
         LayerSize::Fixed(width, rows.saturating_add(5))
     }
 
     /// Layer specification supplied by this picker.
     pub fn layer(&self, cx: &Cx<'_>, items: &[T]) -> LayerSpec {
         LayerSpec::modal(self.id)
-            .anchor(Anchor::Screen(self.align))
+            .anchor(Anchor::Screen(
+                self.align.unwrap_or(ScreenAlign::UpperThird),
+            ))
             .initial_focus(self.id)
             .size(self.measured_size(cx, items))
     }
 
+    /// Reconcile a replaced projection without consuming another input update.
+    /// Call after handling query or scope changes and before drawing new items.
+    /// Returns whether disabling search cleared the query. When true, caller-filtered
+    /// owners must rebuild their items for the empty query and reconcile again.
+    pub fn reconcile(&self, st: &mut PickerState, items: &[T]) -> bool {
+        let changed = self.clear_hidden_query(st);
+        self.list().reconcile(&mut st.list, items);
+        changed
+    }
+
+    fn clear_hidden_query(&self, st: &mut PickerState) -> bool {
+        if !self.searchable && !st.query().is_empty() {
+            st.set_query("");
+            true
+        } else {
+            false
+        }
+    }
+
     /// Update the embedded filter and map its actions to picker semantics.
+    /// When disabling search clears a query, stale row activation is suppressed.
+    /// Back and scope navigation take precedence over `QueryChanged`; their owners
+    /// rebuild using the already-empty query. Cancellation still dismisses the layer.
     pub fn update(
         &self,
         cx: &mut Cx<'_>,
@@ -469,6 +630,7 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         if cx.is_open(self.id) {
             cx.resize_layer(self.id, self.measured_size(cx, items));
         }
+        let query_changed = self.clear_hidden_query(st);
         let inner = self.list().update(cx, &mut st.list, items);
         let mut acc = Acc::new();
         if inner.is_consumed() {
@@ -477,8 +639,18 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
         if inner.is_changed() {
             acc.repaint();
         }
+        if query_changed {
+            // A caller-filtered projection still describes the old query until its
+            // owner handles this signal. Never activate a row from that projection.
+            acc.repaint();
+            acc.action(PickerAction::QueryChanged);
+        }
         if let Some(action) = inner.action_ref().copied() {
             match action {
+                FilterListAction::Chose(_)
+                | FilterListAction::ChoseAlt(_)
+                | FilterListAction::Secondary(_)
+                    if query_changed => {}
                 FilterListAction::QueryChanged => {
                     acc.action(PickerAction::QueryChanged);
                 }
@@ -533,6 +705,8 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                 if inner.is_empty() {
                     return area;
                 }
+                // An explicitly requested size insets the content lane inside
+                // the frame instead of letting the list touch the border.
                 let content = if self.requested_size.is_some() {
                     Rect {
                         x: inner.x.saturating_add(1),
@@ -558,7 +732,6 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                     live,
                 );
                 ui.paint_str(title, self.title, title_style.style);
-                let list_offset = if self.searchable { 3 } else { 1 };
                 if self.searchable {
                     let query = Rect {
                         y: content.y.saturating_add(1),
@@ -591,17 +764,21 @@ impl<T: AsItem, R: RowFn<T>> Picker<'_, T, R> {
                     ui.set_cursor(
                         self.id,
                         Position::new(
-                            query
-                                .x
-                                .saturating_add(2)
-                                .saturating_add(crate::text::width(st.query())),
+                            query.x.saturating_add(2).saturating_add(width(st.query())),
                             query.y,
                         ),
                     );
                 }
+                // Searchable pickers reserve title, query and spacing before
+                // the list; nonsearchable pickers retain the bottom breathing
+                // room so the drawn rows match the requested outer height.
                 let list = Rect {
-                    y: content.y.saturating_add(list_offset),
-                    height: content.height.saturating_sub(list_offset),
+                    y: content
+                        .y
+                        .saturating_add(if self.searchable { 3 } else { 1 }),
+                    height: content
+                        .height
+                        .saturating_sub(if self.searchable { 3 } else { 2 }),
                     ..content
                 };
                 self.list().draw(ui, list, &st.list, items);

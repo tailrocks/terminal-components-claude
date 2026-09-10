@@ -17,15 +17,17 @@ use std::fmt::Write as _;
 use std::hint::black_box;
 
 use junie_tui::{
-    AsItem, CellRef, ColorLevel, Column, ColumnKey, Grid, GridModel, GridState, Id, Item,
-    ItemKey as StableItemKey, Picker, PickerState, Rect, Registry, StepState, Steps, StepsState,
-    TextViewport, Theme, Tree, TreeNode, TreeState, ViewportLine, ViewportState, ViewportWorkProbe,
+    App, AsItem, CellRef, ColorLevel, Column, ColumnKey, Cx, Grid, GridModel, GridState, Id, Input,
+    Item, ItemKey as StableItemKey, Picker, PickerState, Rect, Registry, Response, Runtime,
+    StepState, Steps, StepsState, TextViewport, Theme, Tree, TreeNode, TreeState, Ui, UpdateCause,
+    ViewportLine, ViewportState, ViewportWorkProbe,
 };
-use junie_tui_testing::Scene;
 use junie_tui_testing::perf::{
     Counting, Stats, bench, big, check_ratio, env_flag, iters, lock, measure_once, report,
     unicode_line_inline,
 };
+use junie_tui_testing::{Scene, deliver_buffer};
+use ratatui_core::buffer::Buffer;
 
 #[global_allocator]
 static GLOBAL: Counting = Counting;
@@ -126,35 +128,102 @@ fn viewport_lines(n: usize, extra_capacity: usize) -> Vec<ViewportLine<'static>>
     lines
 }
 
-fn measure_viewport_push(n: usize, pushed: usize) -> (Stats, usize) {
-    let mut lines = viewport_lines(n, pushed);
-    let probe = ViewportWorkProbe::default();
-    let viewport = TextViewport::new(VIEWPORT_ID).wrap(true).work_probe(&probe);
-    let state = ViewportState::default();
-    let mut scene = Scene::new(
-        "viewport-push",
-        Theme::junie(),
-        ColorLevel::TrueColor,
-        80,
-        40,
-    );
-    scene.draw(|ui, area| {
-        viewport.draw(ui, area, &state, &lines);
-    });
-    scene.draw(|ui, area| {
-        viewport.draw(ui, area, &state, &lines);
-    });
+// Mutable collection fixtures own their data in the same Runtime model across
+// updates. Tick admits exactly one operation; initialization/settlement only
+// polls component lifecycle. Timing includes admission and frame publication.
+fn collection_runtime<A: App>(app: A, area: Rect) -> (Runtime<A>, Buffer) {
+    let mut runtime = Runtime::new(app, Theme::junie());
+    let _ = runtime.initialize();
+    (runtime, Buffer::empty(area))
+}
 
+fn collection_tick<A: App>(runtime: &mut Runtime<A>, buffer: &mut Buffer) {
+    let _ = deliver_buffer(runtime, buffer, Input::Tick);
+    runtime
+        .draw_buffer(*buffer.area(), buffer)
+        .commit_presented();
+}
+
+enum ViewportOperation {
+    Append(usize),
+    Reindex { width_changed: bool },
+    AlternateWidth { flip: bool },
+}
+
+struct ViewportApp<'a> {
+    lines: Vec<ViewportLine<'a>>,
+    state: ViewportState,
+    probe: &'a ViewportWorkProbe,
+    area: Rect,
+    operation: ViewportOperation,
+}
+
+impl App for ViewportApp<'_> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let mut response = Response::ignored();
+        if cx.update_cause() == UpdateCause::Tick {
+            match &mut self.operation {
+                ViewportOperation::Append(pushed) => {
+                    self.lines.extend(core::iter::repeat_n(
+                        ViewportLine::Plain("appended: lorem ipsum dolor sit amet"),
+                        *pushed,
+                    ));
+                    *pushed = 0;
+                }
+                ViewportOperation::Reindex { width_changed } => {
+                    if *width_changed {
+                        self.state.invalidate();
+                    } else {
+                        self.area.width = 79;
+                        *width_changed = true;
+                    }
+                }
+                ViewportOperation::AlternateWidth { flip } => {
+                    *flip = !*flip;
+                    self.area.width = if *flip { 82 } else { 83 };
+                }
+            }
+            response = Response::changed();
+        }
+        response
+            | TextViewport::new(VIEWPORT_ID)
+                .wrap(true)
+                .work_probe(self.probe)
+                .update(cx, &mut self.state, &self.lines)
+                .erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        black_box(
+            TextViewport::new(VIEWPORT_ID)
+                .wrap(true)
+                .work_probe(self.probe)
+                .draw(ui, self.area, &self.state, &self.lines),
+        );
+    }
+}
+
+fn measure_viewport_push(n: usize, pushed: usize) -> (Stats, usize) {
+    let probe = ViewportWorkProbe::default();
+    let area = Rect::new(0, 0, 80, 40);
+    let app = ViewportApp {
+        lines: viewport_lines(n, pushed),
+        state: ViewportState::default(),
+        probe: &probe,
+        area,
+        operation: ViewportOperation::Append(pushed),
+    };
+    let (mut runtime, mut buffer) = collection_runtime(app, area);
+    runtime.draw_buffer(area, &mut buffer).commit_presented();
+    runtime.draw_buffer(area, &mut buffer).commit_presented();
     probe.reset();
-    let allocation_stats = measure_once(&mut || {
-        lines.extend(core::iter::repeat_n(
-            ViewportLine::Plain("appended: lorem ipsum dolor sit amet"),
-            pushed,
-        ));
-        scene.draw(|ui, area| {
-            black_box(viewport.draw(ui, area, &state, &lines));
-        });
-    });
+    let allocation_stats = measure_once(&mut || collection_tick(&mut runtime, &mut buffer));
+    assert_eq!(runtime.app().lines.len(), n.saturating_add(pushed));
+    assert!(
+        runtime.diagnostics().is_empty(),
+        "{:?}",
+        runtime.diagnostics()
+    );
     (allocation_stats, probe.snapshot().indexed_lines)
 }
 
@@ -191,15 +260,14 @@ fn bench_viewport_render(n: usize) -> (Stats, usize, usize) {
         80,
         40,
     );
-    scene.draw(|ui, area| {
-        viewport.draw(ui, area, &state, &lines);
+    let model = (viewport, state, lines);
+    let mut bound = scene.bind_model(&model, |(viewport, state, lines), ui, area| {
+        black_box(viewport.draw(ui, area, state, lines));
     });
+    bound.draw();
     probe.reset();
-    let s = bench(1, iters(3), &mut || {
-        scene.draw(|ui, area| {
-            black_box(viewport.draw(ui, area, &state, &lines));
-        });
-    });
+    let s = bench(1, iters(3), &mut || bound.draw());
+    drop(bound);
     let regions = scene.registry().map_or(0, Registry::len);
     let ring = scene.ring().map_or(0, |ring| ring.reachable().count());
     let work = probe.snapshot();
@@ -238,42 +306,34 @@ fn viewport_100k_lines_render() {
 fn viewport_100k_lines_reindex() {
     let _g = lock();
     let n = big(100_000);
-    let lines = viewport_lines(n, 0);
     let probe = ViewportWorkProbe::default();
-    let viewport = TextViewport::new(VIEWPORT_ID).wrap(true).work_probe(&probe);
-    let mut state = ViewportState::default();
-    let mut scene = Scene::new(
-        "viewport-reindex",
-        Theme::junie(),
-        ColorLevel::TrueColor,
-        80,
-        40,
-    );
-
+    let area = Rect::new(0, 0, 80, 40);
+    let app = ViewportApp {
+        lines: viewport_lines(n, 0),
+        state: ViewportState::default(),
+        probe: &probe,
+        area,
+        operation: ViewportOperation::Reindex {
+            width_changed: false,
+        },
+    };
+    let (mut runtime, mut buffer) = collection_runtime(app, area);
     probe.reset();
     let cold = measure_once(&mut || {
-        scene.draw(|ui, area| {
-            black_box(viewport.draw(ui, area, &state, &lines));
-        });
+        runtime.draw_buffer(area, &mut buffer).commit_presented();
     });
     let cold_indexed = probe.snapshot().indexed_lines;
-
     probe.reset();
-    let width_change = measure_once(&mut || {
-        scene.draw(|ui, _| {
-            black_box(viewport.draw(ui, Rect::new(0, 0, 79, 40), &state, &lines));
-        });
-    });
+    let width_change = measure_once(&mut || collection_tick(&mut runtime, &mut buffer));
     let width_indexed = probe.snapshot().indexed_lines;
-
-    state.invalidate();
     probe.reset();
-    let invalidated = measure_once(&mut || {
-        scene.draw(|ui, _| {
-            black_box(viewport.draw(ui, Rect::new(0, 0, 79, 40), &state, &lines));
-        });
-    });
+    let invalidated = measure_once(&mut || collection_tick(&mut runtime, &mut buffer));
     let invalidated_indexed = probe.snapshot().indexed_lines;
+    assert!(
+        runtime.diagnostics().is_empty(),
+        "{:?}",
+        runtime.diagnostics()
+    );
 
     println!(
         "PERF-NOTE viewport_100k_lines_reindex lines={n} cold_indexed={cold_indexed} \
@@ -291,27 +351,25 @@ fn viewport_100k_lines_reindex() {
 fn viewport_layout_10k_grapheme_line() {
     let _g = lock();
     let text = unicode_line_inline(big(10_000));
-    let lines = [ViewportLine::Plain(&text)];
-    let viewport = TextViewport::new(VIEWPORT_ID).wrap(true);
-    let state = ViewportState::default();
-    let mut scene = Scene::new(
-        "viewport-layout",
-        Theme::junie(),
-        ColorLevel::TrueColor,
-        100,
-        3,
-    );
-    scene.draw(|ui, _| {
-        viewport.draw(ui, Rect::new(0, 0, 82, 3), &state, &lines);
-    });
-    let mut flip = false;
+    let probe = ViewportWorkProbe::default();
+    let area = Rect::new(0, 0, 100, 3);
+    let app = ViewportApp {
+        lines: vec![ViewportLine::Plain(&text)],
+        state: ViewportState::default(),
+        probe: &probe,
+        area: Rect::new(0, 0, 82, 3),
+        operation: ViewportOperation::AlternateWidth { flip: false },
+    };
+    let (mut runtime, mut buffer) = collection_runtime(app, area);
+    runtime.draw_buffer(area, &mut buffer).commit_presented();
     let s = bench(2, iters(20), &mut || {
-        flip = !flip;
-        let width = if flip { 82 } else { 83 };
-        scene.draw(|ui, _| {
-            black_box(viewport.draw(ui, Rect::new(0, 0, width, 3), &state, &lines));
-        });
+        collection_tick(&mut runtime, &mut buffer);
     });
+    assert!(
+        runtime.diagnostics().is_empty(),
+        "{:?}",
+        runtime.diagnostics()
+    );
     report("viewport_layout_10k_grapheme_line", &s);
     assert_eq!(s.allocs, 0, "layout must not allocate per grapheme");
 }
@@ -340,53 +398,85 @@ fn perf_tree_nodes(n: usize) -> Vec<PerfTreeNode> {
 
 /// One warmed expand/collapse pair. Accessor counts are binding: an ordinary
 /// toggle splices the cached projection and must not walk the borrowed source.
-fn bench_tree_toggle(n: usize, iterations: usize) -> (Stats, usize) {
-    let nodes = perf_tree_nodes(n);
-    let node_accesses = Cell::new(0usize);
-    let node = |item: &PerfTreeNode| {
-        node_accesses.set(node_accesses.get().saturating_add(1));
+struct TreeApp<'a> {
+    nodes: Vec<PerfTreeNode>,
+    state: TreeState,
+    accesses: &'a Cell<usize>,
+}
+
+impl TreeApp<'_> {
+    fn node(&self, item: &PerfTreeNode) -> TreeNode {
+        self.accesses.set(self.accesses.get().saturating_add(1));
         if item.parent {
             TreeNode::parent(item.depth)
         } else {
             TreeNode::leaf(item.depth)
         }
         .keyed(StableItemKey::num(item.key))
+    }
+}
+
+impl App for TreeApp<'_> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        let response = if cx.update_cause() == UpdateCause::Tick {
+            black_box(self.state.toggle(StableItemKey::num(0)));
+            Response::changed()
+        } else {
+            Response::ignored()
+        };
+        let accesses = self.accesses;
+        let node = |item: &PerfTreeNode| {
+            accesses.set(accesses.get().saturating_add(1));
+            if item.parent {
+                TreeNode::parent(item.depth)
+            } else {
+                TreeNode::leaf(item.depth)
+            }
+            .keyed(StableItemKey::num(item.key))
+        };
+        response
+            | Tree::new(TREE_ID)
+                .node(&node)
+                .row(|_, _| {})
+                .update(cx, &mut self.state, &self.nodes)
+                .erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        let node = |item: &PerfTreeNode| self.node(item);
+        Tree::new(TREE_ID)
+            .node(&node)
+            .row(|_, _| {})
+            .draw(ui, ui.full(), &self.state, &self.nodes);
+    }
+}
+
+fn bench_tree_toggle(n: usize, iterations: usize) -> (Stats, usize) {
+    let node_accesses = Cell::new(0usize);
+    let app = TreeApp {
+        nodes: perf_tree_nodes(n),
+        state: TreeState::new(),
+        accesses: &node_accesses,
     };
-    let tree = Tree::new(TREE_ID).node(&node).row(|_, _| {});
-    let mut state = TreeState::new();
-    let mut scene = Scene::new("tree-toggle", Theme::junie(), ColorLevel::TrueColor, 80, 40);
-
-    scene.draw(|ui, area| {
-        tree.draw(ui, area, &state, &nodes);
-    });
-    assert_eq!(
-        node_accesses.get(),
-        nodes.len(),
-        "cold index did not scan once"
-    );
-
-    // Reserve the large visible projection once, matching the legacy warmed
-    // harness. Later toggles may change its length but not rebuild its source.
-    state.expand(StableItemKey::num(0));
-    scene.draw(|ui, area| {
-        tree.draw(ui, area, &state, &nodes);
-    });
-    state.collapse(StableItemKey::num(0));
-    scene.draw(|ui, area| {
-        tree.draw(ui, area, &state, &nodes);
-    });
+    let area = Rect::new(0, 0, 80, 40);
+    let (mut runtime, mut buffer) = collection_runtime(app, area);
+    // The cold assertion measures paint indexing; bootstrap update has its own index.
     node_accesses.set(0);
-
+    runtime.draw_buffer(area, &mut buffer).commit_presented();
+    assert_eq!(node_accesses.get(), n, "cold index did not scan once");
+    // Reserve the large projection with one real expand/collapse update pair.
+    collection_tick(&mut runtime, &mut buffer);
+    collection_tick(&mut runtime, &mut buffer);
+    node_accesses.set(0);
     let s = bench(1, iters(iterations), &mut || {
-        black_box(state.toggle(StableItemKey::num(0)));
-        scene.draw(|ui, area| {
-            tree.draw(ui, area, &state, &nodes);
-        });
-        black_box(state.toggle(StableItemKey::num(0)));
-        scene.draw(|ui, area| {
-            tree.draw(ui, area, &state, &nodes);
-        });
+        collection_tick(&mut runtime, &mut buffer);
+        collection_tick(&mut runtime, &mut buffer);
     });
+    assert!(
+        runtime.diagnostics().is_empty(),
+        "{:?}",
+        runtime.diagnostics()
+    );
     (s, node_accesses.get())
 }
 
@@ -425,24 +515,20 @@ fn bench_tree_render(nodes: &[PerfTreeNode]) -> (Stats, usize, usize, usize) {
     let mut state = TreeState::new();
     state.expand(StableItemKey::num(0));
     let mut scene = Scene::new("tree-render", Theme::junie(), ColorLevel::TrueColor, 80, 40);
-    scene.draw(|ui, area| {
-        tree.draw(ui, area, &state, nodes);
+    let model = (tree, state, nodes);
+    let mut bound = scene.bind_model(&model, |(tree, state, nodes), ui, area| {
+        black_box(tree.draw(ui, area, state, nodes));
     });
-
+    bound.draw();
     node_accesses.set(0);
     painted.set(0);
-    scene.draw(|ui, area| {
-        tree.draw(ui, area, &state, nodes);
-    });
+    bound.draw();
     let probe_nodes = node_accesses.get();
     let probe_rows = painted.get();
     node_accesses.set(0);
     painted.set(0);
-    let s = bench(2, iters(50), &mut || {
-        scene.draw(|ui, area| {
-            black_box(tree.draw(ui, area, &state, nodes));
-        });
-    });
+    let s = bench(2, iters(50), &mut || bound.draw());
+    drop(bound);
     let regions = scene.registry().map_or(0, Registry::len);
     (s.with_regions(regions, 1), probe_nodes, probe_rows, regions)
 }

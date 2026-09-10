@@ -108,12 +108,12 @@ pub(crate) const fn tokens() -> ColorTokens {
             diagnostic_info: PURPLE,
         },
         meter: MeterTokens {
-            low: GREEN,
+            low: WHITE_70,
             medium: AMBER,
             high: RED,
             track: WHITE_15,
-            fill_rest: WHITE_30,
-            stale: WHITE_50,
+            fill_rest: crate::theme::MeterFillRest::ReferenceLift,
+            stale: WHITE_30,
             unknown: WHITE_30,
             series: [GREEN, AMBER, RED, PURPLE, WHITE_70, WHITE_50],
         },
@@ -134,7 +134,8 @@ pub(crate) const GLYPHS: GlyphSet = GlyphSet::new(
         // array (Adjudication O2). They are kept empty so the array keeps one
         // entry per `GlyphRole` and nobody edits them expecting an effect.
         "", "", "", "", //
-        "✓", "∥", "+", "[", "]", "•", "▾", "▴",
+        // Canonical pause mark; Paper/from_tokens inherit this design too.
+        "✓", "‖", "+", "[", "]", "•", "▾", "▴",
     ],
     scrollbar::Set {
         track: "│",
@@ -191,4 +192,67 @@ pub(crate) const fn design() -> DesignTokens {
         },
         density: Density::Comfortable,
     }
+}
+
+/// The Junie list's interaction plane differs from the generic depth ladder.
+/// Keep this in the recipe so Paper and token-only themes retain their policy,
+/// while Junie-derived themes still bind all colours from their live tokens.
+pub(crate) fn recipes() -> crate::theme::Recipes {
+    use crate::theme::{Family, FgStep, Modifier, Role, Slot, StylePatch};
+    use crate::{Part, StateFlags};
+
+    let mut recipes = super::default_recipes();
+    let row = &mut recipes.get_mut(Family::LIST).parts;
+    let container = row.entry(Part::CONTAINER);
+    container.states.clear();
+    let p = StylePatch::new;
+    let hover = p().set_bg(Role::HoverSurface);
+    let pressed = p()
+        .set_fg(Role::Surface(crate::theme::Surface::Canvas))
+        .set_bg(Role::Fg(FgStep::Primary))
+        .add(Modifier::BOLD);
+    let disabled = p()
+        .set_fg(Role::DisabledFg)
+        .set_bg(Role::CurrentSurface)
+        .remove(Modifier::BOLD);
+    // Source order: selection, hover, error, busy, focus, pressed. Compound
+    // rules preserve that precedence under specificity-based accumulation.
+    container
+        .when(StateFlags::HOVERED, hover)
+        .when(StateFlags::ERROR, p().set_fg(Role::Danger))
+        .when(StateFlags::BUSY, p().set_fg(Role::Fg(FgStep::Secondary)))
+        .when(StateFlags::FOCUSED, p().add(Modifier::BOLD))
+        .when(
+            StateFlags::SELECTED | StateFlags::FOCUSED,
+            p().set_bg(Role::AccentTint),
+        )
+        .when(
+            StateFlags::SELECTED | StateFlags::FOCUSED | StateFlags::HOVERED,
+            hover,
+        )
+        .when(StateFlags::PRESSED, pressed)
+        .when(
+            StateFlags::SELECTED | StateFlags::FOCUSED | StateFlags::PRESSED,
+            pressed,
+        );
+    // Disabled wins over every combination, including a stale press/focus.
+    let states = container.states.clone();
+    container.when(StateFlags::DISABLED, disabled);
+    for rule in states.into_iter().filter(|rule| rule.specificity() > 1) {
+        container.when(rule.when | StateFlags::DISABLED, disabled);
+    }
+    row.entry(Part::GUTTER).when(
+        StateFlags::DISABLED,
+        StylePatch {
+            glyph: Slot::Clear,
+            ..p()
+        },
+    );
+    // Generic mono press fallback runs after ordinary recipes; keep its
+    // explicit inversion but restore the disabled container if both are live.
+    recipes.set_mono_rules(
+        Family::LIST,
+        vec![(Part::CONTAINER, StateFlags::DISABLED, disabled)],
+    );
+    recipes
 }

@@ -63,9 +63,11 @@ impl H {
         let _ = self.harness.type_str(s);
     }
 
-    /// Advance virtual time.
+    /// Admit one coalesced product tick per delayed monotonic wake.
     pub fn ticks(&mut self, n: usize) {
-        self.harness.ticks(n);
+        for _ in 0..n {
+            let _ = self.harness.advance(std::time::Duration::from_millis(200));
+        }
     }
 
     /// Send one pointer event.

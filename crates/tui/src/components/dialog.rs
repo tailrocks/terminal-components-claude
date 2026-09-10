@@ -44,15 +44,25 @@ pub enum DialogCmd {
     Activate,
 }
 
+const PREVIOUS_ACTION_BINDING: Binding<DialogCmd> = Binding {
+    action: ActionKey::custom("dialog.previous-action"),
+    chord: Some(Chord::key(KeyCode::Left)),
+    cmd: DialogCmd::PrevAction,
+    label: "Prev",
+    priority: 20,
+    visible: false,
+};
+const NEXT_ACTION_BINDING: Binding<DialogCmd> = Binding {
+    action: ActionKey::custom("dialog.next-action"),
+    chord: Some(Chord::key(KeyCode::Right)),
+    cmd: DialogCmd::NextAction,
+    label: "Next",
+    priority: 20,
+    visible: false,
+};
+const NAVIGATION_BINDINGS: &[Binding<DialogCmd>] = &[PREVIOUS_ACTION_BINDING, NEXT_ACTION_BINDING];
 const BINDINGS: &[Binding<DialogCmd>] = &[
-    Binding {
-        action: ActionKey::custom("dialog.previous-action"),
-        chord: Some(Chord::key(KeyCode::Left)),
-        cmd: DialogCmd::PrevAction,
-        label: "Prev",
-        priority: 20,
-        visible: false,
-    },
+    PREVIOUS_ACTION_BINDING,
     Binding {
         action: ActionKey::custom("dialog.activate.enter"),
         chord: Some(Chord::key(KeyCode::Enter)),
@@ -69,14 +79,7 @@ const BINDINGS: &[Binding<DialogCmd>] = &[
         priority: 10,
         visible: false,
     },
-    Binding {
-        action: ActionKey::custom("dialog.next-action"),
-        chord: Some(Chord::key(KeyCode::Right)),
-        cmd: DialogCmd::NextAction,
-        label: "Next",
-        priority: 20,
-        visible: false,
-    },
+    NEXT_ACTION_BINDING,
 ];
 
 const CONFIRM_ACTIONS: [Action<'static>; 2] = [
@@ -142,6 +145,12 @@ impl fmt::Debug for DialogState {
 }
 
 impl DialogState {
+    /// Whether the prompt or acknowledgement editor is actively editing.
+    /// This exposes no draft text, acknowledgement token, or comparison result.
+    pub const fn is_editing(&self) -> bool {
+        self.input.is_editing()
+    }
+
     /// The committed prompt text. Acknowledgement drafts return an empty
     /// string; the token is only compared inside the dialog.
     pub fn draft(&self) -> &str {
@@ -267,6 +276,7 @@ pub struct Dialog<'a> {
     width: Option<u16>,
     body_rows: Option<u16>,
     prompt: Option<&'a str>,
+    input_label: Option<&'a str>,
     ack: Option<&'a str>,
     error: Option<&'a str>,
     ov: PartStyle<'a>,
@@ -313,6 +323,7 @@ impl<'a> Dialog<'a> {
             width: None,
             body_rows: None,
             prompt: None,
+            input_label: None,
             ack: None,
             error: None,
             ov: PartStyle::new(),
@@ -347,6 +358,14 @@ impl<'a> Dialog<'a> {
         d.prompt = Some(label);
         d.body_rows = Some(0);
         d
+    }
+
+    /// Override the visible prompt or acknowledgement label without changing validation.
+    /// Omitted labels retain the constructor's default. The private draft is never exposed.
+    #[must_use]
+    pub const fn input_label(mut self, label: &'a str) -> Self {
+        self.input_label = Some(label);
+        self
     }
 
     /// A typed acknowledgement: the confirming action is armed only while
@@ -482,7 +501,7 @@ impl<'a> Dialog<'a> {
 
     fn armed(&self, st: &DialogState) -> bool {
         self.ack
-            .is_none_or(|tok| st.ack_draft.expose().trim() == tok)
+            .is_none_or(|tok| st.input.visible_text_equals(st.ack_draft.expose(), tok))
     }
 
     fn enabled(&self, i: usize, a: &Action<'_>, st: &DialogState) -> bool {
@@ -567,6 +586,19 @@ impl<'a> Dialog<'a> {
                 {
                     acc.action(DialogAction::Action(a.key()));
                     action_fired = true;
+                }
+            } else if committed && is_ack {
+                // Acknowledgement Enter only arms and leaves the editor. Execution
+                // requires a later deliberate activation of an enabled action.
+                if let Some(id) =
+                    self.effective_actions()
+                        .iter()
+                        .enumerate()
+                        .find_map(|(i, action)| {
+                            self.enabled(i, action, st).then_some(self.action_id(i))
+                        })
+                {
+                    cx.focus(id);
                 }
             }
         }
@@ -818,7 +850,10 @@ impl<'a> Dialog<'a> {
                         &st.draft
                     };
                     let input = self.input_control().value(value);
-                    let label = self.prompt.unwrap_or("Type the token to confirm");
+                    let label = self
+                        .input_label
+                        .or(self.prompt)
+                        .unwrap_or("Type the token to confirm");
                     Field::new(label, input)
                         .plain(true)
                         .error(self.error)
@@ -880,10 +915,15 @@ impl<'a> Dialog<'a> {
                             .disabled(!enabled)
                             .draw(ui, r);
                         if enabled {
+                            // Extend the Button table; publishing another static
+                            // table would replace its Enter/Space activation.
                             ui.publish_dynamic_bindings(
                                 action_id,
                                 ui.state(action_id),
-                                core::iter::once((a.key(), a.chord_ref())),
+                                NAVIGATION_BINDINGS
+                                    .iter()
+                                    .map(|binding| (binding.action, binding.chord))
+                                    .chain(core::iter::once((a.key(), a.chord_ref()))),
                             );
                         }
                         if let Some(chord) = ui.effective_chord(action_id, a.key(), a.chord_ref()) {
@@ -1002,7 +1042,8 @@ mod tests {
                     ui.register_decor(BODY, PartRef::of(Part::BODY), SCREEN);
                     42
                 });
-            });
+            })
+            .commit_presented();
             let inner = seen.get();
             assert_eq!(answer, 42, "body result became optional for {area:?}");
             assert_eq!(calls.get(), 1, "body traversal count for {area:?}");
@@ -1052,7 +1093,8 @@ mod tests {
                     ui.register_decor(BODY, PartRef::of(Part::BODY), SCREEN);
                     73
                 });
-        });
+        })
+        .commit_presented();
         assert_eq!(answer, 73);
         assert!(!inner.is_empty());
         for pos in SCREEN.positions() {
@@ -1088,12 +1130,14 @@ mod tests {
         let render = |dialog: &Dialog<'_>| {
             let (mut runtime, mut buffer) = scene();
             let calls = Cell::new(0usize);
-            runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-                dialog.draw(ui, area, &DialogState::default(), |ui, body| {
-                    calls.set(calls.get().saturating_add(1));
-                    ui.paint_str(body, "body-slot", ui.surface_style());
-                });
-            });
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                    dialog.draw(ui, area, &DialogState::default(), |ui, body| {
+                        calls.set(calls.get().saturating_add(1));
+                        ui.paint_str(body, "body-slot", ui.surface_style());
+                    });
+                })
+                .commit_presented();
             assert_eq!(calls.get(), 1);
             buffer
         };
@@ -1139,9 +1183,11 @@ mod tests {
         assert_eq!(dialog.effective_actions(), &ACTIONS[..Dialog::MAX_ACTIONS]);
 
         let (mut runtime, mut buffer) = scene();
-        runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-            dialog.draw(ui, area, &DialogState::default(), |_, _| {});
-        });
+        runtime
+            .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                dialog.draw(ui, area, &DialogState::default(), |_, _| {});
+            })
+            .commit_presented();
         for i in 0..Dialog::MAX_ACTIONS {
             assert!(runtime.area_of(dialog.action_id(i)).is_some());
         }
@@ -1222,7 +1268,8 @@ mod tests {
         let mut body = Rect::ZERO;
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             d.draw(ui, asked, &DialogState::default(), |_, area| body = area);
-        });
+        })
+        .commit_presented();
         assert_eq!(body.height, 3);
         assert!(asked.contains(Position::new(body.x, body.y)));
         let borders = theme.design.borders;
@@ -1255,10 +1302,11 @@ mod tests {
             }
         }
         let mut rt = Runtime::new(Centered::default(), Theme::junie());
+        let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf);
-        let _ = rt.handle(Input::Tick);
-        rt.draw_buffer(SCREEN, &mut buf);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         let area = rt
             .layer_area(DLG)
             .expect("resolver assigned the dialog area");
@@ -1298,14 +1346,15 @@ mod tests {
             }
         }
         let mut rt = Runtime::new(Growing::default(), Theme::junie());
+        let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf);
-        let _ = rt.handle(Input::Tick);
-        rt.draw_buffer(SCREEN, &mut buf);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         let before = rt.layer_area(DLG).expect("open layer");
         rt.app_mut().rows = 5;
-        let _ = rt.handle(Input::Tick);
-        rt.draw_buffer(SCREEN, &mut buf);
+        let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         let after = rt.layer_area(DLG).expect("resized layer");
         assert_eq!(after.height, before.height.saturating_add(6));
     }
@@ -1331,6 +1380,29 @@ mod tests {
     }
 
     #[test]
+    fn acknowledgement_requires_exact_current_draft_not_stale_commit() {
+        let d = acknowledge();
+        for draft in ["delet", "DELETE", " delete", "delete ", "deletex"] {
+            let mut st = DialogState::default();
+            st.set_secret_mode(true);
+            st.ack_draft.set(TOKEN);
+            st.input.begin(draft);
+            assert!(!d.armed(&st), "a differing live draft armed confirmation");
+        }
+        let mut st = DialogState::default();
+        st.set_secret_mode(true);
+        st.input.begin(TOKEN);
+        assert!(d.armed(&st), "exact live draft needs no preliminary commit");
+        assert!(!d.armed(&st.clone()), "redacted clone is not authorization");
+        for draft in [" delete", "delete "] {
+            let mut st = DialogState::default();
+            st.set_secret_mode(true);
+            st.ack_draft.set(draft);
+            assert!(!d.armed(&st), "committed whitespace must not be trimmed");
+        }
+    }
+
+    #[test]
     fn acknowledgement_frame_masks_confirmation_token() {
         let (mut rt, mut buf) = scene();
         let mut st = DialogState::default();
@@ -1338,7 +1410,8 @@ mod tests {
         st.set_secret_mode(true);
         rt.draw_scene(SCREEN, &mut buf, |ui, area| {
             acknowledge().draw(ui, area, &st, |_, _| {});
-        });
+        })
+        .commit_presented();
         let frame: String = buf
             .content()
             .iter()
@@ -1371,7 +1444,8 @@ mod tests {
         let mut buf = Buffer::empty(area);
         rt.draw_scene(area, &mut buf, |ui, a| {
             prompt().draw(ui, a, &st, |_, _| {});
-        });
+        })
+        .commit_presented();
         // the chrome's own region, not the editor's: `Field` registers its
         // block as `Decorative` under the control's id, and the control then
         // registers its one-row editor under the same `(id, CONTAINER)` key
@@ -1413,7 +1487,8 @@ mod tests {
 
         rt.draw_scene(SCREEN, &mut buf, |ui, area| {
             d.draw(ui, area, &st, |_, _| {});
-        });
+        })
+        .commit_presented();
 
         let frame: String = buf
             .content()
@@ -1463,13 +1538,14 @@ mod tests {
         }
 
         let mut rt = Runtime::new(DialogApp::default(), Theme::junie());
+        let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf);
-        let _ = rt.handle(Input::Tick);
-        rt.draw_buffer(SCREEN, &mut buf);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut rt, Input::Tick);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert!(rt.is_open(DLG), "the dialog sized and opened its own layer");
-        let _ = rt.handle(esc());
-        rt.draw_buffer(SCREEN, &mut buf);
+        let _ = crate::runtime::stub::deliver(&mut rt, esc());
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         assert!(!rt.is_open(DLG));
         assert_eq!(rt.app().dismissed, vec![DismissReason::Esc]);
         assert!(
@@ -1525,18 +1601,19 @@ mod tests {
         }
 
         let mut runtime = Runtime::new(DynamicDialogApp::default(), Theme::junie());
+        let _ = runtime.initialize();
         let mut buffer = Buffer::empty(SCREEN);
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        let _ = runtime.handle(Input::Tick);
-        runtime.draw_buffer(SCREEN, &mut buffer);
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        let _ = crate::runtime::stub::deliver(&mut runtime, Input::Tick);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         let key = |code| {
             Input::Key(Key {
                 code,
                 mods: KeyModifiers::NONE,
             })
         };
-        let _ = runtime.handle(key(KeyCode::F(4)));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::F(4)));
         assert_eq!(runtime.app().chosen, Some(QUICK));
 
         runtime.app_mut().chosen = None;
@@ -1545,11 +1622,11 @@ mod tests {
             QUICK,
             Chord::key(KeyCode::F(5)),
         );
-        let _ = runtime.handle(key(KeyCode::F(4)));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::F(4)));
         assert_eq!(runtime.app().chosen, None);
-        let _ = runtime.handle(key(KeyCode::F(5)));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::F(5)));
         assert_eq!(runtime.app().chosen, Some(QUICK));
-        runtime.draw_buffer(SCREEN, &mut buffer);
+        runtime.draw_buffer(SCREEN, &mut buffer).commit_presented();
         let painted = buffer
             .content()
             .iter()
@@ -1562,7 +1639,7 @@ mod tests {
             .app_mut()
             .keymap
             .remove_component(dialog().action_id(0), QUICK);
-        let _ = runtime.handle(key(KeyCode::F(5)));
+        let _ = crate::runtime::stub::deliver(&mut runtime, key(KeyCode::F(5)));
         assert_eq!(runtime.app().chosen, None);
     }
 
@@ -1580,7 +1657,8 @@ mod tests {
             let input = dlg.input_id();
             rt.draw_scene(SCREEN, &mut buf, |ui, a| {
                 ui.reference(None, |ui| dlg.draw(ui, a, &st, |_, _| {}));
-            });
+            })
+            .commit_presented();
             assert!(rt.registry().area_of(id).is_none(), "the chrome is live");
             assert!(
                 rt.registry().area_of(action0).is_none(),
@@ -1599,11 +1677,13 @@ mod tests {
         let render = |dialog: Dialog<'_>, target| {
             let (mut runtime, mut buffer) = scene();
             runtime.set_theme(Theme::junie().downgrade(crate::ColorLevel::Mono));
-            runtime.draw_scene(SCREEN, &mut buffer, |ui, area| {
-                ui.reference(target, |ui| {
-                    dialog.draw(ui, area, &DialogState::default(), |_, _| {});
-                });
-            });
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, area| {
+                    ui.reference(target, |ui| {
+                        dialog.draw(ui, area, &DialogState::default(), |_, _| {});
+                    });
+                })
+                .commit_presented();
             buffer
                 .content()
                 .iter()

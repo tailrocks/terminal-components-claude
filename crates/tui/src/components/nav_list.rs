@@ -16,6 +16,7 @@ use core::marker::PhantomData;
 
 use ratatui_core::layout::Rect;
 
+use super::scroll_region::ScrollRegion;
 use super::{Acc, PartStyle, SlotFn, cell_at};
 use crate::collection::{
     ByIndex, CollectionCore, DefaultRow, KeyFn, Reconcile, Reconciliation, RowFn, RowUi,
@@ -27,6 +28,7 @@ use crate::intent::{Intent, Phase};
 use crate::keymap::{Binding, BindingState, Bindings};
 use crate::measure::{Constraints, Size};
 use crate::response::{Response, StateFlags};
+use crate::scroll::ScrollState;
 use crate::text::width;
 use crate::theme::{Family, Slot, StylePatch, Variant};
 use crate::ui::{Cx, FrameRead, Ui};
@@ -34,6 +36,9 @@ use crate::ui::{Cx, FrameRead, Ui};
 /// An entry's badge accessor: the trailing text for an entry, or `None`
 /// when it has no badge.
 pub type BadgeFn<'a, T> = &'a dyn Fn(&T) -> Option<&str>;
+
+/// Borrowed full-row paint override, clipped to the component's row geometry.
+type NavRowRenderer<'a, T> = &'a dyn Fn(&mut Ui<'_>, Rect, StateFlags, ItemKey, &T);
 
 /// How much of a nav row is shown.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -54,6 +59,10 @@ pub enum NavListAction {
     Chose(ItemKey),
     /// A destination was chosen and its content pane should receive focus.
     EnterContent(ItemKey),
+    /// Moving before the first enabled row requested leaving an opted-in list.
+    LeaveBackward,
+    /// Moving after the last enabled row requested leaving an opted-in list.
+    LeaveForward,
 }
 
 /// The const-constructible commands of the nav keymap.
@@ -207,6 +216,12 @@ impl NavListState {
         self.core.cursor()
     }
 
+    /// The shared visual-row scroll state, read-only.
+    #[must_use]
+    pub const fn scroll(&self) -> &ScrollState {
+        self.core.scroll()
+    }
+
     /// The current destination.
     #[must_use]
     pub const fn current(&self) -> Option<ItemKey> {
@@ -272,7 +287,10 @@ impl Reconcile for NavListState {
 /// `.disabled(bool)` (default `false`), `.key(Fn(&T) -> ItemKey)`
 /// (`ByIndex`, unstable under reorder), `.row(Fn(&T, &mut RowUi))`
 /// (`DefaultRow`: `Display`), `.patch`, `.patch_part`, `.slot`,
-/// runtime state.
+/// runtime state. `.compact()` hides grouping rows; `.compact_when_clipped()`
+/// chooses compact grouping only when expanded rows exceed available height.
+/// `.header_indent(cells)` sets heading inset; `.render_row(callback)` replaces
+/// the default row painter inside the same clipped layout traversal.
 ///
 /// ## Variants
 /// `Family::LIST`, `DEFAULT` only. A nav list resolves through the list
@@ -307,12 +325,14 @@ impl Reconcile for NavListState {
 /// Disabled entries register no region at all, so they cannot be clicked.
 ///
 /// ## Layout
-/// Every section change after the first gets one blank separator. Full mode
+/// By default every section change after the first gets one blank separator. Full mode
 /// then paints a nonempty heading; collapsed mode paints no heading. Every
 /// entry gets gutter, current-marker and icon cells; full mode also invokes
 /// the renderer with the badge budget already reserved on the right. Rows
-/// are laid out from the top and clipped at the bottom — a nav list does
-/// **not** scroll. `measure` is `(6…, entries)` collapsed and
+/// are laid out from the top and clipped at the bottom by default.
+/// `.scrollable(true)` enables shared vertical scrolling; headings and
+/// separators count toward the visual extent. Cursor motion reveals the
+/// keyed row; wheel scrolling keeps the cursor unchanged. `measure` is `(6…, entries)` collapsed and
 /// `(12…, entries)` full; `draw` returns `area`. `0×0` registers nothing
 /// (R5).
 ///
@@ -321,7 +341,8 @@ impl Reconcile for NavListState {
 /// focus column), `MARKER` (the current-destination affordance), `ICON` (the
 /// icon column), `HEADER` (a section heading), `BADGE` (an entry's badge),
 /// `LABEL` (resolved through [`RowUi`] by the row renderer, `NavMode::Full`
-/// only). `Part::ROW` is a hit region only and is deliberately not styled.
+/// only). `TRACK` and `THUMB` style the opt-in scrollbar. `Part::ROW` is a
+/// hit region only and is deliberately not styled.
 ///
 /// ## Overrides
 /// `.patch` and `.patch_part` reach every member of [`Self::PARTS`]. The
@@ -348,16 +369,26 @@ impl Reconcile for NavListState {
 /// nothing per row; the cursor and the destination are independent, so
 /// arrowing through the sidebar never navigates; the row renderer runs only
 /// for visible full-mode item rows.
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "Disabled admission, scrolling, scrollbar presentation and boundary exit are independent opt-in policies, not exclusive runtime states"
+)]
 pub struct NavList<'a, T, K = ByIndex, R = DefaultRow> {
     id: Id,
     key: K,
     row: R,
     mode: NavMode,
+    compact: Option<bool>,
+    header_indent: u16,
+    render_row: Option<NavRowRenderer<'a, T>>,
     section: Option<&'a dyn Fn(&T) -> &str>,
     icon: Option<&'a dyn Fn(&T) -> &str>,
     badge: Option<BadgeFn<'a, T>>,
     disabled_item: Option<&'a dyn Fn(&T) -> bool>,
     disabled: bool,
+    scrollable: bool,
+    scrollbar_visible: bool,
+    leave_at_boundary: bool,
     ov: PartStyle<'a>,
     _t: PhantomData<fn(&T)>,
 }
@@ -382,11 +413,17 @@ impl<T> NavList<'_, T, ByIndex, DefaultRow> {
             key: ByIndex,
             row: DefaultRow,
             mode: NavMode::Full,
+            compact: Some(false),
+            header_indent: 1,
+            render_row: None,
             section: None,
             icon: None,
             badge: None,
             disabled_item: None,
             disabled: false,
+            scrollable: false,
+            scrollbar_visible: true,
+            leave_at_boundary: false,
             ov: PartStyle::new(),
             _t: PhantomData,
         }
@@ -394,6 +431,15 @@ impl<T> NavList<'_, T, ByIndex, DefaultRow> {
 }
 
 impl<'a, T, K, R> NavList<'a, T, K, R> {
+    /// Report directional exits beyond enabled rows instead of consuming them.
+    ///
+    /// Defaults to false. The caller decides where focus moves. Cursor and
+    /// current destination remain unchanged; empty lists and Home/End never exit.
+    #[must_use]
+    pub const fn leave_at_boundary(mut self, leave: bool) -> Self {
+        self.leave_at_boundary = leave;
+        self
+    }
     /// The parts this component styles.
     pub const PARTS: &'static [Part] = &[
         Part::CONTAINER,
@@ -403,6 +449,8 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         Part::LABEL,
         Part::HEADER,
         Part::BADGE,
+        Part::TRACK,
+        Part::THUMB,
     ];
 
     /// The width a full sidebar prefers.
@@ -426,10 +474,62 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
         }
     }
 
+    /// Enable shared vertical scrolling and cursor reveal. Default: false.
+    #[must_use]
+    pub const fn scrollable(mut self, yes: bool) -> Self {
+        self.scrollable = yes;
+        self
+    }
+
+    /// Show and reserve the overflow scrollbar column when scrolling is enabled.
+    /// Default: true. False retains shared wheel routing and cursor reveal,
+    /// gives rows the full width, and registers no scrollbar pointer parts.
+    /// Use the same policy in update and draw.
+    #[must_use]
+    pub const fn scrollbar_visible(mut self, visible: bool) -> Self {
+        self.scrollbar_visible = visible;
+        self
+    }
+
     /// Full or collapsed.
     #[must_use]
     pub const fn mode(mut self, m: NavMode) -> Self {
         self.mode = m;
+        self
+    }
+
+    /// Hide section headings and separator rows, retaining full labels.
+    /// This is independent of the icon-only [`NavMode::Collapsed`] mode.
+    #[must_use]
+    pub const fn compact(mut self) -> Self {
+        self.compact = Some(true);
+        self
+    }
+
+    /// Hide headings and separators when all expanded rows would not fit.
+    /// Painting and input registration use this same policy and traversal.
+    #[must_use]
+    pub const fn compact_when_clipped(mut self) -> Self {
+        self.compact = None;
+        self
+    }
+
+    /// Horizontal inset of section text; the default is one cell.
+    #[must_use]
+    pub const fn header_indent(mut self, cells: u16) -> Self {
+        self.header_indent = cells;
+        self
+    }
+
+    /// Replace the entire row's painting, including its chrome.
+    /// The callback borrows each visible item, receives resolved interaction
+    /// flags and its stable key, and is clipped to the authoritative row rect.
+    /// The component still owns registration, navigation and disabled behavior.
+    /// No default row painter runs first. Instance part patches and slots apply
+    /// to the default painter; custom painters resolve their own semantic parts.
+    #[must_use]
+    pub fn render_row(mut self, renderer: NavRowRenderer<'a, T>) -> Self {
+        self.render_row = Some(renderer);
         self
     }
 
@@ -478,11 +578,17 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
             key: k,
             row: self.row,
             mode: self.mode,
+            compact: self.compact,
+            header_indent: self.header_indent,
+            render_row: self.render_row,
             section: self.section,
             icon: self.icon,
             badge: self.badge,
             disabled_item: self.disabled_item,
             disabled: self.disabled,
+            scrollable: self.scrollable,
+            scrollbar_visible: self.scrollbar_visible,
+            leave_at_boundary: self.leave_at_boundary,
             ov: self.ov,
             _t: PhantomData,
         }
@@ -495,11 +601,17 @@ impl<'a, T, K, R> NavList<'a, T, K, R> {
             key: self.key,
             row: r,
             mode: self.mode,
+            compact: self.compact,
+            header_indent: self.header_indent,
+            render_row: self.render_row,
             section: self.section,
             icon: self.icon,
             badge: self.badge,
             disabled_item: self.disabled_item,
             disabled: self.disabled,
+            scrollable: self.scrollable,
+            scrollbar_visible: self.scrollbar_visible,
+            leave_at_boundary: self.leave_at_boundary,
             ov: self.ov,
             _t: PhantomData,
         }
@@ -617,6 +729,40 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         acc.action(NavListAction::Chose(key));
     }
 
+    fn step_cursor(
+        &self,
+        st: &mut NavListState,
+        items: &[T],
+        forward: bool,
+        acc: &mut Acc<NavListAction>,
+    ) {
+        let current = st.core.cursor_index();
+        let next = if forward {
+            self.seek(items, current.saturating_add(1), true)
+        } else {
+            current
+                .checked_sub(1)
+                .and_then(|from| self.seek(items, from, false))
+        };
+        if let Some(index) = next {
+            let key = self.key_at(items, index);
+            if st.core.cursor() == Some(key) {
+                acc.consumed();
+            } else {
+                st.core.set_cursor(index, key);
+                acc.action(NavListAction::Moved(key));
+            }
+        } else if self.leave_at_boundary && self.enabled_at(items, current) {
+            acc.action(if forward {
+                NavListAction::LeaveForward
+            } else {
+                NavListAction::LeaveBackward
+            });
+        } else {
+            acc.consumed();
+        }
+    }
+
     fn enter_content(
         &self,
         st: &mut NavListState,
@@ -635,6 +781,55 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         acc.action(NavListAction::EnterContent(key));
     }
 
+    fn prepare_state(&self, cx: &Cx<'_>, st: &mut NavListState, items: &[T]) -> usize {
+        let len = items.len();
+        let area = cx.area(self.id).unwrap_or_default();
+        let compact = self.is_compact(area, items);
+        let before_cursor = (st.core.cursor(), st.core.cursor_index());
+        let extent = if self.scrollable {
+            self.extent(items, compact)
+        } else {
+            len
+        };
+        let _ = st.core.reconcile_with_extent(
+            len,
+            extent,
+            |i| self.key_at(items, i),
+            |i| self.enabled_at(items, i),
+        );
+        st.reconcile_current(len, &|i| self.key_at(items, i));
+        if st.core.cursor().is_none()
+            && let Some(i) = self.seek(items, 0, true)
+        {
+            st.core.set_cursor(i, self.key_at(items, i));
+        }
+        if self.scrollable
+            && st.core.cursor().is_some()
+            && !self.enabled_at(items, st.core.cursor_index())
+        {
+            if let Some(i) = self
+                .seek(items, st.core.cursor_index(), true)
+                .or_else(|| self.seek(items, st.core.cursor_index(), false))
+            {
+                st.core.set_cursor(i, self.key_at(items, i));
+            } else {
+                st.core.clear_cursor();
+            }
+        }
+        if self.scrollable
+            && before_cursor != (st.core.cursor(), st.core.cursor_index())
+            && st.core.cursor().is_some()
+        {
+            let index = st.core.cursor_index();
+            st.core.scroll_mut().ensure_visible_on_next_layout(index);
+        }
+        if self.scrollable {
+            let view = self.scroll_view(st, items, area, compact);
+            *st.core.scroll_mut() = view;
+        }
+        extent
+    }
+
     /// The update phase: reconcile, then drain keys and the pointer.
     pub fn update(
         &self,
@@ -645,19 +840,11 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         if self.disabled {
             return Response::ignored();
         }
-        let len = items.len();
-        let _ = st.core.reconcile_with(
-            len,
-            |i| self.key_at(items, i),
-            |i| self.enabled_at(items, i),
-        );
-        st.reconcile_current(len, &|i| self.key_at(items, i));
-        if st.core.cursor().is_none()
-            && let Some(i) = self.seek(items, 0, true)
-        {
-            st.core.set_cursor(i, self.key_at(items, i));
-        }
+        let extent = self.prepare_state(cx, st, items);
         let mut acc = Acc::<NavListAction>::new();
+        if self.scrollable {
+            acc.fold(&self.scrollbar().update(cx, st.core.scroll_mut(), extent));
+        }
         let table = self.table();
         for it in cx.intents(self.id) {
             match it {
@@ -665,14 +852,10 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
                     let cur = st.core.cursor_index();
                     match Binding::command(table, action) {
                         Some(NavListCmd::Up) => {
-                            if cur == 0 {
-                                acc.consumed();
-                            } else {
-                                self.move_cursor(st, items, cur.saturating_sub(1), false, &mut acc);
-                            }
+                            self.step_cursor(st, items, false, &mut acc);
                         }
                         Some(NavListCmd::Down) => {
-                            self.move_cursor(st, items, cur.saturating_add(1), true, &mut acc);
+                            self.step_cursor(st, items, true, &mut acc);
                         }
                         Some(NavListCmd::Home) => self.move_cursor(st, items, 0, true, &mut acc),
                         Some(NavListCmd::End) => {
@@ -718,11 +901,75 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         acc.finish(self.id)
     }
 
-    /// The draw phase.
-    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &NavListState, items: &[T]) -> Rect {
-        if area.is_empty() {
-            return area;
+    // One traversal owns headings, separators and item visual positions.
+    fn rows<'b>(
+        &'b self,
+        items: &'b [T],
+        compact: bool,
+    ) -> impl Iterator<Item = (usize, usize, Option<(usize, &'b str)>)> + 'b {
+        let mut next = 0_usize;
+        let mut previous = None;
+        items.iter().enumerate().map(move |(i, item)| {
+            let section = self.section_of(item);
+            let mut header = None;
+            if !compact && previous != Some(section) {
+                next = next.saturating_add(usize::from(previous.is_some()));
+                if self.mode == NavMode::Full && !section.is_empty() {
+                    header = Some((next, section));
+                    next = next.saturating_add(1);
+                }
+            }
+            previous = Some(section);
+            let row = next;
+            next = next.saturating_add(1);
+            (i, row, header)
+        })
+    }
+
+    fn extent(&self, items: &[T], compact: bool) -> usize {
+        self.rows(items, compact)
+            .last()
+            .map_or(0, |(_, row, _)| row.saturating_add(1))
+    }
+
+    fn visual_row(&self, items: &[T], compact: bool, index: usize) -> Option<usize> {
+        self.rows(items, compact)
+            .find_map(|(i, row, _)| (i == index).then_some(row))
+    }
+
+    fn scroll_view(
+        &self,
+        st: &NavListState,
+        items: &[T],
+        area: Rect,
+        compact: bool,
+    ) -> ScrollState {
+        let mut scroll = *st.core.scroll();
+        if (scroll.pending_reveal().is_some() || scroll.viewport_len() != usize::from(area.height))
+            && let Some(row) = st
+                .core
+                .cursor()
+                .and_then(|_| self.visual_row(items, compact, st.core.cursor_index()))
+        {
+            scroll.ensure_visible_on_next_layout(row);
         }
+        scroll.apply_layout(usize::from(area.height), self.extent(items, compact));
+        scroll
+    }
+
+    fn scrollbar(&self) -> ScrollRegion<'_> {
+        ScrollRegion::new(self.id)
+            .scrollbar_visible(self.scrollbar_visible)
+            .inherit_family(Family::LIST)
+            .with_overrides(self.ov)
+    }
+
+    fn is_compact(&self, area: Rect, items: &[T]) -> bool {
+        self.compact
+            .unwrap_or_else(|| self.extent(items, false) > usize::from(area.height))
+    }
+
+    fn register(&self, ui: &mut Ui<'_>, area: Rect) -> StateFlags {
         if !ui.is_inert() {
             ui.register_control(
                 self.id,
@@ -738,41 +985,70 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
         if !ui.is_inert() {
             ui.publish_bindings(self.id, live, self.table());
         }
+        live
+    }
+
+    /// The draw phase.
+    pub fn draw(&self, ui: &mut Ui<'_>, area: Rect, st: &NavListState, items: &[T]) -> Rect {
+        if area.is_empty() {
+            return area;
+        }
+        let live = self.register(ui, area);
         let container = self.ov.style(
             ui,
             self.id,
             Family::LIST,
             Variant::DEFAULT,
             Part::CONTAINER,
-            live.difference(StateFlags::FOCUSED | StateFlags::PRESSED | StateFlags::SELECTED),
+            live.difference(
+                StateFlags::FOCUSED
+                    | StateFlags::PRESSED
+                    | StateFlags::SELECTED
+                    | StateFlags::HOVERED,
+            ),
         );
-        ui.fill(area, container.style);
-        let mut y = area.y;
+        let compact = self.is_compact(area, items);
+        let view = if self.scrollable {
+            self.scroll_view(st, items, area, compact)
+        } else {
+            *st.core.scroll()
+        };
+        let content = if self.scrollable {
+            self.scrollbar().draw(ui, area, &view, view.content_len())
+        } else {
+            area
+        };
+        ui.fill(content, container.style);
+        let offset = if self.scrollable { view.offset() } else { 0 };
+        let limit = offset.saturating_add(usize::from(content.height));
         let hovered = ui.hovered_part(self.id);
         let pressed = ui.pressed_part(self.id);
-        let mut section: Option<&str> = None;
-        for (i, item) in items.iter().enumerate() {
-            if y >= area.bottom() {
+        for (i, visual_row, header) in self.rows(items, compact) {
+            if let Some((row, text)) = header
+                && (offset..limit).contains(&row)
+            {
+                self.paint_header(
+                    ui,
+                    row_at(
+                        content,
+                        content.y.saturating_add(row.saturating_sub(offset) as u16),
+                    ),
+                    text,
+                    live,
+                );
+            }
+            if visual_row >= limit {
                 break;
             }
-            let s = self.section_of(item);
-            let new_group = section != Some(s);
-            if new_group {
-                if section.is_some() {
-                    y = y.saturating_add(1);
-                }
-                if y >= area.bottom() {
-                    break;
-                }
-                if self.mode == NavMode::Full && !s.is_empty() {
-                    self.paint_header(ui, row_at(area, y), s, live);
-                    y = y.saturating_add(1);
-                }
-                section = Some(s);
-                if y >= area.bottom() {
-                    break;
-                }
+            if visual_row < offset {
+                continue;
             }
+            let y = content
+                .y
+                .saturating_add(visual_row.saturating_sub(offset) as u16);
+            let Some(item) = items.get(i) else {
+                continue;
+            };
             let key = self.key_at(items, i);
             let mut flags = StateFlags::empty();
             let is_cursor = st.core.cursor() == Some(key);
@@ -795,12 +1071,15 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
                 flags |= StateFlags::DISABLED;
                 flags = flags.difference(StateFlags::PRESSED | StateFlags::HOVERED);
             }
-            let rect = row_at(area, y);
-            self.paint_row(ui, rect, flags, key, item);
+            let rect = row_at(content, y);
+            if let Some(renderer) = self.render_row {
+                ui.with_area(rect, |ui| renderer(ui, rect, flags, key, item));
+            } else {
+                self.paint_row(ui, rect, flags, key, item);
+            }
             if !ui.is_inert() && !self.is_disabled(item) {
                 ui.register_part(self.id, PartRef::item(Part::ROW, key), rect);
             }
-            y = y.saturating_add(1);
         }
         area
     }
@@ -816,12 +1095,17 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
             Family::LIST,
             Variant::DEFAULT,
             Part::HEADER,
-            live.difference(StateFlags::FOCUSED | StateFlags::PRESSED | StateFlags::SELECTED),
+            live.difference(
+                StateFlags::FOCUSED
+                    | StateFlags::PRESSED
+                    | StateFlags::SELECTED
+                    | StateFlags::HOVERED,
+            ),
         );
         ui.fill(rect, h.style);
         let inner = Rect {
-            x: rect.x.saturating_add(1),
-            width: rect.width.saturating_sub(1),
+            x: rect.x.saturating_add(self.header_indent),
+            width: rect.width.saturating_sub(self.header_indent),
             ..rect
         };
         ui.paint_str(inner, text, h.style);

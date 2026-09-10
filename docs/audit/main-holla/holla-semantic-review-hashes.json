@@ -1,0 +1,38 @@
+{
+  "semantic-review.md": {
+    "bytes": 25863,
+    "sha256": "05ad9abe6f1a7ea5d6e5290a7bda3a1cde79bf6b6ec9a9f261dffe47409bbf58"
+  },
+  "AUDIT.md": {
+    "bytes": 10746,
+    "sha256": "057d32f2473200b5ac2fda29bfcc6c4a0f14ad6fce89bd3c2d9881e0753369cb"
+  },
+  "disposition.tsv": {
+    "bytes": 285600,
+    "sha256": "ceb35fc15674ac1a221a0a0c515cce6d46aa8322df21350e8e0db14a6486eead"
+  },
+  "commit-index.tsv": {
+    "bytes": 2508,
+    "sha256": "14d1ecf608f2ab56f0d77418ba3dea37ec38a8b9406c5826da17853cf8b7188b"
+  },
+  "MAIN_DESIGN.md": {
+    "bytes": 66360,
+    "sha256": "0d1c7fdc025b630fb6c75030fc8401b73593f6c958f1400e604fb3232a140238"
+  },
+  "HOLLA_DESIGN.md": {
+    "bytes": 67453,
+    "sha256": "9875897a09b5e71eb08960a0e91060e43fb4ecba15898747cbde8f19b4760d90"
+  },
+  "deleted/GOAL.md": {
+    "bytes": 52598,
+    "sha256": "32c9b983f9c798d8f679e7905c33957d11474e3fd2069fd27a4377ffdebfd26f"
+  },
+  "deleted/FEEDBACK.md": {
+    "bytes": 29168,
+    "sha256": "ab4abfd9404765811f554e46ceb772fad05c423b43e6c0ea07ae4c4035ba8b52"
+  },
+  "deleted/JACKIN_REFERENCE.md": {
+    "bytes": 205046,
+    "sha256": "9aada2448e24217bc33bf16c2fd33bbe75ecaccb1bf0c805044aeeecbff597d0"
+  }
+}

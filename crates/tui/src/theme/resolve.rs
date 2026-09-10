@@ -18,12 +18,197 @@ use super::role::{Align, MeterRole, Role, Surface, SyntaxRole};
 use crate::id::{Part, fnv1a};
 use crate::response::StateFlags;
 
+/// Bound paint attributes together with their semantic origin.
+///
+/// Raw colours deliberately carry no role. A copy retains its origin even
+/// when painted after another query or outside its original surface scope.
+/// Direct mutation cannot leave semantic metadata describing an old colour:
+///
+/// ```compile_fail
+/// use junie_tui::theme::PaintStyle;
+/// use ratatui_core::style::Color;
+/// let mut style = PaintStyle::new();
+/// style.bg = Some(Color::Red);
+/// ```
+#[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
+pub struct PaintStyle {
+    style: Style,
+    pub(crate) fg_role: Option<(Role, Surface)>,
+    pub(crate) bg_role: Option<(Role, Surface)>,
+}
+
+impl PaintStyle {
+    /// An inheriting style with no explicit attributes.
+    #[must_use]
+    pub const fn new() -> Self {
+        Self {
+            style: Style::new(),
+            fg_role: None,
+            bg_role: None,
+        }
+    }
+
+    pub(crate) fn bound(
+        style: Style,
+        fg: Option<Role>,
+        bg: Option<Role>,
+        surface: Surface,
+    ) -> Self {
+        Self {
+            style,
+            fg_role: fg.filter(|_| style.fg.is_some()).map(|r| (r, surface)),
+            bg_role: bg.filter(|_| style.bg.is_some()).map(|r| (r, surface)),
+        }
+    }
+
+    /// Borrow the raw attributes for a foreign renderer. This erases semantics
+    /// at that boundary; Junie painters should receive the carrier itself.
+    #[must_use]
+    pub const fn as_style(&self) -> &Style {
+        &self.style
+    }
+
+    /// Explicitly discard semantic provenance at a foreign renderer boundary.
+    #[must_use]
+    pub const fn into_style(self) -> Style {
+        self.style
+    }
+
+    /// Set a raw foreground, discarding only its semantic provenance.
+    #[must_use]
+    pub fn fg(mut self, color: Color) -> Self {
+        self.style = self.style.fg(color);
+        self.fg_role = None;
+        self
+    }
+
+    /// Set a raw background, discarding only its semantic provenance.
+    #[must_use]
+    pub fn bg(mut self, color: Color) -> Self {
+        self.style = self.style.bg(color);
+        self.bg_role = None;
+        self
+    }
+
+    /// Copy the fg channel and its semantic origin into the fg channel.
+    #[must_use]
+    pub fn with_fg_from(mut self, other: Self) -> Self {
+        self.style.fg = other.style.fg;
+        self.fg_role = other.fg_role;
+        self
+    }
+
+    /// Copy the bg channel and its semantic origin into the bg channel.
+    #[must_use]
+    pub fn with_bg_from(mut self, other: Self) -> Self {
+        self.style.bg = other.style.bg;
+        self.bg_role = other.bg_role;
+        self
+    }
+
+    /// Copy the bg channel and its semantic origin into the fg channel.
+    #[must_use]
+    pub fn with_fg_from_bg(mut self, other: Self) -> Self {
+        self.style.fg = other.style.bg;
+        self.fg_role = other.bg_role;
+        self
+    }
+
+    /// Copy the fg channel and its semantic origin into the bg channel.
+    #[must_use]
+    pub fn with_bg_from_fg(mut self, other: Self) -> Self {
+        self.style.bg = other.style.fg;
+        self.bg_role = other.fg_role;
+        self
+    }
+
+    /// Set the underline colour; foreground/background origins are unchanged.
+    #[must_use]
+    pub fn underline_color(mut self, color: Color) -> Self {
+        self.style = self.style.underline_color(color);
+        self
+    }
+
+    /// Add modifiers without changing colour origins.
+    #[must_use]
+    pub fn add_modifier(mut self, modifier: ratatui_core::style::Modifier) -> Self {
+        self.style = self.style.add_modifier(modifier);
+        self
+    }
+
+    /// Remove modifiers without changing colour origins.
+    #[must_use]
+    pub fn remove_modifier(mut self, modifier: ratatui_core::style::Modifier) -> Self {
+        self.style = self.style.remove_modifier(modifier);
+        self
+    }
+
+    /// Layer explicit channels from `other`, preserving inherited origins.
+    #[must_use]
+    pub fn patch(mut self, other: impl Into<Self>) -> Self {
+        let other = other.into();
+        if other.style.fg.is_some() {
+            self.fg_role = other.fg_role;
+        }
+        if other.style.bg.is_some() {
+            self.bg_role = other.bg_role;
+        }
+        self.style = self.style.patch(other.style);
+        self
+    }
+}
+
+impl From<Style> for PaintStyle {
+    fn from(style: Style) -> Self {
+        Self {
+            style,
+            fg_role: None,
+            bg_role: None,
+        }
+    }
+}
+
+// Read-only attribute inspection cannot detach or mutate the carried origins.
+impl std::ops::Deref for PaintStyle {
+    type Target = Style;
+    fn deref(&self) -> &Style {
+        &self.style
+    }
+}
+
+/// Role-level defaults supplied by a component author without installing a
+/// theme recipe. Unlike ordinary unknown-family resolution, opting into
+/// these defaults does not add the neutral recipe underneath them.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct StyleDefaults<'a> {
+    /// The authored role pair and modifiers before theme recipes and fallback.
+    pub base: StylePatch,
+    /// This author's whole targeted Mono manifest. Generic Mono rules still
+    /// apply first; a theme's `mono_rules` replaces this slice, including `&[]`.
+    pub mono: &'a [super::MonoRule],
+}
+
+impl<'a> StyleDefaults<'a> {
+    /// Start with role-level defaults and no targeted Mono rules.
+    #[must_use]
+    pub const fn new(base: StylePatch) -> Self {
+        Self { base, mono: &[] }
+    }
+
+    /// Supply the author's targeted Mono fallback manifest.
+    #[must_use]
+    pub const fn mono(mut self, rules: &'a [super::MonoRule]) -> Self {
+        self.mono = rules;
+        self
+    }
+}
+
 /// The result of a style query.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub struct Resolved {
     /// The style, with colours bound; apply over the inherited surface
-    /// style with `inherited.patch(resolved.style)` (§22 R‑9).
-    pub style: Style,
+    /// carrier with `resolved.over(inherited)` (§22 R‑9).
+    pub style: PaintStyle,
     /// The glyph binding for the part. `Set` paints that glyph, `Inherit`
     /// leaves the caller's fallback in control, and `Clear` suppresses it
     /// (§5 R9).
@@ -41,8 +226,8 @@ impl Resolved {
     /// Write `ui.fill(area, r.over(ui.surface_style()))`: the inherited style
     /// is the **left** operand, this part's style the right.
     #[must_use]
-    pub fn over(self, inherited: Style) -> Style {
-        inherited.patch(self.style)
+    pub fn over(self, inherited: impl Into<PaintStyle>) -> PaintStyle {
+        inherited.into().patch(self.style)
     }
 
     /// The surface-independent half: glyph, size and alignment.
@@ -96,38 +281,95 @@ pub(crate) fn accumulate(
     live: StateFlags,
     overlays: &[Overlay],
 ) -> StylePatch {
-    let mut acc = StylePatch::new();
+    let (defaults, variant) = accumulate_defaults(theme, f, v, p, live);
+    apply_explicit(theme, (f, variant, p), live, overlays, defaults)
+}
+
+fn accumulate_defaults(
+    theme: &Theme,
+    f: Family,
+    v: Variant,
+    p: Part,
+    live: StateFlags,
+) -> (StylePatch, Variant) {
     let recipes = &theme.recipes;
-    // A family nobody declared resolves through the neutral recipe (§11.2).
-    let r = recipes.get_or_neutral(f);
-    let variant = if v == Variant::DEFAULT {
-        r.default_variant
-    } else {
-        v
-    };
-    let fam = r.parts.get(p);
-    let var = r.variant(variant).and_then(|m| m.get(p));
-    // 1: the family base
-    if let Some(part) = fam {
-        acc = part.apply_base(acc);
-    }
-    // 2: the variant delta's base
-    if let Some(part) = var {
-        acc = part.apply_base(acc);
-    }
-    // 3: family and variant state rules are one level, merged in ascending
-    //    specificity with the family's rule first on a tie
-    acc = super::recipe::merge_states(
-        acc,
-        fam.map_or(&[][..], |x| &x.states),
-        var.map_or(&[][..], |x| &x.states),
-        live,
-    );
+    // Ordinary queries retain the neutral unknown-family contract.
+    let (mut acc, variant) = apply_recipe(recipes.get_or_neutral(f), v, p, live, StylePatch::new());
     // §11.4: mono fallback is a private static layer. It follows ordinary
     // family/variant states and precedes all author overrides.
     if theme.capability.color == super::ColorLevel::Mono {
         acc = super::downgrade::apply_mono_fallback(acc, recipes, f, p, live);
     }
+    (acc, variant)
+}
+
+fn apply_recipe(
+    recipe: &super::Recipe,
+    requested: Variant,
+    part: Part,
+    live: StateFlags,
+    mut acc: StylePatch,
+) -> (StylePatch, Variant) {
+    let variant = if requested == Variant::DEFAULT {
+        recipe.default_variant
+    } else {
+        requested
+    };
+    let family = recipe.parts.get(part);
+    let delta = recipe.variant(variant).and_then(|m| m.get(part));
+    if let Some(part) = family {
+        acc = part.apply_base(acc);
+    }
+    if let Some(part) = delta {
+        acc = part.apply_base(acc);
+    }
+    acc = super::recipe::merge_states(
+        acc,
+        family.map_or(&[][..], |p| &p.states),
+        delta.map_or(&[][..], |p| &p.states),
+        live,
+    );
+    (acc, variant)
+}
+
+/// Resolve author defaults before recipes, Mono policy, and all explicit
+/// overrides. It deliberately does not cache caller-supplied defaults by the
+/// ordinary family/part key, which cannot identify their content or lifetime.
+pub(crate) fn bind_defaults(
+    theme: &Theme,
+    (family, variant, part): (Family, Variant, Part),
+    flags: StateFlags,
+    overlays: &[Overlay],
+    surface: Surface,
+    defaults: StyleDefaults<'_>,
+    local: Option<&StylePatch>,
+) -> Resolved {
+    let (mut acc, variant) = match theme.recipes.get(family) {
+        Some(recipe) => apply_recipe(recipe, variant, part, flags, defaults.base),
+        None => (defaults.base, variant),
+    };
+    if theme.capability.color == super::ColorLevel::Mono {
+        acc = super::downgrade::apply_mono_with_defaults(
+            acc,
+            &theme.recipes,
+            family,
+            part,
+            flags,
+            Some(defaults.mono),
+        );
+    }
+    acc = apply_explicit(theme, (family, variant, part), flags, overlays, acc);
+    bind(theme, acc, local, surface)
+}
+
+fn apply_explicit(
+    theme: &Theme,
+    (f, variant, p): (Family, Variant, Part),
+    live: StateFlags,
+    overlays: &[Overlay],
+    mut acc: StylePatch,
+) -> StylePatch {
+    let recipes = &theme.recipes;
     // 4: theme-level global overrides — family-wide, then variant-specific
     for o in recipes.overrides() {
         if o.family != f {
@@ -150,6 +392,60 @@ pub(crate) fn accumulate(
     acc
 }
 
+/// Compose a logical owner's style above child defaults but below explicit
+/// child theme/scope overrides. This bounded path does not affect the normal
+/// cached resolver. It is used for shared collection empty-state titles.
+pub(crate) fn bind_inherited(
+    theme: &Theme,
+    (family, variant, part): (Family, Variant, Part),
+    flags: StateFlags,
+    overlays: &[Overlay],
+    surface: Surface,
+    inherited: PaintStyle,
+) -> Resolved {
+    let (defaults, variant) = accumulate_defaults(theme, family, variant, part, flags);
+    let explicit = apply_explicit(
+        theme,
+        (family, variant, part),
+        flags,
+        overlays,
+        StylePatch::new(),
+    );
+    let base = bind(theme, defaults, None, surface).style;
+    let top = bind(theme, explicit, None, surface).style;
+    let mut result = bind(theme, defaults.merge(explicit), None, surface);
+    let mut style = base.patch(inherited).patch(top);
+    // Clear (and a Reset token) removes the child's channel, exposing the
+    // owner, rather than resurrecting the built-in default underneath it.
+    if !matches!(explicit.fg, Slot::Inherit) {
+        style = style.with_fg_from(if top.fg.is_some() { top } else { inherited });
+    }
+    if !matches!(explicit.bg, Slot::Inherit) {
+        style = style.with_bg_from(if top.bg.is_some() { top } else { inherited });
+    }
+    if !matches!(explicit.underline, Slot::Inherit) {
+        style.style.underline_color = top.underline_color.or(inherited.underline_color);
+    }
+    result.style = style;
+    result
+}
+
+/// Pinned Holla theme.rs:362: compare resolved colors in this exact order.
+/// This authored policy deliberately retains quantized alias behavior; it does
+/// not identify a semantic role from an arbitrary painted RGB value.
+fn reference_lift(theme: &Theme, surface: Surface) -> Color {
+    let bg = theme.bg(surface);
+    if bg == theme.bg(Surface::Canvas) {
+        theme.bg(Surface::Elevated)
+    } else if bg == theme.bg(Surface::Surface) || bg == theme.bg(Surface::Elevated) {
+        theme.bg(Surface::Overlay)
+    } else if bg == theme.bg(Surface::Field) {
+        theme.bg(Surface::FieldHover)
+    } else {
+        theme.bg(Surface::Popover)
+    }
+}
+
 /// Bind a role to a colour. `Color::Reset` tokens mean "no colour".
 pub(crate) fn bind_role(theme: &Theme, role: Role, surface: Surface) -> Option<Color> {
     let c = &theme.color;
@@ -157,6 +453,12 @@ pub(crate) fn bind_role(theme: &Theme, role: Role, surface: Surface) -> Option<C
     let color = match role {
         Role::CurrentSurface => theme.bg(surface),
         Role::RaisedSurface => theme.bg(theme.raise(surface)),
+        Role::HoverSurface => theme.bg(match surface {
+            Surface::Canvas => Surface::Elevated,
+            Surface::Surface | Surface::Elevated => Surface::Overlay,
+            Surface::Field => Surface::FieldHover,
+            Surface::Overlay | Surface::Popover | Surface::FieldHover => Surface::Popover,
+        }),
         Role::Surface(s) => theme.bg(s),
         Role::Fg(step) => fg(step.index()),
         Role::OnAccent => c.on_accent,
@@ -219,7 +521,10 @@ pub(crate) fn bind_role(theme: &Theme, role: Role, surface: Surface) -> Option<C
                 MeterRole::Medium => t.medium,
                 MeterRole::High => t.high,
                 MeterRole::Track => t.track,
-                MeterRole::FillRest => t.fill_rest,
+                MeterRole::FillRest => match t.fill_rest {
+                    super::MeterFillRest::Color(color) => color,
+                    super::MeterFillRest::ReferenceLift => reference_lift(theme, surface),
+                },
                 MeterRole::Stale => t.stale,
                 MeterRole::Unknown => t.unknown,
                 MeterRole::Series(n) => t
@@ -264,10 +569,25 @@ pub(crate) fn bind(
     style.sub_modifier = acc.remove;
     let m = metrics_of(&acc);
     Resolved {
-        style,
+        style: PaintStyle::bound(
+            style,
+            acc.fg.get().map(|role| canonical_role(theme, role)),
+            acc.bg.get().map(|role| canonical_role(theme, role)),
+            surface,
+        ),
         glyph: acc.glyph,
         size: m.size,
         align: m.align,
+    }
+}
+
+fn canonical_role(theme: &Theme, role: Role) -> Role {
+    if role == Role::Meter(MeterRole::FillRest)
+        && theme.color.meter.fill_rest == super::MeterFillRest::ReferenceLift
+    {
+        Role::HoverSurface
+    } else {
+        role
     }
 }
 
@@ -692,7 +1012,7 @@ mod tests {
             Some(&inst),
         );
         let inherited = Style::new().add_modifier(Modifier::BOLD | Modifier::DIM);
-        let out = inherited.patch(r.style);
+        let out = r.over(inherited);
         assert_eq!(out.add_modifier, Modifier::ITALIC | Modifier::DIM);
         assert_eq!(out.sub_modifier, Modifier::BOLD);
         // the role-level merge law and Style::patch agree on the modifier set

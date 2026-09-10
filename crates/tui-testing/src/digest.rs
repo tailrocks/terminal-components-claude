@@ -41,6 +41,37 @@ pub struct Scene {
     area: Rect,
     buf: Buffer,
     rt: Option<Runtime<NoApp>>,
+    snapshot: junie_tui::RenderSnapshot,
+}
+
+/// Repeated captures bound to one immutably borrowed model and snapshot.
+/// Drop the binding before replacing or mutating the model or scene snapshot.
+pub struct SceneProjection<'a, M: ?Sized, F> {
+    scene: &'a mut Scene,
+    binding: junie_tui::RenderModel<'a, M, F>,
+}
+
+impl<M: ?Sized, F> core::fmt::Debug for SceneProjection<'_, M, F> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("SceneProjection").finish_non_exhaustive()
+    }
+}
+
+impl<M: ?Sized, F: Fn(&M, &mut Ui<'_>, Rect)> SceneProjection<'_, M, F> {
+    /// Capture the bound model without initialization, effects or cache rebinding.
+    pub fn draw(&mut self) {
+        let Some(rt) = self.scene.rt.as_mut() else {
+            return;
+        };
+        self.scene.buf.reset();
+        rt.draw_bound_projection(self.scene.area, &mut self.scene.buf, &self.binding)
+            .commit_inspected();
+    }
+
+    /// Inspect the most recent acknowledged capture.
+    pub const fn scene(&self) -> &Scene {
+        self.scene
+    }
 }
 
 impl core::fmt::Debug for Scene {
@@ -101,6 +132,7 @@ impl Scene {
             area,
             buf: Buffer::empty(area),
             rt: Some(Runtime::new(NoApp, theme)),
+            snapshot: junie_tui::RenderSnapshot::default(),
         }
     }
 
@@ -119,6 +151,7 @@ impl Scene {
             area,
             buf,
             rt: None,
+            snapshot: junie_tui::RenderSnapshot::default(),
         }
     }
 
@@ -129,14 +162,70 @@ impl Scene {
         self
     }
 
+    /// Replace the explicit interaction facts used by every subsequent capture.
+    pub fn set_snapshot(&mut self, snapshot: junie_tui::RenderSnapshot) {
+        self.snapshot = snapshot;
+    }
+
+    /// Bind immutable model data and its painter for repeated warmed captures.
+    /// The painter's captures must obey the same immutable-view contract as App.
+    pub fn bind_model<'a, M: ?Sized, F>(
+        &'a mut self,
+        model: &'a M,
+        paint: F,
+    ) -> SceneProjection<'a, M, F>
+    where
+        F: Fn(&M, &mut Ui<'_>, Rect),
+    {
+        let binding = self.snapshot.bind_model(model, paint);
+        SceneProjection {
+            scene: self,
+            binding,
+        }
+    }
+
+    /// Bind a production app for repeated warmed captures. The app cannot be
+    /// ordinarily mutated while the binding remains usable.
+    /// ```compile_fail,E0506
+    /// use junie_tui::{App, Cx, Response, Ui, Theme, ColorLevel};
+    /// use junie_tui_testing::Scene;
+    /// struct Model(u8);
+    /// impl App for Model {
+    ///     fn update(&mut self, _: &mut Cx<'_>) -> Response<()> { Response::ignored() }
+    ///     fn draw(&self, _: &mut Ui<'_>) {}
+    /// }
+    /// let mut model = Model(0);
+    /// let mut scene = Scene::new("bound", Theme::junie(), ColorLevel::TrueColor, 8, 2);
+    /// let mut bound = scene.bind_app(&model);
+    /// model.0 = 1;
+    /// bound.draw();
+    /// ```
+    pub fn bind_app<'a, A: App>(
+        &'a mut self,
+        app: &'a A,
+    ) -> SceneProjection<'a, A, impl Fn(&A, &mut Ui<'_>, Rect)> {
+        self.bind_model(app, |app, ui, _| app.draw(ui))
+    }
+
+    /// Project an application's supplied model under the explicit snapshot.
+    /// This one-shot capture uses fresh model caches and never calls `App::update`.
+    /// Use `bind_app` for repeated captures with zero warm allocations.
+    pub fn draw_app<A: App>(&mut self, app: &A) {
+        self.draw(|ui, _| app.draw(ui));
+    }
+
     /// Run the whole draw phase with `f` as the page painter.
+    /// Every one-shot capture starts fresh derived model caches and reads the
+    /// same explicit snapshot; previous captures cannot
+    /// change its focus, hover, layers or read facts. No initialization/update runs.
     pub fn draw(&mut self, f: impl FnOnce(&mut Ui<'_>, Rect)) {
         let area = self.area;
         let Some(rt) = self.rt.as_mut() else {
             return;
         };
         self.buf.reset();
-        rt.draw_scene(area, &mut self.buf, f);
+        rt.draw_projection(area, &mut self.buf, &self.snapshot, f)
+            .commit_inspected();
     }
 
     /// Draw over a pre-filled buffer (sentinel tests).
@@ -151,7 +240,8 @@ impl Scene {
         };
         self.buf.reset();
         prefill(&mut self.buf);
-        rt.draw_scene(area, &mut self.buf, f);
+        rt.draw_projection(area, &mut self.buf, &self.snapshot, f)
+            .commit_inspected();
     }
 
     /// FNV-1a over `(symbol, fg, bg, modifier)` per cell.
@@ -192,24 +282,36 @@ impl Scene {
         self.area
     }
 
-    /// The headless runtime, when the scene owns one.
+    /// The underlying cache runtime, when this scene owns one.
+    /// Capture geometry belongs to `Scene::registry`, `Scene::ring` and
+    /// `Scene::cursor_position`; projection never changes live runtime geometry.
     pub const fn runtime(&self) -> Option<&Runtime<NoApp>> {
         self.rt.as_ref()
     }
 
-    /// The headless runtime, mutably.
+    /// The cache runtime, mutably. Interaction for captures is supplied explicitly
+    /// with `set_snapshot`; live runtime changes do not alter that snapshot.
     pub const fn runtime_mut(&mut self) -> Option<&mut Runtime<NoApp>> {
         self.rt.as_mut()
     }
 
     /// Last frame's registry.
     pub fn registry(&self) -> Option<&Registry> {
-        self.rt.as_ref().map(Runtime::registry)
+        self.rt
+            .as_ref()
+            .map(|rt| rt.projection_registry().unwrap_or_else(|| rt.registry()))
     }
 
     /// Last frame's ring.
     pub fn ring(&self) -> Option<&FocusRing> {
-        self.rt.as_ref().map(Runtime::ring)
+        self.rt
+            .as_ref()
+            .map(|rt| rt.projection_ring().unwrap_or_else(|| rt.ring()))
+    }
+
+    /// Cursor from the last acknowledged capture.
+    pub fn cursor_position(&self) -> Option<ratatui_core::layout::Position> {
+        self.rt.as_ref().and_then(Runtime::projection_cursor)
     }
 
     /// The baseline line key: `name w h theme color`.

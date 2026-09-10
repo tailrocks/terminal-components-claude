@@ -6,9 +6,10 @@
 
 use core::fmt::{self, Write as _};
 
+use crate::theme::PaintStyle;
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::{Position, Rect};
-use ratatui_core::style::{Modifier, Style};
+use ratatui_core::style::Modifier;
 
 use crate::id::{Id, ItemKey, Part};
 use crate::layout::{Track, distribute_into};
@@ -137,7 +138,7 @@ impl<'u> RowUi<'u> {
         }
     }
 
-    fn style_of(&mut self, part: Part) -> Style {
+    fn style_of(&mut self, part: Part) -> PaintStyle {
         let r = match (part, self.label_patch) {
             (Part::LABEL, Some(patch)) => {
                 self.ui
@@ -224,7 +225,7 @@ impl<'u> RowUi<'u> {
         self.label_in(s, st);
     }
 
-    fn label_in(&mut self, s: &str, st: Style) {
+    fn label_in(&mut self, s: &str, st: PaintStyle) {
         let area = self.remaining();
         let used = if width(s) <= area.width {
             self.ui.paint_str(area, s, st)
@@ -334,14 +335,24 @@ impl<'u> RowUi<'u> {
     /// component that needs more columns than the cap is a design error, not
     /// a runtime one: split the row.
     pub fn columns(&mut self, widths: &[Track]) -> ColumnsUi<'_> {
+        self.columns_with_gap(widths, self.ui.design().space.column_gap)
+    }
+
+    /// Split remaining space with an explicit gap, retaining the same track cap.
+    pub fn columns_with_gap(&mut self, widths: &[Track], gap: u16) -> ColumnsUi<'_> {
         let area = self.remaining();
-        let gap = self.ui.design().space.column_gap;
         let mut sizes = [0u16; MAX_COLUMNS];
         let n = widths.len().min(MAX_COLUMNS);
         distribute_into(area.width, widths.get(..n).unwrap_or(&[]), gap, &mut sizes);
         let style = self.style_of(Part::CELL);
         self.left = self.left.saturating_add(area.width);
         ColumnsUi {
+            #[cfg(feature = "testing")]
+            owner: self.owner,
+            family: self.family,
+            variant: self.variant,
+            flags: self.flags,
+            label_patch: self.label_patch,
             ui: self.ui.reborrow(),
             area,
             sizes,
@@ -366,7 +377,7 @@ struct CellWriter<'a, 'u> {
     ui: &'a mut Ui<'u>,
     area: Rect,
     x: u16,
-    style: Style,
+    style: PaintStyle,
 }
 
 impl fmt::Write for CellWriter<'_, '_> {
@@ -391,7 +402,7 @@ impl fmt::Write for CellWriter<'_, '_> {
 pub struct CellUi<'u> {
     ui: Ui<'u>,
     area: Rect,
-    style: Style,
+    style: PaintStyle,
     /// Columns painted so far, from `area.x`.
     used: u16,
     align: Align,
@@ -412,14 +423,14 @@ impl fmt::Debug for CellUi<'_> {
 }
 
 impl<'u> CellUi<'u> {
-    pub(crate) fn new(ui: Ui<'u>, area: Rect, style: Style) -> Self {
+    pub(crate) fn new(ui: Ui<'u>, area: Rect, style: PaintStyle) -> Self {
         Self::with_resolved_glyph(ui, area, style, Slot::Inherit)
     }
 
     fn with_resolved_glyph(
         ui: Ui<'u>,
         area: Rect,
-        style: Style,
+        style: PaintStyle,
         resolved_glyph: Slot<GlyphRole>,
     ) -> Self {
         CellUi {
@@ -494,6 +505,44 @@ impl<'u> CellUi<'u> {
     pub fn text(&mut self, s: &str) -> &mut Self {
         let area = self.free();
         let used = self.ui.paint_str(area, s, self.style);
+        self.used = self.used.saturating_add(used);
+        self
+    }
+
+    /// Remove modifiers from subsequent writes, before per-grapheme emphasis.
+    /// Unlike `patch`, this does not restyle cells already painted.
+    pub fn remove_modifier(&mut self, modifiers: Modifier) -> &mut Self {
+        self.style = self.style.remove_modifier(modifiers);
+        self
+    }
+
+    /// Whether the resolved part style itself adds these modifiers. Built-in
+    /// painters use this to compensate for a container's flag-driven bleed
+    /// (for example a focused list filling every row with bold) without
+    /// stripping modifiers an owner authored for this part.
+    pub(crate) fn authored_modifiers(&self) -> Modifier {
+        self.style.add_modifier
+    }
+
+    /// Paint fitted text with matched original grapheme ordinals in bold.
+    /// Truncation reserves the theme ellipsis, using the shared clipping writer.
+    pub fn text_matched(&mut self, s: &str, matched: &[usize]) -> &mut Self {
+        let area = self.free();
+        let used = if width(s) <= area.width {
+            self.ui.paint_matched(area, s, matched, self.style)
+        } else {
+            let head = Rect {
+                width: area.width.saturating_sub(1),
+                ..area
+            };
+            let used = self.ui.paint_matched(head, s, matched, self.style);
+            let tail = Rect {
+                x: area.x.saturating_add(used),
+                width: area.width.saturating_sub(used),
+                ..area
+            };
+            used.saturating_add(self.ui.glyph(tail, GlyphRole::Ellipsis, self.style))
+        };
         self.used = self.used.saturating_add(used);
         self
     }
@@ -585,21 +634,12 @@ impl Drop for CellUi<'_> {
         };
         let y = self.area.y;
         if shift > 0 {
-            let (buf, _) = self.ui.buffer_in(self.area);
             let mut x = self.area.x.saturating_add(used);
             while x > self.area.x {
                 x = x.saturating_sub(1);
                 let src = Position::new(x, y);
                 let dst = Position::new(x.saturating_add(shift), y);
-                if let Some(c) = buf.cell(src).cloned()
-                    && let Some(d) = buf.cell_mut(dst)
-                {
-                    *d = c;
-                }
-                if let Some(c) = buf.cell_mut(src) {
-                    c.reset();
-                    c.set_style(self.style);
-                }
+                self.ui.move_cell(src, dst, self.style);
             }
         }
         // final style over the painted range
@@ -616,7 +656,7 @@ impl Drop for CellUi<'_> {
             delta = delta.set_fg(r);
         }
         let st = crate::theme::resolve::bind(theme, delta, self.patch.as_ref(), surface).style;
-        if st != Style::new() {
+        if st != PaintStyle::new() {
             self.ui.paint_style(painted, st);
         }
     }
@@ -624,12 +664,18 @@ impl Drop for CellUi<'_> {
 
 /// Column cells over the remainder of a row.
 pub struct ColumnsUi<'u> {
+    #[cfg(feature = "testing")]
+    owner: Id,
+    family: Family,
+    variant: Variant,
+    flags: StateFlags,
+    label_patch: Option<StylePatch>,
     ui: Ui<'u>,
     area: Rect,
     sizes: [u16; MAX_COLUMNS],
     n: usize,
     gap: u16,
-    style: Style,
+    style: PaintStyle,
 }
 
 impl fmt::Debug for ColumnsUi<'_> {
@@ -670,6 +716,22 @@ impl ColumnsUi<'_> {
             height: 1,
         }
         .intersection(self.area)
+    }
+
+    /// Paint a column using a semantic row part, preserving label patches.
+    pub fn cell_part(&mut self, i: usize, part: Part) -> CellUi<'_> {
+        let rect = self.rect(i);
+        let resolved = match (part, self.label_patch) {
+            (Part::LABEL, Some(patch)) => {
+                self.ui
+                    .style_patched(self.family, self.variant, part, self.flags, &patch)
+            }
+            _ => self.ui.style(self.family, self.variant, part, self.flags),
+        };
+        #[cfg(feature = "testing")]
+        self.ui
+            .note_styled(self.owner, self.family, self.variant, part, resolved);
+        CellUi::with_resolved_glyph(self.ui.reborrow(), rect, resolved.style, resolved.glyph)
     }
 
     /// A painter for column `i` (an empty painter beyond the last column).

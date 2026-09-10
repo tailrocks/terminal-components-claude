@@ -84,7 +84,7 @@ pub(crate) fn run_of(
     ui: &mut Ui<'_>,
     run: Rect,
     glyph: GlyphRole,
-    style: ratatui_core::style::Style,
+    style: crate::theme::PaintStyle,
 ) {
     let sym = ui.glyph_str(glyph);
     for col in run.columns() {
@@ -584,9 +584,17 @@ fn percent(r: f64) -> u16 {
 pub struct Spinner<'a> {
     id: Id,
     label: &'a str,
+    gap: Option<u16>,
     variant: Variant,
     frame: usize,
     ov: PartStyle<'a>,
+}
+
+/// Canonical frame selection for composed and standalone spinners.
+pub(super) fn spinner_glyph(frames: &'static [&'static str], frame: usize) -> Option<&'static str> {
+    frames
+        .get(frame.checked_rem(frames.len()).unwrap_or(0))
+        .copied()
 }
 
 impl fmt::Debug for Spinner<'_> {
@@ -608,6 +616,7 @@ impl<'a> Spinner<'a> {
         Spinner {
             id,
             label: "",
+            gap: None,
             variant: Variant::DEFAULT,
             frame: 0,
             ov: PartStyle::new(),
@@ -631,6 +640,18 @@ impl<'a> Spinner<'a> {
     pub const fn label(mut self, s: &'a str) -> Self {
         self.label = s;
         self
+    }
+
+    /// Space between the frame and a nonempty label. Omission uses the
+    /// design gap (at least one cell); an explicit value may be zero.
+    #[must_use]
+    pub const fn gap(mut self, cells: u16) -> Self {
+        self.gap = Some(cells);
+        self
+    }
+
+    fn label_gap(&self, ui: &Ui<'_>) -> u16 {
+        self.gap.unwrap_or_else(|| ui.design().space.gap.max(1))
     }
 
     /// The animation frame.
@@ -663,11 +684,7 @@ impl<'a> Spinner<'a> {
 
     /// The frame this spinner shows.
     fn glyph(ui: &Ui<'_>, frame: usize) -> &'static str {
-        let frames = ui.design().motion.spinner_frames;
-        frames
-            .get(frame.checked_rem(frames.len()).unwrap_or(0))
-            .copied()
-            .unwrap_or("")
+        spinner_glyph(ui.design().motion.spinner_frames, frame).unwrap_or("")
     }
 
     fn natural_width(&self, ui: &Ui<'_>) -> u16 {
@@ -675,7 +692,7 @@ impl<'a> Spinner<'a> {
         if self.label.is_empty() {
             return g;
         }
-        g.saturating_add(ui.design().space.gap.max(1))
+        g.saturating_add(self.label_gap(ui))
             .saturating_add(width(self.label))
     }
 
@@ -710,7 +727,7 @@ impl<'a> Spinner<'a> {
             ui.paint_str(icon, frame, s.style);
         }
         if !self.label.is_empty() {
-            let gap = ui.design().space.gap.max(1);
+            let gap = self.label_gap(ui);
             let rest = shift(area, icon.width.saturating_add(gap));
             if !rest.is_empty() {
                 if let Some(f) = ov.slot_for(Part::LABEL) {
@@ -796,12 +813,14 @@ mod tests {
         let mut runtime = Runtime::new(Stub::default(), theme);
         let mut buffer = Buffer::empty(AREA);
 
-        runtime.draw_scene(AREA, &mut buffer, |ui, area| {
-            ProgressBar::new(Id::root("progress.done"))
-                .ratio(1.0)
-                .done(true)
-                .draw(ui, area);
-        });
+        runtime
+            .draw_scene(AREA, &mut buffer, |ui, area| {
+                ProgressBar::new(Id::root("progress.done"))
+                    .ratio(1.0)
+                    .done(true)
+                    .draw(ui, area);
+            })
+            .commit_presented();
 
         assert!(
             buffer.content().iter().any(|cell| cell.symbol() == DONE),

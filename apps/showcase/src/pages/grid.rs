@@ -2,10 +2,10 @@
 
 use junie_tui::{
     Align, CellRef, Column, ColumnKey, Cx, Grid, GridAction, GridModel, GridState, Id, ItemKey,
-    Modifier, NavUnit, Part, Rect, Response, Role, RowDecor, StateFlags, Surface, Ui, Variant, id,
+    Modifier, NavUnit, Part, Rect, Role, RowDecor, StateFlags, Surface, Ui, Variant, id,
 };
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const METRICS: Id = id!("grid.metrics");
 const COLUMNS: [Column<'static>; 4] = [
@@ -154,7 +154,7 @@ fn metrics() -> Grid<'static> {
 
 fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
     let mut surface = ui.surface_style();
-    surface.sub_modifier = Modifier::all();
+    surface = surface.remove_modifier(Modifier::all());
     let mut panel = ui.with_surface(Surface::Surface, |ui| {
         ui.style(
             junie_tui::Family::PANEL,
@@ -164,7 +164,7 @@ fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
         )
         .style
     });
-    panel.sub_modifier = Modifier::all();
+    panel = panel.remove_modifier(Modifier::all());
     ui.fill(body, surface);
     let panel_area = Rect {
         x: body.x.saturating_add(2),
@@ -214,10 +214,8 @@ fn paint_part(
     row: u16,
     x: u16,
     text: &str,
-    surface: Surface,
     family: junie_tui::Family,
     part: Part,
-    flags: StateFlags,
 ) {
     let area = Rect {
         x: body.x.saturating_add(x),
@@ -225,8 +223,10 @@ fn paint_part(
         width: body.width.saturating_sub(x),
         height: 1,
     };
-    ui.with_surface(surface, |ui| {
-        let style = ui.style(family, Variant::DEFAULT, part, flags).style;
+    ui.with_surface(Surface::Surface, |ui| {
+        let style = ui
+            .style(family, Variant::DEFAULT, part, StateFlags::empty())
+            .style;
         ui.paint_str(area, text, style);
     });
 }
@@ -239,7 +239,7 @@ fn paint_invisible(ui: &mut Ui<'_>, body: Rect, row: u16, x: u16, text: &str) {
         height: 1,
     };
     ui.with_surface(Surface::Surface, |ui| {
-        let style = ui.surface_style().fg(ui.bg());
+        let style = ui.surface_style().with_fg_from_bg(ui.surface_style());
         ui.paint_str(area, text, style);
     });
 }
@@ -261,12 +261,12 @@ impl Page for GridPage {
     fn title(&self) -> &'static str {
         "Data grid"
     }
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let action = metrics().update(cx, &mut self.state, &MetricModel);
         if let Some(GridAction::Activated(key)) = action.action_ref() {
             self.selected = Some(*key);
         }
-        action.erase()
+        action.erase().into()
     }
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
         frame(
@@ -309,10 +309,8 @@ impl Page for GridPage {
                     0,
                     2,
                     "customers",
-                    Surface::Surface,
                     junie_tui::Family::PANEL,
                     Part::DETAIL,
-                    StateFlags::empty(),
                 );
                 paint_part(
                     ui,
@@ -320,136 +318,19 @@ impl Page for GridPage {
                     0,
                     21,
                     "rows 1–0 of 40 loaded · ~4,812 total",
-                    Surface::Surface,
                     junie_tui::Family::EMPTY,
                     Part::HELP,
-                    StateFlags::empty(),
                 );
-                paint_part(
-                    ui,
-                    body,
-                    2,
-                    8,
-                    "⚷",
-                    Surface::Surface,
-                    junie_tui::Family::EMPTY,
-                    Part::HELP,
-                    StateFlags::empty(),
-                );
+                paint_part(ui, body, 2, 8, "⚷", junie_tui::Family::EMPTY, Part::HELP);
                 for (x, text) in [
                     (9, " id     "),
                     (19, "customer                 "),
                     (46, "plan  "),
                 ] {
-                    paint_part(
-                        ui,
-                        body,
-                        2,
-                        x,
-                        text,
-                        Surface::Surface,
-                        junie_tui::Family::LIST,
-                        Part::META,
-                        StateFlags::empty(),
-                    );
+                    paint_part(ui, body, 2, x, text, junie_tui::Family::LIST, Part::META);
                 }
-                paint_part(
-                    ui,
-                    body,
-                    2,
-                    53,
-                    "6›",
-                    Surface::Surface,
-                    junie_tui::Family::EMPTY,
-                    Part::HELP,
-                    StateFlags::empty(),
-                );
-                for row in 3..=16 {
-                    paint_invisible(ui, body, row, 2, "▎");
-                    paint_part(
-                        ui,
-                        body,
-                        row,
-                        5,
-                        &format!("{:>2}", row - 2),
-                        Surface::Surface,
-                        junie_tui::Family::VIEWPORT,
-                        Part::GUTTER,
-                        StateFlags::empty(),
-                    );
-                    paint_part(
-                        ui,
-                        body,
-                        row,
-                        8,
-                        &format!("{}     ", 1000 + row - 2),
-                        Surface::Surface,
-                        junie_tui::Family::PANEL,
-                        Part::DETAIL,
-                        StateFlags::empty(),
-                    );
-                    paint_part(
-                        ui,
-                        body,
-                        row,
-                        56,
-                        if row <= 6 { "┃" } else { "│" },
-                        Surface::Surface,
-                        if row <= 6 {
-                            junie_tui::Family::GRID
-                        } else {
-                            junie_tui::Family::PANEL
-                        },
-                        if row == 3 {
-                            Part::OVERFLOW
-                        } else {
-                            Part::BORDER
-                        },
-                        StateFlags::empty(),
-                    );
-                }
-                // The frozen 120×40 source had a wider, typed customer grid.
-                // Keep the live Grid above for ownership and interaction, then
-                // restore the historical first frame as one deterministic paint
-                // pass.  Interaction-specific status is painted below it.
-                paint_body(
-                    ui,
-                    body,
-                    &[
-                        "  customers                                             rows 1–0 of 40 loaded · ~4,812 total",
-                        "",
-                        "        ⚷ id       customer                   plan          seats      mrr  active      2›",
-                        "  ▎   1 1001       Northwind Traders          enterprise        3    57.00  true           ┃",
-                        "  ▎   2 1002       Blue Yonder Airlines       team             80  1920.00  true           ┃",
-                        "  ▎   3 1003       Contoso Pharmaceuticals    pro              12   348.00  true           ┃",
-                        "  ▎   4 1004       Fabrikam Robotics          free              1     0.00  false          ┃",
-                        "  ▎   5 1005       Litware Analytics          enterprise       40   760.00  true           ┃",
-                        "  ▎   6 1006       Tailspin Toys              team              5   120.00  true           ┃",
-                        "  ▎   7 1007       Wide World Importers       pro             150  4350.00  true           ┃",
-                        "  ▎   8 1008       Adventure Works            free             25     0.00  true           ┃",
-                        "  ▎   9 1009       Proseware Studio           enterprise        3    57.00  false          ┃",
-                        "  ▎  10 1010       Woodgrove Bank             team             80  1920.00  true           ┃",
-                        "  ▎  11 1011       Alpine Ski House           pro              12   348.00  true           ┃",
-                        "  ▎  12 1012       Coho Winery                free              1     0.00  true           ┃",
-                        "  ▎  13 1013       Lucerne Publishing         enterprise       40   760.00  true           ┃",
-                        "  ▎  14 1014       Margie's Travel            team              5   120.00  false          ┃",
-                        "  ▎  15 1015       Trey Research              pro             150  4350.00  true           ┃",
-                        "  ▎  16 1016       Humongous Insurance        free             25     0.00  true           ┃",
-                        "  ▎  17 1017       Northwind Traders 2        enterprise        3    57.00  true           │",
-                        "  ▎  18 1018       Blue Yonder Airlines 2     team             80  1920.00  true           │",
-                        "  ▎  19 1019       Contoso Pharmaceuticals 2  pro              12   348.00  false          │",
-                        "  ▎  20 1020       Fabrikam Robotics 2        free              1     0.00  true           │",
-                        "  ▎  21 1021       Litware Analytics 2        enterprise       40   760.00  true           │",
-                        "  ▎  22 1022       Tailspin Toys 2            team              5   120.00  true           │",
-                        "  ▎  23 1023       Wide World Importers 2     pro             150  4350.00  true           │",
-                        "  ▎  24 1024       Adventure Works 2          free             25     0.00  false          │",
-                        "  ▎  25 1025       Proseware Studio 2         enterprise        3    57.00  true           │",
-                        "  ▎  26 1026       Woodgrove Bank 2           team             80  1920.00  true           │",
-                        "",
-                        "",
-                        "",
-                    ],
-                );
+                paint_part(ui, body, 2, 53, "6›", junie_tui::Family::EMPTY, Part::HELP);
+                paint_rows(ui, body);
                 if let Some(key) = self.selected {
                     let row = body.y.saturating_add(17);
                     if row < body.bottom() {
@@ -469,11 +350,11 @@ impl Page for GridPage {
         );
     }
 
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if self.state.is_editing() {
-            vec![("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next cell")]
+            &[("Enter", "Commit"), ("Esc", "Cancel"), ("Tab", "Next cell")]
         } else {
-            vec![
+            &[
                 ("↑↓←→", "Cell"),
                 ("Enter", "Edit"),
                 ("s", "Sort"),
@@ -486,5 +367,46 @@ impl Page for GridPage {
 
     fn editing(&self, _ui: &Ui<'_>) -> bool {
         self.state.is_editing()
+    }
+}
+
+fn paint_rows(ui: &mut Ui<'_>, body: Rect) {
+    for row in 3..=16 {
+        paint_invisible(ui, body, row, 2, "▎");
+        paint_part(
+            ui,
+            body,
+            row,
+            5,
+            &format!("{:>2}", row.saturating_sub(2)),
+            junie_tui::Family::VIEWPORT,
+            Part::GUTTER,
+        );
+        paint_part(
+            ui,
+            body,
+            row,
+            8,
+            &format!("{}     ", 1000_u16.saturating_add(row.saturating_sub(2))),
+            junie_tui::Family::PANEL,
+            Part::DETAIL,
+        );
+        paint_part(
+            ui,
+            body,
+            row,
+            56,
+            if row <= 6 { "┃" } else { "│" },
+            if row <= 6 {
+                junie_tui::Family::GRID
+            } else {
+                junie_tui::Family::PANEL
+            },
+            if row == 3 {
+                Part::OVERFLOW
+            } else {
+                Part::BORDER
+            },
+        );
     }
 }

@@ -30,8 +30,9 @@ const CANCEL: Id = id!("cancel");
 ///
 /// `Theme::from_tokens` fills the design tokens and the recipe defaults, and
 /// derives every token left `Color::Reset` (§11.2). `downgrade` works for this
-/// theme exactly as for `junie()`, because `ColorTokens::map_colors` is an
-/// exhaustive destructure (§11.4).
+/// theme through generic conversion, because `ColorTokens::map_colors` is an
+/// exhaustive destructure (§11.4). It declares no authored capability table;
+/// built-in Junie declares reference-preserving semantic output separately.
 fn slate() -> Theme {
     Theme::from_tokens(ColorTokens {
         surfaces: [

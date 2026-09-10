@@ -7,6 +7,7 @@ pub(crate) mod builder;
 pub(crate) mod builtin;
 pub(crate) mod downgrade;
 pub(crate) mod glyph;
+pub(crate) mod palettes;
 pub(crate) mod patch;
 pub(crate) mod recipe;
 pub(crate) mod resolve;
@@ -23,16 +24,17 @@ pub use border::BorderSet;
 pub use builder::ThemeBuilder;
 pub use downgrade::{MONO_RULES_PER_FAMILY, MonoRule, downgrade_color};
 pub use glyph::{GlyphRole, GlyphSet};
+pub use palettes::CapabilityPalettes;
 pub use patch::{Slot, StateRule, StylePatch};
 pub use recipe::{
     Family, Overlay, OverlayRule, PartEdit, PartMap, PartRecipe, Recipe, RecipeEdit, Recipes,
     Variant,
 };
-pub use resolve::{PartMetrics, Resolved};
+pub use resolve::{PaintStyle, PartMetrics, Resolved, StyleDefaults};
 pub use role::{Align, FG_STEPS, FgStep, MeterRole, Role, SURFACE_LEVELS, Surface, SyntaxRole};
 pub use tokens::{
-    Capability, ColorLevel, ColorTokens, Density, DesignTokens, MeterThresholds, MeterTokens,
-    MotionTokens, SizeTokens, SpaceTokens, SyntaxTokens,
+    Capability, ColorLevel, ColorTokens, Density, DesignTokens, MeterFillRest, MeterThresholds,
+    MeterTokens, MotionTokens, SizeTokens, SpaceTokens, SyntaxTokens,
 };
 
 use self::recipe::GlobalOverride;
@@ -49,6 +51,9 @@ pub struct Theme {
     pub recipes: Recipes,
     /// Capability.
     pub capability: Capability,
+    /// Authored semantic palettes at limited color capabilities. `None` uses
+    /// generic conversion for every token, as with custom themes and Paper.
+    pub capability_palettes: Option<std::sync::Arc<CapabilityPalettes>>,
 }
 
 impl Theme {
@@ -57,10 +62,11 @@ impl Theme {
         Theme {
             color: builtin::junie::tokens(),
             design: builtin::junie::design(),
-            recipes: builtin::default_recipes(),
+            recipes: builtin::junie::recipes(),
             capability: Capability {
                 color: ColorLevel::TrueColor,
             },
+            capability_palettes: Some(std::sync::Arc::new(palettes::junie())),
         }
     }
 
@@ -81,6 +87,7 @@ impl Theme {
             capability: Capability {
                 color: ColorLevel::TrueColor,
             },
+            capability_palettes: None,
         }
     }
 

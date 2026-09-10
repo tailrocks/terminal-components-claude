@@ -19,6 +19,10 @@ pub struct RowDecor<'a> {
     pub flags: StateFlags,
     /// A message shown beside the row.
     pub message: Option<&'a str>,
+    /// One-based display number for the row-number gutter. `None` falls back
+    /// to the on-screen position, so a sorted view supplies its source order
+    /// here instead of on the model trait.
+    pub number: Option<usize>,
 }
 
 /// Decoration for one cell.

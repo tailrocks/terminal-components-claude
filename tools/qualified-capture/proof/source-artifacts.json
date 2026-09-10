@@ -1,0 +1,11 @@
+{
+  "tuisnap-repair.bundle": "58bc361167557f7835f329bbc9e8b73e44fc1c45e351869b04148e51c7fbb750",
+  "tuisnap-repair.patch": "2f68aa18e98a8225321fd6ae8cfef46e4b5d70783f1b5d4fa60a853c487b24cc",
+  "vt100.patch": "f8d3ca0960a61575d5a23567c190045d2593a63b71255133f8f13b4ffbf3df7e",
+  "vt100-final.patch": "c1339e3caa6ea4bc9d8708729204f4dd6dca746c9fb84d1c9bcb0ca46dd82c8e",
+  "cursor-edge.patch": "209ca74cf545ede02ba7bd803aea1b10f2d9e3f94b16ca9bdcedab3fd3a8ad08",
+  "independent-review/REVIEW.md": "c3612b4e11a49227e1180637d8a80f9f2a5842beb997f2fb5bbbc62575702d4e",
+  "independent-review/verified.json": "01efdd9159aef7e2289a695f96c4447db067fa199783072a7b8b37830d2035d6",
+  "cursor-independent-review/REVIEW.md": "4192f7fbbcaf014f785615c3171c3edae8a35f768e2ee90bcc062ddf855e7b95",
+  "cursor-independent-review/SHA256SUMS": "51e3022a83886cd8deac0e55f8a86c09d553504a7fd820ad73e9e2cdd6d773d2"
+}

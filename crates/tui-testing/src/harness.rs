@@ -45,20 +45,35 @@ fn theme_label(theme: &Theme) -> &'static str {
 }
 
 impl<A: App> Harness<A> {
-    /// Build and draw the first frame (twice: the first draw settles the
-    /// initial focus, the second paints it).
+    /// Initialize the application, then publish its first frame and settle discovered focus.
     pub fn new(app: A, theme: Theme, w: u16, h: u16) -> Self {
+        Self::new_with_feedback_clock(app, theme, w, h, junie_tui::FeedbackClock::Elapsed)
+    }
+
+    /// Initialize with an explicit feedback clock and already-seeked simulation epoch.
+    pub fn new_with_feedback_clock(
+        app: A,
+        theme: Theme,
+        w: u16,
+        h: u16,
+        clock: junie_tui::FeedbackClock,
+    ) -> Self {
         let theme_name = theme_label(&theme);
         let mut h = Harness {
-            rt: Runtime::new(app, theme),
+            rt: Runtime::new_with_feedback_clock(app, theme, clock),
             term: Terminal::new(TestBackend::new(w, h)).expect("test terminal"),
             auto_draw: true,
             theme_name,
             color: ColorLevel::TrueColor,
         };
-        h.draw();
+        let _ = h.rt.initialize();
         h.draw();
         h
+    }
+
+    /// Current authoritative feedback; a simulation duration is not a wall deadline.
+    pub fn activation_feedback(&self) -> Option<junie_tui::ActivationFeedback> {
+        self.rt.activation_feedback()
     }
 
     /// Downgrade the theme to `level` and redraw.
@@ -71,7 +86,8 @@ impl<A: App> Harness<A> {
         self
     }
 
-    /// `false`: `handle` does not draw; call `draw()` explicitly.
+    /// `false` skips after-input drawing; call `draw()` explicitly to inspect it.
+    /// A subsequent input still completes any presentation required for routing.
     #[must_use]
     pub const fn with_auto_draw(mut self, yes: bool) -> Self {
         self.auto_draw = yes;
@@ -80,7 +96,14 @@ impl<A: App> Harness<A> {
 
     /// Handle one input, then draw (when auto-draw is on).
     pub fn handle(&mut self, input: Input) -> Response<()> {
-        let r = self.rt.handle(input);
+        // Complete pending publication before routing this owned event.
+        if self.rt.needs_present() || self.rt.needs_settle() {
+            self.draw();
+        }
+        let r = self
+            .rt
+            .handle(input)
+            .expect("harness publishes before input");
         if self.auto_draw {
             self.draw();
         }
@@ -199,22 +222,79 @@ impl<A: App> Harness<A> {
         self.handle(Input::Resize(w, h))
     }
 
-    /// Draw one frame.
+    /// Present frames and explicitly settle focus until input is ready.
     pub fn draw(&mut self) {
-        let rt = &mut self.rt;
-        self.term.draw(|f| rt.draw(f)).expect("draw");
+        for _ in 0..16 {
+            if self.rt.needs_settle() {
+                let _ = self.rt.settle();
+            }
+            {
+                let mut painted = None;
+                self.term
+                    .draw(|f| {
+                        painted = Some(self.rt.draw(f));
+                    })
+                    .expect("draw");
+                if let Some(frame) = painted {
+                    frame.commit_presented();
+                }
+            }
+            if !self.rt.needs_settle() && !self.rt.needs_present() {
+                return;
+            }
+        }
+        panic!("harness focus did not settle: {:?}", self.rt.diagnostics());
     }
 
-    /// Advance the virtual clock by `n` ticks.
+    /// Deliver `n` explicit update ticks at unchanged elapsed time.
     pub fn ticks(&mut self, n: usize) {
         for _ in 0..n {
             let _ = self.tick();
         }
     }
 
-    /// One tick.
+    /// One explicit update tick at unchanged elapsed time.
     pub fn tick(&mut self) -> Response<()> {
         self.handle(Input::Tick)
+    }
+
+    /// Current explicit elapsed time, unchanged by input or drawing.
+    pub fn now(&self) -> junie_tui::Moment {
+        self.rt.now()
+    }
+
+    /// Earliest armed runtime deadline, if any.
+    pub fn next_deadline(&self) -> Option<junie_tui::Moment> {
+        self.rt.next_deadline()
+    }
+
+    /// Advance explicit elapsed time and run one due scheduler turn.
+    pub fn advance(&mut self, elapsed: core::time::Duration) -> Response<()> {
+        self.advance_to(self.rt.now().saturating_add(elapsed))
+            .expect("saturating forward clock movement")
+    }
+
+    /// Run one scheduler turn at an absolute moment; equal time may deliver a
+    /// newly armed deadline. Immediate rearming waits for a subsequent call.
+    ///
+    /// # Errors
+    /// Backwards time is rejected without changing runtime state.
+    pub fn advance_to(
+        &mut self,
+        now: junie_tui::Moment,
+    ) -> Result<Response<()>, junie_tui::ClockError> {
+        self.rt.advance_to(now)?;
+        let mut response = Response::ignored();
+        for _ in 0..16 {
+            if !self.rt.needs_settle() {
+                break;
+            }
+            response |= self.rt.settle();
+        }
+        if self.auto_draw {
+            self.draw();
+        }
+        Ok(response)
     }
 
     /// Last frame's area of `id`.

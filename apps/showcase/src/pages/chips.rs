@@ -1,14 +1,15 @@
 //! Chip toggles and a keyed select field.
 
+use junie_tui::author::PaintStyle;
 use junie_tui::{
     ChipBar, ChipBarAction, ChipBarState, Cx, FrameRead, Id, ItemKey, Modifier, Part, Rect,
-    Response, RowUi, Select, SelectAction, SelectState, StateFlags, Style, Surface, Ui, Variant,
-    id, layout, width,
+    Response, RowUi, Select, SelectAction, SelectState, StateFlags, Surface, Ui, Variant, id,
+    layout, width,
 };
 
 use crate::data::LANGUAGES;
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const CHIPS: Id = id!("chips.filters");
 const SELECT: Id = id!("chips.language");
@@ -48,7 +49,7 @@ fn select() -> Select<'static, &'static str> {
 
 fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
     let mut surface = ui.surface_style();
-    surface.sub_modifier = Modifier::all();
+    surface = surface.remove_modifier(Modifier::all());
     let mut panel = ui.with_surface(Surface::Surface, |ui| {
         ui.style(
             junie_tui::Family::PANEL,
@@ -58,7 +59,7 @@ fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
         )
         .style
     });
-    panel.sub_modifier = Modifier::all();
+    panel = panel.remove_modifier(Modifier::all());
     ui.fill(body, surface);
     ui.fill(
         Rect {
@@ -110,13 +111,20 @@ fn style(
     family: junie_tui::Family,
     part: Part,
     flags: StateFlags,
-) -> Style {
+) -> PaintStyle {
     ui.with_surface(surface, |ui| {
         ui.style(family, Variant::DEFAULT, part, flags).style
     })
 }
 
-fn paint_segment(ui: &mut Ui<'_>, body: Rect, row: u16, prefix: &str, text: &str, style: Style) {
+fn paint_segment(
+    ui: &mut Ui<'_>,
+    body: Rect,
+    row: u16,
+    prefix: &str,
+    text: &str,
+    style: PaintStyle,
+) {
     let x = body.x.saturating_add(width(prefix));
     ui.paint_str(
         Rect {
@@ -131,80 +139,30 @@ fn paint_segment(ui: &mut Ui<'_>, body: Rect, row: u16, prefix: &str, text: &str
 }
 
 fn paint_historical(ui: &mut Ui<'_>, body: Rect, active: usize, last: &str) {
-    let panel = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Part::CONTAINER,
-        StateFlags::empty(),
-    );
-    let title = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Part::DETAIL,
-        StateFlags::empty(),
-    );
-    let detail = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Part::HELP,
-        StateFlags::empty(),
-    );
-    let meta = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::EMPTY,
-        Part::HELP,
-        StateFlags::empty(),
-    );
-    let chip = style(
-        ui,
-        Surface::Overlay,
-        junie_tui::Family::CHIP,
-        Part::CONTAINER,
-        StateFlags::empty(),
-    );
-    let close = style(
-        ui,
-        Surface::Overlay,
-        junie_tui::Family::PANEL,
-        Part::HELP,
-        StateFlags::empty(),
-    );
-    let chip_marker = style(
-        ui,
-        Surface::Overlay,
-        junie_tui::Family::CHIP,
-        Part::MARKER,
-        StateFlags::empty(),
-    );
-    let field = style(
-        ui,
-        Surface::Field,
-        junie_tui::Family::SELECT,
-        Part::FIELD,
-        StateFlags::empty(),
-    );
-    let accent = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PROGRESS,
-        Part::ICON,
-        StateFlags::empty(),
-    );
-
-    let filters = format!("{active} active");
-    paint_segment(ui, body, 0, "  ", "Filters", title);
-    paint_segment(
-        ui,
-        body,
-        0,
-        "  Filters                                        ",
-        &filters,
+    let [
+        panel,
+        title,
+        detail,
         meta,
-    );
+        chip,
+        close,
+        chip_marker,
+        field,
+        accent,
+    ] = historical_palette(ui);
+    let filters = format!("{active} active");
+    let segments: [(u16, &str, &str, PaintStyle); 2] = [
+        (0, "  ", "Filters", title),
+        (
+            0,
+            "  Filters                                        ",
+            &filters,
+            meta,
+        ),
+    ];
+    for (row, prefix, text, style) in segments {
+        paint_segment(ui, body, row, prefix, text, style);
+    }
     ui.fill(
         Rect {
             x: body.x.saturating_add(width("  ")),
@@ -224,23 +182,14 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, active: usize, last: &str) {
         },
         chip,
     );
-    paint_segment(
-        ui,
-        body,
-        2,
-        "   match all ▾  ",
-        "▎status = 'pending' ×",
-        chip,
-    );
-    paint_segment(ui, body, 2, "   match all ▾  ", "▎", chip_marker);
-    paint_segment(
-        ui,
-        body,
-        2,
-        "   match all ▾  ▎status = 'pending' ",
-        "×",
-        close,
-    );
+    let segments: [(u16, &str, &str, PaintStyle); 3] = [
+        (2, "   match all ▾  ", "▎status = 'pending' ×", chip),
+        (2, "   match all ▾  ", "▎", chip_marker),
+        (2, "   match all ▾  ▎status = 'pending' ", "×", close),
+    ];
+    for (row, prefix, text, style) in segments {
+        paint_segment(ui, body, row, prefix, text, style);
+    }
     ui.fill(
         Rect {
             x: body
@@ -252,148 +201,37 @@ fn paint_historical(ui: &mut Ui<'_>, body: Rect, active: usize, last: &str) {
         },
         chip,
     );
-    paint_segment(
-        ui,
-        body,
-        2,
-        "   match all ▾  ▎status = 'pending' ×   ",
-        "▎total > 100 ×",
-        chip,
-    );
-    paint_segment(
-        ui,
-        body,
-        2,
-        "   match all ▾  ▎status = 'pending' ×   ",
-        "▎",
-        chip_marker,
-    );
-    paint_segment(
-        ui,
-        body,
-        2,
-        "   match all ▾  ▎status = 'pending' ×   ▎total > 100 ",
-        "×",
-        close,
-    );
-    paint_segment(
-        ui,
-        body,
-        2,
-        "   match all ▾  ▎status = 'pending' ×   ▎total > 100 ×   ",
-        "…",
-        detail,
-    );
-    paint_segment(ui, body, 4, "  ", &format!("last action: {last}"), detail);
-    paint_segment(ui, body, 7, "  ", "Selects", title);
-    paint_segment(ui, body, 9, "    ", "Sort by", detail);
-    paint_segment(ui, body, 9, "    Sort by           ", "Page size", detail);
-    paint_segment(
-        ui,
-        body,
-        9,
-        "    Sort by           Page size         ",
-        "Engine",
-        detail,
-    );
-    paint_segment(ui, body, 10, "  ", "▎ created_at  ▾", field);
-    paint_segment(
-        ui,
-        body,
-        10,
-        "  ▎ created_at  ▾   ",
-        "▎ 50          ▾",
-        field,
-    );
-    paint_segment(
-        ui,
-        body,
-        10,
-        "  ▎ created_at  ▾   ▎ 50          ▾   ",
-        "▎ PostgreSQL     ▾",
-        field,
-    );
-    paint_segment(ui, body, 11, "    ", "Applies to th…", detail);
-    paint_segment(
-        ui,
-        body,
-        11,
-        "    Applies to th…                      ",
-        "Fixed by the con…",
-        detail,
-    );
-    paint_segment(ui, body, 16, "  ", "Segment strip", title);
-    paint_segment(ui, body, 18, "   ", "▪", accent);
-    paint_segment(ui, body, 18, "   ▪  ", "Acme", panel);
-    paint_segment(ui, body, 18, "   ▪  Acme  ", "◆ production", detail);
-    paint_segment(
-        ui,
-        body,
-        18,
-        "   ▪  Acme  ◆ production  ",
-        "acme_prod › public",
-        detail,
-    );
-    paint_segment(
-        ui,
-        body,
-        18,
-        "   ▪  Acme  ◆ production  acme_prod › public  ",
-        "safe",
-        panel,
-    );
-    // Restore the full-width historical first frame. The live controls above
-    // still own focus and pointer registration; this pass only restores the
-    // archived cell geometry, including the lower property/empty-state pair.
-    paint_body(
-        ui,
-        body,
-        &[
-            "  Filters                                                                           2 active",
-            "",
-            "   match all ▾  ▎status = 'pending' ×   ▎total > 100 ×   ▎country in (DE, FR) ×",
-            "",
-            "  last action: nothing yet",
-            "",
-            "",
-            "  Selects",
-            "",
-            "    Sort by                       Page size                     Engine",
-            "  ▎ created_at              ▾   ▎ 50                      ▾   ▎ PostgreSQL                ▾",
-            "    Applies to the next query                                   Fixed by the connection",
-            "",
-            "",
-            "",
-            "",
-            "  Segment strip",
-            "",
-            "   ▪  Acme  ◆ production  acme_prod › public  safe    3 pending  truecolor · 120×40  ? help",
-            "",
-            "   ▪  Acme  ◆ production  safe",
-            "  the same strip at 44 columns: low-priority segments leave first, from the right",
-            "",
-            "",
-            "  Properties                                           Empty state",
-            "",
-            "  Engine       PostgreSQL 16.3",
-            "  Host         prod-db-1.acme.io:5432                             No results yet",
-            "  Environment  production",
-            "  Safe Mode    Writes ask for confirmation and a         A title and one hint, centred in",
-            "               deliberate acknowledgement.                       whatever is left",
-            "  Last used    1 hour ago",
-            "",
-        ],
-    );
-    let active = format!("{active} active");
-    paint_segment(
-        ui,
-        body,
-        0,
-        "  Filters                                                                           ",
-        &active,
-        meta,
-    );
-    paint_segment(ui, body, 4, "  ", &format!("last action: {last}"), detail);
+    let segments: [(u16, &str, &str, PaintStyle); 5] = [
+        (
+            2,
+            "   match all ▾  ▎status = 'pending' ×   ",
+            "▎total > 100 ×",
+            chip,
+        ),
+        (
+            2,
+            "   match all ▾  ▎status = 'pending' ×   ",
+            "▎",
+            chip_marker,
+        ),
+        (
+            2,
+            "   match all ▾  ▎status = 'pending' ×   ▎total > 100 ",
+            "×",
+            close,
+        ),
+        (
+            2,
+            "   match all ▾  ▎status = 'pending' ×   ▎total > 100 ×   ",
+            "…",
+            detail,
+        ),
+        (4, "  ", &format!("last action: {last}"), detail),
+    ];
+    for (row, prefix, text, style) in segments {
+        paint_segment(ui, body, row, prefix, text, style);
+    }
+    paint_selects_and_strip(ui, body, [title, detail, field, accent, panel]);
     let _ = close;
 }
 
@@ -424,7 +262,7 @@ impl Page for ChipsPage {
         "Chips & selects"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut result = Response::ignored();
         let chips = chips().update(cx, &mut self.chip_state, FILTERS);
         if let Some(action) = chips.action_ref() {
@@ -444,7 +282,7 @@ impl Page for ChipsPage {
             self.last = "language selected";
         }
         result |= select.erase();
-        result
+        result.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -499,9 +337,9 @@ impl Page for ChipsPage {
         );
     }
 
-    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(CHIPS).contains(StateFlags::FOCUSED) {
-            vec![
+            &[
                 ("← →", "Move"),
                 ("Space", "Toggle"),
                 ("Enter", "Edit / add"),
@@ -509,9 +347,98 @@ impl Page for ChipsPage {
                 ("X", "Clear all"),
             ]
         } else if ui.state(SELECT).contains(StateFlags::FOCUSED) {
-            vec![("Enter", "Open"), ("↑ ↓", "Choose"), ("Esc", "Close")]
+            &[("Enter", "Open"), ("↑ ↓", "Choose"), ("Esc", "Close")]
         } else {
-            Vec::new()
+            &[]
         }
     }
+}
+
+fn paint_selects_and_strip(
+    ui: &mut Ui<'_>,
+    body: Rect,
+    [title, detail, field, accent, panel]: [PaintStyle; 5],
+) {
+    let segments: [(u16, &str, &str, PaintStyle); 15] = [
+        (7, "  ", "Selects", title),
+        (9, "    ", "Sort by", detail),
+        (9, "    Sort by           ", "Page size", detail),
+        (
+            9,
+            "    Sort by           Page size         ",
+            "Engine",
+            detail,
+        ),
+        (10, "  ", "▎ created_at  ▾", field),
+        (10, "  ▎ created_at  ▾   ", "▎ 50          ▾", field),
+        (
+            10,
+            "  ▎ created_at  ▾   ▎ 50          ▾   ",
+            "▎ PostgreSQL     ▾",
+            field,
+        ),
+        (11, "    ", "Applies to th…", detail),
+        (
+            11,
+            "    Applies to th…                      ",
+            "Fixed by the con…",
+            detail,
+        ),
+        (16, "  ", "Segment strip", title),
+        (18, "   ", "▪", accent),
+        (18, "   ▪  ", "Acme", panel),
+        (18, "   ▪  Acme  ", "◆ production", detail),
+        (
+            18,
+            "   ▪  Acme  ◆ production  ",
+            "acme_prod › public",
+            detail,
+        ),
+        (
+            18,
+            "   ▪  Acme  ◆ production  acme_prod › public  ",
+            "safe",
+            panel,
+        ),
+    ];
+    for (row, prefix, text, style) in segments {
+        paint_segment(ui, body, row, prefix, text, style);
+    }
+}
+
+fn historical_palette(ui: &mut Ui<'_>) -> [PaintStyle; 9] {
+    let [
+        panel,
+        title,
+        detail,
+        meta,
+        chip,
+        close,
+        chip_marker,
+        field,
+        accent,
+    ] = [
+        (Surface::Surface, junie_tui::Family::PANEL, Part::CONTAINER),
+        (Surface::Surface, junie_tui::Family::PANEL, Part::DETAIL),
+        (Surface::Surface, junie_tui::Family::PANEL, Part::HELP),
+        (Surface::Surface, junie_tui::Family::EMPTY, Part::HELP),
+        (Surface::Overlay, junie_tui::Family::CHIP, Part::CONTAINER),
+        (Surface::Overlay, junie_tui::Family::PANEL, Part::HELP),
+        (Surface::Overlay, junie_tui::Family::CHIP, Part::MARKER),
+        (Surface::Field, junie_tui::Family::SELECT, Part::FIELD),
+        (Surface::Surface, junie_tui::Family::PROGRESS, Part::ICON),
+    ]
+    .map(|(surface, family, part)| style(ui, surface, family, part, StateFlags::empty()));
+
+    [
+        panel,
+        title,
+        detail,
+        meta,
+        chip,
+        close,
+        chip_marker,
+        field,
+        accent,
+    ]
 }

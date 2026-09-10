@@ -1,0 +1,40 @@
+ ▪ [1mJunie[0m Design system / Foundations / Overview                               no color · 120×40   i Inspector   ? Help  
+                                                                                                                        
+[1m   Foundations          [0m  [1mOverview[0m  Tokens and principles behind every component                                        
+[1m▎› Overview             [0m                                                                                                
+                            Tokens                                          Principles                                  
+[1m   Components           [0m                                                                                                
+▎  Buttons                      ▏ canvas                      #000000       [1mOne hue[0m                                     
+▎  Inputs                       ▏ surface                     #111111       Green means focus, primary action or        
+▎  Text areas                   ▏ surface.elevated            #18181b       selection. Everything else is achromatic.   
+▎  Forms                        ▏ surface.overlay             #27272a                                                   
+▎  Lists                        ▏ field                       #1e1e22       [1mAlpha ladder[0m                                
+▎  Trees                        ▏ popover                     #3f3f46       Text and borders step down in white         
+▎  Tables                       ▏ border.subtle             white 15%       opacity, never in arbitrary grays.          
+▎  Editable tables              ▏ border.strong             white 30%                                                   
+▎  Panels                       ▏ text.primary                #ffffff       [1mState is geometry[0m                           
+▎  Sidebars                     ▏ text.secondary            white 70%       Hover lifts the surface, focus adds a bar,  
+▎  Dialogs                      ▏ text.muted                white 50%       selection adds a marker, editing shows the  
+▎  Progress                     ▏ text.faint                white 30%       cursor.                                     
+▎  Scrolling                    ▏ accent                      #48e054                                                   
+▎  Terminal                     ▏ accent.hover                #3ab343       [1mThree planes[0m                                
+▎  Code editor                  ▏ accent.pressed              #2b8632       Canvas, surface, elevated. Depth comes      
+▎  Data grid                    ▏ accent.bg                 green 20%       from lightness, not borders.                
+▎  Chips & selects              ▏ error                       #e44545                                                   
+▎  Pickers                      ▏ warning                     #f59e09       [1mQuiet chrome[0m                                
+▎  Chrome                       ▏ info                        #8787ff       Bold is reserved for the focused control.   
+                                                                            No box around a thing unless the box        
+[1m   Screens              [0m                                                    carries meaning.                            
+▎  Settings                                                                                                             
+▎  Task runner                                                                                                          
+                                                                            State language                              
+                                                                                                                        
+                                                                            ▎  focus                                    
+                                                                            ░  hover lifts the surface                  
+                                                                            ›  current / chosen                         
+                                                                            ✓  checked                                  
+                                                                            !  error                                    
+                                                                                                                        
+                                                                          Author component · click or Tab               
+                                                                                                                        
+ [1m↑ ↓[0m Move  [1mEnter[0m Open  [1mTab[0m Into page  [1mq[0m Quit                                                                            

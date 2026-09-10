@@ -167,10 +167,10 @@ pub use crate::scroll::ScrollState;
 // theme resolution
 pub use crate::theme::border;
 pub use crate::theme::{
-    Align, ColorLevel, Density, DesignTokens, FG_STEPS, Family, FgStep, GlyphRole,
-    MONO_RULES_PER_FAMILY, MeterRole, MeterThresholds, Modifier, MonoRule, Overlay, OverlayRule,
-    PartMetrics, Resolved, Role, SURFACE_LEVELS, Slot, StateRule, StylePatch, Surface, SyntaxRole,
-    Theme, Variant,
+    Align, CapabilityPalettes, ColorLevel, Density, DesignTokens, FG_STEPS, Family, FgStep,
+    GlyphRole, MONO_RULES_PER_FAMILY, MeterFillRest, MeterRole, MeterThresholds, Modifier,
+    MonoRule, Overlay, OverlayRule, PaintStyle, PartMetrics, Resolved, Role, SURFACE_LEVELS, Slot,
+    StateRule, StyleDefaults, StylePatch, Surface, SyntaxRole, Theme, Variant,
 };
 // layout and measurement
 pub use crate::layout::{self, Insets, RowAlign, SplitModel, Track};
@@ -178,8 +178,9 @@ pub use crate::measure::{Constraints, Measure, Size};
 // text — curated: `grapheme_width`, `is_word_char` and `thousands` stay
 // internal (Appendix B.4 lists neither)
 pub use crate::text::{
-    CursorPos, EditAction, EditOutcome, Extend, Motion, Span, TextBuffer, TextEditorCore, fuzzy,
-    truncate, truncate_middle, width, wrap, wrapped_rows,
+    CursorPos, EditAction, EditOutcome, Extend, FuzzyBoundary, Motion, Span, TextBuffer,
+    TextEditorCore, fuzzy, fuzzy_with_boundary, truncate, truncate_middle, width, wrap,
+    wrapped_rows,
 };
 // collections
 pub use crate::collection::{

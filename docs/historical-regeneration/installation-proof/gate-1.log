@@ -1,0 +1,5 @@
+baseline_moves_are_classified: base 1318e85
+baseline_moves_are_classified: 0 moved key(s), 0 added key(s) across 8 baseline file(s)
+ok   baseline_moves_are_classified
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.02s
+     Running `/Users/donbeave/Projects/terminal-components-integration-evidence/target-historical-assets/debug/xtask bless-guard`

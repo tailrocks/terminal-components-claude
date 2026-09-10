@@ -1,0 +1,102 @@
+{
+  "commit": "02102e943cf933ce4acf56aae8c25622a31fda0f",
+  "files": [
+    {
+      "file": "dialog-dark-120x40.frame.json",
+      "sha256": "e21af0cabf746ef210407b9d26985146bdaf1fda5a70a58e45f3e55845961355"
+    },
+    {
+      "file": "dialog-dark-160x50.frame.json",
+      "sha256": "5fcf058a86d16ae979fe3235e2a9dc498074fa86710f6b45426b1452e3b163f8"
+    },
+    {
+      "file": "dialog-dark-80x24.frame.json",
+      "sha256": "5e08eabace3565718a6e86070358201eaf36d768ed1059f957a7fc135d487f69"
+    },
+    {
+      "file": "dialog-light-120x40.frame.json",
+      "sha256": "1b280e81326d46a2b2a4fdb4743bb78a6afd1a78c0a199f017088664f88374e7"
+    },
+    {
+      "file": "dialog-light-160x50.frame.json",
+      "sha256": "ff10a360a18630807565834685043f7e4df8eedfa09476231a386fc1d245e273"
+    },
+    {
+      "file": "dialog-light-80x24.frame.json",
+      "sha256": "06eae2167c525377e6c3763c5ddd395bb27f439765a5469d1bba1054d17a40e7"
+    },
+    {
+      "file": "glyphs-dark-120x40.frame.json",
+      "sha256": "17815f9a0a933dc076e5b1bc21ebe89900c67acf197bb7d64fa70268b2346398"
+    },
+    {
+      "file": "glyphs-dark-160x50.frame.json",
+      "sha256": "21b6341cd1e6e7fca8d667d8221f936c9fb99986eb4d91251f95c205ef1f1a35"
+    },
+    {
+      "file": "glyphs-dark-80x24.frame.json",
+      "sha256": "0adc075257d5fcfb7f083cd40232c3ced22506e9adbcf8cb9ada00464d372699"
+    },
+    {
+      "file": "glyphs-light-120x40.frame.json",
+      "sha256": "ada68eedcc3908602a39cda2646a781987cb84acf88fd075ca4d9499efbfc427"
+    },
+    {
+      "file": "glyphs-light-160x50.frame.json",
+      "sha256": "d5a043a89967a739461a322dc13c23ad9058ca32d5f769d60760f5869a5ff74e"
+    },
+    {
+      "file": "glyphs-light-80x24.frame.json",
+      "sha256": "b5e06380daa1928ea489eca8874a7e4409afa0b3f716729ee621193cba349f13"
+    },
+    {
+      "file": "home-dark-120x40.frame.json",
+      "sha256": "443d6fe82212b02ea03a5d3ec7f625af0d00958e8bd1ac0f1d4dc79d6608511e"
+    },
+    {
+      "file": "home-dark-160x50.frame.json",
+      "sha256": "9209757b3e6559223db336998c370ce191863c54c63c711ac8a68bde4b49d9d3"
+    },
+    {
+      "file": "home-dark-80x24.frame.json",
+      "sha256": "24edd11667dd72c4fd3a904563d02f89283c9a638dafa0820ac3ad2b765328bb"
+    },
+    {
+      "file": "home-light-120x40.frame.json",
+      "sha256": "32194ac1307ff517400dc8497d157367b526e51c8571202b46e3e7830f67acec"
+    },
+    {
+      "file": "home-light-160x50.frame.json",
+      "sha256": "4a6f132e50f0fc49adb8381a3402bfb5545bb1fb56c1ab5083d12a187d76a97e"
+    },
+    {
+      "file": "home-light-80x24.frame.json",
+      "sha256": "f877fc6b8116c051dda4f3e4e545918bf3ebabdfabde5402d58c078410de016c"
+    },
+    {
+      "file": "table-dark-120x40.frame.json",
+      "sha256": "234476891dfe4759b2559f04af31050c02ff36935d2bb7b576ea94b4d641c618"
+    },
+    {
+      "file": "table-dark-160x50.frame.json",
+      "sha256": "e6be135de5de9f774b52cc63d00fd0356625f53f19dd2176a8e7bc7c4e662436"
+    },
+    {
+      "file": "table-dark-80x24.frame.json",
+      "sha256": "8f8873e2bee401611b0969a919ca77c24c712cb38519edff4650f6e73b256801"
+    },
+    {
+      "file": "table-light-120x40.frame.json",
+      "sha256": "9c960d8e0b0e14a1502145c6e633e504d78eac0def26df490c992db703b8eff0"
+    },
+    {
+      "file": "table-light-160x50.frame.json",
+      "sha256": "cefdd5ae5a92f8ca343db7d3ab54bc6f560d4cd630c4f43c1040fe84ace76167"
+    },
+    {
+      "file": "table-light-80x24.frame.json",
+      "sha256": "26f6f6d829681431801bb57381ff29cd317ebb6fe7ec57d3017948820cb42d47"
+    }
+  ],
+  "pinned_original_status": "?? target\n"
+}

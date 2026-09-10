@@ -15,3 +15,6 @@ pub mod onepassword;
 pub mod usage;
 /// Workspace, role, mount, and environment models.
 pub mod workspace;
+
+/// Captured workspace save identities and results.
+pub mod workspace_save;

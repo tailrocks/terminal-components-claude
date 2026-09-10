@@ -61,14 +61,15 @@ pub use dialog::{Dialog, DialogAction, DialogCmd, DialogState};
 pub use diff::{DiffLineKind, DiffMode, DiffRow, DiffSource, DiffView, DiffViewState};
 pub use empty::Empty;
 pub use field::Field;
-pub use filter_list::{FilterList, FilterListAction, FilterListCmd, FilterListState};
+pub use filter_list::{FilterList, FilterListAction, FilterListCmd, FilterListState, FilterPolicy};
 pub use form::{
     EnterPolicy, FieldKind, FieldMut, FieldRef, FieldSpan, FieldSpec, Form, FormAction, FormData,
     FormState, GroupKey,
 };
 pub use grid::{
     CellAction, CellRef, Column, ColumnKey, EditIntent, GRID_MAX_COLUMNS, Grid, GridAction,
-    GridCmd, GridEditor, GridModel, GridState, NavUnit, SortDir,
+    GridCell, GridCmd, GridColumnFit, GridCursorError, GridEditor, GridGutter, GridHeaderSizing,
+    GridModel, GridSortIndicator, GridState, NavUnit, SortDir, WidthSample, WidthSampleError,
 };
 pub use help::{HelpAction, HelpCmd, HelpOverlay, HelpOverlayState, HelpSection};
 pub use hintbar::{DerivedHintBar, HintBar};
@@ -80,7 +81,8 @@ pub use meter::{Meter, MeterTone, MeterVisual};
 pub use nav_list::{BadgeFn, NavList, NavListAction, NavListCmd, NavListState, NavMode};
 pub use panel::{Panel, PanelKind};
 pub use picker::{
-    AsItem, CommandPalette, Item, ItemRow, Picker, PickerAction, PickerState, ScopeKey,
+    AsItem, CommandPalette, Item, ItemRow, ItemRowLayout, Picker, PickerAction, PickerState,
+    ScopeKey,
 };
 pub use picker_chain::{
     PickerChain, PickerChainAction, PickerChainCmd, PickerChainState, PickerStage,
@@ -95,7 +97,9 @@ pub use steps::{StepState, Steps, StepsAction, StepsCmd, StepsState};
 pub use tabs::{Tabs, TabsAction, TabsCmd, TabsState};
 pub use textarea::{TextArea, TextAreaState};
 pub use too_small::TooSmall;
-pub use tree::{NodeKind, Tree, TreeAction, TreeCmd, TreeNode, TreeState};
+pub use tree::{
+    NodeKind, Tree, TreeAction, TreeBranchActivation, TreeBranchClick, TreeCmd, TreeNode, TreeState,
+};
 pub use viewport::{
     CellPos, TextViewport, ViewportAction, ViewportCmd, ViewportLine, ViewportState,
 };
@@ -103,8 +107,8 @@ pub use viewport::{
 pub use viewport::{ViewportWorkProbe, ViewportWorkSnapshot};
 pub use wizard::{Wizard, WizardAction, WizardCmd, WizardState, WizardStep};
 
+use crate::theme::PaintStyle;
 use ratatui_core::layout::Rect;
-use ratatui_core::style::Style;
 
 use crate::id::{Id, Part, PartRef};
 use crate::response::StateFlags;
@@ -122,7 +126,10 @@ pub(crate) type SlotFn<'a> = &'a dyn Fn(&mut Ui<'_>, Rect);
 /// Placement, z-order, pointer barriers and focus trapping remain owned by
 /// [`Ui::layer`](crate::Ui::layer). This helper owns only the repeated
 /// container fill, typed frame, decorative registrations and surface scope;
-/// it never invents a barrier or a second placement algorithm.
+/// it never invents a barrier or a second placement algorithm. The content
+/// runs exactly once, clipped to the frame interior — an empty clip when
+/// there is no drawable area — and surface or clipping scopes cannot escape
+/// the call.
 #[expect(
     clippy::too_many_arguments,
     reason = "the shared chrome contract keeps each authored style and state channel explicit"
@@ -142,7 +149,6 @@ pub(crate) fn overlay_chrome<R>(
         if area.is_empty() {
             return ui.with_area(area, |ui| body(ui, area));
         }
-
         let container = ov.style(ui, id, family, Variant::DEFAULT, Part::CONTAINER, live);
         ui.fill(area, container.style);
         ui.register_decor(id, PartRef::of(Part::CONTAINER), area);
@@ -154,6 +160,9 @@ pub(crate) fn overlay_chrome<R>(
         }
         ui.register_decor(id, PartRef::of(Part::BORDER), area);
 
+        // The body keeps the frame interior as its clip even when the frame
+        // could not draw (`Ui::frame` returns `Rect::ZERO`), so a degenerate
+        // body area stays anchored inside `area` instead of the origin.
         let body_area = if inner.is_empty() {
             Rect {
                 x: area.x,
@@ -164,7 +173,7 @@ pub(crate) fn overlay_chrome<R>(
         } else {
             inner
         };
-        body(ui, body_area)
+        ui.with_area(body_area, |ui| body(ui, body_area))
     })
 }
 
@@ -201,7 +210,7 @@ pub(crate) const fn cell_at(area: Rect, x: u16) -> Rect {
 }
 
 /// Paint the mono pressed bracket into two cells reserved by the component.
-pub(crate) fn paint_pressed_bracket(ui: &mut Ui<'_>, left: Rect, right: Rect, style: Style) {
+pub(crate) fn paint_pressed_bracket(ui: &mut Ui<'_>, left: Rect, right: Rect, style: PaintStyle) {
     ui.glyph(left, GlyphRole::PressLeft, style);
     ui.glyph(right, GlyphRole::PressRight, style);
 }

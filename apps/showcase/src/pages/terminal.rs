@@ -1,16 +1,16 @@
 //! Terminal-style output with a scrollable viewport and a seven-step rail.
 
 use core::fmt;
+use junie_tui::author::PaintStyle;
 
 use junie_tui::{
     Button, Cx, FrameRead, Id, Panel, PanelKind, Part, Rect, Response, Spinner, StateFlags, Status,
-    StepState, Steps, StepsState, Style, Surface, TextArea, TextAreaState, Ui, Variant, id, layout,
-    width,
+    StepState, Steps, StepsState, Surface, TextArea, TextAreaState, Ui, Variant, id, layout, width,
 };
 
 use crate::data::log_lines;
 
-use super::{Page, frame, lines};
+use super::{Page, PageUpdate, frame, lines};
 
 const OUTPUT: Id = id!("terminal.output");
 const OUTPUT_PANEL: Id = id!("terminal.output.panel");
@@ -50,10 +50,8 @@ fn step_rail() -> Steps<'static, TerminalStep> {
     Steps::navigable(RAIL).step(&step_state)
 }
 
-fn output() -> TextArea<'static> {
-    TextArea::new(OUTPUT, 12)
-        .read_only(true)
-        .status(Status::Ready)
+fn step_spinner() -> Spinner<'static> {
+    Spinner::new(STEP_SPINNER).frame(0)
 }
 
 fn output_panel() -> Panel<'static> {
@@ -62,12 +60,24 @@ fn output_panel() -> Panel<'static> {
         .title("Viewport")
 }
 
-fn rail_panel(meta: &'static str) -> Panel<'static> {
-    Panel::new(RAIL_PANEL).title("Step rail").meta(meta)
+fn rail_meta(running: bool) -> &'static str {
+    if running {
+        "0 of 7 · running "
+    } else {
+        "0 of 7 "
+    }
 }
 
-fn step_spinner(frame: usize) -> Spinner<'static> {
-    Spinner::new(STEP_SPINNER).frame(frame)
+fn rail_panel(running: bool) -> Panel<'static> {
+    Panel::new(RAIL_PANEL)
+        .title("Step rail")
+        .meta(rail_meta(running))
+}
+
+fn output() -> TextArea<'static> {
+    TextArea::new(OUTPUT, 12)
+        .read_only(true)
+        .status(Status::Ready)
 }
 
 fn run_button() -> Button<'static> {
@@ -105,60 +115,12 @@ fn terminal_style(
     variant: Variant,
     part: Part,
     flags: StateFlags,
-) -> Style {
+) -> PaintStyle {
     ui.with_surface(surface, |ui| ui.style(family, variant, part, flags).style)
 }
 
 fn paint_narrow_rail(ui: &mut Ui<'_>, inner: Rect) {
-    let panel = terminal_style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Variant::DEFAULT,
-        Part::CONTAINER,
-        StateFlags::empty(),
-    );
-    let gutter = terminal_style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Variant::DEFAULT,
-        Part::DETAIL,
-        StateFlags::empty(),
-    );
-    let running = terminal_style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::STEPS,
-        Variant::DEFAULT,
-        Part::LABEL,
-        StateFlags::BUSY | StateFlags::ACTIVE,
-    );
-    let queued = terminal_style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::STEPS,
-        Variant::DEFAULT,
-        Part::META,
-        StateFlags::empty(),
-    );
-    let time = terminal_style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Variant::DEFAULT,
-        Part::DETAIL,
-        StateFlags::empty(),
-    );
-    let primary = terminal_style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::BUTTON,
-        Variant::SECONDARY,
-        Part::CONTAINER,
-        StateFlags::empty(),
-    );
-
+    let [panel, gutter, running, queued, time, primary] = historical_palette(ui);
     let visible = [
         "▎⠏ 01 Resolve workspace                          0.7 s",
         "▎  02 Pull base image                           queued",
@@ -191,15 +153,12 @@ fn paint_narrow_rail(ui: &mut Ui<'_>, inner: Rect) {
         ui.fill(area, panel);
         ui.paint_str(area, line, panel);
     }
-    for (row, line) in visible.iter().enumerate().take(7) {
-        let Ok(row) = u16::try_from(row) else {
-            break;
-        };
+    for (row, line) in visible.iter().copied().take(7).enumerate() {
         let number_end = line.find(|c: char| c.is_ascii_digit()).unwrap_or(2);
         ui.paint_str(
             Rect {
                 x: inner.x,
-                y: inner.y.saturating_add(row),
+                y: inner.y.saturating_add(row as u16),
                 width: inner.width,
                 height: 1,
             },
@@ -207,78 +166,7 @@ fn paint_narrow_rail(ui: &mut Ui<'_>, inner: Rect) {
             gutter,
         );
     }
-    let spinner = terminal_style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::STEPS,
-        Variant::DEFAULT,
-        Part::ICON,
-        StateFlags::BUSY | StateFlags::ACTIVE,
-    );
-    ui.paint_str(
-        Rect {
-            x: inner.x.saturating_add(1),
-            y: inner.y,
-            width: 1,
-            height: 1,
-        },
-        "⠏",
-        spinner,
-    );
-    ui.paint_str(
-        Rect {
-            x: inner.x.saturating_add(width("▎⠏ ")),
-            y: inner.y,
-            width: inner.width,
-            height: 1,
-        },
-        "01 Resolve workspace",
-        running,
-    );
-    for (row, prefix) in [
-        "▎  02 Pull base image                           ",
-        "▎  03 Build container                           ",
-        "▎  04 Mount sources                             ",
-        "▎  05 Resolve credentials                       ",
-        "▎  06 Start agent                               ",
-        "▎  07 Ready                                     ",
-    ]
-    .iter()
-    .enumerate()
-    {
-        ui.paint_str(
-            Rect {
-                x: inner.x.saturating_add(width(prefix)),
-                y: inner.y.saturating_add(row as u16 + 1),
-                width: inner.width,
-                height: 1,
-            },
-            "queued",
-            queued,
-        );
-    }
-    ui.paint_str(
-        Rect {
-            x: inner
-                .x
-                .saturating_add(width("▎⠏ 01 Resolve workspace                          ")),
-            y: inner.y,
-            width: inner.width,
-            height: 1,
-        },
-        "0.7 s",
-        time,
-    );
-    ui.paint_str(
-        Rect {
-            x: inner.x,
-            y: inner.y.saturating_add(14),
-            width: inner.width,
-            height: 1,
-        },
-        "▎Run   ▎Run with a failure",
-        primary,
-    );
+    paint_narrow_adornments(ui, inner, [running, queued, time, primary]);
 }
 
 /// The page keeps terminal text and lifecycle data in app state; public
@@ -342,11 +230,8 @@ impl Page for TerminalPage {
         "Terminal"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut response = Response::ignored();
-        let _ = output_panel();
-        let _ = rail_panel("");
-        let _ = step_spinner(0);
         let output = output().update(cx, &mut self.output_state, &mut self.output);
         response |= output.erase();
         response |= step_rail()
@@ -363,7 +248,12 @@ impl Page for TerminalPage {
             self.reset(true);
         }
         response |= fail.erase();
-        response
+        // Both phases build the same panels and spinner (§13); the update pass
+        // only needs the construction to stay the single source of the props.
+        let _ = output_panel();
+        let _ = rail_panel(self.running);
+        let _ = step_spinner();
+        response.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -383,12 +273,7 @@ impl Page for TerminalPage {
                     });
                 }
 
-                let meta = if self.running {
-                    "0 of 7 · running "
-                } else {
-                    "0 of 7 "
-                };
-                rail_panel(meta).draw(ui, right, |ui, inner| {
+                rail_panel(self.running).draw(ui, right, |ui, inner| {
                     let rail_area = Rect {
                         height: inner.height.saturating_sub(3),
                         ..inner
@@ -396,7 +281,7 @@ impl Page for TerminalPage {
                     step_rail().draw(ui, rail_area, &self.steps_state, &self.steps);
                     // The historical rail reports elapsed time for the
                     // active first step instead of the generic lifecycle word.
-                    let _ = step_spinner(0).draw(
+                    let _ = step_spinner().draw(
                         ui,
                         Rect {
                             x: inner.x.saturating_add(1),
@@ -461,9 +346,9 @@ impl Page for TerminalPage {
         );
     }
 
-    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(OUTPUT).contains(StateFlags::FOCUSED) {
-            vec![
+            &[
                 ("↑ ↓", "Scroll"),
                 ("Home End", "Oldest / live"),
                 ("f", "Follow"),
@@ -472,9 +357,140 @@ impl Page for TerminalPage {
                 ("Esc", "Clear"),
             ]
         } else if ui.state(RAIL).contains(StateFlags::FOCUSED) {
-            vec![("↑ ↓", "Move"), ("wheel", "Scroll")]
+            &[("↑ ↓", "Move"), ("wheel", "Scroll")]
         } else {
-            vec![("Enter", "Activate"), ("drag ┃", "Resize")]
+            &[("Enter", "Activate"), ("drag ┃", "Resize")]
         }
     }
+}
+
+fn historical_palette(ui: &mut Ui<'_>) -> [PaintStyle; 6] {
+    let [panel, gutter, running, queued, time, primary] = [
+        (
+            Surface::Surface,
+            junie_tui::Family::PANEL,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::PANEL,
+            Variant::DEFAULT,
+            Part::DETAIL,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::STEPS,
+            Variant::DEFAULT,
+            Part::LABEL,
+            StateFlags::BUSY | StateFlags::ACTIVE,
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::STEPS,
+            Variant::DEFAULT,
+            Part::META,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::PANEL,
+            Variant::DEFAULT,
+            Part::DETAIL,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            junie_tui::Family::BUTTON,
+            Variant::SECONDARY,
+            Part::CONTAINER,
+            StateFlags::empty(),
+        ),
+    ]
+    .map(|(surface, family, variant, part, flags)| {
+        terminal_style(ui, surface, family, variant, part, flags)
+    });
+
+    [panel, gutter, running, queued, time, primary]
+}
+
+fn paint_narrow_adornments(
+    ui: &mut Ui<'_>,
+    inner: Rect,
+    [running, queued, time, primary]: [PaintStyle; 4],
+) {
+    let spinner = terminal_style(
+        ui,
+        Surface::Surface,
+        junie_tui::Family::STEPS,
+        Variant::DEFAULT,
+        Part::ICON,
+        StateFlags::BUSY | StateFlags::ACTIVE,
+    );
+    ui.paint_str(
+        Rect {
+            x: inner.x.saturating_add(1),
+            y: inner.y,
+            width: 1,
+            height: 1,
+        },
+        "⠏",
+        spinner,
+    );
+    ui.paint_str(
+        Rect {
+            x: inner.x.saturating_add(width("▎⠏ ")),
+            y: inner.y,
+            width: inner.width,
+            height: 1,
+        },
+        "01 Resolve workspace",
+        running,
+    );
+    for (row, prefix) in [
+        "▎  02 Pull base image                           ",
+        "▎  03 Build container                           ",
+        "▎  04 Mount sources                             ",
+        "▎  05 Resolve credentials                       ",
+        "▎  06 Start agent                               ",
+        "▎  07 Ready                                     ",
+    ]
+    .iter()
+    .enumerate()
+    {
+        ui.paint_str(
+            Rect {
+                x: inner.x.saturating_add(width(prefix)),
+                y: inner.y.saturating_add((row as u16).saturating_add(1)),
+                width: inner.width,
+                height: 1,
+            },
+            "queued",
+            queued,
+        );
+    }
+    ui.paint_str(
+        Rect {
+            x: inner
+                .x
+                .saturating_add(width("▎⠏ 01 Resolve workspace                          ")),
+            y: inner.y,
+            width: inner.width,
+            height: 1,
+        },
+        "0.7 s",
+        time,
+    );
+    ui.paint_str(
+        Rect {
+            x: inner.x,
+            y: inner.y.saturating_add(14),
+            width: inner.width,
+            height: 1,
+        },
+        "▎Run   ▎Run with a failure",
+        primary,
+    );
 }

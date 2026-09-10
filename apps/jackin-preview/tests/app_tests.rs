@@ -45,7 +45,7 @@ fn first_use_plays_intro_then_manager_and_no_replay_when_returning() {
         Route::Manager,
         "an active Construct joins without replay"
     );
-    assert!(r.text().contains("1 running"));
+    assert!(r.text().contains("2 running"));
 }
 
 #[test]
@@ -70,14 +70,17 @@ fn reduced_motion_and_paused_frames_are_deterministic() {
 #[test]
 fn manager_navigation_expand_and_detail_focus() {
     let mut h = H::new(Scenario::Returning, Motion::Full, 0, 120, 40);
-    h.key(KeyCode::Down);
-    assert!(h.text().contains("payments-platform"));
+    h.key(KeyCode::Home);
+    let workspace = h.app().world.workspaces.first().unwrap().id;
+    assert_eq!(h.app().manager.selected(), Some(workspace));
     h.key(KeyCode::Right);
     assert!(
         h.text().contains("7f3a"),
         "instance children visible after expand"
     );
     h.key(KeyCode::Down);
+    let (x, y) = h.find("7f3a").unwrap();
+    h.click(x, y);
     h.key(KeyCode::Tab);
     assert!(h.text().contains("Live topology"));
     h.key(KeyCode::Esc);
@@ -1043,15 +1046,25 @@ fn complete_jackin_flow_keyboard_first() {
     assert_eq!(h.app().world.running_count(), 1);
     // 37 reconnect the first (still running) instance and leave through the exit flow
     h.key(KeyCode::Home);
-    h.key(KeyCode::Down);
     h.key(KeyCode::Right);
-    for _ in 0..4 {
-        if h.text().contains("instance · running") {
+    let running_id = h
+        .app()
+        .world
+        .instances
+        .iter()
+        .find(|instance| instance.status == jackin_app::domain::instance::InstanceStatus::Running)
+        .expect("one instance remains running")
+        .id
+        .clone();
+    let running_key = jackin_app::screens::manager::ManagerRowKey::Instance(running_id);
+    h.key(KeyCode::Home);
+    for _ in 0..=(h.app().world.instances.len() + h.app().world.workspaces.len()) {
+        if h.app().manager.selected_row() == &running_key {
             break;
         }
         h.key(KeyCode::Down);
     }
-    assert!(h.text().contains("instance · running"), "{}", h.text());
+    assert_eq!(h.app().manager.selected_row(), &running_key, "{}", h.text());
     h.key(KeyCode::Enter);
     assert_eq!(h.app().route(), Route::Capsule, "{}", h.text());
     h.ctrl('q');

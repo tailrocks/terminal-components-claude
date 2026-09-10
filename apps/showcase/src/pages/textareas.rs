@@ -1,11 +1,11 @@
 //! Multiline editing and viewport scrolling.
 
 use junie_tui::{
-    Cx, Family, Field, FieldError, Id, Panel, PanelKind, Part, Rect, Response, StateFlags,
-    TextAction, TextArea, TextAreaState, Track, Ui, Variant, id, layout, truncate,
+    Cx, Family, Field, FieldError, Id, Panel, PanelKind, Part, Rect, StateFlags, TextAction,
+    TextArea, TextAreaState, Track, Ui, Variant, id, layout, truncate,
 };
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const BODY: Id = id!("textareas.body");
 const NOTES: Id = id!("textareas.notes");
@@ -14,7 +14,7 @@ const COMMIT: Id = id!("textareas.commit");
 const PLAYGROUND: Id = id!("textareas.playground");
 const STATES: Id = id!("textareas.states");
 
-fn body_area<'a>() -> TextArea<'a> {
+fn body_area() -> TextArea<'static> {
     TextArea::new(BODY, 8).placeholder("Write a checklist")
 }
 
@@ -30,7 +30,7 @@ fn checklist() -> String {
         .join("\n")
 }
 
-fn task_field<'a>(value: &'a str) -> Field<'a, TextArea<'a>> {
+fn task_field(value: &str) -> Field<'_, TextArea<'_>> {
     Field::new("Task description", body_area().value(value)).optional_suffix(false)
 }
 
@@ -62,6 +62,7 @@ fn commit_field() -> Field<'static, TextArea<'static>> {
     .error(Some("Use the imperative mood and explain why"))
 }
 
+/// Both phase paths build the same two cards (§13).
 fn playground_panel(meta: &'static str) -> Panel<'static> {
     Panel::new(PLAYGROUND)
         .kind(PanelKind::Card)
@@ -83,9 +84,9 @@ fn legacy_field_gutter(ui: &mut Ui<'_>, area: Rect, flags: StateFlags) {
     let mut gutter = ui
         .style(Family::FIELD, Variant::DEFAULT, Part::GUTTER, flags)
         .style;
-    gutter.bg = field.style.bg;
+    gutter = gutter.with_bg_from(field.style);
     if !flags.contains(StateFlags::FOCUSED) {
-        gutter.fg = field.style.bg;
+        gutter = gutter.with_fg_from_bg(field.style);
     }
     for offset in 0..area.height {
         let _ = ui.paint_str(
@@ -213,12 +214,7 @@ impl Page for TextAreasPage {
         "Text areas"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let _ = playground_panel("");
-        let _ = states_panel();
-        let _ = notes_field();
-        let _ = transcript_field();
-        let _ = commit_field();
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let edit = body_area().update(cx, &mut self.state, &mut self.value);
         if let Some(action) = edit.action_ref() {
             self.last = match action {
@@ -228,7 +224,15 @@ impl Page for TextAreasPage {
                 TextAction::MoveNext | TextAction::MovePrev => "focus moved",
             };
         }
-        edit.erase()
+        // Both phases build the same cards and reference fields (§13). The
+        // narrow-width meta variant is a paint-budget quirk decided in draw;
+        // update builds the canonical wide form through the same constructor.
+        let _ = playground_panel("Enter Edit · Esc Done · Tab Next ");
+        let _ = states_panel();
+        let _ = notes_field();
+        let _ = transcript_field();
+        let _ = commit_field();
+        edit.erase().into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -293,67 +297,73 @@ impl Page for TextAreasPage {
             });
             if let Some(states) = regions.get(2).copied() {
                 states_panel().draw(ui, states, |ui, inner| {
-                    let columns = layout::columns(inner, &[Track::Flex(1), Track::Flex(1)], 3);
-                    let mut commit_state = TextAreaState::default();
-                    commit_state.set_error(Some(FieldError::new(
-                        "Use the imperative mood and explain why",
-                    )));
-                    ui.reference(None, |ui| {
-                        let transcript = {
-                            let area = columns.first().copied().unwrap_or(inner);
-                            Rect {
-                                width: area.width.saturating_sub(1),
-                                ..area
-                            }
-                        };
-                        transcript_field().draw(ui, transcript, &TextAreaState::default());
-                        legacy_field_gutter(
-                            ui,
-                            Rect {
-                                y: transcript.y.saturating_add(1),
-                                height: 4,
-                                ..transcript
-                            },
-                            StateFlags::DISABLED,
-                        );
-                        let commit = {
-                            let area = columns.get(1).copied().unwrap_or(inner);
-                            Rect {
-                                width: area.width.saturating_sub(1),
-                                ..area
-                            }
-                        };
-                        commit_field().draw(ui, commit, &commit_state);
-                        legacy_field_error(ui, commit, "Use the imperative mood and explain why");
-                        legacy_field_gutter(
-                            ui,
-                            Rect {
-                                y: commit.y.saturating_add(1),
-                                height: 4,
-                                ..commit
-                            },
-                            StateFlags::ERROR,
-                        );
-                    });
+                    Self::draw_states(ui, inner);
                 });
             }
         });
     }
 
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if self.state.is_editing() {
-            vec![
+            &[
                 ("Enter", "Newline"),
                 ("Esc", "Done"),
                 ("Shift+↑↓", "Select"),
                 ("Tab", "Next"),
             ]
         } else {
-            vec![("Enter", "Edit"), ("↑ ↓", "Scroll")]
+            &[("Enter", "Edit"), ("↑ ↓", "Scroll")]
         }
     }
 
     fn editing(&self, _ui: &Ui<'_>) -> bool {
         self.state.is_editing()
+    }
+}
+
+impl TextAreasPage {
+    fn draw_states(ui: &mut Ui<'_>, inner: Rect) {
+        let columns = layout::columns(inner, &[Track::Flex(1), Track::Flex(1)], 3);
+        let mut commit_state = TextAreaState::default();
+        commit_state.set_error(Some(FieldError::new(
+            "Use the imperative mood and explain why",
+        )));
+        ui.reference(None, |ui| {
+            let transcript = {
+                let area = columns.first().copied().unwrap_or(inner);
+                Rect {
+                    width: area.width.saturating_sub(1),
+                    ..area
+                }
+            };
+            transcript_field().draw(ui, transcript, &TextAreaState::default());
+            legacy_field_gutter(
+                ui,
+                Rect {
+                    y: transcript.y.saturating_add(1),
+                    height: 4,
+                    ..transcript
+                },
+                StateFlags::DISABLED,
+            );
+            let commit = {
+                let area = columns.get(1).copied().unwrap_or(inner);
+                Rect {
+                    width: area.width.saturating_sub(1),
+                    ..area
+                }
+            };
+            commit_field().draw(ui, commit, &commit_state);
+            legacy_field_error(ui, commit, "Use the imperative mood and explain why");
+            legacy_field_gutter(
+                ui,
+                Rect {
+                    y: commit.y.saturating_add(1),
+                    height: 4,
+                    ..commit
+                },
+                StateFlags::ERROR,
+            );
+        });
     }
 }

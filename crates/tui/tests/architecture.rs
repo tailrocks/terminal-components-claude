@@ -31,13 +31,16 @@ fn xtask(args: &[&str]) -> (bool, String) {
         .args(args)
         .current_dir(workspace_root());
     // The production guard correctly refuses a missing base. Give its test
-    // wrapper a real local range when no CI/PR base was inherited.
+    // wrapper a real local range when no CI/PR base was inherited: the review
+    // base of every branch in this repository is `main`, so the local default
+    // is the fetched `origin/main` rather than the immediate parent — a merge
+    // commit's parent is not the base its ledger classifies against.
     let has_env = |name| std::env::var(name).is_ok_and(|value| !value.trim().is_empty());
     if args == ["boundary", "--check", "baseline_moves_are_classified"]
         && !has_env("BLESS_GUARD_BASE")
         && !has_env("GITHUB_BASE_REF")
     {
-        command.env("BLESS_GUARD_BASE", "HEAD^");
+        command.env("BLESS_GUARD_BASE", "origin/main");
     }
     let out = command.output().expect("run xtask");
     let text = format!(

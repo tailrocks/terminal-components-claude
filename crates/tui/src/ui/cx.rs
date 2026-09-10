@@ -37,6 +37,9 @@ pub struct LayoutFacts {
     pub rows: u16,
     /// Columns the component occupied.
     pub cols: u16,
+    /// Logical layout rectangle before ancestor clipping. This is model
+    /// geometry, not permission to receive input outside published hit regions.
+    pub logical_area: Option<Rect>,
 }
 
 impl LayoutFacts {
@@ -47,7 +50,16 @@ impl LayoutFacts {
             content_len,
             rows,
             cols,
+            logical_area: None,
         }
+    }
+
+    /// Attach the logical layout coordinate system used by the painter.
+    /// It becomes readable only when that frame is successfully published.
+    #[must_use]
+    pub const fn with_logical_area(mut self, area: Rect) -> Self {
+        self.logical_area = Some(area);
+        self
     }
 }
 
@@ -70,6 +82,8 @@ pub(crate) struct LastFrame {
     pub(crate) layout: Vec<(Id, LayoutFacts)>,
     pub(crate) declared: Vec<(Id, StateFlags)>,
     pub(crate) bindings: BindingRegistry,
+    pub(crate) typing_bindings: BindingRegistry,
+    pub(crate) typing: crate::runtime::typing::TypingResolved,
     pub(crate) snapshot: Snapshot,
 }
 
@@ -147,19 +161,38 @@ pub trait FrameRead {
     fn design(&self) -> &DesignTokens;
     /// LAST frame's geometry; `None` on frame 1 or when `id` did not draw.
     fn area(&self, id: Id) -> Option<Rect>;
+    /// LAST successfully published rectangle tagged with `part` for `owner`.
+    /// Includes decorative parts; reference projections suppress live geometry.
+    fn area_of_part(&self, _owner: Id, _part: PartRef) -> Option<Rect> {
+        None
+    }
     /// LAST frame's layout facts for `id`.
     fn layout(&self, id: Id) -> Option<LayoutFacts>;
+}
+
+/// A semantic traversal whose target must come from the next frame's ring.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct DeferredFocus {
+    pub(crate) anchor: Option<Id>,
+    pub(crate) backwards: bool,
 }
 
 /// Mutable services `Cx` exposes; owned by the runtime.
 #[derive(Debug, Default)]
 pub(crate) struct FrameServices {
+    pub(crate) viewport: Rect,
     pub(crate) layers: LayerStack,
     pub(crate) capture: CaptureSlot,
     pub(crate) events: Vec<(Id, LayerEvent)>,
     pub(crate) focus_request: Option<Id>,
+    /// Provenance for only the newly opened top layer, until publication.
+    /// Its target is read from the live spec; explicit focus supersedes it.
+    pub(crate) initial_focus_layer: Option<LayerId>,
+    pub(crate) deferred_focus: Option<DeferredFocus>,
     pub(crate) repaint: bool,
-    pub(crate) repaint_after: Option<Duration>,
+    pub(crate) feedback: crate::runtime::feedback::FeedbackState,
+    pub(crate) now: crate::runtime::Moment,
+    pub(crate) repaint_at: Option<crate::runtime::Moment>,
     pub(crate) quit: bool,
     #[cfg_attr(
         not(feature = "testing"),
@@ -185,6 +218,7 @@ pub struct Cx<'f> {
     theme: &'f Theme,
     command: Option<ActionKey>,
     update_cause: UpdateCause,
+    activation_key: Option<crate::runtime::ActivationKey>,
 }
 
 impl core::fmt::Debug for Cx<'_> {
@@ -239,7 +273,18 @@ impl<'f> Cx<'f> {
             theme,
             command,
             update_cause,
+            activation_key: None,
         }
+    }
+
+    pub(crate) fn with_activation_key(
+        mut self,
+        key: Option<crate::runtime::ActivationKey>,
+    ) -> Self {
+        if self.update_cause == UpdateCause::Event {
+            self.activation_key = key;
+        }
+        self
     }
 
     /// This owner's intents for the frame. Borrows only the frozen queue;
@@ -295,9 +340,93 @@ impl<'f> Cx<'f> {
         self.update_cause
     }
 
+    /// Unmodified Enter/Space origin of this admitted physical event, if any.
+    ///
+    /// Capture and bubble passes share the same origin; focus settlement,
+    /// bootstrap, timers, mouse and paste have none. Normalization admits both
+    /// key press and repeat and drops releases. This does not imply consumption
+    /// or activation: callers must first verify their semantic action occurred.
+    pub const fn activation_key(&self) -> Option<crate::runtime::ActivationKey> {
+        self.activation_key
+    }
+
     /// Stage a focus transition (applied after this pass, §3.3 step 7).
     pub fn focus(&mut self, id: Id) {
+        self.services.initial_focus_layer = None;
+        self.services.deferred_focus = None;
         self.services.focus_request = Some(id);
+    }
+
+    /// Focus the next reachable control in the next drawn frame.
+    ///
+    /// The current logical focus owner anchors traversal. This lets navigation
+    /// change a route and enter its content without inspecting the old focus
+    /// ring or naming the new page's first control. Traversal wraps and skips
+    /// disabled controls, respecting the new frame's active modal trap. If the
+    /// anchor disappears, ordinary nearest-survivor focus reconciliation applies.
+    ///
+    /// Requests repaint even when the update returns an ignored response. The
+    /// last call to `focus` or `focus_next` wins; focus notifications are delivered
+    /// by the next update after drawing, never by the painter itself.
+    pub fn focus_next(&mut self) {
+        self.services.initial_focus_layer = None;
+        self.services.focus_request = None;
+        self.services.deferred_focus = Some(DeferredFocus {
+            anchor: self.last.snapshot.focus,
+            backwards: false,
+        });
+        self.services.repaint = true;
+    }
+
+    /// Read the sole runtime activation-feedback record in its selected clock.
+    pub fn activation_feedback(&self) -> Option<crate::runtime::ActivationFeedback> {
+        self.services.feedback.active(self.services.now)
+    }
+
+    /// Synchronize absolute domain time after an admitted simulation step.
+    /// Equal time is idempotent; input count and drawing never age feedback.
+    /// The observer reflects an expiry immediately within this update.
+    ///
+    /// # Errors
+    /// Rejects elapsed-clock policy or backwards simulation time atomically.
+    pub fn sync_feedback_time(
+        &mut self,
+        now: crate::runtime::SimulationMoment,
+    ) -> Result<(), crate::runtime::FeedbackClockError> {
+        if self.services.feedback.sync(now)? {
+            self.services.repaint = true;
+        }
+        Ok(())
+    }
+
+    /// Request activation feedback for a semantic product action.
+    /// The owner may belong to the next route; this grants no focus or input authority.
+    pub fn flash_activation(&mut self, owner: Id) {
+        self.flash_activation_part(owner, PartRef::of(crate::id::Part::CONTAINER));
+    }
+
+    /// Request feedback for a stable sub-region, such as a collection item.
+    /// Feedback survives owner disappearance until selected-clock expiry.
+    pub fn flash_activation_part(&mut self, owner: Id, part: PartRef) {
+        self.services.feedback.activate(
+            owner,
+            part,
+            self.services.now,
+            Duration::from_millis(self.theme.design.motion.press_flash_ms),
+        );
+        self.services.repaint = true;
+    }
+
+    /// Focus the previous reachable control in the next presented frame.
+    /// Uses the same deferred admissible traversal and modal traps as `focus_next`.
+    pub fn focus_prev(&mut self) {
+        self.services.initial_focus_layer = None;
+        self.services.focus_request = None;
+        self.services.deferred_focus = Some(DeferredFocus {
+            anchor: self.last.snapshot.focus,
+            backwards: true,
+        });
+        self.services.repaint = true;
     }
 
     /// Ask for a repaint regardless of the returned `Response`.
@@ -305,29 +434,53 @@ impl<'f> Cx<'f> {
         self.services.repaint = true;
     }
 
-    /// Ask for a repaint after `d`.
-    pub fn request_repaint_after(&mut self, d: Duration) {
-        self.services.repaint_after = Some(match self.services.repaint_after {
-            Some(cur) => cur.min(d),
-            None => d,
-        });
+    /// Current authoritative viewport, updated before resize delivery.
+    ///
+    /// This is `Rect::ZERO` before the first resize or successful presentation.
+    /// Published control geometry can still describe the previous viewport while
+    /// a resize update runs; dropped and inspected frames do not change this area.
+    pub const fn viewport(&self) -> Rect {
+        self.services.viewport
     }
 
-    /// Claim pointer capture; `false` if another capture is live.
+    /// Current explicit monotonic time. Input count never advances it.
+    pub const fn now(&self) -> crate::runtime::Moment {
+        self.services.now
+    }
+
+    /// Request an absolute deadline; multiple outstanding requests keep the earliest.
+    pub fn request_repaint_at(&mut self, deadline: crate::runtime::Moment) {
+        self.services.repaint_at = Some(
+            self.services
+                .repaint_at
+                .map_or(deadline, |current| current.min(deadline)),
+        );
+    }
+
+    /// Ask for a repaint after `d`, resolved against this update's absolute time.
+    pub fn request_repaint_after(&mut self, d: Duration) {
+        self.request_repaint_at(self.now().saturating_add(d));
+    }
+
+    /// Claim an eligible published part during a live pointer gesture.
+    /// Returns `false` for an absent, disabled, or blocked target, no live
+    /// press origin, or an existing capture.
     pub fn capture(&mut self, owner: Id, part: PartRef) -> bool {
-        let area = self
-            .last
-            .registry
-            .area_of_part(owner, part)
-            .or_else(|| self.last.registry.area_of(owner))
-            .unwrap_or_default();
+        let Some(area) = crate::capture::target_area(
+            &self.last.registry,
+            &self.last.ring,
+            self.top_layer(),
+            owner,
+            part,
+        ) else {
+            return false;
+        };
         // §8.2: the origin is where the pointer *was*, so a splitter or a
         // scrollbar thumb computes `pos - origin` without the press offset
         // inside the thumb leaking into the delta (MA-5).
-        let origin = self
-            .services
-            .press_pos
-            .unwrap_or_else(|| Position::new(area.x, area.y));
+        let Some(origin) = self.services.press_pos else {
+            return false;
+        };
         self.services.capture.claim(Capture {
             owner,
             part,
@@ -365,10 +518,12 @@ impl<'f> Cx<'f> {
         } else {
             None
         };
-        if self.services.layers.open(id, spec, restore).is_some()
-            && let Some(f) = spec.initial_focus
-        {
-            self.services.focus_request = Some(f);
+        if let Some(layer) = self.services.layers.open(id, spec, restore) {
+            self.services.initial_focus_layer = None;
+            if let Some(target) = spec.initial_focus {
+                self.focus(target);
+                self.services.initial_focus_layer = Some(layer);
+            }
         }
     }
 
@@ -408,6 +563,13 @@ impl<'f> Cx<'f> {
             None => LayerEvent::Dismissed(DismissReason::Programmatic),
         };
         let closed = self.services.layers.close(id, ev);
+        if self
+            .services
+            .initial_focus_layer
+            .is_some_and(|id| closed.iter().any(|layer| layer.layer == id))
+        {
+            self.services.initial_focus_layer = None;
+        }
         self.services.closed_layers.extend(closed);
     }
 
@@ -462,6 +624,10 @@ impl FrameRead for Cx<'_> {
 
     fn area(&self, id: Id) -> Option<Rect> {
         self.last.registry.area_of(id)
+    }
+
+    fn area_of_part(&self, owner: Id, part: PartRef) -> Option<Rect> {
+        self.last.registry.area_of_part(owner, part)
     }
 
     fn layout(&self, id: Id) -> Option<LayoutFacts> {

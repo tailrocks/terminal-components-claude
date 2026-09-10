@@ -1,0 +1,119 @@
+[
+  {
+    "argv": [
+      "git",
+      "init",
+      "-q"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "fetch",
+      "--no-tags",
+      "/Users/donbeave/Projects/terminal-components-integration-evidence/tool-sources/tui-snap",
+      "5036cf87e621e6beb66deffe3224abdbefc955cb"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": "warning: rejected 5036cf87e621e6beb66deffe3224abdbefc955cb because shallow roots are not allowed to be updated\n"
+  },
+  {
+    "argv": [
+      "git",
+      "checkout",
+      "--detach",
+      "5036cf87e621e6beb66deffe3224abdbefc955cb"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": "HEAD is now at 5036cf8 test: approve 24 fixture baselines after visual review\n"
+  },
+  {
+    "argv": [
+      "git",
+      "fetch",
+      "/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/tuisnap-repair.bundle",
+      "codex/qualification-repairs"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": "From /Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/tuisnap-repair.bundle\n * branch            codex/qualification-repairs -> FETCH_HEAD\n"
+  },
+  {
+    "argv": [
+      "git",
+      "checkout",
+      "--detach",
+      "02102e943cf933ce4acf56aae8c25622a31fda0f"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": "Previous HEAD position was 5036cf8 test: approve 24 fixture baselines after visual review\nHEAD is now at 02102e9 test: migrate independently reviewed fixture approvals to schema 3\n"
+  },
+  {
+    "argv": [
+      "git",
+      "status",
+      "--porcelain"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit": 0,
+    "stdout": "855bf0a513af7b1ce484ca63b59db33fd89d7b83\n",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "fetch",
+      "/Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/tuisnap-repair.bundle",
+      "codex/qualification-repairs"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": "From /Users/donbeave/Projects/terminal-components-integration-evidence/tool-repair/tuisnap-repair.bundle\n * branch            codex/qualification-repairs -> FETCH_HEAD\n"
+  },
+  {
+    "argv": [
+      "git",
+      "checkout",
+      "--detach",
+      "e45d3fae2ecc628e294c0b5796a8775ad2d7f0e2"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": "Previous HEAD position was 02102e9 test: migrate independently reviewed fixture approvals to schema 3\nHEAD is now at e45d3fa fix: expose physical cursor without discarding pending wrap\n"
+  },
+  {
+    "argv": [
+      "git",
+      "status",
+      "--porcelain"
+    ],
+    "exit": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "argv": [
+      "git",
+      "rev-parse",
+      "HEAD^{tree}"
+    ],
+    "exit": 0,
+    "stdout": "e87f3fe3ae49d8066afe8ab7b319f319c2a1dd0f\n",
+    "stderr": ""
+  }
+]

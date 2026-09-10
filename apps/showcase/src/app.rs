@@ -1,21 +1,23 @@
 //! Application shell for the migrated showcase binary.
 
+use crate::render_number::RenderNumber;
+use junie_tui::author::PaintStyle;
 use junie_tui::{
     ActionKey, App as TuiApp, Brand, Chord, ColorLevel, Cx, Dialog, DialogAction, DialogState,
-    FrameRead, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, NavList, NavListAction,
+    FrameRead, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Moment, NavList, NavListAction,
     NavListState, Panel, PanelKind, Part, PartRef, Phase, Props, Rect, Response, Size, StateFlags,
-    Status, StatusBar, StatusItem, Style, Theme, TooSmall, Ui, Variant, id, width,
+    Status, StatusBar, StatusItem, Theme, TooSmall, Ui, Variant, id, width,
 };
 
 use crate::pages::forms::SUBMIT as FORM_SUBMIT;
 use crate::pages::taskrunner::RUN_COMMAND;
 use crate::pages::{
-    Page, buttons::ButtonsPage, chips::ChipsPage, chrome::ChromePage, dialogs::DialogsPage,
-    editable::EditablePage, editor::EditorPage, forms::FormsPage, grid::GridPage,
-    inputs::InputsPage, lists::ListsPage, overview::OverviewPage, panels::PanelsPage,
-    pickers::PickersPage, progress::ProgressPage, scrolling::ScrollingPage, settings::SettingsPage,
-    sidebars::SidebarsPage, tables::TablesPage, taskrunner::TaskRunnerPage, terminal::TerminalPage,
-    textareas::TextAreasPage, trees::TreesPage,
+    Page, PageStatus, buttons::ButtonsPage, chips::ChipsPage, chrome::ChromePage,
+    dialogs::DialogsPage, editable::EditablePage, editor::EditorPage, forms::FormsPage,
+    grid::GridPage, inputs::InputsPage, lists::ListsPage, overview::OverviewPage,
+    panels::PanelsPage, pickers::PickersPage, progress::ProgressPage, scrolling::ScrollingPage,
+    settings::SettingsPage, sidebars::SidebarsPage, tables::TablesPage, taskrunner::TaskRunnerPage,
+    terminal::TerminalPage, textareas::TextAreasPage, trees::TreesPage,
 };
 
 const NAV: Id = id!("navigation");
@@ -26,12 +28,12 @@ const TOO_SMALL: Id = id!("too-small");
 const HEADER_HELP: Id = id!("header.help");
 const HEADER_INSPECT: Id = id!("header.inspect");
 const INSPECTOR: Id = id!("inspector");
-const QUIT: ActionKey = ActionKey::custom("showcase.quit");
-const QUIT_CTRL: ActionKey = ActionKey::custom("showcase.quit.ctrl");
-const HELP_COMMAND: ActionKey = ActionKey::custom("showcase.help");
-const INSPECTOR_COMMAND: ActionKey = ActionKey::custom("showcase.inspector");
-const NEXT_PAGE: ActionKey = ActionKey::custom("showcase.page.next");
-const PREV_PAGE: ActionKey = ActionKey::custom("showcase.page.previous");
+const QUIT: ActionKey = ActionKey::application("showcase.quit");
+const QUIT_CTRL: ActionKey = ActionKey::application("showcase.quit.ctrl");
+const HELP_COMMAND: ActionKey = ActionKey::application("showcase.help");
+const INSPECTOR_COMMAND: ActionKey = ActionKey::application("showcase.inspector");
+const NEXT_PAGE: ActionKey = ActionKey::application("showcase.page.next");
+const PREV_PAGE: ActionKey = ActionKey::application("showcase.page.previous");
 const HELP_TEXT: &str = "Tab / Shift+Tab   move keyboard focus\n\
 ↑ ↓ ← →           move inside the focused control\n\
 Enter / Space     activate · start editing\n\
@@ -221,6 +223,12 @@ pub struct NavEntry {
     pub icon: &'static str,
 }
 
+impl std::fmt::Display for NavEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.label)
+    }
+}
+
 /// The complete migrated navigation surface.
 pub const NAV_ENTRIES: &[NavEntry] = &[
     NavEntry {
@@ -365,30 +373,13 @@ fn nav_section(entry: &NavEntry) -> &str {
     entry.section
 }
 
-fn nav_row(entry: &NavEntry, row: &mut junie_tui::RowUi<'_>) {
-    row.label(entry.label);
-}
-
-fn nav_icon(entry: &NavEntry) -> &str {
-    // The historical shell reserves the icon column but intentionally paints
-    // it blank. Keep the accessor for the public NavList contract; the shell
-    // overlay below owns the legacy glyph placement.
-    entry.icon
-}
-
-static NAV_ICON: fn(&NavEntry) -> &str = nav_icon;
-
-fn nav() -> NavList<
-    'static,
-    NavEntry,
-    impl Fn(&NavEntry) -> ItemKey,
-    impl Fn(&NavEntry, &mut junie_tui::RowUi<'_>),
-> {
+fn nav() -> NavList<'static, NavEntry, impl Fn(&NavEntry) -> ItemKey> {
     NavList::new(NAV)
         .key(nav_key)
         .section(&nav_section)
-        .icon(&NAV_ICON)
-        .row(nav_row)
+        .compact_when_clipped()
+        .header_indent(3)
+        .render_row(&paint_nav_row)
 }
 
 fn shell_brand() -> Brand<'static> {
@@ -491,6 +482,7 @@ pub struct App {
     keymap: KeyMap,
     inspector: bool,
     quit: bool,
+    status: Option<(PageStatus, Moment)>,
 }
 
 impl core::fmt::Debug for App {
@@ -504,6 +496,7 @@ impl core::fmt::Debug for App {
             .field("keymap", &self.keymap)
             .field("inspector", &self.inspector)
             .field("quit", &self.quit)
+            .field("status", &self.status.as_ref().map(|(_, since)| since))
             .finish()
     }
 }
@@ -529,6 +522,7 @@ impl App {
             keymap: keymap(),
             inspector: false,
             quit: false,
+            status: None,
         }
     }
 
@@ -661,12 +655,12 @@ fn shell_part_style(
     family: junie_tui::Family,
     part: Part,
     flags: StateFlags,
-) -> Style {
-    let background = ui.bg();
+) -> PaintStyle {
+    let background = ui.surface_style();
     shell_compat_style(
         ui.style(family, Variant::DEFAULT, part, flags)
             .style
-            .bg(background),
+            .with_bg_from(background),
     )
 }
 
@@ -676,7 +670,7 @@ fn shell_part_style(
 /// otherwise retained by a later shell style that only changes colours. The
 /// historical shell starts from plain cells and adds bold only where its old
 /// renderer did.
-fn shell_compat_style(style: Style) -> Style {
+fn shell_compat_style(style: PaintStyle) -> PaintStyle {
     let bold = style.add_modifier.contains(junie_tui::Modifier::BOLD);
     let style = style.remove_modifier(junie_tui::Modifier::all());
     if bold {
@@ -686,7 +680,7 @@ fn shell_compat_style(style: Style) -> Style {
     }
 }
 
-fn shell_row_style(style: Style, flags: StateFlags) -> Style {
+fn shell_row_style(style: PaintStyle, flags: StateFlags) -> PaintStyle {
     let style = shell_compat_style(style);
     if flags.contains(StateFlags::FOCUSED) {
         style.add_modifier(junie_tui::Modifier::BOLD)
@@ -695,10 +689,10 @@ fn shell_row_style(style: Style, flags: StateFlags) -> Style {
     }
 }
 
-fn shell_text_style(ui: &Ui<'_>, step: usize) -> Style {
+fn shell_text_style(ui: &Ui<'_>, step: junie_tui::FgStep) -> PaintStyle {
     shell_compat_style(
         ui.surface_style()
-            .fg(ui.theme().color.fg.get(step).copied().unwrap_or_default()),
+            .patch(ui.paint_patch(&junie_tui::StylePatch::new().set_fg(junie_tui::Role::Fg(step)))),
     )
 }
 
@@ -728,7 +722,7 @@ fn paint_header(
     );
 }
 
-fn header_styles(ui: &mut Ui<'_>) -> (Style, Style, Style, Style, Style) {
+fn header_styles(ui: &mut Ui<'_>) -> (PaintStyle, PaintStyle, PaintStyle, PaintStyle, PaintStyle) {
     let title = shell_part_style(
         ui,
         junie_tui::Family::PANEL,
@@ -742,7 +736,7 @@ fn header_styles(ui: &mut Ui<'_>) -> (Style, Style, Style, Style, Style) {
         StateFlags::empty(),
     );
     let muted = shell_part_style(ui, junie_tui::Family::LIST, Part::META, StateFlags::empty());
-    let faint = shell_text_style(ui, 3);
+    let faint = shell_text_style(ui, junie_tui::FgStep::Faint);
     let marker = shell_part_style(
         ui,
         junie_tui::Family::LIST,
@@ -756,10 +750,10 @@ fn paint_header_breadcrumb(
     ui: &mut Ui<'_>,
     area: Rect,
     page: PageId,
-    title: Style,
-    secondary: Style,
-    muted: Style,
-    marker: Style,
+    title: PaintStyle,
+    secondary: PaintStyle,
+    muted: PaintStyle,
+    marker: PaintStyle,
 ) -> u16 {
     let mut x = area.x.saturating_add(1);
     ui.paint_str(Rect::new(x, area.y, 1, 1), "▪", marker);
@@ -784,13 +778,15 @@ fn paint_header_breadcrumb(
     else {
         return x;
     };
-    let crumb = format!("/ {} / {}", entry.section, entry.label);
-    ui.paint_str(
-        Rect::new(x, area.y, area.right().saturating_sub(x), 1),
-        &crumb,
-        muted,
-    );
-    x.saturating_add(width(&crumb))
+    for fragment in ["/ ", entry.section, " / ", entry.label] {
+        ui.paint_str(
+            Rect::new(x, area.y, area.right().saturating_sub(x), 1),
+            fragment,
+            muted,
+        );
+        x = x.saturating_add(width(fragment));
+    }
+    x
 }
 
 fn paint_header_actions(
@@ -798,16 +794,20 @@ fn paint_header_actions(
     area: Rect,
     screen: (u16, u16),
     left: u16,
-    styles: (Style, Style),
+    styles: (PaintStyle, PaintStyle),
     inspector: bool,
 ) {
     let (screen_width, screen_height) = screen;
     let (muted, faint) = styles;
     let capability = ui.theme().capability.color.label();
-    let dimensions = format!("{screen_width}×{screen_height}");
+    let width_text = RenderNumber::new(usize::from(screen_width));
+    let height_text = RenderNumber::new(usize::from(screen_height));
+    let dimensions_width = width(width_text.as_str())
+        .saturating_add(1)
+        .saturating_add(width(height_text.as_str()));
     let capability_width = width(capability)
         .saturating_add(3)
-        .saturating_add(width(&dimensions));
+        .saturating_add(dimensions_width);
     let help_text = " ? Help ";
     let inspector_text = if inspector {
         " i Inspector · on "
@@ -844,7 +844,10 @@ fn paint_header_actions(
         Rect::new(inspector_x, area.y, inspector_width, 1),
     );
     right = inspector_x.saturating_sub(1);
-    if right > left.saturating_add(capability_width) {
+    // The Holla shell paints the capability cluster only when at least two
+    // cells separate it from the breadcrumb; narrower shells omit it rather
+    // than crowd the route title.
+    if right > left.saturating_add(capability_width).saturating_add(2) {
         // The old shell leaves one cell between the capability cluster and
         // the inspector action.
         let cap_x = right.saturating_sub(capability_width.saturating_add(1));
@@ -858,20 +861,16 @@ fn paint_header_actions(
             " · ",
             faint,
         );
-        ui.paint_str(
-            Rect::new(
-                cap_x.saturating_add(width(capability)).saturating_add(3),
-                area.y,
-                width(&dimensions),
-                1,
-            ),
-            &dimensions,
-            faint,
-        );
+        let mut dimension_x = cap_x.saturating_add(width(capability)).saturating_add(3);
+        for fragment in [width_text.as_str(), "×", height_text.as_str()] {
+            let columns = width(fragment);
+            ui.paint_str(Rect::new(dimension_x, area.y, columns, 1), fragment, faint);
+            dimension_x = dimension_x.saturating_add(columns);
+        }
     }
 }
 
-fn header_action_style(ui: &mut Ui<'_>, id: Id, muted: Style) -> Style {
+fn header_action_style(ui: &mut Ui<'_>, id: Id, muted: PaintStyle) -> PaintStyle {
     if ui.state(id).contains(StateFlags::HOVERED) {
         shell_part_style(
             ui,
@@ -884,36 +883,12 @@ fn header_action_style(ui: &mut Ui<'_>, id: Id, muted: Style) -> Style {
     }
 }
 
-struct SidebarContext<'a> {
-    state: &'a NavListState,
-    page: PageId,
-    focused: bool,
-    hovered: Option<PartRef>,
-    pressed: Option<PartRef>,
-}
-
-fn paint_sidebar_row(
-    ui: &mut Ui<'_>,
-    area: Rect,
-    y: u16,
-    entry: &NavEntry,
-    context: &SidebarContext<'_>,
-) {
-    let key = nav_key(entry);
-    let current = entry.id == context.page;
-    let cursor = context.state.cursor() == Some(key);
-    let item = PartRef::item(Part::ROW, key);
-    let mut flags = StateFlags::empty();
-    if context.focused && cursor {
-        flags |= StateFlags::FOCUSED;
-    }
-    if context.hovered == Some(item) {
-        flags |= StateFlags::HOVERED;
-    }
-    if context.pressed == Some(item) {
-        flags |= StateFlags::PRESSED;
-    }
-    let row = Rect::new(area.x, y, area.width, 1);
+fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, entry: &NavEntry) {
+    let current = flags.contains(StateFlags::SELECTED);
+    // Current destination is a marker, not row selection. Keyboard cursor
+    // and hover remain independent, as in the pinned product reference.
+    let flags = flags.difference(StateFlags::SELECTED);
+    let emphasized = current || flags.intersects(StateFlags::FOCUSED | StateFlags::HOVERED);
     let container = shell_compat_style(
         ui.style(
             junie_tui::Family::LIST,
@@ -923,7 +898,7 @@ fn paint_sidebar_row(
         )
         .style,
     );
-    let row_background = container.bg.unwrap_or(ui.bg());
+    let row_background = ui.surface_style().patch(container);
     ui.fill(row, container);
     let gutter = ui
         .style(
@@ -933,11 +908,11 @@ fn paint_sidebar_row(
             flags,
         )
         .style
-        .bg(row_background);
+        .with_bg_from(row_background);
     let gutter = if flags.contains(StateFlags::FOCUSED) {
         gutter
     } else {
-        gutter.fg(row_background)
+        gutter.with_fg_from_bg(row_background)
     };
     let marker = ui
         .style(
@@ -951,7 +926,7 @@ fn paint_sidebar_row(
             },
         )
         .style
-        .bg(row_background);
+        .with_bg_from(row_background);
     let label = ui
         .style(
             junie_tui::Family::LIST,
@@ -960,9 +935,9 @@ fn paint_sidebar_row(
             flags,
         )
         .style
-        .bg(row_background);
-    let secondary =
-        shell_part_style(ui, junie_tui::Family::PANEL, Part::DETAIL, flags).bg(row_background);
+        .with_bg_from(row_background);
+    let secondary = shell_part_style(ui, junie_tui::Family::PANEL, Part::DETAIL, flags)
+        .with_bg_from(row_background);
     let gutter = shell_row_style(gutter, flags);
     let marker = shell_row_style(marker, flags);
     let label = shell_row_style(label, flags);
@@ -982,17 +957,9 @@ fn paint_sidebar_row(
             1,
         ),
         entry.label,
-        if current || cursor || context.hovered == Some(item) {
-            label
-        } else {
-            secondary
-        },
+        if emphasized { label } else { secondary },
     );
-    let label_style = if current || cursor || context.hovered == Some(item) {
-        label
-    } else {
-        secondary
-    };
+    let label_style = if emphasized { label } else { secondary };
     let label_area = Rect::new(
         row.x.saturating_add(3),
         row.y,
@@ -1010,54 +977,6 @@ fn paint_sidebar_row(
             ),
             label_style,
         );
-    }
-}
-
-fn paint_sidebar(ui: &mut Ui<'_>, area: Rect, state: &NavListState, page: PageId) {
-    if area.is_empty() {
-        return;
-    }
-    let canvas = shell_compat_style(ui.surface_style());
-    ui.fill(area, canvas);
-    let focused = ui.state(NAV).contains(StateFlags::FOCUSED);
-    let hovered = ui.hovered_part(NAV);
-    let pressed = ui.pressed_part(NAV);
-    let nav_rows = u16::try_from(NAV_ENTRIES.len()).unwrap_or(u16::MAX);
-    let compact = area.height < nav_rows.saturating_add(6).saturating_sub(1);
-    let context = SidebarContext {
-        state,
-        page,
-        focused,
-        hovered,
-        pressed,
-    };
-    let mut y = area.y;
-    let mut section = "";
-    for entry in NAV_ENTRIES {
-        let changed_section = entry.section != section;
-        if changed_section {
-            if !compact && y > area.y {
-                y = y.saturating_add(1);
-            }
-            section = entry.section;
-            if !compact {
-                if y >= area.bottom() {
-                    break;
-                }
-                let style = shell_text_style(ui, 3);
-                ui.paint_str(
-                    Rect::new(area.x.saturating_add(3), y, area.width.saturating_sub(3), 1),
-                    entry.section,
-                    style,
-                );
-                y = y.saturating_add(1);
-            }
-        }
-        if y >= area.bottom() {
-            break;
-        }
-        paint_sidebar_row(ui, area, y, entry, &context);
-        y = y.saturating_add(1);
     }
 }
 
@@ -1089,13 +1008,42 @@ fn paint_inspector(ui: &mut Ui<'_>, area: Rect, app: &App) {
     });
 }
 
+/// Paint one footer hint at the cursor column if it fits before `reserved`.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the footer paints pre-resolved part styles without re-resolving per hint"
+)]
+fn paint_hint(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    x: &mut u16,
+    reserved: u16,
+    key_style: PaintStyle,
+    action_style: PaintStyle,
+    key: &str,
+    action: &str,
+) {
+    let key_width = width(key);
+    let action_width = width(action);
+    let hint_width = key_width.saturating_add(action_width).saturating_add(3);
+    if x.saturating_add(hint_width).saturating_add(reserved) > area.right() {
+        return;
+    }
+    ui.paint_str(Rect::new(*x, area.y, key_width, 1), key, key_style);
+    *x = x.saturating_add(key_width.saturating_add(1));
+    ui.paint_str(Rect::new(*x, area.y, action_width, 1), action, action_style);
+    *x = x.saturating_add(action_width.saturating_add(2));
+}
+
 fn paint_footer(
     ui: &mut Ui<'_>,
     area: Rect,
     nav_focused: bool,
     page_hints: &[(&str, &str)],
     page_editing: bool,
+    status: Option<&str>,
 ) {
+    const TAB_NEXT: (&str, &str) = ("Tab", "Next");
     if area.is_empty() {
         return;
     }
@@ -1123,25 +1071,57 @@ fn paint_footer(
     } else {
         &[]
     };
-    let hints: Vec<(&str, &str)> = if nav_focused {
-        nav_hints.to_vec()
-    } else {
-        let mut hints = page_hints.to_vec();
-        if !page_editing {
-            hints.push(("Tab", "Next"));
-        }
-        hints
-    };
+    // Allocation-free iteration: the navigation hints replace the page hints
+    // while the navigation owns focus, and the "Tab / Next" entry is appended
+    // only when the page body owns focus and is not in an editing mode that
+    // consumes it.
+    let tab_next = !nav_focused && !page_editing;
     let mut x = area.x.saturating_add(1);
-    for (key, action) in hints {
-        let key_width = width(key);
-        let action_width = width(action);
-        ui.paint_str(Rect::new(x, area.y, key_width, 1), key, key_style);
-        x = x.saturating_add(key_width.saturating_add(1));
-        ui.paint_str(Rect::new(x, area.y, action_width, 1), action, action_style);
-        x = x.saturating_add(action_width.saturating_add(2));
-        if x >= area.right() {
-            break;
+    let reserved = status.map_or(14, |message| width(message).saturating_add(3));
+    let page_hints: &[(&str, &str)] = if nav_focused { &[] } else { page_hints };
+    for &(key, action) in nav_hints.iter().chain(page_hints.iter()) {
+        paint_hint(
+            ui,
+            area,
+            &mut x,
+            reserved,
+            key_style,
+            action_style,
+            key,
+            action,
+        );
+    }
+    if tab_next {
+        paint_hint(
+            ui,
+            area,
+            &mut x,
+            reserved,
+            key_style,
+            action_style,
+            TAB_NEXT.0,
+            TAB_NEXT.1,
+        );
+    }
+    if let Some(message) = status {
+        let message_width = width(message);
+        if area.right() > message_width.saturating_add(1) {
+            let style = canvas.patch(
+                ui.paint_patch(
+                    &junie_tui::StylePatch::new()
+                        .set_fg(junie_tui::Role::Fg(junie_tui::FgStep::Secondary)),
+                ),
+            );
+            ui.paint_str(
+                Rect::new(
+                    area.right().saturating_sub(message_width).saturating_sub(1),
+                    area.y,
+                    message_width,
+                    1,
+                ),
+                message,
+                style,
+            );
         }
     }
 }
@@ -1158,6 +1138,14 @@ impl TuiApp for App {
             cx.focus(NAV);
         }
         let mut response = Response::ignored();
+        if cx.update_cause() == junie_tui::UpdateCause::Tick
+            && self.status.as_ref().is_some_and(|(_, since)| {
+                cx.now().saturating_duration_since(*since) > std::time::Duration::from_secs(4)
+            })
+        {
+            self.status = None;
+            response = response.repaint();
+        }
         response |= shell_brand().update(cx).erase();
         response |= shell_status().update(cx).erase();
         // These stateless shell props have no update phase of their own, but
@@ -1215,17 +1203,42 @@ impl TuiApp for App {
         }
         response |= nav()
             .update(cx, &mut self.nav_state, NAV_ENTRIES)
-            .on_action(|action| {
-                if let NavListAction::Chose(key) | NavListAction::EnterContent(key) = action
-                    && let Some(page) = PageId::from_key(key)
-                {
-                    self.goto(page);
+            .on_action(|action| match action {
+                NavListAction::Chose(key) => {
+                    if let Some(page) = PageId::from_key(key) {
+                        self.goto(page);
+                    }
                 }
+                NavListAction::EnterContent(key) => {
+                    if let Some(page) = PageId::from_key(key) {
+                        self.goto(page);
+                        cx.focus_next();
+                    }
+                }
+                NavListAction::Moved(_)
+                | NavListAction::LeaveBackward
+                | NavListAction::LeaveForward => {}
             });
-        if let Some(active) = self.pages.get_mut(self.page.index()) {
-            response |= active.update(cx);
+        // The reference global help dialog suspends page ticks, not status
+        // expiry. Hidden pages likewise keep domain deadlines without
+        // publishing completion until a later eligible page tick.
+        if !(cx.update_cause() == junie_tui::UpdateCause::Tick && cx.is_open(HELP))
+            && let Some(active) = self.pages.get_mut(self.page.index())
+        {
+            let update = active.update(cx);
+            response |= update.response;
+            if let Some(status) = update.status {
+                self.status = Some((status, cx.now()));
+                response = response.repaint();
+            }
         }
         self.update_help(cx, &mut response);
+        if let Some((_, since)) = &self.status {
+            let deadline = since
+                .saturating_add(std::time::Duration::from_secs(4))
+                .saturating_add(std::time::Duration::from_nanos(1));
+            cx.request_repaint_at(deadline);
+        }
         response
     }
 
@@ -1241,9 +1254,8 @@ impl TuiApp for App {
         }
         let shell = shell_layout(full, self.inspector);
 
-        // Keep the public components as the source of registration, focus and
-        // binding facts. The historical paint pass below only restores the
-        // old shell geometry/glyph placement through Ui.
+        // Navigation owns both row painting and registration. Header/footer
+        // compatibility painting remains separate shell migration work.
         shell_brand().draw(ui, shell.header);
         nav().draw(ui, shell.sidebar, &self.nav_state, NAV_ENTRIES);
         shell_status().draw(ui, shell.footer);
@@ -1255,7 +1267,6 @@ impl TuiApp for App {
             self.page,
             self.inspector,
         );
-        paint_sidebar(ui, shell.sidebar, &self.nav_state, self.page);
         if let Some(active) = self.active() {
             active.draw(ui, shell.main);
         } else {
@@ -1274,8 +1285,9 @@ impl TuiApp for App {
             ui,
             shell.footer,
             ui.state(NAV).contains(StateFlags::FOCUSED),
-            &page_hints,
+            page_hints,
             page_editing,
+            self.status.as_ref().map(|(status, _)| status.0.as_str()),
         );
         ui.layer(HELP, |ui, area| {
             Self::help_dialog().draw(ui, area, &self.help_state, |ui, body| {
@@ -1302,12 +1314,8 @@ impl TuiApp for App {
     fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         // Historical top-level Esc only returns focus to the shell navigation;
         // it never changes the selected page or exits the application.
-        if cx.state(NAV).contains(StateFlags::FOCUSED) {
-            Response::consumed()
-        } else {
-            cx.focus(NAV);
-            Response::changed()
-        }
+        cx.focus(NAV);
+        Response::changed()
     }
 }
 
@@ -1352,4 +1360,94 @@ pub(crate) fn run() -> std::io::Result<()> {
         }
     }
     junie_tui::run(App::with_page(page), theme)
+}
+
+#[cfg(test)]
+mod paint_contract_tests {
+    use super::*;
+    use junie_tui::{Color, Family, Modifier, Role, StylePatch, Surface};
+
+    fn collision_style(role: Role) -> PaintStyle {
+        let mut theme = Theme::junie();
+        theme.color.accent = Color::Rgb(100, 100, 100);
+        theme.color.danger = theme.color.accent;
+        let family = Family::custom("showcase.paint-contract");
+        theme
+            .define_family(family, |family| {
+                family
+                    .part(Part::LABEL)
+                    .base(StylePatch::new().set_fg(role));
+            })
+            .resolve(
+                family,
+                Variant::DEFAULT,
+                Part::LABEL,
+                StateFlags::empty(),
+                Surface::Canvas,
+            )
+            .style
+    }
+
+    #[test]
+    fn shell_modifier_cleanup_preserves_colliding_semantic_roles() {
+        let accent = collision_style(Role::Accent).add_modifier(Modifier::BOLD | Modifier::ITALIC);
+        let danger = collision_style(Role::Danger).add_modifier(Modifier::BOLD | Modifier::ITALIC);
+        assert_eq!(accent.as_style(), danger.as_style());
+        let accent = shell_compat_style(accent);
+        let danger = shell_compat_style(danger);
+        assert_ne!(accent, danger, "equal RGB must not erase semantic identity");
+        assert_eq!(accent.add_modifier, Modifier::BOLD);
+        assert_eq!(accent.fg, Some(Color::Rgb(100, 100, 100)));
+        assert_eq!(accent.as_style(), danger.as_style());
+    }
+}
+
+#[cfg(test)]
+mod action_namespace_tests {
+    use super::*;
+
+    #[test]
+    fn application_commands_are_distinct_from_library_custom_keys() {
+        let owned = [
+            QUIT,
+            QUIT_CTRL,
+            HELP_COMMAND,
+            INSPECTOR_COMMAND,
+            NEXT_PAGE,
+            PREV_PAGE,
+            FORM_SUBMIT,
+            RUN_COMMAND,
+        ]
+        .into_iter()
+        .chain(crate::pages::pickers::action_keys())
+        .collect::<Vec<_>>();
+        let names = [
+            "showcase.quit",
+            "showcase.quit.ctrl",
+            "showcase.help",
+            "showcase.inspector",
+            "showcase.page.next",
+            "showcase.page.previous",
+            "showcase.form.submit",
+            "showcase.taskrunner.run",
+            "showcase.menu.open",
+            "showcase.menu.close",
+            "showcase.context.inspect",
+            "showcase.context.copy",
+        ];
+        assert_eq!(owned.len(), names.len());
+        for (key, name) in owned.iter().zip(names) {
+            assert_eq!(
+                *key,
+                ActionKey::application(name),
+                "application owner: {name}"
+            );
+            assert_ne!(*key, ActionKey::custom(name), "library namespace: {name}");
+            assert_eq!(
+                owned.iter().filter(|other| *other == key).count(),
+                1,
+                "distinct command: {name}"
+            );
+        }
+    }
 }

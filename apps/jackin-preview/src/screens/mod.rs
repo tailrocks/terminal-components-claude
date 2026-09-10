@@ -11,6 +11,7 @@ pub mod editor;
 pub mod file_browser;
 pub mod inspect;
 pub mod manager;
+pub mod manager_actions;
 pub mod op_flow;
 pub mod prelude;
 pub mod settings;

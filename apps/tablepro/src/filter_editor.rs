@@ -247,65 +247,6 @@ impl Filter {
     }
 }
 
-/// Controlled filter form state.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[expect(
-    dead_code,
-    reason = "draft state remains available to the private filter adapter"
-)]
-pub(crate) struct FilterDraft {
-    /// Available column names.
-    pub(crate) columns: Vec<String>,
-    /// Selected column index.
-    pub(crate) column: usize,
-    /// Selected operator.
-    pub(crate) op: FilterOp,
-    /// Primary value.
-    pub(crate) value: String,
-    /// Secondary value for range predicates.
-    pub(crate) value2: String,
-    /// Whether the editor is open.
-    pub(crate) open: bool,
-}
-#[expect(
-    dead_code,
-    reason = "draft state remains available to the private filter adapter"
-)]
-impl FilterDraft {
-    /// Build from column labels.
-    pub(crate) fn new(columns: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        Self {
-            columns: columns.into_iter().map(Into::into).collect(),
-            column: 0,
-            op: FilterOp::Eq,
-            value: String::new(),
-            value2: String::new(),
-            open: false,
-        }
-    }
-    /// Open for a column/value.
-    pub(crate) fn open_for(&mut self, column: usize, value: impl Into<String>) {
-        self.column = column.min(self.columns.len().saturating_sub(1));
-        self.value = value.into();
-        self.value2.clear();
-        self.open = true;
-    }
-    /// Close the editor.
-    pub(crate) const fn close(&mut self) {
-        self.open = false;
-    }
-    /// Build an active filter.
-    pub(crate) fn build(&self) -> Option<Filter> {
-        Some(Filter {
-            column: self.columns.get(self.column)?.clone(),
-            op: self.op,
-            value: self.value.clone(),
-            value2: self.value2.clone(),
-            enabled: true,
-        })
-    }
-}
-
 fn identifier(name: &str) -> String {
     if name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
         name.to_owned()

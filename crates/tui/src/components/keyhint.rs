@@ -8,7 +8,7 @@ use ratatui_core::layout::Rect;
 use super::{PartStyle, SlotFn, shift};
 use crate::event::Chord;
 use crate::id::{Id, Part};
-use crate::keymap::Hint;
+use crate::keymap::{ChordCase, Hint, HintKey};
 use crate::measure::{Constraints, Size};
 use crate::response::StateFlags;
 use crate::text::width;
@@ -36,6 +36,13 @@ pub(crate) struct ChordText {
 impl ChordText {
     /// Render `c`.
     pub(crate) fn of(c: Chord) -> Self {
+        Self::with_case(c, ChordCase::Preserve)
+    }
+
+    pub(crate) fn with_case(mut c: Chord, case: ChordCase) -> Self {
+        if let (ChordCase::UppercaseAscii, crate::KeyCode::Char(character)) = (case, &mut c.code) {
+            *character = character.to_ascii_uppercase();
+        }
         let mut t = ChordText {
             buf: [0; CHORD_CAP],
             len: 0,
@@ -141,17 +148,40 @@ impl fmt::Write for ChordText {
 /// writes outside `area`.
 pub struct KeyHint<'a> {
     id: Id,
-    chord: Chord,
+    key: HintKey,
     label: &'a str,
     variant: Variant,
     ov: PartStyle<'a>,
+}
+
+pub(super) enum HintText {
+    Chord(ChordText),
+    Label(&'static str),
+}
+impl HintText {
+    pub(super) fn of(key: HintKey) -> Self {
+        match key {
+            HintKey::Chord(chord) => Self::Chord(ChordText::of(chord)),
+            HintKey::ChordWithCase { chord, case } => {
+                Self::Chord(ChordText::with_case(chord, case))
+            }
+            HintKey::Label(label) => Self::Label(label),
+        }
+    }
+
+    pub(super) fn as_str(&self) -> &str {
+        match self {
+            Self::Chord(chord) => chord.as_str(),
+            Self::Label(label) => label,
+        }
+    }
 }
 
 impl fmt::Debug for KeyHint<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("KeyHint")
             .field("id", &self.id)
-            .field("chord", &self.chord)
+            .field("key", &self.key)
             .field("label", &self.label)
             .field("overrides", &self.ov)
             .finish_non_exhaustive()
@@ -162,11 +192,35 @@ impl<'a> KeyHint<'a> {
     /// The parts this component styles.
     pub const PARTS: &'static [Part] = &[Part::KEY, Part::ACTION];
 
+    /// Override chord display casing without changing its physical identity.
+    /// Descriptive labels retain their literal text.
+    #[must_use]
+    pub const fn chord_case(mut self, case: ChordCase) -> Self {
+        self.key = match self.key {
+            HintKey::Chord(chord) | HintKey::ChordWithCase { chord, .. } => {
+                HintKey::ChordWithCase { chord, case }
+            }
+            HintKey::Label(label) => HintKey::Label(label),
+        };
+        self
+    }
+
     /// A hint showing `chord` and `label`.
     pub const fn new(id: Id, chord: Chord, label: &'a str) -> Self {
         KeyHint {
             id,
-            chord,
+            key: HintKey::Chord(chord),
+            label,
+            variant: Variant::DEFAULT,
+            ov: PartStyle::new(),
+        }
+    }
+
+    /// A descriptive keycap such as `Type`, with no associated routing chord.
+    pub const fn descriptive(id: Id, key: &'static str, label: &'a str) -> Self {
+        KeyHint {
+            id,
+            key: HintKey::Label(key),
             label,
             variant: Variant::DEFAULT,
             ov: PartStyle::new(),
@@ -178,7 +232,7 @@ impl<'a> KeyHint<'a> {
     pub const fn from_hint(id: Id, h: &Hint) -> KeyHint<'static> {
         KeyHint {
             id,
-            chord: h.chord,
+            key: h.key,
             label: h.label,
             variant: Variant::DEFAULT,
             ov: PartStyle::new(),
@@ -218,9 +272,13 @@ impl<'a> KeyHint<'a> {
         self
     }
 
+    fn key_text(&self) -> HintText {
+        HintText::of(self.key)
+    }
+
     /// The columns this hint occupies: the chord, one space, the label.
     pub fn width(&self) -> u16 {
-        let key = width(ChordText::of(self.chord).as_str());
+        let key = width(self.key_text().as_str());
         if self.label.is_empty() {
             return key;
         }
@@ -240,7 +298,7 @@ impl<'a> KeyHint<'a> {
         // neither half: a key hint is static chrome
         let live = PartStyle::flags(StateFlags::empty(), StateFlags::empty());
         let ov = self.ov;
-        let key_text = ChordText::of(self.chord);
+        let key_text = self.key_text();
         let key_cell = Rect {
             width: width(key_text.as_str()).min(area.width),
             ..area
@@ -328,7 +386,7 @@ mod tests {
     fn painted(slot: Option<Part>) -> Buffer {
         let mut rt = Runtime::new(SlotPage(slot), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
-        rt.draw_buffer(SCREEN, &mut buf);
+        rt.draw_buffer(SCREEN, &mut buf).commit_presented();
         buf
     }
 

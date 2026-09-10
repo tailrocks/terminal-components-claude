@@ -1,11 +1,12 @@
 //! Application chrome: brand lockup, status strip and inline meters.
 
+use junie_tui::author::PaintStyle;
 use junie_tui::{
-    Brand, Cx, FrameRead, Id, Modifier, Part, Response, Role, StateFlags, Status, StatusBar,
-    StatusItem, Style, Surface, Ui, Variant, id, width,
+    Brand, Cx, FrameRead, Id, Modifier, Part, Role, StateFlags, Status, StatusBar, StatusItem,
+    Surface, Ui, Variant, id, width,
 };
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const BRAND: Id = id!("chrome.brand");
 const BAR: Id = id!("chrome.status");
@@ -36,7 +37,7 @@ fn status_bar<'a>(center: &'a [StatusItem<'a>], frame: usize) -> StatusBar<'a> {
 
 fn paint_body(ui: &mut Ui<'_>, body: junie_tui::Rect, lines: &[&str]) {
     let mut surface = ui.surface_style();
-    surface.sub_modifier = Modifier::all();
+    surface = surface.remove_modifier(Modifier::all());
     let mut panel = ui.with_surface(Surface::Surface, |ui| {
         ui.style(
             junie_tui::Family::PANEL,
@@ -46,7 +47,7 @@ fn paint_body(ui: &mut Ui<'_>, body: junie_tui::Rect, lines: &[&str]) {
         )
         .style
     });
-    panel.sub_modifier = Modifier::all();
+    panel = panel.remove_modifier(Modifier::all());
     ui.fill(body, surface);
     ui.fill(
         junie_tui::Rect {
@@ -98,7 +99,7 @@ fn style(
     family: junie_tui::Family,
     part: Part,
     flags: StateFlags,
-) -> Style {
+) -> PaintStyle {
     ui.with_surface(surface, |ui| {
         ui.style(family, Variant::DEFAULT, part, flags).style
     })
@@ -110,7 +111,7 @@ fn paint_segment(
     row: u16,
     prefix: &str,
     text: &str,
-    style: Style,
+    style: PaintStyle,
 ) {
     let x = body.x.saturating_add(width(prefix));
     ui.paint_str(
@@ -126,108 +127,21 @@ fn paint_segment(
 }
 
 fn paint_historical(ui: &mut Ui<'_>, body: junie_tui::Rect, brand_clicks: u32) {
-    let panel = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Part::CONTAINER,
-        StateFlags::empty(),
-    );
-    let title = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Part::DETAIL,
-        StateFlags::empty(),
-    );
-    let muted = style(
-        ui,
-        Surface::Canvas,
-        junie_tui::Family::PANEL,
-        Part::DETAIL,
-        StateFlags::empty(),
-    );
-    let status = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::PANEL,
-        Part::HELP,
-        StateFlags::empty(),
-    );
-    let faint = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::EMPTY,
-        Part::HELP,
-        StateFlags::empty(),
-    );
-    let meta = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::LIST,
-        Part::META,
-        StateFlags::empty(),
-    );
-    let faint_canvas = style(
-        ui,
-        Surface::Canvas,
-        junie_tui::Family::EMPTY,
-        Part::HELP,
-        StateFlags::empty(),
-    );
-    let active = ui.with_surface(Surface::Elevated, |ui| {
-        let mut active = ui
-            .style(
-                junie_tui::Family::PANEL,
-                Variant::DEFAULT,
-                Part::TITLE,
-                StateFlags::empty(),
-            )
-            .style;
-        active.bg = Some(ui.bg());
-        active
-    });
-    let active_detail = ui.with_surface(Surface::Elevated, |ui| {
-        let mut active_detail = ui
-            .style(
-                junie_tui::Family::PANEL,
-                Variant::DEFAULT,
-                Part::DETAIL,
-                StateFlags::empty(),
-            )
-            .style;
-        active_detail.bg = Some(ui.bg());
-        active_detail
-    });
-    let last_style = style(
-        ui,
-        Surface::Canvas,
-        junie_tui::Family::PANEL,
-        Part::DETAIL,
-        StateFlags::empty(),
-    );
-    let brand = style(
-        ui,
-        Surface::Surface,
-        junie_tui::Family::BRAND,
-        Part::LABEL,
-        StateFlags::empty(),
-    );
-    let key = style(
-        ui,
-        Surface::Canvas,
-        junie_tui::Family::KEYHINT,
-        Part::KEY,
-        StateFlags::empty(),
-    );
-    let action = style(
-        ui,
-        Surface::Canvas,
-        junie_tui::Family::KEYHINT,
-        Part::ACTION,
-        StateFlags::empty(),
-    );
-
+    let HistoricalPalette {
+        panel,
+        title,
+        muted,
+        status,
+        faint,
+        meta,
+        faint_canvas,
+        active,
+        active_detail,
+        last_style,
+        brand,
+        key,
+        action,
+    } = HistoricalPalette::new(ui);
     let canvas = ui.with_surface(Surface::Canvas, |ui| ui.surface_style());
     ui.fill(
         junie_tui::Rect {
@@ -334,15 +248,9 @@ fn paint_historical(ui: &mut Ui<'_>, body: junie_tui::Rect, brand_clicks: u32) {
         },
         canvas,
     );
-    let status_y = body.bottom().saturating_sub(3);
-    ui.fill(
-        junie_tui::Rect {
-            y: status_y,
-            height: 3,
-            ..body
-        },
-        canvas,
-    );
+    // The historical strip sits above the shell footer, whose hint rows own
+    // the bottom cells of the frame.
+    let status_y = body.y.saturating_add(15);
     ui.paint_str(
         junie_tui::Rect {
             y: status_y,
@@ -366,9 +274,17 @@ fn paint_historical(ui: &mut Ui<'_>, body: junie_tui::Rect, brand_clicks: u32) {
     } else {
         format!("brand activations: {brand_clicks}")
     };
-    let hint_line = format!(
-        " ↑↓ Move  m Context menu  right-click Context menu  Tab Next                {last}"
-    );
+    // The historical line right-aligns the activation readout inside the
+    // visible body; the shell sidebar leaves this page narrower than the
+    // 120-column historical terminal.
+    let prefix = " ↑↓ Move  m Context menu  right-click Context menu  Tab Next";
+    let filler = body
+        .width
+        .saturating_sub(width(prefix))
+        .saturating_sub(width(&last))
+        .saturating_sub(1)
+        .max(1);
+    let hint_line = format!("{prefix}{}{last}", " ".repeat(filler as usize));
     ui.paint_str(
         junie_tui::Rect {
             y: status_y.saturating_add(2),
@@ -399,13 +315,13 @@ impl Page for ChromePage {
         "Chrome"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let brand = brand().update(cx);
         if brand.activated() {
             self.brand_clicks = self.brand_clicks.saturating_add(1);
         }
         let strip = status_bar(&CENTER, self.frame).update(cx);
-        brand.erase() | strip.erase()
+        (brand.erase() | strip.erase()).into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: junie_tui::Rect) {
@@ -448,15 +364,92 @@ impl Page for ChromePage {
         );
     }
 
-    fn hints(&self, ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if ui.state(BAR).contains(StateFlags::FOCUSED) {
-            vec![("← →", "Menu"), ("Enter", "Open")]
+            &[("← →", "Menu"), ("Enter", "Open")]
         } else {
-            vec![
+            &[
                 ("↑↓", "Move"),
                 ("m", "Context menu"),
                 ("right-click", "Context menu"),
             ]
+        }
+    }
+}
+
+struct HistoricalPalette {
+    panel: PaintStyle,
+    title: PaintStyle,
+    muted: PaintStyle,
+    status: PaintStyle,
+    faint: PaintStyle,
+    meta: PaintStyle,
+    faint_canvas: PaintStyle,
+    active: PaintStyle,
+    active_detail: PaintStyle,
+    last_style: PaintStyle,
+    brand: PaintStyle,
+    key: PaintStyle,
+    action: PaintStyle,
+}
+impl HistoricalPalette {
+    fn new(ui: &mut Ui<'_>) -> Self {
+        let [panel, title, muted, status, faint, meta, faint_canvas] = [
+            (Surface::Surface, junie_tui::Family::PANEL, Part::CONTAINER),
+            (Surface::Surface, junie_tui::Family::PANEL, Part::DETAIL),
+            (Surface::Canvas, junie_tui::Family::PANEL, Part::DETAIL),
+            (Surface::Surface, junie_tui::Family::PANEL, Part::HELP),
+            (Surface::Surface, junie_tui::Family::EMPTY, Part::HELP),
+            (Surface::Surface, junie_tui::Family::LIST, Part::META),
+            (Surface::Canvas, junie_tui::Family::EMPTY, Part::HELP),
+        ]
+        .map(|(surface, family, part)| style(ui, surface, family, part, StateFlags::empty()));
+        let active = ui.with_surface(Surface::Elevated, |ui| {
+            let mut active = ui
+                .style(
+                    junie_tui::Family::PANEL,
+                    Variant::DEFAULT,
+                    Part::TITLE,
+                    StateFlags::empty(),
+                )
+                .style;
+            active = active.with_bg_from(ui.surface_style());
+            active
+        });
+        let active_detail = ui.with_surface(Surface::Elevated, |ui| {
+            let mut active_detail = ui
+                .style(
+                    junie_tui::Family::PANEL,
+                    Variant::DEFAULT,
+                    Part::DETAIL,
+                    StateFlags::empty(),
+                )
+                .style;
+            active_detail = active_detail.with_bg_from(ui.surface_style());
+            active_detail
+        });
+        let [last_style, brand, key, action] = [
+            (Surface::Canvas, junie_tui::Family::PANEL, Part::DETAIL),
+            (Surface::Surface, junie_tui::Family::BRAND, Part::LABEL),
+            (Surface::Canvas, junie_tui::Family::KEYHINT, Part::KEY),
+            (Surface::Canvas, junie_tui::Family::KEYHINT, Part::ACTION),
+        ]
+        .map(|(surface, family, part)| style(ui, surface, family, part, StateFlags::empty()));
+
+        Self {
+            panel,
+            title,
+            muted,
+            status,
+            faint,
+            meta,
+            faint_canvas,
+            active,
+            active_detail,
+            last_style,
+            brand,
+            key,
+            action,
         }
     }
 }

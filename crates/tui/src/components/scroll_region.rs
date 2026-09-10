@@ -56,9 +56,11 @@ use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 ///
 /// ## Layout
 /// `draw` returns the content rect: `area` minus one scrollbar column when
-/// the content overflows the viewport, else `area` unchanged. `measure`
+/// the content overflows the viewport and the scrollbar is visible, else
+/// `area` unchanged. `measure`
 /// takes whatever the container offers (minimum `2 × 1`: the bar column plus
-/// one content column). Degenerate rects register nothing (R5).
+/// one content column), or `1 × 1` with the scrollbar hidden. Degenerate rects
+/// register nothing (R5).
 /// `viewport_len` / `content_len` are reported through `LayoutFacts` and
 /// consumed by the next `update`.
 ///
@@ -84,6 +86,7 @@ use crate::ui::{Cx, FrameRead, LayoutFacts, Ui};
 pub struct ScrollRegion<'a> {
     id: Id,
     family: Family,
+    scrollbar_visible: bool,
     ov: PartStyle<'a>,
 }
 
@@ -101,6 +104,7 @@ impl fmt::Debug for ScrollRegion<'_> {
         f.debug_struct("ScrollRegion")
             .field("id", &self.id)
             .field("family", &self.family)
+            .field("scrollbar_visible", &self.scrollbar_visible)
             .field("overrides", &self.ov)
             .finish()
     }
@@ -115,13 +119,30 @@ impl<'a> ScrollRegion<'a> {
         ScrollRegion {
             id,
             family: Family::SCROLLBAR,
+            scrollbar_visible: true,
             ov: PartStyle::new(),
         }
+    }
+
+    /// Show and reserve the overflow scrollbar column. Default: true.
+    ///
+    /// When false, wheel routing and reveal remain active, the content keeps
+    /// the full width, and no track or thumb is painted or registered.
+    /// Use the same policy in update and draw.
+    #[must_use]
+    pub const fn scrollbar_visible(mut self, visible: bool) -> Self {
+        self.scrollbar_visible = visible;
+        self
     }
 
     /// Resolve a composed scrollbar through its owning component's recipe.
     pub(crate) const fn inherit_family(mut self, family: Family) -> Self {
         self.family = family;
+        self
+    }
+
+    pub(crate) const fn with_overrides(mut self, ov: PartStyle<'a>) -> Self {
+        self.ov = ov;
         self
     }
 
@@ -219,6 +240,12 @@ impl<'a> ScrollRegion<'a> {
             local,
             track_len,
         } = pointer;
+        if !self.scrollbar_visible {
+            if cx.capture_owner() == Some(self.id) {
+                cx.release_capture();
+            }
+            return Response::consumed();
+        }
         let before = st.offset();
         match phase {
             Phase::Press if part == Part::THUMB => {
@@ -291,7 +318,7 @@ impl<'a> ScrollRegion<'a> {
         );
         ui.register_decor(self.id, PartRef::of(Part::CONTAINER), area);
         ui.register_scroll(self.id, area, Axes::V, view.headroom_v());
-        if !view.overflows() {
+        if !self.scrollbar_visible || !view.overflows() {
             return area;
         }
         let bar = Rect {
@@ -309,9 +336,9 @@ impl<'a> ScrollRegion<'a> {
     }
 
     fn paint_bar(&self, ui: &mut Ui<'_>, bar: Rect, view: &ScrollState) {
-        // Do not reserve cap rows. The old renderer's scrollbar geometry is a
-        // single full-height track, and ScrollState's inverse mapping expects
-        // the same length.
+        // The track spans every bar row — no reserved cap rows — so hit math
+        // and `ScrollState`'s inverse mapping stay on one length. Typed
+        // begin/end glyphs still mark the ends outside the thumb.
         let track_rect = bar;
         let track_len = usize::from(track_rect.height);
         let (start, len) = view.thumb(track_len);
@@ -349,15 +376,24 @@ impl<'a> ScrollRegion<'a> {
             f(ui, bar);
         } else {
             match track.glyph {
-                Slot::Set(glyph) => {
+                Slot::Set(glyph) if glyph != GlyphRole::ScrollTrack => {
                     for row in bar.rows() {
                         ui.glyph(row, glyph, track.style);
                     }
                 }
                 Slot::Clear => ui.fill(bar, track.style),
-                Slot::Inherit => {
+                Slot::Inherit | Slot::Set(_) => {
                     for row in track_rect.rows() {
                         ui.glyph(row, GlyphRole::ScrollTrack, track.style);
+                    }
+                    let set = ui.design().glyphs.scrollbar();
+                    ui.paint_cell(Position::new(bar.x, bar.y), set.begin, track.style);
+                    if bar.height > 1 {
+                        ui.paint_cell(
+                            Position::new(bar.x, bar.bottom().saturating_sub(1)),
+                            set.end,
+                            track.style,
+                        );
                     }
                 }
             }
@@ -386,7 +422,7 @@ impl<'a> ScrollRegion<'a> {
     /// the bar column plus one content column.
     pub fn measure(&self, _ui: &Ui<'_>, c: Constraints) -> Size {
         Size {
-            min: (2, 1),
+            min: (if self.scrollbar_visible { 2 } else { 1 }, 1),
             preferred: c.max,
         }
         .fit(c)
@@ -424,25 +460,27 @@ mod tests {
     }
 
     #[test]
-    fn scrollbar_paints_a_full_track_without_cap_rows() {
+    fn scrollbar_paints_typed_caps_outside_the_thumb() {
         let mut rt = Runtime::new(Stub::default(), Theme::junie());
         let mut buf = Buffer::empty(SCREEN);
         let area = Rect::new(0, 0, 5, 6);
-        let st = ScrollState::new(100);
+        let mut st = ScrollState::new(100);
+        st.set_viewport(6);
+        st.scroll_to(47);
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
             ScrollRegion::new(ID).draw(ui, area, &st, 100);
-        });
-        let track = Theme::junie().design.glyphs.get(GlyphRole::ScrollTrack);
-        let thumb = Theme::junie().design.glyphs.get(GlyphRole::ScrollThumb);
+        })
+        .commit_presented();
+        let set = Theme::junie().design.glyphs.scrollbar();
         assert_eq!(
             buf.cell(Position::new(4, 0))
                 .map(ratatui_core::buffer::Cell::symbol),
-            Some(thumb)
+            Some(set.begin)
         );
         assert_eq!(
             buf.cell(Position::new(4, 5))
                 .map(ratatui_core::buffer::Cell::symbol),
-            Some(track)
+            Some(set.end)
         );
     }
 
@@ -455,7 +493,8 @@ mod tests {
             ui.reference(None, |ui| {
                 ScrollRegion::new(ID).draw(ui, area, &st, 100);
             });
-        });
+        })
+        .commit_presented();
         assert!(rt.area_of(ID).is_none());
     }
 
@@ -465,11 +504,13 @@ mod tests {
             let mut runtime = Runtime::new(Stub::default(), Theme::junie());
             let mut buffer = Buffer::empty(SCREEN);
             let state = ScrollState::new(100);
-            runtime.draw_scene(SCREEN, &mut buffer, |ui, _area| {
-                ui.reference(target, |ui| {
-                    ScrollRegion::new(ID).draw(ui, Rect::new(0, 0, 5, 6), &state, 100);
-                });
-            });
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, _area| {
+                    ui.reference(target, |ui| {
+                        ScrollRegion::new(ID).draw(ui, Rect::new(0, 0, 5, 6), &state, 100);
+                    });
+                })
+                .commit_presented();
             buffer
         };
         let plain = render(None);
@@ -485,13 +526,15 @@ mod tests {
             let mut runtime = Runtime::new(Stub::default(), Theme::junie());
             let mut buffer = Buffer::empty(SCREEN);
             let state = ScrollState::new(100);
-            runtime.draw_scene(SCREEN, &mut buffer, |ui, _| {
-                let target =
-                    part.map(|part| ReferenceTarget::new(ID, ReferenceState::PRESSED).part(part));
-                ui.reference(target, |ui| {
-                    ScrollRegion::new(ID).draw(ui, Rect::new(0, 0, 5, 6), &state, 100);
-                });
-            });
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                    let target = part
+                        .map(|part| ReferenceTarget::new(ID, ReferenceState::PRESSED).part(part));
+                    ui.reference(target, |ui| {
+                        ScrollRegion::new(ID).draw(ui, Rect::new(0, 0, 5, 6), &state, 100);
+                    });
+                })
+                .commit_presented();
             buffer
         };
         let plain = render(None);
@@ -517,7 +560,8 @@ mod tests {
                     region = region.patch_part(&parts);
                 }
                 region.draw(ui, Rect::new(0, 0, 5, 3), &st, 1);
-            });
+            })
+            .commit_presented();
             buf
         };
         assert_ne!(render(false), render(true));
@@ -533,13 +577,15 @@ mod tests {
             let mut runtime = Runtime::new(Stub::default(), Theme::junie());
             let mut buffer = Buffer::empty(SCREEN);
             let state = ScrollState::new(100);
-            runtime.draw_scene(SCREEN, &mut buffer, |ui, _| {
-                let mut region = ScrollRegion::new(ID);
-                if let Some(part) = slot {
-                    region = region.slot(part, &marker);
-                }
-                region.draw(ui, Rect::new(0, 0, 5, 6), &state, 100);
-            });
+            runtime
+                .draw_scene(SCREEN, &mut buffer, |ui, _| {
+                    let mut region = ScrollRegion::new(ID);
+                    if let Some(part) = slot {
+                        region = region.slot(part, &marker);
+                    }
+                    region.draw(ui, Rect::new(0, 0, 5, 6), &state, 100);
+                })
+                .commit_presented();
             buffer
         };
         let plain = render(None);

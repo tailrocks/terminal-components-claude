@@ -156,11 +156,16 @@ pub(crate) fn tokenize(src: &str) -> Vec<Token> {
     let mut out = Vec::new();
     let mut i = 0;
     while i < b.len() {
-        let c = b[i] as char;
+        let Some(c) = src.get(i..).and_then(|rest| rest.chars().next()) else {
+            break;
+        };
         let start = i;
         let kind = if c.is_whitespace() {
-            while i < b.len() && (b[i] as char).is_whitespace() {
-                i += 1;
+            while let Some(ch) = src.get(i..).and_then(|rest| rest.chars().next()) {
+                if !ch.is_whitespace() {
+                    break;
+                }
+                i = i.saturating_add(ch.len_utf8());
             }
             TokKind::Whitespace
         } else if c == '-' && b.get(i + 1) == Some(&b'-') {
@@ -195,8 +200,11 @@ pub(crate) fn tokenize(src: &str) -> Vec<Token> {
             }
             TokKind::Number
         } else if c.is_alphabetic() || c == '_' {
-            while i < b.len() && ((b[i] as char).is_alphanumeric() || b[i] == b'_') {
-                i += 1;
+            while let Some(ch) = src.get(i..).and_then(|rest| rest.chars().next()) {
+                if !ch.is_alphanumeric() && ch != '_' {
+                    break;
+                }
+                i = i.saturating_add(ch.len_utf8());
             }
             if is_keyword(&src[start..i]) {
                 TokKind::Keyword
@@ -222,7 +230,6 @@ pub(crate) fn tokenize(src: &str) -> Vec<Token> {
 }
 
 /// Byte ranges of the individual statements (split on `;` outside strings).
-#[cfg(test)]
 pub(crate) fn split_statements(src: &str) -> Vec<(usize, usize)> {
     let mut out = Vec::new();
     let mut start = 0;
@@ -242,7 +249,6 @@ pub(crate) fn split_statements(src: &str) -> Vec<(usize, usize)> {
     out
 }
 
-#[cfg(test)]
 fn trim_range(src: &str, mut a: usize, mut b: usize) -> (usize, usize) {
     while a < b && src.as_bytes()[a].is_ascii_whitespace() {
         a += 1;
@@ -254,7 +260,6 @@ fn trim_range(src: &str, mut a: usize, mut b: usize) -> (usize, usize) {
 }
 
 /// The statement containing byte `cursor` (or the nearest one before it).
-#[cfg(test)]
 pub(crate) fn statement_at(src: &str, cursor: usize) -> Option<(usize, usize)> {
     let stmts = split_statements(src);
     stmts
@@ -1164,8 +1169,8 @@ pub(crate) fn run_select(cat: &Catalog, sel: &Select) -> Result<ResultSet, ExecE
             editable: false,
         });
     }
-    let cap = sel.limit.unwrap_or(ROW_CAP).min(ROW_CAP);
-    all.truncate(cap);
+    let row_limit = sel.limit.unwrap_or(ROW_CAP).min(ROW_CAP);
+    all.truncate(row_limit);
     let rows: Vec<Vec<Value>> = all
         .into_iter()
         .map(|r| proj.iter().map(|&i| r[i].clone()).collect())
@@ -1481,6 +1486,55 @@ mod tests {
             Ok(_) => Err("expected the parser to fail".to_owned()),
             Err(error) => Ok(error),
         }
+    }
+
+    #[test]
+    fn unicode_tokens_cover_complete_character_boundaries() {
+        for source in [
+            "SELECT * FROM café",
+            "SELECT 名称 FROM 顾客 WHERE 名称 = 'é'; -- 日本語\nSELECT 1",
+            "SELECT\u{2003}café, 🦀 FROM t /* 中文 */",
+            "SELECT \"café\" FROM t; SELECT '🦀'",
+        ] {
+            let mut end = 0;
+            for token in tokenize(source) {
+                assert_eq!(token.start, end);
+                assert!(source.get(token.start..token.end).is_some());
+                assert!(token.end > token.start);
+                end = token.end;
+            }
+            assert_eq!(end, source.len());
+        }
+        let source = "café\u{2003}名称 🦀";
+        let kinds = tokenize(source)
+            .into_iter()
+            .map(|token| token.kind)
+            .collect::<Vec<_>>();
+        assert_eq!(
+            kinds,
+            vec![
+                TokKind::Ident,
+                TokKind::Whitespace,
+                TokKind::Ident,
+                TokKind::Whitespace,
+                TokKind::Punct
+            ]
+        );
+    }
+
+    #[test]
+    fn unicode_relations_parse_without_splitting_identifiers() -> Result<(), String> {
+        let parsed = parse_select("SELECT 名称 FROM café")?;
+        assert_eq!(parsed.table, "café");
+        assert_eq!(parsed.columns, vec!["名称"]);
+        let source = "SELECT * FROM café; SELECT * FROM 顾客";
+        let statements = split_statements(source);
+        assert_eq!(statements.len(), 2);
+        assert_eq!(
+            statement_at(source, source.len()),
+            statements.last().copied()
+        );
+        Ok(())
     }
 
     #[test]

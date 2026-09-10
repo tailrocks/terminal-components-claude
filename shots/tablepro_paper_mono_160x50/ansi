@@ -1,0 +1,50 @@
+ ▪  [1mTablePro[0m  Connections  6 saved                                                                                                    no color · 160×50  ? help 
+                                                                                                                                                                
+ ┌─[1m Connections [0m──────────────────── 6 ─┐    Local PostgreSQL                                                                                                   
+ │                                      │                                                                                                                       
+ │ ▎ Filter connections                 │    Engine       PostgreSQL                                                                                            
+ │ ▎▾ Personal                        [1m [0m │    Host         localhost:5432                                                                                        
+ │ ▎    · Local PostgreSQL          pg  │    Database     acme_dev                                                                                              
+ │ ▎▾ Acme                              │    User         postgres                                                                                              
+ │ ▎    · Development               pg  │    Environment  local                                                                                                 
+ │ ▎    ◇ Staging                   pg  │    Safe Mode    Silent · Writes run without asking. Destructive                                                       
+ │ ▎    ◆ Analytics              mysql  │                 statements still confirm.                                                                             
+ │ ▎    ◆ Production                pg  │    SSL / SSH    off / off                                                                                             
+ │ ▎    · Scratch               sqlite  │    Last used    2 minutes ago                                                                                         
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │    ▎Connect   ▎Edit   ▎Duplicate   ▎Delete…                                                                           
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ │                                      │                                                                                                                       
+ └──────────────────────────────────────┘                                                                                                                       
+                                                                                                                                                                
+ [1m↑ ↓[0m Move  [1mEnter[0m Connect  [1m/[0m Filter  [1mCtrl+N[0m New  [1mTab[0m Next                                                                                                        

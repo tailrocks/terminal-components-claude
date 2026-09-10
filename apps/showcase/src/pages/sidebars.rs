@@ -1,15 +1,25 @@
 //! Nested sidebar navigation and content ownership.
 
 use junie_tui::{
-    Button, Cx, Id, ItemKey, NavList, NavListAction, NavListState, NavMode, Panel, Rect, Response,
-    RowUi, Surface, Ui, Variant, id,
+    Button, Cx, Id, ItemKey, NavList, NavListAction, NavListState, NavMode, Panel, Rect, RowUi,
+    Surface, Ui, Variant, id,
 };
 
-use super::{Page, frame, lines};
+use super::{Page, PageUpdate, frame, lines};
 
 const NAV: Id = id!("sidebars.nav");
 const SIDE_PANEL: Id = id!("sidebars.panel");
 const CONTENT_PANEL: Id = id!("sidebars.content");
+
+/// The one side-panel constructor (§13), shared by update and draw.
+fn side_panel() -> Panel<'static> {
+    Panel::new(SIDE_PANEL)
+}
+
+/// The one content-card constructor (§13), keyed by the selected section.
+fn content_panel(title: &'static str) -> Panel<'static> {
+    Panel::new(CONTENT_PANEL).title(title)
+}
 const COLLAPSE: Id = id!("sidebars.collapse");
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -89,6 +99,10 @@ const ITEMS: &[SidebarItem] = &[
     },
 ];
 
+fn collapse_button(collapsed: bool) -> Button<'static> {
+    Button::new(COLLAPSE, if collapsed { "›" } else { "Collapse" }).variant(Variant::SECONDARY)
+}
+
 fn item_key(item: &SidebarItem) -> ItemKey {
     ItemKey::num(u64::from(item.key))
 }
@@ -130,14 +144,6 @@ fn sidebar(
         .row(item_row)
 }
 
-fn collapse_button(collapsed: bool) -> Button<'static> {
-    Button::new(COLLAPSE, if collapsed { "›" } else { "Collapse" }).variant(Variant::SECONDARY)
-}
-
-fn content_panel<'a>(title: &'a str) -> Panel<'a> {
-    Panel::new(CONTENT_PANEL).title(title)
-}
-
 /// The sidebar cursor is independent from the shell's page navigation.
 #[derive(Debug, Default)]
 pub(crate) struct SidebarsPage {
@@ -161,9 +167,7 @@ impl Page for SidebarsPage {
         "Sidebars"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let _ = collapse_button(false);
-        let _ = content_panel("");
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let result = sidebar(self.collapsed).update(cx, &mut self.state, ITEMS);
         if let Some(NavListAction::Chose(key) | NavListAction::EnterContent(key)) =
             result.action_ref()
@@ -177,7 +181,10 @@ impl Page for SidebarsPage {
         }
         let mut response = result.erase();
         response |= collapse.erase();
-        response
+        // Both phases build the same two cards (§13).
+        let _ = side_panel();
+        let _ = content_panel(self.selected);
+        response.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -193,19 +200,25 @@ impl Page for SidebarsPage {
                     height: body.height.min(20),
                     ..body
                 };
-                Panel::new(SIDE_PANEL).draw(ui, side, |ui, _| {
-                    let inner = Panel::new(SIDE_PANEL).inner(ui, side);
-                    let nav_area = Rect {
-                        x: side.x.saturating_sub(4),
-                        width: side.width.saturating_add(4),
-                        y: inner.y,
-                        height: inner.height.saturating_sub(2),
+                side_panel().draw(ui, side, |ui, _| {
+                    let inner = Rect {
+                        y: side.y.saturating_add(1),
+                        height: side.height.saturating_sub(2),
+                        ..side
                     };
-                    sidebar(self.collapsed).draw(ui, nav_area, &self.state, ITEMS);
+                    sidebar(self.collapsed).draw(
+                        ui,
+                        Rect {
+                            height: inner.height.saturating_sub(2),
+                            ..inner
+                        },
+                        &self.state,
+                        ITEMS,
+                    );
                     collapse_button(self.collapsed).draw(
                         ui,
                         Rect {
-                            x: inner.x,
+                            x: inner.x.saturating_add(1),
                             y: inner.bottom().saturating_sub(1),
                             height: 1,
                             ..inner
@@ -279,54 +292,60 @@ impl Page for SidebarsPage {
                     ..body
                 };
                 content_panel(self.selected).draw(ui, content, |ui, inner| {
-                    let text = [
-                        "One focus stop. ↑ ↓ move the cursor, Enter opens.",
-                        "",
-                        "›  current item · persists when focus leaves",
-                        "▎  keyboard cursor · only while focused",
-                        "░  hover · follows the pointer",
-                        "",
-                        "Disabled items are skipped and ignore the pointer.",
-                        "Collapsed mode keeps rows and markers, initials only.",
-                    ];
-                    lines(ui, inner, &text);
-                    if body.width < 70 {
-                        let visible = [
-                            "One focus stop. ↑ ↓ move",
-                            "the cursor, Enter opens.",
-                            "",
-                            "›  current item ·",
-                            "persists when focus",
-                            "leaves",
-                            "▎  keyboard cursor · only",
-                            "while focused",
-                            "░  hover · follows the",
-                            "pointer",
-                            "",
-                            "Disabled items are",
-                            "skipped and ignore the",
-                            "pointer.",
-                            "Collapsed mode keeps rows",
-                        ];
-                        for (offset, line) in visible.iter().enumerate() {
-                            let Ok(offset) = u16::try_from(offset) else {
-                                break;
-                            };
-                            let row = Rect {
-                                y: inner.y.saturating_add(offset),
-                                height: 1,
-                                ..inner
-                            };
-                            ui.fill(row, ui.surface_style());
-                            let _ = ui.paint_str(row, line, ui.surface_style());
-                        }
-                    }
+                    Self::draw_content(ui, inner, body.width);
                 });
             },
         );
     }
 
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
-        vec![("↑ ↓", "Move"), ("Enter", "Open")]
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
+        &[("↑ ↓", "Move"), ("Enter", "Open")]
+    }
+}
+
+impl SidebarsPage {
+    fn draw_content(ui: &mut Ui<'_>, inner: Rect, body_width: u16) {
+        let text = [
+            "One focus stop. ↑ ↓ move the cursor, Enter opens.",
+            "",
+            "›  current item · persists when focus leaves",
+            "▎  keyboard cursor · only while focused",
+            "░  hover · follows the pointer",
+            "",
+            "Disabled items are skipped and ignore the pointer.",
+            "Collapsed mode keeps rows and markers, initials only.",
+        ];
+        lines(ui, inner, &text);
+        if body_width < 70 {
+            let visible = [
+                "One focus stop. ↑ ↓ move",
+                "the cursor, Enter opens.",
+                "",
+                "›  current item ·",
+                "persists when focus",
+                "leaves",
+                "▎  keyboard cursor · only",
+                "while focused",
+                "░  hover · follows the",
+                "pointer",
+                "",
+                "Disabled items are",
+                "skipped and ignore the",
+                "pointer.",
+                "Collapsed mode keeps rows",
+            ];
+            for (offset, line) in visible.iter().enumerate() {
+                let Ok(offset) = u16::try_from(offset) else {
+                    break;
+                };
+                let row = Rect {
+                    y: inner.y.saturating_add(offset),
+                    height: 1,
+                    ..inner
+                };
+                ui.fill(row, ui.surface_style());
+                let _ = ui.paint_str(row, line, ui.surface_style());
+            }
+        }
     }
 }

@@ -1,13 +1,14 @@
 //! Searchable semantic picker with query and scope state.
 
+use junie_tui::author::PaintStyle;
 use junie_tui::{
     ActionKey, Button, ContextMenu, Cx, Family, FilterList, FilterListState, FrameRead, GlyphRole,
     Id, Item, ItemKey, LayerSize, Menu, MenuBar, MenuItem, MenuState, Modifier, Part, Picker,
     PickerAction, PickerChain, PickerChainState, PickerStage, PickerState, Position, Rect,
-    Response, ScreenAlign, ScrollState, StateFlags, Style, Surface, Ui, Variant, id, width,
+    Response, ScreenAlign, ScrollState, StateFlags, Surface, Ui, Variant, id, width,
 };
 
-use super::{Page, frame};
+use super::{Page, PageUpdate, frame};
 
 const OPEN_QUICK: Id = id!("pickers.open.quick");
 const OPEN_TABS: Id = id!("pickers.open.tabs");
@@ -241,14 +242,17 @@ const REFERENCE_ITEMS: &[Item<'static>] = &[
         .group("Actions"),
 ];
 const MENU_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(ActionKey::custom("showcase.menu.open"), "Open")
+    MenuItem::new(ActionKey::application("showcase.menu.open"), "Open")
         .chord(junie_tui::Chord::key(junie_tui::KeyCode::Char('o'))),
-    MenuItem::new(ActionKey::custom("showcase.menu.close"), "Close"),
+    MenuItem::new(ActionKey::application("showcase.menu.close"), "Close"),
 ];
 const MENUS: &[Menu<'static>] = &[Menu::new("Actions", MENU_ITEMS)];
 const CONTEXT_ITEMS: &[MenuItem<'static>] = &[
-    MenuItem::new(ActionKey::custom("showcase.context.inspect"), "Inspect"),
-    MenuItem::new(ActionKey::custom("showcase.context.copy"), "Copy path"),
+    MenuItem::new(
+        ActionKey::application("showcase.context.inspect"),
+        "Inspect",
+    ),
+    MenuItem::new(ActionKey::application("showcase.context.copy"), "Copy path"),
 ];
 const CHAIN_STAGES: &[PickerStage<'static>] = &[
     PickerStage::new(ItemKey::Num(301), "Scope"),
@@ -316,11 +320,8 @@ fn context_menu() -> ContextMenu<'static> {
 }
 
 fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
-    let mut canvas = ui.with_surface(Surface::Canvas, |ui| ui.surface_style());
-    canvas.sub_modifier = Modifier::all();
-    ui.fill(body, canvas);
-    let mut surface = ui.with_surface(Surface::Surface, |ui| ui.surface_style());
-    surface.sub_modifier = Modifier::all();
+    let mut surface = ui.surface_style();
+    surface = surface.remove_modifier(Modifier::all());
     let mut panel = ui.with_surface(Surface::Surface, |ui| {
         ui.style(
             Family::PANEL,
@@ -330,19 +331,16 @@ fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
         )
         .style
     });
-    panel.sub_modifier = Modifier::all();
-    let top = Rect {
-        height: body.height.min(7),
-        ..body
-    };
-    ui.fill(top, surface);
-    let result_y = body.y.saturating_add(8);
-    let result = Rect {
-        y: result_y,
-        height: body.bottom().saturating_sub(result_y).min(8),
-        ..body
-    };
-    ui.fill(result, surface);
+    panel = panel.remove_modifier(Modifier::all());
+    ui.fill(body, surface);
+    ui.fill(
+        Rect {
+            x: body.x.saturating_add(2),
+            width: body.width.saturating_sub(2),
+            ..body
+        },
+        panel,
+    );
     for (row, line) in lines.iter().enumerate() {
         let Ok(row) = u16::try_from(row) else {
             break;
@@ -389,11 +387,18 @@ fn style(
     variant: Variant,
     part: Part,
     flags: StateFlags,
-) -> Style {
+) -> PaintStyle {
     ui.with_surface(surface, |ui| ui.style(family, variant, part, flags).style)
 }
 
-fn paint_segment(ui: &mut Ui<'_>, body: Rect, row: u16, prefix: &str, text: &str, style: Style) {
+fn paint_segment(
+    ui: &mut Ui<'_>,
+    body: Rect,
+    row: u16,
+    prefix: &str,
+    text: &str,
+    style: PaintStyle,
+) {
     let x = body.x.saturating_add(width(prefix));
     ui.paint_str(
         Rect {
@@ -427,7 +432,7 @@ fn match_ordinals(label: &str, query: &str) -> Vec<usize> {
     }
 }
 
-fn picker_style(ui: &mut Ui<'_>, part: Part, flags: StateFlags) -> Style {
+fn picker_style(ui: &mut Ui<'_>, part: Part, flags: StateFlags) -> PaintStyle {
     style(
         ui,
         Surface::Overlay,
@@ -598,7 +603,7 @@ fn paint_picker(
         for (index, grapheme) in item.label.chars().enumerate() {
             let mut char_style = label_style;
             if matched.contains(&index) {
-                char_style.add_modifier |= Modifier::BOLD;
+                char_style = char_style.add_modifier(Modifier::BOLD);
             } else if !focused {
                 char_style = char_style.remove_modifier(Modifier::BOLD);
             }
@@ -793,13 +798,16 @@ fn paint_historical(
     );
     let primary_gutter = primary_gutter.remove_modifier(Modifier::all());
     let primary_gutter = primary
+        .as_style()
         .bg
         .map_or(primary_gutter, |background| primary_gutter.fg(background));
     let secondary_gutter = secondary_gutter.remove_modifier(Modifier::all());
-    let secondary_gutter = secondary.bg.map_or(secondary_gutter, |background| {
-        secondary_gutter.fg(background)
-    });
-
+    let secondary_gutter = secondary
+        .as_style()
+        .bg
+        .map_or(secondary_gutter, |background| {
+            secondary_gutter.fg(background)
+        });
     paint_segment(ui, body, 0, "  ", "Open a picker", title);
     ui.fill(
         Rect {
@@ -990,7 +998,7 @@ impl Page for PickersPage {
         "Pickers"
     }
 
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let mut result = Response::ignored();
         let quick = quick_button().update(cx);
         if quick.activated() && !cx.is_open(PICKER) {
@@ -1057,7 +1065,7 @@ impl Page for PickersPage {
                 PickerAction::QueryChanged | PickerAction::Back | PickerAction::Scope(_) => {}
             }
         }
-        result
+        result.into()
     }
 
     fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
@@ -1146,11 +1154,16 @@ impl Page for PickersPage {
         }
     }
 
-    fn hints(&self, _ui: &Ui<'_>) -> Vec<(&'static str, &'static str)> {
+    fn hints(&self, _ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
         if self.open_kind.is_some() {
-            vec![("Esc", "Close")]
+            &[("Esc", "Close")]
         } else {
-            vec![("Enter", "Open")]
+            &[("Enter", "Open")]
         }
     }
+}
+
+#[cfg(test)]
+pub(crate) fn action_keys() -> impl Iterator<Item = ActionKey> {
+    MENU_ITEMS.iter().chain(CONTEXT_ITEMS).map(MenuItem::action)
 }
