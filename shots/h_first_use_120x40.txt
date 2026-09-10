@@ -1,40 +1,40 @@
-  holla❯    File   Go   Help                                                                    no project  mbp · local
-
-  Here
- ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
- ▎ Search actions and resources…                                                                        scope ‹ here ›
-
-    Suggested here                                                               Analyze disk usage       disk · here
-  › Analyze disk usage     disk     here  / is 91% full
-    Show system resources  system   host  CPU 78% for 4 min                      Does       largest-first view of
-    Open btm               system   host  sustained pressure…                               this folder that deepens
-                                                                                            as the scan streams;
-    Recent here                                                                             select rebuildable
-    nothing used here yet                                                                   artifacts for cleanup
-                                                                                 Runs       holla disk analy…scratch
-    Explore                                                                      In         ~/scratch
- ▎   Tasks   Git   Files   Disk   Services   System                              Host       mbp · local
-    System · mbp           explore  host  available on this host                 Scope      here
-                                                                                 Why        / is 91% full
-                                                                                 Changes    none · read-only
-                                                                                 Risk       read-only
-                                                                                 Data       live · 2 s ago
-                                                                                 Gate       runs directly
-                                                                                 Alt+Enter  Analyze the home folder
-                                                                                            · Analyze a volume · Pin
-                                                                                            · Alias · Why here?
-
-
-
-
-
-
-
-
-
-
-
-
-
- ~/scratch                                                                     / ━━━━━━━━━━─ 91%     truecolor · 120×40
-           Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities
+  holla❯    File   Go   Help                                                                    no project  mbp · local 
+                                                                                                                        
+  Here                                                                                                                  
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                                        scope ‹ here ›  
+                                                                                                                        
+    Suggested here                                                               Show system resources  system · host   
+  › Show system resources  system   host  CPU 78% for 4 min                                                             
+    Analyze disk usage     disk     here  / is 91% full                          Does       CPU, load, memory, swap,    
+    Open btm               system   host  sustained pressure…                               pressure, disk and          
+                                                                                            network snapshot; then      
+    Recent here                                                                             hand off to btm for         
+    everything used here is suggested above                                                 continuous monitoring       
+                                                                                 Runs       'holla snapshot system'     
+    Explore                                                                      In         mbp · host-wide             
+     Tasks   Git   Files   Disk   Services   System                              Host       mbp · local                 
+    System · mbp           explore  host  available on this host                 Scope      host                        
+                                                                                 Why        CPU 78% for 4 min · used    
+                                                                                            2 times on mbp              
+                                                                                 Changes    none · read-only            
+                                                                                 Risk       read-only                   
+                                                                                 Data       live · 2 s ago              
+                                                                                 Gate       runs directly               
+                                                                                 Alt+Enter  Open btm · Show process     
+                                                                                            tree · Pin · Alias · Why    
+                                                                                            here?                       
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ ~/scratch                                                                     / ━━━━━━━━━━─ 91%     truecolor · 120×40 
+           Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities              

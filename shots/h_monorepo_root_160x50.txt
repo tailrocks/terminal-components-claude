@@ -1,50 +1,50 @@
-  holla❯    File   Go   Help                                                                                                  acme · mise monorepo  mbp · local
-
-  Here
- ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- ▎ Search actions and resources…                                                                                                                scope ‹ here ›
-
-    Suggested here                                                                                               Follow acme-api-1 logs         docker · here
-  › Follow acme-api-1 logs                docker    here   service is unhealthy
-    Inspect 10 GB of generated artifacts  disk      here   10 GB generated artifacts                             Does       stream the last 10 minutes and
-    Install missing tools · sqlx-cli      task      here   1 tool missing                                                   follow · acme/api:dev · running
-    Deploy preview                        workflow  here   provenance: project workflow file…                    Runs       docker logs -f --sinc…acme-api-1
-    Follow acme-db-1 logs                 docker    here   running                                               In         ~/work/acme
-                                                                                                                 Host       mbp · local
-    Recent here                                                                                                  Scope      here
-    nothing used here yet                                                                                        Why        service is unhealthy
-                                                                                                                 Changes    none · read-only
-    Explore                                                                                                      Risk       read-only
- ▎   Tasks   Git   Files   Disk   Services   System                                                              Data       live · 2 s ago
-    Children · 3 projects                 explore   child  3 child projects discovered                           Gate       runs directly
-    System · mbp                          explore   host   available on this host                                Alt+Enter  Restart · Stop · Pin · Alias ·
-                                                                                                                            Why here?
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- ~/work/acme   main   ↑1                                                                                                                     truecolor · 160×50
-                                Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities
+  holla❯    File   Go   Help                                                                                                  acme · mise monorepo  mbp · local 
+                                                                                                                                                                
+  Here                                                                                                                                                          
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›  
+                                                                                                                                                                
+    Suggested here                                                                                               Deploy preview                 custom · here   
+  › Deploy preview                        custom   here   Current folder · ⚠ unreviewed · used 7 times here                                                     
+    Follow acme-api-1 logs                docker   here   service is unhealthy                                   Does       push the current branch to the      
+    Inspect 10 GB of generated artifacts  disk     here   10 GB generated artifacts                                         preview stack                       
+    Install missing tools · sqlx-cli      task     here   1 tool missing                                         Runs       tools/deploy-preview.…nv preview    
+    Review cleanup candidates             cleanup  host   10.6 GiB across 4 categories                           In         ~/work/acme                         
+                                                                                                                 Host       mbp · local                         
+    Recent here                                                                                                  Scope      here                                
+    Pull                                  git      here   used 20 times on mbp                                   Why        Current folder · ⚠ unreviewed ·     
+                                                                                                                            used 7 times here                   
+    Explore                                                                                                      Changes    see the command                     
+     Tasks   Git   Files   Disk   Services   System                                                              Risk       mutating                            
+    Children · 3 projects                 explore  child  3 child projects discovered                            Data       live · 0 s ago                      
+    System · mbp                          explore  host   available on this host                                 Gate       trust required ·                    
+                                                                                                                            ~/work/acme/.holla.toml             
+                                                                                                                 Alt+Enter  Set an alias… · Show                
+                                                                                                                            configuration diagnostics · Pin     
+                                                                                                                            · Alias · Why here?                 
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+ ~/work/acme   main   ↑1                                                                                                                     truecolor · 160×50 
+                              Type Search  ↑↓ Move  Enter Trust…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities                                 

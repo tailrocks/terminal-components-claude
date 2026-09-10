@@ -1,50 +1,50 @@
-  holla❯    File   Go   Help                                                                                             work · project collection  mbp · local
-
-  Here › Disk › Usage
- ━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  Disk usage · ~/work
-  ⠋ scanning · 9 candidates so far ━━━━━━━━━━━━━━━━━────────  67%
-
-    Filesystems                                                                                                ~/work                      project collection
- ▎  /                       ━━━━━━━━━━━━━━━━── 91%    842 of 926 GB
- ▎  /Volumes/Backup         ━━━━━━━━━━━━━───── 71%    1420 of 2000 GB                                          Size  41.6 GB
-                                                                                                               Note  observation only · nothing is deleted
-    Largest on /                                                                                                     from this view
- ▎› ~/work                                                 41.6 GB  project collection
- ▎  ~/Library/Containers/com.docker.docker/Data/vms/0…     24.0 GB  container disk
- ▎  ~/Library/Caches                                       11.2 GB  caches
- ▎  ~/work/dumps/prod-2026-08.sql.gz                        6.3 GB  large file
- ▎  ~/.cargo                                                5.9 GB  developer cache
-
-    Rebuildable artifacts · by project
- ▎[✓] android › build                                3.1 GB  inactive 22 days    ./gradlew
- ▎[ ] android › .gradle                              0.9 GB  activity unknown    in use by gradle daemon …
- ▎[✓] backend › target                              12.7 GB  inactive 18 days    cargo
- ▎[✓] frontend › node_modules                        8.4 GB  inactive 31 days    Trash
- ▎[ ] frontend › dist                                0.4 GB  active today        Trash
-
-    System cleanup families
-      developer-tool caches · 2 candidates · 7.0 GB
- ▎[✓] ~/Library/pnpm/store/v3                        2.2 GB  inactive 40 days    pnpm
- ▎[ ] ~/.cargo/registry/cache                        4.8 GB  inactive 3 days     permanent
-      virtualization and containers · 1 candidate · 24.0 GB
- ▎[ ] ~/Library/Containers/com.docker.docker/Da…    24.0 GB  active today        in use by Docker Desktop
-      logs · 1 candidate · 1.4 GB
- ▎[✓] ~/Library/Logs                                 1.4 GB  inactive 60 days    Trash
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- ~/work                                            ⠋ scanning ~/work · 67%                                             / ━━━━━━━━━━─ 91%     truecolor · 160×50
-                                              ↑↓ Move  a All  c Cleanup plan  Enter Facts  y Copy path  Esc Back
+  holla❯    File   Go   Help                                                                                             work · project collection  mbp · local 
+                                                                                                                                                                
+  Here › Disk › Usage                                                                                                                                           
+ ━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  Disk usage · ~/work                                                                                                                                           
+  scan complete · 31.8 GiB allocated · 35 entries · 3 selected (24.2 GiB)                                                                                       
+                                                                                                                                                                
+    Filesystems                                                                                                                                                 
+    /                       ━━━━━━━━━━━━━━━━── 91%    842 of 926 GB                                                                                             
+    /Volumes/Backup         ━━━━━━━━━━━━━───── 71%    1420 of 2000 GB                                                                                           
+                                                                                                                                                                
+    largest first · allocated · noise folded                                                                   work                                 directory   
+ ▎▾ ◐ work                                                                                 31.8 GiB · 100%                                                      
+    ▸ ◐ backend                                                                            12.7 GiB ·  40%     Path       ~/work                                
+    ▸ ◐ frontend                                                                            8.8 GiB ·  28%     Allocated  31.8 GiB                              
+    ▸   dumps                                                                               6.3 GiB ·  20%     Apparent   31.8 GiB · block rounding             
+    ▸ ◐ android                                                                             4.0 GiB ·  13%     Entries    35 · hardlinks counted once           
+    ▸   backend-wt                                                                         24.0 KiB ·   0%     Modified   2026-09-07 08:41                      
+                                                                                                               Freshness  live · complete                       
+                                                                                                               Selection  not selected · Space selects          
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+ ~/work                                             3 selected · 24.2 GiB                                              / ━━━━━━━━━━─ 91%     truecolor · 160×50 
+      ↑↓ Move  ← → Fold / open  Space Select  s Sort  f Fold noise  d Delete…  c Artifact plan  r Rescan  x Cancel scan  t Top files  p Facts  Esc Back         

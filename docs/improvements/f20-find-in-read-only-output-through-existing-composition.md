@@ -9,9 +9,9 @@ Compose query input and match navigation in Holla output and file preview. Apply
 Apply every retained acceptance clause for this slice. Historical findings must
 be checked against current code before editing. Preserve surrounding behavior.
 
-- [ ] Implement the stated shared/Holla slice and necessary caller migrations.
-- [ ] Retain relevant deterministic contract and Holla owner regressions.
-- [ ] Inspect affected captures/terminal evidence and record scope and results.
+- [x] Implement the stated shared/Holla slice and necessary caller migrations.
+- [x] Retain relevant deterministic contract and Holla owner regressions.
+- [x] Inspect affected captures/terminal evidence and record scope and results.
 
 ## Later
 
@@ -45,5 +45,12 @@ Design evidence and peer dispositions:
 
 ## Evidence
 
-Pending implementation. Record current source findings, tests/scenarios,
-inspected capture paths, provenance/platform scope and any deferred remainder.
+**Slice status:** current Holla/shared slice complete · Jackin integration and a shared controller stay Later.
+
+**Composition:** activity output and the files preview compose a query input (`/`), `ui::text::find_ranges` (now public) and viewport marks; Enter and Down move to the next match, Up to the previous, wraparound is stated, Esc closes find and restores follow; a new query resets the match index; the pasted query never edits output; content revision and eviction keep marks valid. Tests: `app_tests_proofs.rs: output_scrollbar_press_and_drag_redraw_and_find_index_resets_on_a_new_query`; `app_tests_parity.rs: hp14_output_streams_are_exact_and_retention_drops_are_stated` (`find "line 44" · 1 of 100` with 500 dropped lines), `hp04_…` (find in the preview); `viewport.rs: marks_paint_and_survive_eviction`; `ui/text.rs: find_preserves_smart_case_and_whole_source_graphemes`.
+
+**Captures inspected:** `shots/h_hp14_find`.
+
+**Deferred remainder:** Jackin panes/Inspect and the extraction of a cross-application controller (Later checkbox); regex, replacement and multiple cursors are out of scope.
+
+Provenance: every cited capture carries `<name>.manifest.json` (source git revision `1aaa9b0` with the dirty working tree of this change set, binary sha256 of `target/debug/holla`, arguments, geometry, colour environment, tmux 3.7c, Python 3.14.7, Pillow 12.3.0, the JetBrainsMono NFM font files) and `<name>.png.fidelity.json`; the `.txt` capture is authoritative for content. Platform scope: macOS (Darwin 25.6.0) host for every PTY and capture run; Linux behaviour is fixture-modeled only.

@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                          probe · Rust project  mbp · local 
+                                                                                                                        
+  Here › Custom actions                                                                                                 
+ ━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────── 
+  Custom actions                                                             ~/work/probe/.holla.toml · live · 1 s ago  
+                                                                                                                        
+  Origin   project                                                                                                      
+  Digest   sha256:371a5fe65de3fa31c4d718afa4beb4a90bfcfba1953a1df79fe3a3ffae7e8324                                      
+  Trust    Untrusted                                                                                                    
+  Actions  1 · 2 diagnostics                                                                                            
+                                                                                                                        
+ ╭─ Detail ───────────────────────────────────────────────────────────────────────────────────── 21 lines · y copies ─╮ 
+ │  /Users/alex/work/probe/.holla.toml action[0]: id "git.pull" collides with a built-in action                       │ 
+ │  /Users/alex/work/probe/.holla.toml action[2]: `label` is blank · `command` must be an argv array, not a shell st… │ 
+ │  deploy                  mutating     tools/deploy.sh                                                              │ 
+ │                                                                                                                    │ 
+ │  [[action]]                                                                                                        │ 
+ │  id = "git.pull"                                                                                                   │ 
+ │  label = "Collides"                                                                                                │ 
+ │  command = ["true"]                                                                                                │ 
+ │  danger = "safe"                                                                                                   │ 
+ │                                                                                                                    │ 
+ │  [[action]]                                                                                                        │ 
+ │  id = "deploy"                                                                                                     │ 
+ │  label = "Deploy"                                                                                                  │ 
+ │  command = ["tools/deploy.sh"]                                                                                     │ 
+ │  danger = "mutating"                                                                                               │ 
+ │                                                                                                                    │ 
+ │  [[action]]                                                                                                        │ 
+ │  id = "broken"                                                                                                     │ 
+ │  label = ""                                                                                                        │ 
+ │  command = "rm -rf"                                                                                                │ 
+ │  danger = "safe"                                                                                                   │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+ ~/work/probe   main   ↓1                            snapshot · read-only                            truecolor · 120×40 
+                                             ↑↓ Scroll  y Copy  Esc Back                                                

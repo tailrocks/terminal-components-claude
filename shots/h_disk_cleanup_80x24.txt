@@ -1,24 +1,24 @@
-  holla❯    File   Go   Help             work · project collection  mbp · local
-
-  Here › Disk › Usage
- ━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────
-  Disk usage · ~/work
-  ⠋ scanning · 9 candidates so far ━━━━━━━━━━━━━━━━━────────  67%
-
-    Largest on /                                                              ┃
- ▎  ~/work                                     41.6 GB  project collection    ┃
- ▎  ~/Library/Containers/com.docker.docke…     24.0 GB  container disk        ┃
- ▎  ~/Library/Caches                           11.2 GB  caches                ┃
- ▎  ~/work/dumps/prod-2026-08.sql.gz            6.3 GB  large file            ┃
- ▎› ~/.cargo                                    5.9 GB  developer cache       ┃
-                                                                              ┃
-    Rebuildable artifacts · by project                                        ┃
- ▎[✓] android › build                    3.1 GB  inactive 22 days    ./gradl… │
- ▎[ ] android › .gradle                  0.9 GB  activity unknown    in use … │
- ▎[✓] backend › target                  12.7 GB  inactive 18 days    cargo    │
- ▎[✓] frontend › node_modules            8.4 GB  inactive 31 days    Trash    │
- ▎[ ] frontend › dist                    0.4 GB  active today        Trash    │
-                                                                              │
-
- ~/work     ⠋ scanning ~/work · 67%     / ━━━━━━━━━━─ 91%     truecolor · 80×24
-      ↑↓ Move  a All  c Cleanup plan  Enter Facts  y Copy path  Esc Back
+  holla❯    File   Go   Help             work · project collection  mbp · local 
+                                                                                
+  Here › Disk › Usage                                                           
+ ━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────── 
+  Disk usage · ~/work                                                           
+  scan complete · 31.8 GiB allocated · 35 entries · 3 selected (24.2 GiB)       
+                                                                                
+    largest first · allocated · noise folded                                    
+ ▎▾ ◐ work                                                     31.8 GiB · 100%  
+    ▸ ◐ backend                                                12.7 GiB ·  40%  
+    ▸ ◐ frontend                                                8.8 GiB ·  28%  
+    ▸   dumps                                                   6.3 GiB ·  20%  
+    ▸ ◐ android                                                 4.0 GiB ·  13%  
+    ▸   backend-wt                                             24.0 KiB ·   0%  
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+ ~/work      3 selected · 24.2 GiB      / ━━━━━━━━━━─ 91%     truecolor · 80×24 
+  ↑↓ Move  ← → Fold / open  Space Select  s Sort  f Fold noise  d Delete…  …    

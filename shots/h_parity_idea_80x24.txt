@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                            no project  mbp · local 
+                                                                                
+  Here                                                                          
+ ━━━━━━━─────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                scope ‹ here ›  
+                                                                                
+    Suggested here                                                              
+  › Clean IntelliJ metadata u…  idea     here  4 candidates        destructive  
+                                                                                
+    Recent here                                                                 
+    everything used here is suggested above                                     
+                                                                                
+    Explore                                                                     
+     Tasks   Git   Files   Disk   Services   System                             
+    System · mbp                explore  host  available on this…               
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+    → opens inside holla · here · destructive                                   
+                                                                                
+ ~/work/ide                                                   truecolor · 80×24 
+     Type Search  ↑↓ Move  Enter Confirm…  Alt+Enter More  Tab Preview  …       

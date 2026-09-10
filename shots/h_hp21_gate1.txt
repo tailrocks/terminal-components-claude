@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                           safe · Rust project  mbp · local 
+                                                                                                                        
+  Here › Disk › Usage › Review                                                                                          
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────── 
+  Review · trash 1 item · gate 1 of 2 · review the resolved facts, then continue deliberately                           
+                                                                                                                        
+  Action        move to Trash 1 item under ~/Projects/safe                                                              
+  Host          mbp · local                                                                                             
+  Mode          Trash · native macOS Trash · space returns after the Trash is emptied                                   
+  Estimate      1000.0 MiB allocated · APFS clones may overcount · purgeable space excluded · not a free-space          
+                guarantee                                                                                               
+  Denied        none · every path passed the lexical, protected-root, user-data and symlink rules                       
+  Revision      68c21e8eb8ed0a71 · any change to paths, mode or dry run voids this review                               
+  Threat model  an unprivileged user · ancestors are re-resolved at commit · a concurrent rename of the final path      
+                cannot be excluded                                                                                      
+  Paths         ~/Projects/safe/target                                                                                  
+  Recoverable   yes · until the Trash is emptied                                                                        
+  Provenance    holla cleanup · paths validated at review and again at commit                                           
+  Gate          second gate types the target-bound phrase                                                               
+                                                                                                                        
+ ╭─ Sequence · 1 command ────────────────────────────────────────────────────────────────────────────────── y copies ─╮ 
+ │  01  trash /Users/alex/Projects/safe/target  # 1000.0 MiB · disk.tree                                              │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+                                                                                                 ▎Cancel    Continue…   
+                                                                                                                        
+ ~/Projects/safe                                review · gate 1 of 2                                 truecolor · 120×40 
+            ← → Choose  Enter Activate  Tab Next  y Copy sequence  Esc Cancel    1 item selected · 1000.0 MiB estimated 

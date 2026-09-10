@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                    repos · project collection  mbp · local 
+                                                                                                                        
+  Here    pull alpha ✓ ×                                                                                                
+ ────────━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────── 
+  pull alpha · succeeded · 0 s · exit 0                                               child · ~/work/repos/alpha · mbp  
+  $ git -C /Users/alex/work/repos/alpha pull · started by Pull 4 sibling repositories · batch git.pull-all              
+                                                                                                                        
+ ╭─ output ─────────────────────────────────────────────────────────────────────────────────────────────── following ─╮ 
+ │  $ git -C /Users/alex/work/repos/alpha pull                                                                        │ 
+ │  From github.com:acme/alpha                                                                                        │ 
+ │     a1b2c3d..a9c0f1e  main -> origin/main                                                                          │ 
+ │  Updating a1b2c3d..a9c0f1e                                                                                         │ 
+ │  Fast-forward                                                                                                      │ 
+ │   6 files changed, 39 insertions(+)                                                                                │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+ ~/work/repos                                    succeeded · 0 s                                     truecolor · 120×40 
+      ↑↓ Scroll  f Follow  / Find  y Copy  r Restart  …   ! Pull 4 sibling repositories · 2 ok · 2 failed · 0 cancelled 

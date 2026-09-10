@@ -9,9 +9,9 @@ Retain actual Facts Input::Paste and input-modifier/source-mapping regressions f
 Apply every retained acceptance clause for this slice. Historical findings must
 be checked against current code before editing. Preserve surrounding behavior.
 
-- [ ] Implement the stated shared/Holla slice and necessary caller migrations.
-- [ ] Retain relevant deterministic contract and Holla owner regressions.
-- [ ] Inspect affected captures/terminal evidence and record scope and results.
+- [x] Implement the stated shared/Holla slice and necessary caller migrations.
+- [x] Retain relevant deterministic contract and Holla owner regressions.
+- [x] Inspect affected captures/terminal evidence and record scope and results.
 
 ## Later
 
@@ -32,5 +32,10 @@ Current-phase completion does not imply deferred clauses have passed.
 
 ## Evidence
 
-Pending implementation. Record current source findings, tests/scenarios,
-inspected capture paths, provenance/platform scope and any deferred remainder.
+**Slice status:** current Holla/shared slice complete · standalone CodeEditor/TextArea gaps stay Later.
+
+**Regressions retained:** `app_tests_proofs.rs: facts_page_takes_an_actual_paste_into_the_editing_field_only` (a real `Input::Paste` lands in the editing field and nowhere else), `enter_with_modifiers_maps_to_exact_picker_and_finder_semantics` (Shift+Enter chooses like Enter, Alt+Enter is the alternate action, Ctrl+Enter is no chord), `output_scrollbar_press_and_drag_redraw_and_find_index_resets_on_a_new_query` (scrollbar press and drag redraw the viewport; a new find query resets a nonzero match index); `widgets/input.rs: required_error_clears_after_keyboard_and_paste_corrections`.
+
+**Deferred remainder:** CodeEditor/TextArea scrollbar-drag and Enter matrices outside the changed primitives (Later checkbox).
+
+Provenance: every cited capture carries `<name>.manifest.json` (source git revision `1aaa9b0` with the dirty working tree of this change set, binary sha256 of `target/debug/holla`, arguments, geometry, colour environment, tmux 3.7c, Python 3.14.7, Pillow 12.3.0, the JetBrainsMono NFM font files) and `<name>.png.fidelity.json`; the `.txt` capture is authoritative for content. Platform scope: macOS (Darwin 25.6.0) host for every PTY and capture run; Linux behaviour is fixture-modeled only.

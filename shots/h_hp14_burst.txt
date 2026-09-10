@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                    batch · project collection  mbp · local 
+                                                                                                                        
+  Here    emit a mixed stream ✓ ×    emit a burst ✓ ×                                                                   
+ ───────────────────────────────────━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────── 
+  emit a burst · succeeded · 1 s · exit 0                                                    here · ~/work/batch · mbp  
+  $ ./emit-burst · started by Emit a burst                                                                              
+                                                                                                                        
+ ╭─ output ────────────────────────────────────────────────── following · 500 earlier lines dropped · last 4000 kept ─╮ 
+ │  burst line 4472                                                                                                 │ │ 
+ │  burst line 4473                                                                                                 │ │ 
+ │  burst line 4474                                                                                                 │ │ 
+ │  burst line 4475                                                                                                 │ │ 
+ │  burst line 4476                                                                                                 │ │ 
+ │  burst line 4477                                                                                                 │ │ 
+ │  burst line 4478                                                                                                 │ │ 
+ │  burst line 4479                                                                                                 │ │ 
+ │  burst line 4480                                                                                                 │ │ 
+ │  burst line 4481                                                                                                 │ │ 
+ │  burst line 4482                                                                                                 │ │ 
+ │  burst line 4483                                                                                                 │ │ 
+ │  burst line 4484                                                                                                 │ │ 
+ │  burst line 4485                                                                                                 │ │ 
+ │  burst line 4486                                                                                                 │ │ 
+ │  burst line 4487                                                                                                 │ │ 
+ │  burst line 4488                                                                                                 │ │ 
+ │  burst line 4489                                                                                                 │ │ 
+ │  burst line 4490                                                                                                 │ │ 
+ │  burst line 4491                                                                                                 │ │ 
+ │  burst line 4492                                                                                                 │ │ 
+ │  burst line 4493                                                                                                 │ │ 
+ │  burst line 4494                                                                                                 │ │ 
+ │  burst line 4495                                                                                                 │ │ 
+ │  burst line 4496                                                                                                 │ │ 
+ │  burst line 4497                                                                                                 │ │ 
+ │  burst line 4498                                                                                                 │ │ 
+ │  burst line 4499                                                                                                 ┃ │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+ ~/work/batch                                    succeeded · 1 s                                     truecolor · 120×40 
+                    ↑↓ Scroll  f Follow  / Find  y Copy  r Restart  x Close  Esc Here    emit a burst finished · exit 0 

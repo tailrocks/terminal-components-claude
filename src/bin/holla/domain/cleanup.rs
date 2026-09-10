@@ -476,6 +476,7 @@ pub fn is_artifact(fs: &Fs, path: &str) -> bool {
 
 /// Recursively find artifacts under roots (max depth six), never descending
 /// into a found artifact or a directory symlink; roots are deduplicated.
+#[cfg(test)]
 pub fn find_artifacts(fs: &Fs, roots: &[String]) -> Vec<String> {
     find_artifacts_report(fs, roots).0
 }
@@ -896,6 +897,72 @@ impl LogRecord {
     }
 }
 
+impl LogRecord {
+    /// Read a v1 record back from its JSONL line. A malformed or foreign line
+    /// yields `None`; the raw line still appears in the audit view.
+    pub fn parse(line: &str) -> Option<Self> {
+        fn raw<'a>(line: &'a str, key: &str) -> Option<&'a str> {
+            let k = format!("\"{key}\":");
+            let rest = &line[line.find(&k)? + k.len()..];
+            if let Some(r) = rest.strip_prefix('"') {
+                let b = r.as_bytes();
+                let mut i = 0;
+                while i < b.len() {
+                    match b[i] {
+                        b'\\' => i += 2,
+                        b'"' => return Some(&r[..i]),
+                        _ => i += 1,
+                    }
+                }
+                None
+            } else {
+                Some(&rest[..rest.find([',', '}']).unwrap_or(rest.len())])
+            }
+        }
+        fn unescape(s: &str) -> String {
+            let mut out = String::with_capacity(s.len());
+            let mut chars = s.chars();
+            while let Some(c) = chars.next() {
+                if c != '\\' {
+                    out.push(c);
+                    continue;
+                }
+                match chars.next() {
+                    Some('n') => out.push('\n'),
+                    Some(other) => out.push(other),
+                    None => {}
+                }
+            }
+            out
+        }
+        if raw(line, "v")? != "1" {
+            return None;
+        }
+        let mode = match raw(line, "mode")? {
+            "trash" => Mode::Trash,
+            "permanent" => Mode::Permanent,
+            _ => return None,
+        };
+        let outcome = match raw(line, "outcome")? {
+            "removed" => Outcome::Removed,
+            "trashed" => Outcome::Trashed,
+            "would_remove" => Outcome::WouldRemove,
+            "failed" => Outcome::Failed,
+            "skipped" => Outcome::Skipped,
+            _ => return None,
+        };
+        Some(LogRecord {
+            timestamp_ms: raw(line, "timestamp_ms")?.parse().ok()?,
+            mode,
+            dry_run: raw(line, "dry_run")? == "true",
+            path: unescape(raw(line, "path")?),
+            size: raw(line, "size")?.parse().ok()?,
+            outcome,
+            error: raw(line, "error").map(unescape),
+        })
+    }
+}
+
 /// The in-memory operation log at `$XDG_CACHE_HOME/holla/ops.log`.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct OpsLog {
@@ -985,133 +1052,187 @@ pub struct ExecContext<'a> {
     pub processes: &'a dyn Fn(&str) -> ProcessObservation,
 }
 
-/// Execute an authorized plan against the filesystem. `expected_revision`
-/// must match the plan's fingerprint; a drifted plan is refused before any
-/// effect.
-pub fn execute(
-    plan: &DeletePlan,
-    expected_revision: u64,
-    fs: &mut Fs,
-    log: &mut OpsLog,
-    cx: &ExecContext,
-) -> Result<Report, String> {
-    if plan.revision != expected_revision || plan.fingerprint() != plan.revision {
-        return Err("the reviewed plan changed · confirm again".into());
-    }
-    let mut report = Report {
-        plan_revision: plan.revision,
-        mode: plan.mode,
-        dry_run: plan.dry_run,
-        items: vec![],
-        log_failures: 0,
-        log_path: log.path.clone(),
-        bytes: 0,
-        freed_now: 0,
-    };
-    let mut done: BTreeSet<String> = BTreeSet::new();
-    let selected: Vec<&str> = plan.items.iter().map(|i| i.path.as_str()).collect();
-    let mut processes: std::collections::BTreeMap<&str, ProcessObservation> = Default::default();
-    for item in &plan.items {
-        let path = item.path.as_str();
-        let record = |outcome: Outcome,
-                      bytes: u64,
-                      error: Option<String>,
-                      log: &mut OpsLog,
-                      report: &mut Report| {
-            log.append(&LogRecord {
-                timestamp_ms: cx.now_secs * 1000,
+/// A committed plan executing one item at a time. The world steps it per
+/// tick, so the report grows in place and a quit can wait for it explicitly
+/// instead of a modal owning the deletion (HP22).
+#[derive(Debug, Clone)]
+pub struct Execution {
+    plan: DeletePlan,
+    report: Report,
+    done: BTreeSet<String>,
+    processes: std::collections::BTreeMap<String, ProcessObservation>,
+    next: usize,
+}
+
+impl Execution {
+    /// Start an authorized plan. `expected_revision` must match the plan's
+    /// fingerprint; a drifted plan is refused before any effect.
+    pub fn start(
+        plan: &DeletePlan,
+        expected_revision: u64,
+        log_path: &str,
+    ) -> Result<Self, String> {
+        if plan.revision != expected_revision || plan.fingerprint() != plan.revision {
+            return Err("the reviewed plan changed · confirm again".into());
+        }
+        Ok(Self {
+            plan: plan.clone(),
+            report: Report {
+                plan_revision: plan.revision,
                 mode: plan.mode,
                 dry_run: plan.dry_run,
-                path: path.into(),
-                size: bytes,
-                outcome,
-                error: error.clone(),
-            });
-            report.items.push(ItemResult {
-                path: path.into(),
-                outcome,
-                bytes,
-                error,
-            });
+                items: vec![],
+                log_failures: 0,
+                log_path: log_path.to_owned(),
+                bytes: 0,
+                freed_now: 0,
+            },
+            done: BTreeSet::new(),
+            processes: Default::default(),
+            next: 0,
+        })
+    }
+
+    pub fn total(&self) -> usize {
+        self.plan.items.len()
+    }
+
+    pub fn completed(&self) -> usize {
+        self.next
+    }
+
+    pub fn finished(&self) -> bool {
+        self.next >= self.plan.items.len()
+    }
+
+    /// The report so far: partial until `finished`.
+    pub fn report(&self) -> &Report {
+        &self.report
+    }
+
+    fn record(
+        &mut self,
+        path: &str,
+        outcome: Outcome,
+        bytes: u64,
+        error: Option<String>,
+        log: &mut OpsLog,
+        now_secs: i64,
+    ) {
+        log.append(&LogRecord {
+            timestamp_ms: now_secs * 1000,
+            mode: self.plan.mode,
+            dry_run: self.plan.dry_run,
+            path: path.into(),
+            size: bytes,
+            outcome,
+            error: error.clone(),
+        });
+        self.report.items.push(ItemResult {
+            path: path.into(),
+            outcome,
+            bytes,
+            error,
+        });
+    }
+
+    /// Process the next item. Returns `false` once every item is done.
+    pub fn step(&mut self, fs: &mut Fs, log: &mut OpsLog, cx: &ExecContext) -> bool {
+        let Some(item) = self.plan.items.get(self.next).cloned() else {
+            return false;
         };
+        self.next += 1;
+        let path = item.path.as_str();
+        let now = cx.now_secs;
         // duplicates and descendants of another selected ancestor
-        if !done.insert(path.to_owned()) {
-            record(
+        if !self.done.insert(path.to_owned()) {
+            self.record(
+                path,
                 Outcome::Skipped,
                 0,
                 Some("duplicate of an earlier item".into()),
                 log,
-                &mut report,
+                now,
             );
-            continue;
+            return true;
         }
-        if let Some(anc) = selected
+        let ancestor = self
+            .plan
+            .items
             .iter()
-            .find(|a| **a != path && path.starts_with(&format!("{a}/")))
-        {
-            record(
+            .map(|i| i.path.as_str())
+            .find(|a| *a != path && path.starts_with(&format!("{a}/")))
+            .map(str::to_owned);
+        if let Some(anc) = ancestor {
+            self.record(
+                path,
                 Outcome::Skipped,
                 0,
                 Some(format!("covered by its ancestor {anc}")),
                 log,
-                &mut report,
+                now,
             );
-            continue;
+            return true;
         }
         // process guard, observed once per batch
         if let Some(g) = item.guard {
-            let obs = processes
-                .entry(g)
+            let obs = self
+                .processes
+                .entry(g.to_owned())
                 .or_insert_with(|| (cx.processes)(g))
                 .clone();
             match obs {
                 ProcessObservation::Running => {
-                    record(
+                    self.record(
+                        path,
                         Outcome::Skipped,
                         0,
                         Some(format!("{g} is running")),
                         log,
-                        &mut report,
+                        now,
                     );
-                    continue;
+                    return true;
                 }
                 ProcessObservation::Unknown(why) => {
-                    record(
+                    self.record(
+                        path,
                         Outcome::Skipped,
                         0,
                         Some(format!("{g} state unknown · {why}")),
                         log,
-                        &mut report,
+                        now,
                     );
-                    continue;
+                    return true;
                 }
                 ProcessObservation::NotRunning => {}
             }
         }
         // validation is re-run at commit, after sizing, immediately before mutation
         if let Err(Deny(why)) = validate(path, cx.home, cx.os, fs) {
-            record(Outcome::Skipped, 0, Some(why), log, &mut report);
-            continue;
+            self.record(path, Outcome::Skipped, 0, Some(why), log, now);
+            return true;
         }
         if let Some(child) = protected_descendant(path, cx.home, fs) {
-            record(
+            self.record(
+                path,
                 Outcome::Skipped,
                 0,
                 Some(format!("contains protected {child}")),
                 log,
-                &mut report,
+                now,
             );
-            continue;
+            return true;
         }
         if !fs.exists(path) {
-            record(
+            self.record(
+                path,
                 Outcome::Failed,
                 0,
                 Some("no such file or directory".into()),
                 log,
-                &mut report,
+                now,
             );
-            continue;
+            return true;
         }
         let scan = fs.scan(
             path,
@@ -1121,51 +1242,73 @@ pub fn execute(
             },
         );
         if scan.errors() > 0 {
-            record(
+            self.record(
+                path,
                 Outcome::Failed,
                 0,
                 Some("size traversal failed · unreadable entry".into()),
                 log,
-                &mut report,
+                now,
             );
-            continue;
+            return true;
         }
         let bytes = scan.allocated;
         if let Err(Deny(why)) = validate(path, cx.home, cx.os, fs) {
-            record(
+            self.record(
+                path,
                 Outcome::Skipped,
                 0,
                 Some(format!("changed after sizing · {why}")),
                 log,
-                &mut report,
+                now,
             );
-            continue;
+            return true;
         }
-        if plan.dry_run {
-            record(Outcome::WouldRemove, bytes, None, log, &mut report);
-            continue;
+        if self.plan.dry_run {
+            self.record(path, Outcome::WouldRemove, bytes, None, log, now);
+            return true;
         }
-        match plan.mode {
-            Mode::Trash => match fs.trash(path, cx.now_secs) {
+        match self.plan.mode {
+            Mode::Trash => match fs.trash(path, now) {
                 Ok(b) => {
-                    report.bytes += b;
-                    record(Outcome::Trashed, b, None, log, &mut report);
+                    self.report.bytes += b;
+                    self.record(path, Outcome::Trashed, b, None, log, now);
                 }
-                Err(e) => record(Outcome::Failed, 0, Some(e), log, &mut report),
+                Err(e) => self.record(path, Outcome::Failed, 0, Some(e), log, now),
             },
             Mode::Permanent => match fs.remove_permanent(path) {
                 Ok(b) => {
-                    report.bytes += b;
-                    report.freed_now += b;
-                    record(Outcome::Removed, b, None, log, &mut report);
+                    self.report.bytes += b;
+                    self.report.freed_now += b;
+                    self.record(path, Outcome::Removed, b, None, log, now);
                 }
-                Err(e) => record(Outcome::Failed, 0, Some(e), log, &mut report),
+                Err(e) => self.record(path, Outcome::Failed, 0, Some(e), log, now),
             },
         }
+        true
     }
-    report.log_failures = log.failures;
-    log.failures = 0;
-    Ok(report)
+
+    /// Close the execution: the log's failure count moves into the report.
+    pub fn finish(mut self, log: &mut OpsLog) -> Report {
+        self.report.log_failures = log.failures;
+        log.failures = 0;
+        self.report
+    }
+}
+
+/// Execute an authorized plan against the filesystem in one go: the
+/// stepped `Execution` without a world driving it.
+#[cfg(test)]
+pub fn execute(
+    plan: &DeletePlan,
+    expected_revision: u64,
+    fs: &mut Fs,
+    log: &mut OpsLog,
+    cx: &ExecContext,
+) -> Result<Report, String> {
+    let mut e = Execution::start(plan, expected_revision, &log.path)?;
+    while e.step(fs, log, cx) {}
+    Ok(e.finish(log))
 }
 
 // ------------------------------------------------------------ size cache
@@ -1334,6 +1477,40 @@ mod tests {
     use super::*;
     use crate::clock::EPOCH_SECS;
     use crate::sim::fs::BLOCK;
+
+    #[test]
+    fn log_records_round_trip_through_jsonl() {
+        let recs = [
+            LogRecord {
+                timestamp_ms: 1_787_967_660_000,
+                mode: Mode::Trash,
+                dry_run: false,
+                path: "/Users/alex/work/legacy/node_modules".into(),
+                size: 4096,
+                outcome: Outcome::Trashed,
+                error: None,
+            },
+            LogRecord {
+                timestamp_ms: 7,
+                mode: Mode::Permanent,
+                dry_run: true,
+                path: "/tmp/odd \"name\"\\back\nline".into(),
+                size: 0,
+                outcome: Outcome::Failed,
+                error: Some("Trash unavailable: \"devbox\" has no backend".into()),
+            },
+        ];
+        for r in recs {
+            assert_eq!(
+                LogRecord::parse(&r.json()).as_ref(),
+                Some(&r),
+                "{}",
+                r.json()
+            );
+        }
+        assert_eq!(LogRecord::parse("{\"v\":2,\"mode\":\"trash\"}"), None);
+        assert_eq!(LogRecord::parse("not json"), None);
+    }
 
     const HOME: &str = "/Users/alex";
 

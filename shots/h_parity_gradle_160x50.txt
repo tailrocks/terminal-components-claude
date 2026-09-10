@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                                android · Gradle build  mbp · local 
+                                                                                                                                                                
+  Here                                                                                                                                                          
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›  
+                                                                                                                                                                
+    Suggested here                                                                                               Clean Gradle outputs under ~/work/android ·…   
+  › Clean Gradle outputs under ~/work/an…  cleanup  here  4 candidates                           destructive                                                    
+    gradle build                           gradle   here  build.gradle.kts here                                  Does       gradle --stop, then move every      
+    gradle clean                           gradle   here  build.gradle.kts here                                             .gradle and build directory         
+    gradle test                            gradle   here  build.gradle.kts here                                             below this folder (depth 5, no      
+                                                                                                                            symlinks, no node_modules) to       
+    Recent here                                                                                                             the Trash · 4 candidates · a        
+    everything used here is suggested above                                                                                 daemon is running · gradle          
+                                                                                                                            --stop is the first step            
+    Explore                                                                                                      Runs       gradle --stop                       
+     Tasks   Git   Files   Disk   Services   System                                                              In         ~/work/android                      
+    System · mbp                           explore  host  available on this host                                 Host       mbp · local                         
+                                                                                                                 Scope      here                                
+                                                                                                                 Why        4 candidates                        
+                                                                                                                 Changes    see the command                     
+                                                                                                                 Risk       destructive                         
+                                                                                                                 Data       live · 0 s ago                      
+                                                                                                                 Gate       opens a review · the deletion is    
+                                                                                                                            gated there (typed phrase)          
+                                                                                                                 Alt+Enter  Pin · Alias · Why here?             
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+ ~/work/android                                                                                                                              truecolor · 160×50 
+                             Type Search  ↑↓ Move  Enter Confirm…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities                                

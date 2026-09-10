@@ -1,24 +1,24 @@
-  holla❯    File   Go   Help      northwind-traders-pla…ation-core  mbp · local
-
-  Here
- ━━━━━━━───────────────────────────────────────────────────────────────────────
- ▎ Search actions and resources…                                scope ‹ here ›
-
-    Suggested here                                                            ┃
-  › Analyze disk usage          disk     here    / is 91% full                ┃
-    Resolve the rebase in laz…  git      here    rebase in progress…          ┃
-    Review 7 modified files     git      here    7 modified · 0 untracked     ┃
-    Show system resources       system   host    CPU 78% for 4 min            ┃
-    Open btm                    system   host    sustained pressure…          ┃
-                                                                              ┃
-    Recent here                                                               ┃
-    nothing used here yet                                                     ┃
-                                                                              ┃
-    Explore                                                                   ┃
- ▎   Tasks   Git   Files   Disk   Services   System                           │
-    Children · 14 projects      explore  child   14 child projects discovered │
-
-    → holla disk analyze /Users/alex/work/…ciliation-service · here · read-only
-
- ~/work/clients/northwind-trad…iation-service   ! docker, github unavailable
-       Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  …
+  holla❯    File   Go   Help      northwind-traders-pla…ation-core  mbp · local 
+                                                                                
+  Here                                                                          
+ ━━━━━━━─────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                scope ‹ here ›  
+                                                                                
+    Suggested here                                                            ┃ 
+    Pull                        git      here    blocked · 2 conflicting fil… ┃ 
+  › Show system resources       system   host    CPU 78% for 4 min            ┃ 
+    Analyze disk usage          disk     here    / is 91% full                ┃ 
+    Resolve the rebase in laz…  git      here    rebase in progress…          ┃ 
+    Review 7 modified files     git      here    7 modified · 0 untracked     ┃ 
+                                                                              ┃ 
+    Recent here                                                               ┃ 
+    everything used here is suggested above                                   ┃ 
+                                                                              ┃ 
+    Explore                                                                   ┃ 
+     Tasks   Git   Files   Disk   Services   System                           │ 
+    Children · 14 projects      explore  child   14 child projects discovered │ 
+                                                                                
+    → 'holla snapshot system' · host · read-only                                
+                                                                                
+ ~/work/clients/northwind-trad…iation-service   ! docker, github unavailable    
+       Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  …         

@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local 
+                                                                                                                        
+  Here                                                                                                                  
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                                        scope ‹ here ›  
+                                                                                                                        
+    Suggested here                                                               Clean IntelliJ metadata under ~/wor…   
+  › Clean IntelliJ metadata …  idea     here  4 candidates       destructive                                            
+                                                                                 Does       move every .idea            
+    Recent here                                                                             directory and lowercase     
+    everything used here is suggested above                                                 .iml file below this        
+                                                                                            folder (depth 5, no         
+    Explore                                                                                 symlinks, no                
+     Tasks   Git   Files   Disk   Services   System                                         node_modules, nothing       
+    System · mbp               explore  host  available on thi…                             nested) to the Trash · 4    
+                                                                                            candidates · no IDE         
+                                                                                            shutdown step exists in     
+                                                                                            the baseline                
+                                                                                 Runs       no command · opens          
+                                                                                            inside holla                
+                                                                                 In         ~/work/ide                  
+                                                                                 Host       mbp · local                 
+                                                                                 Scope      here                        
+                                                                                 Why        4 candidates                
+                                                                                 Changes    see the command             
+                                                                                 Risk       destructive                 
+                                                                                 Data       live · 0 s ago              
+                                                                                 Gate       opens a review · the        
+                                                                                            deletion is gated there     
+                                                                                            (typed phrase)              
+                                                                                 Alt+Enter  Pin · Alias · Why here?     
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ ~/work/ide                                                                                          truecolor · 120×40 
+         Type Search  ↑↓ Move  Enter Confirm…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities            

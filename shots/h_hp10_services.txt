@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local 
+                                                                                                                        
+  Here › Homebrew services                                                                                              
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────── 
+  Homebrew services                                                                               mbp · live · 1 s ago  
+                                                                                                                        
+  Source       brew services list --json · live                                                                         
+  Cache        brew-services-v1 · 6 min ago · 1 names · hint for the next start                                         
+  Services     11                                                                                                       
+  Cache write  fails on this host · listings still work · nothing is retried                                            
+                                                                                                                        
+ ╭─ Detail ───────────────────────────────────────────────────────────────────────────────────── 12 lines · y copies ─╮ 
+ │  service                     status      actions                                                                   │ 
+ │  svc00                       started     start · stop · restart                                                    │ 
+ │  svc01                       stopped     start · stop · restart                                                    │ 
+ │  svc02                       error       start · stop · restart                                                    │ 
+ │  svc03                       started     start · stop · restart                                                    │ 
+ │  svc04                       stopped     start · stop · restart                                                    │ 
+ │  svc05                       error       start · stop · restart                                                    │ 
+ │  svc06                       started     start · stop · restart                                                    │ 
+ │  svc07                       stopped     start · stop · restart                                                    │ 
+ │  svc08                       error       start · stop · restart                                                    │ 
+ │  svc09                       started     start · stop · restart                                                    │ 
+ │  svc10                       stopped     start · stop · restart                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+  Next   Restart svc00    Restart svc01    Restart svc02    Restart svc03    Restart svc04    Restart svc05             
+                                                                                                                        
+ ~/work                                     snapshot · read-only                                     truecolor · 120×40 
+                                    ↑↓ Scroll  y Copy  Tab Next actions  Esc Back                                       

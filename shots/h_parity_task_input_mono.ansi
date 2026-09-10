@@ -1,0 +1,30 @@
+[38;5;15m[48;5;0m [1m[38;5;0m[48;5;7m holla❯ [0m[38;5;15m[48;5;0m  [38;5;7m File [38;5;15m [38;5;7m Go [38;5;15m [38;5;7m Help [38;5;15m                         [38;5;7mapp · service checkout[38;5;15m  [1m◆ devbox · production[0m[38;5;15m[48;5;0m 
+                                                                                                    
+ [1m Here  [0m[38;5;15m[48;5;0m                                                                                            
+ [38;5;7m━━━━━━━[38;5;0m───────────────────────────────────────────────────────────────────────────────────────────[38;5;15m 
+ [38;5;7m▎[38;5;15m [38;5;7mSearch actions and resources…[38;5;15m                                                   [38;5;7m scope ‹ here › [38;5;15m 
+                                                                                                    
+    [38;5;8mSuggested here[38;5;15m                                                                                  
+ [1m [38;5;7m›[38;5;15m Follow payments-worker journal  [0m[38;5;7m[48;5;0msystem [1m[38;5;15m  [0m[38;5;7m[48;5;0mon devbox[1m[38;5;15m  [0m[38;5;7m[48;5;0munit is restarting[1m[38;5;15m                         [0m[38;5;15m[48;5;0m 
+    Show payments-worker status     [38;5;7msystem [38;5;15m  [38;5;7mon devbox[38;5;15m  [38;5;7m3 restarts in 10 min[38;5;15m                        
+    Deploy the release              [38;5;7mcustom [38;5;15m  [38;5;7mhere     [38;5;15m  [38;5;7mCurrent folder · trusted[38;5;15m                    
+    Quick no-op                     [38;5;7mcustom [38;5;15m  [38;5;7mhere     [38;5;15m  [38;5;7mCurrent folder · trusted[38;5;15m                    
+    Run the stubborn worker         [38;5;7mcustom [38;5;15m  [38;5;7mhere     [38;5;15m  [38;5;7mCurrent folder · trusted[38;5;15m                    
+                                                                                                    
+    [38;5;8mRecent here[38;5;15m                                                                                     
+    [38;5;8meverything used here is suggested above[38;5;15m                                                         
+                                                                                                    
+    [38;5;8mExplore[38;5;15m                                                                                         
+ [38;5;0m [38;5;15m   Tasks   Git   Files   Disk   Services   System                                                 
+    System · devbox                 [38;5;7mexplore[38;5;15m  [38;5;7mon devbox[38;5;15m  [38;5;7mavailable on this host[38;5;15m                      
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+    [38;5;7m→ journalctl -u payments-worker -f -n 200 · on devbox · read-only[38;5;15m                               
+                                                                                                    
+ [1m/srv/app[0m[38;5;15m[48;5;0m                                                                         [38;5;8mno color · 100×30[38;5;15m 
+  [1mType[0m[38;5;15m[48;5;0m [38;5;7mSearch[38;5;15m  [1m↑↓[0m[38;5;15m[48;5;0m [38;5;7mMove[38;5;15m  [1mEnter[0m[38;5;15m[48;5;0m [38;5;7mRun[38;5;15m  [1mAlt+Enter[0m[38;5;15m[48;5;0m [38;5;7mMore[38;5;15m  [1mTab[0m[38;5;15m[48;5;0m [38;5;7mPreview[38;5;15m  [1mCtrl+↑↓[0m[38;5;15m[48;5;0m [38;5;7mScope[38;5;15m  [1mCtrl+G[0m[38;5;15m[48;5;0m [38;5;7mActivities[38;5;15m    

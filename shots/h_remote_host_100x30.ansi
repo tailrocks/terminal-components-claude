@@ -12,10 +12,10 @@
     Show system resources           [38;2;128;128;128msystem  [38;2;255;255;255m  [38;2;179;179;179mon prod-eu-1[38;2;255;255;255m  [38;2;128;128;128mCPU 34% for 11 min[38;2;255;255;255m                      
                                                                                                     
     [38;2;77;77;77mRecent here[38;2;255;255;255m                                                                                     
-    [38;2;77;77;77mnothing used here yet[38;2;255;255;255m                                                                           
+    [38;2;77;77;77meverything used here is suggested above[38;2;255;255;255m                                                         
                                                                                                     
     [38;2;77;77;77mExplore[38;2;255;255;255m                                                                                         
- [38;2;0;0;0m▎[38;2;255;255;255m   Tasks   Git   Files   Disk   Services   System                                                 
+ [38;2;0;0;0m [38;2;255;255;255m   Tasks   Git   Files   Disk   Services   System                                                 
     System · prod-eu-1              [38;2;128;128;128mexplore [38;2;255;255;255m  [38;2;179;179;179mon prod-eu-1[38;2;255;255;255m  [38;2;128;128;128mavailable on this host[38;2;255;255;255m                  
                                                                                                     
                                                                                                     

@@ -1,6 +1,6 @@
 # Improvements plan
 
-Status: **task split ready; implementation not yet verified.** This document is
+Status: **Current phase implemented and verified (simulated Holla prototype); Later work open.** This document is
 the checkbox tracker. Detailed contracts live in [small task files](docs/improvements/).
 The current phase implements Holla's simulated design, interactions, coverage
 and the shared components needed by those flows. Other work remains tracked.
@@ -25,34 +25,34 @@ a changed shared invariant are current work; unrelated application features are 
 
 ## Current — existing Holla design
 
-- [ ] [H00 — Existing Holla design and journey coverage](docs/improvements/h00-existing-holla-design-and-coverage.md)
+- [x] [H00 — Existing Holla design and journey coverage](docs/improvements/h00-existing-holla-design-and-coverage.md)
 
 Start its inventory first; finish it after the current slices integrate.
 
 ## Current — shared components and Holla coverage
 
-- [ ] [F02 — Picker eligibility and Holla target identity](docs/improvements/f02-picker-action-eligibility-and-destructive-target-identity.md#current-phase) — Holla/shared slice only.
-- [ ] [F05 — TreeView identity for Holla file and disk trees](docs/improvements/f05-preserve-treeview-target-across-lazy-insertion.md#current-phase).
-- [ ] [F08b — Picker Unicode editing and paste](docs/improvements/f08b-picker-grapheme-editing-query-paste.md#current-phase) — Holla/shared slice only.
-- [ ] [F08d — Holla shortcut ownership and hints](docs/improvements/f08d-unassigned-modifiers-perform-plain-actions.md#current-phase) — Holla/shared slice only.
-- [ ] [F10 — Exact styled Unicode text](docs/improvements/f10-segment-logical-text-before-applying-styles.md#current-phase).
-- [ ] [F11 — Bound Holla output retention](docs/improvements/f11-one-retention-aware-mutation-boundary.md#current-phase).
-- [ ] [F12 — Preserve selection and reading position](docs/improvements/f12-rebase-retained-identity-never-silently-retarget-selection.md#current-phase).
-- [ ] [F13 — Keep rendered content fresh](docs/improvements/f13-make-cache-validity-part-of-content-ownership.md#current-phase).
-- [ ] [F14 — Consistent text display and copy policy](docs/improvements/f14-explicit-tab-control-geometry-and-copy-policy.md#current-phase).
-- [ ] [F15 — Incremental Holla output rendering](docs/improvements/f15-incremental-live-output-work-measured-separately-from-idle-redraw.md#current-phase).
-- [ ] [F19 — Keyboard selection and copy](docs/improvements/f19-keyboard-selection-in-the-existing-textviewport.md#current-phase).
-- [ ] [F20 — Search Holla output and previews](docs/improvements/f20-find-in-read-only-output-through-existing-composition.md#current-phase) — Holla/shared slice only.
-- [ ] [F21 — Restore the shared terminal session](docs/improvements/f21-restore-terminal-state-for-supported-job-control-suspension.md#current-phase).
-- [ ] [F22 — Trustworthy Holla visual captures](docs/improvements/f22-separate-rasterizer-fidelity-from-terminal-correctness.md#current-phase).
-- [ ] [F23a — Holla state reachability coverage](docs/improvements/f23a-state-reachability-design-d4.md#current-phase) — Holla/shared slice only.
-- [ ] [F23b — Shared terminal lifecycle proof](docs/improvements/f23b-lifecycle-v01-v02.md#current-phase).
-- [ ] [F23c — Holla event freshness and resize](docs/improvements/f23c-event-freshness-resize-v03.md#current-phase) — Holla/shared slice only.
-- [ ] [F23d — Holla input fairness](docs/improvements/f23d-input-flood-fairness-v04.md#current-phase).
-- [ ] [F23e — Holla rendering performance proof](docs/improvements/f23e-dirty-idle-performance-v05.md#current-phase) — Holla/shared slice only.
-- [ ] [F23f — Holla color and terminal proof](docs/improvements/f23f-rendering-color-compatibility-v06-v07.md#current-phase) — Holla/shared slice only.
-- [ ] [F23g — Reproducible Holla evidence](docs/improvements/f23g-evidence-provenance-v08.md#current-phase) — Holla/shared slice only.
-- [ ] [F23h — Holla facts paste and affected input regressions](docs/improvements/f23h-precise-subsidiary-regressions-v09.md#current-phase) — Holla/shared slice only.
+- [x] [F02 — Picker eligibility and Holla target identity](docs/improvements/f02-picker-action-eligibility-and-destructive-target-identity.md#current-phase) — Holla/shared slice only.
+- [x] [F05 — TreeView identity for Holla file and disk trees](docs/improvements/f05-preserve-treeview-target-across-lazy-insertion.md#current-phase).
+- [x] [F08b — Picker Unicode editing and paste](docs/improvements/f08b-picker-grapheme-editing-query-paste.md#current-phase) — Holla/shared slice only.
+- [x] [F08d — Holla shortcut ownership and hints](docs/improvements/f08d-unassigned-modifiers-perform-plain-actions.md#current-phase) — Holla/shared slice only.
+- [x] [F10 — Exact styled Unicode text](docs/improvements/f10-segment-logical-text-before-applying-styles.md#current-phase).
+- [x] [F11 — Bound Holla output retention](docs/improvements/f11-one-retention-aware-mutation-boundary.md#current-phase).
+- [x] [F12 — Preserve selection and reading position](docs/improvements/f12-rebase-retained-identity-never-silently-retarget-selection.md#current-phase).
+- [x] [F13 — Keep rendered content fresh](docs/improvements/f13-make-cache-validity-part-of-content-ownership.md#current-phase).
+- [x] [F14 — Consistent text display and copy policy](docs/improvements/f14-explicit-tab-control-geometry-and-copy-policy.md#current-phase).
+- [x] [F15 — Incremental Holla output rendering](docs/improvements/f15-incremental-live-output-work-measured-separately-from-idle-redraw.md#current-phase).
+- [x] [F19 — Keyboard selection and copy](docs/improvements/f19-keyboard-selection-in-the-existing-textviewport.md#current-phase).
+- [x] [F20 — Search Holla output and previews](docs/improvements/f20-find-in-read-only-output-through-existing-composition.md#current-phase) — Holla/shared slice only.
+- [x] [F21 — Restore the shared terminal session](docs/improvements/f21-restore-terminal-state-for-supported-job-control-suspension.md#current-phase).
+- [x] [F22 — Trustworthy Holla visual captures](docs/improvements/f22-separate-rasterizer-fidelity-from-terminal-correctness.md#current-phase).
+- [x] [F23a — Holla state reachability coverage](docs/improvements/f23a-state-reachability-design-d4.md#current-phase) — Holla/shared slice only.
+- [x] [F23b — Shared terminal lifecycle proof](docs/improvements/f23b-lifecycle-v01-v02.md#current-phase).
+- [x] [F23c — Holla event freshness and resize](docs/improvements/f23c-event-freshness-resize-v03.md#current-phase) — Holla/shared slice only.
+- [x] [F23d — Holla input fairness](docs/improvements/f23d-input-flood-fairness-v04.md#current-phase).
+- [x] [F23e — Holla rendering performance proof](docs/improvements/f23e-dirty-idle-performance-v05.md#current-phase) — Holla/shared slice only.
+- [x] [F23f — Holla color and terminal proof](docs/improvements/f23f-rendering-color-compatibility-v06-v07.md#current-phase) — Holla/shared slice only.
+- [x] [F23g — Reproducible Holla evidence](docs/improvements/f23g-evidence-provenance-v08.md#current-phase) — Holla/shared slice only.
+- [x] [F23h — Holla facts paste and affected input regressions](docs/improvements/f23h-precise-subsidiary-regressions-v09.md#current-phase) — Holla/shared slice only.
 
 ## Current — Holla simulated UI
 
@@ -64,63 +64,63 @@ still defines the full row contracts; partial representation is not Covered.
 
 <a id="hp01"></a>
 
-- [ ] [HP01 — Discovery and stable actions](docs/improvements/hp01-adaptive-discovery-and-stable-action-identity.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP01 — Discovery and stable actions](docs/improvements/hp01-adaptive-discovery-and-stable-action-identity.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp02"></a>
 
-- [ ] [HP02 — Search and remembered choices](docs/improvements/hp02-search-query-editing-and-durable-usage-learning.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP02 — Search and remembered choices](docs/improvements/hp02-search-query-editing-and-durable-usage-learning.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp03"></a>
 
-- [ ] [HP03 — File search and resource actions](docs/improvements/hp03-find-files-and-perform-resource-actions.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP03 — File search and resource actions](docs/improvements/hp03-find-files-and-perform-resource-actions.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp04"></a>
 
-- [ ] [HP04 — Folder browser and safe previews](docs/improvements/hp04-browse-folders-and-safely-preview-files.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP04 — Folder browser and safe previews](docs/improvements/hp04-browse-folders-and-safely-preview-files.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp05"></a>
 
-- [ ] [HP05 — Git status, pull and push](docs/improvements/hp05-current-repository-git-operations.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP05 — Git status, pull and push](docs/improvements/hp05-current-repository-git-operations.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp06"></a>
 
-- [ ] [HP06 — Git batches and hygiene](docs/improvements/hp06-repository-batches-mirrors-and-hygiene.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP06 — Git batches and hygiene](docs/improvements/hp06-repository-batches-mirrors-and-hygiene.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp07"></a>
 
-- [ ] [HP07 — Project-task choices](docs/improvements/hp07-native-project-task-adapters.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP07 — Project-task choices](docs/improvements/hp07-native-project-task-adapters.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp08"></a>
 
-- [ ] [HP08 — Cargo choices and results](docs/improvements/hp08-cargo-build-test-lint-and-clean.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP08 — Cargo choices and results](docs/improvements/hp08-cargo-build-test-lint-and-clean.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp09"></a>
 
-- [ ] [HP09 — Docker and Compose flows](docs/improvements/hp09-docker-and-compose-outcomes.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP09 — Docker and Compose flows](docs/improvements/hp09-docker-and-compose-outcomes.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp10"></a>
 
-- [ ] [HP10 — Homebrew service controls](docs/improvements/hp10-homebrew-service-lifecycle.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP10 — Homebrew service controls](docs/improvements/hp10-homebrew-service-lifecycle.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp11"></a>
 
-- [ ] [HP11 — Gradle tasks and cleanup review](docs/improvements/hp11-gradle-tasks-daemon-and-recursive-cleanup.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP11 — Gradle tasks and cleanup review](docs/improvements/hp11-gradle-tasks-daemon-and-recursive-cleanup.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp12"></a>
 
-- [ ] [HP12 — IntelliJ cleanup review](docs/improvements/hp12-intellij-metadata-cleanup.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP12 — IntelliJ cleanup review](docs/improvements/hp12-intellij-metadata-cleanup.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp13"></a>
 
-- [ ] [HP13 — Upgrade plans and standalone actions](docs/improvements/hp13-all-legacy-upgrade-managers.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP13 — Upgrade plans and standalone actions](docs/improvements/hp13-all-legacy-upgrade-managers.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp14"></a>
 
-- [ ] [HP14 — Activity output and truthful results](docs/improvements/hp14-task-execution-output-and-results.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP14 — Activity output and truthful results](docs/improvements/hp14-task-execution-output-and-results.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp15"></a>
 
-- [ ] [HP15 — Prompt input and cancellation UX](docs/improvements/hp15-runtime-input-cancellation-and-terminal-ownership.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP15 — Prompt input and cancellation UX](docs/improvements/hp15-runtime-input-cancellation-and-terminal-ownership.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp16"></a>
 
@@ -128,31 +128,31 @@ still defines the full row contracts; partial representation is not Covered.
 
 <a id="hp17"></a>
 
-- [ ] [HP17 — Custom-action and trust review](docs/improvements/hp17-custom-actions-configuration-and-trust.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP17 — Custom-action and trust review](docs/improvements/hp17-custom-actions-configuration-and-trust.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp18"></a>
 
-- [ ] [HP18 — Disk scan progress and cache states](docs/improvements/hp18-disk-measurement-progress-and-cache.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP18 — Disk scan progress and cache states](docs/improvements/hp18-disk-measurement-progress-and-cache.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp19"></a>
 
-- [ ] [HP19 — Disk tree and top files](docs/improvements/hp19-disk-tree-top-files-and-selection.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP19 — Disk tree and top files](docs/improvements/hp19-disk-tree-top-files-and-selection.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp20"></a>
 
-- [ ] [HP20 — Cleanup categories and eligibility](docs/improvements/hp20-complete-cleanup-insight-taxonomy-and-guards.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP20 — Cleanup categories and eligibility](docs/improvements/hp20-complete-cleanup-insight-taxonomy-and-guards.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp21"></a>
 
-- [ ] [HP21 — Cleanup gates, dry run and recovery](docs/improvements/hp21-deletion-authorization-dry-run-and-recovery-mode.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP21 — Cleanup gates, dry run and recovery](docs/improvements/hp21-deletion-authorization-dry-run-and-recovery-mode.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp22"></a>
 
-- [ ] [HP22 — Cleanup progress and reports](docs/improvements/hp22-cleanup-ownership-outcomes-and-operation-log.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP22 — Cleanup progress and reports](docs/improvements/hp22-cleanup-ownership-outcomes-and-operation-log.md#current-phase--simulated-representation) — simulation only.
 
 <a id="hp23"></a>
 
-- [ ] [HP23 — Platform-aware prototype coverage](docs/improvements/hp23-platform-and-terminal-capability-contract.md#current-phase--simulated-representation) — simulation only.
+- [x] [HP23 — Platform-aware prototype coverage](docs/improvements/hp23-platform-and-terminal-capability-contract.md#current-phase--simulated-representation) — simulation only.
 
 ## Later — other applications and unrelated component work
 

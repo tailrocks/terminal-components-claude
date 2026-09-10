@@ -1,0 +1,30 @@
+[38;5;15m[48;5;0m [1m[38;5;0m[48;5;7m holla❯ [0m[38;5;15m[48;5;0m  [38;5;7m File [38;5;15m [38;5;7m Go [38;5;15m [38;5;7m Help [38;5;15m                                   [38;5;7mandroid · Gradle build[38;5;15m  [1mmbp · local[0m[38;5;15m[48;5;0m 
+                                                                                                    
+ [1m Here  [0m[38;5;15m[48;5;0m                                                                                            
+ [38;5;7m━━━━━━━[38;5;0m───────────────────────────────────────────────────────────────────────────────────────────[38;5;15m 
+ [38;5;7m▎[38;5;15m [38;5;7mSearch actions and resources…[38;5;15m                                                   [38;5;7m scope ‹ here › [38;5;15m 
+                                                                                                    
+    [38;5;8mSuggested here[38;5;15m                                                                                  
+ [1m [38;5;7m›[38;5;15m Clean Gradle outputs under ~/wor…  [0m[38;5;7m[48;5;0mcleanup[1m[38;5;15m  [0m[38;5;7m[48;5;0mhere[1m[38;5;15m  [0m[38;5;7m[48;5;0m4 candidates[1m[38;5;15m                     [0m[38;5;7m[48;5;0mdestructive[1m[38;5;15m [0m[38;5;15m[48;5;0m 
+    gradle build                       [38;5;7mgradle [38;5;15m  [38;5;7mhere[38;5;15m  [38;5;7mbuild.gradle.kts here[38;5;15m                         
+    gradle clean                       [38;5;7mgradle [38;5;15m  [38;5;7mhere[38;5;15m  [38;5;7mbuild.gradle.kts here[38;5;15m                         
+    gradle test                        [38;5;7mgradle [38;5;15m  [38;5;7mhere[38;5;15m  [38;5;7mbuild.gradle.kts here[38;5;15m                         
+                                                                                                    
+    [38;5;8mRecent here[38;5;15m                                                                                     
+    [38;5;8meverything used here is suggested above[38;5;15m                                                         
+                                                                                                    
+    [38;5;8mExplore[38;5;15m                                                                                         
+ [38;5;0m [38;5;15m   Tasks   Git   Files   Disk   Services   System                                                 
+    System · mbp                       [38;5;7mexplore[38;5;15m  [38;5;7mhost[38;5;15m  [38;5;7mavailable on this host[38;5;15m                        
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+    [38;5;7m→ gradle --stop · here · destructive[38;5;15m                                                            
+                                                                                                    
+ [1m~/work/android[0m[38;5;15m[48;5;0m                                                                   [38;5;8mno color · 100×30[38;5;15m 
+        [1mType[0m[38;5;15m[48;5;0m [38;5;7mSearch[38;5;15m  [1m↑↓[0m[38;5;15m[48;5;0m [38;5;7mMove[38;5;15m  [1mEnter[0m[38;5;15m[48;5;0m [38;5;7mConfirm…[38;5;15m  [1mAlt+Enter[0m[38;5;15m[48;5;0m [38;5;7mMore[38;5;15m  [1mTab[0m[38;5;15m[48;5;0m [38;5;7mPreview[38;5;15m  [1mCtrl+↑↓[0m[38;5;15m[48;5;0m [38;5;7mScope[38;5;15m  [38;5;8m…[38;5;15m         

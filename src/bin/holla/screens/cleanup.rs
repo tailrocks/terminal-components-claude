@@ -1284,11 +1284,15 @@ pub fn plan_facts(plan: &DeletePlan, w: &World) -> Vec<Prop> {
     v
 }
 
-/// Commit an authorized plan: prerequisites, execution, log persistence,
-/// world effects and a rescan. Returns the report index.
+/// Commit an authorized plan: prerequisites, then the execution starts as a
+/// world-owned job that `step` advances one item per tick. Returns the index
+/// of the report that grows while it runs.
 pub fn commit(plan: &DeletePlan, w: &mut World) -> Result<usize, String> {
     if plan.fingerprint() != plan.revision {
         return Err("the reviewed plan changed · confirm again".into());
+    }
+    if w.cleanup_job.is_some() {
+        return Err("a cleanup is still running · wait for its report".into());
     }
     if !plan.dry_run && plan.items.iter().any(|i| i.category == "gradle.clean-all") {
         let stop = crate::domain::exec::Command::argv(
@@ -1314,9 +1318,6 @@ pub fn commit(plan: &DeletePlan, w: &mut World) -> Result<usize, String> {
         }
         w.apply_effect(&crate::domain::effect::Effect::GradleStop);
     }
-    let home = w.location.home.clone();
-    let os = w.host.os;
-    let now = w.now_secs();
     let procs: Vec<(String, ProcessObservation)> = plan
         .items
         .iter()
@@ -1325,6 +1326,25 @@ pub fn commit(plan: &DeletePlan, w: &mut World) -> Result<usize, String> {
         .into_iter()
         .map(|g| (g.to_owned(), observe_process(w, g)))
         .collect();
+    let exec = cleanup::Execution::start(plan, plan.revision, &w.ops_log.path)?;
+    w.reports.push(exec.report().clone());
+    let report_index = w.reports.len() - 1;
+    w.cleanup_job = Some(crate::sim::world::CleanupJob {
+        exec,
+        report_index,
+        processes: procs,
+    });
+    Ok(report_index)
+}
+
+/// Advance the running cleanup by one item. Returns the report index on the
+/// step that settles it; the partial report is visible in between.
+pub fn step(w: &mut World) -> Option<usize> {
+    let mut job = w.cleanup_job.take()?;
+    let home = w.location.home.clone();
+    let os = w.host.os;
+    let now = w.now_secs();
+    let procs = job.processes.clone();
     let observe = |name: &str| -> ProcessObservation {
         procs
             .iter()
@@ -1334,9 +1354,7 @@ pub fn commit(plan: &DeletePlan, w: &mut World) -> Result<usize, String> {
     };
     let mut fs = std::mem::take(&mut w.fs);
     let mut log = std::mem::take(&mut w.ops_log);
-    let result = cleanup::execute(
-        plan,
-        plan.revision,
+    job.exec.step(
         &mut fs,
         &mut log,
         &cleanup::ExecContext {
@@ -1347,8 +1365,22 @@ pub fn commit(plan: &DeletePlan, w: &mut World) -> Result<usize, String> {
         },
     );
     w.fs = fs;
-    w.ops_log = log;
-    let report = result?;
+    let idx = job.report_index;
+    if job.exec.finished() {
+        let report = job.exec.finish(&mut log);
+        w.ops_log = log;
+        settle(w, idx, report);
+        Some(idx)
+    } else {
+        w.ops_log = log;
+        w.reports[idx] = job.exec.report().clone();
+        w.cleanup_job = Some(job);
+        None
+    }
+}
+
+/// Land a finished cleanup: log persistence, world effects and a rescan.
+fn settle(w: &mut World, idx: usize, report: cleanup::Report) {
     w.persisted.ops_log = w.ops_log.lines.clone();
     // legacy candidate rows follow the filesystem
     let removed: Vec<String> = report
@@ -1362,26 +1394,12 @@ pub fn commit(plan: &DeletePlan, w: &mut World) -> Result<usize, String> {
         })
         .map(|i| i.path.clone())
         .collect();
+    // the operation log is the record of a gated cleanup; the overview's
+    // candidate list only drops what left the tree
     for p in &removed {
-        if let Some(i) = w
-            .disk
+        w.disk
             .candidates
-            .iter()
-            .position(|c| c.path == *p || c.path.starts_with(&format!("{p}/")))
-        {
-            let c = w.disk.candidates.remove(i);
-            w.disk.history.push(crate::domain::stack::CleanupRecord {
-                when_secs: now,
-                target: c.path.clone(),
-                method: plan.mode.label().into(),
-                reclaimed_gb: c.gb,
-                outcome: if plan.mode == Mode::Permanent {
-                    "removed".into()
-                } else {
-                    "trashed".into()
-                },
-            });
-        }
+            .retain(|c| !(c.path == *p || c.path.starts_with(&format!("{p}/"))));
     }
     if report.freed_now > 0
         && let Some(fs) = w.disk.filesystems.first_mut()
@@ -1390,9 +1408,8 @@ pub fn commit(plan: &DeletePlan, w: &mut World) -> Result<usize, String> {
             .used_gb
             .saturating_sub((report.freed_now / (1024 * 1024 * 1024)) as u32);
     }
-    w.reports.push(report);
+    w.reports[idx] = report;
     if let Some(root) = w.scan.as_ref().map(|s| s.root.clone()) {
         w.start_scan(&root);
     }
-    Ok(w.reports.len() - 1)
 }

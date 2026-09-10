@@ -651,7 +651,10 @@ ownership take precedence over these navigation actions.
 Editing keys are shared by every text control: `Ctrl+A/E` line start/end,
 `Ctrl/Alt+←→` and `Alt+B/F` by word, `Shift+arrows` select, `Ctrl+U/K` delete
 to start/end, `Ctrl+W` delete word, `Ctrl+L` select all, `Ctrl+Home/End`
-document start/end. Single-line controls: `Enter` commits, `Esc` reverts,
+document start/end. Where the host owns `Ctrl+W` (tab close) and `Ctrl+L`,
+the query field takes `Ctrl+Backspace`/`Alt+Backspace` for the word and
+`Ctrl+A` for select-all, with `Ctrl+Z`/`Ctrl+Y` undo and redo; typing while
+a read-only preview is focused edits the query and returns focus to the list. Single-line controls: `Enter` commits, `Esc` reverts,
 `Tab` commits and moves on (to the next field, or the next editable cell).
 Multi-line controls: `Enter` inserts a newline, `Esc` finishes and keeps the
 text; modified `Enter` commits. Losing focus commits. Text positions and
@@ -682,7 +685,9 @@ primary action; destructive: Cancel; prompt: the field; typed
 acknowledgement: the field). Closing restores the saved focus; a focus that no
 longer exists snaps to the first reachable stop. Hidden-but-reachable stops
 (the explorer drawer, the tab body behind it) register with an empty area so
-Tab still reaches them.
+Tab still reaches them. A drawer that covers its main control keeps that
+control as a zero-area stop; focus arriving on it closes the drawer, so a
+narrow layout is never a focus trap.
 
 ### State grammar
 
@@ -1104,6 +1109,10 @@ Tab still reaches them.
   chooses, `Alt+Enter` the alternate action; `Tab` cycles scope; `Delete` the
   secondary action; `Ctrl+N/P`, `Ctrl+J/K`, page keys move.
 - **Rule**: the owner ranks and supplies rows on every query change.
+  `Enter` with a query and no eligible row is a `Submit` event: the owner
+  decides whether the text itself is an answer (a path to jump to) or
+  nothing; an empty, loading, disabled or filtered-out result never becomes
+  an item action on any path.
 
 #### Dialog
 
@@ -1120,6 +1129,10 @@ Tab still reaches them.
   truncation — a truncated fact is a hidden fact.
 - **Keys**: `←→`/`h l` between enabled actions, `Enter`/`Space`, `Esc` and
   `n` cancel, `y` confirms (text bodies only). Nothing leaks to the page.
+- **Measure**: the height counts wrapped facts with the same layout that
+  renders them; the acknowledgement field and the actions are anchored above
+  the frame bottom, so on a short screen the facts clip first and the field
+  and the buttons never leave the frame.
 
 #### Progress
 

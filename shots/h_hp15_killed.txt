@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                              app · service checkout  ◆ devbox · production 
+                                                                                                                        
+  Here    deploy the release ! ×    the stubborn worker ○ ×                                                             
+ ──────────────────────────────────━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────── 
+  the stubborn worker · stopped · 1 s · exit 137                                              here · /srv/app · devbox  
+  $ ./stubborn · started by Run the stubborn worker                                                                     
+                                                                                                                        
+ ╭─ output ─────────────────────────────────────────────────────────────────────────────────────────────── following ─╮ 
+ │  $ ./stubborn                                                                                                      │ 
+ │  ignoring SIGTERM…                                                                                                 │ 
+ │  stop requested by holla · SIGTERM to the process group                                                            │ 
+ │  no exit after SIGTERM for 750 ms · SIGKILL to the process group                                                   │ 
+ │  killed (SIGKILL) · descendants reaped                                                                             │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+ /srv/app                                       stopped · 1 s                                        truecolor · 120×40 
+            ↑↓ Scroll  f Follow  / Find  y Copy  r Restart  x Close  Esc Here    the stubborn worker stopped · exit 137 

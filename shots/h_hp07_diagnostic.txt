@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                    poly · Node project · yarn  mbp · local 
+                                                                                                                        
+  Here                                                                                                                  
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Taskfile                                                                                             scope ‹ here ›  
+                                                                                                                        
+    Results · 1                                                                  Taskfile · Taskfile.yaml               
+  › Taskfile · Taskfile.yaml  task  here  discovery diagnostic                                                          
+                                                                                 Does       task --list --json          
+                                                                                            failed: yaml: line 3:       
+                                                                                            mapping values are not      
+                                                                                            allowed · no task was       
+                                                                                            invented                    
+                                                                                 Runs       no command · opens          
+                                                                                            inside holla                
+                                                                                 In         ~/work/poly                 
+                                                                                 Host       mbp · local                 
+                                                                                 Scope      here                        
+                                                                                 Why        discovery diagnostic        
+                                                                                 Changes    none · read-only            
+                                                                                 Risk       read-only                   
+                                                                                 Data       unavailable · task          
+                                                                                            --list --json failed:       
+                                                                                            yaml: line 3: mapping       
+                                                                                            values are not allowed      
+                                                                                 Gate       runs directly               
+                                                                                 Alt+Enter  Pin · Alias · Why here?     
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ ~/work/poly                                                                                         truecolor · 120×40 
+                Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Esc Clear                  

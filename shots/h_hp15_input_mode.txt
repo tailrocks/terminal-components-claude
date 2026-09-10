@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                              app · service checkout  ◆ devbox · production 
+                                                                                                                        
+  Here    deploy the release ⠴ ×                                                                                        
+ ────────━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────── 
+  deploy the release · running · 2 s · waiting for input                                      here · /srv/app · devbox  
+  $ ./deploy.sh · started by Deploy the release                                                                         
+                                                                                                                        
+ ╭─ output ────────────────────────────────────────────────────────────────────── typing goes to stdin · Esc returns ─╮ 
+ │  $ ./deploy.sh                                                                                                     │ 
+ │  connecting to release server…                                                                                     │ 
+ │  Password:                                                                                                         │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+ /srv/app                     ? input wanted · 2 s                       attached     ⠴ 1 running    truecolor · 120×40 
+           Type To stdin  …   Typing goes to the program · Enter sends a line · Ctrl+D EOF · Ctrl+C stops · Esc returns 

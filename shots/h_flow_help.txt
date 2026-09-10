@@ -1,40 +1,40 @@
-  holla❯    File   Go   Help                                                          holla · Rust project  mbp · local
-                     ╭────────────────────────────────────────────────────────────────────────────╮
-  Here               │                                                                            │
- ━━━━━━━─────────────│  Key reference                                                       Here  │────────────────────
- ▎ port              │                                                                            │     scope ‹ here ›
-                     │  Finder                                                                    │
-    Results · 5      │  Type             search actions and resources together · @parent          │tivity
-    Find the process │                   @children @system @all narrow the scope                  │
-    Inspect 12 GB of │  ↑↓               move · PgUp PgDn Home End                                │ocalhost:5432/hol
-  › Show PostgreSQL a│  Enter            primary action · destructive rows open a review instead  │· connections
-    Copy this folder'│  Alt+Enter        alternatives · run, copy, insert, arguments, pin,        │· sessions by
-    Stop the Compose │                   alias, hide, why                                         │wait event, query
-                     │  Tab              preview › tab strip › finder                             │nsaction age
-                     │  Ctrl+↑ / Ctrl+↓  scope outward (parent, system) / inward (children)       │pid, stat…ctivity
-                     │  Esc              clear query › scope back to here › back a page › quit    │holla
-                     │  Aliases          gp pull · du disk usage · test the test task here · d    │ocal
-                     │                   then u · dc docker cleanup                               │
-                     │                                                                            │connections ·
-                     │  Pages                                                                     │ce here
-                     │  Disk             ↑↓ move · Space select · a all · Enter drill · c         │read-only
-                     │                   cleanup plan · p details                                 │ly
-                     │  Plan review      Space include or exclude · u undo · Enter step facts ·   │2 s ago
-                     │                   c confirm                                                │rectly
-                     │  Gates            Gate 1 reviews facts and the full sequence · Gate 2      │_activity · Pin ·
-                     │                   types the target-bound phrase                            │ Why here?
-                     │                                                                            │
-                     │  Everywhere                                                                │
-                     │  F10              menu bar · F1 this reference                             │
-                     │  Ctrl+G           activities · Alt+0 Here · Alt+1–9 tabs · Ctrl+W close    │
-                     │                   tab                                                      │
-                     │  Ctrl+Q           quit with confirmation · Ctrl+C quit now                 │
-                     │  Mouse            click selects · double-click runs · right-click          │
-                     │                   alternatives · wheel scrolls under the pointer           │
-                     │                                                                            │
-                     │                                                                            │
-                     ╰────────────────────────────────────────────────────────────────────────────╯
-
-
- ~/work/holla   main   ↓3 • 5                                                                        truecolor · 120×40
-                                                 ↑↓ Scroll  Esc Close                  Cancelled · nothing was executed
+  holla❯    File   Go   Help                                                          holla · Rust project  mbp · local 
+                     ╭────────────────────────────────────────────────────────────────────────────╮                     
+  Here               │                                                                            │                     
+ ━━━━━━━─────────────│  Key reference                                                       Here  │──────────────────── 
+   Search actions and│                                                                            │     scope ‹ here ›  
+                     │  Finder                                                                    │                     
+    Suggested here   │  Type             search actions and resources together · @parent          │        git · here   
+  › Pull             │                   @children @system @all narrow the scope                  │                     
+    Run tests        │  ↑↓               move · PgUp PgDn Home End                                │rward                
+    Run lint         │  Enter            primary action · destructive rows open a review instead  │holla from           
+    Inspect 12 GB of │  Alt+Enter        alternatives · run, copy, insert, arguments, pin,        │main                 
+    Review 5 modified│                   alias, hide, why                                         │/Users/al…ff-only    
+                     │  Tab              preview › tab strip › finder                             │holla                
+    Recent here      │  Ctrl+↑ / Ctrl+↓  scope outward (parent, system) / inward (children)       │ocal                 
+    everything used h│  Esc              clear query › scope back to here › back a page › quit    │                     
+                     │  Aliases          gp pull · du disk usage · test the test task here · d    │is 3 commits         
+    Explore          │                   then u · dc docker cleanup                               │· used 9 times       
+     Tasks   Git   Fi│                                                                            │                     
+    System · mbp     │  Pages                                                                     │ts arrive ·          
+                     │  Disk             ↑↓ move · Space select · a all · Enter drill · c         │ is rewritten        
+                     │                   cleanup plan · p details                                 │g                    
+                     │  Plan review      Space include or exclude · u undo · Enter step facts ·   │2 s ago              
+                     │                   c confirm                                                │rectly               
+                     │  Gates            Gate 1 reviews facts and the full sequence · Gate 2      │nly · Pull with      
+                     │                   types the target-bound phrase                            │ Pull with rebase    
+                     │                                                                            │· Pin · Alias ·      
+                     │  Everywhere                                                                │e?                   
+                     │  F10              menu bar · F1 this reference                             │                     
+                     │  Ctrl+G           activities · Alt+0 Here · Alt+1–9 tabs · Ctrl+W close    │                     
+                     │                   tab                                                      │                     
+                     │  Ctrl+Q           quit with confirmation · Ctrl+C quit now                 │                     
+                     │  Mouse            click selects · double-click runs · right-click          │                     
+                     │                   alternatives · wheel scrolls under the pointer           │                     
+                     │                                                                            │                     
+                     │                                                                            │                     
+                     ╰────────────────────────────────────────────────────────────────────────────╯                     
+                                                                                                                        
+                                                                                                                        
+ ~/work/holla   main   ↓3 • 5                                                                        truecolor · 120×40 
+                                                 ↑↓ Scroll  Esc Close                                                   

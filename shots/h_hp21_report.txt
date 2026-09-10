@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                           safe · Rust project  mbp · local 
+                                                                                                                        
+  Here › Cleanup report                                                                                                 
+ ━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────── 
+  Cleanup report                                                                                  mbp · live · 1 s ago  
+                                                                                                                        
+  Outcome   1 trashed                                                                                                   
+  Mode      trash                                                                                                       
+  Bytes     1000.0 MiB left the tree · 0 B freed now · the rest returns when the Trash is emptied                       
+  Log       ~/.cache/holla/ops.log · every record written                                                               
+  Revision  68c21e8eb8ed0a71                                                                                            
+                                                                                                                        
+ ╭─ Detail ────────────────────────────────────────────────────────────────────────────────────── 2 lines · y copies ─╮ 
+ │  outcome            bytes   path · reason                                                                          │ 
+ │  trashed       1000.0 MiB   ~/Projects/safe/target                                                                 │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+  Next   Cleanup history                                                                                                
+                                                                                                                        
+ ~/Projects/safe                                snapshot · read-only                                 truecolor · 120×40 
+                                    ↑↓ Scroll  y Copy  Tab Next actions  Esc Back                             1 trashed 

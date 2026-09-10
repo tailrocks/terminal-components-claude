@@ -692,9 +692,7 @@ impl Activity {
         // echo: the prompt row shows the answer, masked when secret; an EOF
         // mark is a control action and stays visible
         if let Some(last) = self.output.last_mut() {
-            let shown = if p.secret {
-                String::new()
-            } else if answer == "\u{4}" {
+            let shown = if p.secret || answer == "\u{4}" {
                 String::new()
             } else {
                 answer.clone()

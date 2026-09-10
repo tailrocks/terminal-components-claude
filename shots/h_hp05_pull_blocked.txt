@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                            svc · Rust project  mbp · local 
+                                                                                                                        
+  Here                                                                                                                  
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Pull                                                                                                 scope ‹ here ›  
+                                                                                                                        
+    Results · 3                                                                  Pull                    git · parent   
+  › Pull              git  parent  blocked · 1 modified                                                                 
+    Pull with merge   git  parent  history has diverged                          Does       pull (configured            
+    Pull with rebase  git  parent  history has diverged                                     strategy) ~/work/svc        
+                                                                                            from origin/feature/x       
+                                                                                 Runs       git -C /Users/al…vc pull    
+                                                                                 In         ~/work/svc                  
+                                                                                 Host       mbp · local                 
+                                                                                 Scope      parent                      
+                                                                                 Why        blocked · 1 modified ·      
+                                                                                            used 20 times on mbp        
+                                                                                 Changes    blocked · 1 modified ·      
+                                                                                            the command fails           
+                                                                                            without changing            
+                                                                                            anything                    
+                                                                                 Risk       mutating                    
+                                                                                 Data       live · 0 s ago              
+                                                                                 Gate       one confirmation            
+                                                                                 Alt+Enter  Fetch only · Pull with      
+                                                                                            merge · Pull with rebase    
+                                                                                            · Push · Pin · Alias ·      
+                                                                                            Why here?                   
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ ~/work/svc/src/api   feature/x   ↓2 ↑1 • 1                                                          truecolor · 120×40 
+             Type Search  ↑↓ Move  Enter Confirm…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Esc Clear                

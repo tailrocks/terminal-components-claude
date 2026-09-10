@@ -1,40 +1,40 @@
-  holla❯    File   Go   Help      northwind-traders-platform-migration › inventory…ory-reconciliation-core  mbp · local
-
-  Here
- ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
- ▎ Search actions and resources…                                                                        scope ‹ here ›
-
-    Suggested here                                                               Analyze disk usage       disk · here
-  › Analyze disk usage         disk     here    / is 91% full
-    Resolve the rebase in la…  git      here    rebase in progress…              Does       largest-first view of
-    Review 7 modified files    git      here    7 modified · 0 untracked                    this folder that deepens
-    Show system resources      system   host    CPU 78% for 4 min                           as the scan streams;
-    Open btm                   system   host    sustained pressure…                         select rebuildable
-                                                                                            artifacts for cleanup
-    Recent here                                                                  Runs       holla disk analy…service
-    nothing used here yet                                                        In         ~/work/clients/n…service
-                                                                                 Host       mbp · local
-    Explore                                                                      Scope      here
- ▎   Tasks   Git   Files   Disk   Services   System                              Why        / is 91% full
-    Children · 14 projects     explore  child   14 child projects discovered     Changes    none · read-only
-    Parent · northwind-trade…  explore  parent  workspace root above this f…     Risk       read-only
-    System · mbp               explore  host    available on this host           Data       live · 3 s ago
-                                                                                 Gate       runs directly
-                                                                                 Alt+Enter  Analyze the home folder
-                                                                                            · Analyze a volume · Pin
-                                                                                            · Alias · Why here?
-
-
-
-
-
-
-
-
-
-
-
-
-
- ~/work/clients/northwind-trad…iation-service   ↓14 ↑3 • 7 · rebase            ! docker, github unavailable
-           Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities
+  holla❯    File   Go   Help      northwind-traders-platform-migration › inventory…ory-reconciliation-core  mbp · local 
+                                                                                                                        
+  Here                                                                                                                  
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                                        scope ‹ here ›  
+                                                                                                                        
+    Suggested here                                                               Show system resources  system · host   
+    Pull                       git      here    blocked · 2 conflicting fil…                                            
+  › Show system resources      system   host    CPU 78% for 4 min                Does       CPU, load, memory, swap,    
+    Analyze disk usage         disk     here    / is 91% full                               pressure, disk and          
+    Resolve the rebase in la…  git      here    rebase in progress…                         network snapshot; then      
+    Review 7 modified files    git      here    7 modified · 0 untracked                    hand off to btm for         
+                                                                                            continuous monitoring       
+    Recent here                                                                  Runs       'holla snapshot system'     
+    everything used here is suggested above                                      In         mbp · host-wide             
+                                                                                 Host       mbp · local                 
+    Explore                                                                      Scope      host                        
+     Tasks   Git   Files   Disk   Services   System                              Why        CPU 78% for 4 min · used    
+    Children · 14 projects     explore  child   14 child projects discovered                2 times on mbp              
+    Parent · northwind-trade…  explore  parent  workspace root above this f…     Changes    none · read-only            
+    System · mbp               explore  host    available on this host           Risk       read-only                   
+                                                                                 Data       live · 2 s ago              
+                                                                                 Gate       runs directly               
+                                                                                 Alt+Enter  Open btm · Show process     
+                                                                                            tree · Pin · Alias · Why    
+                                                                                            here?                       
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ ~/work/clients/northwind-trad…iation-service   ↓14 ↑3 • 7 · rebase            ! docker, github unavailable             
+           Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities              

@@ -1302,6 +1302,7 @@ fn base(scenario: Scenario, motion: Motion, host: Host, location: Location) -> W
         reports: vec![],
         scan: None,
         fs_latency: vec![],
+        cleanup_job: None,
         scenario,
         clock,
         tick: 0,

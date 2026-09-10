@@ -16,7 +16,7 @@ use crate::scenario::{Motion, Scenario};
 
 const HOME: &str = "/Users/alex";
 
-fn open(h: &mut H, label: &str) {
+pub(crate) fn open(h: &mut H, label: &str) {
     // Alt+0 is the Here tab; Esc leaves any page above the finder; Ctrl+U
     // clears whatever query was left there
     h.alt(KeyCode::Char('0'));
@@ -32,26 +32,26 @@ fn open(h: &mut H, label: &str) {
 }
 
 /// Accept a one-step confirmation when one is open (the default is Cancel).
-fn confirm(h: &mut H) {
+pub(crate) fn confirm(h: &mut H) {
     if !h.app.modals.is_empty() {
         h.key(KeyCode::Right);
         h.key(KeyCode::Enter);
     }
 }
 
-fn run(h: &mut H, label: &str) {
+pub(crate) fn run(h: &mut H, label: &str) {
     open(h, label);
     confirm(h);
 }
 
-fn activity_id(h: &H) -> String {
+pub(crate) fn activity_id(h: &H) -> String {
     match h.tab_kind() {
         TabKind::Activity(id) => id,
         other => panic!("expected an activity tab, got {other:?}\n{}", h.text()),
     }
 }
 
-fn argv(h: &H, id: &str) -> Vec<String> {
+pub(crate) fn argv(h: &H, id: &str) -> Vec<String> {
     h.app
         .world
         .activity(id)
@@ -62,7 +62,7 @@ fn argv(h: &H, id: &str) -> Vec<String> {
         .collect()
 }
 
-fn settle(h: &mut H, id: &str) -> ActivityState {
+pub(crate) fn settle(h: &mut H, id: &str) -> ActivityState {
     for _ in 0..80 {
         if h.app.world.activity(id).is_some_and(|a| a.state.finished()) {
             break;
@@ -72,7 +72,7 @@ fn settle(h: &mut H, id: &str) -> ActivityState {
     h.app.world.activity(id).unwrap().state
 }
 
-fn output(h: &H, id: &str) -> Vec<String> {
+pub(crate) fn output(h: &H, id: &str) -> Vec<String> {
     h.app
         .world
         .activity(id)
@@ -187,7 +187,7 @@ fn hp01_discovery_is_adaptive_stable_and_reports_failed_sources_and_config_warni
     );
 }
 
-fn argv_of(it: &crate::domain::action::Item) -> Vec<String> {
+pub(crate) fn argv_of(it: &crate::domain::action::Item) -> Vec<String> {
     it.all_exec()
         .iter()
         .map(|c| format!("{} @{}", c.display(), c.cwd))
@@ -215,6 +215,11 @@ fn hp02_recents_learned_queries_query_editing_and_persistence_merge() {
     );
     assert!(recent.iter().all(|(_, s)| *s > 0.05));
     assert!(h.text().contains("Recent here"));
+    assert!(
+        !h.text().contains("nothing used here yet"),
+        "remembered uses are never reported as none: {}",
+        h.text()
+    );
     // the fixture remembers "pull" → git.fetch, which does not match the
     // text: an unmatched remembered choice is never shown, the alias-free
     // best match leads
@@ -1216,7 +1221,7 @@ fn hp10_brew_services_verbs_are_exact_capped_and_fail_with_brew_s_reason() {
 }
 
 /// The item count named in the gate-2 title ("Trash 4 items · gate 2 of 2").
-fn gate2_items(h: &H) -> usize {
+pub(crate) fn gate2_items(h: &H) -> usize {
     let text = h.text();
     let line = text
         .lines()
@@ -1228,13 +1233,31 @@ fn gate2_items(h: &H) -> usize {
 }
 
 /// Gate 2: type the exact phrase into the dialog and execute.
-fn gate2(h: &mut H, phrase: &str) {
+pub(crate) fn gate2(h: &mut H, phrase: &str) {
     assert!(h.text().contains("gate 2 of 2"), "{}", h.text());
     h.key(KeyCode::Enter);
     h.type_str(phrase);
     h.key(KeyCode::Enter);
     h.key(KeyCode::Tab);
     h.key(KeyCode::Enter);
+    settle_cleanup(h);
+}
+
+/// A committed cleanup runs one item per tick; wait for its report.
+pub(crate) fn settle_cleanup(h: &mut H) {
+    for _ in 0..64 {
+        if h.app.world.cleanup_job.is_none() {
+            // the report page re-read the world on the settling tick
+            assert!(
+                !h.text().contains("Cleanup running") && !h.text().contains("Dry run running"),
+                "a settled report is never shown as running: {}",
+                h.text()
+            );
+            return;
+        }
+        h.ticks(1);
+    }
+    panic!("the cleanup never settled: {}", h.text());
 }
 
 // ------------------------------------------------------------ HP11
@@ -2032,7 +2055,11 @@ fn hp19_tree_navigation_sorting_folding_selection_and_top_files() {
     // top files: Spotlight results deduplicated, the vanished one reported,
     // fed into the same gate
     h.key(KeyCode::Char('t'));
-    assert!(h.text().contains("Disk › Top files"), "{}", h.text());
+    assert!(
+        h.text().contains("Here › Disk › Usage › Top files"),
+        "the nested page keeps its family once in the trail: {}",
+        h.text()
+    );
     let t = h.text();
     let rows = t
         .lines()
@@ -2364,7 +2391,18 @@ fn hp22_reports_ownership_outcomes_and_the_operation_log_are_exact() {
         "{}",
         h.text()
     );
-    assert!(h.text().contains("1 operation log records"), "{}", h.text());
+    assert!(
+        h.text().contains("1 · 1 operation log records"),
+        "{}",
+        h.text()
+    );
+    // the prior record is a table row, not only a raw line
+    let row = h
+        .text()
+        .lines()
+        .find(|l| l.contains("legacy/node_modules") && l.contains("trash") && l.contains("trashed"))
+        .map(str::to_owned);
+    assert!(row.is_some(), "{}", h.text());
     // trash the clones: the estimate over-counts, the report says so
     h.alt(KeyCode::Char('0'));
     open(&mut h, "Analyze disk usage");
@@ -2412,12 +2450,76 @@ fn hp22_reports_ownership_outcomes_and_the_operation_log_are_exact() {
     h.alt(KeyCode::Char('0'));
     open(&mut h, "Show cleanup history");
     let t = h.text();
-    assert!(t.contains("2 operation log records"), "{t}");
+    assert!(t.contains("2 · 2 operation log records"), "{t}");
+    assert!(
+        t.lines()
+            .any(|l| l.contains("Projects/safe/big") && l.contains("trashed") && l.contains("GiB")),
+        "the new record is a row with its size: {t}"
+    );
     assert!(t.contains("Report 1"), "{t}");
     // the used bytes on the volume stay until the Trash is emptied
     let v = h.app.world.fs.volume_for("/").unwrap();
     assert!(v.used > 0);
     assert!(!h.app.world.fs.exists("/Users/alex/Projects/safe/big"));
+}
+
+#[test]
+fn hp22_quit_waits_for_a_running_cleanup_and_its_report_lands_first() {
+    let mut h = H::new(Scenario::ParityCleanupResults, Motion::Reduced, 0, 120, 40);
+    h.ticks(2);
+    open(&mut h, "Analyze disk usage");
+    h.ticks(30);
+    let (_, y) = h.find("big").unwrap_or_else(|| panic!("{}", h.text()));
+    let tree = h.app.hits.area_of(crate::screens::disk::TREE).unwrap();
+    h.click(tree.x + 6, y);
+    h.key(KeyCode::Char('d'));
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("gate 2 of 2"), "{}", h.text());
+    h.key(KeyCode::Enter);
+    h.type_str("TRASH 1 UNDER /Users/alex/Projects/safe ON mbp");
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Enter);
+    // the gate is gone; the world owns the execution and the report page
+    // shows it running before the first item is processed
+    assert!(h.app.modals.is_empty(), "{}", h.text());
+    let job = h.app.world.cleanup_job.as_ref().expect("a running cleanup");
+    assert_eq!((job.exec.completed(), job.exec.total()), (0, 1));
+    assert!(h.text().contains("Cleanup running"), "{}", h.text());
+    assert!(h.text().contains("running · 0 of 1 items"), "{}", h.text());
+    assert!(h.app.world.fs.exists("/Users/alex/Projects/safe/big"));
+    // quitting now waits: the dialog says so and Leave defers the quit
+    h.ctrl(KeyCode::Char('q'));
+    assert!(
+        h.text().contains("A cleanup is running (0 of 1 items)"),
+        "{}",
+        h.text()
+    );
+    assert!(h.text().contains("Leave when it settles"), "{}", h.text());
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    assert!(!h.app.quit, "the quit waits for the cleanup");
+    assert!(h.app.quitting);
+    assert!(h.app.world.cleanup_job.is_some(), "nothing was dropped");
+    assert!(
+        h.text().contains("leaving when the cleanup settles"),
+        "{}",
+        h.text()
+    );
+    // the item lands on the next tick, the report and the log are complete,
+    // and only then does the application quit
+    h.ticks(1);
+    let r = h.app.world.reports.last().cloned().unwrap();
+    assert_eq!(r.count(crate::domain::cleanup::Outcome::Trashed), 1);
+    assert!(h.app.world.cleanup_job.is_none());
+    assert!(!h.app.world.fs.exists("/Users/alex/Projects/safe/big"));
+    assert_eq!(
+        h.app.world.persisted.ops_log.len(),
+        2,
+        "the log landed before the quit"
+    );
+    assert!(h.app.quit, "quit after the cleanup settled: {}", h.text());
 }
 
 // ------------------------------------------------------------ HP23
