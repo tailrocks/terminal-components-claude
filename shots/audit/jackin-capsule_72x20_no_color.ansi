@@ -1,0 +1,20 @@
+ [1m jackin❯ [0m   File   Edit   View   Session   Help                        
+
+ [1m [0m1[1m Mix (3) [0m●[1m  [0m  2 Shell    3 docs ●
+ ━━━━━━━━━━━━━━──────────────────────────────────────────────────────── 
+╭─[1m Claude Code (Work) [0m●───────────╮│╭─ Codex (Primary) ○───────────────╮
+│                                ││││                                 ││
+│● Bash cargo test -p settlement ││││○ Done · 38 s · 12.4k tokens     ││
+│  running 6 tests … 6 passed (1.││││                                 ││
+│                                ││││❯                                ┃│
+│● Edit src/settlement/mod.rs    │││╰──────────────────────────────────╯
+│  +  pub use retry::{MAX_ATTEMPT│││────────────────────────────────────
+│                                │││╭─ Shell ──────────────────────────╮
+│● Retries now back off 250 ms → ││││payments-platform ❯ ls docs/adr  ││
+│  One more edit: expose the poli┃│││0001-record-architecture.md  0004││
+│                                ┃│││0002-settlement-batches.md   0005││
+│▶ Allow edit to src/settlement/c┃│││0003-retry-policy.md         0007││
+│❯                               ┃│││payments-platform ❯              ┃│
+╰─────────────────────────────────╯│╰──────────────────────────────────╯
+ [1mPR #482 · Settlement retry backoff[0m           Session ━━━━━━━━─── 76%   
+            …   Attached to payments-platform · tabs and panes restored 

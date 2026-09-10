@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                      holla · Rust project  mbp · local 
+                                                                                                    
+  Here                                                                                              
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                    scope ‹ here ›  
+                                                                                                    
+    Suggested here                                                                                  
+  › Pull                               git       here  branch is 3 commits behind…                  
+    Run tests                          task      here  5 files changed since the last run…          
+    Inspect 12 GB of generated artif…  disk      here  12 GB generated artifacts                    
+    Review 5 modified files            git       here  4 modified · 1 untracked                     
+    Who is blocking the database?      postgres  here  2 sessions blocked for 4 min                 
+                                                                                                    
+    Recent here                                                                                     
+    Run lint                           task      here  yesterday                                    
+                                                                                                    
+    Explore                                                                                         
+     Tasks   Git   Files   Disk   Services   System                                                 
+    System · mbp                       explore   host  available on this host                       
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+    → git -C /Users/alex/work/holla pull --ff-only · here · mutating                                
+                                                                                                    
+ ~/work/holla   main   ↓3 • 5                                                    16 colors · 100×30 
+  Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities    

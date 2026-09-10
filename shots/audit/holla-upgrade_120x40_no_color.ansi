@@ -1,0 +1,40 @@
+ [1m holla❯ [0m   File   Go   Help                                                           no project  [1mdevbox · development[0m 
+
+ [1m Here › Upgrade everything  [0m 
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────── 
+  [1mUpgrade everything[0m · devbox                                                8 steps · 8 included · 0 excluded · ~16 s  
+  upgrade Debian packages and global mise tools on devbox   
+
+         step                         needs  lane  note                   01 Preflight                       required   
+ [1m▎[0m[✓][1m [0m01[1m Preflight                    [0m–    [1m  [0m·   [1m  [0msudo[1m               [0m                                                  
+  [✓] 02 Refresh Debian metadata      01     a     sudo                   Runs       cat /etc/os-release                
+  [✓] 03 Review Debian upgrades       02     a                                       sudo -n true                       
+  [✓] 04 Apply Debian upgrades        03     a     sudo                              fuser                              
+  [✓] 05 Inspect global mise tools    01     b                                       /var/lib/dpkg/lock-frontend        
+  [✓] 06 Upgrade selected mise tools  05     b     optional                          df -h /                            
+  [✓] 07 Package cleanup              04     a     optional                          test -f /var/run/reboot-required   
+  [✓] 08 Final verification           04 06  join                         In         / · devbox                         
+                                                                          Needs      nothing · starts first             
+    6 required · 2 optional · 2 branches run in parallel where independentUnlocks    02 Refresh Debian metadata · 05    
+                                                                                     Inspect global mise tools          
+                                                                          Lane       · trunk · ordered                  
+                                                                          Privilege  sudo                               
+                                                                          Effect     checks OS, privileges, package     
+                                                                                     lock, network, free space,         
+                                                                                     pending reboot                     
+                                                                          State      ready                              
+
+
+
+
+
+
+
+
+
+
+
+                                                                                               Cancel    [1mConfirm plan [0m  
+
+ [1m~[0m                               review · 8 steps · 2 branches parallel                               no color · 120×40 
+                            [1m↑↓[0m Step  [1mSpace[0m Toggle  [1mu[0m Undo  [1mc[0m Confirm  [1mp[0m Facts  [1mEsc[0m Discard                              

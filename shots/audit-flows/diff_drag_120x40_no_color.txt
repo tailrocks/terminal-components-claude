@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Diff                                    no color · 120×40   i Inspector   ? Help  
+
+   Foundations            Diff viewer  Unified or old / new review · narrow panes use unified · select and copy text    
+   Overview                   
+                           ● Review    ○ Empty              
+   Components                 
+   Buttons                ╭─ Diff ─────────────────────────────────────────────────────────────────────────────────────╮
+   Inputs                 │  M config/service.toml  +10 −5 · 5 hunks · review                                        ┃ │
+   Text areas             │  Old                                        │ New                                        ┃ │
+   Forms                  │  @@ -1,6 +1,7 @@                                                                         ┃ │
+   Lists                  │    1 [service.worker_0]                     │   1 [service.worker_0]                     ┃ │
+   Trees                  │    2 attempts = 3                           │   2 attempts = 5                           ┃ │
+   Tables                 │                                             │   3 backoff = "exponential"                ┃ │
+   Editable tables        │    3 region = "東京"                        │   4 region = "東京"                        ┃ │
+   Panels                 │    4 label = "café ☕"                      │   5 label = "café ☕"                      ┃ │
+   Sidebars               │    5 endpoint = "https://api.example.test/… │   6 endpoint = "https://api.example.test/… ┃ │
+   Dialogs                │    6 enabled = true                         │   7 enabled = true                         ┃ │
+   Progress               │  ────────────────────────────────────────────────────────────────────────────────────────┃ │
+   Scrolling              │  @@ -9,6 +10,7 @@                                                                        ┃ │
+   Terminal               │    9 [service.worker_1]                     │  10 [service.worker_1]                     ┃ │
+   Code editor            │   10 attempts = 3                           │  11 attempts = 5                           ┃ │
+ › Diff                   │                                             │  12 backoff = "exponential"                ┃ │
+   Data grid              │   11 region = "東京"                        │  13 region = "東京"                        ┃ │
+   Chips & selects        │   12 label = "café ☕"                      │  14 label = "café ☕"                      ┃ │
+   Pickers                │   13 endpoint = "https://api.example.test/… │  15 endpoint = "https://api.example.test/… ┃ │
+   Chrome                 │   14 enabled = true                         │  16 enabled = true                         ┃ │
+                          │  ────────────────────────────────────────────────────────────────────────────────────────│ │
+   Screens                │  @@ -17,6 +19,7 @@                                                                       │ │
+   Settings               │   17 [service.worker_2]                     │  19 [service.worker_2]                     │ │
+   Task runner            │   18 attempts = 3                           │  20 attempts = 5                           │ │
+                          │                                             │  21 backoff = "exponential"                │ │
+                          │   19 region = "東京"                        │  22 region = "東京"                        │ │
+                          │   20 label = "café ☕"                      │  23 label = "café ☕"                      │ │
+                          │   21 endpoint = "https://api.example.test/… │  24 endpoint = "https://api.example.test/… │ │
+                          │   22 enabled = true                         │  25 enabled = true                         │ │
+                          │  ────────────────────────────────────────────────────────────────────────────────────────│ │
+                          │  @@ -25,6 +28,7 @@                                                                       │ │
+                          ╰────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑ ↓ Scroll  ← → Pan  drag Select  y Copy  Esc Clear  Tab Next                                 Selection copied in demo 

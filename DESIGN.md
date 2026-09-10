@@ -315,11 +315,16 @@ replaces the placeholder.
 `COLORTERM=truecolor` selects the palette above; a `TERM` containing
 `256color`, `ghostty` or `kitty` maps every token to the nearest xterm-256
 value; other terminals get 16 named colours; `NO_COLOR` forces monochrome.
-Both binaries accept `--color truecolor|256|16|none`. What must survive at
+All four binaries accept `--color truecolor|256|16|none`. What must survive at
 every level: the `▎` bar, bold for focus, underline for editing, the reversed
 cursor cell, `!`, `›`, `✓` and `•`. At 16 colours the accent is LightGreen and
 error is LightRed; in monochrome all hue is gone and the glyph and modifier
-language carries the state alone.
+language carries the state alone. Unfocused or disabled gutters contain a
+space, never a focus glyph hidden by matching foreground and background.
+Text selection uses reverse video in monochrome, including terminals where
+`NO_COLOR` suppresses color escape sequences entirely. Disabled controls use
+DIM in monochrome. The shared runtime strips color metadata at the final
+backend boundary when colors are disabled, preserving state modifiers.
 
 ### Declared but dormant
 
@@ -637,9 +642,11 @@ filter, `z` maximise, `Ctrl+↑/↓` resize the split. The connections screen ad
 Contextual keys belong to the focused widget and appear in the footer (`s`
 sort, `f` filter, `p` preview, `x` close, `u` undo, `y` copy, `*`/`-` expand
 or collapse all). Future screens reuse these letters for the same verbs.
-Application chords are handled before the focused widget sees a key, so a
-widget key that collides with a chord (the grid's `Ctrl+D` duplicate under
-TablePro's `Ctrl+D` Data ⇄ Structure) is unreachable in that application.
+Application chords are handled before the focused widget sees a key. Every
+component action must retain an available chord in its host: `Alt+D`
+duplicates the grid row while TablePro keeps `Ctrl+D` for Data ⇄ Structure.
+The standalone grid also accepts `Ctrl+D` as an alias. Editing and modal
+ownership take precedence over these navigation actions.
 
 Editing keys are shared by every text control: `Ctrl+A/E` line start/end,
 `Ctrl/Alt+←→` and `Alt+B/F` by word, `Shift+arrows` select, `Ctrl+U/K` delete
@@ -647,7 +654,10 @@ to start/end, `Ctrl+W` delete word, `Ctrl+L` select all, `Ctrl+Home/End`
 document start/end. Single-line controls: `Enter` commits, `Esc` reverts,
 `Tab` commits and moves on (to the next field, or the next editable cell).
 Multi-line controls: `Enter` inserts a newline, `Esc` finishes and keeps the
-text. Losing focus commits. Paste inserts only into the control that is
+text; modified `Enter` commits. Losing focus commits. Text positions and
+selections always fall on grapheme boundaries; word motion includes combining
+marks with their base. Single-line buffers discard line breaks; multiline
+buffers normalize CRLF and CR to LF. Paste inserts only into the control that is
 editing.
 
 Mouse: hover previews; the first click focuses, the second click on an
@@ -744,6 +754,10 @@ Tab still reaches them.
   right. The current line shows a border-strong underline while editing.
 - **Keys**: `Enter`/`F2` edit; `↑↓`/`j k` scroll in navigation; multi-line
   editing rules; `Esc` finishes and keeps the text.
+- **Viewport**: long lines scroll horizontally to keep the insertion cursor
+  visible. Cursor movement, edits, and resize reveal the cursor; manual wheel
+  or scrollbar movement persists until one of those events. An offscreen
+  cursor is hidden instead of being painted over unrelated text.
 - **Avoid**: promising `Esc` reverts a text area; it does not.
 
 #### Select
@@ -842,6 +856,23 @@ Tab still reaches them.
 - **Usage**: any live text stream. Wrap on for prose logs, off for terminal
   panes. **Avoid**: colouring lines with the accent (the accent marks the
   focused pane, not the text) and unbounded histories (set `max_lines`).
+
+#### Diff viewer
+
+- **Composition**: `DiffView` renders a `DiffFile` through `TextViewport`,
+  reusing scrolling, selection, drag and copy events. The caller supplies
+  file status and hunks; the component does not inspect repositories or run
+  commands.
+- **Modes**: unified rows carry old/new numbers and `+`/`-` markers; review
+  rows label the columns `Old` and `New`, with changed runs in bold. These
+  structural signals remain meaningful without color.
+- **Responsive**: requested review mode falls back to unified when either
+  text column would contain fewer than 16 cells. `layout_mode()` exposes
+  the actual mode; the requested mode returns when the pane grows.
+- **States**: the Diff showcase demonstrates populated, empty, focused,
+  selected, copied, scrolled, narrow and monochrome states. Its fixtures are
+  synchronous and read-only, so loading, error, disabled and editing states
+  are not invented for this page. Both buttons support keyboard and mouse.
 
 #### Splitter
 
@@ -1180,7 +1211,9 @@ Tab still reaches them.
 - **Form**: inputs, selects, radio groups, checkboxes and toggles in one or
   two columns (`form-gap` 4), a section break per group, an action row of
   Test / Cancel / Save / Save & connect at the bottom. `Ctrl+S` submits at
-  screen level; the first invalid field takes focus.
+  screen level; the first invalid field takes focus. Reserve the action row
+  before content layout. At minimum height, remove redundant section headings
+  and shrink multiline viewports before allowing controls to overlap.
 - **Explorer**: a framed tree with a plain-label filter field above it.
 - **Workbench tab**: mode tabs, chips, grid, status line, pending bar.
 - **Query tab**: editor over results with a result tab strip (`p` pins a
@@ -1247,8 +1280,11 @@ Tab still reaches them.
 - **Avoid**: letting the selecting interaction count as a gate, a generic
   `yes`, remembering an approval, a countdown.
 
-There is no toast, context menu, diff viewer or generic badge component. Do
-not claim one exists; add it to the showcase first if it becomes necessary.
+`DiffView` composes `TextViewport` for unified and side-by-side review;
+`MenuBar` and its anchored menu support context menus. Both have showcase
+coverage. There is no toast or generic badge component; the edit badge is a
+specific state indicator. Do not add components without demonstrating a
+coverage gap and more than one plausible consumer.
 
 ## Do's and Don'ts
 

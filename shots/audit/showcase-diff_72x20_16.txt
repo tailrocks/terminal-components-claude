@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Diff        i Inspector   ? Help  
+                                                                        
+   Buttons        │  Diff viewer  Unified or old / new review · narrow… 
+   Inputs         ┃                                                     
+   Text areas     ┃   ○ Review    ○ Empty                               
+   Forms          ┃                                                     
+   Lists          ┃  ╭─ Diff ──────────────────────────────────────────╮
+   Trees          ┃  │  M config/service.toml  +10 −5 · 5 hunks      ┃ │
+   Tables         ┃  │  @@ -1,6 +1,7 @@                              ┃ │
+   Editable tabl… ┃  │    1   1   [service.worker_0]                 │ │
+   Panels         ┃  │    2     - attempts = 3                       │ │
+   Sidebars       ┃  │        2 + attempts = 5                       │ │
+   Dialogs        ┃  │        3 + backoff = "exponential"            │ │
+   Progress       ┃  │    3   4   region = "東京"                    │ │
+   Scrolling      │  │    4   5   label = "café ☕"                  │ │
+   Terminal       │  │    5   6   endpoint = "https://api.example.tes│ │
+   Code editor    │  │    6   7   enabled = true                     │ │
+▎› Diff           │  ╰─────────────────────────────────────────────────╯
+                                                                        
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit                            

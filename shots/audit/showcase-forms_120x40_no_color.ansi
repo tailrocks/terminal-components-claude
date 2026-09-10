@@ -1,0 +1,40 @@
+ ▪ [1mJunie[0m Design system / Components / Forms                                   no color · 120×40   i Inspector   ? Help  
+
+   Foundations            [1mForms[0m  Sections, required fields, validation, submission                                      
+   Overview                   
+                            New task                                                                     Ctrl+S Submit  
+   Components                 
+   Buttons                  Task                                           Options                                      
+   Inputs                     Task name *                                    Mode                                       
+   Text areas                 Short imperative summary                      ( ) Fast                                    
+[1m▎› Forms                [0m                                                    (●) Balanced                                
+   Lists                      Description                                   ( ) Thorough                                
+   Trees                      What should Junie do, and what does do…                                                   
+   Tables                                                                   [✓] Run tests before opening a PR           
+   Editable tables                                                          [ ] Open a pull request when done           
+   Panels                     
+   Sidebars                   Optional · Markdown                           ○── Auto-approve changes off                
+   Dialogs                                                                 [2m ──● Notify on completion on               [0m  
+   Progress                 Review                                           Managed by your organization               
+   Scrolling                  Reviewer  optional            
+   Terminal                   name@company.com              
+   Code editor                Optional                      
+   Diff                       
+   Data grid                  
+   Chips & selects            
+   Pickers                    
+   Chrome                     
+                             [1mCreate task [0m   Reset           
+   Screens                    
+   Settings                   
+   Task runner                
+
+
+
+
+
+
+
+
+
+ [1m↑ ↓[0m Move  [1mEnter[0m Open  [1mTab[0m Into page  [1mq[0m Quit                

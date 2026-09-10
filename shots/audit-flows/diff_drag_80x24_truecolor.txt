@@ -1,0 +1,24 @@
+ ▪ Junie Design system / Components / Diff                i Inspector   ? Help  
+                                                                                
+   Overview       ┃  Diff viewer  Unified or old / new review · narrow panes u… 
+   Buttons        ┃                                                             
+   Inputs         ┃   ● Review    ○ Empty                                       
+   Text areas     ┃                                                             
+   Forms          ┃  ╭─ Diff ──────────────────────────────────────────────────╮
+   Lists          ┃  │  M config/service.toml  +10 −5 · 5 hunks · review     ┃ │
+   Trees          ┃  │  Old                       │ New                      ┃ │
+   Tables         ┃  │  @@ -1,6 +1,7 @@                                      ┃ │
+   Editable tabl… ┃  │    1 [service.worker_0]    │   1 [service.worker_0]   ┃ │
+   Panels         ┃  │    2 attempts = 3          │   2 attempts = 5         │ │
+   Sidebars       ┃  │                            │   3 backoff = "exponenti…│ │
+   Dialogs        ┃  │    3 region = "東京"       │   4 region = "東京"      │ │
+   Progress       ┃  │    4 label = "café ☕"     │   5 label = "café ☕"    │ │
+   Scrolling      ┃  │    5 endpoint = "https://… │   6 endpoint = "https://…│ │
+   Terminal       ┃  │    6 enabled = true        │   7 enabled = true       │ │
+   Code editor    ┃  │  ─────────────────────────────────────────────────────│ │
+ › Diff           ┃  │  @@ -9,6 +10,7 @@                                     │ │
+   Data grid      │  │    9 [service.worker_1]    │  10 [service.worker_1]   │ │
+   Chips & selec… │  │   10 attempts = 3          │  11 attempts = 5         │ │
+   Pickers        │  ╰─────────────────────────────────────────────────────────╯
+                                                                                
+ ↑ ↓ Scroll  ← → Pan  drag Select  y Copy  …           Selection copied in demo 

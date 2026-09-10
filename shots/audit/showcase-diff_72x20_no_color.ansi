@@ -1,0 +1,20 @@
+ ▪ [1mJunie[0m Design system / Components / Diff        i Inspector   ? Help  
+
+   Buttons        │  [1mDiff viewer[0m  Unified or old / new review · narrow… 
+   Inputs         ┃                 
+   Text areas     ┃   ○ Review    ○ Empty                               
+   Forms          ┃                 
+   Lists          ┃  ╭─ Diff ──────────────────────────────────────────╮
+   Trees          ┃  │  [1mM[0m [1mconfig/service.toml[0m  +10 −5 · 5 hunks      ┃ │
+   Tables         ┃  │  @@ -1,6 +1,7 @@                              ┃ │
+   Editable tabl… ┃  │    1   1 [1m [0m [service.worker_0]                 │ │
+   Panels         ┃  │    2     [1m-[0m attempts = 3                       │ │
+   Sidebars       ┃  │        2 [1m+[0m attempts = 5                       │ │
+   Dialogs        ┃  │        3 [1m+[0m backoff = "exponential"            │ │
+   Progress       ┃  │    3   4 [1m [0m region = "東京"                    │ │
+   Scrolling      │  │    4   5 [1m [0m label = "café ☕"                  │ │
+   Terminal       │  │    5   6 [1m [0m endpoint = "https://api.example.tes│ │
+   Code editor    │  │    6   7 [1m [0m enabled = true                     │ │
+[1m▎› Diff           [0m│  ╰─────────────────────────────────────────────────╯
+
+ [1m↑ ↓[0m Move  [1mEnter[0m Open  [1mTab[0m Into page  [1mq[0m Quit                            

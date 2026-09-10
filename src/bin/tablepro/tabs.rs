@@ -742,6 +742,9 @@ impl TableTab {
                     hint("s", "Sort"),
                     hint("f", "Filter"),
                 ];
+                if self.grid.editable {
+                    h.insert(2, hint("Alt+D", "Duplicate row"));
+                }
                 if self.dirty_count() > 0 {
                     h.push(hint("Ctrl+S", "Save"));
                 } else {
@@ -1298,12 +1301,16 @@ impl QueryTab {
             if g.is_editing() {
                 return vec![hint("Enter", "Commit"), hint("Esc", "Cancel")];
             }
-            return vec![
+            let mut hints = vec![
                 hint("↑↓←→", "Cell"),
                 hint("Enter", "Edit"),
                 hint("s", "Sort"),
                 hint("y", "Copy"),
             ];
+            if g.editable {
+                hints.insert(2, hint("Alt+D", "Duplicate row"));
+            }
+            return hints;
         }
         match focus {
             Some(f) if f == self.editor.id => vec![

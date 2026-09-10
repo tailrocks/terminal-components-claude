@@ -133,12 +133,23 @@ impl Page for FormsPage {
             buf,
             t,
         );
-        let (l, r) = crate::pages::layout::columns(inner, inner.width / 2 - 2, 4);
+        // Reserve the action row before laying out fields. At the minimum
+        // terminal size, retain every control and let the text area's own
+        // viewport scroll its content instead of painting over the footer.
+        if inner.height < 11 || inner.width < 40 {
+            return;
+        }
+        let compact = inner.height < 17;
+        self.description.rows = if compact { 1 } else { 4 };
+        let body = Rect::new(inner.x, inner.y, inner.width, inner.height - 2);
+        let (l, r) = crate::pages::layout::columns(body, body.width / 2 - 2, 4);
 
         // left: task section
         let mut y = l.y;
-        buf.set_string(l.x, y, "Task", t.faint().bg(bg));
-        y += 1;
+        if !compact {
+            buf.set_string(l.x, y, "Task", t.faint().bg(bg));
+            y += 1;
+        }
         self.name
             .render(Rect::new(l.x, y, l.width, TextInput::HEIGHT), buf, ctx, bg);
         y += TextInput::HEIGHT;
@@ -148,32 +159,45 @@ impl Page for FormsPage {
             ctx,
             bg,
         );
-        y += self.description.height() + 1;
-        buf.set_string(l.x, y, "Review", t.faint().bg(bg));
-        y += 1;
+        y += self.description.height();
+        if !compact {
+            y += 1;
+            buf.set_string(l.x, y, "Review", t.faint().bg(bg));
+            y += 1;
+        }
         self.reviewer
             .render(Rect::new(l.x, y, l.width, TextInput::HEIGHT), buf, ctx, bg);
 
         // right: options section
         let mut y = r.y;
-        buf.set_string(r.x, y, "Options", t.faint().bg(bg));
-        y += 1;
+        if !compact {
+            buf.set_string(r.x, y, "Options", t.faint().bg(bg));
+            y += 1;
+        }
         self.mode
             .render(Rect::new(r.x, y, r.width, self.mode.height()), buf, ctx, bg);
-        y += self.mode.height() + 1;
+        y += self.mode.height() + u16::from(!compact);
         self.run_tests
             .render(Rect::new(r.x, y, r.width, 1), buf, ctx, bg);
         y += 1;
         self.open_pr
             .render(Rect::new(r.x, y, r.width, 1), buf, ctx, bg);
-        y += 2;
+        y += 1 + u16::from(!compact);
         self.auto_approve
             .render(Rect::new(r.x, y, r.width, 1), buf, ctx, bg);
         y += 1;
         self.notify
             .render(Rect::new(r.x, y, r.width, 1), buf, ctx, bg);
         y += 1;
-        buf.set_string(r.x + 2, y, "Managed by your organization", t.faint().bg(bg));
+        buf.set_string(
+            r.x + 2,
+            y,
+            junie_tui::ui::text::truncate(
+                "Managed by your organization",
+                r.width.saturating_sub(2) as usize,
+            ),
+            t.faint().bg(bg),
+        );
 
         // actions
         let ay = inner.bottom().saturating_sub(1);
@@ -350,6 +374,9 @@ impl Page for FormsPage {
     }
 
     fn hints(&self, focus: Option<WidgetId>) -> Vec<Hint> {
+        if self.description.editing {
+            return vec![("Esc", "Finish"), ("Tab", "Next field")];
+        }
         if self.editing() {
             return vec![
                 ("Enter", "Commit"),
@@ -369,5 +396,74 @@ impl Page for FormsPage {
             }
             _ => vec![("Enter", "Edit"), ("Ctrl+S", "Submit")],
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use junie_tui::core::{focus::FocusRing, hit::HitRegistry};
+    use junie_tui::theme::{ColorLevel, Theme};
+    use junie_tui::ui::ctx::Interaction;
+
+    #[test]
+    fn form_keeps_all_controls_inside_small_normal_and_wide_page() {
+        for level in [ColorLevel::TrueColor, ColorLevel::Mono] {
+            for (width, height) in [(47, 14), (51, 14), (59, 18), (94, 24), (134, 24)] {
+                let mut page = FormsPage::new();
+                let area = Rect::new(3, 2, width, height);
+                let mut buf = Buffer::empty(Rect::new(0, 0, width + 6, height + 4));
+                for cell in &mut buf.content {
+                    cell.set_symbol(".");
+                }
+                let theme = Theme::for_level(level);
+                let mut hits = HitRegistry::default();
+                let mut ring = FocusRing::default();
+                let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+                page.render(area, &mut buf, &mut ctx);
+                assert_eq!(ring.reachable().len(), 9);
+                for id in ring.reachable() {
+                    let control = if *id == page.mode.id {
+                        assert_eq!(page.mode.areas.len(), 3);
+                        page.mode.areas[2]
+                    } else {
+                        hits.area_of(*id).unwrap()
+                    };
+                    assert_eq!(
+                        area.intersection(control),
+                        control,
+                        "{width}×{height}: {control:?}"
+                    );
+                }
+                assert!(!ring.contains(page.notify.id));
+                assert!(page.reviewer.area.bottom() < page.submit.area.y);
+                for y in 0..buf.area.height {
+                    for x in 0..buf.area.width {
+                        if !area.contains((x, y).into()) {
+                            assert_eq!(
+                                buf[(x, y)].symbol(),
+                                ".",
+                                "escaped {width}×{height} at {x},{y}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn multiline_hint_matches_escape_commit_behavior() {
+        let mut page = FormsPage::new();
+        page.description.editing = true;
+        assert!(
+            page.hints(Some(page.description.id))
+                .contains(&("Esc", "Finish"))
+        );
+        assert!(
+            !page
+                .hints(Some(page.description.id))
+                .contains(&("Enter", "Commit"))
+        );
     }
 }

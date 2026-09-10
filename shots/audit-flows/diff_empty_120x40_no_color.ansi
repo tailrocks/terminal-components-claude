@@ -1,0 +1,40 @@
+ ▪ [1mJunie[0m Design system / Components / Diff                                    no color · 120×40   i Inspector   ? Help  
+
+   Foundations            [1mDiff viewer[0m  Unified or old / new review · narrow panes use unified · select and copy text    
+   Overview                   
+                           ● Review   ▎[1m● Empty [0m             
+   Components                 
+   Buttons                ╭─ Diff ─────────────────────────────────────────────────────────────────────────────────────╮
+   Inputs                 │  No file selected                                                                          │
+   Text areas             │                                                                                            │
+   Forms                  │                                                                                            │
+   Lists                  │                                                                                            │
+   Trees                  │                                                                                            │
+   Tables                 │                                                                                            │
+   Editable tables        │                                                                                            │
+   Panels                 │                                                                                            │
+   Sidebars               │                                                                                            │
+   Dialogs                │                                                                                            │
+   Progress               │                                                                                            │
+   Scrolling              │                                                                                            │
+   Terminal               │                                                                                            │
+   Code editor            │                                                                                            │
+ › Diff                   │                                                                                            │
+   Data grid              │                                                                                            │
+   Chips & selects        │                                                                                            │
+   Pickers                │                                                                                            │
+   Chrome                 │                                                                                            │
+                          │                                                                                            │
+   Screens                │                                                                                            │
+   Settings               │                                                                                            │
+   Task runner            │                                                                                            │
+                          │                                                                                            │
+                          │                                                                                            │
+                          │                                                                                            │
+                          │                                                                                            │
+                          │                                                                                            │
+                          │                                                                                            │
+                          │                                                                                            │
+                          ╰────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ [1mEnter[0m Toggle  [1mTab[0m Next control                                                                Selection copied in demo 

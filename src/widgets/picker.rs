@@ -435,7 +435,12 @@ impl Picker {
             let st = t.row(s, bg);
             let row = Rect::new(list.x, ry, list.width.saturating_sub(u16::from(has_sb)), 1);
             fill(buf, row, st);
-            buf.set_string(row.x, ry, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+            buf.set_string(
+                row.x,
+                ry,
+                t.gutter_symbol(s),
+                t.gutter(s, st.bg.unwrap_or(bg), false),
+            );
             // group label inline (first row of a group shows it right-aligned muted)
             let show_group = it.group != last_group && !it.group.is_empty();
             last_group = it.group;

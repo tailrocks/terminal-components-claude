@@ -1,0 +1,24 @@
+ ▪ [1mJunie[0m Design system / Components / Diff                i Inspector   ? Help  
+
+   Overview       ┃  [1mDiff viewer[0m  Unified or old / new review · narrow panes u… 
+   Buttons        ┃ 
+   Inputs         ┃   ● Review   ▎[1m● Empty [0m                                      
+   Text areas     ┃ 
+   Forms          ┃  ╭─ Diff ──────────────────────────────────────────────────╮
+   Lists          ┃  │  No file selected                                       │
+   Trees          ┃  │                                                         │
+   Tables         ┃  │                                                         │
+   Editable tabl… ┃  │                                                         │
+   Panels         ┃  │                                                         │
+   Sidebars       ┃  │                                                         │
+   Dialogs        ┃  │                                                         │
+   Progress       ┃  │                                                         │
+   Scrolling      ┃  │                                                         │
+   Terminal       ┃  │                                                         │
+   Code editor    ┃  │                                                         │
+ › Diff           ┃  │                                                         │
+   Data grid      │  │                                                         │
+   Chips & selec… │  │                                                         │
+   Pickers        │  ╰─────────────────────────────────────────────────────────╯
+
+ [1mEnter[0m Toggle  [1mTab[0m Next control                        Selection copied in demo 

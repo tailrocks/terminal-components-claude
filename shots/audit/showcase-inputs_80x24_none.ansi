@@ -1,0 +1,24 @@
+[38;5;15m[48;5;0m [38;5;7m▪[38;5;15m [1mJunie[0m[38;5;15m[48;5;0m [38;5;7mDesign system[38;5;15m [38;5;7m/ Components / Inputs[38;5;15m             [38;5;7m i Inspector [38;5;15m [38;5;7m ? Help [38;5;15m 
+                                                                                
+[38;5;0m [38;5;15m  [38;5;7mOverview      [38;5;15m ┃  [1mInputs[0m[38;5;15m[48;5;0m  [38;5;7mFocus is a bar; editing is a cursor. Enter to edi…[38;5;15m 
+[38;5;0m [38;5;15m  [38;5;7mButtons       [38;5;15m ┃                                                             
+[1m[38;5;7m▎›[38;5;15m Inputs         [0m[38;5;15m[48;5;0m┃    [38;5;7mPlayground[38;5;15m  [38;5;8mEnter Edit · Esc Cancel · Tab Commit + next[38;5;15m  
+[38;5;0m [38;5;15m  [38;5;7mText areas    [38;5;15m ┃                                                             
+[38;5;0m [38;5;15m  [38;5;7mForms         [38;5;15m ┃      [38;5;7mProject name *         [38;5;15m      [38;5;7mBranch  [38;5;8moptional[38;5;7m        [38;5;15m  
+[38;5;0m [38;5;15m  [38;5;7mLists         [38;5;15m ┃    [38;5;0m [38;5;15m payments-gateway           [38;5;0m [38;5;15m [38;5;7mfeat/…[38;5;15m                    
+[38;5;0m [38;5;15m  [38;5;7mTrees         [38;5;15m ┃      [38;5;7mUsed as the working di…[38;5;15m      [38;5;7mLeave empty to work on …[38;5;15m  
+[38;5;0m [38;5;15m  [38;5;7mTables        [38;5;15m ┃      [38;5;7mOwner email *          [38;5;15m      [38;5;8mAPI token  optional     [38;5;15m  
+[38;5;0m [38;5;15m  [38;5;7mEditable tabl…[38;5;15m ┃    [38;5;0m [38;5;15m mira@example         [1m[38;5;7m![0m[38;5;15m[48;5;0m     [2m[38;5;0m [38;5;8m jb_live_••••••••••••    [0m[38;5;15m[48;5;0m  
+[38;5;0m [38;5;15m  [38;5;7mPanels        [38;5;15m ┃      [38;5;7mEnter a valid email ad…[38;5;15m      [38;5;7mManaged by the organiza…[38;5;15m  
+[38;5;0m [38;5;15m  [38;5;7mSidebars      [38;5;15m ┃      [38;5;7mSearch files  [38;5;8moptional[38;5;7m [38;5;15m      [38;5;7mAPI key  [38;5;8moptional[38;5;7m       [38;5;15m  
+[38;5;0m [38;5;15m  [38;5;7mDialogs       [38;5;15m ┃    [38;5;0m [38;5;15m [38;5;7mType a path or symbol…[38;5;15m     [38;5;0m [38;5;15m ••••••••••••••••••••••[38;5;7m…[38;5;15m   
+[38;5;0m [38;5;15m  [38;5;7mProgress      [38;5;15m ┃      [38;5;7mSelection: Shift+← →  …[38;5;15m      [38;5;7mMasked while typing; th…[38;5;15m  
+[38;5;0m [38;5;15m  [38;5;7mScrolling     [38;5;15m ┃                                                             
+[38;5;0m [38;5;15m  [38;5;7mTerminal      [38;5;15m ┃                                                             
+[38;5;0m [38;5;15m  [38;5;7mCode editor   [38;5;15m ┃                                                             
+[38;5;0m [38;5;15m  [38;5;7mDiff          [38;5;15m ┃                                                             
+[38;5;0m [38;5;15m  [38;5;7mData grid     [38;5;15m [38;5;0m│[38;5;15m                                                             
+[38;5;0m [38;5;15m  [38;5;7mChips & selec…[38;5;15m [38;5;0m│[38;5;15m                                                             
+[38;5;0m [38;5;15m  [38;5;7mPickers       [38;5;15m [38;5;0m│[38;5;15m                                                             
+                                                                                
+ [1m↑ ↓[0m[38;5;15m[48;5;0m [38;5;7mMove[38;5;15m  [1mEnter[0m[38;5;15m[48;5;0m [38;5;7mOpen[38;5;15m  [1mTab[0m[38;5;15m[48;5;0m [38;5;7mInto page[38;5;15m  [1mq[0m[38;5;15m[48;5;0m [38;5;7mQuit[38;5;15m                                    

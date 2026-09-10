@@ -6,7 +6,7 @@ use ratatui::style::{Color, Modifier};
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::core::scroll::ScrollState;
-use crate::core::text::TextBuffer;
+use crate::core::text::{CursorPos, TextBuffer};
 use crate::ui::ctx::RenderCtx;
 use crate::ui::text::width;
 use crate::widgets::field_common::{EditAction, edit_key};
@@ -16,6 +16,8 @@ use crate::widgets::scrollbar;
 /// Multi-line editor. Same two modes as [`TextInput`](super::input::TextInput);
 /// in editing mode Enter inserts a newline and Esc *commits* (a document is
 /// not cancelled by leaving it).
+/// Long lines scroll horizontally with the insertion cursor. Explicit vertical
+/// scrolling stays in place until editing or cursor movement requests follow.
 #[derive(Debug, Clone)]
 pub struct TextArea {
     pub id: WidgetId,
@@ -29,6 +31,9 @@ pub struct TextArea {
     pub scroll: ScrollState,
     pub area: Rect,
     text_area: Rect,
+    hscroll: usize,
+    last_cursor: Option<CursorPos>,
+    follow_cursor: bool,
     /// Fixed height of the text region (rows).
     pub rows: u16,
 }
@@ -47,6 +52,9 @@ impl TextArea {
             scroll: ScrollState::default(),
             area: Rect::ZERO,
             text_area: Rect::ZERO,
+            hscroll: 0,
+            last_cursor: None,
+            follow_cursor: false,
             rows,
         }
     }
@@ -74,12 +82,13 @@ impl TextArea {
     }
 
     pub fn height(&self) -> u16 {
-        self.rows + 2
+        self.rows.saturating_add(2)
     }
 
     pub fn begin_edit(&mut self) {
         if !self.disabled {
             self.editing = true;
+            self.follow_cursor = true;
         }
     }
 
@@ -117,6 +126,7 @@ impl TextArea {
                 _ => (Outcome::Ignored, None),
             };
         }
+        self.follow_cursor = true;
         match edit_key(key, true) {
             EditAction::Commit | EditAction::Cancel => {
                 self.commit();
@@ -160,6 +170,7 @@ impl TextArea {
             return Outcome::Ignored;
         }
         self.buffer.insert_str(text);
+        self.follow_cursor = true;
         Outcome::Changed
     }
 
@@ -175,9 +186,10 @@ impl TextArea {
             }
         }
         let line = pos.y.saturating_sub(self.text_area.y) as usize + self.scroll.offset;
-        let col = pos.x.saturating_sub(self.text_area.x) as usize;
+        let col = pos.x.saturating_sub(self.text_area.x) as usize + self.hscroll;
         let line = line.min(self.buffer.line_count().saturating_sub(1));
         self.buffer.set_cursor_line_col(line, col);
+        self.follow_cursor = true;
         Outcome::Changed
     }
 
@@ -189,6 +201,8 @@ impl TextArea {
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
         let area = area.intersection(*buf.area());
         if area.is_empty() {
+            self.area = Rect::ZERO;
+            self.text_area = Rect::ZERO;
             return;
         }
         let t = ctx.theme;
@@ -210,14 +224,22 @@ impl TextArea {
         } else {
             t.label(s.focused).bg(bg)
         };
-        buf.set_string(area.x + 2, area.y, &self.label, label_style);
+        buf.set_string(
+            area.x + 2.min(area.width),
+            area.y,
+            crate::ui::text::truncate(&self.label, area.width.saturating_sub(2) as usize),
+            label_style,
+        );
 
         // body
         let rows = self.rows.min(area.height.saturating_sub(2));
         if rows == 0 {
+            self.area = Rect::ZERO;
+            self.text_area = Rect::ZERO;
             return;
         }
         let body = Rect::new(area.x, area.y + 1, area.width, rows);
+        let resized = body.width != self.area.width || body.height != self.area.height;
         self.area = body;
         ctx.control(self.id, body, self.disabled);
         ctx.scrollable(self.id, body);
@@ -225,9 +247,14 @@ impl TextArea {
         crate::ui::ctx::fill(buf, body, fs);
         let gutter = t.gutter(s, fs.bg.unwrap_or(bg), false);
         for y in body.top()..body.bottom() {
-            buf.set_string(body.x, y, "▎", gutter);
+            buf.set_string(body.x, y, t.gutter_symbol(s), gutter);
         }
-        let inner = Rect::new(body.x + 2, body.y, body.width.saturating_sub(4), rows);
+        let inner = Rect::new(
+            body.x + 2.min(body.width),
+            body.y,
+            body.width.saturating_sub(4),
+            rows,
+        );
         self.text_area = inner;
 
         let text = self.buffer.text();
@@ -235,9 +262,19 @@ impl TextArea {
         self.scroll.set_content(lines.len());
         self.scroll.set_viewport(rows as usize);
         let cur = self.buffer.cursor_pos();
-        if s.editing {
+        if s.editing && (self.follow_cursor || self.last_cursor != Some(cur) || resized) {
             self.scroll.ensure_visible(cur.line);
+            let width = inner.width as usize;
+            if cur.col < self.hscroll {
+                self.hscroll = cur.col;
+            } else if width > 0 && cur.col >= self.hscroll.saturating_add(width) {
+                self.hscroll = cur.col + 1 - width;
+            }
+        } else if !s.editing {
+            self.hscroll = 0;
         }
+        self.last_cursor = Some(cur);
+        self.follow_cursor = false;
         if text.is_empty() && !s.editing {
             let p = crate::ui::text::truncate(&self.placeholder, inner.width as usize);
             buf.set_string(inner.x, inner.y, &p, t.placeholder(s));
@@ -248,18 +285,27 @@ impl TextArea {
                 let visible = li >= self.scroll.offset && li < self.scroll.offset + rows as usize;
                 if visible {
                     let y = inner.y + (li - self.scroll.offset) as u16;
-                    let mut x = inner.x;
+                    let mut col = 0usize;
+                    let clipped_right = width(line) > self.hscroll + inner.width as usize;
+                    let available =
+                        inner.width as usize - usize::from(clipped_right && inner.width > 0);
                     for (gi, g) in
                         unicode_segmentation::UnicodeSegmentation::grapheme_indices(*line, true)
                     {
-                        let gw = width(g) as u16;
-                        if x + gw > inner.right() {
-                            buf.set_string(
-                                inner.right().saturating_sub(1),
-                                y,
-                                "…",
-                                fs.fg(t.text_muted),
-                            );
+                        let gw = width(g);
+                        let start = col;
+                        col += gw;
+                        if col <= self.hscroll {
+                            continue;
+                        }
+                        if start < self.hscroll {
+                            if inner.width > 0 {
+                                buf.set_string(inner.x, y, "…", fs.fg(t.text_muted));
+                            }
+                            continue;
+                        }
+                        let visible_col = start - self.hscroll;
+                        if visible_col + gw > available {
                             break;
                         }
                         let mut st = fs;
@@ -268,8 +314,10 @@ impl TextArea {
                         {
                             st = t.selection();
                         }
-                        buf.set_string(x, y, g, st);
-                        x += gw;
+                        buf.set_string(inner.x + visible_col as u16, y, g, st);
+                    }
+                    if clipped_right && inner.width > 0 {
+                        buf.set_string(inner.right() - 1, y, "…", fs.fg(t.text_muted));
                     }
                     if s.editing && li == cur.line {
                         // accent underline on the cursor line marks where input goes
@@ -286,16 +334,20 @@ impl TextArea {
                 }
                 line_start += line.len() + 1;
             }
-            if s.editing {
+            if s.editing
+                && self.scroll.visible_range().contains(&cur.line)
+                && cur.col >= self.hscroll
+                && cur.col - self.hscroll < inner.width as usize
+            {
                 let cy = inner.y + (cur.line - self.scroll.offset) as u16;
-                let cx = inner.x + (cur.col as u16).min(inner.width);
+                let cx = inner.x + (cur.col - self.hscroll) as u16;
                 ctx.set_cursor(Position::new(cx, cy));
             }
         }
         // scrollbar in the last column of the body
         let sb = Rect::new(body.right() - 1, body.y, 1, rows);
         scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, s.focused);
-        if self.error.is_some() {
+        if self.error.is_some() && body.width >= 2 {
             buf.set_string(
                 body.right() - 2,
                 body.y,
@@ -314,6 +366,7 @@ impl TextArea {
             } else {
                 String::new()
             };
+            let pos = crate::ui::text::truncate(&pos, area.width.saturating_sub(3) as usize);
             let pos_w = if pos.is_empty() {
                 0
             } else {
@@ -340,6 +393,131 @@ impl TextArea {
                     .right()
                     .saturating_sub(crate::ui::text::width(&pos) as u16 + 1);
                 buf.set_string(px, fy, &pos, t.faint().bg(bg));
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{focus::FocusRing, hit::HitRegistry};
+    use crate::theme::{ColorLevel, Theme};
+    use crate::ui::ctx::Interaction;
+
+    fn render(
+        input: &mut TextArea,
+        area: Rect,
+        buf: &mut Buffer,
+        level: ColorLevel,
+    ) -> Option<Position> {
+        let theme = Theme::for_level(level);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(
+            &theme,
+            Interaction {
+                focus: Some(input.id),
+                ..Default::default()
+            },
+            &mut hits,
+            &mut ring,
+        );
+        input.render(area, buf, &mut ctx, theme.surface);
+        ctx.cursor
+    }
+
+    fn key(code: KeyCode) -> Key {
+        Key {
+            code,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        }
+    }
+
+    #[test]
+    fn long_unicode_lines_follow_cursor_and_click_the_visible_position() {
+        for level in [ColorLevel::TrueColor, ColorLevel::Mono] {
+            let mut input =
+                TextArea::new(WidgetId::of("long"), "Notes", 3).value("日本語👩‍💻cafe\u{301}");
+            input.begin_edit();
+            input.on_key(&key(KeyCode::End));
+            let area = Rect::new(0, 0, 10, 5);
+            let mut buf = Buffer::empty(area);
+            let cursor = render(&mut input, area, &mut buf, level).unwrap();
+            assert!(input.text_area.contains(cursor));
+            assert!(input.hscroll > 0);
+            input.on_click(cursor, true);
+            assert_eq!(input.buffer.cursor_offset(), input.buffer.text().len());
+            input.on_paste("🙂");
+            let cursor = render(&mut input, area, &mut buf, level).unwrap();
+            assert!(input.text_area.contains(cursor));
+            assert_eq!(buf[(cursor.x - 2, cursor.y)].symbol(), "🙂");
+            input.on_key(&key(KeyCode::Home));
+            let cursor = render(&mut input, area, &mut buf, level).unwrap();
+            assert_eq!(cursor.x, input.text_area.x);
+            assert_eq!(input.hscroll, 0);
+        }
+    }
+
+    #[test]
+    fn manual_scroll_stays_until_cursor_movement_or_editing() {
+        let text = (0..20).map(|i| format!("line {i}\n")).collect::<String>();
+        let mut input = TextArea::new(WidgetId::of("scroll"), "Notes", 3).value(&text);
+        input.begin_edit();
+        let area = Rect::new(0, 0, 20, 5);
+        let mut buf = Buffer::empty(area);
+        render(&mut input, area, &mut buf, ColorLevel::TrueColor);
+        input.on_wheel(8);
+        assert!(render(&mut input, area, &mut buf, ColorLevel::TrueColor).is_none());
+        assert_eq!(input.scroll.offset, 8);
+        input.on_key(&key(KeyCode::Right));
+        assert!(render(&mut input, area, &mut buf, ColorLevel::TrueColor).is_some());
+        assert_eq!(input.scroll.offset, 0);
+        input.scroll.scroll_to(12);
+        render(&mut input, area, &mut buf, ColorLevel::TrueColor);
+        assert_eq!(input.scroll.offset, 12);
+        input.on_paste("x");
+        assert!(render(&mut input, area, &mut buf, ColorLevel::TrueColor).is_some());
+        assert_eq!(input.scroll.offset, 0);
+    }
+
+    #[test]
+    fn resizing_keeps_long_line_cursor_visible() {
+        let mut input =
+            TextArea::new(WidgetId::of("resize"), "Notes", 3).value("日本語👩‍💻a very long line");
+        input.begin_edit();
+        input.on_key(&key(KeyCode::End));
+        for width in [40, 10, 7, 30] {
+            let area = Rect::new(0, 0, width, 5);
+            let mut buf = Buffer::empty(area);
+            let cursor = render(&mut input, area, &mut buf, ColorLevel::Mono).unwrap();
+            assert!(input.text_area.contains(cursor));
+        }
+    }
+
+    #[test]
+    fn narrow_textareas_do_not_write_outside_their_allocation() {
+        for level in [ColorLevel::TrueColor, ColorLevel::Mono] {
+            for width in 0..12 {
+                for height in 0..6 {
+                    let mut input = TextArea::new(WidgetId::of("narrow"), "Long label", 3)
+                        .value("日本語👩‍💻abcdef\nnext")
+                        .help("Some help")
+                        .error(Some("Invalid"));
+                    input.begin_edit();
+                    input.buffer.move_doc_end(false);
+                    let area = Rect::new(3, 2, width, height);
+                    let mut buf = Buffer::empty(Rect::new(0, 0, 20, 10));
+                    let cursor = render(&mut input, area, &mut buf, level);
+                    assert!(cursor.is_none_or(|p| area.contains(p)));
+                    for y in 0..10 {
+                        for x in 0..20 {
+                            if !area.contains(Position::new(x, y)) {
+                                assert_eq!(buf[(x, y)].symbol(), " ", "{area:?}: ({x}, {y})");
+                            }
+                        }
+                    }
+                }
             }
         }
     }

@@ -406,7 +406,12 @@ impl DiskPage {
                     s.selected = i == self.cursor;
                     let st = t.row(s, bg);
                     fill(buf, row, st);
-                    buf.set_string(row.x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+                    buf.set_string(
+                        row.x,
+                        y,
+                        t.gutter_symbol(s),
+                        t.gutter(s, st.bg.unwrap_or(bg), false),
+                    );
                     if s.selected {
                         buf.set_string(
                             row.x + 1,
@@ -444,7 +449,12 @@ impl DiskPage {
                     s.selected = i == self.cursor;
                     let st = t.row(s, bg);
                     fill(buf, row, st);
-                    buf.set_string(row.x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+                    buf.set_string(
+                        row.x,
+                        y,
+                        t.gutter_symbol(s),
+                        t.gutter(s, st.bg.unwrap_or(bg), false),
+                    );
                     if s.selected {
                         buf.set_string(
                             row.x + 1,
@@ -487,7 +497,12 @@ impl DiskPage {
                     s.selected = i == self.cursor;
                     let st = t.row(s, bg);
                     fill(buf, row, st);
-                    buf.set_string(row.x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+                    buf.set_string(
+                        row.x,
+                        y,
+                        t.gutter_symbol(s),
+                        t.gutter(s, st.bg.unwrap_or(bg), false),
+                    );
                     let plain = st.remove_modifier(Modifier::BOLD);
                     let skip = c.skip_reason();
                     let checked = self.selected.contains(&c.path);

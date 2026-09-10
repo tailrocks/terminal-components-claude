@@ -20,7 +20,7 @@ impl TextAreasPage {
     pub fn new() -> Self {
         let long = (1..=28)
             .map(|i| match i % 4 {
-                0 => format!("{i:>2}. Run the integration suite and attach the report."),
+                0 => format!("{i:>2}. Run the integration suite and attach the report. Review 日本語 · 👩‍💻 · cafe\u{301} through this long Unicode line."),
                 1 => format!("{i:>2}. Read src/api/billing.rs before touching invoices."),
                 2 => format!("{i:>2}. Keep the public API stable; add, never rename."),
                 _ => format!("{i:>2}. Open a PR against main with a clear summary."),
@@ -30,7 +30,7 @@ impl TextAreasPage {
         let areas = vec![
             TextArea::new(ID.child(0), "Task description", 8)
                 .value(&long)
-                .help("Enter inserts a newline · Esc finishes"),
+                .help("Home/End follows long lines · Esc finishes"),
             TextArea::new(ID.child(1), "Notes", 8)
                 .placeholder("Anything the agent should know…")
                 .help("Optional"),
@@ -56,7 +56,7 @@ impl Page for TextAreasPage {
         "Text areas"
     }
     fn blurb(&self) -> &'static str {
-        "Multi-line editing, wrapping cursor motion, scroll position"
+        "Multi-line editing, Unicode cursor motion, horizontal and vertical scrolling"
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {

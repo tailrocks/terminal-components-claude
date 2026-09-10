@@ -3,9 +3,31 @@
 //! Stores text as a `String` and addresses positions by byte offset, while
 //! every cursor movement is grapheme aware. Rendering code asks for the
 //! logical lines and cursor column; it never edits the string itself.
+//! Single-line buffers discard line breaks at every text entry point;
+//! multiline buffers normalize CRLF and CR to LF.
 
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
+
+fn normalized_text(text: &str, multiline: bool) -> std::borrow::Cow<'_, str> {
+    if multiline && text.contains('\r') {
+        text.replace("\r\n", "\n").replace('\r', "\n").into()
+    } else if !multiline && text.contains(['\r', '\n']) {
+        text.chars()
+            .filter(|c| !matches!(c, '\r' | '\n'))
+            .collect::<String>()
+            .into()
+    } else {
+        text.into()
+    }
+}
+
+fn normalize_owned(text: String, multiline: bool) -> String {
+    match normalized_text(&text, multiline) {
+        std::borrow::Cow::Borrowed(_) => text,
+        std::borrow::Cow::Owned(normalized) => normalized,
+    }
+}
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct TextBuffer {
@@ -26,7 +48,7 @@ pub struct CursorPos {
 
 impl TextBuffer {
     pub fn single(text: impl Into<String>) -> Self {
-        let text = text.into();
+        let text = normalize_owned(text.into(), false);
         Self {
             cursor: text.len(),
             text,
@@ -36,7 +58,7 @@ impl TextBuffer {
     }
 
     pub fn multi(text: impl Into<String>) -> Self {
-        let text = text.into();
+        let text = normalize_owned(text.into(), true);
         Self {
             cursor: text.len(),
             text,
@@ -62,11 +84,11 @@ impl TextBuffer {
         self.cursor
     }
 
-    /// Select `a..b` (either order), cursor at `b`.
+    /// Select `a..b` (either order), cursor at `b`. Offsets are clamped to
+    /// the preceding grapheme boundary, including offsets inside UTF-8 bytes.
     pub fn select_range(&mut self, a: usize, b: usize) {
-        let len = self.text.len();
-        self.anchor = Some(a.min(len));
-        self.cursor = b.min(len);
+        self.anchor = Some(Self::floor_boundary(&self.text, a));
+        self.cursor = Self::floor_boundary(&self.text, b);
     }
 
     /// First and last line touched by the selection (or the cursor line).
@@ -74,7 +96,10 @@ impl TextBuffer {
         match self.selection() {
             Some(r) => {
                 let a = Self::pos_of(&self.text, r.start).line;
-                let b = Self::pos_of(&self.text, r.end.saturating_sub(1).max(r.start)).line;
+                // An exclusive endpoint at the next line's start does not
+                // select that line. Count newlines without slicing a UTF-8 byte.
+                let before = &self.text[..r.end];
+                let b = before.matches('\n').count() - usize::from(before.ends_with('\n'));
                 (a, b)
             }
             None => {
@@ -89,10 +114,12 @@ impl TextBuffer {
             .is_some_and(|r| self.text[r].contains('\n'))
     }
 
-    /// Insert at an arbitrary offset, keeping cursor/anchor consistent.
+    /// Insert at an arbitrary offset, clamped to the preceding grapheme
+    /// boundary, keeping cursor/anchor consistent.
     pub fn insert_at(&mut self, at: usize, s: &str) {
-        let at = at.min(self.text.len());
-        self.text.insert_str(at, s);
+        let at = Self::floor_boundary(&self.text, at);
+        let s = normalized_text(s, self.multiline);
+        self.text.insert_str(at, &s);
         if self.cursor >= at {
             self.cursor += s.len();
         }
@@ -101,13 +128,17 @@ impl TextBuffer {
         {
             *a += s.len();
         }
+        self.normalize_positions();
     }
 
+    /// Remove all graphemes touched by a nonempty byte range. Endpoints are
+    /// clamped to the text; reversed or empty ranges do nothing.
     pub fn remove_range(&mut self, r: std::ops::Range<usize>) {
         let r = r.start.min(self.text.len())..r.end.min(self.text.len());
         if r.start >= r.end {
             return;
         }
+        let r = Self::floor_boundary(&self.text, r.start)..Self::ceil_boundary(&self.text, r.end);
         let n = r.end - r.start;
         self.text.replace_range(r.clone(), "");
         let adjust = |p: &mut usize| {
@@ -121,10 +152,11 @@ impl TextBuffer {
         if let Some(a) = self.anchor.as_mut() {
             adjust(a);
         }
+        self.normalize_positions();
     }
 
     pub fn set_text(&mut self, text: impl Into<String>) {
-        self.text = text.into();
+        self.text = normalize_owned(text.into(), self.multiline);
         self.cursor = self.text.len();
         self.anchor = None;
     }
@@ -168,6 +200,35 @@ impl TextBuffer {
 
     // --- byte offset helpers -------------------------------------------------
 
+    fn floor_boundary(text: &str, offset: usize) -> usize {
+        if offset >= text.len() {
+            return text.len();
+        }
+        text.grapheme_indices(true)
+            .map(|(i, _)| i)
+            .take_while(|i| *i <= offset)
+            .last()
+            .unwrap_or(0)
+    }
+
+    fn ceil_boundary(text: &str, offset: usize) -> usize {
+        if offset >= text.len() {
+            return text.len();
+        }
+        text.grapheme_indices(true)
+            .map(|(i, _)| i)
+            .find(|i| *i >= offset)
+            .unwrap_or(text.len())
+    }
+
+    // Inserting or removing text can join previously separate clusters (a
+    // combining mark, ZWJ sequence or regional-indicator pair). Repair both
+    // positions against the new string, not just by adding byte lengths.
+    fn normalize_positions(&mut self) {
+        self.cursor = Self::ceil_boundary(&self.text, self.cursor);
+        self.anchor = self.anchor.map(|a| Self::floor_boundary(&self.text, a));
+    }
+
     fn prev_boundary(&self, from: usize) -> usize {
         self.text[..from]
             .grapheme_indices(true)
@@ -196,32 +257,39 @@ impl TextBuffer {
     }
 
     fn prev_word(&self, from: usize) -> usize {
-        let before = &self.text[..from];
-        let trimmed = before.trim_end_matches(|c: char| !c.is_alphanumeric());
-        let word_start = trimmed
-            .char_indices()
-            .rev()
-            .find(|(_, c)| !c.is_alphanumeric())
-            .map(|(i, c)| i + c.len_utf8())
-            .unwrap_or(0);
-        if trimmed.is_empty() { 0 } else { word_start }
+        let mut graphemes = self.text[..from].grapheme_indices(true).rev().peekable();
+        while graphemes
+            .peek()
+            .is_some_and(|(_, g)| !g.chars().any(char::is_alphanumeric))
+        {
+            graphemes.next();
+        }
+        let mut start = 0;
+        while let Some(&(i, g)) = graphemes.peek() {
+            if !g.chars().any(char::is_alphanumeric) {
+                break;
+            }
+            start = i;
+            graphemes.next();
+        }
+        start
     }
 
     fn next_word(&self, from: usize) -> usize {
         let after = &self.text[from..];
-        let mut it = after.char_indices().peekable();
+        let mut it = after.grapheme_indices(true);
         let mut i = 0;
-        while let Some((idx, c)) = it.next() {
-            i = idx + c.len_utf8();
-            if !c.is_alphanumeric() {
+        while let Some((idx, g)) = it.next() {
+            i = idx + g.len();
+            if !g.chars().any(char::is_alphanumeric) {
                 continue;
             }
-            for (idx2, c2) in it.by_ref() {
-                if !c2.is_alphanumeric() {
+            for (idx2, g2) in it.by_ref() {
+                if !g2.chars().any(char::is_alphanumeric) {
                     i = idx2;
                     return from + i;
                 }
-                i = idx2 + c2.len_utf8();
+                i = idx2 + g2.len();
             }
             break;
         }
@@ -320,6 +388,7 @@ impl TextBuffer {
                 self.text.replace_range(r.clone(), "");
                 self.cursor = r.start;
                 self.anchor = None;
+                self.normalize_positions();
                 true
             }
             None => {
@@ -330,23 +399,26 @@ impl TextBuffer {
     }
 
     pub fn insert_char(&mut self, c: char) {
-        if c == '\n' && !self.multiline {
+        if matches!(c, '\r' | '\n') && !self.multiline {
             return;
         }
-        self.delete_selection();
-        self.text.insert(self.cursor, c);
-        self.cursor += c.len_utf8();
+        let c = if c == '\r' { '\n' } else { c };
+        self.insert_str(c.encode_utf8(&mut [0; 4]));
     }
 
     pub fn insert_str(&mut self, s: &str) {
-        self.delete_selection();
-        let s: String = if self.multiline {
-            s.to_owned()
+        let s = normalized_text(s, self.multiline);
+        // Replace atomically: deleting first can join the neighboring
+        // graphemes and move the cursor before insertion occurs.
+        if let Some(r) = self.selection() {
+            self.cursor = r.start + s.len();
+            self.text.replace_range(r, &s);
         } else {
-            s.chars().filter(|c| *c != '\n' && *c != '\r').collect()
-        };
-        self.text.insert_str(self.cursor, &s);
-        self.cursor += s.len();
+            self.text.insert_str(self.cursor, &s);
+            self.cursor += s.len();
+        }
+        self.anchor = None;
+        self.normalize_positions();
     }
 
     pub fn backspace(&mut self) {
@@ -356,6 +428,7 @@ impl TextBuffer {
         let start = self.prev_boundary(self.cursor);
         self.text.replace_range(start..self.cursor, "");
         self.cursor = start;
+        self.normalize_positions();
     }
 
     pub fn delete(&mut self) {
@@ -364,6 +437,7 @@ impl TextBuffer {
         }
         let end = self.next_boundary(self.cursor);
         self.text.replace_range(self.cursor..end, "");
+        self.normalize_positions();
     }
 
     pub fn delete_word_left(&mut self) {
@@ -373,6 +447,7 @@ impl TextBuffer {
         let start = self.prev_word(self.cursor);
         self.text.replace_range(start..self.cursor, "");
         self.cursor = start;
+        self.normalize_positions();
     }
 
     pub fn delete_to_line_end(&mut self) {
@@ -381,6 +456,7 @@ impl TextBuffer {
         }
         let end = self.line_end(self.cursor);
         self.text.replace_range(self.cursor..end, "");
+        self.normalize_positions();
     }
 
     pub fn delete_to_line_start(&mut self) {
@@ -390,6 +466,7 @@ impl TextBuffer {
         let start = self.line_start(self.cursor);
         self.text.replace_range(start..self.cursor, "");
         self.cursor = start;
+        self.normalize_positions();
     }
 
     // --- geometry ------------------------------------------------------------
@@ -403,7 +480,10 @@ impl TextBuffer {
         Self::pos_of(&self.text, self.cursor)
     }
 
+    /// Resolve a byte offset to a display position, clamping to the preceding
+    /// grapheme boundary. Arbitrary offsets never split UTF-8 or a cluster.
     pub fn pos_of(text: &str, offset: usize) -> CursorPos {
+        let offset = Self::floor_boundary(text, offset);
         let before = &text[..offset];
         let line = before.matches('\n').count();
         let line_start = before.rfind('\n').map(|i| i + 1).unwrap_or(0);
@@ -522,5 +602,106 @@ mod tests {
         assert_eq!(b.cursor_pos().col, 4);
         assert_eq!(b.offset_at(0, 2), 3);
         assert_eq!(b.offset_at(0, 1), 0);
+    }
+
+    #[test]
+    fn selection_lines_handles_unicode_and_exclusive_newline() {
+        let mut b = TextBuffer::multi("é\n日本\n👩‍💻");
+        b.select_all();
+        assert_eq!(b.selection_lines(), (0, 2));
+        b.select_range(0, "é\n".len());
+        assert_eq!(b.selection_lines(), (0, 0));
+        b.select_range("é\n".len(), "é\n日本".len());
+        assert_eq!(b.selection_lines(), (1, 1));
+    }
+
+    #[test]
+    fn public_offsets_clamp_to_graphemes() {
+        let mut b = TextBuffer::single("e\u{301}日👩‍💻");
+        for a in 0..=b.text().len() + 1 {
+            for end in 0..=b.text().len() + 1 {
+                b.select_range(a, end);
+                b.cursor_pos();
+                b.selection_lines();
+                if let Some(r) = b.selection() {
+                    assert!(b.text().get(r).is_some());
+                }
+            }
+        }
+        b.select_range(1, 2);
+        assert_eq!(b.cursor(), 0);
+        assert_eq!(b.selection(), None);
+        b.insert_at(4, "X");
+        assert_eq!(b.text(), "e\u{301}X日👩‍💻");
+        b.remove_range(5..6);
+        assert_eq!(b.text(), "e\u{301}X👩‍💻");
+        assert_eq!(TextBuffer::pos_of("é", usize::MAX).col, 1);
+        assert_eq!(TextBuffer::pos_of("é", 1).col, 0);
+    }
+
+    #[test]
+    fn word_motion_and_deletion_preserve_combining_clusters() {
+        let mut b = TextBuffer::single("cafe\u{301} 日本");
+        b.move_home(false);
+        b.move_word_right(true);
+        assert_eq!(b.selected_text(), Some("cafe\u{301}"));
+        b.clear_selection();
+        b.move_word_left(false);
+        assert_eq!(b.cursor(), 0);
+        b.move_end(false);
+        b.delete_word_left();
+        b.delete_word_left();
+        assert_eq!(b.text(), "");
+    }
+
+    #[test]
+    fn edits_repair_positions_when_graphemes_join() {
+        let mut b = TextBuffer::single("👩💻");
+        b.set_cursor_line_col(0, 2);
+        b.insert_char('\u{200d}');
+        assert_eq!(b.text(), "👩‍💻");
+        assert_eq!(b.cursor(), b.text().len());
+        b.backspace();
+        assert_eq!(b.text(), "");
+
+        let mut b = TextBuffer::single("🇺 🇸");
+        b.set_cursor_line_col(0, 1);
+        b.remove_range(4..5);
+        assert_eq!(b.text(), "🇺🇸");
+        assert_eq!(b.cursor(), b.text().len());
+        b.move_left(false);
+        assert_eq!(b.cursor(), 0);
+    }
+
+    #[test]
+    fn selection_replacement_does_not_move_past_joining_neighbors() {
+        for paste in [false, true] {
+            let mut b = TextBuffer::single("🇺 🇸");
+            b.select_range(4, 5);
+            if paste {
+                b.insert_str("X");
+            } else {
+                b.insert_char('X');
+            }
+            assert_eq!(b.text(), "🇺X🇸");
+            assert_eq!(b.cursor(), 5);
+        }
+    }
+
+    #[test]
+    fn every_text_entry_preserves_line_mode() {
+        let mut b = TextBuffer::single("a\r\nb");
+        assert_eq!(b.text(), "ab");
+        b.set_text("c\nd");
+        b.insert_at(1, "\r\nx");
+        b.insert_char('\r');
+        assert_eq!(b.text(), "cxd");
+        let mut b = TextBuffer::multi("a\r\nb\rc");
+        assert_eq!(b.text(), "a\nb\nc");
+        b.insert_str("\r\nd");
+        b.move_doc_start(false);
+        b.move_end(false);
+        assert_eq!(b.cursor(), 1);
+        assert_eq!(b.line_count(), 4);
     }
 }

@@ -135,7 +135,7 @@ impl Dialog {
         }
     }
 
-    /// True when a typed acknowledgement is required and not yet matched.
+    /// True when no acknowledgement is required or its token matches.
     pub fn armed(&self) -> bool {
         match &self.body {
             DialogBody::Facts { ack: Some(a), .. } => a.input.text().trim() == a.token,
@@ -327,7 +327,7 @@ impl Dialog {
         pos: Position,
         focus: &mut crate::core::focus::Focus,
     ) -> Outcome {
-        if let DialogBody::Input(inp) = &mut self.body
+        if let Some(inp) = self.input_mut()
             && inp.id == id
         {
             let was = focus.is(id);

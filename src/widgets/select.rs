@@ -181,7 +181,7 @@ impl Select {
         buf.set_string(
             field.x,
             field.y,
-            "▎",
+            t.gutter_symbol(s),
             t.gutter(s, fs.bg.unwrap_or(bg), false),
         );
         let value = crate::ui::text::truncate(self.value(), field.width.saturating_sub(5) as usize);
@@ -226,7 +226,7 @@ impl Select {
                 buf.set_string(
                     row.x,
                     y,
-                    "▎",
+                    t.gutter_symbol(rs),
                     t.gutter(rs, st.bg.unwrap_or(t.surface_elevated), false),
                 );
                 if rs.selected {

@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help           no project  devbox · development 
+
+  Here › Upgrade everything         
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────── 
+  Upgrade everything · devbox       
+  upgrade Debian packages and global mise tools on devbox               
+
+         step                         needs  lane  note                 
+ ▎[✓] 01 Preflight                    –      ·     sudo               ┃ 
+  [✓] 02 Refresh Debian metadata      01     a     sudo               ┃ 
+  [✓] 03 Review Debian upgrades       02     a                        ┃ 
+  [✓] 04 Apply Debian upgrades        03     a     sudo               │ 
+  [✓] 05 Inspect global mise tools    01     b                        │ 
+
+    6 required · 2 optional · 2 branches run in parallel where indepe…  
+
+                                               Cancel    Confirm plan   
+
+ ~       review · 8 steps · 2 branches parallel        no color · 72×20 
+    ↑↓ Step  Space Toggle  u Undo  c Confirm  p Facts  Esc Discard      

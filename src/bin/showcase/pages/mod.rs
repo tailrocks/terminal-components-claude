@@ -13,6 +13,7 @@ pub mod buttons;
 pub mod chips;
 pub mod chrome;
 pub mod dialogs;
+pub mod diff;
 pub mod editable;
 pub mod editor;
 pub mod forms;
@@ -39,6 +40,11 @@ pub enum PageEvent {
     Key(Key),
     /// Text pasted while a control is editing.
     Paste(String),
+    /// Pointer down at its original position, before any drag motion.
+    Press {
+        id: WidgetId,
+        pos: Position,
+    },
     /// Completed click (down and up on the same id).
     Click {
         id: WidgetId,

@@ -76,7 +76,12 @@ fn static_field(
     let field = Rect::new(x + 16, y, w, 1);
     let fs = t.field_style(s);
     fill(buf, field, fs);
-    buf.set_string(field.x, y, "▎", t.gutter(s, fs.bg.unwrap_or(bg), false));
+    buf.set_string(
+        field.x,
+        y,
+        t.gutter_symbol(s),
+        t.gutter(s, fs.bg.unwrap_or(bg), false),
+    );
     let style = if text.starts_with('(') {
         t.placeholder(s)
     } else {

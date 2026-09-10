@@ -599,7 +599,7 @@ impl FinderPage {
         buf.set_string(
             area.x,
             area.y,
-            "▎",
+            if focused { "▎" } else { " " },
             if focused {
                 Style::new().fg(t.focus).bg(bg)
             } else {
@@ -750,7 +750,12 @@ impl FinderPage {
                     let is_cursor = i == self.cursor;
                     let st = t.row(s, bg);
                     fill(buf, row, st);
-                    buf.set_string(row.x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+                    buf.set_string(
+                        row.x,
+                        y,
+                        t.gutter_symbol(s),
+                        t.gutter(s, st.bg.unwrap_or(bg), false),
+                    );
                     let mut x = row.x + 3;
                     for (ci, idx) in cells.iter().enumerate() {
                         let it = &self.items[*idx];

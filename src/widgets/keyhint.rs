@@ -68,6 +68,14 @@ pub fn render_aligned(
         return 0;
     }
     let mut x = area.x + 1;
+    if let Some((text, kind)) = badge {
+        let b =
+            crate::ui::text::truncate(&format!(" {text} "), area.width.saturating_sub(2) as usize);
+        if !b.is_empty() {
+            buf.set_string(x, area.y, &b, t.badge(kind));
+            x = (x + crate::ui::text::width(&b) as u16 + 2).min(area.right());
+        }
+    }
     let mut right_w = 0u16;
     if let Some((r, tone)) = right {
         // the glyph carries the meaning in monochrome, the tone in colour
@@ -81,8 +89,10 @@ pub fn render_aligned(
         } else {
             format!("{mark} {r}")
         };
+        let available = area.right().saturating_sub(x + 1) as usize;
+        let text = crate::ui::text::truncate(&text, available);
         let w = crate::ui::text::width(&text) as u16;
-        if area.width > w + 2 {
+        if w > 0 {
             let st = ratatui::style::Style::new().fg(t.tone(tone));
             buf.set_string(area.right() - w - 1, area.y, &text, st);
             if !mark.is_empty() {
@@ -95,11 +105,6 @@ pub fn render_aligned(
             }
             right_w = w + 3;
         }
-    }
-    if let Some((text, kind)) = badge {
-        let b = format!(" {text} ");
-        buf.set_string(x, area.y, &b, t.badge(kind));
-        x += crate::ui::text::width(&b) as u16 + 2;
     }
     let limit = area.right().saturating_sub(right_w);
     if centered {
@@ -185,5 +190,57 @@ mod tests {
         let row = row_text(&plain, 60);
         assert!(row.contains("Saved"), "{row:?}");
         assert!(!row.contains('▲') && !row.contains('!'), "{row:?}");
+    }
+
+    #[test]
+    fn long_status_keeps_its_severity_and_yields_hints_without_overlapping_edit_badge() {
+        for level in [
+            crate::theme::ColorLevel::TrueColor,
+            crate::theme::ColorLevel::Mono,
+        ] {
+            let t = Theme::for_level(level);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 32, 1));
+            let count = render_toned(
+                *buf.area(),
+                &mut buf,
+                &t,
+                &[hint("Esc", "Cancel")],
+                Some(("EDIT", BadgeKind::Edit)),
+                Some(("无法保存配置文件：目标目录只读 e\u{301}", Tone::Error)),
+            );
+            let row = row_text(&buf, 32);
+            assert_eq!(count, 0);
+            assert!(row.starts_with("  EDIT "), "{row:?}");
+            assert!(row.contains("! 无"), "{row:?}");
+            assert!(row.contains('…'), "{row:?}");
+            assert!(!row.contains("Cancel"));
+        }
+    }
+
+    #[test]
+    fn narrow_status_and_badge_stay_inside_assigned_area() {
+        let t = Theme::junie();
+        for width in 1..16 {
+            let area = Rect::new(2, 1, width, 1);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 20, 3));
+            for cell in &mut buf.content {
+                cell.set_symbol(".");
+            }
+            render_toned(
+                area,
+                &mut buf,
+                &t,
+                &[hint("Esc", "Cancel")],
+                Some(("EDIT", BadgeKind::Edit)),
+                Some(("long failure message", Tone::Error)),
+            );
+            for y in 0..3 {
+                for x in 0..20 {
+                    if !area.contains((x, y).into()) {
+                        assert_eq!(buf[(x, y)].symbol(), ".");
+                    }
+                }
+            }
+        }
     }
 }

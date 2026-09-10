@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help          holla · Rust project  mbp · local 
+                                                                        
+  Here                                                                  
+ ━━━━━━━─────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                        scope ‹ here ›  
+                                                                        
+    Suggested here                                                    ┃ 
+  › Pull                     git       here  branch is 3 commits beh… ┃ 
+    Run tests                task      here  5 files changed since t… ┃ 
+    Inspect 12 GB of gener…  disk      here  12 GB generated artifac… ┃ 
+    Review 5 modified files  git       here  4 modified · 1 untracked ┃ 
+    Who is blocking the da…  postgres  here  2 sessions blocked for … ┃ 
+                                                                      │ 
+    Recent here                                                       │ 
+    Run lint                 task      here  yesterday                │ 
+                                                                        
+    → git -C /Users/alex/work/holla pull --ff-only · here · mutating    
+                                                                        
+ ~/work/holla   main   ↓3 • 5                        256 colors · 72×20 
+    Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  …     

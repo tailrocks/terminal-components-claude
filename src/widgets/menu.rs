@@ -295,7 +295,7 @@ impl ContextMenu {
             // a destructive row is soft rose at rest and takes a deep red
             // fill under the cursor: the tone of the plane, not the alarm red
             let st = if item.disabled {
-                Style::new().fg(t.disabled).bg(bg)
+                t.disabled_style().bg(bg)
             } else if s.selected {
                 Style::new()
                     .fg(t.text_primary)

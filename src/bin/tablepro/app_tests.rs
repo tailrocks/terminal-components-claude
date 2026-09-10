@@ -263,6 +263,47 @@ fn structure_view_toggle() {
 }
 
 #[test]
+fn duplicate_row_chord_preserves_structure_editing_and_modal_routes() {
+    let mut h = H::connected(120, 40);
+    for _ in 0..5 {
+        h.key(KeyCode::Down);
+    }
+    h.key(KeyCode::Enter);
+    let original = match h.wb().active_tab() {
+        Some(WorkTab::Table(t)) => t.grid.rows().len(),
+        _ => unreachable!(),
+    };
+    h.alt('d');
+    assert!(matches!(h.wb().active_tab(), Some(WorkTab::Table(t))
+        if t.mode_tabs.active == 0 && t.grid.rows().len() == original + 1
+            && t.grid.pending.inserted.len() == 1));
+    h.ctrl('d');
+    assert!(matches!(h.wb().active_tab(), Some(WorkTab::Table(t))
+        if t.mode_tabs.active == 1 && t.grid.rows().len() == original + 1));
+    h.ctrl('d');
+    h.key(KeyCode::Home);
+    for _ in 0..4 {
+        h.key(KeyCode::Right);
+    }
+    h.key(KeyCode::Enter);
+    assert!(
+        matches!(h.wb().active_tab(), Some(WorkTab::Table(t)) if t.grid.is_editing()),
+        "{}",
+        h.text()
+    );
+    h.alt('d');
+    assert!(matches!(h.wb().active_tab(), Some(WorkTab::Table(t))
+        if t.grid.is_editing() && t.grid.rows().len() == original + 1));
+    h.key(KeyCode::Esc);
+    h.key(KeyCode::Char('?'));
+    assert!(h.app.modal.is_some());
+    h.alt('d');
+    assert!(h.app.modal.is_some());
+    assert!(matches!(h.wb().active_tab(), Some(WorkTab::Table(t))
+        if t.grid.rows().len() == original + 1));
+}
+
+#[test]
 fn editor_completion_and_execution() {
     let mut h = H::connected(120, 40);
     h.key(KeyCode::Tab); // editor
@@ -412,6 +453,43 @@ fn safety_gate_typed_token_executes() {
     assert!(h.wb_query().is_running());
     h.ticks(10);
     assert!(h.text().contains("rows affected"));
+}
+
+#[test]
+fn safety_gate_acknowledgement_supports_mouse_focus_edit_and_confirmation() {
+    let mut h = H::connected(120, 40);
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Char('i'));
+    h.type_str("UPDATE orders SET status = 'paid' WHERE id = 'x'");
+    h.key(KeyCode::Esc);
+    h.ctrl('r');
+    let (ack_id, ack_area, confirm_area) = match h.app.modal.as_ref() {
+        Some(Modal::Dialog(d)) => match &d.body {
+            junie_tui::widgets::dialog::DialogBody::Facts { ack: Some(a), .. } => {
+                (a.input.id, a.input.area, d.actions[1].area)
+            }
+            _ => unreachable!(),
+        },
+        _ => unreachable!(),
+    };
+    h.key(KeyCode::Tab); // Leave the acknowledgement before clicking it.
+    h.click(ack_area.x + 2, ack_area.y);
+    assert_eq!(h.focus(), Some(ack_id));
+    assert!(matches!(h.app.modal.as_ref(), Some(Modal::Dialog(d)) if !d.is_editing()));
+    h.click(ack_area.x + 2, ack_area.y);
+    assert!(matches!(h.app.modal.as_ref(), Some(Modal::Dialog(d)) if d.is_editing()));
+    h.type_str("wrong");
+    h.click(confirm_area.x, confirm_area.y);
+    assert!(h.app.modal.is_some());
+    assert!(!h.wb_query().is_running());
+    h.click(ack_area.x + 2, ack_area.y);
+    h.click(ack_area.x + 2, ack_area.y);
+    h.ctrl('l');
+    h.type_str("orders");
+    assert!(matches!(h.app.modal.as_ref(), Some(Modal::Dialog(d)) if d.armed()));
+    h.click(confirm_area.x, confirm_area.y);
+    assert!(h.app.modal.is_none());
+    assert!(h.wb_query().is_running());
 }
 
 #[test]

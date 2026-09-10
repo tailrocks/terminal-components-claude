@@ -869,7 +869,7 @@ impl ConfigTabs {
                     },
                 );
                 if s.selected {
-                    buf.set_string(rect.x, y, "▎", t.gutter(s, bg, false));
+                    buf.set_string(rect.x, y, t.gutter_symbol(s), t.gutter(s, bg, false));
                 }
                 let mw = width(&row.meta) as u16;
                 if mw > 0 && rect.width > mw + width(title) as u16 + 8 {
@@ -888,7 +888,12 @@ impl ConfigTabs {
                 ctx.clickable(rid, rect);
                 continue;
             }
-            buf.set_string(rect.x, y, "▎", t.gutter(s, style.bg.unwrap_or(bg), false));
+            buf.set_string(
+                rect.x,
+                y,
+                t.gutter_symbol(s),
+                t.gutter(s, style.bg.unwrap_or(bg), false),
+            );
             let sel_glyph = if s.selected { "›" } else { " " };
             buf.set_string(
                 rect.x + 1,

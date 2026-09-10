@@ -1217,7 +1217,12 @@ impl AccountsScreen {
             let st = t.row(s, bg);
             let rect = Rect::new(inner.x - 1, y, row_w + 1, 1);
             fill(buf, rect, st);
-            buf.set_string(rect.x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+            buf.set_string(
+                rect.x,
+                y,
+                t.gutter_symbol(s),
+                t.gutter(s, st.bg.unwrap_or(bg), false),
+            );
             let mut x = rect.x + 2 + row.depth * 2;
             let glyph = if row.expandable {
                 if row.expanded { "▾" } else { "▸" }

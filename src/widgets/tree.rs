@@ -498,7 +498,12 @@ impl TreeView {
             s.selected = self.selected.as_ref() == Some(&row.path);
             let st = t.row(s, bg);
             fill(buf, rect, st);
-            buf.set_string(rect.x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+            buf.set_string(
+                rect.x,
+                y,
+                t.gutter_symbol(s),
+                t.gutter(s, st.bg.unwrap_or(bg), false),
+            );
             let indent = (row.depth * 2) as u16;
             let mut x = rect.x + 1 + indent;
             if x + 2 >= rect.right() {

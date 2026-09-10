@@ -1,0 +1,20 @@
+ ▪ [1mJunie[0m Design system / Components / Buttons     i Inspector   ? Help  
+
+   Overview       ┃  [1mButtons[0m  Primary, secondary, subtle, danger, togg… 
+[1m▎› Buttons        [0m┃                 
+   Inputs         ┃    Playground  hover · click · Tab · Enter / Space  
+   Text areas     ┃                 
+   Forms          ┃    Actions      
+   Lists          ┃     [1mRun task [0m   Preview    Cancel    Delete bran…   
+   Trees          ┃                 
+   Tables         ┃    Toggles      
+   Editable tabl… ┃     ○ Auto-approve    ● Verbose                     
+   Panels         ┃                 
+   Sidebars       ┃    Disabled     
+   Dialogs        │     [2mDisabled primary [0m   [2mDisabled [0m                   
+   Progress       │                 
+   Scrolling      │    Busy         
+   Terminal       │     Start long job                                  
+   Code editor    │                 
+                                    Primary        Secondary            
+ [1m↑ ↓[0m Move  [1mEnter[0m Open  [1mTab[0m Into page  [1mq[0m Quit                            

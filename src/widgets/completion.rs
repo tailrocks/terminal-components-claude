@@ -181,7 +181,12 @@ impl Completion {
             let st = t.row(s, bg);
             let row = Rect::new(inner.x, y, inner.width.saturating_sub(u16::from(has_sb)), 1);
             fill(buf, row, st);
-            buf.set_string(row.x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+            buf.set_string(
+                row.x,
+                y,
+                t.gutter_symbol(s),
+                t.gutter(s, st.bg.unwrap_or(bg), false),
+            );
             buf.set_string(
                 row.x + 1,
                 y,

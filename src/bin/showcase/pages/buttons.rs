@@ -170,7 +170,7 @@ impl Page for ButtonsPage {
                 let style = t.button(*kind, *s, bg);
                 let on_accent = *kind == ButtonKind::Primary && !s.disabled;
                 let gutter = t.gutter(*s, style.bg.unwrap_or(bg), on_accent);
-                buf.set_string(x, y, "▎", gutter);
+                buf.set_string(x, y, t.gutter_symbol(*s), gutter);
                 buf.set_string(x + 1, y, " Label ", style);
             }
         }

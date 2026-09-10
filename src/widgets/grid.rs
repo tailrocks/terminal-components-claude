@@ -721,6 +721,8 @@ impl DataGrid {
         Some(GridEvent::RowInserted(src))
     }
 
+    /// Duplicate the current row, resetting generated columns to defaults.
+    /// Navigation keys Alt+D and Ctrl+D invoke this; read-only grids refuse it.
     pub fn duplicate_row(&mut self) -> Option<GridEvent> {
         let src = self.cursor_src()?;
         if !self.editable {
@@ -1115,7 +1117,7 @@ impl DataGrid {
                 (Outcome::Changed, self.toggle_delete(src))
             }
             KeyCode::Char('+') => (Outcome::Changed, self.insert_row()),
-            KeyCode::Char('d') if ctrl => (Outcome::Changed, self.duplicate_row()),
+            KeyCode::Char('d') if ctrl || key.alt() => (Outcome::Changed, self.duplicate_row()),
             KeyCode::Char('y') => (
                 Outcome::Changed,
                 Some(GridEvent::Copy(self.copy_text(false))),
@@ -1266,6 +1268,9 @@ impl DataGrid {
         if let Some(c) = self.locate_header(id) {
             if self.edit.is_some() {
                 self.commit_edit();
+                if self.edit.is_some() {
+                    return (Outcome::Changed, None);
+                }
             }
             if !self.columns[c].sortable {
                 return (Outcome::Consumed, None);
@@ -1291,7 +1296,13 @@ impl DataGrid {
                 if self.order.get(d) == Some(&e.row) && e.col == c {
                     // click inside the editor places the cursor
                     if let Some(rect) = self.col_rects.get(c.saturating_sub(self.hscroll.offset)) {
-                        let col = pos.x.saturating_sub(rect.x) as usize;
+                        let cw = rect.width.saturating_sub(1) as usize;
+                        let off = e
+                            .buffer
+                            .cursor_pos()
+                            .col
+                            .saturating_sub(cw.saturating_sub(1));
+                        let col = pos.x.saturating_sub(rect.x) as usize + off;
                         self.edit
                             .as_mut()
                             .unwrap()
@@ -1301,6 +1312,9 @@ impl DataGrid {
                     return (Outcome::Changed, None);
                 }
                 self.commit_edit();
+                if self.edit.is_some() {
+                    return (Outcome::Changed, None);
+                }
             }
             let same = self.cursor == (d, c) && self.anchor.is_none();
             // click on the trailing → of a reference cell follows it
@@ -1681,7 +1695,12 @@ impl DataGrid {
                 s.focused = focused && d == self.cursor.0;
                 let st = t.row(s, bg);
                 fill(buf, row_rect, st);
-                buf.set_string(row_rect.x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+                buf.set_string(
+                    row_rect.x,
+                    y,
+                    t.gutter_symbol(s),
+                    t.gutter(s, st.bg.unwrap_or(bg), false),
+                );
                 let text = if self.loading {
                     format!(
                         "{} fetching…",
@@ -1719,7 +1738,7 @@ impl DataGrid {
             buf.set_string(
                 row_rect.x,
                 y,
-                "▎",
+                t.gutter_symbol(s),
                 t.gutter(s, row_style.bg.unwrap_or(bg), false),
             );
             if s.selected {
@@ -1777,10 +1796,7 @@ impl DataGrid {
                     let cur = e.buffer.cursor_pos().col;
                     let off = cur.saturating_sub(cw.saturating_sub(1));
                     let text = e.buffer.text();
-                    let mut shown: String = text.chars().skip(off).take(cw).collect();
-                    if off > 0 {
-                        shown.replace_range(..shown.chars().next().map_or(0, char::len_utf8), "…");
-                    }
+                    let shown = crate::ui::text::slice_cells(text, off, cw);
                     let mut ts = es
                         .add_modifier(Modifier::UNDERLINED)
                         .underline_color(t.accent);
@@ -1788,7 +1804,9 @@ impl DataGrid {
                         ts = ts.underline_color(t.error);
                     }
                     buf.set_string(rect.x, y, &shown, ts);
-                    ctx.set_cursor(Position::new(rect.x + (cur - off) as u16, y));
+                    if cw > 0 {
+                        ctx.set_cursor(Position::new(rect.x + (cur - off) as u16, y));
+                    }
                     if e.error.is_some() {
                         buf.set_string(
                             rect.right().saturating_sub(1),
@@ -2020,6 +2038,29 @@ impl Theme {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::{focus::FocusRing, hit::HitRegistry};
+    use crate::theme::ColorLevel;
+    use crate::ui::ctx::Interaction;
+
+    fn render_editor(grid: &mut DataGrid, level: ColorLevel) -> (Buffer, Position) {
+        let area = Rect::new(0, 0, 80, 8);
+        let mut buf = Buffer::empty(area);
+        let theme = Theme::for_level(level);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(
+            &theme,
+            Interaction {
+                focus: Some(grid.id),
+                ..Default::default()
+            },
+            &mut hits,
+            &mut ring,
+        );
+        grid.render(area, &mut buf, &mut ctx, theme.surface);
+        let cursor = ctx.cursor.unwrap();
+        (buf, cursor)
+    }
 
     fn grid() -> DataGrid {
         let cols = vec![
@@ -2046,6 +2087,75 @@ mod tests {
         });
         g.scroll.set_viewport(5);
         g
+    }
+
+    #[test]
+    fn clicking_another_cell_keeps_invalid_editor_and_cursor() {
+        let mut g = grid();
+        g.hscroll.set_viewport(g.columns.len());
+        g.set_cursor(0, 2, false);
+        g.begin_edit();
+        g.edit.as_mut().unwrap().buffer.set_text("not a number");
+        g.on_click(g.cell_id(1, 2), Position::ORIGIN);
+        assert_eq!(g.cursor, (0, 2));
+        assert_eq!(g.edit.as_ref().unwrap().buffer.text(), "not a number");
+        assert!(g.edit_error().is_some());
+        g.on_click(g.cell_id(1, 2), Position::ORIGIN);
+        assert_eq!(g.edit.as_ref().unwrap().buffer.text(), "not a number");
+        assert!(g.pending.is_empty());
+    }
+
+    #[test]
+    fn invalid_edit_blocks_header_sort_request_and_preserves_draft() {
+        let mut g = grid();
+        g.set_cursor(0, 2, false);
+        g.begin_edit();
+        g.edit.as_mut().unwrap().buffer.set_text("not a number");
+        let (_, event) = g.on_click(g.header_id(2), Position::ORIGIN);
+        assert_eq!(event, None);
+        assert_eq!(g.sort, None);
+        assert_eq!(g.edit.as_ref().unwrap().buffer.text(), "not a number");
+        assert!(g.edit_error().is_some());
+    }
+
+    #[test]
+    fn unicode_edit_window_keeps_cells_bounded_and_clicks_at_display_position() {
+        for level in [ColorLevel::TrueColor, ColorLevel::Mono] {
+            let mut g = grid();
+            g.set_cursor(0, 1, false);
+            g.begin_edit();
+            let (before, _) = render_editor(&mut g, level);
+            g.edit.as_mut().unwrap().buffer.select_all();
+            let text = format!("{}終", "日本語👩‍💻cafe\u{301}".repeat(8));
+            g.on_paste(&text);
+            let (after, cursor) = render_editor(&mut g, level);
+            let rect = g.col_rects[1 - g.hscroll.offset];
+            let cell = Rect::new(rect.x, cursor.y, rect.width, 1);
+            assert!(cell.contains(cursor));
+            assert_eq!(after[(cursor.x - 2, cursor.y)].symbol(), "終");
+            let expected = g
+                .edit
+                .as_ref()
+                .unwrap()
+                .buffer
+                .offset_at(0, crate::ui::text::width(&text) - 2);
+            g.on_click(g.cell_id(0, 1), Position::new(cursor.x - 2, cursor.y));
+            assert_eq!(g.edit.as_ref().unwrap().buffer.cursor_offset(), expected);
+            g.on_key(&Key {
+                code: KeyCode::Home,
+                mods: ratatui::crossterm::event::KeyModifiers::NONE,
+            });
+            let (home, _) = render_editor(&mut g, level);
+            for x in 0..80 {
+                if !cell.contains(Position::new(x, cursor.y)) {
+                    assert_eq!(
+                        after[(x, cursor.y)].symbol(),
+                        before[(x, cursor.y)].symbol()
+                    );
+                    assert_eq!(home[(x, cursor.y)].symbol(), before[(x, cursor.y)].symbol());
+                }
+            }
+        }
     }
 
     fn key(code: KeyCode) -> Key {
@@ -2103,6 +2213,28 @@ mod tests {
         g.begin_edit(); // bool cycles without an editor
         assert!(!g.is_editing());
         assert_eq!(g.value(0, 3), &CellValue::Bool(false));
+    }
+
+    #[test]
+    fn duplicate_chords_share_defaults_undo_and_read_only_guards() {
+        use ratatui::crossterm::event::KeyModifiers;
+
+        for mods in [KeyModifiers::ALT, KeyModifiers::CONTROL] {
+            let mut g = grid().editable(true);
+            let duplicate = Key {
+                code: KeyCode::Char('d'),
+                mods,
+            };
+            assert_eq!(g.on_key(&duplicate).1, Some(GridEvent::RowInserted(10)));
+            assert_eq!(g.value(10, 0), &CellValue::Default);
+            assert_eq!(g.value(10, 1), &CellValue::Text("row 0".into()));
+            assert!(g.undo());
+            assert_eq!(g.rows().len(), 10);
+            g.editable = false;
+            assert_eq!(g.on_key(&duplicate).1, None);
+            assert_eq!(g.rows().len(), 10);
+            assert_eq!(g.pending.total(), 0);
+        }
     }
 
     #[test]
