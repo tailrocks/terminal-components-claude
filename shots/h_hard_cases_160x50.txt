@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                      northwind-traders-platform-migration › inventory-reco…entory-reconciliation-core  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›
+
+    Suggested here                                                                                               Analyze disk usage               disk · here
+  › Analyze disk usage                     disk     here    / is 91% full
+    Resolve the rebase in lazygit          git      here    rebase in progress · 2 conflicts                     Does       largest-first view of this
+    Review 7 modified files                git      here    7 modified · 0 untracked                                        folder that deepens as the scan
+    Show system resources                  system   host    CPU 78% for 4 min                                               streams; select rebuildable
+    Open btm                               system   host    sustained pressure · continuous view fits                       artifacts for cleanup
+                                                                                                                 Runs       holla disk analyze /U…on-service
+    Recent here                                                                                                  In         ~/work/clients/northw…on-service
+    nothing used here yet                                                                                        Host       mbp · local
+                                                                                                                 Scope      here
+    Explore                                                                                                      Why        / is 91% full
+ ▎   Tasks   Git   Files   Disk   Services   System                                                              Changes    none · read-only
+    Children · 14 projects                 explore  child   14 child projects discovered                         Risk       read-only
+    Parent · northwind-traders-platform-…  explore  parent  workspace root above this folder                     Data       live · 3 s ago
+    System · mbp                           explore  host    available on this host                               Gate       runs directly
+                                                                                                                 Alt+Enter  Analyze the home folder ·
+                                                                                                                            Analyze a volume · Pin · Alias ·
+                                                                                                                            Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/clients/northwind-trad…iation-service   feature/NWT-4821…nvoices   ↓14 ↑3 • 7 · rebase         ! docker, github unavailable         / ━━━━━━━━━━─ 91%
+                               Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

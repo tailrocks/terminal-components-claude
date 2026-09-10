@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                     acme › frontend · Node project · pnpm  mbp · local
+
+  Here    frontend dev ! ×
+ ────────━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────
+  frontend dev · failed · 1 s · exit 1                      here · ~/work/acme/apps/frontend · mbp
+  started by Start frontend dev
+
+ ╭─ output ─────────────────────────────────────────────────────────────────────────── following ─╮
+ │  $ mise run dev  (apps/frontend)                                                               │
+ │  > frontend@2.4.0 dev /Users/alex/work/acme/apps/frontend                                      │
+ │  > vite --host                                                                                 │
+ │                                                                                                │
+ │  error when starting dev server:                                                               │
+ │  Error: listen EADDRINUSE: address already in use :::5173                                      │
+ │      at Server.setupListenHandle [as _listen2] (node:net:1908:16)                              │
+ │      at listenInCluster (node:net:1965:12)                                                     │
+ │      at Server.listen (node:net:2067:7)                                                        │
+ │   ELIFECYCLE  Command failed with exit code 1.                                                 │
+ │  mise ERROR task failed: //apps/frontend:dev exited with 1                                     │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+  Next  ▎Find the process on port 5173   ▎Retry frontend dev   ▎Open the mise task definition
+
+ ~/work/acme/apps/frontend   main   ↑1 • 2            ! exit 1 · 1 s             truecolor · 100×30
+        ↑↓ Scroll  f Follow  y Copy  r Restart  x Close  Esc Here    ! frontend dev failed · exit 1

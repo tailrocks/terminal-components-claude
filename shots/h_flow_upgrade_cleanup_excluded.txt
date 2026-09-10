@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                           no project  devbox · development
+
+  Here › Upgrade everything
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────
+  Upgrade everything · devbox                                                8 steps · 7 included · 1 excluded · ~16 s
+  upgrade Debian packages and global mise tools on devbox
+
+         step                         needs  lane  note                   07 Package cleanup                 optional
+ ▎[✓] 01 Preflight                    –      ·     sudo
+ ▎[✓] 02 Refresh Debian metadata      01     a     sudo                   Runs        sudo apt-get autoremove --purge
+ ▎[✓] 03 Review Debian upgrades       02     a                                        -y
+ ▎[✓] 04 Apply Debian upgrades        03     a     sudo                   In          / · devbox
+ ▎[✓] 05 Inspect global mise tools    01     b                            Needs       04 Apply Debian upgrades
+ ▎[✓] 06 Upgrade selected mise tools  05     b     optional               Lane        a · ordered
+ ▎[ ] 07 Package cleanup              04     a     excluded               Ordered by  apt lock
+ ▎[✓] 08 Final verification           04 06  join                         Privilege   sudo
+                                                                          Effect      2 packages removed
+    6 required · 2 optional · 2 branches run in parallel where independentState       excluded
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                              ▎Cancel   ▎Confirm plan
+
+ ~                              review · 7 steps · 2 branches parallel                               truecolor · 120×40
+                  ↑↓ Step  Space Toggle  u Undo  c Confirm  p Facts  Esc Discard    07 excluded · nothing depends on it

@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                           no project  devbox · development
+
+  Here › Upgrade everything
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────
+  Upgrade everything · devbox                                                8 steps · 7 included · 1 excluded · ~16 s
+  upgrade Debian packages and global mise tools on devbox
+
+         step                         needs  lane  note                   06 Upgrade selected mise tools     optional
+ ▎[✓] 01 Preflight                    –      ·     sudo
+ ▎[✓] 02 Refresh Debian metadata      01     a     sudo                   Runs     mise upgrade --exclude go
+ ▎[✓] 03 Review Debian upgrades       02     a                            In       / · devbox
+ ▎[✓] 04 Apply Debian upgrades        03     a     sudo                   Needs    05 Inspect global mise tools
+ ▎[✓] 05 Inspect global mise tools    01     b                            Unlocks  08 Final verification
+ ▎[ ] 06 Upgrade selected mise tools  05     b     excluded               Lane     b · ordered
+ ▎[✓] 07 Package cleanup              04     a     optional               Effect   node 26.0.1 → 26.1.0 · python
+ ▎[✓] 08 Final verification           04 06  join  blocked…                        3.13.5 → 3.13.7 · pnpm 10.4.0 →
+                                                                                   10.6.2 · go excluded
+    08 Final verification · blocked · needs 06 upgrade selected mise toolsState    excluded
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                                                                                              ▎Cancel   ▎Confirm plan
+
+ ~                              review · 7 steps · 2 branches parallel                               truecolor · 120×40
+                         ↑↓ Step  Space Toggle  u Undo  c Confirm  p Facts  Esc Discard    06 excluded · 08 now blocked

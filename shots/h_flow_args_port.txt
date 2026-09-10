@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                          holla · Rust project  mbp · local
+
+  Here › PostgreSQL activity
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────
+  PostgreSQL activity                                                  holla@localhost:5432/holla_dev · live · 1 s ago
+
+  Connections   24%
+
+  Source       DATABASE_URL in .env · password never shown
+  Connections  24 of 100
+  Idle in txn  1
+  Blocked      2
+  Cache hit    98% · 2 deadlocks in 24 h
+
+ ╭─ Sessions · blockers first ─────────────────────────────────────────────────────────────────── 5 lines · y copies ─╮
+ │  pid     state               user      wait               txn   query                                              │
+ │  48197   idle in transaction alex      –                 330s   UPDATE orders SET status = 'settled' WH…           │
+ │  └ 48211 active              api       Lock:tuple        252s   UPDATE orders SET status = 'shipped' WH…           │
+ │    └ 48230active              worker    Lock:tuple        238s   UPDATE orders SET status = 'settled' WH…          │
+ │  48240   active              api       –                   1s   SELECT * FROM orders WHERE customer_id …           │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+  Next  ▎Cancel the blocking query (PID 48197)   ▎Terminate backend 48197   ▎Open pg_activity
+
+ ~/work/holla   main   ↓3 • 5                          snapshot · read-only                          truecolor · 120×40
+                                    ↑↓ Scroll  y Copy  Tab Next actions  Esc Back

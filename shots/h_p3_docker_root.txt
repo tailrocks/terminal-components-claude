@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                           no project  devbox · development
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ docker clean                                                                                         scope ‹ here ›
+
+    Results · 7                                                                  Clean Docker completely
+  › Clean Docker completely    plan    on devbox  18.4 GB recl…  destructive
+    Stop all containers        docker  on devbox  5 running on…                  Does       remove all              ┃
+    Prune builder cache        docker  on devbox  6.1 GB of bu…                             user-removable Docker   ┃
+    Prune unused networks      docker  on devbox  available on…                             state on devbox:        ┃
+    Prune unused volumes       docker  on devbox  7 volumes      destructive                containers, images,     ┃
+    Remove all unused images   docker  on devbox  12 dangling    destructive                networks, volumes,      ┃
+    Stop and remove all cont…  docker  on devbox  12 container…  destructive                system data, build cache┃
+                                                                                            · as a reviewable plan  ┃
+                                                                                 Runs       docker stop acme…redis-1┃
+                                                                                            docker rm acme-a…na loki┃
+                                                                                            docker image pru…--force┃
+                                                                                            docker network p…--force┃
+                                                                                            docker volume pr…--force┃
+                                                                                            docker builder p…--force┃
+                                                                                            … 2 more                ┃
+                                                                                 In         devbox · host-wide      ┃
+                                                                                 Host       devbox · development ·  ┃
+                                                                                            over SSH                ┃
+                                                                                 Scope      on devbox               ┃
+                                                                                 Why        18.4 GB reclaimable on  ┃
+                                                                                            devbox · used 9 times on┃
+                                                                                            devbox                  ┃
+                                                                                 Changes    12 containers · 41      ┃
+                                                                                            images · 7 volumes ·    ┃
+                                                                                            ~18.4 GB reclaimed ·    │
+                                                                                            permanent               │
+                                                                                 Risk       destructive             │
+                                                                                 Data       live · 1 s ago          │
+                                                                                 Gate       two gates · type I      │
+
+
+ /work/scratch                             ⠸ discovering github · 5 of 6                             truecolor · 120×40
+              Type Search  ↑↓ Move  Enter Review…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Esc Clear

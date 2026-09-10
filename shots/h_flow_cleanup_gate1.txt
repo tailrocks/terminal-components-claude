@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                     work · project collection  mbp · local
+
+  Here › … › Review
+ ━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────
+  Review · Clean developer artifacts under ~/work · gate 1 of 2 · review the resolved facts, then continue deliberate…
+
+  Action       remove selected build artifacts and caches under /Users/alex/work
+  Host         mbp · local
+  In           ~/work
+  Steps        6 included · 0 excluded · 5 branches parallel · ~9 s
+  Targets      5 candidates selected · 27.8 GB
+  Recovery     Trash where possible · tool-managed cleanups regenerate on the next build
+  Not touched  recent artifacts, unverifiable activity, protected paths
+  Privilege    none
+  Provenance   resolved by holla from live state · 2 s ago
+  Gate         second gate types the target-bound phrase
+
+ ╭─ Sequence · 6 commands ───────────────────────────────────────────────────────────────────────────────── y copies ─╮
+ │  01  trash /Users/alex/work/frontend/node_modules                                                                  │
+ │  02  cargo clean  (in /Users/alex/work/backend)                                                                    │
+ │  03  ./gradlew clean  (in /Users/alex/work/android)                                                                │
+ │  04  pnpm store prune  (in /Users/alex/Library/pnpm/store/v3)                                                      │
+ │  05  trash /Users/alex/Library/Logs                                                                                │
+ │  06  holla disk rescan /Users/alex/work                                                                            │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+                                                                                                 ▎Cancel   ▎Continue…
+
+ ~/work                          review · gate 1 of 2                          / ━━━━━━━━━━─ 91%     truecolor · 120×40
+                          ← → Choose  Enter Activate  Tab Next  y Copy sequence  Esc Cancel

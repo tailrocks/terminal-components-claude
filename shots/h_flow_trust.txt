@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                         acme › frontend · Node project · pnpm  mbp · local
+
+  Here › Trust
+ ━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────
+  Trust ~/work/acme/apps/frontend/mise.toml?
+  not trusted yet · review the exact definition, commands and environment before it runs
+
+  File         ~/work/acme/apps/frontend/mise.toml
+  Defines      4 tasks · 2 tools
+  Environment  VITE_API_URL=http://localhost:8080
+  Trust scope  this exact file · not the folder, not descendants · renewed when the content changes
+  Provenance   committed in the project · last changed 3 d ago by the frontend team
+  Then         re-resolve and run //apps/frontend:test
+
+ ╭─ Definition ─────────────────────────────────────────────────────────────────────────────────────── exact content ─╮
+ │  [tasks.dev]                                                                                                       │
+ │    run = "pnpm dev"                                                                                                │
+ │    description = "vite development server"                                                                         │
+ │  [tasks.build]                                                                                                     │
+ │    run = "pnpm build"                                                                                              │
+ │    description = "production build"                                                                                │
+ │  [tasks.test]                                                                                                      │
+ │    run = "pnpm test"                                                                                               │
+ │    depends = ["//apps/frontend:build"]                                                                             │
+ │    description = "vitest after a build"                                                                            │
+ │  [tasks.lint]                                                                                                      │
+ │    run = "pnpm lint"                                                                                               │
+ │    description = "eslint"                                                                                          │
+ │  [tools]                                                                                                           │
+ │    node = "26"                                                                                                     │
+ │    pnpm = "10"                                                                                                     │
+ │  [env]                                                                                                             │
+ │    VITE_API_URL = "http://localhost:8080"                                                                          │
+ │                                                                                                                    │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+                                                                                           ▎Cancel   ▎Trust this file
+
+ ~/work/acme/apps/frontend   main   ↑1 • 2               trust review · one exact file               truecolor · 120×40
+                                   ← → Choose  Enter Activate  Tab Next  Esc Cancel

@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                          holla · Rust project  mbp · local
+
+  Here › PostgreSQL activity
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────
+  PostgreSQL activity                                                  holla@localhost:5432/holla_dev · live · 1 s ago
+
+  Connections   24%
+
+  Source       DATABASE_URL in .env · password never shown
+  Connections  24 of 100
+  Idle in txn  1
+  Blocked      2       ╭────────────────────────────────────────────────────────────────────────╮
+  Cache hit    98% · 2 │                                                                        │
+                       │  Cancel the blocking query (PID 48197)                                 │
+ ╭─ Sessions · blockers│                                                                        │ 5 lines · y copies ─╮
+ │  pid     state      │  Action        pg_cancel_backend(48197) · alex · psql · idle in        │                     │
+ │  48197   idle in tra│                transaction for 5 min · revalidated immediately before  │ttled' WH…           │
+ │  └ 48211 active     │                running                                                 │ipped' WH…           │
+ │    └ 48230active    │  Host          mbp · local                                             │ettled' WH…          │
+ │  48240   active     │  In            ~/work/holla                                            │tomer_id …           │
+ │                     │  Scope         here                                                    │                     │
+ │                     │  Changes       the current query is cancelled · the session stays      │                     │
+ │                     │                connected                                               │                     │
+ │                     │  Risk          destructive                                             │                     │
+ │                     │  Data          live · 0 s ago                                          │                     │
+ │                     │                                                                        │                     │
+ │                     │                                                        ▎Cancel  ▎Run   │                     │
+ │                     │                                                                        │                     │
+ │                     ╰────────────────────────────────────────────────────────────────────────╯                     │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ │                                                                                                                    │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+  Next  ▎Cancel the blocking query (PID 48197)   ▎Terminate backend 48197   ▎Open pg_activity
+
+ ~/work/holla   main   ↓3 • 5                          snapshot · read-only                          truecolor · 120×40
+                                        ← → Choose  Enter Confirm  Esc Cancel

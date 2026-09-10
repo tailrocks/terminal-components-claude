@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                                        mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                scope ‹ here ›
+
+    Suggested here                                                            ┃
+  › Inspect 3 GB of generated…  disk     here    3 GB generated artifacts     ┃
+    Install missing tools · s…  task     here    1 tool missing               ┃
+    Run tests                   task     here    2 files changed since the l… ┃
+    Follow acme-api-1 logs      docker   parent  service is unhealthy         ┃
+    Review 2 modified files     git      parent  2 modified · 0 untracked     ┃
+                                                                              ┃
+    Recent here                                                               ┃
+    nothing used here yet                                                     ┃
+                                                                              │
+    From acme · the parent root                                               │
+    Start development ecosyst…  task     parent  defined by ~/work/acme/mise… │
+    Start required containers   task     parent  defined by ~/work/acme/mise… │
+
+    → holla disk analyze /Users/alex/work/…ntend --artifacts · here · read-only
+
+ ~/work/acme/apps/frontend   main   ↑1 • 2                    truecolor · 80×24
+       Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  …

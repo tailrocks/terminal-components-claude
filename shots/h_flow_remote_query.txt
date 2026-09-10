@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                      payments · service checkout  ◆ prod-eu-1 · production
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ restart payments                                                                                     scope ‹ here ›
+
+    Results · 2                                                                  Restart payments
+  › Restart payments         system  on prod-eu-1  production h…  privileged
+    Restart payments-worker  system  on prod-eu-1  production h…  privileged     Does       systemctl restart
+                                                                                            payments on prod-eu-1 ·
+                                                                                            production · in-flight
+                                                                                            requests are dropped
+                                                                                 Runs       sudo systemctl r…ayments
+                                                                                            systemctl status…ayments
+                                                                                 In         prod-eu-1 · host-wide
+                                                                                 Host       prod-eu-1 · production ·
+                                                                                            over SSH
+                                                                                 Scope      on prod-eu-1
+                                                                                 Why        production host · two
+                                                                                            gates
+                                                                                 Changes    payments restarts ·
+                                                                                            brief outage on
+                                                                                            prod-eu-1
+                                                                                 Risk       privileged
+                                                                                 Data       live · 0 s ago
+                                                                                 Gate       two gates · type RESTART
+                                                                                            PAYMENTS ON prod-eu-1
+                                                                                 Alt+Enter  Pin · Alias · Why here?
+
+
+
+
+
+
+
+
+
+
+ /srv/payments   detached @ v2.14.3                                                                  truecolor · 120×40
+              Type Search  ↑↓ Move  Enter Review…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Esc Clear

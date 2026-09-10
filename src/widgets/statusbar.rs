@@ -36,6 +36,9 @@ pub struct StatusItem {
     pub emphasis: Emphasis,
     /// A compact line meter after the text: `(used %, tone)`.
     pub meter: Option<(Option<u8>, MeterTone)>,
+    /// A live spinner before the text, always in the primary tone (the one
+    /// live-activity use of the accent); the text keeps its own tone.
+    pub busy: bool,
 }
 
 /// Track cells of an inline status meter.
@@ -50,7 +53,13 @@ impl StatusItem {
             id: None,
             emphasis: Emphasis::Plain,
             meter: None,
+            busy: false,
         }
+    }
+    /// Prefix a primary-tone spinner: `⠋ text`.
+    pub fn busy(mut self) -> Self {
+        self.busy = true;
+        self
     }
     /// Append a compact line meter (label, then `━━━━──── 76%`).
     pub fn meter(mut self, used_pct: Option<u8>, tone: MeterTone) -> Self {
@@ -76,7 +85,7 @@ impl StatusItem {
 
     /// Cells the item occupies (chips carry their own padding).
     pub fn width(&self) -> u16 {
-        let w = width(&self.text) as u16;
+        let w = width(&self.text) as u16 + if self.busy { 2 } else { 0 };
         let base = match self.emphasis {
             Emphasis::Chip => w + 2,
             _ => w,
@@ -197,7 +206,8 @@ impl StatusBar {
             let mut text = it.text.clone();
             let room = (area.x + EDGE + left_budget).saturating_sub(x);
             if w > room {
-                let pad = if it.emphasis == Emphasis::Chip { 2 } else { 0 };
+                let pad =
+                    if it.emphasis == Emphasis::Chip { 2 } else { 0 } + if it.busy { 2 } else { 0 };
                 text = truncate(&it.text, room.saturating_sub(pad) as usize);
                 w = width(&text) as u16 + pad;
             }
@@ -286,7 +296,25 @@ impl StatusBar {
             } else {
                 p.text.clone()
             };
-            buf.set_string(p.x, area.y, &text, st);
+            if it.busy {
+                let (lead, rest) = match it.emphasis {
+                    Emphasis::Chip => (" ", p.text.as_str()),
+                    _ => ("", p.text.as_str()),
+                };
+                let spin = crate::widgets::progress::spinner_frame(ctx.interaction.tick);
+                let mut x = p.x;
+                if !lead.is_empty() {
+                    buf.set_string(x, area.y, lead, st);
+                    x += 1;
+                }
+                buf.set_string(x, area.y, spin, st.fg(t.accent));
+                buf.set_string(x + 2, area.y, rest, st);
+                if it.emphasis == Emphasis::Chip {
+                    buf.set_string(x + 2 + width(rest) as u16, area.y, " ", st);
+                }
+            } else {
+                buf.set_string(p.x, area.y, &text, st);
+            }
             if let Some((pct, tone)) = it.meter {
                 let label_w = width(&text) as u16;
                 let mx = p.x + label_w + 1;
