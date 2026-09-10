@@ -86,7 +86,8 @@ fn parse_args() -> Options {
                      \x20          upgrade-plan, activities-multi, remote-host, launch-failure, hard-cases\n\
                      Motion:    explicit --motion wins; otherwise HOLLA_NO_MOTION=1 selects reduced motion\n\
                      Frame:     with --motion paused, the exact fixture tick to render\n\n\
-                     Keys: type to search · ↑↓ move · Enter run · Alt+Enter alternatives · Tab preview · Alt+↑↓ scope · Ctrl+G activities · ? help · Ctrl+Q quit\n\
+                     Keys: type to search · ↑↓ move · Enter run · Alt+Enter alternatives · Tab preview · Ctrl+↑↓ scope · Ctrl+G activities · F1 key reference · Ctrl+Q quit\n\
+                     Preview: every scenario is captured under shots/h_*.png; src/bin/holla/README.md lists what each scenario shows.\n\
                      Everything is simulated in memory; no stack command is ever executed."
                 );
                 std::process::exit(0);
