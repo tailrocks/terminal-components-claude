@@ -663,9 +663,10 @@ marks with their base. Single-line buffers discard line breaks; multiline
 buffers normalize CRLF and CR to LF. Paste inserts only into the control that is
 editing.
 
-Mouse: hover previews; the first click focuses, the second click on an
-already-focused field or the current cell starts editing; a click on a header
-sorts; a click on a tab activates it and on its `×` closes it; drag selects
+Mouse: hover previews; one click on a text field focuses it and starts
+editing at the pointer (a second click only moves the caret); a click on a
+grid cell selects it and a second click on the current cell edits; a click
+on a header sorts; a click on a tab activates it and on its `×` closes it; drag selects
 text or a cell range or moves a scrollbar thumb; the wheel scrolls the
 container under the pointer; clicking outside a cancelable dialog, picker or
 open select closes it. Any key press suppresses hover until the pointer moves
@@ -747,7 +748,8 @@ narrow layout is never a focus trap.
   hardware cursor, hover suppressed), hover (field-hover plane), disabled,
   error (`!` + message replaces help), placeholder (muted).
 - **Keys**: `Enter`/`F2` edit; single-line editing rules above; validation on
-  commit. **Mouse**: first click focuses, second click edits at the pointer.
+  commit. **Mouse**: one click focuses and edits at the pointer; a second
+  click only moves the caret.
 - **Avoid**: changing the field plane to signal editing (the signal is
   underline + cursor); clipping the `optional` suffix; validating on every
   keystroke unless the field is already in error.

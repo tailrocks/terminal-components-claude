@@ -2080,9 +2080,8 @@ impl App {
         }
         for inp in [&mut f.value, &mut f.value2] {
             if inp.id == id {
-                let was = focus.is(id);
                 focus.focus(id);
-                return FilterOutcome::Keep(inp.on_click(pos, was));
+                return FilterOutcome::Keep(inp.on_click(pos));
             }
         }
         if f.apply.id == id && f.apply.on_click() {

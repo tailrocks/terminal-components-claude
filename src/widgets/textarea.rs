@@ -174,17 +174,13 @@ impl TextArea {
         Outcome::Changed
     }
 
-    pub fn on_click(&mut self, pos: Position, was_focused: bool) -> Outcome {
+    /// A click enters editing (one click, never two) and places the cursor
+    /// at the pointer.
+    pub fn on_click(&mut self, pos: Position) -> Outcome {
         if self.disabled {
             return Outcome::Consumed;
         }
-        if !self.editing {
-            if was_focused {
-                self.begin_edit();
-            } else {
-                return Outcome::Changed;
-            }
-        }
+        self.begin_edit();
         let line = pos.y.saturating_sub(self.text_area.y) as usize + self.scroll.offset;
         let col = pos.x.saturating_sub(self.text_area.x) as usize + self.hscroll;
         let line = line.min(self.buffer.line_count().saturating_sub(1));
@@ -446,7 +442,7 @@ mod tests {
             let cursor = render(&mut input, area, &mut buf, level).unwrap();
             assert!(input.text_area.contains(cursor));
             assert!(input.hscroll > 0);
-            input.on_click(cursor, true);
+            input.on_click(cursor);
             assert_eq!(input.buffer.cursor_offset(), input.buffer.text().len());
             input.on_paste("🙂");
             let cursor = render(&mut input, area, &mut buf, level).unwrap();

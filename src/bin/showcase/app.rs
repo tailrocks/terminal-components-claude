@@ -690,8 +690,8 @@ impl App {
                     return Outcome::Changed;
                 }
                 self.flash(id);
-                // Editors must see the focus from before this completed
-                // click to distinguish focusing from entering edit mode.
+                // The page owns the click; a control the page did not
+                // refocus is focused here so keyboard and pointer agree.
                 let before = self.focus.current();
                 let out = self.dispatch(PageEvent::Click { id, pos: m.pos });
                 if self.dialog.is_none() && self.focus.current() == before && self.ring.contains(id)
@@ -1217,7 +1217,7 @@ mod click_regressions {
     }
 
     #[test]
-    fn first_completed_click_focuses_fields_second_click_edits() {
+    fn one_completed_click_focuses_and_edits_a_field() {
         for page in [
             PageId::Inputs,
             PageId::TextAreas,
@@ -1231,13 +1231,29 @@ mod click_regressions {
             let id = app.ring.next(Some(NAV)).unwrap();
             let area = app.hits.area_of(id).unwrap();
             let pos = Position::new(area.x + 2, area.y + area.height / 2);
-            for click in 0..2 {
-                for kind in [MouseKind::Down, MouseKind::Up] {
-                    app.handle(Input::Mouse(Mouse { kind, pos }));
-                    term.draw(|frame| app.render(frame)).unwrap();
-                }
+            // the press alone focuses nothing; the completed click focuses
+            // and edits in one go, and a second click only keeps editing
+            app.handle(Input::Mouse(Mouse {
+                kind: MouseKind::Down,
+                pos,
+            }));
+            term.draw(|frame| app.render(frame)).unwrap();
+            assert!(!app.pages[page.index()].editing(), "{page:?}: press alone");
+            for _click in 0..2 {
+                app.handle(Input::Mouse(Mouse {
+                    kind: MouseKind::Up,
+                    pos,
+                }));
+                term.draw(|frame| app.render(frame)).unwrap();
                 assert_eq!(app.focus.current(), Some(id), "{page:?}");
-                assert_eq!(app.pages[page.index()].editing(), click == 1, "{page:?}");
+                assert!(
+                    app.pages[page.index()].editing(),
+                    "{page:?}: one click edits"
+                );
+                app.handle(Input::Mouse(Mouse {
+                    kind: MouseKind::Down,
+                    pos,
+                }));
             }
         }
     }

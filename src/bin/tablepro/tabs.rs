@@ -1452,9 +1452,8 @@ impl QueryTab {
             }
         }
         if id == self.editor.id {
-            let was = cx.focus.is(id);
             cx.focus.focus(id);
-            let o = self.editor.on_click(pos, was);
+            let o = self.editor.on_click(pos);
             let _ = cat;
             return o;
         }

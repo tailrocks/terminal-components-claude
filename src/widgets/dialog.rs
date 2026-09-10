@@ -338,9 +338,8 @@ impl Dialog {
         if let Some(inp) = self.input_mut()
             && inp.id == id
         {
-            let was = focus.is(id);
             focus.focus(id);
-            return inp.on_click(pos, was);
+            return inp.on_click(pos);
         }
         for i in 0..self.actions.len() {
             if self.actions[i].id == id {

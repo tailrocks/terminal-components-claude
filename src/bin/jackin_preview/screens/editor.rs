@@ -1750,9 +1750,8 @@ impl Screen for EditorScreen {
         match self.tab {
             EdTab::General => {
                 if id == NAME {
-                    let was = cx.focus.is(NAME);
                     cx.focus.focus(NAME);
-                    return self.name.on_click(pos, was);
+                    return self.name.on_click(pos);
                 }
                 if id == WORKDIR {
                     cx.focus.focus(WORKDIR);

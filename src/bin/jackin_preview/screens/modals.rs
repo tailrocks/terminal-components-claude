@@ -400,9 +400,8 @@ impl FileBrowser {
         w: &World,
     ) -> Outcome {
         if id == self.path.id {
-            let was = focus.is(id);
             focus.focus(id);
-            return self.path.on_click(pos, was);
+            return self.path.on_click(pos);
         }
         if let Some(i) = self.list.locate(id) {
             focus.focus(self.list.id);
@@ -1237,9 +1236,8 @@ impl FormDialog {
             let name = f.name.clone();
             match &mut f.kind {
                 FieldKindW::Input(i) if i.id == id => {
-                    let was = focus.is(id);
                     focus.focus(id);
-                    return i.on_click(pos, was);
+                    return i.on_click(pos);
                 }
                 FieldKindW::Select(s) if s.owns(id) => {
                     focus.focus(s.id);

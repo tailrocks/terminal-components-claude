@@ -394,14 +394,12 @@ impl Page for SettingsPage {
                     return self.tabs.on_click(id).0;
                 }
                 if id == self.name.id {
-                    let was = cx.focus.is(id);
                     cx.focus.focus(id);
-                    return self.name.on_click(*pos, was);
+                    return self.name.on_click(*pos);
                 }
                 if id == self.description.id {
-                    let was = cx.focus.is(id);
                     cx.focus.focus(id);
-                    return self.description.on_click(*pos, was);
+                    return self.description.on_click(*pos);
                 }
                 for i in 0..self.visibility.options.len() {
                     if self.visibility.option_id(i) == id {

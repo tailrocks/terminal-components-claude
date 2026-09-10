@@ -973,9 +973,8 @@ impl Workbench {
         history: &mut History,
     ) -> Outcome {
         if id == self.explorer_filter.id {
-            let was = cx.focus.is(id);
             cx.focus.focus(id);
-            return self.explorer_filter.on_click(pos, was);
+            return self.explorer_filter.on_click(pos);
         }
         if let Some((row, toggle)) = self.explorer.locate(id) {
             cx.focus.focus(self.explorer.id);
@@ -1096,9 +1095,8 @@ impl Workbench {
             Some(WorkTab::Query(q)) => q.on_click(id, pos, cx, cat),
             Some(WorkTab::History(h)) => {
                 if id == h.search.id {
-                    let was = cx.focus.is(id);
                     cx.focus.focus(id);
-                    return h.search.on_click(pos, was);
+                    return h.search.on_click(pos);
                 }
                 if let Some(row) = h.list.locate(id) {
                     cx.focus.focus(h.list.id);
@@ -1111,7 +1109,7 @@ impl Workbench {
                 }
                 if id == h.detail.id || id == scrollbar::id_for(h.detail.id) {
                     cx.focus.focus(h.detail.id);
-                    return h.detail.on_click(pos, true);
+                    return h.detail.on_click(pos);
                 }
                 let mut hit: Option<bool> = None;
                 for (b, run) in [(&mut h.open_btn, false), (&mut h.rerun_btn, true)] {

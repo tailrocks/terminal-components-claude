@@ -12,7 +12,8 @@ use crate::widgets::field_common::{EditAction, edit_key};
 
 /// Single-line text input with two modes:
 /// - **navigation** (focused, not editing): the gutter bar shows focus, keys
-///   like Tab move on, Enter or typing starts editing.
+///   like Tab move on, Enter or typing starts editing; a mouse click starts
+///   editing at the pointer in one go.
 /// - **editing**: the hardware cursor is placed in the field, the field bg
 ///   drops to canvas, Enter commits, Esc reverts.
 #[derive(Debug, Clone)]
@@ -249,19 +250,14 @@ impl TextInput {
         }
     }
 
-    /// Mouse click on the field. Focus is handled by the app; this places the
-    /// cursor and enters editing if the field was already focused.
-    pub fn on_click(&mut self, pos: Position, was_focused: bool) -> Outcome {
+    /// Mouse click on the field. Focus is handled by the app; the click
+    /// enters editing (one click, never two) and places the cursor at the
+    /// pointer.
+    pub fn on_click(&mut self, pos: Position) -> Outcome {
         if self.disabled {
             return Outcome::Consumed;
         }
-        if !self.editing {
-            if was_focused {
-                self.begin_edit();
-            } else {
-                return Outcome::Changed;
-            }
-        }
+        self.begin_edit();
         // Mouse positions use the same display geometry as rendering. A
         // masked CJK/emoji grapheme occupies one cell, regardless of raw width.
         let col = pos.x.saturating_sub(self.text_area.x) as usize + self.scroll;
@@ -517,6 +513,37 @@ mod tests {
     }
 
     #[test]
+    fn one_click_enters_editing_at_the_pointer_and_a_disabled_field_ignores_it() {
+        let mut input = TextInput::new(WidgetId::of("i"), "Name").value("hello");
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let area = Rect::new(0, 0, 30, 3);
+        let mut buf = Buffer::empty(area);
+        input.render(area, &mut buf, &mut ctx, theme.canvas);
+        assert!(!input.editing);
+        let o = input.on_click(Position::new(input.text_area.x + 2, 1));
+        assert_eq!(o, Outcome::Changed);
+        assert!(input.editing, "the first click edits");
+        assert_eq!(
+            input.buffer.cursor(),
+            2,
+            "the caret lands under the pointer"
+        );
+        // a second click only moves the caret
+        input.on_click(Position::new(input.text_area.x + 4, 1));
+        assert!(input.editing);
+        assert_eq!(input.buffer.cursor(), 4);
+        let mut locked = TextInput::new(WidgetId::of("d"), "Locked")
+            .value("x")
+            .disabled(true);
+        locked.render(area, &mut buf, &mut ctx, theme.canvas);
+        assert_eq!(locked.on_click(Position::new(2, 1)), Outcome::Consumed);
+        assert!(!locked.editing);
+    }
+
+    #[test]
     fn masked_clicks_follow_display_graphemes() {
         let mut input = TextInput::new(WidgetId::of("masked"), "Secret")
             .value("日👩‍💻e\u{301}a")
@@ -526,7 +553,7 @@ mod tests {
         let mut buf = Buffer::empty(area);
         render(&mut input, area, &mut buf);
         for (col, offset) in [(0, 0), (1, 3), (2, 14), (3, 17), (4, 18)] {
-            input.on_click(Position::new(input.text_area.x + col, 1), true);
+            input.on_click(Position::new(input.text_area.x + col, 1));
             assert_eq!(input.buffer.cursor_offset(), offset);
         }
     }
@@ -541,7 +568,7 @@ mod tests {
         let mut buf = Buffer::empty(area);
         let cursor = render(&mut input, area, &mut buf).unwrap();
         assert!(input.text_area.contains(cursor));
-        input.on_click(Position::new(input.text_area.x + 1, 1), true);
+        input.on_click(Position::new(input.text_area.x + 1, 1));
         assert_eq!(input.buffer.cursor_offset(), 20);
         assert_eq!(buf[(input.text_area.x + 1, 1)].symbol(), "•");
     }
@@ -583,7 +610,7 @@ mod tests {
         let mut buf = Buffer::empty(area);
         let cursor = render(&mut input, area, &mut buf).unwrap();
         assert!(input.text_area.contains(cursor));
-        input.on_click(cursor, true);
+        input.on_click(cursor);
         assert_eq!(input.buffer.cursor_offset(), input.text().len());
     }
 }

@@ -742,9 +742,8 @@ impl ConnectionsScreen {
         cx: &mut crate::app::Cx,
     ) -> (Outcome, Option<ConnEvent>) {
         if id == self.filter.id {
-            let was = cx.focus.is(id);
             cx.focus.focus(id);
-            return (self.filter.on_click(pos, was), None);
+            return (self.filter.on_click(pos), None);
         }
         if let Some((row, toggle)) = self.tree.locate(id) {
             cx.focus.focus(self.tree.id);
@@ -809,15 +808,13 @@ impl ConnectionsScreen {
             &mut form.ssh_user,
         ] {
             if inp.id == id {
-                let was = cx.focus.is(id);
                 cx.focus.focus(id);
-                return inp.on_click(pos, was);
+                return inp.on_click(pos);
             }
         }
         if form.startup.id == id {
-            let was = cx.focus.is(id);
             cx.focus.focus(id);
-            return form.startup.on_click(pos, was);
+            return form.startup.on_click(pos);
         }
         for sel in [&mut form.engine, &mut form.group] {
             if sel.owns(id) {

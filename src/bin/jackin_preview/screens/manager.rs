@@ -2116,6 +2116,8 @@ impl Screen for ManagerScreen {
         }
         for i in 0..self.detail_rows.len() {
             if Self::detail_row_id(i) == id {
+                // a pane row is not an input box: the first click selects,
+                // the second attaches
                 let was = self.detail_cursor == i && cx.focus.is(DETAIL);
                 self.detail_cursor = i;
                 cx.focus.focus(DETAIL);

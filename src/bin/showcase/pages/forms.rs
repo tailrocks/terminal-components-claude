@@ -315,19 +315,16 @@ impl Page for FormsPage {
             PageEvent::Click { id, pos } => {
                 let id = *id;
                 if id == self.name.id {
-                    let was = cx.focus.is(id);
                     cx.focus.focus(id);
-                    return self.name.on_click(*pos, was);
+                    return self.name.on_click(*pos);
                 }
                 if id == self.reviewer.id {
-                    let was = cx.focus.is(id);
                     cx.focus.focus(id);
-                    return self.reviewer.on_click(*pos, was);
+                    return self.reviewer.on_click(*pos);
                 }
                 if id == self.description.id {
-                    let was = cx.focus.is(id);
                     cx.focus.focus(id);
-                    return self.description.on_click(*pos, was);
+                    return self.description.on_click(*pos);
                 }
                 for i in 0..self.mode.options.len() {
                     if self.mode.option_id(i) == id {
