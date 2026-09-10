@@ -260,7 +260,7 @@ impl SearchText {
 }
 
 /// Match ranges always refer to complete graphemes in the original document.
-pub(crate) fn find_ranges(text: &str, needle: &str, case_sensitive: bool) -> Vec<Range<usize>> {
+pub fn find_ranges(text: &str, needle: &str, case_sensitive: bool) -> Vec<Range<usize>> {
     if needle.is_empty() {
         return Vec::new();
     }
