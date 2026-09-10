@@ -11,7 +11,7 @@
  ▎ ✓ 03 Review Debian upgrades       02     a     1 s                │  inux-x64.tar.xz                               │
  ▎ ✓ 04 Apply Debian upgrades        03     a     8 s                │  mise node@26.1.0 · checksum mismatch · expect │
  ▎ ✓ 05 Inspect global mise tools    01     b     2 s                │  ed 9f3a… got 4c11…                            │
- ▎ ! 06 Upgrade selected mise tools  05     b     5 s · exit 1       │  mise ERROR failed to install node@26.1.0      │
+ ▎ ! 06 Upgrade selected mise tools  05     b     5 s · exit 1…      │  mise ERROR failed to install node@26.1.0      │
  ▎ – 07 Package cleanup              04     a     excluded           │  exit status 1                                 │
  ▎ · 08 Final verification           04 06  join  blocked…           │                                                │
                                                                      │                                                │

@@ -110,6 +110,67 @@ fn docker_cleanup_takes_two_gates_and_revalidates_before_executing() {
         == PlanPhase::Done));
     assert!(h.text().contains("7 succeeded"), "{}", h.text());
     assert!(h.text().contains("100% ✓"));
+    // the effect landed in the world: nothing is pretended
+    let d = &h.app.world.docker;
+    assert!(d.containers.is_empty() && d.volumes.is_empty());
+    assert_eq!(d.images, 0);
+    assert_eq!(d.reclaimable_gb, 0.0);
+    assert!(
+        h.text().contains("Next"),
+        "follow-ups offered: {}",
+        h.text()
+    );
+}
+
+#[test]
+fn finished_runs_change_the_world_they_claimed_to() {
+    // disk cleanup: reclaimed candidates leave the list and enter history
+    let mut h = H::new(Scenario::DiskCleanup, Motion::Reduced, 80, 120, 40);
+    let before = h.app.world.disk.candidates.len();
+    let used_before = h.app.world.disk.filesystems[0].used_gb;
+    h.key(KeyCode::Char('c'));
+    h.key(KeyCode::Char('c'));
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Enter);
+    h.type_str("REMOVE ALL BUILD ARTIFACTS UNDER /Users/alex/work");
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Tab);
+    h.key(KeyCode::Enter);
+    let done = |h: &H| {
+        h.app
+            .world
+            .plans
+            .iter()
+            .any(|p| p.id == "cleanup-work" && p.phase == PlanPhase::Done)
+    };
+    assert!(until(&mut h, 600, done), "{}", h.text());
+    let d = &h.app.world.disk;
+    assert!(d.candidates.len() < before, "reclaimed candidates are gone");
+    assert!(!d.history.is_empty(), "a cleanup record was written");
+    assert!(d.filesystems[0].used_gb < used_before);
+
+    // postgres: cancelling the blocker frees its waiters
+    let mut h = H::new(Scenario::RemoteHost, Motion::Reduced, 0, 120, 40);
+    let blocker = h.app.world.pg_blocker().expect("a blocker in the fixture");
+    h.type_str("cancel the blocking");
+    h.key(KeyCode::Enter);
+    // one confirmation for a bounded mutation
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    assert!(until(&mut h, 200, |h| h
+        .app
+        .world
+        .activities
+        .iter()
+        .any(|a| !a.state.live())));
+    let pg = h.app.world.pg.as_ref().unwrap();
+    assert!(pg.sessions.iter().all(|s| s.blocked_by != Some(blocker)));
+    let cancelled = pg.sessions.iter().find(|s| s.pid == blocker).unwrap();
+    assert_eq!(
+        cancelled.state, "idle",
+        "the blocker rolled back, its session stays"
+    );
 }
 
 #[test]
@@ -355,6 +416,22 @@ fn disk_cleanup_selects_by_freshness_and_gates_on_the_path() {
     let early = H::new(Scenario::DiskCleanup, Motion::Paused, 10, 120, 40);
     assert!(early.text().contains("scanning"));
     assert!(!early.text().contains("~/Library/Logs"));
+}
+
+#[test]
+fn quitting_a_remote_host_with_work_running_names_the_box() {
+    let mut h = H::new(Scenario::RemoteHost, Motion::Reduced, 0, 120, 40);
+    h.key(KeyCode::Enter); // follow the payments-worker journal
+    assert!(h.app.world.live_activities() > 0);
+    h.ctrl(KeyCode::Char('q'));
+    assert!(
+        h.text().contains("Quit holla❯ on prod-eu-1?"),
+        "{}",
+        h.text()
+    );
+    assert!(h.text().contains("◆ prod-eu-1 · production · over SSH"));
+    h.key(KeyCode::Esc);
+    assert!(!h.app.quit);
 }
 
 #[test]

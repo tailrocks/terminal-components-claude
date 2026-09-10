@@ -11,7 +11,7 @@
  ▎ ✓ 03 Review Debian upgrades       02     a     1 s                │                                                │
  ▎ ✓ 04 Apply Debian upgrades        03     a     8 s                │                                                │
  ▎ ✓ 05 Inspect global mise tools    01     b     2 s                │                                                │
- ▎ ! 06 Upgrade selected mise tools  05     b     5 s · exit 1       │                                                │
+ ▎ ! 06 Upgrade selected mise tools  05     b     5 s · exit 1…      │                                                │
  ▎ – 07 Package cleanup              04     a     excluded           │                                                │
  ▎ · 08 Final verification           04 06  join  blocked…           │                                                │
                                                                      │                                                │

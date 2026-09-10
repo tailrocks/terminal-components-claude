@@ -28,7 +28,9 @@ Four binaries share one library:
   confirmation for destructive work, dependency-graph plans with optional
   branches and failure propagation, and named activities that survive
   navigation. Every stack system is an in-memory fixture; no command is ever
-  spawned. Concept and notes live in `holla-project/`.
+  spawned, and a finished run changes the in-memory world it claimed to.
+  Concept and notes live in `holla-project/`; `src/bin/holla/README.md`
+  carries the per-scenario verification table.
 
 The application is the specification: *if the
 [Junie](https://junie.jetbrains.com) website had been designed for a terminal

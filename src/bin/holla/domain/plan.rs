@@ -67,6 +67,9 @@ pub struct Step {
     /// independent (`apt lock`, `docker daemon`).
     pub exclusive: Option<String>,
     pub effects: Vec<String>,
+    /// The path or resource the step acts on, for the world effect after
+    /// it succeeds (a cleanup candidate, a repository).
+    pub target: Option<String>,
     /// Known uncertainty, shown in review.
     pub note: String,
     pub state: StepState,
@@ -94,6 +97,7 @@ impl Step {
             included: true,
             deps: vec![],
             exclusive: None,
+            target: None,
             effects: vec![],
             note: String::new(),
             state: StepState::Ready,
@@ -125,6 +129,10 @@ impl Step {
     }
     pub fn exclusive(mut self, e: &str) -> Self {
         self.exclusive = Some(e.into());
+        self
+    }
+    pub fn target(mut self, t: &str) -> Self {
+        self.target = Some(t.into());
         self
     }
     pub fn effects(mut self, e: &[&str]) -> Self {

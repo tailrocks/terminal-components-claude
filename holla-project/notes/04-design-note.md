@@ -143,6 +143,15 @@ Finder rows, the query row with a scope readout, the stage outline, and
 the two-gate pages are recorded under Composed patterns. No glyph gained a
 second meaning; lane letters and `join` are words.
 
+## Truth after an action
+
+A finished run changes the fixture world it claimed to change, so the root
+experience is honest after an action as well as before it: a cancelled
+backend frees its waiters, a restarted unit is healed, a cleanup removes
+its candidates and writes history, the Docker plan empties what each
+succeeded step touched and a partial run leaves a partial world
+(`domain/effect.rs`, `World::apply_effect`, `apply_plan_effects`).
+
 ## Known limits
 
 - Attach mode is a simulation: keys are swallowed, `q` exits the program,

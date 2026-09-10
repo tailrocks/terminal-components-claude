@@ -3,6 +3,7 @@
 //! at fixture ticks, so a frame is reproducible.
 
 use crate::domain::context::ScopeTag;
+use crate::domain::effect::Effect;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ActivityState {
@@ -139,6 +140,8 @@ pub struct Activity {
     pub hidden_services: Vec<String>,
     /// Next script line to emit.
     pub cursor: usize,
+    /// What a successful end changes in the world.
+    pub effect: Option<Effect>,
 }
 
 impl Activity {
@@ -171,6 +174,7 @@ impl Activity {
             insights: vec![],
             hidden_services: vec![],
             cursor: 0,
+            effect: None,
         }
     }
 
