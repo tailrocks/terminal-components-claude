@@ -4,6 +4,17 @@
 //! (restored on every exit path, including panics), an event loop that
 //! drains unchanged input while rendering state changes before the next queued
 //! event, and animation ticks on demand.
+//!
+//! Job control is part of the session's lifecycle, not only of its start and
+//! end: an external `SIGTSTP` is recorded by a handler that touches nothing
+//! but an atomic flag, and the event loop then leaves every owned mode,
+//! stops the process with the default disposition, and on `SIGCONT`
+//! re-acquires the modes, rebuilds geometry and redraws in full. Repeated
+//! transitions are idempotent. Unsupported and unrecoverable cases are
+//! explicit: non-Unix targets have no job control here; `SIGSTOP` and
+//! `SIGKILL` cannot be intercepted, so a process stopped that way keeps raw
+//! mode until it continues; and an output device that is gone cannot
+//! receive restoration escapes.
 
 use std::io::{Write, stdout};
 use std::time::{Duration, Instant};
@@ -17,7 +28,7 @@ use ratatui::crossterm::event::{
 use ratatui::crossterm::execute;
 use ratatui::crossterm::style::Colored;
 use ratatui::crossterm::terminal::{
-    EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
+    Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
 };
 use ratatui::style::Color;
 
@@ -54,6 +65,11 @@ impl Restoration {
             self.active = false;
             (self.restore)();
         }
+    }
+
+    /// Own the terminal again after a suspension; a no-op while active.
+    fn reacquire(&mut self) {
+        self.active = true;
     }
 }
 
@@ -117,6 +133,109 @@ impl TerminalSession {
     pub fn leave(&mut self) {
         self.restoration.leave();
     }
+
+    /// Supported job-control suspension: give the host shell its canonical,
+    /// echoing terminal back, stop until continued, then own the terminal
+    /// again. Returns the geometry after continuation so the caller can
+    /// rebuild layout and redraw in full; the previous frame cache is
+    /// dropped because the alternate screen was left and re-entered.
+    ///
+    /// # Errors
+    /// Re-entry can fail like `enter` (raw mode or the escape sequences); the
+    /// terminal is then left restored and the error is returned.
+    #[cfg(unix)]
+    pub fn suspend(&mut self) -> std::io::Result<(u16, u16)> {
+        self.restoration.leave();
+        job_control::stop_self();
+        self.reenter()
+    }
+
+    #[cfg(unix)]
+    fn reenter(&mut self) -> std::io::Result<(u16, u16)> {
+        enable_raw_mode()?;
+        let mut out = stdout();
+        if let Err(e) = execute!(
+            out,
+            EnterAlternateScreen,
+            EnableMouseCapture,
+            EnableBracketedPaste
+        ) {
+            restore_terminal();
+            return Err(e);
+        }
+        self.restoration.reacquire();
+        // clear the screen and drop the frame cache so the next draw paints
+        // every cell; `Terminal::clear` is avoided because it round-trips a
+        // cursor-position query, which a stopped-and-continued session (or
+        // a headless pty) may never answer
+        execute!(out, Clear(ClearType::All))?;
+        self.terminal.swap_buffers();
+        self.terminal.swap_buffers();
+        let size = self.terminal.size()?;
+        Ok((size.width, size.height))
+    }
+}
+
+/// Signal plumbing for supported suspension. The handler only records the
+/// request; every terminal write happens on the event loop.
+#[cfg(unix)]
+pub mod job_control {
+    use std::ffi::c_int;
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    #[cfg(any(
+        target_os = "macos",
+        target_os = "freebsd",
+        target_os = "openbsd",
+        target_os = "netbsd"
+    ))]
+    const SIGTSTP: c_int = 18;
+    #[cfg(not(any(
+        target_os = "macos",
+        target_os = "freebsd",
+        target_os = "openbsd",
+        target_os = "netbsd"
+    )))]
+    const SIGTSTP: c_int = 20;
+    const SIG_DFL: usize = 0;
+
+    static REQUESTED: AtomicBool = AtomicBool::new(false);
+
+    unsafe extern "C" {
+        fn signal(sig: c_int, handler: usize) -> usize;
+        fn raise(sig: c_int) -> c_int;
+    }
+
+    extern "C" fn on_tstp(_sig: c_int) {
+        // async-signal-safe: one atomic store, nothing else
+        REQUESTED.store(true, Ordering::SeqCst);
+    }
+
+    /// Route `SIGTSTP` through the event loop instead of stopping mid-draw.
+    pub fn install() {
+        // SAFETY: installing a handler that performs one atomic store.
+        let handler: extern "C" fn(c_int) = on_tstp;
+        unsafe {
+            signal(SIGTSTP, handler as *const () as usize);
+        }
+    }
+
+    /// Take a pending suspension request.
+    pub fn take_request() -> bool {
+        REQUESTED.swap(false, Ordering::SeqCst)
+    }
+
+    /// Stop with the default disposition (the terminal is already restored);
+    /// returns after `SIGCONT` with the handler reinstalled.
+    pub fn stop_self() {
+        // SAFETY: default disposition then raise; both are signal-safe libc
+        // calls made from ordinary (non-handler) context.
+        unsafe {
+            signal(SIGTSTP, SIG_DFL);
+            raise(SIGTSTP);
+        }
+        install();
+    }
 }
 
 fn restore_terminal() {
@@ -132,21 +251,37 @@ fn restore_terminal() {
 /// every exit path: normal quit, I/O error, or panic.
 pub fn run(app: &mut impl Application) -> std::io::Result<()> {
     let mut session = TerminalSession::enter()?;
-    let result = event_loop(session.terminal(), app);
+    #[cfg(unix)]
+    job_control::install();
+    let result = event_loop(&mut session, app);
     session.leave();
     result
 }
 
-fn event_loop(
-    terminal: &mut ratatui::DefaultTerminal,
-    app: &mut impl Application,
-) -> std::io::Result<()> {
+/// `poll` interrupted by a signal is not an error: the loop re-checks the
+/// suspension flag and polls again.
+fn poll_uninterrupted(wait: Duration) -> std::io::Result<bool> {
+    match event::poll(wait) {
+        Err(e) if e.kind() == std::io::ErrorKind::Interrupted => Ok(false),
+        other => other,
+    }
+}
+
+fn event_loop(session: &mut TerminalSession, app: &mut impl Application) -> std::io::Result<()> {
     // Use the backend's own memoized policy, including force_color_output,
     // rather than independently interpreting the environment.
     let suppress_colors = Colored::ansi_color_disabled_memoized();
     let mut dirty = true;
     let mut last_tick = Instant::now();
     loop {
+        #[cfg(unix)]
+        if job_control::take_request() {
+            let (w, h) = session.suspend()?;
+            // geometry may have changed while stopped: rebuild, then a full draw
+            app.handle(Input::Resize(w, h));
+            dirty = true;
+        }
+        let terminal = &mut session.terminal;
         if dirty {
             terminal.draw(|f| render_frame(app, f, suppress_colors))?;
             dirty = false;
@@ -157,7 +292,7 @@ fn event_loop(
         }
         let interval = app.tick_interval();
         let wait = interval.saturating_sub(last_tick.elapsed());
-        if event::poll(wait)? {
+        if poll_uninterrupted(wait)? {
             let changed = drain_ready_inputs(app, next_ready_input)?;
             if app.should_quit() {
                 return Ok(());
@@ -287,6 +422,38 @@ mod tests {
         });
         assert!(result.is_err());
         assert_eq!(RESTORATIONS.get(), 1);
+    }
+
+    #[test]
+    fn suspension_leaves_and_reacquires_idempotently() {
+        RESTORATIONS.set(0);
+        let (_, mut restoration) =
+            initialize_with_restoration(record_restoration, || Ok(())).unwrap();
+        // leave for the shell, come back, leave again: one restore per cycle
+        restoration.leave();
+        restoration.leave();
+        assert_eq!(RESTORATIONS.get(), 1);
+        restoration.reacquire();
+        restoration.reacquire();
+        restoration.leave();
+        assert_eq!(RESTORATIONS.get(), 2);
+        restoration.reacquire();
+        drop(restoration);
+        assert_eq!(
+            RESTORATIONS.get(),
+            3,
+            "drop after re-entry restores once more"
+        );
+    }
+
+    #[test]
+    fn interrupted_poll_is_not_an_error() {
+        // the signal-interrupted case is mapped to "nothing ready"
+        let mapped = match Err::<bool, _>(io::Error::from(ErrorKind::Interrupted)) {
+            Err(e) if e.kind() == ErrorKind::Interrupted => Ok(false),
+            other => other,
+        };
+        assert!(matches!(mapped, Ok(false)));
     }
 
     #[test]
