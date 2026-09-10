@@ -689,3 +689,81 @@ fn one_click_on_an_argument_field_starts_editing_at_the_pointer() {
         h.text()
     );
 }
+
+// ------------------------------------------------------------ scroll edges
+
+fn fg_grey(h: &H, x: u16, y: u16) -> u8 {
+    match h.term.backend().buffer()[(x, y)].fg {
+        ratatui::style::Color::Rgb(r, _, _) => r,
+        other => panic!("{other:?} at {x},{y}"),
+    }
+}
+
+#[test]
+fn scrolled_output_fades_toward_the_hidden_lines_and_clears_at_the_edges() {
+    let mut h = H::new(Scenario::ParityExecutor, Motion::Reduced, 0, 120, 40);
+    h.ticks(6);
+    h.type_str("Emit a burst");
+    h.key(KeyCode::Enter);
+    h.ticks(12);
+    let view = h.app.hits.area_of(crate::screens::activity::VIEW).unwrap();
+    let (x, top, bottom) = (view.x + 2, view.y, view.bottom() - 1);
+    // following the tail: more above, nothing below
+    assert!(
+        fg_grey(&h, x, top) < fg_grey(&h, x, top + 2),
+        "top rows fade while lines are hidden above"
+    );
+    assert_eq!(
+        fg_grey(&h, x, bottom),
+        fg_grey(&h, x, bottom - 2),
+        "the tail is the end: no fade below"
+    );
+    // scrolled up into the middle: both edges hint
+    h.key(KeyCode::Up);
+    h.key(KeyCode::Up);
+    h.key(KeyCode::Up);
+    assert!(fg_grey(&h, x, top) < fg_grey(&h, x, top + 2));
+    assert!(fg_grey(&h, x, bottom) < fg_grey(&h, x, bottom - 2));
+    // at the very top: only the bottom edge hints
+    h.key(KeyCode::Home);
+    assert_eq!(fg_grey(&h, x, top), fg_grey(&h, x, top + 2));
+    assert!(fg_grey(&h, x, bottom) < fg_grey(&h, x, bottom - 2));
+}
+
+#[test]
+fn the_cursor_row_of_a_scrolled_list_is_never_faded() {
+    let mut h = H::new(Scenario::ParityInsights, Motion::Reduced, 0, 120, 30);
+    h.ticks(6);
+    open(&mut h, "Review cleanup candidates");
+    h.key(KeyCode::End);
+    let list = h.app.hits.area_of(crate::screens::cleanup::LIST).unwrap();
+    // the row inside the list, not the preview title on the right
+    let cursor_y = (list.y..list.bottom())
+        .find(|&y| {
+            h.row(y)
+                .chars()
+                .skip(list.x as usize)
+                .take(list.width as usize)
+                .collect::<String>()
+                .contains("Project artifacts")
+        })
+        .unwrap_or_else(|| panic!("{}", h.text()));
+    assert!(
+        cursor_y > list.y && cursor_y + 2 >= list.bottom(),
+        "the last category sits at the bottom edge with rows hidden above: {}",
+        h.text()
+    );
+    // the cursor row keeps its plane and its text colour
+    let plane = h.term.backend().buffer()[(list.x + 6, cursor_y)].bg;
+    assert_ne!(
+        plane,
+        h.term.backend().buffer()[(list.x + 6, cursor_y - 1)].bg
+    );
+    assert_eq!(
+        h.term.backend().buffer()[(list.x + 6, cursor_y)].fg,
+        h.app.theme.text_primary
+    );
+    // the first visible row fades because rows are hidden above it
+    let first = list.y;
+    assert!(fg_grey(&h, list.x + 6, first) < fg_grey(&h, list.x + 6, first + 2));
+}

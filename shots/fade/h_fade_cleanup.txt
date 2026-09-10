@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                                     web · Node project · pnpm  mbp · local 
+                                                                                                                        
+  Here › Cleanup                                                                                                        
+ ━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────── 
+  Cleanup review                                                                                                        
+  18 categories · 18.8 GiB · 19 selected (12.4 GiB) · Trash                                                             
+                                                                                                                        
+                                                                        │    uv cache                        category   
+  [✓] ▸ Homebrew cache            100.0 MiB  rebuilt on demand…         │                                               
+                                                                        │    Safety     rebuilt on demand               
+  [✓] ▸ npm cache                 201.0 MiB  rebuilt on demand…         │    Age rule   any age                         
+                                                                        ┃    Platform   macOS and Linux                 
+  [✓] ▸ pnpm store                  2.1 GiB  safe if old · 1 candidate… ┃    Roots      ~/.cache/uv                     
+                                                                        ┃    Why        $XDG_CACHE_HOME/uv or           
+  [✓] ▸ Yarn cache                 50.0 MiB  rebuilt on demand…         ┃               ~/.cache/uv                     
+                                                                        ┃    Size       300.0 MiB                       
+  [✓] ▸ Bun cache                  60.0 MiB  rebuilt on demand…         ┃    Selection  1 of 1 candidates eligible ·    
+                                                                        ┃               1 checked                       
+  [✓] ▸ Cargo registry cache        4.8 GiB  safe if old…               ┃                                               
+                                                                        ┃                                               
+  [✓] ▸ Gradle caches               1.5 GiB  safe if old…               ┃                                               
+                                                                        │                                               
+  [ ] ▸ Maven repository          700.0 MiB  review first…              │                                               
+                                                                        │                                               
+  [✓] ▸ pip cache                 150.0 MiB  rebuilt on demand…         │                                               
+                                                                        │                                               
+ ▎[✓] ▸ uv cache                  300.0 MiB  rebuilt on demand…         │                                               
+                                                                                                                        
+ ~/Projects/web                                19 selected · 12.4 GiB                                truecolor · 120×30 
+        ↑↓ Move  Space Select  Enter Open  a All  m Permanent  n Dry run  d Review deletion  p Facts  Esc Back          

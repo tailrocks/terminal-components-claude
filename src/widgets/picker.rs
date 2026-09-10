@@ -652,6 +652,17 @@ impl Picker {
             }
         }
         if has_sb {
+            crate::ui::fade::scroll_edges(
+                buf,
+                ctx,
+                Rect::new(
+                    list.x,
+                    list.y,
+                    (list.right() - 1).saturating_sub(list.x),
+                    list.height,
+                ),
+                &self.scroll,
+            );
             scrollbar::render_vertical(
                 Rect::new(list.right() - 1, list.y, 1, list.height),
                 buf,

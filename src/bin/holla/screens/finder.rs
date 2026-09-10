@@ -706,6 +706,17 @@ impl FinderPage {
             buf.set_string(inner.x + label_w, y, truncate(v, vw), st);
         }
         if has_sb {
+            junie_tui::ui::fade::scroll_edges(
+                buf,
+                ctx,
+                Rect::new(
+                    inner.x,
+                    inner.y,
+                    (inner.right() - 1).saturating_sub(inner.x),
+                    inner.height,
+                ),
+                &self.preview_scroll,
+            );
             scrollbar::render_vertical(
                 Rect::new(inner.right() - 1, inner.y, 1, inner.height),
                 buf,
@@ -1007,6 +1018,17 @@ impl FinderPage {
             }
         }
         if has_sb {
+            junie_tui::ui::fade::scroll_edges(
+                buf,
+                ctx,
+                Rect::new(
+                    area.x,
+                    area.y,
+                    (area.right() - 1).saturating_sub(area.x),
+                    area.height,
+                ),
+                &self.scroll,
+            );
             scrollbar::render_vertical(
                 Rect::new(area.right() - 1, area.y, 1, area.height),
                 buf,

@@ -234,6 +234,17 @@ impl Completion {
             ctx.clickable(rid, row);
         }
         if has_sb {
+            crate::ui::fade::scroll_edges(
+                buf,
+                ctx,
+                Rect::new(
+                    inner.x,
+                    inner.y,
+                    (inner.right() - 1).saturating_sub(inner.x),
+                    inner.height,
+                ),
+                &self.scroll,
+            );
             scrollbar::render_vertical(
                 Rect::new(inner.right() - 1, inner.y, 1, inner.height),
                 buf,

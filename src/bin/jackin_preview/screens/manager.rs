@@ -984,6 +984,17 @@ impl ManagerScreen {
             }
         }
         if has_sb {
+            junie_tui::ui::fade::scroll_edges(
+                buf,
+                ctx,
+                Rect::new(
+                    inner.x,
+                    inner.y,
+                    (inner.right() - 1).saturating_sub(inner.x),
+                    inner.height,
+                ),
+                &self.scroll,
+            );
             scrollbar::render_vertical(
                 Rect::new(inner.right() - 1, inner.y, 1, inner.height),
                 buf,
@@ -1413,6 +1424,17 @@ impl ManagerScreen {
                     }
                 }
                 if self.detail_scroll.overflows() {
+                    junie_tui::ui::fade::scroll_edges(
+                        buf,
+                        ctx,
+                        Rect::new(
+                            inner.x,
+                            list_top,
+                            (inner.right() - 1).saturating_sub(inner.x),
+                            rows_avail as u16,
+                        ),
+                        &self.detail_scroll,
+                    );
                     scrollbar::render_vertical(
                         Rect::new(inner.right() - 1, list_top, 1, rows_avail as u16),
                         buf,

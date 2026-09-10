@@ -269,6 +269,17 @@ impl TextModal {
             }
         }
         if has_sb {
+            junie_tui::ui::fade::scroll_edges(
+                buf,
+                ctx,
+                Rect::new(
+                    body.x,
+                    body.y,
+                    (body.right() - 1).saturating_sub(body.x),
+                    body.height,
+                ),
+                &self.scroll,
+            );
             scrollbar::render_vertical(
                 Rect::new(body.right() - 1, body.y, 1, body.height),
                 buf,

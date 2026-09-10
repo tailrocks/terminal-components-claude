@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Scrolling                              truecolor · 120×40   i Inspector   ? Help  
+                                                                                                                        
+   Foundations            Scrolling  Wheel under the pointer, keys on the focused container, thumb shows where you are  
+   Overview                                                                                                             
+                           ▎Wrapped text   7–37 of 120      Long list      1–31 of 120      Log                         
+   Components                                                                                                           
+   Buttons                  and reports back with a  │         Row 001               ┃       140.60s  info   test d… │  
+   Inputs                   summary you can review   │         Row 002               ┃       140.97s  error  test c… │  
+   Text areas               before anything is       ┃         Row 003               ┃       141.34s  info   test w… │  
+   Forms                    merged.                  ┃         Row 004               ┃       141.71s  info   Linkin… │  
+   Lists                                             ┃         Row 005               ┃       142.08s  info   Resolv… │  
+   Trees                    Each step is visible.    ┃         Row 006               ┃       142.45s  info   Fetchi… │  
+   Tables                   You can pause, redirect, ┃         Row 007       flagged ┃       142.82s  info   Compil… │  
+   Editable tables          or take over at any      ┃         Row 008               ┃       143.19s  info   Compil… │  
+   Panels                   point, and every change  ┃         Row 009               │       143.56s  warn   unused… │  
+   Sidebars                 lands as an ordinary     ┃         Row 010               │       143.93s  info   Compil… │  
+   Dialogs                  diff in your working     │         Row 011               │       144.30s  info   Runnin… │  
+   Progress                 tree.                    │         Row 012               │       144.67s  info   test a… │  
+ › Scrolling                                         │         Row 013               │       145.04s  info   test d… │  
+   Terminal                 The design system in     │         Row 014       flagged │       145.41s  error  test c… │  
+   Code editor              this prototype exists so │         Row 015               │       145.78s  info   test w… │  
+   Diff                     that the terminal        │         Row 016               │       146.15s  info   Linkin… │  
+   Data grid                version of that          │         Row 017               │       146.52s  info   Resolv… │  
+   Chips & selects          experience feels as      │         Row 018               │       146.89s  info   Fetchi… │  
+   Pickers                  deliberate as the web    │         Row 019               │       147.26s  info   Compil… │  
+   Chrome                   version: quiet surfaces, │         Row 020               │       147.63s  info   Compil… │  
+                            one accent, clear focus, │         Row 021       flagged │       148.00s  warn   unused… │  
+   Screens                  and no decoration that   │         Row 022               │       148.37s  info   Compil… │  
+   Settings                 does not carry           │         Row 023               │       148.74s  info   Runnin… │  
+   Task runner              information.             │         Row 024               │       149.11s  info   test a… │  
+                                                     │         Row 025               │       149.48s  info   test d… │  
+                            Scroll with the mouse    │         Row 026               │       149.85s  error  test c… │  
+                            wheel, PageUp/PageDown,  │         Row 027               │       150.22s  info   test w… │  
+                            or the arrow keys while  │         Row 028       flagged │       150.59s  info   Linkin… │  
+                            this panel has focus.    │         Row 029               │       150.96s  info   Resolv… │  
+                            The scrollbar on the     │         Row 030               │       151.33s  info   Fetchi… ┃  
+                            right shows where you    │         Row 031               │       151.70s  info   Compil… ┃  
+                                                                                                                        
+                                                                                                                        
+ ↑ ↓ Scroll  PgUp PgDn Page  g G Ends  Tab Next                                                                         

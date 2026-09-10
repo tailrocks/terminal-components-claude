@@ -784,6 +784,17 @@ impl FilesPage {
             ctx.clickable(rid, row);
         }
         if has_sb {
+            junie_tui::ui::fade::scroll_edges(
+                buf,
+                ctx,
+                Rect::new(
+                    area.x,
+                    area.y,
+                    (area.right() - 1).saturating_sub(area.x),
+                    area.height,
+                ),
+                &self.scroll,
+            );
             scrollbar::render_vertical(
                 Rect::new(area.right() - 1, area.y, 1, area.height),
                 buf,
@@ -882,6 +893,17 @@ impl FilesPage {
             ctx.clickable(rid, row);
         }
         if has_sb {
+            junie_tui::ui::fade::scroll_edges(
+                buf,
+                ctx,
+                Rect::new(
+                    area.x,
+                    area.y,
+                    (area.right() - 1).saturating_sub(area.x),
+                    area.height,
+                ),
+                &self.scroll,
+            );
             scrollbar::render_vertical(
                 Rect::new(area.right() - 1, area.y, 1, area.height),
                 buf,

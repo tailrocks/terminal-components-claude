@@ -768,6 +768,17 @@ impl DiskPage {
             );
         }
         if self.detail_scroll.overflows() {
+            junie_tui::ui::fade::scroll_edges(
+                buf,
+                ctx,
+                Rect::new(
+                    inner.x,
+                    inner.y,
+                    (inner.right() - 1).saturating_sub(inner.x),
+                    inner.height,
+                ),
+                &self.detail_scroll,
+            );
             scrollbar::render_vertical(
                 Rect::new(inner.right() - 1, inner.y, 1, inner.height),
                 buf,
@@ -882,6 +893,17 @@ impl DiskPage {
             ctx.clickable(rid, row);
         }
         if has_sb {
+            junie_tui::ui::fade::scroll_edges(
+                buf,
+                ctx,
+                Rect::new(
+                    area.x,
+                    area.y,
+                    (area.right() - 1).saturating_sub(area.x),
+                    area.height,
+                ),
+                &self.list_scroll,
+            );
             scrollbar::render_vertical(
                 Rect::new(area.right() - 1, area.y, 1, area.height),
                 buf,

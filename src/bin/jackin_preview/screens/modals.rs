@@ -1450,6 +1450,17 @@ impl FormDialog {
             y += fh + 1;
         }
         if self.scroll.overflows() {
+            junie_tui::ui::fade::scroll_edges(
+                buf,
+                ctx,
+                Rect::new(
+                    area.x,
+                    body.y,
+                    (area.right() - 2).saturating_sub(area.x),
+                    body.height,
+                ),
+                &self.scroll,
+            );
             scrollbar::render_vertical(
                 Rect::new(area.right() - 2, body.y, 1, body.height),
                 buf,
@@ -2251,6 +2262,12 @@ impl InfoDialog {
                 buf.set_string(inner.x, y + k as u16, &wrapped[i], t.secondary().bg(bg));
             }
             if self.detail_scroll.overflows() {
+                junie_tui::ui::fade::scroll_edges(
+                    buf,
+                    ctx,
+                    Rect::new(area.x, y, (area.right() - 2).saturating_sub(area.x), dh),
+                    &self.detail_scroll,
+                );
                 scrollbar::render_vertical(
                     Rect::new(area.right() - 2, y, 1, dh),
                     buf,
@@ -2405,6 +2422,17 @@ impl HelpOverlay {
             }
         }
         if self.scroll.overflows() {
+            junie_tui::ui::fade::scroll_edges(
+                buf,
+                ctx,
+                Rect::new(
+                    area.x,
+                    inner.y,
+                    (area.right() - 2).saturating_sub(area.x),
+                    body_h,
+                ),
+                &self.scroll,
+            );
             scrollbar::render_vertical(
                 Rect::new(area.right() - 2, inner.y, 1, body_h),
                 buf,
