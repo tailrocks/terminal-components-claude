@@ -1091,10 +1091,20 @@ fn insights(motion: Motion) -> World {
         800 * mb,
         3,
     );
+    // the age rule reads the candidate directory itself: the two device
+    // support roots sit on either side of the 90-day rule
+    fs.dir(
+        &format!("{HOME}/Library/Developer/Xcode/iOS DeviceSupport"),
+        91,
+    );
     fs.file(
         &format!("{HOME}/Library/Developer/Xcode/iOS DeviceSupport/17.0/x"),
         2000 * mb,
         91,
+    );
+    fs.dir(
+        &format!("{HOME}/Library/Developer/Xcode/watchOS DeviceSupport"),
+        89,
     );
     fs.file(
         &format!("{HOME}/Library/Developer/Xcode/watchOS DeviceSupport/10.0/x"),
@@ -1391,6 +1401,14 @@ fn platforms_linux(motion: Motion) -> World {
     w.fs.file(
         &format!("{LHOME}/.cargo/registry/cache/x.crate"),
         100 * BLOCK,
+        40,
+    );
+    // one stale project artifact: the only cleanup this host can review,
+    // and the one that proves the missing Trash backend never falls back
+    w.fs.text(&format!("{LHOME}/Projects/app/package.json"), "{}", 40);
+    w.fs.file(
+        &format!("{LHOME}/Projects/app/node_modules/x"),
+        30 * BLOCK,
         40,
     );
     w.fs.file(&format!("{LHOME}/Library/Caches/Homebrew/x"), BLOCK, 2);
