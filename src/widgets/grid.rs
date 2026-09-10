@@ -1897,6 +1897,17 @@ impl DataGrid {
             }
         }
         if has_sb {
+            crate::ui::fade::scroll_edges(
+                buf,
+                ctx,
+                Rect::new(
+                    area.x,
+                    body.y,
+                    (area.right() - 1).saturating_sub(area.x),
+                    body.height,
+                ),
+                &self.scroll,
+            );
             let sb = Rect::new(area.right() - 1, body.y, 1, body.height);
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
         }

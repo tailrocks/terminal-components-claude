@@ -1,12 +1,12 @@
 {
  "capture": "h_hp17_config",
  "source": {
-  "git": "1aaa9b01430d7976a202616a6df6b2844b7c8814",
+  "git": "e4866ce41a485532e57bdc5761d90f0af541086c",
   "dirty": true
  },
  "binary": {
   "path": "target/debug/holla",
-  "sha256": "99be1c56e6529a2338529386d8605645158e173718f3527dcac22f0e7ea70b51"
+  "sha256": "e1727e3be00db994747b5f847359972d1030319841384e2b0484730166a24ca8"
  },
  "arguments": "--scenario parity-custom-actions --motion reduced",
  "geometry": {
@@ -25,7 +25,7 @@
   "cells": "target/debug/examples/cells (unicode-segmentation + unicode-width of the library)"
  },
  "host": "Darwin 25.6.0",
- "ansi_sha256": "191539f274b2752a27ce12121ca5adedc40c6cc9fba133d103d3db815d509140",
+ "ansi_sha256": "ef986495e9cae8644b2a6d260973ce1bafb8bee18aea770cfb1205f58a8a87e0",
  "fonts": [
   {
    "role": "regular",
@@ -64,6 +64,6 @@
   "controls": 0,
   "raqm": true
  },
- "captured_at": "2026-09-10T15:05:53+00:00",
+ "captured_at": "2026-09-10T15:34:38+00:00",
  "review": "inspected: configuration page, diagnostics, aligned action table"
 }

@@ -15,8 +15,8 @@
     [38;2;77;77;77meverything used here is suggested above[38;2;255;255;255m                                   ┃ 
                                                                               [38;2;38;38;38m│[38;2;255;255;255m 
     [38;2;77;77;77mFrom acme · the parent root[38;2;255;255;255m                                               [38;2;38;38;38m│[38;2;255;255;255m 
-    Start development ecosyst…  [38;2;128;128;128mtask   [38;2;255;255;255m  [38;2;179;179;179mparent[38;2;255;255;255m  [38;2;128;128;128mdefined by ~/work/acme/mise…[38;2;255;255;255m [38;2;38;38;38m│[38;2;255;255;255m 
-    Start required containers   [38;2;128;128;128mtask   [38;2;255;255;255m  [38;2;179;179;179mparent[38;2;255;255;255m  [38;2;128;128;128mdefined by ~/work/acme/mise…[38;2;255;255;255m [38;2;38;38;38m│[38;2;255;255;255m 
+ [38;2;204;204;204m   Start development ecosyst…  [38;2;102;102;102mtask   [38;2;204;204;204m  [38;2;143;143;143mparent[38;2;204;204;204m  [38;2;102;102;102mdefined by ~/work/acme/mise…[38;2;204;204;204m [38;2;38;38;38m│[38;2;255;255;255m 
+ [38;2;140;140;140m   Start required containers   [38;2;70;70;70mtask   [38;2;140;140;140m  [38;2;98;98;98mparent[38;2;140;140;140m  [38;2;70;70;70mdefined by ~/work/acme/mise…[38;2;140;140;140m [38;2;38;38;38m│[38;2;255;255;255m 
                                                                                 
     [38;2;128;128;128m→ 'holla disk analyze --artifacts' · here · read-only[38;2;255;255;255m                       
                                                                                 

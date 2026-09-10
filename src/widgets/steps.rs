@@ -293,6 +293,17 @@ impl StepRail {
             let _ = frontier;
         }
         if has_sb {
+            crate::ui::fade::scroll_edges(
+                buf,
+                ctx,
+                Rect::new(
+                    area.x,
+                    area.y,
+                    (area.right() - 1).saturating_sub(area.x),
+                    area.height,
+                ),
+                &self.scroll,
+            );
             let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
         }

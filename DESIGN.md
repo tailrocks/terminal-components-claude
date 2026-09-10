@@ -513,6 +513,19 @@ grids keep column widths and expose the hidden columns rather than squeezing
 every column; the next column is drawn clipped so the pane never ends in blank
 space.
 
+**Scroll edges.** A scrollable container fades the rows nearest an edge that
+hides more content: the outermost row keeps 55% of its text contrast against
+the container plane and, from twelve rows up, the row inside it keeps 80%.
+The fade appears only in the direction that has more content and vanishes
+at the boundary, so a list at its top fades only its last rows and a log
+following its tail only its first. It is a hint beside the scrollbar, never
+a curtain: cells on another plane (the selected or hovered row, a badge, a
+mark, a reversed cell) and the row holding the hardware cursor are left
+whole, viewports under four rows are not faded at all, and palettes without
+RGB dim the outermost row with `DIM` instead of blending. Every list, tree,
+table, grid, viewport, panel, picker, step rail and application list applies
+it through `ui::fade::scroll_edges` right before its scrollbar.
+
 **Wheel and keyboard ownership**
 
 - **Routing**: the wheel goes to the scrollable region under the pointer,

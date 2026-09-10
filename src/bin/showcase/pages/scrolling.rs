@@ -49,7 +49,7 @@ impl Page for ScrollingPage {
         "Scrolling"
     }
     fn blurb(&self) -> &'static str {
-        "Wheel under the pointer, keys on the focused container, thumb shows where you are"
+        "Wheel under the pointer, keys on the focused container, thumb shows where you are, edges fade toward hidden rows"
     }
 
     fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {

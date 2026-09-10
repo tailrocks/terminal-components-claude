@@ -341,6 +341,17 @@ impl TextArea {
             }
         }
         // scrollbar in the last column of the body
+        crate::ui::fade::scroll_edges(
+            buf,
+            ctx,
+            Rect::new(
+                body.x,
+                body.y,
+                (body.right() - 1).saturating_sub(body.x),
+                rows,
+            ),
+            &self.scroll,
+        );
         let sb = Rect::new(body.right() - 1, body.y, 1, rows);
         scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, s.focused);
         if self.error.is_some() && body.width >= 2 {

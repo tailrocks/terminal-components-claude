@@ -306,6 +306,17 @@ impl ListBox {
             ctx.clickable(rid, row);
         }
         if has_sb {
+            crate::ui::fade::scroll_edges(
+                buf,
+                ctx,
+                Rect::new(
+                    area.x,
+                    area.y,
+                    (area.right() - 1).saturating_sub(area.x),
+                    area.height,
+                ),
+                &self.scroll,
+            );
             let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
         }
@@ -335,6 +346,45 @@ mod scroll_tests {
             })
             .collect::<Vec<_>>()
             .join("\n")
+    }
+
+    #[test]
+    fn scroll_edges_fade_toward_hidden_content_and_never_the_cursor_row() {
+        let items = (0..40)
+            .map(|i| ListItem::new(&format!("Row {i:02}")))
+            .collect();
+        let mut l = ListBox::new(WidgetId::of("l"), items, SelectMode::Single);
+        let theme = Theme::junie();
+        let render = |l: &mut ListBox| {
+            let mut hits = HitRegistry::default();
+            let mut ring = FocusRing::default();
+            let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+            let mut buf = Buffer::empty(Rect::new(0, 0, 40, 6));
+            l.render(Rect::new(0, 0, 40, 6), &mut buf, &mut ctx, theme.canvas);
+            buf
+        };
+        let grey = |buf: &Buffer, y: u16| match buf[(4, y)].fg {
+            Color::Rgb(r, _, _) => r,
+            other => panic!("{other:?}"),
+        };
+        // at the top: the last row hints at more below, the first row is whole
+        let b = render(&mut l);
+        assert_eq!(b[(4, 0)].fg, theme.text_primary, "cursor row untouched");
+        assert!(
+            grey(&b, 5) < grey(&b, 4),
+            "bottom row fades: {}",
+            grey(&b, 5)
+        );
+        // scrolled: the top row fades too, the cursor row never does
+        l.on_wheel(10);
+        let b = render(&mut l);
+        assert!(grey(&b, 0) < grey(&b, 1), "top row fades");
+        assert!(grey(&b, 5) < grey(&b, 4));
+        // at the end: only the top row hints
+        l.scroll.jump_end();
+        let b = render(&mut l);
+        assert!(grey(&b, 0) < grey(&b, 1));
+        assert_eq!(grey(&b, 5), grey(&b, 4), "nothing below, no fade");
     }
 
     #[test]

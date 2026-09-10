@@ -315,7 +315,8 @@ editing, so the two never look alike.
 - **Scrolling** is owned by the container: keys scroll the focused container,
   the wheel scrolls the one under the pointer, the scrollbar (`│` track,
   `┃` thumb, brighter when its container has focus) only appears on overflow,
-  and titles show `12–24 of 120`.
+  the rows nearest an edge that hides more content fade toward the plane
+  (never the selected row or the caret row), and titles show `12–24 of 120`.
 - **Dialogs** dim the page by scaling the alpha ladder (hierarchy survives)
   while keeping its surfaces, trap focus, open on the sensible default (primary for confirmations, Cancel for
   destructive ones, the field for prompts), answer to `y`/`n`, and restore

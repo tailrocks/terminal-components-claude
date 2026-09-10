@@ -1,12 +1,12 @@
   holla❯    File   Go   Help                                                           no project  devbox · development 
                                                                                                                         
-  Here    Clean Docker completely ⠴ ×                                                                                   
+  Here    Clean Docker completely ⠦ ×                                                                                   
  ────────━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────── 
-  Clean Docker completely · 0 of 7 done · 1 running · 02 waits for 01                                            ⠴ 2 s  
+  Clean Docker completely · 0 of 7 done · 1 running · 02 waits for 01                                            ⠦ 2 s  
   ─────────────────────────────────────────────────────   0%                                                            
                                                                                                                         
         step                                                         ╭─ 01 Stop running containers ───────────── 2 s ─╮ 
- ▎ ⠴ 01 Stop running containers      –            ·     2 s          │  $ docker stop acme-api-1 acme-worker-1 acme-s │ 
+ ▎ ⠦ 01 Stop running containers      –            ·     2 s          │  $ docker stop acme-api-1 acme-worker-1 acme-s │ 
    · 02 Remove containers            01           ·     waits 01     │  cheduler-1 acme-db-1 acme-redis-1             │ 
    · 03 Remove unused images         02           a     waits 02     │  acme-api-1                                    │ 
    · 04 Prune networks               02           b     waits 02     │  acme-worker-1                                 │ 
@@ -36,5 +36,5 @@
                                                                      │                                                │ 
                                                                      ╰────────────────────────────────────────────────╯ 
                                                                                                                         
- /work/scratch                                      ⠴ lane · 01                                      truecolor · 120×40 
+ /work/scratch                                      ⠦ lane · 01                                      truecolor · 120×40 
           ↑↓ Step  Enter Maximise output  Ctrl+C Cancel remaining  x Close  Esc Here    Clean Docker completely started 
