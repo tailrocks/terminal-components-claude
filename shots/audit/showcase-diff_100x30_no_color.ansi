@@ -1,0 +1,30 @@
+ ▪ [1mJunie[0m Design system / Components / Diff                no color · 100×30   i Inspector   ? Help  
+
+   Overview          [1mDiff viewer[0m  Unified or old / new review · narrow panes use unified · select … 
+   Buttons               
+   Inputs             ○ Review    ○ Empty         
+   Text areas            
+   Forms             ╭─ Diff ──────────────────────────────────────────────────────────────────────╮
+   Lists             │  [1mM[0m [1mconfig/service.toml[0m  +10 −5 · 5 hunks                                  ┃ │
+   Trees             │  @@ -1,6 +1,7 @@                                                          ┃ │
+   Tables            │    1   1 [1m [0m [service.worker_0]                                             ┃ │
+   Editable tables   │    2     [1m-[0m attempts = 3                                                   ┃ │
+   Panels            │        2 [1m+[0m attempts = 5                                                   ┃ │
+   Sidebars          │        3 [1m+[0m backoff = "exponential"                                        ┃ │
+   Dialogs           │    3   4 [1m [0m region = "東京"                                                ┃ │
+   Progress          │    4   5 [1m [0m label = "café ☕"                                              ┃ │
+   Scrolling         │    5   6 [1m [0m endpoint = "https://api.example.test/workers/health"           │ │
+   Terminal          │    6   7 [1m [0m enabled = true                                                 │ │
+   Code editor       │  @@ -9,6 +10,7 @@                                                         │ │
+[1m▎› Diff            [0m  │    9  10 [1m [0m [service.worker_1]                                             │ │
+   Data grid         │   10     [1m-[0m attempts = 3                                                   │ │
+   Chips & selects   │       11 [1m+[0m attempts = 5                                                   │ │
+   Pickers           │       12 [1m+[0m backoff = "exponential"                                        │ │
+   Chrome            │   11  13 [1m [0m region = "東京"                                                │ │
+   Settings          │   12  14 [1m [0m label = "café ☕"                                              │ │
+   Task runner       │   13  15 [1m [0m endpoint = "https://api.example.test/workers/health"           │ │
+                     │   14  16 [1m [0m enabled = true                                                 │ │
+                     │  @@ -17,6 +19,7 @@                                                        │ │
+                     ╰─────────────────────────────────────────────────────────────────────────────╯
+
+ [1m↑ ↓[0m Move  [1mEnter[0m Open  [1mTab[0m Into page  [1mq[0m Quit      

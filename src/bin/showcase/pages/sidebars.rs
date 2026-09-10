@@ -122,7 +122,12 @@ impl NavList {
             let current = i == self.current;
             let st = t.row(s, bg);
             fill(buf, row, st);
-            buf.set_string(row.x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+            buf.set_string(
+                row.x,
+                y,
+                t.gutter_symbol(s),
+                t.gutter(s, st.bg.unwrap_or(bg), false),
+            );
             if current {
                 buf.set_string(row.x + 1, y, "›", st.fg(t.accent));
             }

@@ -312,10 +312,14 @@ impl Page for TerminalPage {
                 }
                 Outcome::Ignored
             }
+            PageEvent::Press { id, pos } if *id == self.term.id => {
+                cx.focus.focus(self.term.id);
+                self.term.on_click(*pos)
+            }
             PageEvent::Click { id, pos } => {
                 if *id == self.term.id {
                     cx.focus.focus(self.term.id);
-                    return self.term.on_click(*pos);
+                    return Outcome::Consumed;
                 }
                 if *id == scrollbar::id_for(self.term.id) {
                     return self.term.on_scrollbar(*pos);
@@ -339,13 +343,7 @@ impl Page for TerminalPage {
                     return self.seam.on_drag(&mut self.split, self.container, 2, *pos);
                 }
                 if *pressed == self.term.id {
-                    // the page sees no press event: anchor on the first drag
-                    let o = self.term.on_drag(*pos);
-                    if o == Outcome::Ignored {
-                        self.term.on_click(*pos);
-                        return self.term.on_drag(*pos);
-                    }
-                    return o;
+                    return self.term.on_drag(*pos);
                 }
                 if *pressed == scrollbar::id_for(self.term.id) {
                     return self.term.on_scrollbar(*pos);

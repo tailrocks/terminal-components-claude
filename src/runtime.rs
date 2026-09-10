@@ -2,20 +2,24 @@
 //! one terminal-session guard that owns raw mode, the alternate screen,
 //! mouse capture, bracketed paste, cursor visibility and line-wrap state
 //! (restored on every exit path, including panics), an event loop that
-//! coalesces input floods, and animation ticks on demand.
+//! drains unchanged input while rendering state changes before the next queued
+//! event, and animation ticks on demand.
 
 use std::io::{Write, stdout};
 use std::time::{Duration, Instant};
 
 use ratatui::Frame;
+use ratatui::buffer::Buffer;
 use ratatui::crossterm::cursor::Show;
 use ratatui::crossterm::event::{
     self, DisableBracketedPaste, DisableMouseCapture, EnableBracketedPaste, EnableMouseCapture,
 };
 use ratatui::crossterm::execute;
+use ratatui::crossterm::style::Colored;
 use ratatui::crossterm::terminal::{
     EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
 };
+use ratatui::style::Color;
 
 use crate::core::event::{Input, Outcome};
 
@@ -34,7 +38,40 @@ pub trait Application {
 /// host shell is restored before the panic message is printed.
 pub struct TerminalSession {
     terminal: ratatui::DefaultTerminal,
+    restoration: Restoration,
+}
+
+/// This owner exists before terminal construction, so partial setup has the
+/// same rollback path as a fully initialized session.
+struct Restoration {
+    restore: fn(),
     active: bool,
+}
+
+impl Restoration {
+    fn leave(&mut self) {
+        if self.active {
+            self.active = false;
+            (self.restore)();
+        }
+    }
+}
+
+impl Drop for Restoration {
+    fn drop(&mut self) {
+        self.leave();
+    }
+}
+
+fn initialize_with_restoration<T>(
+    restore: fn(),
+    initialize: impl FnOnce() -> std::io::Result<T>,
+) -> std::io::Result<(T, Restoration)> {
+    let restoration = Restoration {
+        restore,
+        active: true,
+    };
+    Ok((initialize()?, restoration))
 }
 
 /// DECAWM: automatic line wrap. Applications that draw to the last column
@@ -44,17 +81,23 @@ const ENABLE_WRAP: &str = "\x1b[?7h";
 impl TerminalSession {
     /// Enter raw mode, the alternate screen, mouse capture and bracketed
     /// paste. Installs a panic hook that restores the terminal first.
+    ///
+    /// # Errors
+    /// Returns a terminal I/O error if setup fails. Once raw mode is enabled,
+    /// every later setup failure restores the terminal before returning.
     pub fn enter() -> std::io::Result<Self> {
         enable_raw_mode()?;
-        let mut out = stdout();
-        execute!(
-            out,
-            EnterAlternateScreen,
-            EnableMouseCapture,
-            EnableBracketedPaste
-        )?;
-        let backend = ratatui::backend::CrosstermBackend::new(out);
-        let terminal = ratatui::Terminal::new(backend)?;
+        let (terminal, restoration) = initialize_with_restoration(restore_terminal, || {
+            let mut out = stdout();
+            execute!(
+                out,
+                EnterAlternateScreen,
+                EnableMouseCapture,
+                EnableBracketedPaste
+            )?;
+            let backend = ratatui::backend::CrosstermBackend::new(out);
+            ratatui::Terminal::new(backend)
+        })?;
         let previous = std::panic::take_hook();
         std::panic::set_hook(Box::new(move |info| {
             restore_terminal();
@@ -62,7 +105,7 @@ impl TerminalSession {
         }));
         Ok(Self {
             terminal,
-            active: true,
+            restoration,
         })
     }
 
@@ -72,16 +115,7 @@ impl TerminalSession {
 
     /// Restore explicitly (idempotent); `Drop` does the same.
     pub fn leave(&mut self) {
-        if self.active {
-            self.active = false;
-            restore_terminal();
-        }
-    }
-}
-
-impl Drop for TerminalSession {
-    fn drop(&mut self) {
-        self.leave();
+        self.restoration.leave();
     }
 }
 
@@ -107,11 +141,14 @@ fn event_loop(
     terminal: &mut ratatui::DefaultTerminal,
     app: &mut impl Application,
 ) -> std::io::Result<()> {
+    // Use the backend's own memoized policy, including force_color_output,
+    // rather than independently interpreting the environment.
+    let suppress_colors = Colored::ansi_color_disabled_memoized();
     let mut dirty = true;
     let mut last_tick = Instant::now();
     loop {
         if dirty {
-            terminal.draw(|f| app.render(f))?;
+            terminal.draw(|f| render_frame(app, f, suppress_colors))?;
             dirty = false;
         }
         // a tick-driven transition may have asked to quit without any input
@@ -121,19 +158,14 @@ fn event_loop(
         let interval = app.tick_interval();
         let wait = interval.saturating_sub(last_tick.elapsed());
         if event::poll(wait)? {
-            loop {
-                let ev = event::read()?;
-                if let Some(input) = Input::from_crossterm(ev)
-                    && app.handle(input) == Outcome::Changed
-                {
-                    dirty = true;
-                }
-                if app.should_quit() {
-                    return Ok(());
-                }
-                if !event::poll(Duration::ZERO)? {
-                    break;
-                }
+            let changed = drain_ready_inputs(app, next_ready_input)?;
+            if app.should_quit() {
+                return Ok(());
+            }
+            if changed {
+                // Rendering also rebuilds hit regions and reconciles focus.
+                // The next queued key must see the newly active controls.
+                terminal.draw(|f| render_frame(app, f, suppress_colors))?;
             }
         }
         if last_tick.elapsed() >= interval {
@@ -144,11 +176,53 @@ fn event_loop(
             if app.should_quit() {
                 // draw the final frame so a closing caption is seen before restore
                 if dirty {
-                    terminal.draw(|f| app.render(f))?;
+                    terminal.draw(|f| render_frame(app, f, suppress_colors))?;
                 }
                 return Ok(());
             }
         }
+    }
+}
+
+fn next_ready_input() -> std::io::Result<Option<Input>> {
+    while event::poll(Duration::ZERO)? {
+        if let Some(input) = Input::from_crossterm(event::read()?) {
+            return Ok(Some(input));
+        }
+    }
+    Ok(None)
+}
+
+fn drain_ready_inputs(
+    app: &mut impl Application,
+    mut next: impl FnMut() -> std::io::Result<Option<Input>>,
+) -> std::io::Result<bool> {
+    while let Some(input) = next()? {
+        let changed = app.handle(input) == Outcome::Changed;
+        if changed || app.should_quit() {
+            return Ok(changed);
+        }
+    }
+    Ok(false)
+}
+
+fn render_frame(app: &mut impl Application, frame: &mut Frame, suppress_colors: bool) {
+    app.render(frame);
+    if suppress_colors {
+        reset_frame_colors(frame.buffer_mut());
+    }
+}
+
+fn reset_frame_colors(buffer: &mut Buffer) {
+    // Crossterm 0.29 serializes suppressed SetColors as ESC[;m, which resets
+    // modifiers emitted immediately before it. Reset color values prevent
+    // Ratatui from emitting those commands, preserving bold/underline/reverse.
+    // Keep semantic theme colors during rendering: widgets use them to select
+    // planes and state styles before this final backend boundary.
+    for cell in &mut buffer.content {
+        cell.fg = Color::Reset;
+        cell.bg = Color::Reset;
+        cell.underline_color = Color::Reset;
     }
 }
 
@@ -162,4 +236,206 @@ pub fn drain_pending_input() -> std::io::Result<usize> {
         n += 1;
     }
     Ok(n)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::cell::Cell;
+    use std::io::{self, ErrorKind};
+
+    thread_local! {
+        static RESTORATIONS: Cell<usize> = const { Cell::new(0) };
+    }
+
+    fn record_restoration() {
+        RESTORATIONS.set(RESTORATIONS.get() + 1);
+    }
+
+    struct FailingWriter;
+
+    impl Write for FailingWriter {
+        fn write(&mut self, _: &[u8]) -> io::Result<usize> {
+            Err(io::Error::new(
+                ErrorKind::BrokenPipe,
+                "terminal output closed",
+            ))
+        }
+
+        fn flush(&mut self) -> io::Result<()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn failed_terminal_setup_restores_state_and_preserves_error() {
+        RESTORATIONS.set(0);
+        let result = initialize_with_restoration(record_restoration, || {
+            execute!(FailingWriter, EnterAlternateScreen, EnableMouseCapture)
+        });
+        assert!(matches!(result, Err(ref error) if error.kind() == ErrorKind::BrokenPipe));
+        assert_eq!(RESTORATIONS.get(), 1);
+    }
+
+    #[test]
+    fn panicking_terminal_setup_restores_state() {
+        RESTORATIONS.set(0);
+        let result = std::panic::catch_unwind(|| {
+            initialize_with_restoration(record_restoration, || -> io::Result<()> {
+                panic!("terminal initialization failed")
+            })
+        });
+        assert!(result.is_err());
+        assert_eq!(RESTORATIONS.get(), 1);
+    }
+
+    #[test]
+    fn successful_setup_transfers_restoration_and_leaves_once() {
+        RESTORATIONS.set(0);
+        let (value, mut restoration) =
+            initialize_with_restoration(record_restoration, || Ok(42)).unwrap();
+        assert_eq!(value, 42);
+        assert_eq!(RESTORATIONS.get(), 0);
+        restoration.leave();
+        restoration.leave();
+        drop(restoration);
+        assert_eq!(RESTORATIONS.get(), 1);
+    }
+
+    #[test]
+    fn no_color_backend_preserves_selection_attributes() {
+        const CHILD: &str = "JUNIE_NO_COLOR_TEST_CHILD";
+        if std::env::var_os(CHILD).is_none() {
+            // Crossterm memoizes NO_COLOR. A child process tests its real policy
+            // without mutating the environment of parallel tests.
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "runtime::tests::no_color_backend_preserves_selection_attributes",
+                    "--nocapture",
+                ])
+                .env(CHILD, "1")
+                .env("NO_COLOR", "1")
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}\n{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+            return;
+        }
+
+        use crate::theme::{ColorLevel, Theme};
+        use ratatui::backend::{Backend, CrosstermBackend};
+        use ratatui::layout::Rect;
+        use ratatui::style::Modifier;
+
+        assert!(Colored::ansi_color_disabled_memoized());
+        let theme = Theme::for_level(ColorLevel::Mono);
+        let mut buffer = Buffer::empty(Rect::new(0, 0, 6, 1));
+        buffer.set_string(
+            0,
+            0,
+            "select",
+            theme
+                .selection()
+                .add_modifier(Modifier::BOLD | Modifier::UNDERLINED)
+                .underline_color(theme.accent),
+        );
+        let modifiers = buffer[(0, 0)].modifier;
+        reset_frame_colors(&mut buffer);
+        assert_eq!(buffer[(0, 0)].modifier, modifiers);
+        let mut bytes = Vec::new();
+        CrosstermBackend::new(&mut bytes)
+            .draw(
+                buffer
+                    .content
+                    .iter()
+                    .enumerate()
+                    .map(|(x, cell)| (x as u16, 0, cell)),
+            )
+            .unwrap();
+        let output = String::from_utf8(bytes).unwrap();
+        let (prefix, _) = output.split_once("select").unwrap();
+        for attribute in ["\x1b[7m", "\x1b[1m", "\x1b[4m"] {
+            assert!(prefix.contains(attribute), "{output:?}");
+        }
+        for reset in ["\x1b[;m", "\x1b[m", "\x1b[0m"] {
+            assert!(!prefix.contains(reset), "{output:?}");
+        }
+    }
+
+    #[test]
+    fn queued_activation_waits_for_new_controls_to_render() {
+        use crate::core::event::Key;
+        use crate::core::{focus::Focus, focus::FocusRing, id::WidgetId};
+        use ratatui::backend::TestBackend;
+        use ratatui::crossterm::event::{KeyCode, KeyModifiers};
+        use std::collections::VecDeque;
+
+        struct RoutedApp {
+            control: WidgetId,
+            focus: Focus,
+            activated: Option<WidgetId>,
+            handled: usize,
+        }
+        impl Application for RoutedApp {
+            fn handle(&mut self, input: Input) -> Outcome {
+                self.handled += 1;
+                match input {
+                    Input::Key(key) if key.code == KeyCode::Esc => Outcome::Consumed,
+                    Input::Key(key) if key.code == KeyCode::Char(']') => {
+                        self.control = WidgetId::of("new page control");
+                        Outcome::Changed
+                    }
+                    Input::Key(key) if key.code == KeyCode::Enter => {
+                        self.activated = self.focus.current();
+                        Outcome::Changed
+                    }
+                    _ => Outcome::Ignored,
+                }
+            }
+            fn render(&mut self, _: &mut Frame) {
+                let mut ring = FocusRing::default();
+                ring.register(self.control);
+                self.focus.ensure_valid(&ring);
+            }
+            fn should_quit(&self) -> bool {
+                false
+            }
+            fn tick_interval(&self) -> Duration {
+                Duration::from_secs(1)
+            }
+        }
+
+        let mut app = RoutedApp {
+            control: WidgetId::of("old page control"),
+            focus: Focus::default(),
+            activated: None,
+            handled: 0,
+        };
+        let mut terminal = ratatui::Terminal::new(TestBackend::new(10, 2)).unwrap();
+        terminal.draw(|frame| app.render(frame)).unwrap();
+        let key = |code| {
+            Input::Key(Key {
+                code,
+                mods: KeyModifiers::NONE,
+            })
+        };
+        let mut queued = VecDeque::from([
+            key(KeyCode::F(1)),
+            key(KeyCode::Esc),
+            key(KeyCode::Char(']')),
+            key(KeyCode::Enter),
+        ]);
+        assert!(drain_ready_inputs(&mut app, || Ok(queued.pop_front())).unwrap());
+        assert_eq!(app.handled, 3, "unchanged events remain batched");
+        assert!(app.activated.is_none(), "activation must wait for render");
+        terminal.draw(|frame| app.render(frame)).unwrap();
+        assert!(drain_ready_inputs(&mut app, || Ok(queued.pop_front())).unwrap());
+        assert_eq!(app.activated, Some(WidgetId::of("new page control")));
+        assert!(queued.is_empty());
+    }
 }

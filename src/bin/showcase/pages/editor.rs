@@ -539,7 +539,9 @@ impl Page for EditorPage {
                     Outcome::Ignored
                 }
             }
-            PageEvent::DialogClosed { .. } | PageEvent::Secondary { .. } => Outcome::Ignored,
+            PageEvent::DialogClosed { .. }
+            | PageEvent::Secondary { .. }
+            | PageEvent::Press { .. } => Outcome::Ignored,
         }
     }
 

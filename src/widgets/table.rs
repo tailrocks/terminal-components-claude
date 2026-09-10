@@ -84,6 +84,7 @@ impl Cell {
 
 #[derive(Debug, Clone)]
 pub struct EditState {
+    /// Source row index, independent of the current display sort order.
     pub row: usize,
     pub col: usize,
     pub buffer: TextBuffer,
@@ -203,7 +204,11 @@ impl DataTable {
         self.id.child(display).child(col)
     }
 
+    /// Replace the dataset, cancelling any edit and clearing row selection.
+    /// Keeps column configuration and sorting; clamps the navigation cursor.
     pub fn set_rows(&mut self, rows: Vec<Vec<Cell>>) {
+        self.edit = None;
+        self.selected = None;
         self.rows = rows;
         self.order = (0..self.rows.len()).collect();
         self.scroll.set_content(self.rows.len());
@@ -293,7 +298,7 @@ impl DataTable {
         let src = self.order[self.cursor_row];
         let text = self.rows[src][col].text.clone();
         self.edit = Some(EditState {
-            row: self.cursor_row,
+            row: src,
             col,
             buffer: TextBuffer::single(text),
             error: None,
@@ -303,7 +308,7 @@ impl DataTable {
 
     pub fn commit_edit(&mut self) -> Option<TableEvent> {
         let e = self.edit.take()?;
-        let src = self.order[e.row];
+        let src = e.row;
         let text = e.buffer.text().to_owned();
         let err = self.validator.and_then(|v| v(e.col, &text));
         if let Some(err) = err {
@@ -472,15 +477,24 @@ impl DataTable {
         }
         let col = col.min(self.columns.len().saturating_sub(1));
         if let Some(e) = &self.edit {
-            if e.row == display && e.col == col {
+            if e.row == self.order[display] && e.col == col {
                 // click inside the editor places the cursor
                 if let Some(rect) = self.col_rects.get(col) {
-                    let c = pos.x.saturating_sub(rect.x) as usize;
+                    let cw = rect.width.saturating_sub(1) as usize;
+                    let off = e
+                        .buffer
+                        .cursor_pos()
+                        .col
+                        .saturating_sub(cw.saturating_sub(1));
+                    let c = pos.x.saturating_sub(rect.x) as usize + off;
                     self.edit.as_mut().unwrap().buffer.set_cursor_line_col(0, c);
                 }
                 return (Outcome::Changed, None);
             }
             self.commit_edit();
+            if self.edit.is_some() {
+                return (Outcome::Changed, None);
+            }
         }
         let same = self.cursor_row == display && (!self.cell_nav || self.cursor_col == col);
         self.set_cursor(display, if self.cell_nav { col } else { self.cursor_col });
@@ -681,7 +695,7 @@ impl DataTable {
             buf.set_string(
                 row_rect.x,
                 y,
-                "▎",
+                t.gutter_symbol(s),
                 t.gutter(s, row_style.bg.unwrap_or(bg), false),
             );
             let marker = if s.selected { "›" } else { " " };
@@ -703,7 +717,7 @@ impl DataTable {
                     && self
                         .edit
                         .as_ref()
-                        .map(|e| e.row == di && e.col == ci)
+                        .map(|e| e.row == src && e.col == ci)
                         .unwrap_or(false);
                 let mut st = row_style;
                 st = match cell.tone {
@@ -724,10 +738,7 @@ impl DataTable {
                     let cw = r.width.saturating_sub(1) as usize;
                     let cur = e.buffer.cursor_pos().col;
                     let off = cur.saturating_sub(cw.saturating_sub(1));
-                    let mut shown: String = text.chars().skip(off).take(cw).collect();
-                    if off > 0 {
-                        shown.replace_range(..shown.chars().next().map_or(0, char::len_utf8), "…");
-                    }
+                    let shown = crate::ui::text::slice_cells(text, off, cw);
                     let mut ts = es
                         .add_modifier(Modifier::UNDERLINED)
                         .underline_color(t.accent);
@@ -735,7 +746,9 @@ impl DataTable {
                         ts = ts.underline_color(t.error);
                     }
                     buf.set_string(r.x, y, &shown, ts);
-                    ctx.set_cursor(Position::new(r.x + (cur - off) as u16, y));
+                    if cw > 0 {
+                        ctx.set_cursor(Position::new(r.x + (cur - off) as u16, y));
+                    }
                     if e.error.is_some() {
                         buf.set_string(
                             r.right().saturating_sub(1),
@@ -858,6 +871,29 @@ mod ordered {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::core::{focus::FocusRing, hit::HitRegistry};
+    use crate::theme::{ColorLevel, Theme};
+    use crate::ui::ctx::Interaction;
+
+    fn render_editor(table: &mut DataTable, level: ColorLevel) -> (Buffer, Position) {
+        let area = Rect::new(0, 0, 40, 5);
+        let mut buf = Buffer::empty(area);
+        let theme = Theme::for_level(level);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(
+            &theme,
+            Interaction {
+                focus: Some(table.id),
+                ..Default::default()
+            },
+            &mut hits,
+            &mut ring,
+        );
+        table.render(area, &mut buf, &mut ctx, theme.surface);
+        let cursor = ctx.cursor.unwrap();
+        (buf, cursor)
+    }
 
     fn table() -> DataTable {
         let cols = vec![
@@ -896,11 +932,149 @@ mod tests {
     }
 
     #[test]
+    fn replacing_rows_cancels_edits_without_touching_the_new_dataset() {
+        for row_count in [0, 1, 3] {
+            let mut t = table();
+            t.cursor_row = 2;
+            t.begin_edit();
+            t.edit.as_mut().unwrap().buffer.set_text("stale edit");
+            let rows = (0..row_count)
+                .map(|i| vec![Cell::new(format!("new {i}")), Cell::new("0")])
+                .collect();
+
+            t.set_rows(rows);
+
+            assert_eq!(t.commit_edit(), None);
+            assert!(!t.is_editing());
+            for (i, row) in t.rows.iter().enumerate() {
+                assert_eq!(row[0].text, format!("new {i}"));
+            }
+        }
+    }
+
+    #[test]
+    fn replacing_rows_clears_selection_and_preserves_sort_and_valid_cursor() {
+        let mut t = table();
+        t.sort_by(1);
+        t.cursor_row = 2;
+        t.cursor_col = 1;
+        t.selected = Some(2);
+        t.scroll.set_viewport(1);
+        t.scroll.scroll_to(2);
+
+        t.set_rows(vec![
+            vec![Cell::new("new first"), Cell::new("20")],
+            vec![Cell::new("new second"), Cell::new("3")],
+        ]);
+
+        assert_eq!(t.selected, None);
+        assert_eq!(t.sort, Some((1, SortDir::Asc)));
+        assert_eq!(t.source_row(0), 1);
+        assert_eq!((t.cursor_row, t.cursor_col), (1, 1));
+        assert!(t.scroll.visible_range().contains(&t.cursor_row));
+    }
+
+    #[test]
     fn sort_keeps_cursor_on_same_row() {
         let mut t = table();
         t.cursor_row = 1; // alpha
         t.sort_by(0);
         assert_eq!(t.source_row(t.cursor_row), 1);
+    }
+
+    #[test]
+    fn rejected_edit_stays_on_its_source_row_after_header_sort() {
+        let mut t = table().validator(|_, value| (value == "!").then(|| "Invalid".to_owned()));
+        t.begin_edit();
+        t.edit.as_mut().unwrap().buffer.set_text("!");
+        t.on_click_header(0);
+        assert!(t.edit.as_ref().unwrap().error.is_some());
+        assert_eq!(t.source_row(t.cursor_row), 0);
+        t.edit.as_mut().unwrap().buffer.set_text("fixed");
+        assert_eq!(
+            t.commit_edit(),
+            Some(TableEvent::Committed { row: 0, col: 0 })
+        );
+        assert_eq!(t.rows[0][0].text, "fixed");
+        assert_eq!(t.rows[1][0].text, "alpha");
+    }
+
+    #[test]
+    fn direct_sort_during_edit_keeps_source_identity_in_every_order() {
+        for sort_count in 1..=3 {
+            let mut t = table();
+            t.cursor_row = 1;
+            t.begin_edit();
+            t.edit.as_mut().unwrap().buffer.set_text("fixed");
+            for _ in 0..sort_count {
+                t.sort_by(0);
+            }
+            assert_eq!(
+                t.commit_edit(),
+                Some(TableEvent::Committed { row: 1, col: 0 })
+            );
+            assert_eq!(t.rows[1][0].text, "fixed");
+            assert_eq!(t.rows[0][0].text, "beta");
+        }
+    }
+
+    #[test]
+    fn clicking_another_cell_preserves_invalid_edit_and_cursor() {
+        let mut t = table().validator(|_, value| (value == "!").then(|| "Invalid".to_owned()));
+        t.begin_edit();
+        t.edit.as_mut().unwrap().buffer.set_text("!");
+        t.on_click_cell(1, 0, Position::ORIGIN);
+        assert_eq!(t.cursor_row, 0);
+        assert_eq!(t.edit.as_ref().unwrap().buffer.text(), "!");
+        assert!(t.edit.as_ref().unwrap().error.is_some());
+        t.cancel_edit();
+        assert_eq!(t.rows[0][0].text, "beta");
+        assert_eq!(t.rows[1][0].text, "alpha");
+    }
+
+    #[test]
+    fn unicode_edit_window_keeps_cells_bounded_and_clicks_at_display_position() {
+        for level in [ColorLevel::TrueColor, ColorLevel::Mono] {
+            let mut t = DataTable::new(
+                WidgetId::of("unicode-table"),
+                vec![
+                    Column::new("Name", Constraint::Length(8)).editable(),
+                    Column::new("Other", Constraint::Length(8)),
+                ],
+                vec![vec![Cell::new(""), Cell::new("KEEP")]],
+            )
+            .cell_nav(true);
+            t.begin_edit();
+            let (before, _) = render_editor(&mut t, level);
+            let text = format!("{}終", "日本語👩‍💻cafe\u{301}".repeat(8));
+            t.on_paste(&text);
+            let (after, cursor) = render_editor(&mut t, level);
+            let cell = Rect::new(t.col_rects[0].x, cursor.y, t.col_rects[0].width, 1);
+            assert!(cell.contains(cursor));
+            assert_eq!(after[(cursor.x - 2, cursor.y)].symbol(), "終");
+            let expected = t
+                .edit
+                .as_ref()
+                .unwrap()
+                .buffer
+                .offset_at(0, crate::ui::text::width(&text) - 2);
+            t.on_click_cell(0, 0, Position::new(cursor.x - 2, cursor.y));
+            assert_eq!(t.edit.as_ref().unwrap().buffer.cursor_offset(), expected);
+            t.on_key(&Key {
+                code: KeyCode::Home,
+                mods: ratatui::crossterm::event::KeyModifiers::NONE,
+            });
+            let (home, _) = render_editor(&mut t, level);
+            for x in 0..40 {
+                if !cell.contains(Position::new(x, cursor.y)) {
+                    assert_eq!(
+                        after[(x, cursor.y)].symbol(),
+                        before[(x, cursor.y)].symbol()
+                    );
+                    assert_eq!(home[(x, cursor.y)].symbol(), before[(x, cursor.y)].symbol());
+                }
+            }
+        }
     }
 
     #[test]

@@ -1,0 +1,40 @@
+ ▪ [1mJunie[0m Design system / Components / Buttons                                 no color · 120×40   i Inspector   ? Help  
+
+   Foundations            [1mButtons[0m  Primary, secondary, subtle, danger, toggle, disabled, busy                           
+   Overview                   
+                            Playground                                             hover · click · Tab · Enter / Space  
+   Components                 
+[1m▎› Buttons              [0m    Actions                         
+   Inputs                    [1mRun task [0m   Preview    Cancel    Delete branch                                             
+   Text areas                 
+   Forms                    Toggles                         
+   Lists                     ○ Auto-approve    ● Verbose    
+   Trees                      
+   Tables                   Disabled                        
+   Editable tables           [2mDisabled primary [0m   [2mDisabled [0m  
+   Panels                     
+   Sidebars                 Busy                            
+   Dialogs                   Start long job                 
+   Progress                   
+   Scrolling                  
+   Terminal                   
+   Code editor              State matrix                                                           reference rendering  
+   Diff                       
+   Data grid                               Primary        Secondary      Subtle         Danger                          
+   Chips & selects          default         [1m Label [0m         Label          Label          Label                         
+   Pickers                  hover           [1m Label [0m         Label          Label          Label                         
+   Chrome                   focus          ▎[1m Label [0m       ▎[1m Label [0m       ▎[1m Label [0m       ▎[1m Label [0m                        
+                            focus + hover  ▎[1m Label [0m       ▎[1m Label [0m       ▎[1m Label [0m       ▎[1m Label [0m                        
+   Screens                  pressed        ▎[1m Label [0m       ▎ Label        ▎ Label        ▎ Label                         
+   Settings                 disabled        [2m Label [0m        [2m Label [0m        [2m Label [0m        [2m Label [0m                        
+   Task runner                
+
+
+
+
+
+
+
+
+
+ [1m↑ ↓[0m Move  [1mEnter[0m Open  [1mTab[0m Into page  [1mq[0m Quit                

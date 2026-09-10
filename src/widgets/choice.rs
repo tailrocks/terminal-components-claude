@@ -1,13 +1,31 @@
 //! Checkbox, radio group and toggle switch for forms.
+//!
+//! Labels and marks stay within the supplied rectangle. At widths of two or
+//! three cells, compact marks preserve checked/on state without colour; one
+//! cell can show only focus. Empty radio renders clear their old option areas.
 
 use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::Rect;
-use ratatui::style::Color;
+use ratatui::style::{Color, Style};
 
 use crate::core::event::{Key, Outcome};
 use crate::core::id::WidgetId;
 use crate::ui::ctx::RenderCtx;
+
+// Buffer string writes clip to the whole buffer, not the widget rectangle.
+// Keep every optional row segment bounded before deriving its coordinates.
+fn row_part(buf: &mut Buffer, row: Rect, offset: u16, text: &str, style: Style) {
+    if offset < row.width {
+        buf.set_stringn(
+            row.x + offset,
+            row.y,
+            text,
+            usize::from(row.width - offset),
+            style,
+        );
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Checkbox {
@@ -65,8 +83,18 @@ impl Checkbox {
         }
         let st = t.row(s, bg);
         crate::ui::ctx::fill(buf, area, st);
-        buf.set_string(area.x, area.y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
-        let mark = if self.checked { "[✓]" } else { "[ ]" };
+        buf.set_string(
+            area.x,
+            area.y,
+            t.gutter_symbol(s),
+            t.gutter(s, st.bg.unwrap_or(bg), false),
+        );
+        let mark = match (area.width < 4, self.checked) {
+            (true, true) => "✓",
+            (true, false) => "□",
+            (false, true) => "[✓]",
+            (false, false) => "[ ]",
+        };
         let mark_style = if self.disabled {
             st
         } else if self.checked {
@@ -74,11 +102,12 @@ impl Checkbox {
         } else {
             st.fg(t.text_muted)
         };
-        buf.set_string(area.x + 1, area.y, mark, mark_style);
-        buf.set_string(
-            area.x + 5,
-            area.y,
-            crate::ui::text::truncate(&self.label, area.width.saturating_sub(6) as usize),
+        row_part(buf, area, 1, mark, mark_style);
+        row_part(
+            buf,
+            area,
+            5,
+            &crate::ui::text::truncate(&self.label, area.width.saturating_sub(6) as usize),
             st,
         );
         ctx.control(self.id, area, self.disabled);
@@ -110,7 +139,7 @@ impl RadioGroup {
     }
 
     pub fn height(&self) -> u16 {
-        self.options.len() as u16 + 1
+        self.options.len().saturating_add(1).min(u16::MAX as usize) as u16
     }
 
     pub fn on_key(&mut self, key: &Key) -> Outcome {
@@ -151,6 +180,7 @@ impl RadioGroup {
     }
 
     pub fn render(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx, bg: Color) {
+        self.areas.clear();
         let area = area.intersection(*buf.area());
         if area.is_empty() {
             return;
@@ -162,13 +192,20 @@ impl RadioGroup {
         } else {
             t.label(focused).bg(bg)
         };
-        buf.set_string(area.x + 2, area.y, &self.label, label_style);
-        self.areas.clear();
-        for (i, opt) in self.options.iter().enumerate() {
+        row_part(
+            buf,
+            area,
+            2,
+            &crate::ui::text::truncate(&self.label, area.width.saturating_sub(2) as usize),
+            label_style,
+        );
+        for (i, opt) in self
+            .options
+            .iter()
+            .take(area.height.saturating_sub(1) as usize)
+            .enumerate()
+        {
             let y = area.y + 1 + i as u16;
-            if y >= area.bottom() {
-                break;
-            }
             let row = Rect::new(area.x, y, area.width, 1);
             self.areas.push(row);
             let mut s = ctx.state(self.option_id(i));
@@ -179,9 +216,19 @@ impl RadioGroup {
             }
             let st = t.row(s, bg);
             crate::ui::ctx::fill(buf, row, st);
-            buf.set_string(row.x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+            buf.set_string(
+                row.x,
+                y,
+                t.gutter_symbol(s),
+                t.gutter(s, st.bg.unwrap_or(bg), false),
+            );
             let on = i == self.selected;
-            let mark = if on { "(●)" } else { "( )" };
+            let mark = match (row.width < 4, on) {
+                (true, true) => "●",
+                (true, false) => "○",
+                (false, true) => "(●)",
+                (false, false) => "( )",
+            };
             let ms = if self.disabled {
                 st
             } else if on {
@@ -189,21 +236,20 @@ impl RadioGroup {
             } else {
                 st.fg(t.text_muted)
             };
-            buf.set_string(row.x + 1, y, mark, ms);
-            buf.set_string(row.x + 5, y, opt, st);
+            row_part(buf, row, 1, mark, ms);
+            row_part(
+                buf,
+                row,
+                5,
+                &crate::ui::text::truncate(opt, row.width.saturating_sub(5) as usize),
+                st,
+            );
             ctx.clickable(self.option_id(i), row);
         }
-        let whole = Rect::new(
-            area.x,
-            area.y,
-            area.width,
-            (self.options.len() as u16 + 1).min(area.height),
-        );
         // the group is a single focus stop; option rows are click targets
-        if !ctx.inert && !self.disabled {
+        if !ctx.inert && !self.disabled && !self.areas.is_empty() {
             ctx.ring.register(self.id);
         }
-        let _ = whole;
     }
 }
 
@@ -266,7 +312,12 @@ impl Toggle {
         }
         let st = t.row(s, bg);
         crate::ui::ctx::fill(buf, area, st);
-        buf.set_string(area.x, area.y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+        buf.set_string(
+            area.x,
+            area.y,
+            t.gutter_symbol(s),
+            t.gutter(s, st.bg.unwrap_or(bg), false),
+        );
         let (sw, ss) = if self.disabled {
             (if self.on { "──●" } else { "○──" }, st)
         } else if self.on {
@@ -274,14 +325,26 @@ impl Toggle {
         } else {
             ("○──", st.fg(t.text_muted))
         };
-        buf.set_string(area.x + 1, area.y, sw, ss);
-        buf.set_string(area.x + 5, area.y, &self.label, st);
+        let sw = if area.width < 4 {
+            if self.on { "●" } else { "○" }
+        } else {
+            sw
+        };
+        row_part(buf, area, 1, sw, ss);
+        row_part(
+            buf,
+            area,
+            5,
+            &crate::ui::text::truncate(&self.label, area.width.saturating_sub(5) as usize),
+            st,
+        );
         let state = if self.on { "on" } else { "off" };
-        let sx = area.x + 6 + crate::ui::text::width(&self.label) as u16;
-        if sx + 3 < area.right() {
-            buf.set_string(
-                sx,
-                area.y,
+        let state_offset = 6usize.saturating_add(crate::ui::text::width(&self.label));
+        if state_offset.saturating_add(3) < usize::from(area.width) {
+            row_part(
+                buf,
+                area,
+                state_offset as u16,
                 state,
                 st.fg(if self.disabled {
                     t.disabled

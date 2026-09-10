@@ -140,7 +140,7 @@ impl Button {
         }
         text.push_str(&self.label);
         let text = crate::ui::text::fit(&text, (w as usize).saturating_sub(2));
-        buf.set_string(area.x, area.y, "▎", gutter);
+        buf.set_string(area.x, area.y, t.gutter_symbol(s), gutter);
         buf.set_string(area.x + 1, area.y, &text, style);
         // marker colour: accent when on, muted when off
         if let Some(on) = self.on

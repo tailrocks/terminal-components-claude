@@ -1,0 +1,24 @@
+ ▪ [1mJunie[0m Design system / Components / Forms               i Inspector   ? Help  
+
+   Overview       ┃  [1mForms[0m  Sections, required fields, validation, submission   
+   Buttons        ┃ 
+   Inputs         ┃    New task                                  Ctrl+S Submit  
+   Text areas     ┃ 
+ › Forms          ┃      [1mTask name *            [0m      Mode                      
+   Lists          ┃    ▎ Short imperative su… [1m![0m      ( ) Fast                   
+   Trees          ┃      Required                    (●) Balanced               
+   Tables         ┃      Description                 ( ) Thorough               
+   Editable tabl… ┃      What should Junie do…       [✓] Run tests before op…   
+   Panels         ┃      Optional · Markdown         [ ] Open a pull request…   
+   Sidebars       ┃      Reviewer  optional          ○── Auto-approve changes   
+   Dialogs        ┃      name@company.com           [2m ──● Notify on completion [0m  
+   Progress       ┃      Optional                     Managed by your organiz…  
+   Scrolling      ┃ 
+   Terminal       ┃ 
+   Code editor    ┃ 
+   Diff           ┃ 
+   Data grid      │ 
+   Chips & selec… │     [1mCreate task [0m   Reset    Fix the highlighted fields      
+   Pickers        │ 
+
+ [1mEnter[0m Edit  [1mCtrl+S[0m Submit  [1mTab[0m Next                 Fix the highlighted fields 

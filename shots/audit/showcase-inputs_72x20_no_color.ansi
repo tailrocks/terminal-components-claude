@@ -1,0 +1,20 @@
+ ▪ [1mJunie[0m Design system / Components / Inputs      i Inspector   ? Help  
+
+   Overview       ┃  [1mInputs[0m  Focus is a bar; editing is a cursor. Ente… 
+   Buttons        ┃                 
+[1m▎› Inputs         [0m┃    Playground   
+   Text areas     ┃                 
+   Forms          ┃      Project name *           Branch  optional      
+   Lists          ┃      payments-gateway         feat/…                
+   Trees          ┃      Used as the workin…      Leave empty to work…  
+   Tables         ┃      Owner email *            API token  optional   
+   Editable tabl… ┃      mira@example     [1m![0m     [2m  jb_live_••••••••••… [0m  
+   Panels         ┃      Enter a valid emai…      Managed by the orga…  
+   Sidebars       ┃      Search files             API key  optional     
+   Dialogs        │      Type a path or sy…       ••••••••••••••••••…   
+   Progress       │      Selection: Shift+←…      Masked while typing…  
+   Scrolling      │                 
+   Terminal       │                 
+   Code editor    │                 
+
+ [1m↑ ↓[0m Move  [1mEnter[0m Open  [1mTab[0m Into page  [1mq[0m Quit                            

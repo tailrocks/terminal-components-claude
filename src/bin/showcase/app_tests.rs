@@ -617,16 +617,40 @@ fn color_downgrade_still_renders() {
     );
 }
 
+#[test]
+fn page_context_and_shell_do_not_duplicate_tab_hints() {
+    for entry in crate::app::NAV_ENTRIES {
+        let mut h = Harness::new(160, 50, entry.id);
+        h.key(tab());
+        let footer = h.row(49);
+        assert!(
+            footer.matches("Tab ").count() <= 1,
+            "{}: {footer}",
+            entry.label
+        );
+    }
+}
+
 /// Visual regression baseline: a stable digest of every cell (symbol, fg,
-/// bg, modifiers) for each showcase page at 120×40 and 80×24, with focus on
-/// the first control. Regenerate with `UPDATE_BASELINE=1 cargo test baseline`.
+/// bg, modifiers) for each showcase page from the minimum through wide
+/// terminals, in every supported palette, with focus on the first control.
+/// Regenerate only after reviewing rendered output with
+/// `UPDATE_BASELINE=1 cargo test baseline`.
 #[test]
 fn showcase_visual_baseline() {
     use std::fmt::Write as _;
     let mut out = String::new();
-    for (w, hgt) in [(120u16, 40u16), (80, 24)] {
+    for (w, hgt, level) in [(120u16, 40u16), (80, 24), (72, 20), (100, 30), (160, 50)]
+        .into_iter()
+        .flat_map(|(w, h)| {
+            use junie_tui::theme::ColorLevel::*;
+            [TrueColor, Ansi256, Ansi16, Mono].map(|level| (w, h, level))
+        })
+    {
         for entry in crate::app::NAV_ENTRIES {
             let mut h = Harness::new(w, hgt, entry.id);
+            h.app.theme = Theme::for_level(level);
+            h.draw();
             h.key(tab());
             // the navigation sidebar grows whenever a page is added, so the
             // digest covers everything except it
@@ -651,7 +675,7 @@ fn showcase_visual_baseline() {
                     hash = hash.wrapping_mul(0x0100_0000_01b3);
                 }
             }
-            writeln!(out, "{}x{} {} {hash:016x}", w, hgt, entry.label).unwrap();
+            writeln!(out, "{}x{} {:?} {} {hash:016x}", w, hgt, level, entry.label).unwrap();
         }
     }
     let path = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/showcase_baseline.txt");

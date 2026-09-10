@@ -484,7 +484,12 @@ impl UsageScreen {
                     let st = t.row(st8, bg);
                     let r = Rect::new(area.x, y, row_w, 1);
                     fill(buf, r, st);
-                    buf.set_string(r.x, y, "▎", t.gutter(st8, st.bg.unwrap_or(bg), false));
+                    buf.set_string(
+                        r.x,
+                        y,
+                        t.gutter_symbol(st8),
+                        t.gutter(st8, st.bg.unwrap_or(bg), false),
+                    );
                     if st8.selected {
                         buf.set_string(
                             r.x + 1,

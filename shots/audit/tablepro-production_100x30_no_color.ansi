@@ -1,0 +1,30 @@
+ ▪  [1mTablePro[0m [1m Production [0m [1m◆ production[0m  acme_prod › public [1m safe [0m         no color · 100×30  ? help 
+
+ [1m [0m≡[1m Query 1 ×  [0m                                                                                 +   
+ ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────── 
+ ╭─[1m Explorer [0m──────────────────────────────────────────────────────────────────────────── public ─╮ 
+ │                                                                                                │ 
+ │   Filter objects                                                                               │ 
+ │  ▾ D acme_prod                                                                                 │ 
+ │ [1m▎  ▾ [0mS[1m public                                                                                 [0m │ 
+ │      ▾ Tables                                                                               7  │ 
+ │        ▸ T organizations                                                                1.2 k  │ 
+ │        ▸ T customers                                                                   48.9 k  │ 
+ │        ▸ T products                                                                       312  │ 
+ │        ▸ T orders                                                                       1.2 M  │ 
+ │        ▸ T order_items                                                                  3.8 M  │ 
+ │        ▸ T payments                                                                     1.2 M  │ 
+ │        ▸ T subscriptions                                                                1.1 k  │ 
+ │      ▸ Views                                                                                2  │ 
+ │      ▸ Functions                                                                            1  │ 
+ │      ▸ Sequences                                                                            1  │ 
+ │    ▸ S analytics                                                                               │ 
+ │    ▸ S audit                                                                                   │ 
+ │                                                                                                │ 
+ │                                                                                                │ 
+ │                                                                                                │ 
+ │                                                                                                │ 
+ │                                                                                                │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+
+ [1m↑ ↓[0m Move  [1mEnter[0m Open  [1m→[0m Expand  [1m/[0m Filter  [1mCtrl+O[0m Quick open  [1mTab[0m Next      Connected to Production 

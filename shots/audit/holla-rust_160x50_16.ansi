@@ -1,0 +1,50 @@
+[38;5;15m[48;5;0m [1m[38;5;0m[48;5;10m holla❯ [0m[38;5;15m[48;5;0m  [38;5;7m File [38;5;15m [38;5;7m Go [38;5;15m [38;5;7m Help [38;5;15m                                                                                                 [38;5;7mholla · Rust project[38;5;15m  [1mmbp · local[0m[38;5;15m[48;5;0m 
+                                                                                                                                                                
+ [1m Here  [0m[38;5;15m[48;5;0m                                                                                                                                                        
+ [38;5;10m━━━━━━━[38;5;8m───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[38;5;15m 
+ [38;5;10m▎[38;5;15m [38;5;7mSearch actions and resources…[38;5;15m                                                                                                               [38;5;7m scope ‹ here › [38;5;15m 
+                                                                                                                                                                
+    [38;5;8mSuggested here[38;5;15m                                                                                               [38;5;7mPull[38;5;15m                              [38;5;8mgit · here[38;5;15m   
+ [1m[48;5;8m [38;5;10m›[38;5;15m Pull                                  [0m[38;5;7m[48;5;8mgit     [1m[38;5;15m  [0m[38;5;7m[48;5;8mhere[1m[38;5;15m  [0m[38;5;7m[48;5;8mbranch is 3 commits behind · used 9 times here[1m[38;5;15m     [0m[38;5;15m[48;5;0m                                                   
+    Run tests                             [38;5;7mtask    [38;5;15m  [38;5;7mhere[38;5;15m  [38;5;7m5 files changed since the last run…[38;5;15m                    [38;5;7mDoes[38;5;15m       fast-forward ~/work/holla to        
+    Inspect 12 GB of generated artifacts  [38;5;7mdisk    [38;5;15m  [38;5;7mhere[38;5;15m  [38;5;7m12 GB generated artifacts[38;5;15m                                         origin/main                         
+    Review 5 modified files               [38;5;7mgit     [38;5;15m  [38;5;7mhere[38;5;15m  [38;5;7m4 modified · 1 untracked[38;5;15m                               [38;5;7mRuns[38;5;15m       [38;5;7mgit -C /Users/alex/wo… --ff-only[38;5;15m    
+    Who is blocking the database?         [38;5;7mpostgres[38;5;15m  [38;5;7mhere[38;5;15m  [38;5;7m2 sessions blocked for 4 min[38;5;15m                           [38;5;7mIn[38;5;15m         ~/work/holla                        
+                                                                                                                 [38;5;7mHost[38;5;15m       mbp · local                         
+    [38;5;8mRecent here[38;5;15m                                                                                                  [38;5;7mScope[38;5;15m      here                                
+    Run lint                              [38;5;7mtask    [38;5;15m  [38;5;7mhere[38;5;15m  [38;5;7myesterday[38;5;15m                                              [38;5;7mWhy[38;5;15m        branch is 3 commits behind ·        
+                                                                                                                            used 9 times here                   
+    [38;5;8mExplore[38;5;15m                                                                                                      [38;5;7mChanges[38;5;15m    3 commits arrive · nothing is       
+ [38;5;0m [38;5;15m   Tasks   Git   Files   Disk   Services   System                                                                         rewritten                           
+    System · mbp                          [38;5;7mexplore [38;5;15m  [38;5;7mhost[38;5;15m  [38;5;7mavailable on this host[38;5;15m                                 [38;5;7mRisk[38;5;15m       [38;5;7mmutating[38;5;15m                            
+                                                                                                                 [38;5;7mData[38;5;15m       [38;5;7mlive · 2 s ago[38;5;15m                      
+                                                                                                                 [38;5;7mGate[38;5;15m       [38;5;7mruns directly[38;5;15m                       
+                                                                                                                 [38;5;7mAlt+Enter[38;5;15m  [38;5;7mFetch only · Push · Pin · Alias[38;5;15m     
+                                                                                                                            [38;5;7m· Why here?[38;5;15m                         
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+ [1m~/work/holla[0m[38;5;15m[48;5;0m   [38;5;7mmain[38;5;15m   [38;5;3m↓3 • 5[38;5;15m                                                                                                                [38;5;8m16 colors · 160×50[38;5;15m 
+                                [1mType[0m[38;5;15m[48;5;0m [38;5;7mSearch[38;5;15m  [1m↑↓[0m[38;5;15m[48;5;0m [38;5;7mMove[38;5;15m  [1mEnter[0m[38;5;15m[48;5;0m [38;5;7mRun[38;5;15m  [1mAlt+Enter[0m[38;5;15m[48;5;0m [38;5;7mMore[38;5;15m  [1mTab[0m[38;5;15m[48;5;0m [38;5;7mPreview[38;5;15m  [1mCtrl+↑↓[0m[38;5;15m[48;5;0m [38;5;7mScope[38;5;15m  [1mCtrl+G[0m[38;5;15m[48;5;0m [38;5;7mActivities[38;5;15m                                  

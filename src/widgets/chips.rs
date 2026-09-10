@@ -195,7 +195,12 @@ impl ChipBar {
             }
             let r = Rect::new(x, y, w, 1);
             fill(buf, r, st);
-            buf.set_string(x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+            buf.set_string(
+                x,
+                y,
+                t.gutter_symbol(s),
+                t.gutter(s, st.bg.unwrap_or(bg), false),
+            );
             buf.set_string(x + 1, y, truncate(&chip.label, label_w as usize), st);
             if chip.removable {
                 let xid = self.close_id(i);
@@ -222,7 +227,12 @@ impl ChipBar {
             if x + w <= area.right() {
                 let r = Rect::new(x, y, w, 1);
                 fill(buf, r, st);
-                buf.set_string(x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+                buf.set_string(
+                    x,
+                    y,
+                    t.gutter_symbol(s),
+                    t.gutter(s, st.bg.unwrap_or(bg), false),
+                );
                 buf.set_string(x + 1, y, add, st);
                 ctx.clickable(aid, r);
             }

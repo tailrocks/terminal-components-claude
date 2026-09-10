@@ -481,7 +481,12 @@ impl SettingsScreen {
             let st = t.row(s, bg);
             let rect = Rect::new(body.x, y, body.width, 1);
             fill(buf, rect, st);
-            buf.set_string(rect.x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+            buf.set_string(
+                rect.x,
+                y,
+                t.gutter_symbol(s),
+                t.gutter(s, st.bg.unwrap_or(bg), false),
+            );
             buf.set_string(
                 rect.x + 1,
                 y,
@@ -602,7 +607,12 @@ impl SettingsScreen {
             let st = t.row(s, bg);
             let rect = Rect::new(body.x, y, body.width, 1);
             fill(buf, rect, st);
-            buf.set_string(rect.x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+            buf.set_string(
+                rect.x,
+                y,
+                t.gutter_symbol(s),
+                t.gutter(s, st.bg.unwrap_or(bg), false),
+            );
             buf.set_string(
                 rect.x + 1,
                 y,

@@ -263,7 +263,12 @@ fn render_outline(
         let st = t.row(vs, bg);
         let row = Rect::new(area.x, y, row_w, 1);
         fill(buf, row, st);
-        buf.set_string(row.x, y, "▎", t.gutter(vs, st.bg.unwrap_or(bg), false));
+        buf.set_string(
+            row.x,
+            y,
+            t.gutter_symbol(vs),
+            t.gutter(vs, st.bg.unwrap_or(bg), false),
+        );
         let plain = st.remove_modifier(Modifier::BOLD);
         let mut x = row.x + 1;
         if review {

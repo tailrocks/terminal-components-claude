@@ -122,7 +122,10 @@ pub struct TextViewport {
     cells: Vec<Vec<Cell>>,
     visual: Vec<VisualRow>,
     layout_width: u16,
+    layout_size: Option<(u16, u16, bool)>,
     dirty: bool,
+    #[cfg(test)]
+    layout_rebuilds: usize,
 }
 
 impl TextViewport {
@@ -142,7 +145,10 @@ impl TextViewport {
             cells: vec![],
             visual: vec![],
             layout_width: 0,
+            layout_size: None,
             dirty: true,
+            #[cfg(test)]
+            layout_rebuilds: 0,
         }
     }
 
@@ -238,12 +244,24 @@ impl TextViewport {
     /// the original so positions and page sizes match the last frame.
     pub fn set_area(&mut self, area: Rect) {
         self.area = area;
-        let mut text_w = area.width;
-        self.ensure_layout(text_w);
-        self.scroll.set_viewport(area.height as usize);
-        if self.scroll.overflows() {
-            text_w = area.width.saturating_sub(1);
-            self.ensure_layout(text_w);
+        let size = (area.width, area.height, self.wrap);
+        if self.dirty || self.layout_size != Some(size) {
+            if self
+                .layout_size
+                .is_some_and(|(_, _, wrap)| wrap != self.wrap)
+            {
+                self.dirty = true;
+            }
+            // Cache the final layout, including the scrollbar decision. Trying
+            // both widths on every frame invalidates the single-width cache
+            // twice and rebuilds the entire scrollback even when it is idle.
+            self.ensure_layout(area.width);
+            self.scroll.set_viewport(area.height as usize);
+            if self.scroll.overflows() {
+                self.ensure_layout(area.width.saturating_sub(1));
+            }
+            self.layout_size = Some(size);
+        } else {
             self.scroll.set_viewport(area.height as usize);
         }
         if self.follow {
@@ -288,6 +306,10 @@ impl TextViewport {
         if !self.dirty && self.layout_width == text_w {
             return;
         }
+        #[cfg(test)]
+        {
+            self.layout_rebuilds += 1;
+        }
         self.layout_width = text_w;
         self.dirty = false;
         self.cells = self
@@ -299,9 +321,13 @@ impl TextViewport {
                     for g in
                         unicode_segmentation::UnicodeSegmentation::graphemes(sp.text.as_str(), true)
                     {
-                        let w = width(g).max(if g == "\t" { 4 } else { 0 });
+                        let w = width(g).max(if g == "\t" {
+                            crate::ui::text::TAB_SPACES.len()
+                        } else {
+                            0
+                        });
                         if g == "\t" {
-                            for _ in 0..4 {
+                            for _ in 0..crate::ui::text::TAB_SPACES.len() {
                                 out.push(Cell {
                                     g: " ".into(),
                                     w: 1,
@@ -582,22 +608,11 @@ impl TextViewport {
         if area.is_empty() {
             return;
         }
-        self.area = area;
         let t = ctx.theme;
         let focused = ctx.interaction.focused(self.id);
-        // lay out for the width without a scrollbar first; add one on overflow
-        let mut text_w = area.width;
-        self.ensure_layout(text_w);
-        self.scroll.set_viewport(area.height as usize);
+        self.set_area(area);
         let has_sb = self.scroll.overflows();
-        if has_sb {
-            text_w = area.width.saturating_sub(1);
-            self.ensure_layout(text_w);
-            self.scroll.set_viewport(area.height as usize);
-        }
-        if self.follow {
-            self.scroll.jump_end();
-        }
+        let text_w = self.layout_width;
         ctx.control(self.id, area, false);
         ctx.scrollable(self.id, area);
         let sel = self.selection();
@@ -740,5 +755,48 @@ mod tests {
         assert_eq!(v.len(), 3);
         render(&mut v, 20, 10);
         assert_eq!(v.visual.len(), 6, "each line wraps into two visual rows");
+    }
+
+    #[test]
+    fn unchanged_overflow_redraw_reuses_layout() {
+        let mut v = TextViewport::with_lines(WidgetId::of("v"), lines(4000)).wrap(true);
+        let expected = render(&mut v, 100, 30);
+        let rebuilds = v.layout_rebuilds;
+        let started = std::time::Instant::now();
+        for _ in 0..10 {
+            v.set_area(Rect::new(0, 0, 100, 30));
+            assert_eq!(render(&mut v, 100, 30), expected);
+        }
+        eprintln!(
+            "4000-line viewport, 10 unchanged redraws: {:?}",
+            started.elapsed()
+        );
+        assert_eq!(
+            v.layout_rebuilds, rebuilds,
+            "unchanged scrollback must not reflow"
+        );
+    }
+
+    #[test]
+    fn cached_layout_reflows_after_resize_wrap_and_content_changes() {
+        let mut v = TextViewport::with_lines(WidgetId::of("v"), lines(20)).wrap(true);
+        for (w, h, wrap) in [(40, 10, true), (8, 6, true), (40, 30, true), (8, 30, false)] {
+            v.wrap = wrap;
+            let mut fresh = TextViewport::with_lines(v.id, v.lines.clone()).wrap(wrap);
+            assert_eq!(render(&mut v, w, h), render(&mut fresh, w, h));
+            assert_eq!(v.scroll, fresh.scroll);
+        }
+        v.set_lines(lines(2));
+        let mut fresh = TextViewport::with_lines(v.id, lines(2));
+        assert_eq!(render(&mut v, 40, 10), render(&mut fresh, 40, 10));
+        v.push(vec![Span::plain("appended")]);
+        fresh.push(vec![Span::plain("appended")]);
+        assert_eq!(render(&mut v, 40, 10), render(&mut fresh, 40, 10));
+        v.replace_last(vec![Span::plain("replaced")]);
+        fresh.replace_last(vec![Span::plain("replaced")]);
+        assert_eq!(render(&mut v, 40, 10), render(&mut fresh, 40, 10));
+        v.clear();
+        fresh.clear();
+        assert_eq!(render(&mut v, 40, 10), render(&mut fresh, 40, 10));
     }
 }
