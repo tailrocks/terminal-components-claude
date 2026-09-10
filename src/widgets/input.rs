@@ -231,10 +231,13 @@ impl TextInput {
     }
 
     /// Insert pasted text (only while editing).
+    /// A paste is typing: a focused field that is not editing yet starts
+    /// editing, exactly as the first typed character would.
     pub fn on_paste(&mut self, text: &str) -> Outcome {
-        if !self.editing || self.disabled {
+        if self.disabled {
             return Outcome::Ignored;
         }
+        self.begin_edit();
         self.buffer.insert_str(text);
         self.live_validate();
         Outcome::Changed

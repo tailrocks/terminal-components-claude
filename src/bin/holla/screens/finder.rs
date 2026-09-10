@@ -66,6 +66,12 @@ pub struct FinderPage {
     split: bool,
     /// Rows are rebuilt when this changes.
     dirty: bool,
+    /// Rebuilds so far (a proof counter: rebuilds follow query, scope and
+    /// world changes, never idle redraws).
+    pub rebuilds: u32,
+    /// The query changed since the last rebuild: the cursor goes to the best
+    /// match, never stays on a row that merely still matches.
+    query_changed: bool,
     /// The whole query is selected: the next edit replaces it.
     select_all: bool,
     undo: Vec<String>,
@@ -92,6 +98,8 @@ impl FinderPage {
             explore_areas: vec![],
             split: true,
             dirty: true,
+            rebuilds: 0,
+            query_changed: false,
             select_all: false,
             undo: vec![],
             redo: vec![],
@@ -120,6 +128,7 @@ impl FinderPage {
     }
 
     fn rebuild(&mut self, w: &World) {
+        self.rebuilds += 1;
         let keep = self.current_id();
         self.items = w.items();
         let learned = if crate::domain::ranking::Query::parse(&self.query).is_empty() {
@@ -292,12 +301,18 @@ impl FinderPage {
             }
         }
         self.rows = rows;
-        // keep the selection stable across rebuilds (CONCEPT §5.5 #9)
-        let target = keep.and_then(|id| {
-            self.rows
-                .iter()
-                .position(|r| matches!(r, Row::Item(i, _) if self.items[*i].id == id))
-        });
+        // keep the selection stable across world-driven rebuilds (CONCEPT
+        // §5.5 #9); a changed query is a new intent and lands on its best match
+        let target = if self.query_changed {
+            None
+        } else {
+            keep.and_then(|id| {
+                self.rows
+                    .iter()
+                    .position(|r| matches!(r, Row::Item(i, _) if self.items[*i].id == id))
+            })
+        };
+        self.query_changed = false;
         self.cursor = target.unwrap_or_else(|| self.first_selectable());
         self.scroll.set_content(self.rows.len());
         self.dirty = false;
@@ -358,6 +373,7 @@ impl FinderPage {
     fn set_query(&mut self, q: String) {
         self.query = q;
         self.dirty = true;
+        self.query_changed = true;
         self.scroll.jump_start();
     }
 
@@ -1202,7 +1218,7 @@ impl Screen for FinderPage {
         }
     }
 
-    fn on_paste(&mut self, text: &str, _w: &mut World) -> Outcome {
+    fn on_paste(&mut self, text: &str, _w: &mut World, _cx: &mut Cx) -> Outcome {
         // a pasted block is one edit on one line
         let flat: String = text.split(['\n', '\r']).collect::<Vec<_>>().join(" ");
         let flat = flat.trim().to_owned();
@@ -1342,6 +1358,10 @@ impl Screen for FinderPage {
             self.render_preview(preview, buf, ctx, w);
         } else {
             let preview_focused = ctx.interaction.focused(PREVIEW);
+            if ctx.interaction.focused(FINDER) {
+                // focus returned to the list: the drawer gives the body back
+                self.drawer = false;
+            }
             if preview_focused || self.drawer {
                 self.drawer = true;
                 // the list keeps its focus stop so Tab still reaches it

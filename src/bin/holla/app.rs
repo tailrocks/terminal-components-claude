@@ -71,7 +71,7 @@ pub struct TabEntry {
     pub stack: Vec<Box<dyn Screen>>,
 }
 
-struct ModalEntry {
+pub(crate) struct ModalEntry {
     modal: Modal,
     tag: ModalTag,
     owner: usize,
@@ -100,7 +100,7 @@ pub struct App {
     pub world: World,
     pub tabs: Vec<TabEntry>,
     pub active: usize,
-    modals: Vec<ModalEntry>,
+    pub(crate) modals: Vec<ModalEntry>,
     pub focus: Focus,
     pub ring: FocusRing,
     pub hits: HitRegistry,
@@ -468,7 +468,7 @@ impl App {
             };
         }
         let text = text.to_owned();
-        self.with_top(|s, w, _| s.on_paste(&text, w))
+        self.with_top(|s, w, cx| s.on_paste(&text, w, cx))
     }
 
     fn attached(&self) -> bool {
@@ -1773,7 +1773,7 @@ impl App {
         ));
     }
 
-    fn push_page(&mut self, page: Page) {
+    pub(crate) fn push_page(&mut self, page: Page) {
         let screen = self.page_screen(page);
         self.tabs[0].stack.push(screen);
         self.active = 0;

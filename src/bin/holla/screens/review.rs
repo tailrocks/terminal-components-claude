@@ -1087,10 +1087,12 @@ impl Screen for ArgsPage {
         Outcome::Ignored
     }
 
-    fn on_paste(&mut self, text: &str, _w: &mut World) -> Outcome {
-        for f in &mut self.fields {
+    fn on_paste(&mut self, text: &str, _w: &mut World, cx: &mut Cx) -> Outcome {
+        // the paste is typing for the focused field: it starts editing the
+        // way a key would; a button or choice takes no paste
+        for (i, f) in self.fields.iter_mut().enumerate() {
             if let Field::Text(t) = f
-                && t.editing
+                && cx.focus.is(ARG.child(i))
             {
                 return t.on_paste(text);
             }

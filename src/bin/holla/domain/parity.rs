@@ -786,12 +786,19 @@ fn executor(motion: Motion) -> World {
         .map(|(i, t)| line(i as u64, &t))
         .collect();
     w.scripts
-        .insert("parity:stream".into(), Script::ending(lines, 4, 0));
+        .insert("./emit-stream".into(), Script::ending(lines, 4, 0));
     let burst: Vec<_> = (0..4500)
         .map(|i| line(i / 300, &format!("burst line {i}")))
         .collect();
     w.scripts
-        .insert("parity:burst".into(), Script::ending(burst, 16, 0));
+        .insert("./emit-burst".into(), Script::ending(burst, 16, 0));
+    // the two scripts are reachable as trusted project actions
+    let toml = "[[action]]\nid = \"stream\"\nlabel = \"Emit a mixed stream\"\ncommand = [\"./emit-stream\"]\ndanger = \"safe\"\ndescription = \"CRLF, ANSI, invalid UTF-8 and a final fragment\"\n\n[[action]]\nid = \"burst\"\nlabel = \"Emit a burst\"\ncommand = [\"./emit-burst\"]\ndanger = \"safe\"\ndescription = \"4500 lines in sixteen ticks\"\n";
+    let path = format!("{root}/.holla.toml");
+    w.fs.text(&path, toml, 1);
+    let cfg = parse_config(&path, Origin::Project, toml, &["git.pull"], &[]);
+    let _ = w.trust.approve(&cfg.digest, &path, &root);
+    w.custom_project = Some(cfg);
     w.sources = vec![
         src("filesystem", 2, motion),
         src("git", 4, motion),
@@ -825,7 +832,7 @@ fn task_input(motion: Motion) -> World {
     w.tools.insert("journalctl".into());
     // a prompt without newline, then a q/h/j/i payload consumer
     w.scripts.insert(
-        "parity:prompt".into(),
+        "./deploy.sh".into(),
         Script::ending(
             vec![
                 line(0, "$ ./deploy.sh"),
@@ -866,13 +873,18 @@ fn task_input(motion: Motion) -> World {
         ]),
     );
     w.scripts.insert(
-        "parity:resistant".into(),
+        "./stubborn".into(),
         Script::running(vec![line(0, "$ ./stubborn"), line(1, "ignoring SIGTERM…")]).resistant(),
     );
-    w.scripts.insert(
-        "parity:quick".into(),
-        Script::ending(vec![line(0, "$ true")], 1, 0),
-    );
+    w.scripts
+        .insert("true".into(), Script::ending(vec![line(0, "$ true")], 1, 0));
+    let toml = "[[action]]\nid = \"deploy\"\nlabel = \"Deploy the release\"\ncommand = [\"./deploy.sh\"]\ndanger = \"mutating\"\ndescription = \"asks for a password, then for confirmation\"\n\n[[action]]\nid = \"stubborn\"\nlabel = \"Run the stubborn worker\"\ncommand = [\"./stubborn\"]\ndanger = \"safe\"\ndescription = \"ignores SIGTERM\"\n\n[[action]]\nid = \"quick\"\nlabel = \"Quick no-op\"\ncommand = [\"true\"]\ndanger = \"safe\"\n";
+    let path = "/srv/app/.holla.toml".to_owned();
+    w.fs.text(&path, toml, 1);
+    let cfg = parse_config(&path, Origin::Project, toml, &["git.pull"], &[]);
+    let _ = w.trust.approve(&cfg.digest, &path, "/srv/app");
+    w.custom_project = Some(cfg);
+    w.tools.insert("true".into());
     w.sources = vec![
         src("filesystem", 2, motion),
         src("systemd", 3, motion),

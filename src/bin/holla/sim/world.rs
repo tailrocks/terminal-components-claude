@@ -330,14 +330,19 @@ impl World {
         {
             return s.clone();
         }
-        if let Some(s) = crate::domain::outcomes::for_commands(self, argv) {
-            return s;
-        }
         let display = argv
             .iter()
             .map(|c| c.display())
             .collect::<Vec<_>>()
             .join(" && ");
+        // a fixture may model one exact command line (a project script the
+        // outcomes table knows nothing about) by its display form
+        if let Some(s) = self.scripts.get(&display) {
+            return s.clone();
+        }
+        if let Some(s) = crate::domain::outcomes::for_commands(self, argv) {
+            return s;
+        }
         Script::unmodeled(&display)
     }
 

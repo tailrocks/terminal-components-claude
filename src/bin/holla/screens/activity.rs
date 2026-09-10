@@ -124,9 +124,18 @@ impl ActivityTab {
             e.0.as_ref().is_none_or(|s| !a.hidden_services.contains(s))
         };
         let mut changed = false;
+        // retention: the activity dropped `delta` leading lines since the
+        // last sync; the viewport's own cap evicts the same lines as new
+        // ones are pushed, so the mirror index moves back by `delta` and
+        // nothing retained is rebuilt
+        let delta = a.dropped.saturating_sub(self.synced_dropped);
         let rebuild = self.synced_hidden != a.hidden_services
-            || self.synced_dropped != a.dropped
-            || a.output.len() < self.synced;
+            || a.output.len() + delta < self.synced
+            || a.dropped < self.synced_dropped;
+        if !rebuild && delta > 0 {
+            self.synced = self.synced.saturating_sub(delta);
+            self.synced_dropped = a.dropped;
+        }
         if rebuild {
             let follow = self.view.follow;
             self.view.set_lines(
@@ -350,19 +359,18 @@ impl Screen for ActivityTab {
                     self.view.clear_marks();
                     return Outcome::Changed;
                 }
-                KeyCode::Enter | KeyCode::Char('n')
-                    if key.plain() && !self.find_matches.is_empty() =>
-                {
+                KeyCode::Enter | KeyCode::Down if !self.find_matches.is_empty() => {
                     self.find_at = (self.find_at + 1) % self.find_matches.len();
                     self.apply_marks();
                     return Outcome::Changed;
                 }
-                KeyCode::Char('N') if !self.find_matches.is_empty() => {
+                KeyCode::Up if !self.find_matches.is_empty() => {
                     self.find_at =
                         (self.find_at + self.find_matches.len() - 1) % self.find_matches.len();
                     self.apply_marks();
                     return Outcome::Changed;
                 }
+                KeyCode::Enter | KeyCode::Down | KeyCode::Up => return Outcome::Consumed,
                 KeyCode::Backspace => {
                     let mut q = q;
                     q.pop();
@@ -526,7 +534,7 @@ impl Screen for ActivityTab {
         Outcome::Ignored
     }
 
-    fn on_paste(&mut self, text: &str, w: &mut World) -> Outcome {
+    fn on_paste(&mut self, text: &str, w: &mut World, _cx: &mut Cx) -> Outcome {
         if self.input {
             let tick = w.tick;
             if let Some(a) = w.activity_mut(&self.id) {
@@ -589,6 +597,10 @@ impl Screen for ActivityTab {
     fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
         if id == VIEW {
             return self.view.on_click(pos);
+        }
+        if id == junie_tui::widgets::scrollbar::id_for(VIEW) {
+            // a press on the track jumps there; the drag that follows tracks
+            return self.view.on_scrollbar(pos);
         }
         Outcome::Ignored
     }
@@ -819,8 +831,8 @@ impl Screen for ActivityTab {
         if self.find_query.is_some() {
             return vec![
                 hint("Type", "Find"),
-                hint("Enter / n", "Next"),
-                hint("N", "Previous"),
+                hint("Enter / ↓", "Next"),
+                hint("↑", "Previous"),
                 hint("Esc", "Close find"),
             ];
         }
@@ -903,8 +915,20 @@ impl Screen for ActivityTab {
         Some(VIEW)
     }
 
+    #[cfg(test)]
+    fn as_activity(&mut self) -> Option<&mut ActivityTab> {
+        Some(self)
+    }
+
     fn on_esc_top(&mut self, _w: &mut World, cx: &mut Cx) -> Outcome {
         cx.go(Go::Here);
         Outcome::Changed
+    }
+}
+
+impl ActivityTab {
+    /// The retained output viewport (work counters, marks, selection).
+    pub fn view(&self) -> &TextViewport {
+        &self.view
     }
 }

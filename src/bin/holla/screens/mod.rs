@@ -260,7 +260,7 @@ pub trait Screen {
     fn on_wheel(&mut self, _id: WidgetId, _delta: i32, _pos: Position, _w: &mut World) -> Outcome {
         Outcome::Ignored
     }
-    fn on_paste(&mut self, _text: &str, _w: &mut World) -> Outcome {
+    fn on_paste(&mut self, _text: &str, _w: &mut World, _cx: &mut Cx) -> Outcome {
         Outcome::Ignored
     }
     fn on_tick(&mut self, _w: &mut World, _cx: &mut Cx) -> Outcome {
@@ -308,6 +308,15 @@ pub trait Screen {
     }
     /// The files page behind this screen, when it is one.
     fn as_files(&mut self) -> Option<&mut files::FilesPage> {
+        None
+    }
+    /// Proof accessors: the tests read work counters through the page.
+    #[cfg(test)]
+    fn as_activity(&mut self) -> Option<&mut activity::ActivityTab> {
+        None
+    }
+    #[cfg(test)]
+    fn as_disk(&mut self) -> Option<&mut disk::DiskPage> {
         None
     }
 }

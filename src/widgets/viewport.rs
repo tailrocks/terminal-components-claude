@@ -122,8 +122,15 @@ pub struct WorkCounters {
     pub segmented_lines: usize,
     /// Logical lines whose wrapped rows were recomputed.
     pub reflowed_lines: usize,
-    /// Visual row index rebuilds.
+    /// Visual row index rebuilds from scratch (dataset replacement, width or
+    /// wrap change, removal from the tail).
     pub index_rebuilds: usize,
+    /// Visual row index extensions: appended or replaced tail lines added
+    /// their rows without touching retained ones.
+    pub index_extends: usize,
+    /// Visual row index shifts: leading rows dropped by retention, retained
+    /// rows renumbered, nothing re-laid out.
+    pub index_shifts: usize,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -380,6 +387,9 @@ pub struct TextViewport {
     layout_width: u16,
     layout_wrap: bool,
     index_valid: bool,
+    /// Leading logical lines whose rows the index holds; lines beyond it were
+    /// appended since and extend the index on the next layout.
+    indexed_lines: usize,
     layout_size: Option<(u16, u16, bool)>,
     /// Retained reading position while follow is off: the line identity and
     /// wrapped sub-row at the top of the viewport.
@@ -409,6 +419,7 @@ impl TextViewport {
             layout_width: 0,
             layout_wrap: false,
             index_valid: false,
+            indexed_lines: 0,
             layout_size: None,
             reading: None,
             work: WorkCounters::default(),
@@ -477,9 +488,35 @@ impl TextViewport {
         Logical::new(id, spans)
     }
 
+    /// A structural change: the whole index is rebuilt on the next layout.
     fn touched(&mut self) {
         self.revision += 1;
         self.index_valid = false;
+    }
+
+    /// Lines were appended: retained rows stay valid, the tail extends.
+    fn appended(&mut self) {
+        self.revision += 1;
+    }
+
+    /// Retention dropped `drop` leading lines: their rows leave the index
+    /// and the remaining rows are renumbered; nothing is re-laid out.
+    fn shift_index(&mut self, drop: usize) {
+        if !self.index_valid {
+            return;
+        }
+        let gone = self.visual.iter().take_while(|v| v.line < drop).count();
+        self.visual.drain(..gone);
+        for v in &mut self.visual {
+            v.line -= drop;
+        }
+        self.indexed_lines = self.indexed_lines.saturating_sub(drop);
+        self.work.index_shifts += 1;
+        self.scroll.set_content(self.visual.len());
+        if !self.follow {
+            // the reading row keeps its content, not its number
+            self.scroll.offset = self.scroll.offset.saturating_sub(gone);
+        }
     }
 
     /// Enforce the retention cap: drop the oldest lines and reconcile every
@@ -494,6 +531,7 @@ impl TextViewport {
         let drop = self.lines.len() - max;
         let evicted: Vec<u64> = self.lines.drain(..drop).map(|l| l.id).collect();
         self.reconcile(drop, &evicted);
+        self.shift_index(drop);
         drop
     }
 
@@ -571,7 +609,7 @@ impl TextViewport {
     pub fn push(&mut self, line: Line) {
         let lg = self.alloc(line);
         self.lines.push(lg);
-        self.touched();
+        self.appended();
         self.enforce_cap();
     }
 
@@ -583,7 +621,7 @@ impl TextViewport {
             let lg = self.alloc(l);
             self.lines.push(lg);
         }
-        self.touched();
+        self.appended();
         self.enforce_cap();
     }
 
@@ -680,24 +718,52 @@ impl TextViewport {
 
     fn ensure_layout(&mut self, text_w: u16) {
         let wrap = self.wrap;
-        let mut any = false;
+        let same_key = self.layout_width == text_w && self.layout_wrap == wrap;
+        if self.index_valid && same_key {
+            // incremental: only lines appended since the index was built
+            let from = self.indexed_lines.min(self.lines.len());
+            let key = (text_w, wrap);
+            let mut extended = false;
+            for li in from..self.lines.len() {
+                let l = &mut self.lines[li];
+                if !l.segmented {
+                    l.segment();
+                    self.work.segmented_lines += 1;
+                }
+                if !l.has_rows(key) {
+                    l.reflow(text_w, wrap);
+                    self.work.reflowed_lines += 1;
+                }
+                for &(s, e) in self.lines[li].rows_at(key) {
+                    self.visual.push(VisualRow {
+                        line: li,
+                        start: s,
+                        end: e,
+                    });
+                }
+                extended = true;
+            }
+            self.indexed_lines = self.lines.len();
+            if extended {
+                self.work.index_extends += 1;
+                self.scroll.set_content(self.visual.len());
+                self.clip_selection();
+            }
+            return;
+        }
         for l in &mut self.lines {
             if !l.segmented {
                 l.segment();
                 self.work.segmented_lines += 1;
-                any = true;
             }
             if !l.has_rows((text_w, wrap)) {
                 l.reflow(text_w, wrap);
                 self.work.reflowed_lines += 1;
-                any = true;
             }
         }
-        if any || !self.index_valid || self.layout_width != text_w || self.layout_wrap != wrap {
-            self.layout_width = text_w;
-            self.layout_wrap = wrap;
-            self.rebuild_index();
-        }
+        self.layout_width = text_w;
+        self.layout_wrap = wrap;
+        self.rebuild_index();
     }
 
     fn rebuild_index(&mut self) {
@@ -714,8 +780,13 @@ impl TextViewport {
         }
         self.visual = visual;
         self.index_valid = true;
+        self.indexed_lines = self.lines.len();
         self.work.index_rebuilds += 1;
         self.scroll.set_content(self.visual.len());
+        self.clip_selection();
+    }
+
+    fn clip_selection(&mut self) {
         // clip a selection whose columns overflow a replaced line
         if let Some((a, b)) = self.selection {
             let clip = |x: Anchor, lines: &[Logical]| -> Anchor {
@@ -737,7 +808,7 @@ impl TextViewport {
     }
 
     fn ensure_index(&mut self) {
-        if !self.index_valid || self.lines.iter().any(|l| !l.segmented) {
+        if !self.index_valid || self.indexed_lines < self.lines.len() {
             let w = if self.layout_width == 0 {
                 self.area.width.max(1)
             } else {
@@ -791,15 +862,28 @@ impl TextViewport {
     pub fn set_area(&mut self, area: Rect) {
         self.area = area;
         let size = (area.width, area.height, self.wrap);
-        let dirty = !self.index_valid || self.lines.iter().any(|l| !l.segmented);
+        let dirty = !self.index_valid || self.indexed_lines < self.lines.len();
         if dirty || self.layout_size != Some(size) {
-            // Cache the final layout, including the scrollbar decision. Trying
-            // both widths on every frame invalidates the single-width cache
-            // twice and rebuilds the entire scrollback even when it is idle.
-            self.ensure_layout(area.width);
+            // Cache the final layout, including the scrollbar decision. The
+            // width that settled last time is tried first, so a live stream
+            // that already overflows extends its index at the scrollbar
+            // width instead of rebuilding at both widths every frame.
+            let narrow = area.width.saturating_sub(1);
+            let preferred = if self.layout_width == narrow && self.wrap == self.layout_wrap {
+                narrow
+            } else {
+                area.width
+            };
+            self.ensure_layout(preferred);
             self.scroll.set_viewport(area.height as usize);
-            if self.scroll.overflows() {
-                self.ensure_layout(area.width.saturating_sub(1));
+            if self.scroll.overflows() && preferred == area.width {
+                self.ensure_layout(narrow);
+            } else if !self.scroll.overflows() && preferred == narrow {
+                self.ensure_layout(area.width);
+                self.scroll.set_viewport(area.height as usize);
+                if self.scroll.overflows() {
+                    self.ensure_layout(narrow);
+                }
             }
             self.layout_size = Some(size);
         } else {
