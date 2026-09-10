@@ -9,7 +9,7 @@ use std::collections::VecDeque;
 use std::time::Instant;
 
 use ratatui::Terminal;
-use ratatui::backend::{Backend, TestBackend};
+use ratatui::backend::TestBackend;
 use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 use ratatui::layout::Position;
 

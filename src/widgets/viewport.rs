@@ -819,7 +819,8 @@ impl TextViewport {
     }
 
     fn remember_reading(&mut self) {
-        if self.follow {
+        if self.follow || !self.index_valid {
+            // a stale index (after a dataset replacement) names no row
             self.reading = None;
             return;
         }
@@ -827,13 +828,17 @@ impl TextViewport {
             self.reading = None;
             return;
         };
+        let Some(line) = self.lines.get(vr.line) else {
+            self.reading = None;
+            return;
+        };
         let key = (self.layout_width, self.layout_wrap);
-        let sub = self.lines[vr.line]
+        let sub = line
             .rows_at(key)
             .iter()
             .position(|&(s, _)| s == vr.start)
             .unwrap_or(0);
-        self.reading = Some((self.lines[vr.line].id, sub));
+        self.reading = Some((line.id, sub));
     }
 
     fn restore_reading(&mut self) {

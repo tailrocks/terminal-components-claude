@@ -1401,7 +1401,11 @@ fn seed_custom(
 pub fn seed_world(w: &mut World) {
     seed_tools(w);
     seed_fs(w);
-    w.persisted.frecency = Some(w.memory.usage.serialize());
+    // a fixture that staged another writer's store keeps it: the merge on
+    // save is what the journey proves
+    if w.persisted.frecency.is_none() {
+        w.persisted.frecency = Some(w.memory.usage.serialize());
+    }
     w.persisted.trust = Some(w.trust.serialize());
 }
 
@@ -1477,11 +1481,49 @@ fn gb(gb: f32) -> u64 {
     (gb as f64 * 1024.0 * 1024.0 * 1024.0) as u64 / BLOCK * BLOCK
 }
 
+/// The seeder's view of the filesystem: it fills in what a scenario left
+/// unsaid and never overwrites a path a fixture created on purpose.
+struct SeedFs(Fs);
+
+impl std::ops::Deref for SeedFs {
+    type Target = Fs;
+    fn deref(&self) -> &Fs {
+        &self.0
+    }
+}
+
+impl std::ops::DerefMut for SeedFs {
+    fn deref_mut(&mut self) -> &mut Fs {
+        &mut self.0
+    }
+}
+
+impl SeedFs {
+    fn text(&mut self, path: &str, text: &str, age_days: i64) -> &mut Self {
+        if !self.0.exists(path) {
+            self.0.text(path, text, age_days);
+        }
+        self
+    }
+    fn dir(&mut self, path: &str, age_days: i64) -> &mut Self {
+        if !self.0.exists(path) {
+            self.0.dir(path, age_days);
+        }
+        self
+    }
+    fn device(&mut self, path: &str) -> &mut Self {
+        if !self.0.exists(path) {
+            self.0.device(path);
+        }
+        self
+    }
+}
+
 fn seed_fs(w: &mut World) {
     let home = w.location.home.clone();
     let cwd = w.location.cwd.clone();
     let now = w.now_secs();
-    let mut fs = std::mem::take(&mut w.fs);
+    let mut fs = SeedFs(std::mem::take(&mut w.fs));
     // special files every host has: a device node is listed, never previewed
     fs.device("/dev/null");
     for f in &w.disk.filesystems {
@@ -1707,7 +1749,7 @@ fn seed_fs(w: &mut World) {
         fs.text(&format!("{omz}/tools/upgrade.sh"), "#!/bin/sh\n", 200);
     }
     let _ = now;
-    w.fs = fs;
+    w.fs = fs.0;
 }
 
 fn first_use(motion: Motion) -> World {

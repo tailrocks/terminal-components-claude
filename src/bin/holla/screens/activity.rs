@@ -926,6 +926,7 @@ impl Screen for ActivityTab {
     }
 }
 
+#[cfg(test)]
 impl ActivityTab {
     /// The retained output viewport (work counters, marks, selection).
     pub fn view(&self) -> &TextViewport {
