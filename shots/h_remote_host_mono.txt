@@ -1,30 +1,30 @@
-  holla❯    File   Go   Help                  payments · service checkout  ◆ prod-eu-1 · production
-
-  Here
- ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────
- ▎ Search actions and resources…                                                    scope ‹ here ›
-
-    Suggested here
-  › Follow payments-worker journal  system    on prod-eu-1  unit is restarting · used 5 times here
-    Who is blocking the database?   postgres  here          2 sessions blocked for 4 min
-    Open btm                        system    on prod-eu-1  sustained pressure…
-    Show payments-worker status     system    on prod-eu-1  3 restarts in 10 min
-    Show system resources           system    on prod-eu-1  CPU 34% for 11 min
-
-    Recent here
-    nothing used here yet
-
-    Explore
- ▎   Tasks   Git   Files   Disk   Services   System
-    System · prod-eu-1              explore   on prod-eu-1  available on this host
-
-
-
-
-
-
-
-    → journalctl -u payments-worker -f -n 200 · on prod-eu-1 · read-only
-
- /srv/payments   detached @ v2.14.3                                               no color · 100×30
-  Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities
+  holla❯    File   Go   Help                  payments · service checkout  ◆ prod-eu-1 · production 
+                                                                                                    
+  Here                                                                                              
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                    scope ‹ here ›  
+                                                                                                    
+    Suggested here                                                                                  
+  › Follow payments-worker journal  system    on prod-eu-1  unit is restarting · used 5 times here  
+    Who is blocking the database?   postgres  here          2 sessions blocked for 4 min            
+    Open btm                        system    on prod-eu-1  sustained pressure…                     
+    Show payments-worker status     system    on prod-eu-1  3 restarts in 10 min                    
+    Show system resources           system    on prod-eu-1  CPU 34% for 11 min                      
+                                                                                                    
+    Recent here                                                                                     
+    everything used here is suggested above                                                         
+                                                                                                    
+    Explore                                                                                         
+     Tasks   Git   Files   Disk   Services   System                                                 
+    System · prod-eu-1              explore   on prod-eu-1  available on this host                  
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+    → journalctl -u payments-worker -f -n 200 · on prod-eu-1 · read-only                            
+                                                                                                    
+ /srv/payments   detached @ v2.14.3                                               no color · 100×30 
+  Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities    

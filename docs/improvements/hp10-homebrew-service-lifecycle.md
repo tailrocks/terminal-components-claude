@@ -10,10 +10,10 @@ Every mapped UI/action variant, named fixture, visible failure/ownership/policy
 case and capture requirement below applies to the simulated representation.
 Exact process/filesystem behavior is modeled, not claimed as native proof.
 
-- [ ] Implement all mapped UI variants and typed simulated outcomes.
-- [ ] Retain named fixtures and exact target/cwd/argv/state/effect assertions.
-- [ ] Inspect keyboard/pointer, size/color and decisive state captures.
-- [ ] Record row-level representation evidence and deferred operational clauses.
+- [x] Implement all mapped UI variants and typed simulated outcomes.
+- [x] Retain named fixtures and exact target/cwd/argv/state/effect assertions.
+- [x] Inspect keyboard/pointer, size/color and decisive state captures.
+- [x] Record row-level representation evidence and deferred operational clauses.
 
 ## Later — operational and non-UI integration
 
@@ -47,5 +47,36 @@ Current-phase completion does not imply deferred clauses have passed.
 
 ## Evidence
 
-Pending implementation. Record current source findings, tests/scenarios,
-inspected capture paths, provenance/platform scope and any deferred remainder.
+**Slice status:** current simulated slice complete · Later operational clauses open.
+
+**Scenario and journey:** `parity-brew-services` (fixture fn `brew_services` in src/bin/holla/domain/parity.rs) · `hp10_brew_services_verbs_are_exact_capped_and_fail_with_brew_s_reason` in src/bin/holla/app_tests_parity.rs · supporting unit tests: `src/bin/holla/domain/catalog.rs: brew_json_accepts_both_schemas_and_rejects_malformed_rows`. · row proofs in src/bin/holla/app_tests_rows.rs: `op34_op41_compose_logs_and_brew_start_carry_the_legacy_argv`.
+
+**What the journey asserts:**
+- Exactly 30 `brew.service.` action ids exist for the 11 fixture services (the two malformed rows `{"status":"none"}` and `{"name":""}` produce none).
+- No action id contains `stale-one` ("the stale cache name is never an action").
+- The `brew.services` item label contains `30 of 33`.
+- `Restart svc01` has argv `brew services restart svc01 @/Users/alex/work`, settles `Succeeded`, and `svc01` status is `started`.
+- `Stop svc02` settles `Failed`, output contains `Bootstrap failed: 5: Input/output error`, and `svc02` status stays `error`.
+- The `Homebrew services` page text contains `fails on this host` (the cache write failure) and `svc10`.
+- Unit (catalog.rs): top-level array `[redis, " ", {status}, postgresql@17, redis]` parses to `["postgresql@17","redis"]`; `{"services":[b,a]}` parses to `["a","b"]`; `{}` and `nope` are errors; `[]` is empty.
+
+**Captures:** `shots/h_hp10_services` (the services page: source, cache age line, 11 services with three verbs, cache-write failure notice) · `shots/h_hp10_stop_failed` (activity: `brew services stop svc02` failed, exit 1, brew's bootstrap error) · base matrix `shots/h_parity_brew_services_{80x24,100x30,120x40,160x50,mono}`. Provenance in each frame's `.manifest.json` (source git revision and dirty flag, binary sha256, arguments, geometry, colour environment, tmux/python/Pillow versions, fonts) and raster fidelity in `.png.fidelity.json`. Visual inspection: recorded by the integrator in the manifest `review` field.
+
+**Row-level representation evidence:**
+
+| Row | Current representation evidence | Deferred clause |
+| --- | --- | --- |
+| OP39 | Unit: both schemas accepted, blank and missing names dropped, dedup and sort, `{}`/`nope` rejected; journey: 30 actions from the fixture's `services` array with two malformed rows. | Real `brew` executable and `brew services list --json`. |
+| OP40 | Partly: journey proves the stale v1 cache (`fetched_at` 400 s old) is refreshed so `stale-one` never becomes an action, and the failed cache write is stated (`fails on this host`); frame `h_hp10_services`. Not asserted: cache hit avoids the probe, the inclusive 300 s boundary, wrong-version and corrupt cache refresh. | Durable service-cache I/O (atomic replace, TTL, corruption). |
+| OP41 | `op34_op41_compose_logs_and_brew_start_carry_the_legacy_argv`: `brew.service.svc01.start` argv is `brew services start svc01`; `hp10_…` asserts the 30 offered verbs. | Real `brew services start`. |
+| OP42 | Journey: `Stop svc02` fails with `Bootstrap failed: 5: Input/output error` and status stays `error`; frame `h_hp10_stop_failed`. | Real `brew services stop`. |
+| OP43 | Journey: argv `brew services restart svc01 @/Users/alex/work`, `Succeeded`, status `started`; 30 actions of 33 with label `30 of 33`; frame `h_hp10_services`. Linuxbrew is not asserted (fixture `linux: false`). | Real `brew services restart`; Linuxbrew host. |
+
+**Deferred remainder:**
+- Real brew services commands and durable service-cache I/O (Later).
+- Not proven by tests: cache hit avoiding a probe, the 300 s expiry boundary, wrong-version/corrupt cache refresh, no-brew host, empty or failing list command, a missing service after review not retargeting another row, and a Linuxbrew host.
+- No capture of a Linuxbrew alternative, a stale-cache refresh transition, or a successful restart.
+
+**Limits:**
+- Service status and brew errors are fixture data; no launchctl, systemd or brew process is involved.
+- Frames are being regenerated; their text is indicative until the integrator records the review.

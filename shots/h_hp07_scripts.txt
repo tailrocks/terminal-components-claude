@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                    poly · Node project · yarn  mbp · local 
+                                                                                                                        
+  Here                                                                                                                  
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ yarn                                                                                                 scope ‹ here ›  
+                                                                                                                        
+    Results · 31                                                            ┃    yarn dev               script · here   
+  › yarn dev                script   here  package.json here                ┃                                           
+    yarn s00                script   here  package.json here                ┃    Does       vite · package.json         
+    yarn s01                script   here  package.json here                ┃    Runs       yarn run dev                
+    yarn s02                script   here  package.json here                ┃    In         ~/work/poly                 
+    yarn s03                script   here  package.json here                ┃    Host       mbp · local                 
+    yarn s04                script   here  package.json here                ┃    Scope      here                        
+    yarn s05                script   here  package.json here                ┃    Why        package.json here           
+    yarn s06                script   here  package.json here                ┃    Changes    see the command             
+    yarn s07                script   here  package.json here                ┃    Risk       mutating                    
+    yarn s08                script   here  package.json here                ┃    Data       live · 0 s ago              
+    yarn s09                script   here  package.json here                ┃    Gate       runs directly               
+    yarn s10                script   here  package.json here                ┃    Alt+Enter  Pin · Alias · Why here?     
+    yarn s11                script   here  package.json here                ┃                                           
+    yarn s12                script   here  package.json here                ┃                                           
+    yarn s13                script   here  package.json here                ┃                                           
+    yarn s14                script   here  package.json here                ┃                                           
+    yarn s15                script   here  package.json here                ┃                                           
+    yarn s16                script   here  package.json here                ┃                                           
+    yarn s17                script   here  package.json here                ┃                                           
+    yarn s18                script   here  package.json here                ┃                                           
+    yarn s19                script   here  package.json here                ┃                                           
+    yarn s20                script   here  package.json here                ┃                                           
+    yarn s21                script   here  package.json here                ┃                                           
+    yarn s22                script   here  package.json here                ┃                                           
+    yarn s23                script   here  package.json here                ┃                                           
+    yarn s24                script   here  package.json here                ┃                                           
+    yarn s25                script   here  package.json here                ┃                                           
+    yarn s26                script   here  package.json here                ┃                                           
+    yarn s27                script   here  package.json here                ┃                                           
+    yarn it's; rm           script   here  package.json here                │                                           
+                                                                                                                        
+ ~/work/poly                                                                                         truecolor · 120×40 
+                Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Esc Clear                  

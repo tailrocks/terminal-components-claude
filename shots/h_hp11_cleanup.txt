@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                        android · Gradle build  mbp · local 
+                                                                                                                        
+  Here › Cleanup › gradle.clean-all                                                                                     
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────── 
+  Cleanup · Gradle outputs                                                                                              
+  1 category · 49.0 MiB · 4 selected (49.0 MiB) · Trash                                                                 
+                                                                                                                        
+ ▎[✓] ▾ Gradle outputs             49.0 MiB  review first…                   Gradle outputs                  category   
+    [✓] ~/work/android/.gradle          9.0 MiB  3 d                                                                    
+    [✓] ~/work/android/a/b/c/d/e/bu…    8.0 KiB  30 d                        Safety        review first                 
+    [✓] ~/work/android/app/build       12.0 KiB  30 d                        Age rule      older than 7 days ·          
+    [✓] ~/work/android/build           40.0 MiB  3 d                                       unknown or future age        
+                                                                                           counts as recent             
+    mode Trash (recoverable until emptied) · live · m toggles the mode ·…    Platform      macOS and Linux              
+                                                                             Roots         ~/Projects                   
+                                                                             Why           .gradle and build            
+                                                                                           directories below this       
+                                                                                           folder · depth 5 · no        
+                                                                                           symlinks · no node_modules   
+                                                                             Size          49.0 MiB                     
+                                                                             Prerequisite  gradle --stop runs first ·   
+                                                                                           a failed or unknown stop     
+                                                                                           prevents the cleanup · dry   
+                                                                                           run never stops the daemon   
+                                                                             Selection     4 of 4 candidates eligible   
+                                                                                           · 4 checked                  
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ ~/work/android                                4 selected · 49.0 MiB                                 truecolor · 120×40 
+        ↑↓ Move  Space Select  Enter Open  a All  m Permanent  n Dry run  d Review deletion  p Facts  Esc Back          

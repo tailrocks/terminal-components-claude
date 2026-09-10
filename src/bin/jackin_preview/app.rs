@@ -1396,9 +1396,10 @@ impl App {
                         let entry = self.pop_modal().unwrap();
                         self.deliver(entry, ModalResult::Cancelled)
                     }
-                    Some(PickerEvent::Back) | Some(PickerEvent::Secondary(_)) | None => {
-                        o.or(Outcome::Consumed)
-                    }
+                    Some(PickerEvent::Back)
+                    | Some(PickerEvent::Secondary(_))
+                    | Some(PickerEvent::Submit)
+                    | None => o.or(Outcome::Consumed),
                 }
             }
             Modal::Browser(b) => {

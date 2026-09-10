@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                      app · service checkout  ◆ devbox · production 
+                                                                                                                                                                
+  Here                                                                                                                                                          
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›  
+                                                                                                                                                                
+    Suggested here                                                                                               Follow payments-worker journal                 
+  › Follow payments-worker journal  system   on devbox  unit is restarting                                                                                      
+    Show payments-worker status     system   on devbox  3 restarts in 10 min                                     Does       journalctl -u payments-worker -f    
+    Deploy the release              custom   here       Current folder · trusted                                 Runs       journalctl -u payment… -f -n 200    
+    Quick no-op                     custom   here       Current folder · trusted                                 In         devbox · host-wide                  
+    Run the stubborn worker         custom   here       Current folder · trusted                                 Host       devbox · production · over SSH      
+                                                                                                                 Scope      on devbox                           
+    Recent here                                                                                                  Why        unit is restarting                  
+    everything used here is suggested above                                                                      Changes    none · read-only                    
+                                                                                                                 Risk       read-only                           
+    Explore                                                                                                      Data       live · 2 s ago                      
+     Tasks   Git   Files   Disk   Services   System                                                              Gate       runs directly                       
+    System · devbox                 explore  on devbox  available on this host                                   Alt+Enter  Pin · Alias · Why here?             
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+ /srv/app                                                                                                                                    truecolor · 160×50 
+                                Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities                                  

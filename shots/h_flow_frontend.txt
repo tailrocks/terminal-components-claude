@@ -1,40 +1,40 @@
-  holla❯    File   Go   Help                                                          acme · mise monorepo  mbp · local
-
-  Here    frontend dev ⠸ ×    api dev ⠸ ×    api tests ✓ ×    logs · api worker sched… ⠸ ×    btm ○ ×
- ────────━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────
-  frontend dev · running · 8 s                                                 child · ~/work/acme/apps/frontend · mbp
-  port 5173 · url http://localhost:5173/ · pid 7731
-
- ╭─ output ─────────────────────────────────────────────────────────────────────────────────────────────── following ─╮
- │  $ mise run dev  (apps/frontend)                                                                                   │
- │  > frontend@2.4.0 dev /Users/alex/work/acme/apps/frontend                                                          │
- │  > vite --host                                                                                                     │
- │                                                                                                                    │
- │    VITE v6.3.1  ready in 412 ms                                                                                    │
- │                                                                                                                    │
- │    ➜  Local:   http://localhost:5173/                                                                              │
- │    ➜  Network: http://192.168.1.24:5173/                                                                           │
- │  12:41:07 [vite] hmr update /src/components/OrderTable.tsx                                                         │
- │  12:41:09 [vite] hmr update /src/routes/orders.tsx                                                                 │
- │  12:41:12 [vite] warning: circular import src/lib/api.ts                                                           │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-
- ~/work/acme   main   ↑1                            ⠸ 8 s                             ⠸ 4 running    truecolor · 120×40
-                                ↑↓ Scroll  f Follow  y Copy  s Stop  x Close  Esc Here
+  holla❯    File   Go   Help                                                          acme · mise monorepo  mbp · local 
+                                                                                                                        
+  Here    frontend dev ⠏ ×    api dev ⠏ ×    api tests ✓ ×    logs · api worker sched… ⠏ ×    btm ○ ×                   
+ ────────━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────── 
+  frontend dev · running · 8 s                                                 child · ~/work/acme/apps/frontend · mbp  
+  port 5173 · url http://localhost:5173/ · pid 7731                                                                     
+                                                                                                                        
+ ╭─ output ─────────────────────────────────────────────────────────────────────────────────────────────── following ─╮ 
+ │  $ mise run dev  (apps/frontend)                                                                                   │ 
+ │  > frontend@2.4.0 dev /Users/alex/work/acme/apps/frontend                                                          │ 
+ │  > vite --host                                                                                                     │ 
+ │                                                                                                                    │ 
+ │    VITE v6.3.1  ready in 412 ms                                                                                    │ 
+ │                                                                                                                    │ 
+ │    ➜  Local:   http://localhost:5173/                                                                              │ 
+ │    ➜  Network: http://192.168.1.24:5173/                                                                           │ 
+ │  12:41:07 [vite] hmr update /src/components/OrderTable.tsx                                                         │ 
+ │  12:41:09 [vite] hmr update /src/routes/orders.tsx                                                                 │ 
+ │  12:41:12 [vite] warning: circular import src/lib/api.ts                                                           │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+ ~/work/acme   main   ↑1                            ⠏ 8 s                             ⠏ 4 running    truecolor · 120×40 
+                     ↑↓ Scroll  f Follow  / Find  y Copy  i Type input  s Stop  x Close  Esc Here                       

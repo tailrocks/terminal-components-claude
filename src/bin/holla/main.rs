@@ -13,6 +13,8 @@ mod app_tests_flows;
 mod app_tests_parity;
 #[cfg(test)]
 mod app_tests_proofs;
+#[cfg(test)]
+mod app_tests_rows;
 mod clock;
 mod domain;
 mod scenario;

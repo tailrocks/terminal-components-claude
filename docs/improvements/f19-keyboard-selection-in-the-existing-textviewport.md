@@ -9,9 +9,9 @@ Complete shared TextViewport keyboard selection and Holla Activity/Plan/preview 
 Apply every retained acceptance clause for this slice. Historical findings must
 be checked against current code before editing. Preserve surrounding behavior.
 
-- [ ] Implement the stated shared/Holla slice and necessary caller migrations.
-- [ ] Retain relevant deterministic contract and Holla owner regressions.
-- [ ] Inspect affected captures/terminal evidence and record scope and results.
+- [x] Implement the stated shared/Holla slice and necessary caller migrations.
+- [x] Retain relevant deterministic contract and Holla owner regressions.
+- [x] Inspect affected captures/terminal evidence and record scope and results.
 
 ## Later
 
@@ -43,5 +43,12 @@ keeps existing behavior outside explicit selection mode.
 
 ## Evidence
 
-Pending implementation. Record current source findings, tests/scenarios,
-inspected capture paths, provenance/platform scope and any deferred remainder.
+**Slice status:** current shared slice complete.
+
+**Shared widget:** Shift+arrows extend a keyboard selection from an explicit caret (Ctrl/Alt by word, Ctrl+Shift+Home/End to the document ends), Esc clears it before leaving the owner, selection pauses follow and survives append and resize, and keyboard and mouse copy identical ranges (partial, word, multiline, wrapped Unicode). Tests: `viewport.rs: keyboard_selection_matches_mouse_selection`, `keyboard_selection_pauses_follow_and_survives_append_and_resize`, `drag_selects_and_copies_text`; `tests/focus_gutter.rs: text_selection_uses_reverse_video_only_in_monochrome`.
+
+**Holla integration:** activity output (`activity.rs: view.on_key`), plan output (`plan.rs: view.on_key`) and the files preview (`files.rs: preview.on_key`) forward keys to the viewport when it owns focus; `y` copies the selection or the whole retained output through the simulated clipboard (`Go::Osc52`), and Linux without OSC 52 refuses with a reason. Tests: `app_tests_parity.rs: hp14_…` (copy), `hp23_…` ("does not accept OSC 52"); activity input mode never forwards browse keys to stdin (`hp15_…`).
+
+**Captures inspected:** `shots/h_hp14_find`, `shots/h_hp15_input_mode`.
+
+Provenance: every cited capture carries `<name>.manifest.json` (source git revision `1aaa9b0` with the dirty working tree of this change set, binary sha256 of `target/debug/holla`, arguments, geometry, colour environment, tmux 3.7c, Python 3.14.7, Pillow 12.3.0, the JetBrainsMono NFM font files) and `<name>.png.fidelity.json`; the `.txt` capture is authoritative for content. Platform scope: macOS (Darwin 25.6.0) host for every PTY and capture run; Linux behaviour is fixture-modeled only.

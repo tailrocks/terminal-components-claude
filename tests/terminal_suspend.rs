@@ -165,6 +165,8 @@ fn helper_main() -> ! {
             Ok(())
         });
     }
+    // the job is reaped by the raw waitpid loop below, not by `Child::wait`
+    #[allow(clippy::zombie_processes)]
     let child = cmd.spawn().expect("spawn the application");
     let pid = child.id() as c_int;
     // SAFETY: both sides set the group so the foreground hand-off is not racy.

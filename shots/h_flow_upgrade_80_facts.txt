@@ -1,24 +1,24 @@
-  holla❯    File   Go   Help                   no project  devbox · development
-
-  Here › Upgrade everything
- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────
-  Upgrade everything · devbox        8 steps · 8 included · 0 excluded · ~16 s
-  upgrade Debian packages and global mise tools on devbox
-
-  ▎01 Preflight                                                      required
-
-   Runs       cat /etc/os-release                                           ┃
-              sudo -n true                                                  ┃
-              fuser /var/lib/dpkg/lock-frontend                             ┃
-              df -h /                                                       │
-              test -f /var/run/reboot-required                              │
-   In         / · devbox                                                    │
-   Needs      nothing · starts first                                        │
-
-    6 required · 2 optional · 2 branches run in parallel where independent
-
-
-                                                      ▎Cancel   ▎Confirm plan
-
- ~           review · 8 steps · 2 branches parallel           truecolor · 80×24
-                            ↑↓ Scroll  Esc Outline
+  holla❯    File   Go   Help                   no project  devbox · development 
+                                                                                
+  Here › Upgrade everything                                                     
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────── 
+  Upgrade everything · devbox        8 steps · 8 included · 0 excluded · ~16 s  
+  upgrade Debian packages and global mise tools on devbox                       
+                                                                                
+  ▎01 Preflight                                                      required   
+                                                                                
+   Runs       cat /etc/os-release                                           ┃   
+              sudo -n true                                                  ┃   
+              fuser /var/lib/dpkg/lock-frontend                             ┃   
+              df -h /                                                       │   
+              test -f /var/run/reboot-required                              │   
+   In         / · devbox                                                    │   
+   Needs      nothing · starts first                                        │   
+                                                                                
+    6 required · 2 optional · 2 branches run in parallel where independent      
+                                                                                
+                                                                                
+                                                       Cancel    Confirm plan   
+                                                                                
+ ~           review · 8 steps · 2 branches parallel           truecolor · 80×24 
+                            ↑↓ Scroll  Esc Outline                              

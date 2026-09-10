@@ -1,40 +1,40 @@
-  holla❯    File   Go   Help                                         acme › frontend · Node project · pnpm  mbp · local
-
-  Here
- ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
- ▎ test                                                                                                 scope ‹ here ›
-
-    Results · 15                                                                 Run tests                task · here
-  › Run tests                  task      here     alias test
-    Run //services/api:test    task      sibling  defined by ~…                  Does       vitest after a build ·
-    Run //tools/worker:test    task      sibling  defined by ~…                             runs in
-    Run test                   task      parent   defined by ~…                             ~/work/acme/apps/fronten
-    Rotate local secrets       workflow  here     provenance: …                             d
-    Show PostgreSQL activity   postgres  here     6/100 connec…                  Runs       mise run //apps/…nd:test
-    Start development ecosys…  task      parent   defined by ~…                  In         ~/work/acme/apps…rontend
-    Start development ecosys…  task      sibling  defined by ~…                  Host       mbp · local
-    Start development ecosys…  task      sibling  defined by ~…                  Scope      here
-    Upgrade 8 outdated mise …  task      host     8 tools have…                  Why        2 files changed since
-    Clone a GitHub repositor…  git       here     logged in as…                             the last run · defined
-    Copy this folder's path    file      here     available                                 by
-    Delete everything inside…  cleanup   here     always avail…  destructive                ~/work/acme/apps/fronten
-    Stop the Compose project   docker    parent   project cont…                             d/mise.toml
-    Find the process on a po…  system    host     available on…                  Changes    runs `pnpm test` in
-                                                                                            ~/work/acme/apps/fronten
-                                                                                            d · after
-                                                                                            //apps/frontend:build
-                                                                                 Risk       mutating
-                                                                                 Data       live · 0 s ago
-                                                                                 Gate       trust required ·
-                                                                                            ~/work/acme/apps/fronten
-                                                                                            d/mise.toml
-                                                                                 Args       filter · profile =
-                                                                                            default
-                                                                                 Alt+Enter  Show the task definition
-                                                                                            · Dry run · Run with
-                                                                                            cargo test instead · Pin
-                                                                                            · Alias · Why here?
-
-
- ~/work/acme/apps/frontend   main   ↑1 • 2                                                           truecolor · 120×40
-              Type Search  ↑↓ Move  Enter Trust…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Esc Clear
+  holla❯    File   Go   Help                                         acme › frontend · Node project · pnpm  mbp · local 
+                                                                                                                        
+  Here                                                                                                                  
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ test                                                                                                 scope ‹ here ›  
+                                                                                                                        
+    Results · 17                                                                 Run tests                task · here   
+  › Run tests                  task      here     alias test                                                            
+    pnpm test                  script    here     package.json…                  Does       vitest after a build ·      
+    Run test                   task      parent   defined by ~…                             runs in                     
+    Run //services/api:test    task      sibling  defined by ~…                             ~/work/acme/apps/fronten    
+    Run //tools/worker:test    task      sibling  defined by ~…                             d                           
+    Show PostgreSQL activity   postgres  here     6/100 connec…                  Runs       mise run //apps/…nd:test    
+    Rotate local secrets       custom    parent   Current fold…  destructive     In         ~/work/acme/apps…rontend    
+    Start development ecosys…  task      parent   defined by ~…                  Host       mbp · local                 
+    Start development ecosys…  task      sibling  defined by ~…                  Scope      here                        
+    Start development ecosys…  task      sibling  defined by ~…                  Why        2 files changed since       
+    Upgrade 8 outdated mise …  task      host     8 tools have…                             the last run · defined      
+    Clone a GitHub repositor…  git       here     logged in as…                             by                          
+    Copy this folder's path    file      here     available                                 ~/work/acme/apps/fronten    
+    Delete everything inside…  cleanup   here     always avail…  destructive                d/mise.toml                 
+    Top files on this Mac      disk      host     macOS Spotli…                  Changes    runs `pnpm test` in         
+    Find the process on a po…  system    host     available on…                             ~/work/acme/apps/fronten    
+    Garbage-collect the repo…  git       parent   available                                 d · after                   
+                                                                                            //apps/frontend:build       
+                                                                                 Risk       mutating                    
+                                                                                 Data       live · 0 s ago              
+                                                                                 Gate       trust required ·            
+                                                                                            ~/work/acme/apps/fronten    
+                                                                                            d/mise.toml                 
+                                                                                 Args       filter · profile =          
+                                                                                            default                     
+                                                                                 Alt+Enter  Show the task definition    
+                                                                                            · Dry run · Run with        
+                                                                                            cargo test instead · Pin    
+                                                                                            · Alias · Why here?         
+                                                                                                                        
+                                                                                                                        
+ ~/work/acme/apps/frontend   main   ↑1 • 2                                                           truecolor · 120×40 
+              Type Search  ↑↓ Move  Enter Trust…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Esc Clear                 

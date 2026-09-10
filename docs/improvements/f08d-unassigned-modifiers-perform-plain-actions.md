@@ -9,9 +9,9 @@ Specify and test Holla chords, editor/modal precedence, advertised action reacha
 Apply every retained acceptance clause for this slice. Historical findings must
 be checked against current code before editing. Preserve surrounding behavior.
 
-- [ ] Implement the stated shared/Holla slice and necessary caller migrations.
-- [ ] Retain relevant deterministic contract and Holla owner regressions.
-- [ ] Inspect affected captures/terminal evidence and record scope and results.
+- [x] Implement the stated shared/Holla slice and necessary caller migrations.
+- [x] Retain relevant deterministic contract and Holla owner regressions.
+- [x] Inspect affected captures/terminal evidence and record scope and results.
 
 ## Later
 
@@ -32,5 +32,14 @@ Current-phase completion does not imply deferred clauses have passed.
 
 ## Evidence
 
-Pending implementation. Record current source findings, tests/scenarios,
-inspected capture paths, provenance/platform scope and any deferred remainder.
+**Slice status:** current Holla/shared slice complete · the TablePro/DataTable chord audit stays Later.
+
+**Chord matrix (Holla):** shell chords `Ctrl+Q`, `Ctrl+C`, `Ctrl+G`, `Ctrl+W`, `Alt+0` to `Alt+9`, `F1`, `F10` are handled before the page; an editing owner that returns Ignored lets a shell chord through; unassigned modified chords are Ignored by every owner and perform no plain action (the F23d flood uses an unbound `Ctrl+B`); Enter with Shift chooses like Enter, Alt+Enter is the alternate action, Ctrl+Enter is not a chord. Query editing owns `Ctrl+A/Z/Y/U` and `Ctrl+Backspace`/`Alt+Backspace`; `Ctrl+W` stays the shell's close-tab. Activity input mode forwards every plain key to stdin and still yields Alt chords to the shell. Tests: `app_tests_proofs.rs: enter_with_modifiers_maps_to_exact_picker_and_finder_semantics`, `a_finite_flood_of_ignored_input_never_starves_the_tick_check`; `app_tests_parity.rs: hp02_…` (query chords, Alt+0 while editing), `hp15_…` (input mode versus Alt chords); `app_tests_flows.rs: esc_ladder_and_quit_rules`, `menu_bar_help_and_about`.
+
+**Hints:** every advertised chord is reachable (`F1` reference, footer hints per page); the F23a inventory checks the hint row per state.
+
+**Captures inspected:** `shots/h_flow_help` (key reference), `shots/h_hp15_input_mode` (input-mode hints).
+
+**Deferred remainder:** TablePro/DataTable chord audit (Later checkbox); no universal command bus.
+
+Provenance: every cited capture carries `<name>.manifest.json` (source git revision `1aaa9b0` with the dirty working tree of this change set, binary sha256 of `target/debug/holla`, arguments, geometry, colour environment, tmux 3.7c, Python 3.14.7, Pillow 12.3.0, the JetBrainsMono NFM font files) and `<name>.png.fidelity.json`; the `.txt` capture is authoritative for content. Platform scope: macOS (Darwin 25.6.0) host for every PTY and capture run; Linux behaviour is fixture-modeled only.

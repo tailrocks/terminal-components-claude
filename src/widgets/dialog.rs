@@ -165,23 +165,31 @@ impl Dialog {
         }
     }
 
+    /// Rows the code preview takes below the facts: at most six lines and
+    /// the blank row above them.
+    fn code_rows(code: &[String]) -> u16 {
+        if code.is_empty() {
+            0
+        } else {
+            code.len().min(6) as u16 + 1
+        }
+    }
+
+    /// Rows the typed acknowledgement takes: the field and the blank row
+    /// above it.
+    fn ack_rows(present: bool) -> u16 {
+        if present { TextInput::HEIGHT + 1 } else { 0 }
+    }
+
     pub fn height(&self, width: u16) -> u16 {
         let inner_w = width.saturating_sub(6) as usize;
         let body_h = match &self.body {
             DialogBody::Text(t) => crate::ui::text::wrap(t, inner_w).len() as u16,
             DialogBody::Input(_) => TextInput::HEIGHT,
             DialogBody::Facts { facts, code, ack } => {
-                facts.len() as u16
-                    + if code.is_empty() {
-                        0
-                    } else {
-                        code.len().min(6) as u16 + 1
-                    }
-                    + if ack.is_some() {
-                        TextInput::HEIGHT + 1
-                    } else {
-                        0
-                    }
+                crate::widgets::props::measure(facts, inner_w as u16)
+                    + Self::code_rows(code)
+                    + Self::ack_rows(ack.is_some())
             }
         };
         // border(2) + pad(1) + title(1) + gap(1) + body + gap(1) + actions(1) + pad(1)
@@ -417,9 +425,14 @@ impl Dialog {
                 inp.render(r, buf, ctx, bg);
             }
             DialogBody::Facts { facts, code, ack } => {
+                // the acknowledgement and the code preview are anchored above
+                // the actions; the facts get the remaining rows and are the
+                // only part that clips when the screen is too short
+                let fixed = Self::code_rows(code) + Self::ack_rows(ack.is_some());
+                let facts_bottom = actions_y.saturating_sub(1 + fixed);
                 let mut y = body_y;
                 let used = crate::widgets::props::render(
-                    Rect::new(inner.x, y, inner.width, actions_y.saturating_sub(y + 1)),
+                    Rect::new(inner.x, y, inner.width, facts_bottom.saturating_sub(y)),
                     buf,
                     t,
                     facts,
@@ -430,9 +443,6 @@ impl Dialog {
                     y += 1;
                     let max = code.len().min(6);
                     for (i, line) in code.iter().take(max).enumerate() {
-                        if y + (i as u16) >= actions_y.saturating_sub(1) {
-                            break;
-                        }
                         let shown = if i == max - 1 && code.len() > max {
                             format!(
                                 "{} … {} more",
@@ -484,6 +494,104 @@ impl Dialog {
         }
         for b in &self.actions {
             ctx.hits.register(b.id, b.area);
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::focus::FocusRing;
+    use crate::core::hit::HitRegistry;
+    use crate::theme::Theme;
+    use crate::ui::ctx::Interaction;
+    use crate::widgets::props::Prop;
+
+    fn gate(width: u16) -> Dialog {
+        let facts = vec![
+            Prop::new("Action", "move to Trash 4 items under ~/work/ide"),
+            Prop::new("Mode", "Trash · native macOS Trash · space returns after the Trash is emptied").wrap(),
+            Prop::new("Estimate", "44.0 KiB allocated · APFS clones may overcount · purgeable space excluded · not a free-space guarantee").wrap(),
+            Prop::new("Threat model", "an unprivileged user · ancestors are re-resolved at commit · a concurrent rename of the final path cannot be excluded").wrap(),
+            Prop::new("Paths", "~/work/ide/.idea · ~/work/ide/a/b/c/d/e/deep.iml · ~/work/ide/app.iml · ~/work/ide/mod/mod.iml").wrap(),
+        ];
+        let code = vec![
+            "/Users/alex/work/ide/.idea".to_owned(),
+            "/Users/alex/work/ide/a/b/c/d/e/deep.iml".to_owned(),
+        ];
+        let mut d = Dialog::facts(
+            WidgetId::of("gate2"),
+            "Trash 4 items · gate 2 of 2",
+            facts,
+            code,
+            Some("TRASH 4 UNDER /Users/alex/work/ide ON mbp"),
+            Button::danger(WidgetId::of("gate2").sub("ok"), "Execute"),
+        );
+        d.width = width;
+        d
+    }
+
+    fn render(d: &mut Dialog, screen: Rect) -> (Rect, Rect, Vec<Rect>) {
+        let theme = Theme::junie();
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(&theme, Interaction::default(), &mut hits, &mut ring);
+        let mut buf = Buffer::empty(screen);
+        d.render(screen, &mut buf, &mut ctx);
+        let ack = match &d.body {
+            DialogBody::Facts { ack: Some(a), .. } => a.input.area,
+            _ => unreachable!(),
+        };
+        (d.area, ack, d.actions.iter().map(|b| b.area).collect())
+    }
+
+    #[test]
+    fn wrapped_facts_are_measured_so_the_acknowledgement_and_actions_stay_inside_the_frame() {
+        let mut d = gate(78);
+        let (area, ack, actions) = render(&mut d, Rect::new(0, 0, 120, 40));
+        let inner = area.inner(ratatui::layout::Margin::new(1, 1));
+        assert!(
+            inner.contains(Position::new(ack.x, ack.bottom() - 1)),
+            "the typed phrase field is inside the frame: frame {area:?}, field {ack:?}"
+        );
+        for b in &actions {
+            assert!(
+                inner.contains(Position::new(b.x, b.y)),
+                "button {b:?} inside {area:?}"
+            );
+            assert!(
+                b.y > ack.bottom() - 1,
+                "actions sit below the field: {b:?} vs {ack:?}"
+            );
+        }
+        // the height accounts for every wrapped row: nothing collides
+        let measured = d.height(78);
+        assert_eq!(area.height, measured);
+        let facts_rows = crate::widgets::props::measure(
+            match &d.body {
+                DialogBody::Facts { facts, .. } => facts,
+                _ => unreachable!(),
+            },
+            72,
+        );
+        assert!(
+            facts_rows > 5,
+            "the wrapped facts take more rows than they have entries"
+        );
+    }
+
+    #[test]
+    fn a_short_screen_clips_the_facts_never_the_field_or_the_actions() {
+        let mut d = gate(78);
+        let (area, ack, actions) = render(&mut d, Rect::new(0, 0, 120, 16));
+        let inner = area.inner(ratatui::layout::Margin::new(1, 1));
+        assert!(area.height <= 14);
+        assert!(
+            inner.contains(Position::new(ack.x, ack.bottom() - 1)),
+            "{ack:?} in {area:?}"
+        );
+        for b in &actions {
+            assert!(inner.contains(Position::new(b.x, b.y)), "{b:?} in {area:?}");
         }
     }
 }

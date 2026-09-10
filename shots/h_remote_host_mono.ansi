@@ -12,10 +12,10 @@
     Show system resources           [38;5;7msystem  [38;5;15m  [38;5;7mon prod-eu-1[38;5;15m  [38;5;7mCPU 34% for 11 min[38;5;15m                      
                                                                                                     
     [38;5;8mRecent here[38;5;15m                                                                                     
-    [38;5;8mnothing used here yet[38;5;15m                                                                           
+    [38;5;8meverything used here is suggested above[38;5;15m                                                         
                                                                                                     
     [38;5;8mExplore[38;5;15m                                                                                         
- [38;5;0m▎[38;5;15m   Tasks   Git   Files   Disk   Services   System                                                 
+ [38;5;0m [38;5;15m   Tasks   Git   Files   Disk   Services   System                                                 
     System · prod-eu-1              [38;5;7mexplore [38;5;15m  [38;5;7mon prod-eu-1[38;5;15m  [38;5;7mavailable on this host[38;5;15m                  
                                                                                                     
                                                                                                     

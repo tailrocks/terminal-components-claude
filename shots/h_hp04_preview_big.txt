@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local 
+                                                                                                                        
+  Here › Files › site                                                                                                   
+ ━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────── 
+  Files · ~/work/site                                                                                                   
+  16 entries · 2 hidden hidden · Ctrl+H shows · directories first                                                       
+                                                                                                                        
+  ▸ assets                                 –  2026-09-06 08:41      ╭─────── first 2000 lines · 19.4 KiB of 19.4 KiB ─╮ 
+  ▸ private                                –  2026-09-03 08:41      │      1 line 0                                 ┃ │ 
+    bad.txt                              3 B  2026-09-07 08:41      │      2 line 1                                 │ │ 
+ ▎  big.log                         19.4 KiB  2026-09-08 08:41      │      3 line 2                                 │ │ 
+  → broken                               0 B  2026-09-09 08:41      │      4 line 3                                 │ │ 
+    café.txt                            11 B  2026-09-09 08:41      │      5 line 4                                 │ │ 
+    café.txt                            12 B  2026-09-09 08:41      │      6 line 5                                 │ │ 
+    control.txt                         13 B  2026-09-07 08:41      │      7 line 6                                 │ │ 
+  → current                              0 B  2026-09-09 08:41      │      8 line 7                                 │ │ 
+    empty.txt                            0 B  2026-09-09 08:41      │      9 line 8                                 │ │ 
+    index.html                          34 B  2026-09-09 08:41      │     10 line 9                                 │ │ 
+    logo.png                             6 B  2026-09-07 08:41      │     11 line 10                                │ │ 
+    long.txt                         4.9 KiB  2026-09-08 08:41      │     12 line 11                                │ │ 
+    package.json                        85 B  2026-09-08 08:41      │     13 line 12                                │ │ 
+  ◇ pipe                                 0 B  2026-09-10 08:41      │     14 line 13                                │ │ 
+    pnpm-lock.yaml                      19 B  2026-09-08 08:41      │     15 line 14                                │ │ 
+                                                                    │     16 line 15                                │ │ 
+                                                                    │     17 line 16                                │ │ 
+                                                                    │     18 line 17                                │ │ 
+                                                                    │     19 line 18                                │ │ 
+                                                                    │     20 line 19                                │ │ 
+                                                                    │     21 line 20                                │ │ 
+                                                                    │     22 line 21                                │ │ 
+                                                                    │     23 line 22                                │ │ 
+                                                                    │     24 line 23                                │ │ 
+                                                                    │     25 line 24                                │ │ 
+                                                                    │     26 line 25                                │ │ 
+                                                                    │     27 line 26                                │ │ 
+                                                                    │     28 line 27                                │ │ 
+                                                                    ╰─────────────────────────────────────────────────╯ 
+                                                                                                                        
+ ~/work/site                                ~/work/site · hidden off                                 truecolor · 120×40 
+     ↑↓ Move  Enter Open / preview  ← Parent  g Go to path  Ctrl+H Hidden  Alt+Enter Actions  …   Hidden entries hidden 

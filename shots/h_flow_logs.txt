@@ -1,40 +1,40 @@
-  holla❯    File   Go   Help                                                          acme · mise monorepo  mbp · local
-
-  Here    frontend dev ⠙ ×    api dev ⠙ ×    api tests ✓ ×    logs · api worker sched… ⠙ ×    btm ○ ×
- ────────────────────────────────────────────────────────────━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────────────
-  logs · api worker scheduler · running · 6 s                                                 here · ~/work/acme · mbp
-  compose acme · errors 3 in 2 min
-
-  ▎api   ▎worker   ▎scheduler
-
- ╭─ merged logs ────────────────────────────────────────────────────────────────────────────────────────── following ─╮
- │  $ docker compose logs -f --tail 200 api worker scheduler                                                          │
- │  api        INFO  listening on 0.0.0.0:8080                                                                        │
- │  worker     INFO  worker ready · queue=orders concurrency=4                                                        │
- │  scheduler  INFO  scheduler tick · 3 jobs due                                                                      │
- │  api        INFO  GET /health 200 · 1 ms                                                                           │
- │  worker     INFO  processed order 1042 · 38 ms                                                                     │
- │  api        WARN  upstream timeout · retry 1 of 3                                                                  │
- │  scheduler  INFO  enqueued nightly-report                                                                          │
- │  api        ERROR health check failed · db pool exhausted (20/20)                                                  │
- │  worker     INFO  processed order 1043 · 41 ms                                                                     │
- │  api        ERROR health check failed · db pool exhausted (20/20)                                                  │
- │  scheduler  INFO  scheduler tick · 0 jobs due                                                                      │
- │  worker     WARN  order 1044 retried · lock timeout                                                                │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-
- ~/work/acme   main   ↑1                            ⠙ 6 s                             ⠙ 4 running    truecolor · 120×40
-                                ↑↓ Scroll  f Follow  y Copy  s Stop  x Close  Esc Here
+  holla❯    File   Go   Help                                                          acme · mise monorepo  mbp · local 
+                                                                                                                        
+  Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×    logs · api worker sched… ⠋ ×    btm ○ ×                   
+ ────────────────────────────────────────────────────────────━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━─────────────────────────── 
+  logs · api worker scheduler · running · 6 s                                                 here · ~/work/acme · mbp  
+  compose acme · errors 3 in 2 min                                                                                      
+                                                                                                                        
+   api    worker    scheduler                                                                                           
+                                                                                                                        
+ ╭─ merged logs ────────────────────────────────────────────────────────────────────────────────────────── following ─╮ 
+ │  $ docker compose logs -f --tail 200 api worker scheduler                                                          │ 
+ │  api        INFO  listening on 0.0.0.0:8080                                                                        │ 
+ │  worker     INFO  worker ready · queue=orders concurrency=4                                                        │ 
+ │  scheduler  INFO  scheduler tick · 3 jobs due                                                                      │ 
+ │  api        INFO  GET /health 200 · 1 ms                                                                           │ 
+ │  worker     INFO  processed order 1042 · 38 ms                                                                     │ 
+ │  api        WARN  upstream timeout · retry 1 of 3                                                                  │ 
+ │  scheduler  INFO  enqueued nightly-report                                                                          │ 
+ │  api        ERROR health check failed · db pool exhausted (20/20)                                                  │ 
+ │  worker     INFO  processed order 1043 · 41 ms                                                                     │ 
+ │  api        ERROR health check failed · db pool exhausted (20/20)                                                  │ 
+ │  scheduler  INFO  scheduler tick · 0 jobs due                                                                      │ 
+ │  worker     WARN  order 1044 retried · lock timeout                                                                │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+ ~/work/acme   main   ↑1                            ⠋ 6 s                             ⠋ 4 running    truecolor · 120×40 
+                            ↑↓ Scroll  f Follow  / Find  y Copy  s Stop  x Close  Esc Here                              

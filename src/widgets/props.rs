@@ -48,42 +48,74 @@ impl Prop {
 }
 
 /// Returns the number of rows used.
+/// One visual row of a property sheet: the property it belongs to, its
+/// label (first row only) and the value text for that row.
+struct Row<'a> {
+    prop: &'a Prop,
+    label: Option<&'a str>,
+    value: String,
+}
+
+fn label_width(props: &[Prop]) -> u16 {
+    props
+        .iter()
+        .map(|p| crate::ui::text::width(&p.label))
+        .max()
+        .unwrap_or(0) as u16
+        + 2
+}
+
+/// The rows a sheet occupies at `width`, computed once for measuring and
+/// rendering so a dialog sized by `measure` never overflows its frame.
+fn rows(props: &[Prop], width: u16) -> Vec<Row<'_>> {
+    let label_w = label_width(props);
+    let vw = width.saturating_sub(label_w) as usize;
+    let mut out = vec![];
+    for p in props {
+        if p.wrap {
+            let lines = crate::ui::text::wrap(&p.value, vw.max(4));
+            for (i, line) in lines.into_iter().enumerate() {
+                out.push(Row {
+                    prop: p,
+                    label: (i == 0).then_some(p.label.as_str()),
+                    value: line,
+                });
+            }
+        } else {
+            out.push(Row {
+                prop: p,
+                label: Some(&p.label),
+                value: crate::ui::text::truncate(&p.value, vw),
+            });
+        }
+    }
+    out
+}
+
+/// Rows the sheet needs at `width`, including wrapped values.
+pub fn measure(props: &[Prop], width: u16) -> u16 {
+    rows(props, width).len() as u16
+}
+
 pub fn render(area: Rect, buf: &mut Buffer, t: &Theme, props: &[Prop], bg: Color) -> u16 {
     let area = area.intersection(*buf.area());
     if area.is_empty() {
         return 0;
     }
-    let label_w = props
-        .iter()
-        .map(|p| crate::ui::text::width(&p.label))
-        .max()
-        .unwrap_or(0) as u16
-        + 2;
+    let label_w = label_width(props);
     let mut y = area.y;
-    for p in props {
+    for row in rows(props, area.width) {
         if y >= area.bottom() {
             break;
         }
-        buf.set_string(area.x, y, &p.label, t.muted().bg(bg));
-        let vw = area.width.saturating_sub(label_w) as usize;
-        let style = ratatui::style::Style::new().fg(t.tone(p.tone)).bg(bg);
-        if p.wrap {
-            for line in crate::ui::text::wrap(&p.value, vw.max(4)) {
-                if y >= area.bottom() {
-                    break;
-                }
-                buf.set_string(area.x + label_w, y, &line, style);
-                y += 1;
-            }
-        } else {
-            buf.set_string(
-                area.x + label_w,
-                y,
-                crate::ui::text::truncate(&p.value, vw),
-                style,
-            );
-            y += 1;
+        if let Some(label) = row.label {
+            buf.set_string(area.x, y, label, t.muted().bg(bg));
         }
+        let style = ratatui::style::Style::new()
+            .fg(t.tone(row.prop.tone))
+            .bg(bg);
+        buf.set_string(area.x + label_w, y, &row.value, style);
+        y += 1;
     }
     y - area.y
 }

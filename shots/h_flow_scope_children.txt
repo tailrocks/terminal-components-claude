@@ -1,30 +1,30 @@
-  holla❯    File   Go   Help                                      acme · mise monorepo  mbp · local
-
-  Here
- ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────
- ▎ Search actions and resources…                                                scope ‹ children ›
-
-    Children · 3 projects · 11 entries
-  › Run //apps/frontend:dev            task  child  defined by ~/work/acme/apps/fron…
-    Clean developer artifacts under …  plan  child  2 candidates in 3 projects         destructive
-    Run //apps/frontend:build          task  child  defined by ~/work/acme/apps/fron…
-    Run //apps/frontend:lint           task  child  defined by ~/work/acme/apps/fron…
-    Run //apps/frontend:test           task  child  defined by ~/work/acme/apps/fron…
-    Run //services/api:dev             task  child  defined by ~/work/acme/services/…
-    Run //services/api:migrate         task  child  defined by ~/work/acme/services/…
-    Run //services/api:test            task  child  defined by ~/work/acme/services/…
-    Run //tools/worker:dev             task  child  defined by ~/work/acme/tools/wor…
-    Run //tools/worker:test            task  child  defined by ~/work/acme/tools/wor…
-
-
-
-
-
-
-
-
-
-    → mise run //apps/frontend:dev · child · mutating
-
- ~/work/acme   main   ↑1               scope children · 3 projects               truecolor · 100×30
-   Type Search  ↑↓ Move  Enter Trust…  Alt+Enter More  Tab Preview  …   Scope children · 3 projects
+  holla❯    File   Go   Help                                      acme · mise monorepo  mbp · local 
+                                                                                                    
+  Here                                                                                              
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                scope ‹ children ›  
+                                                                                                    
+    Children · 3 projects · 11 entries                                                              
+  › Run //apps/frontend:dev            task  child  defined by ~/work/acme/apps/fron…               
+    Clean developer artifacts under …  plan  child  2 candidates in 3 projects         destructive  
+    Run //apps/frontend:build          task  child  defined by ~/work/acme/apps/fron…               
+    Run //apps/frontend:lint           task  child  defined by ~/work/acme/apps/fron…               
+    Run //apps/frontend:test           task  child  defined by ~/work/acme/apps/fron…               
+    Run //services/api:dev             task  child  defined by ~/work/acme/services/…               
+    Run //services/api:migrate         task  child  defined by ~/work/acme/services/…               
+    Run //services/api:test            task  child  defined by ~/work/acme/services/…               
+    Run //tools/worker:dev             task  child  defined by ~/work/acme/tools/wor…               
+    Run //tools/worker:test            task  child  defined by ~/work/acme/tools/wor…               
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+    → mise run //apps/frontend:dev · child · mutating                                               
+                                                                                                    
+ ~/work/acme   main   ↑1               scope children · 3 projects               truecolor · 100×30 
+   Type Search  ↑↓ Move  Enter Trust…  Alt+Enter More  Tab Preview  …   Scope children · 3 projects 

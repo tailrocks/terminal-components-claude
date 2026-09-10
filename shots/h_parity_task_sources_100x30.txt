@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                poly · Node project · yarn  mbp · local 
+                                                                                                    
+  Here                                                                                              
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                    scope ‹ here ›  
+                                                                                                    
+    Suggested here                                                                                  
+  › just build    recipe   here  .justfile here                                                     
+    just lint     recipe   here  .justfile here                                                     
+    just test     recipe   here  .justfile here                                                     
+    make all      target   here  Makefile here                                                      
+    make build    target   here  Makefile here                                                      
+                                                                                                    
+    Recent here                                                                                     
+    everything used here is suggested above                                                         
+                                                                                                    
+    Explore                                                                                         
+     Tasks   Git   Files   Disk   Services   System                                                 
+    System · mbp  explore  host  available on this host                                             
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+    → just build · here · mutating                                                                  
+                                                                                                    
+ ~/work/poly                                                                     truecolor · 100×30 
+  Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities    

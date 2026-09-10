@@ -282,6 +282,15 @@ impl DiskPage {
         self.selected.retain(|s| live.contains(s.as_str()));
     }
 
+    /// Overview rows as (label, kind) in display order.
+    #[cfg(test)]
+    pub fn overview_rows(&self) -> Vec<(String, &'static str)> {
+        self.overview
+            .iter()
+            .map(|r| (r.label.clone(), r.kind))
+            .collect()
+    }
+
     fn cursor_fs_path(&self) -> Option<String> {
         let p = self.tree.cursor_path()?;
         self.paths

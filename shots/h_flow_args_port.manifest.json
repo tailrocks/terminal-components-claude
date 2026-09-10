@@ -1,0 +1,69 @@
+{
+ "capture": "h_flow_args_port",
+ "source": {
+  "git": "1aaa9b01430d7976a202616a6df6b2844b7c8814",
+  "dirty": true
+ },
+ "binary": {
+  "path": "target/debug/holla",
+  "sha256": "99be1c56e6529a2338529386d8605645158e173718f3527dcac22f0e7ea70b51"
+ },
+ "arguments": "--scenario rust-dirty --motion reduced",
+ "geometry": {
+  "cols": 120,
+  "rows": 40
+ },
+ "environment": {
+  "TERM": "xterm-256color",
+  "COLORTERM": "truecolor",
+  "NO_COLOR": "unset"
+ },
+ "tools": {
+  "tmux": "tmux 3.7c",
+  "python": "3.14.7",
+  "pillow": "12.3.0",
+  "cells": "target/debug/examples/cells (unicode-segmentation + unicode-width of the library)"
+ },
+ "host": "Darwin 25.6.0",
+ "ansi_sha256": "43c1c68278dc47f72e064207f85f95e3bb08e47e07cd03d5a5c5af2b7ea033ee",
+ "fonts": [
+  {
+   "role": "regular",
+   "family": "JetBrainsMono NFM",
+   "style": "Regular",
+   "path": "/Users/donbeave/Library/Fonts/JetBrainsMonoNerdFontMono-Regular.ttf",
+   "sha256": "f2a5ea6cfab397445ffab00c0370927b66d61e560a05db5db271b42006381c1a"
+  },
+  {
+   "role": "bold",
+   "family": "JetBrainsMono NFM",
+   "style": "Bold",
+   "path": "/Users/donbeave/Library/Fonts/JetBrainsMonoNerdFontMono-Bold.ttf",
+   "sha256": "bfcf9a917276ffc058867d87cbc8a5b2f1ab0f4b710e9170dc02763ccb80bd4b"
+  },
+  {
+   "role": "italic",
+   "family": "JetBrainsMono NFM",
+   "style": "Italic",
+   "path": "/Users/donbeave/Library/Fonts/JetBrainsMonoNerdFontMono-Italic.ttf",
+   "sha256": "31efd6ead98746f5b0afa1ee6dba60267ad48db36428360bee327bec10621f97"
+  },
+  {
+   "role": "bolditalic",
+   "family": "JetBrainsMono NFM",
+   "style": "Bold Italic",
+   "path": "/Users/donbeave/Library/Fonts/JetBrainsMonoNerdFontMono-BoldItalic.ttf",
+   "sha256": "9dba502e00e35209f6ed2a151c7376c051657b067cdebbc6e52d06cb9002cf31"
+  }
+ ],
+ "png": {
+  "approximate": false,
+  "missing": 0,
+  "unshaped": 0,
+  "clipped": 0,
+  "controls": 0,
+  "raqm": true
+ },
+ "captured_at": "2026-09-10T15:04:25+00:00",
+ "review": "pending inspection"
+}

@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                 no project  devbox · local 
+                                                                                                                        
+  Here › Cleanup › Review                                                                                               
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────── 
+  Review · trash 1 item · gate 1 of 2 · review the resolved facts, then continue deliberately                           
+                                                                                                                        
+  Action        move to Trash 1 item under ~                                                                            
+  Host          devbo╭────────────────────────────────────────────────────────────────────────────╮                     
+  Mode          Trash│                                                                            │ter the Trash is     
+                empti│  Trash 1 items · gate 2 of 2                                               │                     
+  Estimate      124.0│                                                                            │free-space           
+                guara│  Action        move to Trash 1 item under ~                                │                     
+  Denied        none │  Host          devbox · local                                              │                     
+  Revision      c4d72│  Mode          Trash · no Trash backend · every item will fail, never      │                     
+  Threat model  an un│                fall back · space returns after the Trash is emptied        │ the final path      
+                canno│  Estimate      124.0 KiB allocated · APFS clones may overcount ·           │                     
+  Paths         ~/Pro│                purgeable space excluded · not a free-space guarantee       │                     
+  Recoverable   yes ·│  Denied        none · every path passed the lexical, protected-root,       │                     
+  Provenance    holla│                user-data and symlink rules                                 │                     
+                     │  Revision      c4d729e20ca0805b · any change to paths, mode or dry run     │                     
+ ╭─ Sequence · 1 comm│                voids this review                                           │──────── y copies ─╮ 
+ │  01  trash /home/a│  Threat model  an unprivileged user · ancestors are re-resolved at commit  │                   │ 
+ │                   │                · a concurrent rename of the final path cannot be excluded  │                   │ 
+ │                   │  Paths         ~/Projects/app/node_modules                                 │                   │ 
+ │                   │                                                                            │                   │ 
+ │                   │  /home/alex/Projects/app/node_modules                                      │                   │ 
+ │                   │                                                                            │                   │ 
+ │                   │   Type TRASH 1 UNDER /home/alex ON devbox to confirm                       │                   │ 
+ │                   │ ▎                                                                          │                   │ 
+ │                   │                                                                            │                   │ 
+ │                   │                                                                            │                   │ 
+ │                   │                                                         Cancel   Execute   │                   │ 
+ │                   │                                                                            │                   │ 
+ │                   ╰────────────────────────────────────────────────────────────────────────────╯                   │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+                                                                                                  Cancel    Continue…   
+                                                                                                                        
+ ~/work/box                                   review · gate 1 of 2                                   truecolor · 120×40 
+                                        ← → Choose  Enter Confirm  Esc Cancel               1 item selected · 124.0 KiB 

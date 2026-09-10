@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local 
+                                                                                                                        
+  Here    stop svc02 ! ×                                                                                                
+ ────────━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────── 
+  stop svc02 · failed · 0 s · exit 1                                                                               mbp  
+  $ brew services stop svc02 · started by Stop svc02                                                                    
+                                                                                                                        
+ ╭─ output ─────────────────────────────────────────────────────────────────────────────────────────────── following ─╮ 
+ │  $ brew services stop svc02                                                                                        │ 
+ │  Error: Failure while executing; `/bin/bin/launchctl bootstrap gui/501 …/homebrew.mxcl.svc02.plist` exited with 5: │ 
+ │   Bootstrap failed: 5: Input/output error                                                                          │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+ ~/work                                        ! exit 1 · 0 s                                        truecolor · 120×40 
+                      ↑↓ Scroll  f Follow  / Find  y Copy  r Restart  x Close  Esc Here    ! stop svc02 failed · exit 1 

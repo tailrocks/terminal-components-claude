@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local 
+                                                                                                                        
+  Here › Review    stop all containers ! ×                                                                              
+ ━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  Review · Stop and remove all containers · gate 1 of 2 · review the resolved facts, then continue deliberately         
+                                                                                                                        
+  Action       stop the running containers, then remove every captured container on mbp (running and stopped) · images  
+               and volumes stay · rm runs only after stop succeeds                                                      
+  Host         mbp · ╭────────────────────────────────────────────────────────────────────────────╮                     
+  In           mbp · │                                                                            │                     
+  Scope        host  │  Stop and remove all containers · gate 2 of 2                              │                     
+  Changes      6 cont│                                                                            │                     
+  Risk         destru│  Action   stop the running containers, then remove every captured          │                     
+  Data         live ·│           container on mbp (running and stopped) · images and volumes      │                     
+  Includes     stoppe│           stay · rm runs only after stop succeeds                          │                     
+  Recoverable  no · p│  Host     mbp · local                                                      │                     
+  Provenance   built-│  In       mbp · host-wide                                                  │                     
+  Gate         second│  Scope    host                                                             │                     
+                     │  Changes  6 containers removed · writable layers lost                      │                     
+ ╭─ Sequence · 2 comm│  Risk     destructive                                                      │──────── y copies ─╮ 
+ │  01  docker stop a│  Data     live · 2 s ago                                                   │                   │ 
+ │  02  docker rm acm│                                                                            │                   │ 
+ │                   │  docker stop acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-schedu…  │                   │ 
+ │                   │  docker rm acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-schedule…  │                   │ 
+ │                   │                                                                            │                   │ 
+ │                   │   Type REMOVE ALL CONTAINERS ON mbp to confirm                             │                   │ 
+ │                   │ ▎                                                                          │                   │ 
+ │                   │                                                                            │                   │ 
+ │                   │                                                                            │                   │ 
+ │                   │                                                         Cancel   Execute   │                   │ 
+ │                   │                                                                            │                   │ 
+ │                   ╰────────────────────────────────────────────────────────────────────────────╯                   │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+                                                                                                  Cancel    Continue…   
+                                                                                                                        
+ ~/work/stack                                  review · gate 1 of 2                                  truecolor · 120×40 
+                                        ← → Choose  Enter Confirm  Esc Cancel     ! stop all containers failed · exit 1 

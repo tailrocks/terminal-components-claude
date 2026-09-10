@@ -161,7 +161,7 @@ fn inventory() -> Vec<State> {
         40,
         tree.clone(),
         disk::TREE,
-        "Disk › Usage",
+        "Disk › Overview › Usage",
         false,
     );
     let mut top = overview.clone();
@@ -172,7 +172,7 @@ fn inventory() -> Vec<State> {
         40,
         top,
         disk::LIST,
-        "Disk › Top files",
+        "Disk › Overview › Top files",
         false,
     );
     let mut facts = tree.clone();
@@ -183,7 +183,7 @@ fn inventory() -> Vec<State> {
         40,
         facts,
         disk::DETAIL,
-        "Disk › Usage",
+        "Disk › Overview › Usage",
         false,
     );
     let mut cleanup = typed("Review cleanup candidates");
@@ -661,7 +661,7 @@ fn a_burst_of_output_is_appended_not_rebuilt_and_equals_a_fresh_layout() {
     let mut ring_b = junie_tui::core::focus::FocusRing::default();
     let interaction = junie_tui::ui::ctx::Interaction::default();
     let mut ctx_a =
-        junie_tui::ui::ctx::RenderCtx::new(&theme, interaction.clone(), &mut hits_a, &mut ring_a);
+        junie_tui::ui::ctx::RenderCtx::new(&theme, interaction, &mut hits_a, &mut ring_a);
     let mut ctx_b =
         junie_tui::ui::ctx::RenderCtx::new(&theme, interaction, &mut hits_b, &mut ring_b);
     let mut incremental_view = activity_view(&mut h).clone();

@@ -1,40 +1,40 @@
-  holla❯    File   Go   Help                                      payments · service checkout  ◆ prod-eu-1 · production
-
-  Here › Who is blocking the database?
- ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────
-  Who is blocking the database?                                      payments@localhost:5432/payments · live · 1 s ago
-
-  Connections   91%
-
-  Source       PGSERVICE=payments in /etc/payments/env · password never shown
-  Connections  91 of 100
-  Idle in txn  1
-  Blocked      2
-  Cache hit    98% · 2 deadlocks in 24 h
-  Replication  replay lag 1.4 s on replica-1
-
- ╭─ Sessions · blockers first ─────────────────────────────────────────────────────────────────── 5 lines · y copies ─╮
- │  pid     state               user      wait               txn   query                                              │
- │  48197   idle in transaction alex      –                 330s   UPDATE orders SET status = 'settled' WH…           │
- │  └ 48211 active              api       Lock:tuple        252s   UPDATE orders SET status = 'shipped' WH…           │
- │    └ 48230active              worker    Lock:tuple        238s   UPDATE orders SET status = 'settled' WH…          │
- │  48240   active              api       –                   1s   SELECT * FROM orders WHERE customer_id …           │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-
-  Next  ▎Cancel the blocking query (PID 48197)   ▎Terminate backend 48197   ▎Open pg_activity
-
- /srv/payments   detached @ v2.14.3                       snapshot · read-only                       truecolor · 120×40
-                                    ↑↓ Scroll  y Copy  Tab Next actions  Esc Back      Cancelled · nothing was executed
+  holla❯    File   Go   Help                                      payments · service checkout  ◆ prod-eu-1 · production 
+                                                                                                                        
+  Here › Who is blocking the database?                                                                                  
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────── 
+  Who is blocking the database?                                      payments@localhost:5432/payments · live · 1 s ago  
+                                                                                                                        
+  Connections   91%                                                                                                     
+                                                                                                                        
+  Source       PGSERVICE=payments in /etc/payments/env · password never shown                                           
+  Connections  91 of 100                                                                                                
+  Idle in txn  1                                                                                                        
+  Blocked      2                                                                                                        
+  Cache hit    98% · 2 deadlocks in 24 h                                                                                
+  Blocker      pid 48197 · cancel or terminate it to free the waiters                                                   
+  Replication  replay lag 1.4 s on replica-1                                                                            
+                                                                                                                        
+ ╭─ Sessions · blockers first ─────────────────────────────────────────────────────────────────── 5 lines · y copies ─╮ 
+ │  pid     state               user      wait               txn   query                                              │ 
+ │  48197   idle in transaction alex      –                 330s   UPDATE orders SET status = 'settled' WH…           │ 
+ │  └ 48211 active              api       Lock:tuple        252s   UPDATE orders SET status = 'shipped' WH…           │ 
+ │    └ 48230active              worker    Lock:tuple        238s   UPDATE orders SET status = 'settled' WH…          │ 
+ │  48240   active              api       –                   1s   SELECT * FROM orders WHERE customer_id …           │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+  Next   Cancel the blocking query (PID 48197)    Terminate backend 48197    Open pg_activity                           
+                                                                                                                        
+ /srv/payments   detached @ v2.14.3                       snapshot · read-only                       truecolor · 120×40 
+                                    ↑↓ Scroll  y Copy  Tab Next actions  Esc Back      Cancelled · nothing was executed 

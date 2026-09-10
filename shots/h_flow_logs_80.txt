@@ -1,24 +1,24 @@
-  holla❯    File   Go   Help                  acme · mise monorepo  mbp · local
-
- ‹2   api dev ⠼ ×    api tests ✓ ×    logs · api worker sched… ⠼ ×           1›
- ────────────────────────────────────━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────
-  logs · api worker scheduler · running · 5 s         here · ~/work/acme · mbp
-  compose acme · errors 3 in 2 min
-
-  ▎api   ▎worker   ▎scheduler
-
- ╭─ merged logs ────────────────────────────────────────────────── following ─╮
- │  scheduler  INFO  scheduler tick · 3 jobs due                            │ │
- │  api        INFO  GET /health 200 · 1 ms                                 │ │
- │  worker     INFO  processed order 1042 · 38 ms                           │ │
- │  api        WARN  upstream timeout · retry 1 of 3                        ┃ │
- │  scheduler  INFO  enqueued nightly-report                                ┃ │
- │  api        ERROR health check failed · db pool exhausted (20/20)        ┃ │
- │  worker     INFO  processed order 1043 · 41 ms                           ┃ │
- │  api        ERROR health check failed · db pool exhausted (20/20)        ┃ │
- │  scheduler  INFO  scheduler tick · 0 jobs due                            ┃ │
- │  worker     WARN  order 1044 retried · lock timeout                      ┃ │
- ╰────────────────────────────────────────────────────────────────────────────╯
-
- ~/work/acme   main   ↑1        ⠼ 5 s          ⠼ 4 running    truecolor · 80×24
-            ↑↓ Scroll  f Follow  y Copy  s Stop  x Close  Esc Here
+  holla❯    File   Go   Help                  acme · mise monorepo  mbp · local 
+                                                                                
+ ‹2   api dev ⠼ ×    api tests ✓ ×    logs · api worker sched… ⠼ ×           1› 
+ ────────────────────────────────────━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━─────────── 
+  logs · api worker scheduler · running · 5 s         here · ~/work/acme · mbp  
+  compose acme · errors 3 in 2 min                                              
+                                                                                
+   api    worker    scheduler                                                   
+                                                                                
+ ╭─ merged logs ────────────────────────────────────────────────── following ─╮ 
+ │  scheduler  INFO  scheduler tick · 3 jobs due                            │ │ 
+ │  api        INFO  GET /health 200 · 1 ms                                 │ │ 
+ │  worker     INFO  processed order 1042 · 38 ms                           │ │ 
+ │  api        WARN  upstream timeout · retry 1 of 3                        ┃ │ 
+ │  scheduler  INFO  enqueued nightly-report                                ┃ │ 
+ │  api        ERROR health check failed · db pool exhausted (20/20)        ┃ │ 
+ │  worker     INFO  processed order 1043 · 41 ms                           ┃ │ 
+ │  api        ERROR health check failed · db pool exhausted (20/20)        ┃ │ 
+ │  scheduler  INFO  scheduler tick · 0 jobs due                            ┃ │ 
+ │  worker     WARN  order 1044 retried · lock timeout                      ┃ │ 
+ ╰────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                
+ ~/work/acme   main   ↑1        ⠼ 5 s          ⠼ 4 running    truecolor · 80×24 
+        ↑↓ Scroll  f Follow  / Find  y Copy  s Stop  x Close  Esc Here          

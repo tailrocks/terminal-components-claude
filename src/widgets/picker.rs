@@ -109,6 +109,9 @@ pub enum PickerEvent {
     Chosen(usize),
     /// Chosen with the alternate modifier (e.g. open in new tab).
     ChosenAlt(usize),
+    /// Enter with a query but no eligible row: the owner may act on the
+    /// query text itself (a path typed into a jump picker).
+    Submit,
     /// Secondary action on the cursor row (e.g. close tab).
     Secondary(usize),
     NextScope,
@@ -281,6 +284,9 @@ impl Picker {
                         PickerEvent::Chosen(i)
                     };
                     (Outcome::Changed, Some(ev))
+                }
+                None if self.searchable && !self.query.trim().is_empty() => {
+                    (Outcome::Changed, Some(PickerEvent::Submit))
                 }
                 None => (Outcome::Consumed, None),
             },

@@ -1,50 +1,50 @@
-  holla❯    File   Go   Help                                                                                                  acme · mise monorepo  mbp · local
-
-  Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×    logs · api worker sched… ⠋ ×    btm ○ ×
- ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- ▎ Search actions and resources…                                                                                                                scope ‹ here ›
-
-    Suggested here                                                                                               Follow acme-api-1 logs         docker · here
-  › Follow acme-api-1 logs                docker    here   service is unhealthy
-    Inspect 10 GB of generated artifacts  disk      here   10 GB generated artifacts                             Does       stream the last 10 minutes and
-    Install missing tools · sqlx-cli      task      here   1 tool missing                                                   follow · acme/api:dev · running
-    Deploy preview                        workflow  here   provenance: project workflow file…                    Runs       docker logs -f --sinc…acme-api-1
-    Follow acme-db-1 logs                 docker    here   running                                               In         ~/work/acme
-                                                                                                                 Host       mbp · local
-    Recent here                                                                                                  Scope      here
-    nothing used here yet                                                                                        Why        service is unhealthy
-                                                                                                                 Changes    none · read-only
-    Running                                                                                                      Risk       read-only
-    logs · api worker scheduler           activity  here   ⠋ running · 3 s                                       Data       live · 2 s ago
-    api dev                               activity  child  ⠋ running · 3 s                                       Gate       runs directly
-    btm                                   activity  host   ⠋ detached · 3 s                                      Alt+Enter  Restart · Stop · Pin · Alias ·
-    frontend dev                          activity  child  ⠋ running · 3 s                                                  Why here?
-
-    Explore
- ▎   Tasks   Git   Files   Disk   Services   System
-    Children · 3 projects                 explore   child  3 child projects discovered
-    System · mbp                          explore   host   available on this host
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- ~/work/acme   main   ↑1                                                                                                      ⠋ 4 running    truecolor · 160×50
-                                Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities      api tests finished · exit 0
+  holla❯    File   Go   Help                                                                                                  acme · mise monorepo  mbp · local 
+                                                                                                                                                                
+  Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×    logs · api worker sched… ⠋ ×    btm ○ ×                                                           
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›  
+                                                                                                                                                                
+    Suggested here                                                                                               Deploy preview                 custom · here   
+  › Deploy preview                        custom    here   Current folder · ⚠ unreviewed · used 7 times here                                                    
+    Follow acme-api-1 logs                docker    here   service is unhealthy                                  Does       push the current branch to the      
+    Inspect 10 GB of generated artifacts  disk      here   10 GB generated artifacts                                        preview stack                       
+    Install missing tools · sqlx-cli      task      here   1 tool missing                                        Runs       tools/deploy-preview.…nv preview    
+    Review cleanup candidates             cleanup   host   10.6 GiB across 4 categories                          In         ~/work/acme                         
+                                                                                                                 Host       mbp · local                         
+    Recent here                                                                                                  Scope      here                                
+    Pull                                  git       here   used 20 times on mbp                                  Why        Current folder · ⚠ unreviewed ·     
+                                                                                                                            used 7 times here                   
+    Running                                                                                                      Changes    see the command                     
+    logs · api worker scheduler           activity  here   ⠋ running · 3 s                                       Risk       mutating                            
+    api dev                               activity  child  ⠋ running · 3 s                                       Data       live · 0 s ago                      
+    btm                                   activity  host   ⠋ detached · 3 s                                      Gate       trust required ·                    
+    frontend dev                          activity  child  ⠋ running · 3 s                                                  ~/work/acme/.holla.toml             
+                                                                                                                 Alt+Enter  Set an alias… · Show                
+    Explore                                                                                                                 configuration diagnostics · Pin     
+     Tasks   Git   Files   Disk   Services   System                                                                         · Alias · Why here?                 
+    Children · 3 projects                 explore   child  3 child projects discovered                                                                          
+    System · mbp                          explore   host   available on this host                                                                               
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+ ~/work/acme   main   ↑1                                                                                                      ⠋ 4 running    truecolor · 160×50 
+                              Type Search  ↑↓ Move  Enter Trust…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities     api tests finished · exit 0 

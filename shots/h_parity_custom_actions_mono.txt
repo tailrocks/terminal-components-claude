@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                       team · Rust project  mbp · local 
+                                                                                                    
+  Here                                                                                              
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                    scope ‹ here ›  
+                                                                                                    
+    Suggested here                                                                                  
+  › Deploy preview       custom   here  Current folder · ⚠ unreviewed…                              
+    Global shared id     custom   here  Custom · trusted                                            
+    Multi-line argument  custom   here  Current folder · ⚠ unreviewed…                              
+    Open notes           custom   here  Custom · trusted                                            
+    Show git status      git      here  on main                                                     
+                                                                                                    
+    Recent here                                                                                     
+    Pull                 git      here  used 20 times on mbp                                        
+                                                                                                    
+    Explore                                                                                         
+     Tasks   Git   Files   Disk   Services   System                                                 
+    System · mbp         explore  host  available on this host                                      
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+    → tools/deploy-preview.sh --env 'preview stack' '$(whoami)' · here · mutating                   
+                                                                                                    
+ ~/work/team   main                                         ▲ 2 config warnings   no color · 100×30 
+ Type Search  ↑↓ Move  Enter Trust…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities  

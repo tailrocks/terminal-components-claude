@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local 
+                                                                                                                        
+  Here    stop all containers ! ×                                                                                       
+ ────────━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────── 
+  stop all containers · failed · 0 s · exit 1                                                                      mbp  
+  $ docker stop acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-scheduler-1 · started by Stop all containers       
+                                                                                                                        
+ ╭─ output ─────────────────────────────────────────────────────────────────────────────────────────────── following ─╮ 
+ │  $ docker stop acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-scheduler-1                                    │ 
+ │  acme-db-1                                                                                                         │ 
+ │  Error response from daemon: cannot stop container: acme-scheduler-1: tried to kill container, but did not receive │ 
+ │   an exit event                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+ ~/work/stack                                     ! exit 1 · 0 s                                     truecolor · 120×40 
+             ↑↓ Scroll  f Follow  / Find  y Copy  r Restart  x Close  Esc Here    ! stop all containers failed · exit 1 

@@ -1,40 +1,40 @@
-  holla❯    File   Go   Help                                      payments · service checkout  ◆ prod-eu-1 · production
-
-  Here › Review
- ━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────
-  Review · Restart payments · gate 1 of 2 · review the resolved facts, then continue deliberately
-
-  Action       systemctl restart payments on prod-eu-1 · production · in-flight requests are dropped
-  Host         prod-eu-1 · production
-  In           prod-eu-1 · host-wide
-  Scope        on pro╭────────────────────────────────────────────────────────────────────────────╮
-  Changes      paymen│                                                                            │
-  Risk         privil│  Restart payments · gate 2 of 2                                            │
-  Data         live ·│                                                                            │
-  Recoverable  servic│  Action   systemctl restart payments on prod-eu-1 · production ·           │
-  Provenance   built-│           in-flight requests are dropped                                   │
-  Gate         second│  Host     prod-eu-1 · production                                           │
-                     │  In       prod-eu-1 · host-wide                                            │
- ╭─ Sequence · 2 comm│  Scope    on prod-eu-1                                                     │──────── y copies ─╮
- │  01  sudo systemct│  Changes  payments restarts · brief outage on prod-eu-1                    │                   │
- │  02  systemctl sta│  Risk     privileged                                                       │                   │
- │                   │  Data     live · 0 s ago                                                   │                   │
- │                   │                                                                            │                   │
- │                   │  sudo systemctl restart payments                                           │                   │
- │                   │  systemctl status payments                                                 │                   │
- │                   │                                                                            │                   │
- │                   │   Type RESTART PAYMENTS ON prod-eu-1 to confirm                            │                   │
- │                   │ ▎ RESTART PAYMENTS ON prod-eu-1                                            │                   │
- │                   │                                                                            │                   │
- │                   │                                                        ▎Cancel  ▎Execute   │                   │
- │                   │                                                                            │                   │
- │                   ╰────────────────────────────────────────────────────────────────────────────╯                   │
- │                                                                                                                    │
- │                                                                                                                    │
- │                                                                                                                    │
- ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-
-                                                                                                 ▎Cancel   ▎Continue…
-
- /srv/payments   detached @ v2.14.3                       review · gate 1 of 2                       truecolor · 120×40
-  EDIT                                   Type Phrase  Enter Next  Esc Cancel
+  holla❯    File   Go   Help                                      payments · service checkout  ◆ prod-eu-1 · production 
+                                                                                                                        
+  Here › Review                                                                                                         
+ ━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  Review · Restart payments · gate 1 of 2 · review the resolved facts, then continue deliberately                       
+                                                                                                                        
+  Action       systemctl restart payments on prod-eu-1 · production · in-flight requests are dropped                    
+  Host         prod-eu-1 · production                                                                                   
+  In           prod-eu-1 · host-wide                                                                                    
+  Scope        on pro╭────────────────────────────────────────────────────────────────────────────╮                     
+  Changes      paymen│                                                                            │                     
+  Risk         privil│  Restart payments · gate 2 of 2                                            │                     
+  Data         live ·│                                                                            │                     
+  Recoverable  servic│  Action   systemctl restart payments on prod-eu-1 · production ·           │                     
+  Provenance   built-│           in-flight requests are dropped                                   │                     
+  Gate         second│  Host     prod-eu-1 · production                                           │                     
+                     │  In       prod-eu-1 · host-wide                                            │                     
+ ╭─ Sequence · 2 comm│  Scope    on prod-eu-1                                                     │──────── y copies ─╮ 
+ │  01  sudo systemct│  Changes  payments restarts · brief outage on prod-eu-1                    │                   │ 
+ │  02  systemctl sta│  Risk     privileged                                                       │                   │ 
+ │                   │  Data     live · 0 s ago                                                   │                   │ 
+ │                   │                                                                            │                   │ 
+ │                   │  sudo systemctl restart payments                                           │                   │ 
+ │                   │  systemctl status payments                                                 │                   │ 
+ │                   │                                                                            │                   │ 
+ │                   │   Type RESTART PAYMENTS ON prod-eu-1 to confirm                            │                   │ 
+ │                   │ ▎ RESTART PAYMENTS ON prod-eu-1                                            │                   │ 
+ │                   │                                                                            │                   │ 
+ │                   │                                                                            │                   │ 
+ │                   │                                                         Cancel   Execute   │                   │ 
+ │                   │                                                                            │                   │ 
+ │                   ╰────────────────────────────────────────────────────────────────────────────╯                   │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+                                                                                                  Cancel    Continue…   
+                                                                                                                        
+ /srv/payments   detached @ v2.14.3                       review · gate 1 of 2                       truecolor · 120×40 
+  EDIT                                   Type Phrase  Enter Next  Esc Cancel                                            

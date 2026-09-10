@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                                   team · Rust project  mbp · local 
+                                                                                                                                                                
+  Here                                                                                                                                                          
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›  
+                                                                                                                                                                
+    Suggested here                                                                                               Deploy preview                 custom · here   
+  › Deploy preview       custom   here  Current folder · ⚠ unreviewed…                                                                                          
+    Global shared id     custom   here  Custom · trusted                                                         Does       push the current branch to the      
+    Multi-line argument  custom   here  Current folder · ⚠ unreviewed…                                                      preview stack                       
+    Open notes           custom   here  Custom · trusted                                                         Runs       tools/deploy-preview.…$(whoami)'    
+    Show git status      git      here  on main                                                                  In         ~/work/team                         
+                                                                                                                 Host       mbp · local                         
+    Recent here                                                                                                  Scope      here                                
+    Pull                 git      here  used 20 times on mbp                                                     Why        Current folder · ⚠ unreviewed ·     
+                                                                                                                            same bytes were trusted at          
+    Explore                                                                                                                 another path                        
+     Tasks   Git   Files   Disk   Services   System                                                              Changes    see the command                     
+    System · mbp         explore  host  available on this host                                                   Risk       mutating                            
+                                                                                                                 Data       live · 0 s ago                      
+                                                                                                                 Gate       trust required ·                    
+                                                                                                                            ~/work/team/.holla.toml             
+                                                                                                                 Alt+Enter  Set an alias… · Show                
+                                                                                                                            configuration diagnostics · Pin     
+                                                                                                                            · Alias · Why here?                 
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+ ~/work/team   main                                                                                                    ▲ 2 config warnings   truecolor · 160×50 
+                              Type Search  ↑↓ Move  Enter Trust…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities                                 

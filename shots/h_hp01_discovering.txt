@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                          probe · Rust project  mbp · local 
+                                                                                                                        
+  Here                                                                                                                  
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                                        scope ‹ here ›  
+                                                                                                                        
+    Suggested here                                                               Clean IntelliJ metadata under ~/wor…   
+  › Clean IntelliJ metadata …  idea     here  1 candidates       destructive                                            
+    Deploy                     custom   here  Current folder…                    Does       move every .idea            
+    Run tests                  task     here  defined by ~/wor…                             directory and lowercase     
+    cargo build                cargo    here  Cargo.toml here                               .iml file below this        
+    cargo check                cargo    here  Cargo.toml here                               folder (depth 5, no         
+                                                                                            symlinks, no                
+    Recent here                                                                             node_modules, nothing       
+    everything used here is suggested above                                                 nested) to the Trash · 1    
+                                                                                            candidates · no IDE         
+    Explore                                                                                 shutdown step exists in     
+     Tasks   Git   Files   Disk   Services   System                                         the baseline                
+    System · mbp               explore  host  available on thi…                  Runs       no command · opens          
+                                                                                            inside holla                
+                                                                                 In         ~/work/probe                
+                                                                                 Host       mbp · local                 
+                                                                                 Scope      here                        
+                                                                                 Why        1 candidates                
+                                                                                 Changes    see the command             
+                                                                                 Risk       destructive                 
+                                                                                 Data       live · 0 s ago              
+                                                                                 Gate       opens a review · the        
+                                                                                            deletion is gated there     
+                                                                                            (typed phrase)              
+                                                                                 Alt+Enter  Pin · Alias · Why here?     
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ ~/work/probe   main   ↓1       ⠴ discovering git, brew, github · 6 of 9       ▲ 3 config warnings   truecolor · 120×40 
+         Type Search  ↑↓ Move  Enter Confirm…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities            

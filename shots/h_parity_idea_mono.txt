@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                                no project  mbp · local 
+                                                                                                    
+  Here                                                                                              
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                    scope ‹ here ›  
+                                                                                                    
+    Suggested here                                                                                  
+  › Clean IntelliJ metadata under ~/…  idea     here  4 candidates                     destructive  
+                                                                                                    
+    Recent here                                                                                     
+    everything used here is suggested above                                                         
+                                                                                                    
+    Explore                                                                                         
+     Tasks   Git   Files   Disk   Services   System                                                 
+    System · mbp                       explore  host  available on this host                        
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                                    
+    → opens inside holla · here · destructive                                                       
+                                                                                                    
+ ~/work/ide                                                                       no color · 100×30 
+        Type Search  ↑↓ Move  Enter Confirm…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  …         

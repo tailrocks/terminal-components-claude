@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local 
+                                                                                                                        
+  Here › Files › site                                                                                                   
+ ━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────── 
+  Files · ~/work/site                                                                                                   
+  16 entries · 2 hidden hidden · Ctrl+H shows · directories first                                                       
+                                                                                                                        
+  ▸ assets                                 –  2026-09-06 08:41      ╭─ ~/work/site/control.txt ──────── 13 B of 13 B ─╮ 
+  ▸ private                                –  2026-09-03 08:41      │      1 a    b�[31mred�                          │ 
+    bad.txt                              3 B  2026-09-07 08:41      │                                                 │ 
+    big.log            ╭────────────────────────────────────────────────────────────────────────╮                     │ 
+  → broken             │ Go to path                                                 ~/work/site │                     │ 
+    café.txt           │ ▎ path · ~/… · relative to this folder                                 │                     │ 
+    café.txt           │                                                                        │                     │ 
+    control.txt        │                         type a path or a name                          │                     │ 
+  → current            │                                                                        │                     │ 
+    empty.txt          │                                                                        │                     │ 
+    index.html         ╰────────────────────────────────────────────────────────────────────────╯                     │ 
+    logo.png                             6 B  2026-09-07 08:41      │                                                 │ 
+    long.txt                         4.9 KiB  2026-09-08 08:41      │                                                 │ 
+    package.json                        85 B  2026-09-08 08:41      │                                                 │ 
+  ◇ pipe                                 0 B  2026-09-10 08:41      │                                                 │ 
+    pnpm-lock.yaml                      19 B  2026-09-08 08:41      │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    │                                                 │ 
+                                                                    ╰─────────────────────────────────────────────────╯ 
+                                                                                                                        
+ ~/work/site                                ~/work/site · hidden off                                 truecolor · 120×40 
+                                    Type Filter  ↑↓ Move  Enter Switch  Esc Cancel                Hidden entries hidden 

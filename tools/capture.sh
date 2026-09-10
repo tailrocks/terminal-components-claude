@@ -5,6 +5,7 @@
 #   tools/capture.sh mouse  <x> <y> [move|click|wheelup|wheeldown]   # send SGR mouse event
 #   tools/capture.sh shot   <name>                 # capture ANSI, text, HTML and PNG
 #   tools/capture.sh resize <cols> <rows>
+#   tools/capture.sh review <name> "<inspection result>"   # written into the manifest
 #   tools/capture.sh stop
 # Environment: BIN, ARGS (shell-quoted arguments), PY, SHOT_DIR,
 # CAPTURE_SESSION, CAPTURE_SOCKET. PRESERVE_NO_COLOR=1 passes the caller's
@@ -41,7 +42,9 @@ case "$cmd" in
       printf -v quoted_no_color '%q' "${NO_COLOR:-}"
       color_env="NO_COLOR=$quoted_no_color"
     fi
-    printf '%s' "${ARGS:-}" > "$SHOT_DIR/.args"
+    # arguments are remembered per session so concurrent captures on
+    # different sockets never read each other's provenance
+    printf '%s' "${ARGS:-}" > "$SHOT_DIR/.args.$S"
     tm kill-session -t "=$S" 2>/dev/null || true
     tm -f /dev/null new-session -d -s "$S" -c "$PWD" -x "$cols" -y "$rows" \
       "exec env $color_env TERM=xterm-256color COLORTERM=truecolor $quoted_bin $quoted_args 2>$quoted_stderr"
@@ -94,7 +97,7 @@ case "$cmd" in
     git_dirty=$([ -n "$(git status --porcelain 2>/dev/null)" ] && echo true || echo false)
     bin_sha=$(shasum -a 256 "$BIN" | cut -d' ' -f1)
     ansi_sha=$(shasum -a 256 "$SHOT_DIR/$name.ansi" | cut -d' ' -f1)
-    shot_args=$(cat "$SHOT_DIR/.args" 2>/dev/null || true)
+    shot_args=$(cat "$SHOT_DIR/.args.$S" 2>/dev/null || true)
     "$PY" -B - "$SHOT_DIR/$name" "$cols" "$rows" "$git_rev" "$git_dirty" "$BIN" "$bin_sha" "$ansi_sha" "$shot_args" "$(tmux -V)" "$(uname -sr)" <<'PYEOF'
 import json, sys, os, datetime
 name, cols, rows, rev, dirty, binp, bin_sha, ansi_sha, args, tmux, host = sys.argv[1:12]
@@ -142,6 +145,19 @@ PYEOF
     ;;
   resize)
     tm resize-window -t "=$S:" -x "$1" -y "$2"; sleep 0.3
+    ;;
+  review)
+    # record the inspection result in the frame's manifest
+    name=${1:?capture name}; verdict=${2:?review text}
+    "$PY" -B - "$SHOT_DIR/$name.manifest.json" "$verdict" <<'PYEOF'
+import json, sys
+path, verdict = sys.argv[1:3]
+with open(path, encoding="utf-8") as f:
+    m = json.load(f)
+m["review"] = verdict
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(m, f, indent=1)
+PYEOF
     ;;
   stop)
     tm kill-session -t "=$S" 2>/dev/null || true

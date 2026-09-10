@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                        android · Gradle build  mbp · local 
+                                                                                                                        
+  Here › Cleanup › gradle.clean-all › Review                                                                            
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────── 
+  Review · trash 4 items · gate 1 of 2 · review the resolved facts, then continue deliberately                          
+                                                                                                                        
+  Action        move to Trash 4 items under ~/work/android                                                              
+  Host          mbp · local                                                                                             
+  Mode          Trash · native macOS Trash · space returns after the Trash is emptied                                   
+  Estimate      49.0 MiB allocated · APFS clones may overcount · purgeable space excluded · not a free-space guarantee  
+  Denied        none · every path passed the lexical, protected-root, user-data and symlink rules                       
+  Prerequisite  gradle --stop first · a failed or unknown stop cancels the cleanup                                      
+  Revision      afe3dc988eef8fcb · any change to paths, mode or dry run voids this review                               
+  Threat model  an unprivileged user · ancestors are re-resolved at commit · a concurrent rename of the final path      
+                cannot be excluded                                                                                      
+  Paths         ~/work/android/.gradle · ~/work/android/a/b/c/d/e/build · ~/work/android/app/build ·                    
+                ~/work/android/build                                                                                    
+  Recoverable   yes · until the Trash is emptied                                                                        
+  Provenance    holla cleanup · paths validated at review and again at commit                                           
+  Gate          second gate types the target-bound phrase                                                               
+                                                                                                                        
+ ╭─ Sequence · 4 commands ───────────────────────────────────────────────────────────────────────────────── y copies ─╮ 
+ │  01  trash /Users/alex/work/android/.gradle  # 9.0 MiB · gradle.clean-all                                          │ 
+ │  02  trash /Users/alex/work/android/a/b/c/d/e/build  # 8.0 KiB · gradle.clean-all                                  │ 
+ │  03  trash /Users/alex/work/android/app/build  # 12.0 KiB · gradle.clean-all                                       │ 
+ │  04  trash /Users/alex/work/android/build  # 40.0 MiB · gradle.clean-all                                           │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+                                                                                                 ▎Cancel    Continue…   
+                                                                                                                        
+ ~/work/android                                 review · gate 1 of 2                                 truecolor · 120×40 
+                          ← → Choose  Enter Activate  Tab Next  y Copy sequence  Esc Cancel                             

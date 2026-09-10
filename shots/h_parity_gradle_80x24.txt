@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                android · Gradle build  mbp · local 
+                                                                                
+  Here                                                                          
+ ━━━━━━━─────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                scope ‹ here ›  
+                                                                                
+    Suggested here                                                              
+  › Clean Gradle outputs unde…  cleanup  here  4 candidates        destructive  
+    gradle build                gradle   here  build.gradle.kts …               
+    gradle clean                gradle   here  build.gradle.kts …               
+    gradle test                 gradle   here  build.gradle.kts …               
+                                                                                
+    Recent here                                                                 
+    everything used here is suggested above                                     
+                                                                                
+    Explore                                                                     
+     Tasks   Git   Files   Disk   Services   System                             
+    System · mbp                explore  host  available on this…               
+                                                                                
+                                                                                
+    → gradle --stop · here · destructive                                        
+                                                                                
+ ~/work/android                                               truecolor · 80×24 
+     Type Search  ↑↓ Move  Enter Confirm…  Alt+Enter More  Tab Preview  …       

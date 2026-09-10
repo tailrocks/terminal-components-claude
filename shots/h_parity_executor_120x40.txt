@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                    batch · project collection  mbp · local 
+                                                                                                                        
+  Here                                                                                                                  
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                                        scope ‹ here ›  
+                                                                                                                        
+    Suggested here                                                               Emit a burst           custom · here   
+    Status across 3 child pr…  git      child  0 dirty · 1 behind                                                       
+  › Emit a burst               custom   here   Current folder · trusted          Does       4500 lines in sixteen       
+    Emit a mixed stream        custom   here   Current folder · trusted                     ticks                       
+                                                                                 Runs       ./emit-burst                
+    Recent here                                                                  In         ~/work/batch                
+    everything used here is suggested above                                      Host       mbp · local                 
+                                                                                 Scope      here                        
+    Explore                                                                      Why        Current folder · trusted    
+     Tasks   Git   Files   Disk   Services   System                              Changes    none · read-only            
+    Children · 3 projects      explore  child  3 child projects discovered       Risk       read-only                   
+    System · mbp               explore  host   available on this host            Data       live · 0 s ago              
+                                                                                 Gate       runs directly               
+                                                                                 Alt+Enter  Set an alias… · Show        
+                                                                                            configuration               
+                                                                                            diagnostics · Pin ·         
+                                                                                            Alias · Why here?           
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ ~/work/batch                                                                                        truecolor · 120×40 
+            Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities              

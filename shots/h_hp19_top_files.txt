@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                            big · Rust project  mbp · local 
+                                                                                                                        
+  Here › Disk › Usage › Top files                                                                                       
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────── 
+  Top files · Spotlight                                                                                                 
+  3 files · regular files of 100 MiB or more · top 50 by allocated size · Space selects for the same cleanup gate       
+                                                                                                                        
+ ▎[ ] ~/Downloads/iso.iso                   700.0 MiB                        iso.iso                             file   
+  [ ] ~/Movies/big.mov                      400.0 MiB                                                                   
+  [ ] ~/Downloads/vanished.bin              stat failed                      Path       ~/Downloads/iso.iso             
+                                                                             Size       700.0 MiB allocated             
+                                                                             Source     Spotlight · kMDItemFSSize >=    
+                                                                                        104857600 · top 50              
+                                                                             Selection  Space selects                   
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ ~/work/big                                   3 files · 0 selected                                   truecolor · 120×40 
+                       ↑↓ Move  Space Select  d Delete…  y Copy path  Esc Back    1 item selected · 176.0 KiB estimated 

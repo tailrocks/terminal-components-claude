@@ -1,40 +1,40 @@
-  holla❯    File   Go   Help                                                          holla · Rust project  mbp · local
-
-  Here › Arguments
- ━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────
-  Clone a GitHub repository… · arguments
-  field name, expected value, default and validation · secrets stay masked
-
-   owner
- ▎ alex-dev                                            ▾
-
-
-   repository *
- ▎ name
-   searched in the owner's repositories
-
-   protocol
- ▎ ssh                                                 ▾
-
-
-   destination  optional
- ▎ ~/work/holla
-   never overwrites an existing folder
-
-   Command
-
-   gh repo clone alex-dev/<repository> ~/work/holla --protocol ssh
-
-                                                                                                       ▎Cancel   ▎Run
-
-
-
-
-
-
-
-
-
-
- ~/work/holla   main   ↓3 • 5                                                                        truecolor · 120×40
-                                     Enter Edit  Tab Next  Ctrl+S Run  Esc Cancel
+  holla❯    File   Go   Help                                                          holla · Rust project  mbp · local 
+                                                                                                                        
+  Here › Arguments                                                                                                      
+ ━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────── 
+  Clone a GitHub repository… · arguments                                                                                
+  field name, expected value, default and validation · secrets stay masked                                              
+                                                                                                                        
+   owner                                                                                                                
+ ▎ alex-dev                                            ▾                                                                
+                                                                                                                        
+                                                                                                                        
+   repository *                                                                                                         
+   name                                                                                                                 
+   searched in the owner's repositories                                                                                 
+                                                                                                                        
+   protocol                                                                                                             
+   ssh                                                 ▾                                                                
+                                                                                                                        
+                                                                                                                        
+   destination  optional                                                                                                
+   ~/work/holla                                                                                                         
+   never overwrites an existing folder                                                                                  
+                                                                                                                        
+   Command                                                                                                              
+                                                                                                                        
+   gh repo clone 'alex-dev/<repository>' '~/work/holla' --protocol ssh                                                  
+                                                                                                                        
+                                                                                                        Cancel    Run   
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ ~/work/holla   main   ↓3 • 5                                                                        truecolor · 120×40 
+                                     Enter Edit  Tab Next  Ctrl+S Run  Esc Cancel                                       

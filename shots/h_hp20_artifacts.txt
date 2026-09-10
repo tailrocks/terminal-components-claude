@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                     web · Node project · pnpm  mbp · local 
+                                                                                                                        
+  Here › Cleanup                                                                                                        
+ ━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────── 
+  Cleanup review                                                                                                        
+  18 categories · 18.8 GiB · 19 selected (12.4 GiB) · Trash                                                             
+                                                                                                                        
+                                                                        │    Project artifacts               category   
+  [✓] ▸ Simulator caches          900.0 MiB  rebuilt on demand…         │                                               
+                                                                        │    Safety      review first                   
+  [✓] ▸ Homebrew cache            100.0 MiB  rebuilt on demand…         │    Age rule    older than 7 days · unknown    
+                                                                        │                or future age counts as        
+  [✓] ▸ npm cache                 201.0 MiB  rebuilt on demand…         ┃                recent                         
+                                                                        ┃    Platform    macOS and Linux                
+  [✓] ▸ pnpm store                  2.1 GiB  safe if old · 1 candidate… ┃    Roots       ~/Projects                     
+                                                                        ┃    Why         generated directories beside   
+  [✓] ▸ Yarn cache                 50.0 MiB  rebuilt on demand…         ┃                a project indicator ·          
+                                                                        ┃                rebuilt by the project's own   
+  [✓] ▸ Bun cache                  60.0 MiB  rebuilt on demand…         ┃                tooling                        
+                                                                        ┃    Size        2.5 GiB                        
+  [✓] ▸ Cargo registry cache        4.8 GiB  safe if old…               ┃    Unreadable  1 folder skipped · the list    
+                                                                        ┃                is a lower bound:              
+  [✓] ▸ Gradle caches               1.5 GiB  safe if old…               ┃                ~/Projects/locked              
+                                                                        ┃    Selection   14 of 14 candidates eligible   
+  [ ] ▸ Maven repository          700.0 MiB  review first…              ┃                · 0 checked                    
+                                                                        ┃                                               
+  [✓] ▸ pip cache                 150.0 MiB  rebuilt on demand…         ┃                                               
+                                                                        ┃                                               
+  [✓] ▸ uv cache                  300.0 MiB  rebuilt on demand…         ┃                                               
+                                                                        ┃                                               
+  [~] ▸ User caches                 1.9 GiB  review first…              ┃                                               
+                                                                        ┃                                               
+  [✓] ▸ User logs                  30.0 MiB  rebuilt on demand…         ┃                                               
+                                                                        ┃                                               
+  [✓] ▸ JetBrains logs             30.0 MiB  rebuilt on demand…         ┃                                               
+                                                                        │                                               
+ ▎[ ] ▸ Project artifacts           2.5 GiB  review first…              │                                               
+                                                                                                                        
+ ~/Projects/web                                19 selected · 12.4 GiB                                truecolor · 120×40 
+        ↑↓ Move  Space Select  Enter Open  a All  m Permanent  n Dry run  d Review deletion  p Facts  Esc Back          

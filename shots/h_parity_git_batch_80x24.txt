@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help            repos · project collection  mbp · local 
+                                                                                
+  Here                                                                          
+ ━━━━━━━─────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                scope ‹ here ›  
+                                                                                
+    Suggested here                                                              
+  › Status across 5 child pro…  git      child  0 dirty · 1 behind              
+                                                                                
+    Recent here                                                                 
+    everything used here is suggested above                                     
+                                                                                
+    Explore                                                                     
+     Tasks   Git   Files   Disk   Services   System                             
+    Children · 4 projects       explore  child  4 child projects discovered     
+    System · mbp                explore  host   available on this host          
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+    → git -C /Users/alex/work/repos/alpha…elain=v2 --branch · child · read-only 
+                                                                                
+ ~/work/repos                                                 truecolor · 80×24 
+       Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  …         

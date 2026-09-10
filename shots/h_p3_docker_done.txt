@@ -1,40 +1,40 @@
-  holla❯    File   Go   Help                                                           no project  devbox · development
-
-  Here    Clean Docker completely ✓ ×
- ────────━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────
-  Clean Docker completely · 7 of 7 done                                                       finished · 14 s · devbox
-  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% ✓
-
-        step                                                         ╭─ 07 Rescan and report ───────────── succeeded ─╮
- ▎ ✓ 01 Stop running containers      –            ·     3 s          │  $ docker system df                            │
- ▎ ✓ 02 Remove containers            01           ·     2 s          │  TYPE            TOTAL     ACTIVE    SIZE      │
- ▎ ✓ 03 Remove unused images         02           a     5 s          │   RECLAIMABLE                                  │
- ▎ ✓ 04 Prune networks               02           b     1 s          │  Images          0         0         0B        │
- ▎ ✓ 05 Prune volumes                02           c     2 s          │   0B                                           │
- ▎ ✓ 06 Prune builder and Buildx c…  02           d     3 s          │  Containers      0         0         0B        │
- ▎ ✓ 07 Rescan and report            03 04 05 06  join  1 s          │   0B                                           │
-                                                                     │  Local Volumes   0         0         0B        │
-                                                                     │   0B                                           │
-                                                                     │  Build Cache     0         0         0B        │
-                                                                     │   0B                                           │
-                                                                     │  reclaimed 18.4 GB on devbox                   │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     │                                                │
-                                                                     ╰────────────────────────────────────────────────╯
-
-  7 succeeded
-  Next  ▎Docker disk usage
-
- /work/scratch                                    finished · 7 ok                                    truecolor · 120×40
-                                  ↑↓ Step  Enter Maximise output  x Close  Esc Here    Clean Docker completely finished
+  holla❯    File   Go   Help                                                           no project  devbox · development 
+                                                                                                                        
+  Here    Clean Docker completely ✓ ×                                                                                   
+ ────────━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────── 
+  Clean Docker completely · 7 of 7 done                                                       finished · 14 s · devbox  
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% ✓                                                          
+                                                                                                                        
+        step                                                         ╭─ 07 Rescan and report ───────────── succeeded ─╮ 
+   ✓ 01 Stop running containers      –            ·     3 s          │  $ docker system df                            │ 
+   ✓ 02 Remove containers            01           ·     2 s          │  TYPE            TOTAL     ACTIVE    SIZE      │ 
+   ✓ 03 Remove unused images         02           a     5 s          │   RECLAIMABLE                                  │ 
+   ✓ 04 Prune networks               02           b     1 s          │  Images          0         0         0B        │ 
+   ✓ 05 Prune volumes                02           c     2 s          │   0B                                           │ 
+   ✓ 06 Prune builder and Buildx c…  02           d     3 s          │  Containers      0         0         0B        │ 
+ ▎ ✓ 07 Rescan and report            03 04 05 06  join  1 s          │   0B                                           │ 
+                                                                     │  Local Volumes   0         0         0B        │ 
+                                                                     │   0B                                           │ 
+                                                                     │  Build Cache     0         0         0B        │ 
+                                                                     │   0B                                           │ 
+                                                                     │  reclaimed 18.4 GB on devbox                   │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     │                                                │ 
+                                                                     ╰────────────────────────────────────────────────╯ 
+                                                                                                                        
+  7 succeeded                                                                                                           
+  Next   Docker disk usage                                                                                              
+                                                                                                                        
+ /work/scratch                                    finished · 7 ok                                    truecolor · 120×40 
+                                  ↑↓ Step  Enter Maximise output  x Close  Esc Here    Clean Docker completely finished 

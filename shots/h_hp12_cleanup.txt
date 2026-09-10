@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local 
+                                                                                                                        
+  Here › Cleanup › idea.clean                                                                                           
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────── 
+  Cleanup · IntelliJ metadata                                                                                           
+  1 category · 44.0 KiB · 4 selected (44.0 KiB) · Trash                                                                 
+                                                                                                                        
+ ▎[✓] ▾ IntelliJ metadata          44.0 KiB  review first…                   IntelliJ metadata               category   
+    [✓] ~/work/ide/.idea               32.0 KiB  3 d                                                                    
+    [✓] ~/work/ide/a/b/c/d/e/deep.i…    4.0 KiB  3 d                         Safety      review first                   
+    [✓] ~/work/ide/app.iml              4.0 KiB  3 d                         Age rule    older than 7 days · unknown    
+    [✓] ~/work/ide/mod/mod.iml          4.0 KiB  3 d                                     or future age counts as        
+                                                                                         recent                         
+    mode Trash (recoverable until emptied) · live · m toggles the mode ·…    Platform    macOS and Linux                
+                                                                             Roots       ~/Projects                     
+                                                                             Why         .idea directories and          
+                                                                                         lowercase .iml files below     
+                                                                                         this folder · depth 5 · no     
+                                                                                         symlinks · no node_modules     
+                                                                             Size        44.0 KiB                       
+                                                                             Unreadable  1 folder skipped · the list    
+                                                                                         is a lower bound:              
+                                                                                         ~/work/ide/locked              
+                                                                             Selection   4 of 4 candidates eligible ·   
+                                                                                         4 checked                      
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ ~/work/ide                                  4 selected · 44.0 KiB                                   truecolor · 120×40 
+        ↑↓ Move  Space Select  Enter Open  a All  m Permanent  n Dry run  d Review deletion  p Facts  Esc Back          

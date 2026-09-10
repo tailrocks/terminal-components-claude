@@ -316,6 +316,24 @@ impl App {
         } else {
             Outcome::Ignored
         };
+        // a committed cleanup advances one item per tick; its report lands
+        // in place and the status says how it ended
+        if let Some(idx) = crate::screens::cleanup::step(&mut self.world) {
+            let r = &self.world.reports[idx];
+            let (summary, tone) = (
+                r.summary(),
+                if r.incomplete() {
+                    Tone::Error
+                } else {
+                    Tone::Secondary
+                },
+            );
+            self.set_status(&summary, tone);
+            out = Outcome::Changed;
+        }
+        if self.world.cleanup_job.is_some() {
+            out = Outcome::Changed;
+        }
         if let Some((_, until)) = self.flash
             && self.world.now_ms() >= until
         {
@@ -342,7 +360,14 @@ impl App {
         }
         if self.quitting {
             let live = self.world.live_activities();
-            if live == 0 {
+            if let Some(job) = &self.world.cleanup_job {
+                let text = format!(
+                    "waiting for the cleanup · {} of {} items · quitting when it settles",
+                    job.exec.completed(),
+                    job.exec.total()
+                );
+                self.status = Some((text, Tone::Secondary, self.world.now_ms() + 5_000));
+            } else if live == 0 {
                 self.quit = true;
             } else {
                 let text = format!(
@@ -874,13 +899,24 @@ impl App {
 
     fn open_quit_confirm(&mut self) {
         let n = self.world.live_activities();
-        let body = if n > 0 {
-            format!(
+        let cleanup = self
+            .world
+            .cleanup_job
+            .as_ref()
+            .map(|j| (j.exec.completed(), j.exec.total()));
+        let body = match (n, cleanup) {
+            (0, None) => "Nothing is running.".to_owned(),
+            (n, None) => format!(
                 "{} still running. Quitting stops what holla started; detached monitors keep running.",
                 crate::screens::plural(n, "activity is", "activities are")
-            )
-        } else {
-            "Nothing is running.".into()
+            ),
+            (0, Some((k, t))) => format!(
+                "A cleanup is running ({k} of {t} items). Committed deletions cannot be stopped; leaving waits for the rest, then quits."
+            ),
+            (n, Some((k, t))) => format!(
+                "{} still running and a cleanup is at {k} of {t} items. Quitting stops the activities and waits for the cleanup to settle.",
+                crate::screens::plural(n, "activity is", "activities are")
+            ),
         };
         // leaving a remote box says which box
         let title = if self.world.host.remote {
@@ -899,6 +935,8 @@ impl App {
         };
         let d = if n > 0 {
             Dialog::destructive(WidgetId::of("quit"), &title, &body, "Stop and quit")
+        } else if cleanup.is_some() {
+            Dialog::destructive(WidgetId::of("quit"), &title, &body, "Leave when it settles")
         } else {
             Dialog::confirm(WidgetId::of("quit"), &title, &body, "Quit")
         };
@@ -1017,8 +1055,14 @@ impl App {
                 } = result
                 {
                     let n = self.world.stop_all();
-                    if n == 0 {
+                    if n == 0 && self.world.cleanup_job.is_none() {
                         self.quit = true;
+                    } else if n == 0 {
+                        self.quitting = true;
+                        self.set_status(
+                            "leaving when the cleanup settles · its report and log land first",
+                            Tone::Secondary,
+                        );
                     } else {
                         self.quitting = true;
                         self.set_status(
@@ -1231,12 +1275,19 @@ impl App {
                 }
                 Outcome::Changed
             }
-            Some(PickerEvent::Chosen(_)) | Some(PickerEvent::ChosenAlt(_)) => {
-                let selected = match self.modals.last() {
-                    Some(ModalEntry {
-                        modal: Modal::Picker(p),
-                        ..
-                    }) => p.current_key().map(str::to_owned),
+            Some(PickerEvent::Chosen(_))
+            | Some(PickerEvent::ChosenAlt(_))
+            | Some(PickerEvent::Submit) => {
+                // Submit: a typed path with no suggestion resolves on its own
+                let selected = match (&ev, self.modals.last()) {
+                    (Some(PickerEvent::Submit), _) => None,
+                    (
+                        _,
+                        Some(ModalEntry {
+                            modal: Modal::Picker(p),
+                            ..
+                        }),
+                    ) => p.current_key().map(str::to_owned),
                     _ => None,
                 };
                 let mut cx = Cx {
@@ -2293,14 +2344,13 @@ impl App {
                             self.tabs[0].stack.pop();
                         }
                         self.push_page(Page::Report { index });
-                        let summary = self.world.reports[index].summary();
+                        let n = plan.items.len();
                         self.set_status(
-                            &summary,
-                            if self.world.reports[index].incomplete() {
-                                Tone::Error
-                            } else {
-                                Tone::Secondary
-                            },
+                            &format!(
+                                "cleanup started · {} · quitting waits for it",
+                                crate::screens::plural(n, "item", "items")
+                            ),
+                            Tone::Secondary,
                         );
                     }
                     Err(e) => {
@@ -2946,7 +2996,23 @@ impl App {
 
     fn crumb(&self) -> String {
         let here = &self.tabs[0];
-        let parts: Vec<String> = here.stack.iter().map(|s| s.crumb(&self.world)).collect();
+        // a page nested inside its own family (the tree's Top files under
+        // Disk › Usage) repeats the family name; the trail keeps it once
+        let mut parts: Vec<String> = vec![];
+        for s in &here.stack {
+            let crumb = s.crumb(&self.world);
+            let (family, rest) = match crumb.split_once(" › ") {
+                Some((f, r)) => (f.to_owned(), Some(r.to_owned())),
+                None => (crumb.clone(), None),
+            };
+            let same_family = parts
+                .last()
+                .is_some_and(|prev| prev.split(" › ").next() == Some(family.as_str()));
+            match (same_family, rest) {
+                (true, Some(r)) => parts.push(r),
+                _ => parts.push(crumb),
+            }
+        }
         parts.join(" › ")
     }
 

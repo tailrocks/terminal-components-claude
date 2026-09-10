@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                            no project  mbp · local 
+                                                                                
+  Here                                                                          
+ ━━━━━━━─────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                scope ‹ here ›  
+                                                                                
+                                                                                
+    Recent here                                                                 
+    everything used here is suggested above                                     
+                                                                                
+    Explore                                                                     
+ ▎  ›Tasks   Git   Files   Disk   Services   System                             
+    System · mbp  explore  host  available on this host                         
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+    → opens inside holla · here · read-only                                     
+                                                                                
+ ~/work/mac                                                   truecolor · 80×24 
+       Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  …         

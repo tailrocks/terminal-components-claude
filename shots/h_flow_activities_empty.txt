@@ -1,40 +1,40 @@
-  holla❯    File   Go   Help                                                          holla · Rust project  mbp · local
-
-  Here
- ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
- ▎ port                                                                                                 scope ‹ here ›
-
-    Results · 5                                                                  Show PostgreSQL activity
-    Find the process on a po…  system    host  available on this host
-    Inspect 12 GB of generat…  disk      here  12 GB generated artifacts         Does       holla@localhost:5432/hol
-  › Show PostgreSQL activity   postgres  here  24/100 connections…                          la_dev · connections
-    Copy this folder's path    file      here  available                                    24/100 · sessions by
-    Stop the Compose proj╭────────────────────────────────────────────────────────────────────╮te, wait event, query
-                         │ Activities                                                  0 live │ transaction age
-                         │                    Nothing has been started yet                    │ECT pid, stat…ctivity
-                         │                                                                    │ork/holla
-                         │                                                                    │ · local
-                         ╰────────────────────────────────────────────────────────────────────╯e
-                                                                                 Why        24/100 connections ·
-                                                                                            used once here
-                                                                                 Changes    none · read-only
-                                                                                 Risk       read-only
-                                                                                 Data       live · 2 s ago
-                                                                                 Gate       runs directly
-                                                                                 Alt+Enter  Open pg_activity · Pin ·
-                                                                                            Alias · Why here?
-
-
-
-
-
-
-
-
-
-
-
-
-
- ~/work/holla   main   ↓3 • 5                                                                        truecolor · 120×40
-                                          ↑↓ Move  Enter Switch  Esc Cancel            Cancelled · nothing was executed
+  holla❯    File   Go   Help                                                          holla · Rust project  mbp · local 
+                                                                                                                        
+  Here                                                                                                                  
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+   Search actions and resources…                                                                        scope ‹ here ›  
+                                                                                                                        
+    Suggested here                                                               Pull                      git · here   
+  › Pull                       git      here  branch is 3 commits behind…                                               
+    Run tests                  task     here  5 files changed since the las…     Does       fast-forward                
+    Run lint                   task     here  defined by ~/work/holla/mise.…                ~/work/holla from           
+    Inspect 12 GB of generat…  disk     here  12 GB generated artifacts                     origin/main                 
+    Review 5 modified fil╭────────────────────────────────────────────────────────────────────╮ -C /Users/al…ff-only    
+                         │ Activities                                                  0 live │ork/holla                
+    Recent here          │                    Nothing has been started yet                    │ · local                 
+    everything used here │                                                                    │e                        
+                         │                                                                    │nch is 3 commits         
+    Explore              ╰────────────────────────────────────────────────────────────────────╯ind · used 9 times       
+     Tasks   Git   Files   Disk   Services   System                                         here                        
+    System · mbp               explore  host  available on this host             Changes    3 commits arrive ·          
+                                                                                            nothing is rewritten        
+                                                                                 Risk       mutating                    
+                                                                                 Data       live · 3 s ago              
+                                                                                 Gate       runs directly               
+                                                                                 Alt+Enter  Fetch only · Pull with      
+                                                                                            merge · Pull with rebase    
+                                                                                            · Push · Pin · Alias ·      
+                                                                                            Why here?                   
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ ~/work/holla   main   ↓3 • 5                                                                        truecolor · 120×40 
+                                          ↑↓ Move  Enter Switch  Esc Cancel                                             

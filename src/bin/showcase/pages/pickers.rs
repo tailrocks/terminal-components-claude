@@ -278,6 +278,9 @@ impl PickersPage {
                     self.picker = Some((kind, p));
                 }
             }
+            // free text is not an item in any showcase picker: the query stays,
+            // the picker stays open
+            Some(PickerEvent::Submit) => {}
             Some(PickerEvent::NextScope) => {
                 if kind == Kind::Quick {
                     self.scope = match self.scope {

@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local 
+                                                                                                                        
+  Here › Files › site                                                                                                   
+ ━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────── 
+  Files · ~/work/site                                                                                                   
+  16 entries · 2 hidden hidden · Ctrl+H shows · directories first                                                       
+                                                                                                                        
+ ▎▸ assets                                 –  2026-09-06 08:41        ~/work/site/assets                    directory   
+  ▸ private                                –  2026-09-03 08:41                                                          
+    bad.txt                              3 B  2026-09-07 08:41        2048 visible · 0 hidden · at least (count capp…   
+    big.log                         19.4 KiB  2026-09-08 08:41        modified 2026-09-06 08:41                         
+  → broken                               0 B  2026-09-09 08:41        Find and Browse are always available from Here    
+    café.txt                            11 B  2026-09-09 08:41                                                          
+    café.txt                            12 B  2026-09-09 08:41                                                          
+    control.txt                         13 B  2026-09-07 08:41                                                          
+  → current                              0 B  2026-09-09 08:41                                                          
+    empty.txt                            0 B  2026-09-09 08:41                                                          
+    index.html                          34 B  2026-09-09 08:41                                                          
+    logo.png                             6 B  2026-09-07 08:41                                                          
+    long.txt                         4.9 KiB  2026-09-08 08:41                                                          
+    package.json                        85 B  2026-09-08 08:41                                                          
+  ◇ pipe                                 0 B  2026-09-10 08:41                                                          
+    pnpm-lock.yaml                      19 B  2026-09-08 08:41                                                          
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ ~/work/site                                ~/work/site · hidden off                                 truecolor · 120×40 
+      ↑↓ Move  Enter Open / preview  ← Parent  g Go to path  Ctrl+H Hidden  Alt+Enter Actions  / Find  Esc Back         

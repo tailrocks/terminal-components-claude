@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                            poly · Node project · yarn  mbp · local 
+                                                                                                                                                                
+  Here                                                                                                                                                          
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›  
+                                                                                                                                                                
+    Suggested here                                                                                               just build                     recipe · here   
+  › just build    recipe   here  .justfile here                                                                                                                 
+    just lint     recipe   here  .justfile here                                                                  Does       Just build from .justfile · the     
+    just test     recipe   here  .justfile here                                                                             recipe runs through just            
+    make all      target   here  Makefile here                                                                   Runs       just build                          
+    make build    target   here  Makefile here                                                                   In         ~/work/poly                         
+                                                                                                                 Host       mbp · local                         
+    Recent here                                                                                                  Scope      here                                
+    everything used here is suggested above                                                                      Why        .justfile here                      
+                                                                                                                 Changes    see the command                     
+    Explore                                                                                                      Risk       mutating                            
+     Tasks   Git   Files   Disk   Services   System                                                              Data       live · 0 s ago                      
+    System · mbp  explore  host  available on this host                                                          Gate       runs directly                       
+                                                                                                                 Alt+Enter  Pin · Alias · Why here?             
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+ ~/work/poly                                                                                                                                 truecolor · 160×50 
+                                Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities                                  

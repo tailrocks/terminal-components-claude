@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                 no project  devbox · local 
+                                                                                                                        
+  Here › Cleanup › Review                                                                                               
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────── 
+  Review · trash 1 item · gate 1 of 2 · review the resolved facts, then continue deliberately                           
+                                                                                                                        
+  Action        move to Trash 1 item under ~                                                                            
+  Host          devbox · local                                                                                          
+  Mode          Trash · no Trash backend · every item will fail, never fall back · space returns after the Trash is     
+                emptied                                                                                                 
+  Estimate      124.0 KiB allocated · APFS clones may overcount · purgeable space excluded · not a free-space           
+                guarantee                                                                                               
+  Denied        none · every path passed the lexical, protected-root, user-data and symlink rules                       
+  Revision      c4d729e20ca0805b · any change to paths, mode or dry run voids this review                               
+  Threat model  an unprivileged user · ancestors are re-resolved at commit · a concurrent rename of the final path      
+                cannot be excluded                                                                                      
+  Paths         ~/Projects/app/node_modules                                                                             
+  Recoverable   yes · until the Trash is emptied                                                                        
+  Provenance    holla cleanup · paths validated at review and again at commit                                           
+                                                                                                                        
+ ╭─ Sequence · 1 command ────────────────────────────────────────────────────────────────────────────────── y copies ─╮ 
+ │  01  trash /home/alex/Projects/app/node_modules  # 124.0 KiB · project.artifacts                                   │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+                                                                                                 ▎Cancel    Continue…   
+                                                                                                                        
+ ~/work/box                                   review · gate 1 of 2                                   truecolor · 120×40 
+                       ← → Choose  Enter Activate  Tab Next  y Copy sequence  Esc Cancel    1 item selected · 124.0 KiB 

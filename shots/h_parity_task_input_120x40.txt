@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                              app · service checkout  ◆ devbox · production 
+                                                                                                                        
+  Here                                                                                                                  
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                                        scope ‹ here ›  
+                                                                                                                        
+    Suggested here                                                               Follow payments-worker journal         
+  › Follow payments-worker j…  system   on devbox  unit is restarting                                                   
+    Show payments-worker sta…  system   on devbox  3 restarts in 10 min          Does       journalctl -u               
+    Deploy the release         custom   here       Current folder · trusted                 payments-worker -f          
+    Quick no-op                custom   here       Current folder · trusted      Runs       journalctl -u pa… -n 200    
+    Run the stubborn worker    custom   here       Current folder · trusted      In         devbox · host-wide          
+                                                                                 Host       devbox · production ·       
+    Recent here                                                                             over SSH                    
+    everything used here is suggested above                                      Scope      on devbox                   
+                                                                                 Why        unit is restarting          
+    Explore                                                                      Changes    none · read-only            
+     Tasks   Git   Files   Disk   Services   System                              Risk       read-only                   
+    System · devbox            explore  on devbox  available on this host        Data       live · 2 s ago              
+                                                                                 Gate       runs directly               
+                                                                                 Alt+Enter  Pin · Alias · Why here?     
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ /srv/app                                                                                            truecolor · 120×40 
+            Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities              

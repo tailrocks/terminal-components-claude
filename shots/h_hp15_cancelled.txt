@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                              app · service checkout  ◆ devbox · production 
+                                                                                                                        
+  Here    deploy the release ! ×                                                                                        
+ ────────━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────── 
+  deploy the release · failed · 4 s · exit 2                                                  here · /srv/app · devbox  
+  $ ./deploy.sh · started by Deploy the release                                                                         
+                                                                                                                        
+ ╭─ output ─────────────────────────────────────────────────────────────────────────────────────────────── following ─╮ 
+ │  $ ./deploy.sh                                                                                                     │ 
+ │  connecting to release server…                                                                                     │ 
+ │  Password:                                                                                                         │ 
+ │  authenticated                                                                                                     │ 
+ │  Proceed with rollout? [y/N] n                                                                                     │ 
+ │  rollout cancelled by operator                                                                                     │ 
+ │  rolling out                                                                                                       │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+ /srv/app                                       ! exit 2 · 4 s                                       truecolor · 120×40 
+              ↑↓ Scroll  f Follow  / Find  y Copy  r Restart  x Close  Esc Here    ! deploy the release failed · exit 2 

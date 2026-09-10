@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                    batch · project collection  mbp · local 
+                                                                                                                        
+  Here    emit a mixed stream ✓ ×                                                                                       
+ ────────━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────── 
+  emit a mixed stream · succeeded · 0 s · exit 0                                             here · ~/work/batch · mbp  
+  $ ./emit-stream · started by Emit a mixed stream                                                                      
+                                                                                                                        
+ ╭─ output ─────────────────────────────────────────────────────────────────────────────────────────────── following ─╮ 
+ │  first                                                                                                             │ 
+ │  ^[[32mgreen^[[0m                                                                                                  │ 
+ │  bad � byte                                                                                                        │ 
+ │  last fragment                                                                                                     │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+ ~/work/batch                                    succeeded · 0 s                                     truecolor · 120×40 
+             ↑↓ Scroll  f Follow  / Find  y Copy  r Restart  x Close  Esc Here    emit a mixed stream finished · exit 0 

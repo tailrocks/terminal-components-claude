@@ -41,6 +41,8 @@ pub struct SnapshotPage {
     scroll: ScrollState,
     meters: Vec<(String, u8)>,
     detail_title: String,
+    /// The report shown here was still being written on the last tick.
+    report_running: bool,
 }
 
 fn t(s: &str) -> (String, Tone) {
@@ -69,6 +71,7 @@ impl SnapshotPage {
             scroll: ScrollState::default(),
             meters: vec![],
             detail_title: "Detail".into(),
+            report_running: false,
         };
         page.build(w);
         page.detail_title = match kind {
@@ -93,6 +96,26 @@ impl SnapshotPage {
             .map(|(i, (l, _, _))| Button::subtle(FOLLOW.child(i), l))
             .collect();
         page
+    }
+
+    /// Re-read the world: a report that is still being written changes
+    /// every tick.
+    fn rebuild(&mut self, w: &World) {
+        self.facts.clear();
+        self.lines.clear();
+        self.meters.clear();
+        self.follow_ups.clear();
+        self.build(w);
+        self.buttons = self
+            .follow_ups
+            .iter()
+            .enumerate()
+            .map(|(i, (l, _, _))| Button::subtle(FOLLOW.child(i), l))
+            .collect();
+    }
+
+    fn report_index(&self) -> Option<usize> {
+        self.kind.strip_prefix("report:")?.parse().ok()
     }
 
     fn build(&mut self, w: &World) {
@@ -666,7 +689,20 @@ impl SnapshotPage {
                 self.title = "Cleanup history".into();
                 self.meta = host.clone();
                 self.facts = vec![
-                    Prop::new("Entries", format!("{} · {} operation log records", w.disk.history.len(), w.ops_log.lines.len())),
+                    Prop::new(
+                        "Entries",
+                        format!(
+                            "{} · {} operation log records",
+                            w.disk.history.len()
+                                + w
+                                    .ops_log
+                                    .lines
+                                    .iter()
+                                    .filter(|l| crate::domain::cleanup::LogRecord::parse(l).is_some())
+                                    .count(),
+                            w.ops_log.lines.len()
+                        ),
+                    ),
                     Prop::new("Log", format!("{} · JSONL v1 · append only", w.location.short(&w.ops_log.path))).tone(Tone::Muted).wrap(),
                     Prop::new("Audit", "targets, method, reclaimed space, skips and failures · restoration only from Trash").tone(Tone::Muted),
                 ];
@@ -710,19 +746,87 @@ impl SnapshotPage {
                     }
                     self.lines.push(m(""));
                 }
+                // one table over both sources: command cleanups the world
+                // recorded and every parsed operation log record
+                let mut rows: Vec<(i64, String, String, String, String, Tone)> = w
+                    .disk
+                    .history
+                    .iter()
+                    .map(|h| {
+                        (
+                            h.when_secs,
+                            h.target.clone(),
+                            h.method.clone(),
+                            format!("{:.1} GB", h.reclaimed_gb),
+                            h.outcome.clone(),
+                            Tone::Normal,
+                        )
+                    })
+                    .collect();
+                for l in &w.ops_log.lines {
+                    let Some(r) = crate::domain::cleanup::LogRecord::parse(l) else {
+                        continue;
+                    };
+                    let method = if r.dry_run {
+                        "dry run".to_owned()
+                    } else {
+                        r.mode.label().to_owned()
+                    };
+                    let (outcome, tone) = match r.outcome {
+                        crate::domain::cleanup::Outcome::Failed => (
+                            format!(
+                                "failed · {}",
+                                r.error.as_deref().unwrap_or("no reason recorded")
+                            ),
+                            Tone::Error,
+                        ),
+                        crate::domain::cleanup::Outcome::Skipped => (
+                            format!(
+                                "skipped · {}",
+                                r.error.as_deref().unwrap_or("no reason recorded")
+                            ),
+                            Tone::Warning,
+                        ),
+                        crate::domain::cleanup::Outcome::WouldRemove => {
+                            ("would be removed".to_owned(), Tone::Muted)
+                        }
+                        other => (other.label().to_owned(), Tone::Normal),
+                    };
+                    let freed = if matches!(
+                        r.outcome,
+                        crate::domain::cleanup::Outcome::Removed
+                            | crate::domain::cleanup::Outcome::Trashed
+                    ) {
+                        crate::sim::fs::human(r.size)
+                    } else {
+                        "0 B".to_owned()
+                    };
+                    rows.push((
+                        r.timestamp_ms.div_euclid(1000),
+                        r.path,
+                        method,
+                        freed,
+                        outcome,
+                        tone,
+                    ));
+                }
+                rows.sort_by_key(|r| r.0);
                 self.lines.push(m(&format!(
-                    "{:<18}{:<44}{:<12}{:>8}   {}",
+                    "{:<18}{:<44}{:<12}{:>10}   {}",
                     "when", "target", "method", "freed", "outcome"
                 )));
-                for h in &w.disk.history {
-                    self.lines.push(t(&format!(
-                        "{:<18}{:<44}{:<12}{:>5.1} GB   {}",
-                        crate::clock::Clock::stamp(h.when_secs),
-                        truncate(&w.location.short(&h.target), 42),
-                        h.method,
-                        h.reclaimed_gb,
-                        h.outcome
-                    )));
+                for (when, target, method, freed, outcome, tone) in rows {
+                    self.lines.push((
+                        format!(
+                            "{:<18}{:<44}{:<12}{:>10}   {}",
+                            crate::clock::Clock::stamp(when),
+                            truncate(&w.location.short(&target), 42),
+                            method,
+                            freed,
+                            outcome
+                        ),
+                        tone,
+                    ));
                 }
             }
             k if k.starts_with("service-") => {
@@ -929,21 +1033,41 @@ impl SnapshotPage {
                         ];
                     }
                     Some(r) => {
-                        self.title = if r.dry_run {
-                            "Dry run report".into()
-                        } else {
-                            "Cleanup report".into()
+                        let running = w
+                            .cleanup_job
+                            .as_ref()
+                            .filter(|j| j.report_index == idx)
+                            .map(|j| (j.exec.completed(), j.exec.total()));
+                        // a page built while the job runs must rebuild once
+                        // more after it settles
+                        self.report_running = running.is_some();
+                        self.title = match (running, r.dry_run) {
+                            (Some(_), true) => "Dry run running".into(),
+                            (Some(_), false) => "Cleanup running".into(),
+                            (None, true) => "Dry run report".into(),
+                            (None, false) => "Cleanup report".into(),
                         };
                         self.meta = host.clone();
                         let (details, over) = r.details();
                         self.facts = vec![
-                            Prop::new("Outcome", r.summary())
-                                .tone(if r.incomplete() {
-                                    Tone::Warning
-                                } else {
-                                    Tone::Normal
-                                })
+                            match running {
+                                Some((k, t)) => Prop::new(
+                                    "Outcome",
+                                    format!(
+                                        "running · {k} of {t} items · {} so far · quitting waits for the rest",
+                                        r.summary()
+                                    ),
+                                )
+                                .tone(Tone::Warning)
                                 .wrap(),
+                                None => Prop::new("Outcome", r.summary())
+                                    .tone(if r.incomplete() {
+                                        Tone::Warning
+                                    } else {
+                                        Tone::Normal
+                                    })
+                                    .wrap(),
+                            },
                             Prop::new(
                                 "Mode",
                                 format!(
@@ -1075,7 +1199,7 @@ impl SnapshotPage {
                         }
                         for a in &c.actions {
                             self.lines.push(t(&format!(
-                                "{:<24}{:<10}{}",
+                                "{:<24}{:<13}{}",
                                 a.id,
                                 a.danger.label(),
                                 crate::domain::exec::Command::from_vec(
@@ -1100,6 +1224,20 @@ impl SnapshotPage {
 }
 
 impl Screen for SnapshotPage {
+    fn on_tick(&mut self, w: &mut World, _cx: &mut Cx) -> Outcome {
+        let running = self.report_index().is_some_and(|idx| {
+            w.cleanup_job
+                .as_ref()
+                .is_some_and(|j| j.report_index == idx)
+        });
+        if running || self.report_running {
+            self.report_running = running;
+            self.rebuild(w);
+            return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+
     fn on_key(&mut self, key: &Key, w: &mut World, cx: &mut Cx) -> Outcome {
         if let Some(path) = self.kind.strip_prefix("config:").map(str::to_owned) {
             match key.code {

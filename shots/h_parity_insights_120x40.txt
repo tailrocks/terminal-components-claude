@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                     web · Node project · pnpm  mbp · local 
+                                                                                                                        
+  Here                                                                                                                  
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                                        scope ‹ here ›  
+                                                                                                                        
+    Suggested here                                                               Review cleanup candidates              
+  › Review cleanup candidates  cleanup  host  18.8 GiB across 18 categories                                             
+                                                                                 Does       18 detected categories ·    
+    Recent here                                                                             18.8 GiB ·                  
+    everything used here is suggested above                                                 rebuilt-on-demand and       
+                                                                                            safe-if-old candidates      
+    Explore                                                                                 start selected,             
+     Tasks   Git   Files   Disk   Services   System                                         review-first never does,    
+    System · mbp               explore  host  available on this host                        too-recent ones stay        
+                                                                                            visible but ineligible      
+                                                                                 Runs       'holla cleanup review'      
+                                                                                 In         mbp · host-wide             
+                                                                                 Host       mbp · local                 
+                                                                                 Scope      host                        
+                                                                                 Why        18.8 GiB across 18          
+                                                                                            categories                  
+                                                                                 Changes    none · read-only            
+                                                                                 Risk       read-only                   
+                                                                                 Data       live · 0 s ago              
+                                                                                 Gate       opens a review · the        
+                                                                                            deletion is gated there     
+                                                                                            (typed phrase)              
+                                                                                 Alt+Enter  Pin · Alias · Why here?     
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ ~/Projects/web                                                                                      truecolor · 120×40 
+            Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities              

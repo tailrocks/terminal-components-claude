@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local 
+                                                                                                                        
+  Here    brew update ✓ ×                                                                                               
+ ────────━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────── 
+  brew update · succeeded · 0 s · exit 0                                                                           mbp  
+  $ brew update · started by Upgrade Homebrew packages · batch upgrade.brew-packages                                    
+                                                                                                                        
+ ╭─ output ─────────────────────────────────────────────────────────────────────────────────────────────── following ─╮ 
+ │  $ brew update                                                                                                     │ 
+ │  ==> Updating Homebrew...                                                                                          │ 
+ │  ==> Outdated Formulae · 2                                                                                         │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+ ~                                          succeeded · 0 s                                          truecolor · 120×40 
+        ↑↓ Scroll  f Follow  / Find  y Copy  r Restart  …   ! Upgrade Homebrew packages · 4 ok · 1 failed · 0 cancelled 

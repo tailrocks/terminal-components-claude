@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                                    svc · Rust project  mbp · local 
+                                                                                                                                                                
+  Here                                                                                                                                                          
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›  
+                                                                                                                                                                
+    Suggested here                                                                                               Review 1 modified files         git · parent   
+  › Review 1 modified files      git      parent  1 modified · 0 untracked                                                                                      
+                                                                                                                 Does       show the changed files with         
+    Recent here                                                                                                             their diff stat before              
+    everything used here is suggested above                                                                                 committing or syncing               
+                                                                                                                 Runs       git -C /Users/alex/wo…us --short    
+    Explore                                                                                                                 git -C /Users/alex/wo…iff --stat    
+     Tasks   Git   Files   Disk   Services   System                                                              In         ~/work/svc                          
+    Parent · svc (Rust project)  explore  parent  project root above this folder                                 Host       mbp · local                         
+    System · mbp                 explore  host    available on this host                                         Scope      parent                              
+                                                                                                                 Why        1 modified · 0 untracked            
+                                                                                                                 Changes    none · read-only                    
+                                                                                                                 Risk       read-only                           
+                                                                                                                 Data       live · 2 s ago                      
+                                                                                                                 Gate       runs directly                       
+                                                                                                                 Alt+Enter  Open in a Git TUI (lazygit) ·       
+                                                                                                                            Pin · Alias · Why here?             
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+ ~/work/svc/src/api   feature/x   ↓2 ↑1 • 1                                                                                                  truecolor · 160×50 
+                               Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities                                  

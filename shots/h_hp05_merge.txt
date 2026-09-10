@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                            svc · Rust project  mbp · local 
+                                                                                                                        
+  Here    pull with merge ! ×                                                                                           
+ ────────━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────── 
+  pull with merge · failed · 0 s · exit 1                                                    parent · ~/work/svc · mbp  
+  $ git -C /Users/alex/work/svc pull --no-rebase · started by Pull with merge                                           
+                                                                                                                        
+ ╭─ output ─────────────────────────────────────────────────────────────────────────────────────────────── following ─╮ 
+ │  $ git -C /Users/alex/work/svc pull --no-rebase                                                                    │ 
+ │  error: Your local changes to the following files would be overwritten by merge:                                   │ 
+ │          src/api/mod.rs                                                                                            │ 
+ │  Please commit your changes or stash them before you merge.                                                        │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+ ~/work/svc/src/api   feature/x   ↓2 ↑1 • 1                      ! exit 1 · 0 s                      truecolor · 120×40 
+                 ↑↓ Scroll  f Follow  / Find  y Copy  r Restart  x Close  Esc Here    ! pull with merge failed · exit 1 

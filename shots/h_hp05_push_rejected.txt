@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                            svc · Rust project  mbp · local 
+                                                                                                                        
+  Here    pull with merge ! ×    push ! ×                                                                               
+ ───────────────────────────────━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────── 
+  push · failed · 0 s · exit 1                                                               parent · ~/work/svc · mbp  
+  $ git -C /Users/alex/work/svc push · started by Push                                                                  
+                                                                                                                        
+ ╭─ output ─────────────────────────────────────────────────────────────────────────────────────────────── following ─╮ 
+ │  $ git -C /Users/alex/work/svc push                                                                                │ 
+ │  To github.com:acme/svc.git                                                                                        │ 
+ │   ! [rejected]        feature/x -> feature/x (fetch first)                                                         │ 
+ │  error: failed to push some refs to 'origin'                                                                       │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ │                                                                                                                    │ 
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ 
+                                                                                                                        
+ ~/work/svc/src/api   feature/x   ↓2 ↑1 • 1                      ! exit 1 · 0 s                      truecolor · 120×40 
+                          ↑↓ Scroll  f Follow  / Find  y Copy  r Restart  x Close  Esc Here      ! push failed · exit 1 

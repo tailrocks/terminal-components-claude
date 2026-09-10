@@ -1,40 +1,40 @@
-  holla❯    File   Go   Help                                         acme › frontend · Node project · pnpm  mbp · local
-
-  Here › Arguments
- ━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────
-  Run tests · arguments
-  field name, expected value, default and validation · secrets stay masked
-
-   filter  optional
- ▎ test name substring
-   passes through to nextest
-
-   profile
- ▎ default                                             ▾
-
-
-   Command
-
-   mise run //apps/frontend:test --profile default
-
-                                                                                                       ▎Cancel   ▎Run
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- ~/work/acme/apps/frontend   main   ↑1 • 2                                                           truecolor · 120×40
-    Enter Edit  Tab Next  Ctrl+S Run  Esc Cancel    Trusted ~/work/acme/apps/frontend/mise.toml · re-resolving the task
+  holla❯    File   Go   Help                                         acme › frontend · Node project · pnpm  mbp · local 
+                                                                                                                        
+  Here › Arguments                                                                                                      
+ ━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────── 
+  Run tests · arguments                                                                                                 
+  field name, expected value, default and validation · secrets stay masked                                              
+                                                                                                                        
+   filter  optional                                                                                                     
+ ▎ test name substring                                                                                                  
+   passes through to nextest                                                                                            
+                                                                                                                        
+   profile                                                                                                              
+   default                                             ▾                                                                
+                                                                                                                        
+                                                                                                                        
+   Command                                                                                                              
+                                                                                                                        
+   mise run //apps/frontend:test --profile default                                                                      
+                                                                                                                        
+                                                                                                        Cancel    Run   
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ ~/work/acme/apps/frontend   main   ↑1 • 2                                                           truecolor · 120×40 
+    Enter Edit  Tab Next  Ctrl+S Run  Esc Cancel    Trusted ~/work/acme/apps/frontend/mise.toml · re-resolving the task 

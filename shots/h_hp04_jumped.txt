@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local 
+                                                                                                                        
+  Here › Files › work                                                                                                   
+ ━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────── 
+  Files · ~/work                                                                                                        
+  1 entry · 0 hidden hidden · Ctrl+H shows · directories first                                                          
+                                                                                                                        
+ ▎▸ site                                   –  2026-09-09 08:41        ~/work/site                           directory   
+                                                                                                                        
+                                                                      16 visible · 2 hidden                             
+                                                                      modified 2026-09-09 08:41                         
+                                                                      markers · .git, package.json                      
+                                                                        git status · git pull                           
+                                                                        pnpm run a                                      
+                                                                        pnpm run b                                      
+                                                                        pnpm run c                                      
+                                                                        pnpm run d                                      
+                                                                        pnpm run e                                      
+                                                                        pnpm run f                                      
+                                                                        pnpm run g                                      
+                                                                      recommendations are preview-only · run them fr…   
+                                                                      Find and Browse are always available from Here    
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ ~/work/site                                   ~/work · hidden off                                   truecolor · 120×40 
+  ↑↓ Move  Enter Open / preview  ← Parent  g Go to path  Ctrl+H Hidden  Alt+Enter Actions  / Find  …   Jumped to ~/work 

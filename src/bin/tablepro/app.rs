@@ -1522,7 +1522,11 @@ impl App {
                         self.close_modal();
                         Outcome::Changed
                     }
-                    Some(PickerEvent::Back) | None => o.or(Outcome::Consumed),
+                    // a query that matches nothing is not a command: the
+                    // picker stays open with it
+                    Some(PickerEvent::Back) | Some(PickerEvent::Submit) | None => {
+                        o.or(Outcome::Consumed)
+                    }
                 }
             }
             Modal::Filter(f) => {

@@ -58,7 +58,8 @@ JACKIN_NO_MOTION=1 cargo run --release --bin jackin-preview   # same as --motion
 cargo run --release --bin holla                      # the launcher, first-use scenario (an empty folder)
 cargo run --release --bin holla -- --scenario rust-dirty       # first-use | rust-dirty | monorepo-root | monorepo-child |
                                                      # docker-cleanup | disk-cleanup | upgrade-plan | activities-multi |
-                                                     # remote-host | launch-failure | hard-cases
+                                                     # remote-host | launch-failure | hard-cases | parity-<slice>
+cargo run --release --bin holla -- --help            # lists every concept and parity scenario
 cargo run --release --bin holla -- --scenario upgrade-plan --motion paused --frame 60   # freeze one fixture tick
 HOLLA_NO_MOTION=1 cargo run --release --bin holla    # same as --motion reduced (discovery completes at once)
 ```
@@ -75,7 +76,8 @@ lists activities, `Alt+0–9` switch tabs, `Esc` climbs clear query › scope
 back to here › back a page › quit. Exact aliases never drift: `gp` pull, `du`
 disk usage, `test` the test task here, `dc` the Docker cleanup, `d` then `u`.
 The `h_*` captures in `shots/` are the review evidence
-(`tools/holla_shots.sh`, `tools/holla_flows.sh`).
+(`tools/holla_shots.sh`, `tools/holla_flows.sh`, `tools/holla_parity_flows.sh`);
+each frame carries a provenance manifest and a raster-fidelity sidecar.
 
 **Previewing holla.** Three routes, fastest first: open `shots/h_*.png`
 (every scenario at four sizes plus mono, and the gate, plan, activity,

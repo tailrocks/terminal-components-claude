@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                                            no project  mbp · local 
+                                                                                                                                                                
+  Here                                                                                                                                                          
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›  
+                                                                                                                                                                
+    Suggested here                                                                                               Follow acme-api-1 logs         docker · here   
+  › Follow acme-api-1 logs        docker   here  service is unhealthy                                                                                           
+    Follow acme-db-1 logs         docker   here  running                                                         Does       stream the last 10 minutes and      
+    Follow acme-redis-1 logs      docker   here  running                                                                    follow · acme/api:dev · running     
+    Follow acme-scheduler-1 logs  docker   here  running                                                         Runs       docker logs -f --sinc…acme-api-1    
+    Follow acme-worker-1 logs     docker   here  running                                                         In         ~/work/stack                        
+                                                                                                                 Host       mbp · local                         
+    Recent here                                                                                                  Scope      here                                
+    everything used here is suggested above                                                                      Why        service is unhealthy                
+                                                                                                                 Changes    none · read-only                    
+    Explore                                                                                                      Risk       read-only                           
+     Tasks   Git   Files   Disk   Services   System                                                              Data       live · 2 s ago                      
+    System · mbp                  explore  host  available on this host                                          Gate       runs directly                       
+                                                                                                                 Alt+Enter  Restart · Stop · Pin · Alias ·      
+                                                                                                                            Why here?                           
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+ ~/work/stack                                                                                                                                truecolor · 160×50 
+                                Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities                                  
