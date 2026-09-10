@@ -102,6 +102,10 @@ impl ActivityTab {
         let Some(a) = w.activity(&self.id) else {
             return;
         };
+        if self.input && !a.accepts_input() {
+            // the program stopped reading: the keyboard is holla's again
+            self.input = false;
+        }
         let services = a.services();
         if self.chips.chips.len() != services.len() || self.synced_services != services {
             self.chips.chips = services
@@ -339,12 +343,20 @@ impl Screen for ActivityTab {
             }
             return Outcome::Consumed;
         }
+        if self.input && !w.activity(&self.id).is_some_and(|a| a.accepts_input()) {
+            // the program stopped reading: the keyboard is holla's again
+            self.input = false;
+        }
         if self.input {
-            // every key is bytes for the program; Esc alone returns the keyboard
+            // every key is bytes for the program; Esc alone returns the
+            // keyboard; Alt chords belong to the shell (tabs, alternatives)
             if key.code == KeyCode::Esc && key.plain() {
                 self.input = false;
                 cx.status("Keyboard returned to holla · the program keeps running");
                 return Outcome::Changed;
+            }
+            if key.alt() {
+                return Outcome::Ignored;
             }
             return match key_bytes(key) {
                 Some(bytes) => self.send(&bytes, w, cx),

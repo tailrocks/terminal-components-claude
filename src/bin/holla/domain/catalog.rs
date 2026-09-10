@@ -3078,6 +3078,7 @@ pub fn insight_candidates(w: &World) -> Vec<InsightCategory> {
             category: cat,
             candidates: cands,
             process,
+            unreadable: vec![],
         });
     }
     out
@@ -3098,6 +3099,8 @@ pub struct InsightCategory {
     pub category: &'static cleanup::Category,
     pub candidates: Vec<InsightCandidate>,
     pub process: ProcessObservation,
+    /// Folders the discovery walk could not read: the list is a lower bound.
+    pub unreadable: Vec<String>,
 }
 
 impl InsightCategory {

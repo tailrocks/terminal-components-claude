@@ -336,6 +336,11 @@ pub struct Activity {
     /// Ticks spent waiting for input; the script clock excludes them.
     pub paused_ticks: u64,
     pub stdin: Vec<InputRecord>,
+    /// Bytes typed since the last line end: a prompt answer is a line, and
+    /// the program reads it only when the line ends.
+    pub pending: Vec<u8>,
+    /// The last output line is the echo of `pending` (no prompt waiting).
+    echo_active: bool,
     pub cancel: Option<CancelState>,
     prompts_seen: usize,
 }
@@ -378,12 +383,15 @@ impl Activity {
             waiting: None,
             paused_ticks: 0,
             stdin: vec![],
+            pending: vec![],
+            echo_active: false,
             cancel: None,
             prompts_seen: 0,
         }
     }
 
     fn emit(&mut self, service: Option<String>, text: String, tone: LineTone) {
+        self.echo_active = false;
         self.output.push((service, text, tone));
         if self.output.len() > RETAIN_LINES {
             let drop = self.output.len() - RETAIN_LINES;
@@ -600,36 +608,98 @@ impl Activity {
             redacted_len: bytes.len(),
         });
         if bytes == [0x03] {
+            self.pending.clear();
             self.emit(None, "^C".into(), LineTone::Muted);
             self.stop(tick);
             return Ok(());
         }
-        let Some(p) = self.waiting.clone() else {
-            // no prompt: the program reads it later; echo the line
-            let text = String::from_utf8_lossy(bytes)
-                .trim_end_matches(['\r', '\n'])
-                .to_owned();
-            self.emit(None, text, LineTone::Muted);
+        if bytes == [0x04] {
+            // EOF: a pending line is delivered as it stands, an empty line
+            // is end of input; either way the mark is visible, never secret
+            if self.waiting.is_some() {
+                let pending = std::mem::take(&mut self.pending);
+                let answer = if pending.is_empty() {
+                    "\u{4}".to_owned()
+                } else {
+                    String::from_utf8_lossy(&pending).into_owned()
+                };
+                self.answer_prompt(answer, Some("^D"), tick);
+            } else {
+                self.echo_pending(Some("^D"));
+                self.pending.clear();
+                self.echo_active = false;
+            }
             return Ok(());
-        };
-        let answer = if bytes == [0x04] {
-            "\u{4}".to_owned()
+        }
+        for &b in bytes {
+            match b {
+                0x7f | 0x08 => {
+                    self.pending.pop();
+                }
+                b'\r' | b'\n' => {
+                    if self.waiting.is_some() {
+                        let line = String::from_utf8_lossy(&std::mem::take(&mut self.pending))
+                            .into_owned();
+                        self.answer_prompt(line, None, tick);
+                    } else {
+                        // the program reads it later; the typed line stays
+                        self.echo_pending(None);
+                        self.pending.clear();
+                        self.echo_active = false;
+                    }
+                }
+                _ => self.pending.push(b),
+            }
+        }
+        if !self.pending.is_empty() {
+            self.echo_pending(None);
+        }
+        Ok(())
+    }
+
+    /// Show the pending line: on the prompt row (masked when secret) or
+    /// as the trailing muted echo row when nothing prompts.
+    fn echo_pending(&mut self, mark: Option<&str>) {
+        let text = String::from_utf8_lossy(&self.pending).into_owned();
+        if let Some(p) = self.waiting.clone() {
+            let shown = if p.secret { String::new() } else { text };
+            if let Some(last) = self.output.last_mut() {
+                last.1 = format!("{}{shown}{}", p.text, mark.unwrap_or(""));
+            }
+            return;
+        }
+        let shown = format!("{text}{}", mark.unwrap_or(""));
+        if self.echo_active
+            && let Some(last) = self.output.last_mut()
+        {
+            last.1 = shown;
         } else {
-            String::from_utf8_lossy(bytes)
-                .trim_end_matches(['\r', '\n'])
-                .to_owned()
+            self.output.push((None, shown, LineTone::Muted));
+            if self.output.len() > RETAIN_LINES {
+                let drop = self.output.len() - RETAIN_LINES;
+                self.output.drain(..drop);
+                self.dropped += drop;
+            }
+            self.echo_active = true;
+        }
+    }
+
+    /// A prompt received its line: choose the branch by the exact text.
+    fn answer_prompt(&mut self, answer: String, mark: Option<&str>, tick: u64) {
+        let Some(p) = self.waiting.clone() else {
+            return;
         };
-        // echo: the prompt row shows the answer, masked when secret
+        // echo: the prompt row shows the answer, masked when secret; an EOF
+        // mark is a control action and stays visible
         if let Some(last) = self.output.last_mut() {
-            // EOF is a control action, never a secret: it stays visible
-            let shown = if answer == "\u{4}" {
-                "^D".to_owned()
-            } else if secret {
+            let shown = if p.secret {
+                String::new()
+            } else if answer == "\u{4}" {
                 String::new()
             } else {
                 answer.clone()
             };
-            last.1 = format!("{}{shown}", p.text);
+            last.1 = format!("{}{shown}{}", p.text, mark.unwrap_or(""));
         }
         self.paused_ticks += tick.saturating_sub(p.since_tick);
         self.waiting = None;
@@ -662,7 +732,6 @@ impl Activity {
                 self.script.exit = exit;
             }
         }
-        Ok(())
     }
 
     pub fn duration_ticks(&self, now: u64) -> u64 {

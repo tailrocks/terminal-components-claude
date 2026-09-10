@@ -96,7 +96,7 @@ impl CleanupPage {
     fn special_category(&self, w: &World) -> Option<(Special, InsightCategory)> {
         let id = self.filter.as_deref()?;
         let cwd = w.location.cwd.clone();
-        let (special, paths): (Special, Vec<String>) = match id {
+        let (special, (paths, unreadable)): (Special, (Vec<String>, Vec<String>)) = match id {
             "gradle.clean-all" => (
                 Special {
                     id: id.into(),
@@ -104,7 +104,7 @@ impl CleanupPage {
                     note: ".gradle and build directories below this folder · depth 5 · no symlinks · no node_modules".into(),
                     prerequisite: Some("gradle --stop".into()),
                 },
-                cleanup::walk_candidates(&w.fs, &cwd, &|p, is_dir| is_dir && (p.ends_with("/.gradle") || p.ends_with("/build"))),
+                cleanup::walk_candidates_report(&w.fs, &cwd, &|p, is_dir| is_dir && (p.ends_with("/.gradle") || p.ends_with("/build"))),
             ),
             "idea.clean" => (
                 Special {
@@ -113,7 +113,7 @@ impl CleanupPage {
                     note: ".idea directories and lowercase .iml files below this folder · depth 5 · no symlinks · no node_modules".into(),
                     prerequisite: None,
                 },
-                cleanup::walk_candidates(&w.fs, &cwd, &|p, is_dir| (is_dir && p.ends_with("/.idea")) || (!is_dir && p.ends_with(".iml"))),
+                cleanup::walk_candidates_report(&w.fs, &cwd, &|p, is_dir| (is_dir && p.ends_with("/.idea")) || (!is_dir && p.ends_with(".iml"))),
             ),
             _ => return None,
         };
@@ -145,6 +145,7 @@ impl CleanupPage {
                 category: cat,
                 candidates,
                 process: ProcessObservation::NotRunning,
+                unreadable,
             },
         ))
     }
@@ -422,6 +423,24 @@ impl CleanupPage {
                         ),
                     ),
                 ];
+                if !c.unreadable.is_empty() {
+                    v.push(
+                        Prop::new(
+                            "Unreadable",
+                            format!(
+                                "{} skipped · the list is a lower bound: {}",
+                                plural(c.unreadable.len(), "folder", "folders"),
+                                c.unreadable
+                                    .iter()
+                                    .map(|p| w.location.short(p))
+                                    .collect::<Vec<_>>()
+                                    .join(" · ")
+                            ),
+                        )
+                        .tone(Tone::Warning)
+                        .wrap(),
+                    );
+                }
                 if let Some(g) = cat.guard_process {
                     v.push(
                         Prop::new(
