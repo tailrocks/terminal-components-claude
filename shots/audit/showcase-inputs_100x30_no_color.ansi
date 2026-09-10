@@ -1,0 +1,30 @@
+ ▪ [1mJunie[0m Design system / Components / Inputs              no color · 100×30   i Inspector   ? Help  
+
+   Overview          [1mInputs[0m  Focus is a bar; editing is a cursor. Enter to edit, Esc to revert.     
+   Buttons               
+[1m▎› Inputs          [0m    Playground                      Enter Edit · Esc Cancel · Tab Commit + next  
+   Text areas            
+   Forms                 Project name *                         Branch  optional                    
+   Lists                 payments-gateway                       feat/…                              
+   Trees                 Used as the working directory na…      Leave empty to work on a detached…  
+   Tables                Owner email *                          API token  optional                 
+   Editable tables       mira@example                   [1m![0m     [2m  jb_live_••••••••••••              [0m  
+   Panels                Enter a valid email address            Managed by the organization         
+   Sidebars              Search files  optional                 API key  optional                   
+   Dialogs               Type a path or symbol…                 ••••••••••••••••••••••••c1f2        
+   Progress              Selection: Shift+← →  ·  words: …      Masked while typing; the last fou…  
+   Scrolling             
+   Terminal              
+   Code editor           
+   Diff                  
+   Data grid             
+   Chips & selects       
+   Pickers               
+   Chrome              State reference                                                      static  
+   Settings              
+   Task runner         default           payments-gateway                                           
+                       placeholder       (feat/…) 
+                       hover             payments-gateway                                           
+
+
+ [1m↑ ↓[0m Move  [1mEnter[0m Open  [1mTab[0m Into page  [1mq[0m Quit      

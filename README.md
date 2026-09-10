@@ -42,6 +42,7 @@ the language hold up when a real tool is built from it?*
 ```sh
 cargo run --release                                  # the showcase (default binary)
 cargo run --release -- --page datagrid               # start on a page (overview, buttons, … codeeditor, datagrid, chipsselects, pickers)
+cargo run --release -- --page diff                   # existing DiffView: unified/review, empty state, select/copy
 cargo run --release -- --color 256                   # force a colour level: truecolor|256|16|none
 
 cargo run --release --bin tablepro                   # the workbench, starting on the connections screen
@@ -175,6 +176,7 @@ editor, and the pickers (Open Quickly, tab list, Safe Mode level).
 | `p` · `x` | result tabs | pin (pinned tabs survive the next run) · close |
 | `s` · `f` · `Ctrl+F` · `F` | grid | sort column · filter on this cell · filter editor · clear filters |
 | `Enter` · `Space` · `+` `-` · `u` · `y` `Y` | grid | edit cell · select row · insert / delete row · undo · copy cell / row |
+| `Alt+D` | editable grid | duplicate the current row (`Ctrl+D` remains Data ⇄ Structure in TablePro) |
 | `p` · `Ctrl+S` | grid with pending changes | preview the SQL · save (Preview / Discard / Save are also buttons in the pending bar) |
 | `Enter` · `r` · `y` · `/` · `c` `s` | history | open in a new tab · rerun · copy · search (terms are ANDed) · scope / status filter |
 
@@ -323,8 +325,9 @@ src/core      framework primitives — ids, focus ring, hit registry, scroll sta
 src/theme.rs  design tokens + component style resolvers
 src/ui        render context (interaction snapshot, hit/focus registration), text helpers
 src/widgets   button, input, textarea, choice, list, tree, table, panel, tabs, dialog, progress, scrollbar,
-              code (editor), completion, grid (data grid), chips, select, picker, segments, props, empty, keyhint
-src/runtime   the shared event loop (raw mode, mouse, bracketed paste, coalesced input, ticks on demand)
+              code (editor), completion, grid (data grid), chips, select, picker, segments, props, empty, keyhint,
+              viewport, diff, splitter, steps, brand, menu, statusbar, hintbar
+src/runtime   the shared event loop (raw mode, mouse, bracketed paste, state changes rendered before queued input, ticks on demand)
 src/bin/showcase   pages/ (one per component + two composed screens), app.rs shell, data.rs, app_tests.rs (+ visual baseline)
 src/bin/tablepro   db.rs (demo catalog + row generator), sql.rs (tokens, statements, safety tiers, runner, EXPLAIN),
                    model.rs (history, completion, switcher index), tabs.rs (table / query / history tabs),
@@ -340,16 +343,25 @@ state and dialogs.
 
 ## Towards a reusable library
 
+The branch audit and coverage map are in [docs/tui-audit.md](docs/tui-audit.md)
+and [docs/tui-audit-inventory.md](docs/tui-audit-inventory.md). The ideas below
+are hypotheses, not required additions: existing public theme tokens and
+typed component events already support the four applications.
+
+Follow-up research, independently verified findings, and ordered acceptance
+criteria are in [IMPROVEMENTS_PLAN.md](IMPROVEMENTS_PLAN.md). This is a plan,
+not a claim that its remaining fixes have been implemented.
+
 - `core/`, `theme.rs`, `ui/`, `widgets/` and `runtime.rs` are the library
-  today (`junie_tui`); both binaries consume it only through its public API.
+  today (`junie_tui`); all four binaries consume it through its public API.
   `ui::ctx::RenderCtx` is the seam between library and app.
-- Widgets need three small generalisations: a trait over the `render` /
+- Possible generalisations to validate against real consumers: a trait over the `render` /
   `on_*` pair so pages can hold `Vec<Box<dyn Widget>>`, a `Theme` trait (or a
   second concrete theme) to prove the tokens are not Junie-only, and builder
   options for the few hard-coded choices (gutter glyph, marker glyphs).
 - The page-level routing (`locate`/`owns` helpers on lists, trees and tables)
-  should become a `Container` helper so a page can dispatch clicks with one
-  call.
+  could become a `Container` helper if it preserves each component's typed
+  outcomes and resolves demonstrated routing duplication.
 - Keep the rule that made this prototype coherent: **no widget chooses a
   colour; it asks the theme for a style given its `VisualState`.**
 
@@ -365,6 +377,16 @@ ARGS="--scenario returning --motion reduced"`; use the tmux key name `Escape`,
 not `Esc`, when scripting).
 
 The showcase also carries a visual baseline (`tests/showcase_baseline.txt`):
-a digest of every page at 120×40 and 80×24, excluding the navigation sidebar.
+a digest of every page at 72×20, 80×24, 100×30, 120×40 and 160×50 in all
+four palettes, excluding the navigation sidebar. Dedicated interaction tests
+cover sidebar scrolling and focus visibility at the minimum terminal size.
 `cargo test` fails when a page changes; regenerate deliberately with
 `UPDATE_BASELINE=1 cargo test --bin showcase showcase_visual_baseline`.
+
+For the reproducible audit matrix, run `PY=/path/to/python-with-pillow
+tools/audit_shots.sh` after `cargo build --bins`. It uses an isolated tmux
+socket and writes to `shots/audit`; `CASES`, `SIZES`, `COLORS`, and `SHOT_DIR`
+select a subset. `no_color` tests actual `NO_COLOR=1` backend behavior separately
+from `--color none`. PNG font and grapheme limitations are documented in the
+[verification report](docs/tui-audit-verification.md); buffer tests establish
+Unicode cursor, selection, and cell-width correctness.

@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Buttons           256 colors · 100×30   i Inspector   ? Help  
+                                                                                                    
+   Overview          Buttons  Primary, secondary, subtle, danger, toggle, disabled, busy            
+▎› Buttons                                                                                          
+   Inputs              Playground                              hover · click · Tab · Enter / Space  
+   Text areas                                                                                       
+   Forms               Actions                                                                      
+   Lists                Run task    Preview    Cancel    Delete branch                              
+   Trees                                                                                            
+   Tables              Toggles                                                                      
+   Editable tables      ○ Auto-approve    ● Verbose                                                 
+   Panels                                                                                           
+   Sidebars            Disabled                                                                     
+   Dialogs              Disabled primary    Disabled                                                
+   Progress                                                                                         
+   Scrolling           Busy                                                                         
+   Terminal             Start long job                                                              
+   Code editor                                                                                      
+   Diff                                                                                             
+   Data grid                                                                                        
+   Chips & selects     State matrix                                            reference rendering  
+   Pickers                                                                                          
+   Chrome                             Primary        Secondary      Subtle         Danger           
+   Settings            default          Label          Label          Label          Label          
+   Task runner         hover            Label          Label          Label          Label          
+                       focus          ▎ Label        ▎ Label        ▎ Label        ▎ Label          
+                       focus + hover  ▎ Label        ▎ Label        ▎ Label        ▎ Label          
+                                                                                                    
+                                                                                                    
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit                                                        

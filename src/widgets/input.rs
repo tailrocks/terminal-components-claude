@@ -171,12 +171,16 @@ impl TextInput {
         self.validate();
     }
 
+    /// Recompute validation from the current value. A custom validator owns
+    /// validation when supplied; otherwise `required` rejects an empty value.
     pub fn validate(&mut self) -> bool {
-        if let Some(v) = self.validator {
-            self.error = v(self.buffer.text());
+        self.error = if let Some(v) = self.validator {
+            v(self.buffer.text())
         } else if self.required && self.buffer.is_empty() {
-            self.error = Some("Required".to_owned());
-        }
+            Some("Required".to_owned())
+        } else {
+            None
+        };
         self.error.is_none()
     }
 
@@ -255,8 +259,20 @@ impl TextInput {
                 return Outcome::Changed;
             }
         }
+        // Mouse positions use the same display geometry as rendering. A
+        // masked CJK/emoji grapheme occupies one cell, regardless of raw width.
         let col = pos.x.saturating_sub(self.text_area.x) as usize + self.scroll;
-        self.buffer.set_cursor_line_col(0, col);
+        let mut width = 0;
+        let mut offset = self.buffer.text().len();
+        for (bi, _, gw) in self.display_graphemes(true) {
+            if width + gw > col {
+                offset = bi;
+                break;
+            }
+            width += gw;
+        }
+        self.buffer.select_range(offset, offset);
+        self.buffer.clear_selection();
         Outcome::Changed
     }
 
@@ -268,6 +284,8 @@ impl TextInput {
         bg: ratatui::style::Color,
     ) {
         let area = area.intersection(*buf.area());
+        self.area = Rect::ZERO;
+        self.text_area = Rect::ZERO;
         if area.is_empty() {
             return;
         }
@@ -293,7 +311,7 @@ impl TextInput {
         let show_optional = !self.required
             && !self.label.is_empty()
             && !self.plain_label
-            && name_w as u16 + 2 + 2 + 8 <= area.width;
+            && name_w + 12 <= area.width as usize;
         if self.required {
             label.push_str(" *");
         } else if show_optional {
@@ -304,13 +322,14 @@ impl TextInput {
         } else {
             t.label(s.focused).bg(bg)
         };
+        let label_x = area.x + 2.min(area.width);
         buf.set_string(
-            area.x + 2,
+            label_x,
             area.y,
             crate::ui::text::fit(&label, area.width.saturating_sub(2) as usize),
             label_style,
         );
-        if self.required && !self.disabled {
+        if self.required && !self.disabled && name_w + 4 <= area.width as usize {
             buf.set_string(
                 area.x + 2 + name_w as u16 + 1,
                 area.y,
@@ -335,10 +354,10 @@ impl TextInput {
         let fs = t.field_style(s);
         crate::ui::ctx::fill(buf, field, fs);
         let gutter = t.gutter(s, fs.bg.unwrap_or(bg), false);
-        buf.set_string(field.x, field.y, "▎", gutter);
+        buf.set_string(field.x, field.y, t.gutter_symbol(s), gutter);
         let trailing = if s.error { 2 } else { 0 };
         let inner = Rect::new(
-            field.x + 2,
+            field.x + 2.min(field.width),
             field.y,
             field.width.saturating_sub(3 + trailing),
             1,
@@ -368,21 +387,32 @@ impl TextInput {
                 if !s.editing {
                     self.scroll = 0;
                 }
-                self.scroll = self.scroll.min(total.saturating_sub(w));
+                // The insertion cursor needs a cell after the final glyph.
+                self.scroll = self.scroll.min(total.saturating_add(1).saturating_sub(w));
+                let mut boundary = 0;
+                for (_, _, gw) in &glyphs {
+                    if boundary >= self.scroll {
+                        break;
+                    }
+                    boundary += gw;
+                }
+                self.scroll = boundary.min(cursor_col);
             }
             let sel = self.buffer.selection();
             let mut col = 0usize;
-            let mut x = inner.x;
-            let mut shown_left = false;
+            let clipped_right = total > self.scroll.saturating_add(w);
+            let visible_width = w.saturating_sub(usize::from(clipped_right));
             for (bi, g, gw) in &glyphs {
                 let gw = *gw;
                 if col + gw <= self.scroll {
                     col += gw;
                     continue;
                 }
-                if x + gw as u16 > inner.right() {
+                let displayed_col = col.saturating_sub(self.scroll);
+                if displayed_col + gw > visible_width {
                     break;
                 }
+                let x = inner.x + displayed_col as u16;
                 let mut st = fs;
                 if let Some(r) = &sel
                     && r.contains(bi)
@@ -394,26 +424,23 @@ impl TextInput {
                         .add_modifier(Modifier::UNDERLINED)
                         .underline_color(t.accent);
                 }
-                if !shown_left && self.scroll > 0 {
+                if displayed_col == 0 && self.scroll > 0 && gw > 0 {
                     buf.set_string(x, inner.y, "…", fs.fg(t.text_muted));
-                    shown_left = true;
-                    x += 1;
                     col += gw;
                     continue;
                 }
                 buf.set_string(x, inner.y, g, st);
-                x += gw as u16;
                 col += gw;
             }
-            if col < total && inner.width > 0 {
+            if clipped_right && inner.width > 0 {
                 buf.set_string(inner.right() - 1, inner.y, "…", fs.fg(t.text_muted));
             }
-            if s.editing {
+            if s.editing && inner.width > 0 {
                 let cx = inner.x + (cursor_col - self.scroll) as u16;
-                ctx.set_cursor(Position::new(cx.min(inner.right()), inner.y));
+                ctx.set_cursor(Position::new(cx.min(inner.right() - 1), inner.y));
             }
         }
-        if s.error {
+        if s.error && field.width >= 2 {
             buf.set_string(
                 field.right() - 2,
                 field.y,
@@ -428,19 +455,132 @@ impl TextInput {
             let msg_y = area.y + 2;
             if let Some(e) = &self.error {
                 buf.set_string(
-                    area.x + 2,
+                    label_x,
                     msg_y,
-                    crate::ui::text::truncate(e, area.width as usize - 2),
+                    crate::ui::text::truncate(e, area.width.saturating_sub(2) as usize),
                     t.error_fg().bg(bg),
                 );
             } else if !self.help.is_empty() {
                 buf.set_string(
-                    area.x + 2,
+                    label_x,
                     msg_y,
-                    crate::ui::text::truncate(&self.help, area.width as usize - 2),
+                    crate::ui::text::truncate(&self.help, area.width.saturating_sub(2) as usize),
                     t.muted().bg(bg),
                 );
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{focus::FocusRing, hit::HitRegistry};
+    use crate::theme::{ColorLevel, Theme};
+    use crate::ui::ctx::Interaction;
+
+    fn render(input: &mut TextInput, area: Rect, buf: &mut Buffer) -> Option<Position> {
+        let theme = Theme::for_level(ColorLevel::TrueColor);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(
+            &theme,
+            Interaction {
+                focus: Some(input.id),
+                ..Default::default()
+            },
+            &mut hits,
+            &mut ring,
+        );
+        input.render(area, buf, &mut ctx, theme.surface);
+        ctx.cursor
+    }
+
+    #[test]
+    fn required_error_clears_after_keyboard_and_paste_corrections() {
+        let mut input = TextInput::new(WidgetId::of("required"), "Name").required(true);
+        assert!(!input.validate());
+        input.begin_edit();
+        input.on_paste("valid");
+        assert!(input.error.is_none());
+        input.buffer.select_all();
+        input.buffer.backspace();
+        assert!(!input.validate());
+        input.on_key(&Key {
+            code: KeyCode::Char('x'),
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        });
+        assert!(input.error.is_none());
+    }
+
+    #[test]
+    fn masked_clicks_follow_display_graphemes() {
+        let mut input = TextInput::new(WidgetId::of("masked"), "Secret")
+            .value("日👩‍💻e\u{301}a")
+            .masked();
+        input.begin_edit();
+        let area = Rect::new(0, 0, 20, 3);
+        let mut buf = Buffer::empty(area);
+        render(&mut input, area, &mut buf);
+        for (col, offset) in [(0, 0), (1, 3), (2, 14), (3, 17), (4, 18)] {
+            input.on_click(Position::new(input.text_area.x + col, 1), true);
+            assert_eq!(input.buffer.cursor_offset(), offset);
+        }
+    }
+
+    #[test]
+    fn scrolled_masked_clicks_and_cursor_share_geometry() {
+        let mut input = TextInput::new(WidgetId::of("masked"), "Secret")
+            .value("日本語👩‍💻e\u{301}")
+            .masked();
+        input.begin_edit();
+        let area = Rect::new(0, 0, 6, 3);
+        let mut buf = Buffer::empty(area);
+        let cursor = render(&mut input, area, &mut buf).unwrap();
+        assert!(input.text_area.contains(cursor));
+        input.on_click(Position::new(input.text_area.x + 1, 1), true);
+        assert_eq!(input.buffer.cursor_offset(), 20);
+        assert_eq!(buf[(input.text_area.x + 1, 1)].symbol(), "•");
+    }
+
+    #[test]
+    fn narrow_fields_stay_within_their_allocated_rectangle() {
+        for width in 0..12 {
+            for height in 0..4 {
+                for invalid in [false, true] {
+                    let mut input = TextInput::new(WidgetId::of("narrow"), "A long label")
+                        .value("日本語👩‍💻abcdef")
+                        .required(true)
+                        .help("Some help");
+                    if invalid {
+                        input.error = Some("Invalid".into());
+                    }
+                    input.begin_edit();
+                    let area = Rect::new(3, 2, width, height);
+                    let mut buf = Buffer::empty(Rect::new(0, 0, 20, 8));
+                    let cursor = render(&mut input, area, &mut buf);
+                    assert!(cursor.is_none_or(|p| area.contains(p)));
+                    for y in 0..8 {
+                        for x in 0..20 {
+                            if !area.contains(Position::new(x, y)) {
+                                assert_eq!(buf[(x, y)].symbol(), " ", "{area:?}: ({x}, {y})");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn wide_graphemes_keep_cursor_and_clicks_aligned_after_scroll() {
+        let mut input = TextInput::new(WidgetId::of("wide"), "Name").value("日本語a");
+        input.begin_edit();
+        let area = Rect::new(0, 0, 8, 3);
+        let mut buf = Buffer::empty(area);
+        let cursor = render(&mut input, area, &mut buf).unwrap();
+        assert!(input.text_area.contains(cursor));
+        input.on_click(cursor, true);
+        assert_eq!(input.buffer.cursor_offset(), input.text().len());
     }
 }

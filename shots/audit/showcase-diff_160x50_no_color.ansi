@@ -1,0 +1,50 @@
+ ▪ [1mJunie[0m Design system / Components / Diff                                                                            no color · 160×50   i Inspector   ? Help  
+
+   Foundations            [1mDiff viewer[0m  Unified or old / new review · narrow panes use unified · select and copy text                                            
+   Overview                             
+                           ○ Review    ○ Empty                                  
+   Components                           
+   Buttons                ╭─ Diff ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+   Inputs                 │  [1mM[0m [1mconfig/service.toml[0m  +10 −5 · 5 hunks                                                                                         ┃ │
+   Text areas             │  @@ -1,6 +1,7 @@                                                                                                                 ┃ │
+   Forms                  │    1   1 [1m [0m [service.worker_0]                                                                                                    ┃ │
+   Lists                  │    2     [1m-[0m attempts = 3                                                                                                          ┃ │
+   Trees                  │        2 [1m+[0m attempts = 5                                                                                                          ┃ │
+   Tables                 │        3 [1m+[0m backoff = "exponential"                                                                                               ┃ │
+   Editable tables        │    3   4 [1m [0m region = "東京"                                                                                                       ┃ │
+   Panels                 │    4   5 [1m [0m label = "café ☕"                                                                                                     ┃ │
+   Sidebars               │    5   6 [1m [0m endpoint = "https://api.example.test/workers/health"                                                                  ┃ │
+   Dialogs                │    6   7 [1m [0m enabled = true                                                                                                        ┃ │
+   Progress               │  @@ -9,6 +10,7 @@                                                                                                                ┃ │
+   Scrolling              │    9  10 [1m [0m [service.worker_1]                                                                                                    ┃ │
+   Terminal               │   10     [1m-[0m attempts = 3                                                                                                          ┃ │
+   Code editor            │       11 [1m+[0m attempts = 5                                                                                                          ┃ │
+[1m▎› Diff                 [0m  │       12 [1m+[0m backoff = "exponential"                                                                                               ┃ │
+   Data grid              │   11  13 [1m [0m region = "東京"                                                                                                       ┃ │
+   Chips & selects        │   12  14 [1m [0m label = "café ☕"                                                                                                     ┃ │
+   Pickers                │   13  15 [1m [0m endpoint = "https://api.example.test/workers/health"                                                                  ┃ │
+   Chrome                 │   14  16 [1m [0m enabled = true                                                                                                        ┃ │
+                          │  @@ -17,6 +19,7 @@                                                                                                               ┃ │
+   Screens                │   17  19 [1m [0m [service.worker_2]                                                                                                    ┃ │
+   Settings               │   18     [1m-[0m attempts = 3                                                                                                          ┃ │
+   Task runner            │       20 [1m+[0m attempts = 5                                                                                                          ┃ │
+                          │       21 [1m+[0m backoff = "exponential"                                                                                               ┃ │
+                          │   19  22 [1m [0m region = "東京"                                                                                                       ┃ │
+                          │   20  23 [1m [0m label = "café ☕"                                                                                                     ┃ │
+                          │   21  24 [1m [0m endpoint = "https://api.example.test/workers/health"                                                                  ┃ │
+                          │   22  25 [1m [0m enabled = true                                                                                                        ┃ │
+                          │  @@ -25,6 +28,7 @@                                                                                                               ┃ │
+                          │   25  28 [1m [0m [service.worker_3]                                                                                                    ┃ │
+                          │   26     [1m-[0m attempts = 3                                                                                                          ┃ │
+                          │       29 [1m+[0m attempts = 5                                                                                                          ┃ │
+                          │       30 [1m+[0m backoff = "exponential"                                                                                               ┃ │
+                          │   27  31 [1m [0m region = "東京"                                                                                                       ┃ │
+                          │   28  32 [1m [0m label = "café ☕"                                                                                                     │ │
+                          │   29  33 [1m [0m endpoint = "https://api.example.test/workers/health"                                                                  │ │
+                          │   30  34 [1m [0m enabled = true                                                                                                        │ │
+                          │  @@ -33,6 +37,7 @@                                                                                                               │ │
+                          │   33  37 [1m [0m [service.worker_4]                                                                                                    │ │
+                          │   34     [1m-[0m attempts = 3                                                                                                          │ │
+                          ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ [1m↑ ↓[0m Move  [1mEnter[0m Open  [1mTab[0m Into page  [1mq[0m Quit                                    

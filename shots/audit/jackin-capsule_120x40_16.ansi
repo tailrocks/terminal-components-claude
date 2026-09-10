@@ -1,0 +1,40 @@
+[38;5;15m[48;5;0m [1m[38;5;0m[48;5;10m jackin❯ [0m[38;5;15m[48;5;0m  [38;5;7m File [38;5;15m [38;5;7m Edit [38;5;15m [38;5;7m View [38;5;15m [38;5;7m Session [38;5;15m [38;5;7m Help [38;5;15m       [1mpayments-platform › the-architect[0m[38;5;15m[48;5;0m [38;5;7m jackin-payments-pl…form-7f3a 
+[38;5;15m                                                                                                                        
+ [1m [0m[38;5;7m[48;5;0m1[1m[38;5;15m Mix (3) [0m[38;5;7m[48;5;0m●[1m[38;5;15m  [0m[38;5;15m[48;5;0m [38;5;7m 2 Shell  [38;5;15m [38;5;7m 3 docs ●  [38;5;15m                                                                                  
+ [38;5;10m━━━━━━━━━━━━━━[38;5;8m────────────────────────────────────────────────────────────────────────────────────────────────────────[38;5;15m 
+[38;5;8m╭─[1m[38;5;15m Claude Code (Work) [0m[38;5;3m[48;5;0m●[38;5;8m───────────────────────────────────╮│╭─[38;5;7m Codex (Primary) ○[38;5;8m───────────────────────────────────────╮
+│[38;5;10m▐ [38;5;15mClaude Code v2.1.14[38;5;7m · Opus 4.5 · ~/payments-platform[38;5;15m   [38;5;8m│││[38;5;7m• exec  [38;5;15mcargo test -p ledger --test integration          [38;5;8m││
+│[38;5;15m                                                         [38;5;8m│││[38;5;7m  running 24 tests[38;5;15m                                       [38;5;8m││
+│[38;5;7m› [38;5;15mRefactor the settlement retry loop so failed batches   [38;5;8m│││[38;5;7m  test reconcile::daily_close ........... ok[38;5;15m             [38;5;8m││
+│[38;5;15m  back off exponentially and cap at 5 attempts.          [38;5;8m│││[38;5;7m  test reconcile::multi_currency ........ [38;5;9mFAILED[38;5;15m         [38;5;8m││
+│[38;5;15m                                                         [38;5;8m│││[38;5;7m  test settle::partial_refund ........... ok[38;5;15m             [38;5;7m┃[38;5;8m│
+│[38;5;7m● [38;5;15mI'll read the retry loop first.                        [38;5;8m│││[38;5;7m  22 passed · [38;5;9m1 failed[38;5;7m · 1 ignored (6.8 s)[38;5;15m               [38;5;7m┃[38;5;8m│
+│[38;5;15m                                                         [38;5;8m│││[38;5;15m                                                         [38;5;7m┃[38;5;8m│
+│[38;5;7m● [38;5;15mRead [38;5;7msrc/settlement/retry.rs (142 lines)[38;5;15m               [38;5;8m│││[38;5;7m• [38;5;15m1 failure: reconcile::multi_currency                   [38;5;7m┃[38;5;8m│
+│[38;5;7m● [38;5;15mRead [38;5;7msrc/settlement/mod.rs (88 lines)[38;5;15m                  [38;5;8m│││[38;5;15m  expected 1,204.50 EUR, got 1,204.49 EUR                [38;5;7m┃[38;5;8m│
+│[38;5;15m                                                         [38;5;8m│││[38;5;15m  rounding precedes FX conversion in [38;5;7mledger/fx.rs:71[38;5;15m     [38;5;7m┃[38;5;8m│
+│[38;5;7m● [38;5;15mThe loop retries with a fixed 3 attempts. I'll add     [38;5;8m│││[38;5;15m                                                         [38;5;7m┃[38;5;8m│
+│[38;5;15m  exponential backoff with jitter and cap it at 5.       [38;5;8m│││[38;5;7m○ Done · 38 s · 12.4k tokens[38;5;15m                             [38;5;7m┃[38;5;8m│
+│[38;5;15m                                                         [38;5;8m│││[38;5;15m                                                         [38;5;7m┃[38;5;8m│
+│[38;5;7m● [38;5;15mEdit [38;5;7msrc/settlement/retry.rs[38;5;15m                           [38;5;8m│││[38;5;7m❯ [38;5;15m                                                       [38;5;7m┃[38;5;8m│
+│[38;5;10m  +  [38;5;7mconst MAX_ATTEMPTS: u32 = 5;[38;5;15m                        [38;5;8m││╰──────────────────────────────────────────────────────────╯
+│[38;5;10m  +  [38;5;7mlet delay = BASE * 2u32.pow(attempt) + jitter();[38;5;15m    [38;5;8m││────────────────────────────────────────────────────────────
+│[38;5;9m  -  [38;5;7mfor attempt in 0..3 {[38;5;15m                               [38;5;8m││╭─[38;5;7m Shell [38;5;8m──────────────────────────────────────────────────╮
+│[38;5;10m  +  [38;5;7mfor attempt in 0..MAX_ATTEMPTS {[38;5;15m                    [38;5;8m│││[38;5;15mbatch 4001  46 items   status=settled                    [38;5;8m││
+│[38;5;15m                                                         [38;5;8m│││[38;5;7m==== settlement.batch.2026-09-03T09:00Z ====[38;5;15m             [38;5;8m││
+│[38;5;7m● [38;5;15mBash [38;5;7mcargo test -p settlement retry[38;5;15m                    [38;5;8m│││[38;5;7mpayments-platform ❯ [38;5;15mgit status -sb                       [38;5;8m││
+│[38;5;7m  running 6 tests … 6 passed (1.42 s)[38;5;15m                    [38;5;8m│││[38;5;7m## feature/settlement-backoff…origin/feature/settlement-b[38;5;8m││
+│[38;5;15m                                                         [38;5;8m│││[38;5;3m M [38;5;15msrc/settlement/retry.rs                               [38;5;8m││
+│[38;5;7m● [38;5;15mEdit [38;5;7msrc/settlement/mod.rs[38;5;15m                             [38;5;8m│││[38;5;3m M [38;5;15msrc/settlement/mod.rs                                 [38;5;8m││
+│[38;5;10m  +  [38;5;7mpub use retry::{MAX_ATTEMPTS, RetryPolicy};[38;5;15m         [38;5;8m│││[38;5;7m?? [38;5;15mdocs/adr/0007-retry-backoff.md                        [38;5;8m││
+│[38;5;15m                                                         [38;5;8m│││[38;5;7mpayments-platform ❯ [38;5;15mcargo clippy -p settlement           [38;5;8m││
+│[38;5;7m● [38;5;15mRetries now back off 250 ms → 4 s, capped at 5 tries.  [38;5;8m│││[38;5;7m    Checking settlement v0.9.2 (crates/settlement)[38;5;15m       [38;5;8m││
+│[38;5;15m  One more edit: expose the policy in settlement config. [38;5;8m│││[38;5;7m    Finished dev [unoptimized] target(s) in 3.12s[38;5;15m        [38;5;8m││
+│[38;5;15m                                                         [38;5;8m│││[38;5;7mpayments-platform ❯ [38;5;15mls docs/adr                          [38;5;8m││
+│[38;5;3m▶ [38;5;15mAllow edit to src/settlement/config.rs? (y/n)          [38;5;8m│││[38;5;15m0001-record-architecture.md  0004-ledger-precision.md    [38;5;8m││
+│[38;5;7m❯ [38;5;15m                                                       [38;5;8m│││[38;5;15m0002-settlement-batches.md   0005-fx-rounding.md         [38;5;8m││
+│[38;5;15m                                                         [38;5;8m│││[38;5;15m0003-retry-policy.md         0007-retry-backoff.md       [38;5;8m││
+│[38;5;15m                                                         [38;5;8m│││[38;5;7mpayments-platform ❯ [38;5;15m                                     [38;5;7m┃[38;5;8m│
+╰─────────────────────────────────────────────────────────╯│╰──────────────────────────────────────────────────────────╯
+[38;5;15m [1mPR #482 · Settlement retry backoff[0m[38;5;15m[48;5;0m             [38;5;3mClaude Code · Work · needs input[38;5;15m              [38;5;7mSession[38;5;15m [38;5;8m━━━━━━━━───[38;5;15m [38;5;7m76%[38;5;8m  [38;5;15m 
+                   [1mCtrl+B[0m[38;5;15m[48;5;0m [38;5;7mPrefix[38;5;15m  [1mF10[0m[38;5;15m[48;5;0m [38;5;7mMenu[38;5;15m  [1mCtrl+\[0m[38;5;15m[48;5;0m [38;5;7mPalette[38;5;15m  [38;5;8m…[38;5;15m   [38;5;7mAttached to payments-platform · tabs and panes restored[38;5;15m 

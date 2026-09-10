@@ -19,7 +19,7 @@ use crate::core::scroll::ScrollState;
 use crate::core::text::TextBuffer;
 use crate::theme::SyntaxTone;
 use crate::ui::ctx::{RenderCtx, fill};
-use crate::ui::text::width;
+use crate::ui::text::{find_ranges, width};
 use crate::widgets::field_common::{EditAction, edit_key};
 use crate::widgets::scrollbar;
 
@@ -42,6 +42,8 @@ pub struct Diagnostic {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FindState {
     pub needle: String,
+    /// Whole-grapheme byte ranges in the original document, including when
+    /// case-insensitive matching expands characters such as `İ`.
     pub matches: Vec<Range<usize>>,
     pub current: usize,
     pub editing: bool,
@@ -51,7 +53,7 @@ pub struct FindState {
 pub enum EditorEvent {
     Changed,
     CursorMoved,
-    /// Esc from editing: back to navigation (document kept).
+    /// Esc or modified Enter from editing: back to navigation (document kept).
     Committed,
     /// Tab from editing when `tab_leaves` is set.
     Leave {
@@ -85,6 +87,8 @@ pub struct CodeEditor {
     /// Cached wanted column for vertical motion.
     cached_spans: Vec<(Range<usize>, SyntaxTone)>,
     cached_for: u64,
+    /// Manual scrolling survives redraws until editing/cursor/content changes.
+    rendered_state: Option<(usize, u64, bool)>,
 }
 
 fn hash_text(s: &str) -> u64 {
@@ -121,6 +125,7 @@ impl CodeEditor {
             drag_anchor: None,
             cached_spans: vec![],
             cached_for: 0,
+            rendered_state: None,
         }
     }
 
@@ -151,6 +156,7 @@ impl CodeEditor {
         self.diagnostics.clear();
         self.hscroll = 0;
         self.scroll.jump_start();
+        self.refind();
     }
 
     pub fn is_empty(&self) -> bool {
@@ -201,6 +207,8 @@ impl CodeEditor {
         let pos = self.buffer.cursor_pos();
         if pos.line < self.scroll.offset
             || pos.line >= self.scroll.offset + self.scroll.viewport_len
+            || pos.col < self.hscroll
+            || pos.col >= self.hscroll.saturating_add(self.text_area.width as usize)
         {
             return None;
         }
@@ -227,6 +235,9 @@ impl CodeEditor {
 
     // ---- find -------------------------------------------------------
 
+    /// Open a single-line query. Uppercase queries match case exactly;
+    /// lowercase queries use Unicode lowercase matching and source graphemes.
+    /// Long queries scroll within the footer to keep their insertion point visible.
     pub fn open_find(&mut self) {
         let needle = self
             .find
@@ -247,26 +258,12 @@ impl CodeEditor {
             return;
         };
         f.matches.clear();
+        f.current = 0;
         if f.needle.is_empty() {
             return;
         }
         let case_sensitive = f.needle.chars().any(|c| c.is_uppercase());
-        let hay = if case_sensitive {
-            self.buffer.text().to_owned()
-        } else {
-            self.buffer.text().to_lowercase()
-        };
-        let needle = if case_sensitive {
-            f.needle.clone()
-        } else {
-            f.needle.to_lowercase()
-        };
-        let mut start = 0;
-        while let Some(p) = hay[start..].find(&needle) {
-            let s = start + p;
-            f.matches.push(s..s + needle.len());
-            start = s + needle.len().max(1);
-        }
+        f.matches = find_ranges(self.buffer.text(), &f.needle, case_sensitive);
         let cur = self.buffer.cursor_offset();
         f.current = f.matches.iter().position(|m| m.start >= cur).unwrap_or(0);
     }
@@ -309,7 +306,9 @@ impl CodeEditor {
                         return (Outcome::Changed, Some(EditorEvent::CursorMoved));
                     }
                     KeyCode::Backspace => {
-                        f.needle.pop();
+                        if let Some((start, _)) = f.needle.grapheme_indices(true).next_back() {
+                            f.needle.truncate(start);
+                        }
                         self.refind();
                         return (Outcome::Changed, None);
                     }
@@ -323,15 +322,19 @@ impl CodeEditor {
                 }
             }
         }
+        // Public read_only can change between events. Reconcile the document
+        // mode before dispatch so indentation cannot bypass mutation guards.
+        if self.read_only && self.editing {
+            self.commit();
+        }
         if !self.editing {
             return self.nav_key(key);
         }
         match edit_key(key, true) {
-            EditAction::Cancel => {
+            EditAction::Cancel | EditAction::Commit => {
                 self.commit();
                 (Outcome::Changed, Some(EditorEvent::Committed))
             }
-            EditAction::Commit => unreachable!("multiline Enter inserts"),
             EditAction::Tab { backward } => {
                 if self.tab_leaves {
                     self.commit();
@@ -575,7 +578,20 @@ impl CodeEditor {
         Outcome::Changed
     }
 
+    /// Paste into the active find query, or into the editable document.
+    /// Find stays available for read-only documents; its single-line query
+    /// uses the same paste normalization as other single-line text controls.
     pub fn on_paste(&mut self, text: &str) -> Outcome {
+        if let Some(find) = self.find.as_mut()
+            && find.editing
+        {
+            let mut query = TextBuffer::single(&find.needle);
+            query.insert_str(text);
+            find.needle = query.text().to_owned();
+            self.refind();
+            self.goto_match(0);
+            return Outcome::Changed;
+        }
         if !self.editing || self.read_only {
             return Outcome::Ignored;
         }
@@ -604,11 +620,17 @@ impl CodeEditor {
             return;
         }
         self.area = area;
+        // The parent buffer can be much larger than this editor's pane.
+        let put = |buf: &mut Buffer, x: u16, y: u16, text: &str, style: Style| {
+            if area.contains(Position::new(x, y)) {
+                buf.set_stringn(x, y, text, (area.right() - x) as usize, style);
+            }
+        };
         let t = ctx.theme;
         let mut s = ctx.state(self.id);
         s.editing = self.editing && s.focused;
-        s.disabled = self.read_only;
-        if !s.focused && self.editing {
+        // Read-only documents still accept focus, navigation, selection and find.
+        if (!s.focused || self.read_only) && self.editing {
             self.commit();
             s.editing = false;
         }
@@ -632,7 +654,7 @@ impl CodeEditor {
         self.scroll.set_viewport(rows);
         let num_w = (line_count.to_string().len() as u16).max(2);
         // gutter: bar(1) marker(1) space(1) numbers(num_w) space(1)
-        let gutter_w = 1 + 1 + num_w + 1 + 1;
+        let gutter_w = (1 + 1 + num_w + 1 + 1).min(area.width);
         self.gutter_w = gutter_w;
         let has_sb = self.scroll.overflows();
         let text_area = Rect::new(
@@ -641,12 +663,16 @@ impl CodeEditor {
             area.width.saturating_sub(gutter_w + u16::from(has_sb)),
             body_h,
         );
+        let viewport_changed =
+            self.text_area.width != text_area.width || self.text_area.height != text_area.height;
         self.text_area = text_area;
         let cur = self.buffer.cursor_pos();
         let cur_off = self.buffer.cursor_offset();
-        if s.editing {
+        let rendered_state = (cur_off, self.cached_for, s.editing);
+        if s.editing && (viewport_changed || self.rendered_state != Some(rendered_state)) {
             self.scroll.ensure_visible(cur.line);
         }
+        self.rendered_state = Some(rendered_state);
         let block = if self.buffer.selection().is_none() {
             self.current_block()
         } else {
@@ -678,7 +704,7 @@ impl CodeEditor {
             let y = area.y + row as u16;
             // the bar marks the line the cursor is on, like a row in a list
             if li == cur.line {
-                buf.set_string(area.x, y, "▎", gutter_bar);
+                put(buf, area.x, y, t.gutter_symbol(s), gutter_bar);
             }
             if li >= line_count {
                 continue;
@@ -714,7 +740,7 @@ impl CodeEditor {
                 marker = "!";
                 marker_style = fs.fg(c).add_modifier(Modifier::BOLD);
             }
-            buf.set_string(area.x + 1, y, marker, marker_style);
+            put(buf, area.x + 1, y, marker, marker_style);
             // line number
             let in_block = block.as_ref().is_some_and(|b| le >= b.start && ls <= b.end);
             let ns = if li == cur.line && focused {
@@ -729,17 +755,21 @@ impl CodeEditor {
             } else {
                 ns
             };
-            buf.set_string(
+            put(
+                buf,
                 area.x + 3,
                 y,
-                crate::ui::text::fit_right(&(li + 1).to_string(), num_w as usize),
+                &crate::ui::text::fit_right(&(li + 1).to_string(), num_w as usize),
                 ns,
             );
+            if text_area.width == 0 {
+                continue;
+            }
             // text
             let mut x = text_area.x;
             let mut col = 0usize;
             if self.hscroll > 0 && !line.is_empty() {
-                buf.set_string(x, y, "…", fs.fg(t.text_muted));
+                put(buf, x, y, "…", fs.fg(t.text_muted));
             }
             let underline_line = s.editing && li == cur.line;
             for (gi, g) in line.grapheme_indices(true) {
@@ -755,7 +785,8 @@ impl CodeEditor {
                     continue;
                 }
                 if x + gw as u16 > text_area.right() {
-                    buf.set_string(
+                    put(
+                        buf,
                         text_area.right().saturating_sub(1),
                         y,
                         "…",
@@ -800,7 +831,7 @@ impl CodeEditor {
                         .add_modifier(Modifier::UNDERLINED)
                         .underline_color(t.border_strong);
                 }
-                buf.set_string(x, y, g, st);
+                put(buf, x, y, g, st);
                 x += gw as u16;
                 col += gw;
             }
@@ -817,19 +848,18 @@ impl CodeEditor {
             }
         }
         if self.buffer.is_empty() && !self.placeholder.is_empty() && !s.editing {
-            buf.set_string(
+            put(
+                buf,
                 text_area.x,
                 text_area.y,
-                crate::ui::text::truncate(&self.placeholder, text_area.width as usize),
+                &crate::ui::text::truncate(&self.placeholder, text_area.width as usize),
                 fs.fg(t.text_muted),
             );
         }
-        if s.editing {
-            let cx = text_area.x + cur.col.saturating_sub(self.hscroll) as u16;
-            let cy = area.y + cur.line.saturating_sub(self.scroll.offset) as u16;
-            if cy < area.y + body_h {
-                ctx.set_cursor(Position::new(cx.min(text_area.right()), cy));
-            }
+        if s.editing
+            && let Some(cursor) = self.cursor_cell()
+        {
+            ctx.set_cursor(Position::new(cursor.x, cursor.y));
         }
         if has_sb {
             let sb = Rect::new(area.right() - 1, area.y, 1, body_h);
@@ -837,22 +867,18 @@ impl CodeEditor {
         }
         // footer row
         let fy = area.y + body_h;
-        let message_drawn = self.find.is_some();
         if let Some(f) = &self.find {
-            let label = "find ".to_string();
-            buf.set_string(area.x + 1, fy, &label, fs.fg(t.text_muted));
-            let nx = area.x + 1 + label.len() as u16;
-            let needle = format!("{} ", f.needle);
+            let left = area.x + u16::from(area.width > 2);
+            let available = (area.right() - left) as usize;
+            let label = if available >= 8 { "find " } else { "" };
+            put(buf, left, fy, label, fs.fg(t.text_muted));
+            let nx = left + label.len() as u16;
             let ns = if f.editing {
                 fs.add_modifier(Modifier::UNDERLINED)
                     .underline_color(t.accent)
             } else {
                 fs
             };
-            buf.set_string(nx, fy, &needle, ns);
-            if f.editing {
-                ctx.set_cursor(Position::new(nx + width(&f.needle) as u16, fy));
-            }
             let count = if f.matches.is_empty() {
                 if f.needle.is_empty() {
                     String::new()
@@ -862,12 +888,42 @@ impl CodeEditor {
             } else {
                 format!("{}/{}", f.current + 1, f.matches.len())
             };
-            buf.set_string(
-                nx + width(&needle) as u16 + 1,
-                fy,
-                &count,
-                fs.fg(t.text_muted),
-            );
+            let count_width = width(&count);
+            let count_room = if !count.is_empty() && available >= label.len() + count_width + 4 {
+                count_width + 1
+            } else {
+                0
+            };
+            let query_room = available.saturating_sub(label.len() + count_room);
+            // Keep the query's insertion point visible without splitting a
+            // grapheme. Footer position readout yields to active search.
+            let mut start = f.needle.len();
+            let mut cells = 0;
+            for (offset, grapheme) in f.needle.grapheme_indices(true).rev() {
+                let next = cells + width(grapheme);
+                if next > query_room.saturating_sub(1) {
+                    break;
+                }
+                cells = next;
+                start = offset;
+            }
+            put(buf, nx, fy, &f.needle[start..], ns);
+            if f.editing {
+                ctx.cursor = None;
+                if focused && query_room > 0 {
+                    ctx.set_cursor(Position::new(nx + cells as u16, fy));
+                }
+            }
+            if count_room > 0 {
+                put(
+                    buf,
+                    area.right() - count_width as u16,
+                    fy,
+                    &count,
+                    fs.fg(t.text_muted),
+                );
+            }
+            return;
         }
         let pos = if s.editing || focused {
             format!("ln {}/{} · col {}", cur.line + 1, line_count, cur.col + 1)
@@ -876,26 +932,30 @@ impl CodeEditor {
         } else {
             String::new()
         };
-        if !message_drawn
-            && let Some(d) = diags.iter().min_by_key(|d| d.range.start.abs_diff(cur_off))
-        {
+        let right_padding = u16::from(area.width > 1);
+        let pos = crate::ui::text::truncate(&pos, (area.width - right_padding) as usize);
+        let px = area
+            .right()
+            .saturating_sub(width(&pos) as u16 + right_padding)
+            .max(area.x);
+        if let Some(d) = diags.iter().min_by_key(|d| d.range.start.abs_diff(cur_off)) {
             let c = if d.severity == Severity::Error {
                 t.error
             } else {
                 t.warning
             };
             // the diagnostic yields to the position readout on its right
-            let room = area.width.saturating_sub(width(&pos) as u16 + 3).max(8) as usize;
-            buf.set_string(
+            let room = px.saturating_sub(area.x + 2) as usize;
+            put(
+                buf,
                 area.x + 1,
                 fy,
-                crate::ui::text::truncate(&d.message, room),
+                &crate::ui::text::truncate(&d.message, room),
                 fs.fg(c),
             );
         }
         if !pos.is_empty() {
-            let px = area.right().saturating_sub(width(&pos) as u16 + 1);
-            buf.set_string(px, fy, &pos, fs.fg(t.text_faint));
+            put(buf, px, fy, &pos, fs.fg(t.text_faint));
         }
     }
 
@@ -940,5 +1000,209 @@ impl CodeEditor {
             }
         }
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::core::{focus::FocusRing, hit::HitRegistry};
+    use crate::theme::{ColorLevel, Theme};
+    use crate::ui::ctx::Interaction;
+    use ratatui::crossterm::event::KeyModifiers;
+
+    fn render(editor: &mut CodeEditor, width: u16, height: u16) -> Option<Position> {
+        let theme = Theme::for_level(ColorLevel::TrueColor);
+        let area = Rect::new(0, 0, width, height);
+        let mut buf = Buffer::empty(area);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(
+            &theme,
+            Interaction {
+                focus: Some(editor.id),
+                ..Default::default()
+            },
+            &mut hits,
+            &mut ring,
+        );
+        editor.render(area, &mut buf, &mut ctx, theme.surface);
+        ctx.cursor
+    }
+
+    fn key(code: KeyCode) -> Key {
+        Key {
+            code,
+            mods: KeyModifiers::NONE,
+        }
+    }
+
+    #[test]
+    fn modified_enter_commits_without_changing_document() {
+        let mut editor = CodeEditor::new(WidgetId::of("test.editor"), "hello");
+        editor.begin_edit();
+        assert_eq!(
+            editor.on_key(&Key {
+                code: KeyCode::Enter,
+                mods: KeyModifiers::CONTROL
+            }),
+            (Outcome::Changed, Some(EditorEvent::Committed))
+        );
+        assert!(!editor.editing);
+        assert_eq!(editor.text(), "hello");
+    }
+
+    #[test]
+    fn find_uses_original_grapheme_ranges_after_case_expansion() {
+        let mut editor = CodeEditor::new(WidgetId::of("test.editor"), "İé é\u{301}");
+        editor.open_find();
+        editor.on_key(&key(KeyCode::Char('é')));
+        assert_eq!(editor.find.as_ref().unwrap().matches, vec![2..4, 5..9]);
+        assert_eq!(editor.cursor_offset(), 2);
+    }
+
+    #[test]
+    fn paste_and_backspace_edit_find_query_in_each_document_mode() {
+        for (editing, read_only) in [(false, false), (true, false), (false, true)] {
+            let mut editor = CodeEditor::new(WidgetId::of("test.editor"), "a\u{301}");
+            editor.editing = editing;
+            editor.read_only = read_only;
+            editor.open_find();
+            assert_eq!(editor.on_paste("a\u{301}"), Outcome::Changed);
+            assert_eq!(editor.text(), "a\u{301}");
+            assert_eq!(editor.find.as_ref().unwrap().needle, "a\u{301}");
+            editor.on_key(&key(KeyCode::Backspace));
+            assert_eq!(editor.find.as_ref().unwrap().needle, "");
+        }
+    }
+
+    #[test]
+    fn replacing_document_refreshes_existing_find_matches() {
+        let mut editor = CodeEditor::new(WidgetId::of("test.editor"), "abc");
+        editor.open_find();
+        editor.on_paste("a");
+        editor.set_text("xyz");
+        assert!(editor.find.as_ref().unwrap().matches.is_empty());
+    }
+
+    #[test]
+    fn manual_scroll_survives_render_then_typing_reveals_cursor() {
+        let mut editor = CodeEditor::new(WidgetId::of("test.editor"), &"line\n".repeat(30));
+        editor.begin_edit();
+        render(&mut editor, 40, 8);
+        editor.on_wheel(3, false);
+        let offset = editor.scroll.offset;
+        assert!(offset > 0);
+        assert_eq!(render(&mut editor, 40, 8), None);
+        assert_eq!(editor.scroll.offset, offset);
+        assert_eq!(editor.cursor_cell(), None);
+        editor.on_key(&key(KeyCode::Char('x')));
+        assert!(render(&mut editor, 40, 8).is_some());
+        assert_eq!(editor.scroll.offset, 0);
+    }
+
+    #[test]
+    fn horizontal_scroll_hides_offscreen_cursor() {
+        let mut editor = CodeEditor::new(WidgetId::of("test.editor"), &"x".repeat(100));
+        editor.begin_edit();
+        render(&mut editor, 40, 8);
+        editor.on_wheel(3, true);
+        assert_eq!(render(&mut editor, 40, 8), None);
+        assert_eq!(editor.cursor_cell(), None);
+    }
+
+    #[test]
+    fn focused_read_only_editor_keeps_monochrome_navigation_gutter() {
+        let theme = Theme::for_level(ColorLevel::Mono);
+        let area = Rect::new(0, 0, 40, 8);
+        let mut buf = Buffer::empty(area);
+        let mut editor = CodeEditor::new(WidgetId::of("test.editor"), "hello").read_only(true);
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let mut ctx = RenderCtx::new(
+            &theme,
+            Interaction {
+                focus: Some(editor.id),
+                ..Default::default()
+            },
+            &mut hits,
+            &mut ring,
+        );
+        editor.render(area, &mut buf, &mut ctx, theme.surface);
+        assert_eq!(buf[(0, 0)].symbol(), "▎");
+    }
+
+    #[test]
+    fn switching_to_read_only_disables_all_document_edit_actions() {
+        for code in [KeyCode::Tab, KeyCode::BackTab, KeyCode::Char('x')] {
+            let mut editor = CodeEditor::new(WidgetId::of("test.editor"), "  text");
+            editor.begin_edit();
+            editor.read_only = true;
+            editor.on_key(&key(code));
+            assert_eq!(editor.text(), "  text");
+            assert!(!editor.editing);
+        }
+    }
+
+    #[test]
+    fn smaller_viewport_reveals_cursor_after_manual_scroll() {
+        let mut editor = CodeEditor::new(WidgetId::of("test.editor"), &"line\n".repeat(30));
+        editor.begin_edit();
+        render(&mut editor, 40, 8);
+        editor.on_wheel(3, false);
+        render(&mut editor, 40, 8);
+        assert!(editor.scroll.offset > 0);
+        assert!(render(&mut editor, 20, 4).is_some());
+        assert_eq!(editor.scroll.offset, 0);
+    }
+
+    #[test]
+    fn narrow_editor_and_long_find_stay_inside_nonzero_area() {
+        for width in [1, 3, 7, 16, 40] {
+            for find in [false, true] {
+                let theme = Theme::for_level(ColorLevel::Mono);
+                let outer = Rect::new(0, 0, 60, 10);
+                let area = Rect::new(8, 2, width, 5);
+                let mut buf = Buffer::empty(outer);
+                for cell in &mut buf.content {
+                    cell.set_symbol("·");
+                }
+                let mut editor = CodeEditor::new(
+                    WidgetId::of("test.editor"),
+                    "界🙂 abcdefghijklmnopqrstuvwxyz",
+                );
+                editor.begin_edit();
+                if find {
+                    editor.open_find();
+                    editor.on_paste(&"界🙂a\u{301}".repeat(20));
+                }
+                let mut hits = HitRegistry::default();
+                let mut ring = FocusRing::default();
+                let mut ctx = RenderCtx::new(
+                    &theme,
+                    Interaction {
+                        focus: Some(editor.id),
+                        ..Default::default()
+                    },
+                    &mut hits,
+                    &mut ring,
+                );
+                editor.render(area, &mut buf, &mut ctx, theme.surface);
+                if let Some(cursor) = ctx.cursor {
+                    assert!(area.contains(cursor), "cursor {cursor:?}, area {area:?}");
+                }
+                for y in 0..outer.height {
+                    for x in 0..outer.width {
+                        if !area.contains(Position::new(x, y)) {
+                            assert_eq!(
+                                buf[(x, y)].symbol(),
+                                "·",
+                                "spill at {x},{y}, area {area:?}, find {find}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
     }
 }

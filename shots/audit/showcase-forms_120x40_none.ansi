@@ -1,0 +1,40 @@
+[38;5;15m[48;5;0m [38;5;7m▪[38;5;15m [1mJunie[0m[38;5;15m[48;5;0m [38;5;7mDesign system[38;5;15m [38;5;7m/ Components / Forms[38;5;15m                                   [38;5;8mno color · 120×40[38;5;15m  [38;5;7m i Inspector [38;5;15m [38;5;7m ? Help [38;5;15m 
+                                                                                                                        
+   [38;5;8mFoundations[38;5;15m            [1mForms[0m[38;5;15m[48;5;0m  [38;5;7mSections, required fields, validation, submission[38;5;15m                                      
+[38;5;0m [38;5;15m  [38;5;7mOverview            [38;5;15m                                                                                                 
+                            [38;5;7mNew task[38;5;15m                                                                     [38;5;8mCtrl+S Submit[38;5;15m  
+   [38;5;8mComponents[38;5;15m                                                                                                           
+[38;5;0m [38;5;15m  [38;5;7mButtons             [38;5;15m     [38;5;8mTask[38;5;15m                                           [38;5;8mOptions[38;5;15m                                      
+[38;5;0m [38;5;15m  [38;5;7mInputs              [38;5;15m       [38;5;7mTask name *                              [38;5;15m      [38;5;7mMode[38;5;15m                                       
+[38;5;0m [38;5;15m  [38;5;7mText areas          [38;5;15m     [38;5;0m [38;5;15m [38;5;7mShort imperative summary[38;5;15m                     [38;5;0m [38;5;7m( )[38;5;15m Fast                                    
+[1m[38;5;7m▎›[38;5;15m Forms                [0m[38;5;15m[48;5;0m                                                   [38;5;0m [38;5;7m(●)[38;5;15m Balanced                                
+[38;5;0m [38;5;15m  [38;5;7mLists               [38;5;15m       [38;5;7mDescription[38;5;15m                                  [38;5;0m [38;5;7m( )[38;5;15m Thorough                                
+[38;5;0m [38;5;15m  [38;5;7mTrees               [38;5;15m     [38;5;0m [38;5;15m [38;5;7mWhat should Junie do, and what does do…[38;5;15m                                                   
+[38;5;0m [38;5;15m  [38;5;7mTables              [38;5;15m     [38;5;0m [38;5;15m                                              [38;5;0m [38;5;7m[✓][38;5;15m Run tests before opening a PR           
+[38;5;0m [38;5;15m  [38;5;7mEditable tables     [38;5;15m     [38;5;0m [38;5;15m                                              [38;5;0m [38;5;7m[ ][38;5;15m Open a pull request when done           
+[38;5;0m [38;5;15m  [38;5;7mPanels              [38;5;15m     [38;5;0m [38;5;15m                                                                                           
+[38;5;0m [38;5;15m  [38;5;7mSidebars            [38;5;15m       [38;5;7mOptional · Markdown[38;5;15m                          [38;5;0m [38;5;7m○──[38;5;15m Auto-approve changes [38;5;7moff[38;5;15m                
+[38;5;0m [38;5;15m  [38;5;7mDialogs             [38;5;15m                                                    [2m[38;5;0m [38;5;8m──● Notify on completion on               [0m[38;5;15m[48;5;0m  
+[38;5;0m [38;5;15m  [38;5;7mProgress            [38;5;15m     [38;5;8mReview[38;5;15m                                           [38;5;8mManaged by your organization[38;5;15m               
+[38;5;0m [38;5;15m  [38;5;7mScrolling           [38;5;15m       [38;5;7mReviewer  [38;5;8moptional[38;5;7m                       [38;5;15m                                                 
+[38;5;0m [38;5;15m  [38;5;7mTerminal            [38;5;15m     [38;5;0m [38;5;15m [38;5;7mname@company.com[38;5;15m                                                                          
+[38;5;0m [38;5;15m  [38;5;7mCode editor         [38;5;15m       [38;5;7mOptional[38;5;15m                                                                                  
+[38;5;0m [38;5;15m  [38;5;7mDiff                [38;5;15m                                                                                                 
+[38;5;0m [38;5;15m  [38;5;7mData grid           [38;5;15m                                                                                                 
+[38;5;0m [38;5;15m  [38;5;7mChips & selects     [38;5;15m                                                                                                 
+[38;5;0m [38;5;15m  [38;5;7mPickers             [38;5;15m                                                                                                 
+[38;5;0m [38;5;15m  [38;5;7mChrome              [38;5;15m                                                                                                 
+                            [38;5;7m[48;5;7m [1m[38;5;0mCreate task [0m[38;5;15m[48;5;0m  [38;5;0m [38;5;7mReset [38;5;15m                                                                      
+   [38;5;8mScreens[38;5;15m                                                                                                              
+[38;5;0m [38;5;15m  [38;5;7mSettings            [38;5;15m                                                                                                 
+[38;5;0m [38;5;15m  [38;5;7mTask runner         [38;5;15m                                                                                                 
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+                                                                                                                        
+ [1m↑ ↓[0m[38;5;15m[48;5;0m [38;5;7mMove[38;5;15m  [1mEnter[0m[38;5;15m[48;5;0m [38;5;7mOpen[38;5;15m  [1mTab[0m[38;5;15m[48;5;0m [38;5;7mInto page[38;5;15m  [1mq[0m[38;5;15m[48;5;0m [38;5;7mQuit[38;5;15m                                                                            

@@ -1,0 +1,50 @@
+[38;5;15m[48;5;0m [1m[38;5;0m[48;5;7m holla❯ [0m[38;5;15m[48;5;0m  [38;5;7m File [38;5;15m [38;5;7m Go [38;5;15m [38;5;7m Help [38;5;15m                                                                                                  [38;5;7mno project[38;5;15m  [1mdevbox · development[0m[38;5;15m[48;5;0m 
+                                                                                                                                                                
+ [1m Here › Upgrade everything  [0m[38;5;15m[48;5;0m                                                                                                                                   
+ [38;5;7m━━━━━━━━━━━━━━━━━━━━━━━━━━━━[38;5;0m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[38;5;15m 
+  [1mUpgrade everything[0m[38;5;7m[48;5;0m · devbox[38;5;15m                                                                                        [38;5;7m8 steps · 8 included · 0 excluded · ~16 s[38;5;15m  
+  [38;5;7mupgrade Debian packages and global mise tools on devbox[38;5;15m                                                                                                       
+                                                                                                                                                                
+         [38;5;8mstep[38;5;15m                         [38;5;8mneeds[38;5;15m  [38;5;8mlane[38;5;15m  [38;5;8mnote[38;5;15m                                                    [38;5;7m01 Preflight[38;5;15m                              [38;5;8mrequired[38;5;15m   
+ [1m[38;5;7m▎[0m[38;5;7m[48;5;0m[✓][1m[38;5;15m [0m[38;5;7m[48;5;0m01[1m[38;5;15m Preflight                    [0m[38;5;7m[48;5;0m–    [1m[38;5;15m  [0m[38;5;7m[48;5;0m·   [1m[38;5;15m  [0m[38;5;7m[48;5;0msudo[1m[38;5;15m                                                [0m[38;5;15m[48;5;0m                                                         
+ [38;5;0m [38;5;8m[✓][38;5;15m [38;5;8m02[38;5;15m Refresh Debian metadata      [38;5;7m01   [38;5;15m  [38;5;7ma   [38;5;15m  [38;5;8msudo[38;5;15m                                                    [38;5;7mRuns[38;5;15m       [38;5;7mcat /etc/os-release[38;5;15m                       
+ [38;5;0m [38;5;8m[✓][38;5;15m [38;5;8m03[38;5;15m Review Debian upgrades       [38;5;7m02   [38;5;15m  [38;5;7ma   [38;5;15m                                                                     [38;5;7msudo -n true[38;5;15m                              
+ [38;5;0m [38;5;8m[✓][38;5;15m [38;5;8m04[38;5;15m Apply Debian upgrades        [38;5;7m03   [38;5;15m  [38;5;7ma   [38;5;15m  [38;5;8msudo[38;5;15m                                                               [38;5;7mfuser /var/lib/dpkg/lock-frontend[38;5;15m         
+ [38;5;0m [38;5;8m[✓][38;5;15m [38;5;8m05[38;5;15m Inspect global mise tools    [38;5;7m01   [38;5;15m  [38;5;7mb   [38;5;15m                                                                     [38;5;7mdf -h /[38;5;15m                                   
+ [38;5;0m [38;5;7m[✓][38;5;15m [38;5;8m06[38;5;15m Upgrade selected mise tools  [38;5;7m05   [38;5;15m  [38;5;7mb   [38;5;15m  [38;5;8moptional[38;5;15m                                                           [38;5;7mtest -f /var/run/reboot-required[38;5;15m          
+ [38;5;0m [38;5;7m[✓][38;5;15m [38;5;8m07[38;5;15m Package cleanup              [38;5;7m04   [38;5;15m  [38;5;7ma   [38;5;15m  [38;5;8moptional[38;5;15m                                                [38;5;7mIn[38;5;15m         / · devbox                                
+ [38;5;0m [38;5;8m[✓][38;5;15m [38;5;8m08[38;5;15m Final verification           [38;5;7m04 06[38;5;15m  [38;5;7mjoin[38;5;15m                                                          [38;5;7mNeeds[38;5;15m      nothing · starts first                    
+                                                                                                           [38;5;7mUnlocks[38;5;15m    02 Refresh Debian metadata · 05 Inspect   
+    [38;5;7m6 required · 2 optional · 2 branches run in parallel where independent[38;5;15m                                            global mise tools                         
+                                                                                                           [38;5;7mLane[38;5;15m       · trunk · ordered                         
+                                                                                                           [38;5;7mPrivilege[38;5;15m  [38;5;7msudo[38;5;15m                                      
+                                                                                                           [38;5;7mEffect[38;5;15m     checks OS, privileges, package lock,      
+                                                                                                                      network, free space, pending reboot       
+                                                                                                           [38;5;7mState[38;5;15m      ready                                     
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                                                
+                                                                                                                                      [38;5;0m [38;5;7mCancel [38;5;15m  [38;5;7m[48;5;7m [1m[38;5;0mConfirm plan [0m[38;5;15m[48;5;0m  
+                                                                                                                                                                
+ [1m~[0m[38;5;15m[48;5;0m                                                   [38;5;7mreview · 8 steps · 2 branches parallel[38;5;15m                                                   [38;5;8mno color · 160×50[38;5;15m 
+                                                [1m↑↓[0m[38;5;15m[48;5;0m [38;5;7mStep[38;5;15m  [1mSpace[0m[38;5;15m[48;5;0m [38;5;7mToggle[38;5;15m  [1mu[0m[38;5;15m[48;5;0m [38;5;7mUndo[38;5;15m  [1mc[0m[38;5;15m[48;5;0m [38;5;7mConfirm[38;5;15m  [1mp[0m[38;5;15m[48;5;0m [38;5;7mFacts[38;5;15m  [1mEsc[0m[38;5;15m[48;5;0m [38;5;7mDiscard[38;5;15m                                                  

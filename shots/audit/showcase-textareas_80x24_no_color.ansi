@@ -1,0 +1,24 @@
+ ▪ [1mJunie[0m Design system / Components / Text areas          i Inspector   ? Help  
+
+   Overview       ┃  [1mText areas[0m  Multi-line editing, Unicode cursor motion, ho… 
+   Buttons        ┃ 
+   Inputs         ┃    Playground             Enter Edit · Esc Done · Tab Next  
+[1m▎› Text areas     [0m┃ 
+   Forms          ┃      Task description             Notes                     
+   Lists          ┃       1. Read src/api/bil… ┃      Anything the agent sh…    
+   Trees          ┃       2. Keep the public … ┃                                
+   Tables         ┃       3. Open a PR agains… │                                
+   Editable tabl… ┃       4. Run the integrat… │                                
+   Panels         ┃       5. Read src/api/bil… │                                
+   Sidebars       ┃       6. Keep the public … │                                
+   Dialogs        ┃       7. Open a PR agains… │                                
+   Progress       ┃       8. Run the integrat… │                                
+   Scrolling      ┃      Home/End f…  1–8 of 28       Optional                  
+   Terminal       ┃ 
+   Code editor    ┃ 
+   Diff           ┃    Disabled and error                                       
+   Data grid      │ 
+   Chips & selec… │      Read-only transcript         Commit message            
+   Pickers        │ 
+
+ [1m↑ ↓[0m Move  [1mEnter[0m Open  [1mTab[0m Into page  [1mq[0m Quit                                    

@@ -13,9 +13,11 @@ use junie_tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::hit::HitRegistry;
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::{BadgeKind, Theme};
 use junie_tui::ui::ctx::{Interaction, RenderCtx, fill};
 use junie_tui::widgets::dialog::{Dialog, DialogBody};
+use junie_tui::widgets::scrollbar;
 
 pub const MIN_WIDTH: u16 = 72;
 pub const MIN_HEIGHT: u16 = 20;
@@ -43,6 +45,7 @@ pub enum PageId {
     Scrolling,
     Terminal,
     Editor,
+    Diff,
     Grid,
     Chips,
     Chrome,
@@ -139,6 +142,11 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         section: "Components",
     },
     NavEntry {
+        id: PageId::Diff,
+        label: "Diff",
+        section: "Components",
+    },
+    NavEntry {
         id: PageId::Grid,
         label: "Data grid",
         section: "Components",
@@ -212,6 +220,8 @@ pub struct App {
     pub flash: Option<(WidgetId, Instant)>,
     pub quit: bool,
     nav_areas: Vec<Rect>,
+    nav_scroll: ScrollState,
+    nav_reveal: bool,
     layout: ShellLayout,
     /// Focus to restore when the help dialog closes.
     saved_focus: Option<WidgetId>,
@@ -257,6 +267,7 @@ impl App {
                     PageId::Scrolling => Box::new(scrolling::ScrollingPage::new()),
                     PageId::Terminal => Box::new(terminal::TerminalPage::new()),
                     PageId::Editor => Box::new(editor::EditorPage::new()),
+                    PageId::Diff => Box::new(diff::DiffPage::new()),
                     PageId::Grid => Box::new(grid::GridPage::new()),
                     PageId::Chips => Box::new(chips::ChipsPage::new()),
                     PageId::Pickers => Box::new(pickers::PickersPage::new()),
@@ -289,6 +300,8 @@ impl App {
             flash: None,
             quit: false,
             nav_areas: vec![],
+            nav_scroll: ScrollState::default(),
+            nav_reveal: true,
             layout: ShellLayout::default(),
             saved_focus: None,
         }
@@ -298,6 +311,7 @@ impl App {
         if self.page != page {
             self.page = page;
             self.nav_cursor = page.index();
+            self.nav_reveal = true;
             // focus stays on nav if it was there; otherwise first widget on page
             if !self.focus.is(NAV) {
                 self.focus.set(None);
@@ -458,6 +472,7 @@ impl App {
         }
         // sidebar navigation owns keys while focused
         if self.focus.is(NAV) {
+            self.nav_reveal = true;
             match key.code {
                 KeyCode::Up | KeyCode::Char('k') if key.plain() => {
                     self.nav_cursor = self.nav_cursor.saturating_sub(1);
@@ -473,6 +488,15 @@ impl App {
                 }
                 KeyCode::End | KeyCode::Char('G') => {
                     self.nav_cursor = NAV_ENTRIES.len() - 1;
+                    return Outcome::Changed;
+                }
+                KeyCode::PageUp => {
+                    self.nav_cursor = self.nav_cursor.saturating_sub(self.nav_scroll.viewport_len);
+                    return Outcome::Changed;
+                }
+                KeyCode::PageDown => {
+                    self.nav_cursor =
+                        (self.nav_cursor + self.nav_scroll.viewport_len).min(NAV_ENTRIES.len() - 1);
                     return Outcome::Changed;
                 }
                 KeyCode::Enter | KeyCode::Char(' ') | KeyCode::Right | KeyCode::Char('l') => {
@@ -593,6 +617,9 @@ impl App {
                     if self.dialog.is_some() {
                         return Outcome::Consumed;
                     }
+                    if pressed == scrollbar::id_for(NAV) {
+                        return self.scroll_nav_to(m.pos);
+                    }
                     return self.dispatch(PageEvent::Drag {
                         pressed,
                         pos: m.pos,
@@ -618,10 +645,8 @@ impl App {
                     self.nav_cursor = i;
                     return Outcome::Changed;
                 }
-                if self.ring.contains(id) {
-                    self.focus.focus(id);
-                }
-                Outcome::Changed
+                self.dispatch(PageEvent::Press { id, pos: m.pos })
+                    .or(Outcome::Changed)
             }
             MouseKind::Up => {
                 let hit = self.hits.hit(m.pos);
@@ -651,6 +676,9 @@ impl App {
                     self.open_help();
                     return Outcome::Changed;
                 }
+                if id == scrollbar::id_for(NAV) {
+                    return self.scroll_nav_to(m.pos);
+                }
                 if id == HEADER_INSPECT {
                     self.inspector = !self.inspector;
                     return Outcome::Changed;
@@ -662,8 +690,15 @@ impl App {
                     return Outcome::Changed;
                 }
                 self.flash(id);
-                self.dispatch(PageEvent::Click { id, pos: m.pos })
-                    .or(Outcome::Changed)
+                // Editors must see the focus from before this completed
+                // click to distinguish focusing from entering edit mode.
+                let before = self.focus.current();
+                let out = self.dispatch(PageEvent::Click { id, pos: m.pos });
+                if self.dialog.is_none() && self.focus.current() == before && self.ring.contains(id)
+                {
+                    self.focus.focus(id);
+                }
+                out.or(Outcome::Changed)
             }
             MouseKind::Secondary => {
                 let hit = self.hits.hit(m.pos);
@@ -685,8 +720,14 @@ impl App {
                 let Some(id) = self.hits.hit_scroll(m.pos) else {
                     return Outcome::Ignored;
                 };
-                if id == NAV || self.nav_index_at(id).is_some() {
-                    return Outcome::Consumed;
+                if id == NAV || id == scrollbar::id_for(NAV) || self.nav_index_at(id).is_some() {
+                    let before = self.nav_scroll.offset;
+                    self.nav_scroll.scroll_by(delta as isize);
+                    return if before == self.nav_scroll.offset {
+                        Outcome::Consumed
+                    } else {
+                        Outcome::Changed
+                    };
                 }
                 self.dispatch(PageEvent::Wheel { id, delta })
             }
@@ -695,6 +736,23 @@ impl App {
 
     fn nav_index_at(&self, id: WidgetId) -> Option<usize> {
         (0..NAV_ENTRIES.len()).find(|&i| NAV.child(i) == id)
+    }
+
+    fn scroll_nav_to(&mut self, pos: Position) -> Outcome {
+        let track = Rect::new(
+            self.layout.sidebar.right() - 1,
+            self.layout.sidebar.y,
+            1,
+            self.layout.sidebar.height,
+        );
+        let before = self.nav_scroll.offset;
+        self.nav_scroll
+            .scroll_to(scrollbar::offset_for_click(track, pos, &self.nav_scroll));
+        if before == self.nav_scroll.offset {
+            Outcome::Consumed
+        } else {
+            Outcome::Changed
+        }
     }
 
     /// Flash a widget as pressed (keyboard activation feedback).
@@ -873,7 +931,15 @@ impl App {
         self.nav_areas.clear();
         let sections = 3u16;
         let compact = area.height < NAV_ENTRIES.len() as u16 + sections * 2 - 1;
-        for (i, e) in NAV_ENTRIES.iter().enumerate() {
+        let resized = self.nav_scroll.viewport_len != area.height as usize;
+        self.nav_scroll.set_content(NAV_ENTRIES.len());
+        self.nav_scroll.set_viewport(area.height as usize);
+        if self.nav_reveal || resized {
+            self.nav_scroll.ensure_visible(self.nav_cursor);
+            self.nav_reveal = false;
+        }
+        let overflow = self.nav_scroll.overflows();
+        for (i, e) in NAV_ENTRIES.iter().enumerate().skip(self.nav_scroll.offset) {
             if e.section != section && !compact {
                 if y > area.y {
                     y += 1;
@@ -891,14 +957,19 @@ impl App {
             if y >= area.bottom() {
                 break;
             }
-            let row = Rect::new(area.x, y, area.width, 1);
+            let row = Rect::new(area.x, y, area.width.saturating_sub(u16::from(overflow)), 1);
             let rid = NAV.child(i);
             let mut s = ctx.state(rid);
             s.focused = focused && i == self.nav_cursor;
             let current = e.id == self.page;
             let st = t.row(s, t.canvas);
             fill(buf, row, st);
-            buf.set_string(row.x, y, "▎", t.gutter(s, st.bg.unwrap_or(t.canvas), false));
+            buf.set_string(
+                row.x,
+                y,
+                t.gutter_symbol(s),
+                t.gutter(s, st.bg.unwrap_or(t.canvas), false),
+            );
             if current {
                 let ms = st.fg(t.accent);
                 buf.set_string(row.x + 1, y, "›", ms);
@@ -911,7 +982,7 @@ impl App {
             buf.set_string(
                 row.x + 3,
                 y,
-                junie_tui::ui::text::fit(e.label, area.width.saturating_sub(4) as usize),
+                junie_tui::ui::text::fit(e.label, row.width.saturating_sub(4) as usize),
                 label_style,
             );
             ctx.clickable(rid, row);
@@ -922,6 +993,16 @@ impl App {
         if !ctx.inert {
             ctx.ring.register(NAV);
             ctx.hits.register_scroll(NAV, area);
+        }
+        if overflow {
+            scrollbar::render_vertical(
+                Rect::new(area.right() - 1, area.y, 1, area.height),
+                buf,
+                ctx,
+                NAV,
+                &self.nav_scroll,
+                focused,
+            );
         }
     }
 
@@ -1018,61 +1099,45 @@ impl App {
     fn draw_footer(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = self.theme;
         let page = &self.pages[self.page.index()];
-        let mut x = area.x + 1;
-        let mut hints: Vec<(String, String)> = Vec::new();
+        let mut hints: Vec<(&'static str, &'static str)> = Vec::new();
         if let Some(d) = self.dialog.as_ref() {
             if d.is_editing() {
-                hints.push(("Enter".into(), "Confirm".into()));
-                hints.push(("Esc".into(), "Cancel".into()));
+                hints.push(("Enter", "Confirm"));
+                hints.push(("Esc", "Cancel"));
             } else {
-                hints.push(("← →".into(), "Choose".into()));
-                hints.push(("Enter".into(), "Confirm".into()));
-                hints.push(("Esc".into(), "Cancel".into()));
+                hints.push(("← →", "Choose"));
+                hints.push(("Enter", "Confirm"));
+                hints.push(("Esc", "Cancel"));
                 if matches!(d.body, DialogBody::Text(_)) && d.id != HELP_DIALOG {
-                    hints.push(("y / n".into(), "Quick answer".into()));
+                    hints.push(("y / n", "Quick answer"));
                 }
             }
         } else if self.focus.is(NAV) {
-            hints.push(("↑ ↓".into(), "Move".into()));
-            hints.push(("Enter".into(), "Open".into()));
-            hints.push(("Tab".into(), "Into page".into()));
-            hints.push(("q".into(), "Quit".into()));
+            hints.push(("↑ ↓", "Move"));
+            hints.push(("Enter", "Open"));
+            hints.push(("Tab", "Into page"));
+            hints.push(("q", "Quit"));
         } else {
             for (k, v) in page.hints(self.focus.current()) {
-                hints.push((k.into(), v.into()));
+                hints.push((k, v));
             }
-            if !page.editing() {
-                hints.push(("Tab".into(), "Next".into()));
-            }
-        }
-        if page.editing() && self.dialog.is_none() {
-            let badge = " EDIT ";
-            buf.set_string(x, area.y, badge, t.badge(BadgeKind::Edit));
-            x += badge.len() as u16 + 2;
-        }
-        // hints yield to the status message on the right, with a clear gap
-        let right_reserved = self
-            .status
-            .as_ref()
-            .map(|(s, _)| junie_tui::ui::text::width(s) as u16 + 3)
-            .unwrap_or(14);
-        for (k, v) in &hints {
-            let kw = junie_tui::ui::text::width(k) as u16;
-            let w = kw + 1 + junie_tui::ui::text::width(v) as u16 + 2;
-            if x + w + right_reserved > area.right() {
-                break;
-            }
-            buf.set_string(x, area.y, k, t.key_hint_key());
-            buf.set_string(x + kw + 1, area.y, v, t.key_hint_action());
-            x += w;
-        }
-        // right: status message or help hint
-        if let Some((s, _)) = &self.status {
-            let w = junie_tui::ui::text::width(s) as u16;
-            if area.right() > w + 1 {
-                buf.set_string(area.right() - w - 1, area.y, s, t.secondary());
+            if !page.editing() && !hints.iter().any(|(key, _)| *key == "Tab") {
+                hints.push(("Tab", "Next"));
             }
         }
+        let hints: Vec<_> = hints
+            .into_iter()
+            .map(|(key, action)| junie_tui::widgets::keyhint::hint(key, action))
+            .collect();
+        let badge = (page.editing() && self.dialog.is_none()).then_some(("EDIT", BadgeKind::Edit));
+        junie_tui::widgets::keyhint::render(
+            area,
+            buf,
+            &t,
+            &hints,
+            badge,
+            self.status.as_ref().map(|(message, _)| message.as_str()),
+        );
         let _ = ctx;
     }
 }
@@ -1095,4 +1160,85 @@ fn describe_key(k: &Key) -> String {
         other => s.push_str(&format!("{other:?}")),
     }
     s
+}
+
+#[cfg(test)]
+mod click_regressions {
+    use super::*;
+    use junie_tui::core::event::Mouse;
+    use ratatui::{Terminal, backend::TestBackend};
+
+    #[test]
+    fn minimum_sidebar_reveals_last_page_and_wheel_does_not_move_focus() {
+        let mut app = App::new(Theme::junie());
+        app.goto(PageId::TaskRunner);
+        let mut term = Terminal::new(TestBackend::new(72, 20)).unwrap();
+        term.draw(|frame| app.render(frame)).unwrap();
+        assert!(
+            app.hits
+                .area_of(NAV.child(PageId::TaskRunner.index()))
+                .is_some()
+        );
+        assert!(app.nav_scroll.offset > 0);
+        let focus = app.focus.current();
+        let cursor = app.nav_cursor;
+        app.handle(Input::Mouse(Mouse {
+            kind: MouseKind::WheelUp,
+            pos: Position::new(2, 4),
+        }));
+        let offset = app.nav_scroll.offset;
+        term.draw(|frame| app.render(frame)).unwrap();
+        assert_eq!(
+            app.nav_scroll.offset, offset,
+            "render must not undo wheel scrolling"
+        );
+        assert_eq!(app.focus.current(), focus);
+        assert_eq!(app.nav_cursor, cursor);
+        app.handle(Input::Key(Key {
+            code: KeyCode::End,
+            mods: ratatui::crossterm::event::KeyModifiers::NONE,
+        }));
+        term.draw(|frame| app.render(frame)).unwrap();
+        assert!(
+            app.hits
+                .area_of(NAV.child(PageId::TaskRunner.index()))
+                .is_some()
+        );
+        let track = app.hits.area_of(scrollbar::id_for(NAV)).unwrap();
+        for kind in [MouseKind::Down, MouseKind::Up] {
+            app.handle(Input::Mouse(Mouse {
+                kind,
+                pos: Position::new(track.x, track.y),
+            }));
+            term.draw(|frame| app.render(frame)).unwrap();
+        }
+        assert_eq!(app.nav_scroll.offset, 0);
+        assert_eq!(app.focus.current(), focus);
+    }
+
+    #[test]
+    fn first_completed_click_focuses_fields_second_click_edits() {
+        for page in [
+            PageId::Inputs,
+            PageId::TextAreas,
+            PageId::Forms,
+            PageId::Editor,
+        ] {
+            let mut app = App::new(Theme::junie());
+            app.goto(page);
+            let mut term = Terminal::new(TestBackend::new(120, 40)).unwrap();
+            term.draw(|frame| app.render(frame)).unwrap();
+            let id = app.ring.next(Some(NAV)).unwrap();
+            let area = app.hits.area_of(id).unwrap();
+            let pos = Position::new(area.x + 2, area.y + area.height / 2);
+            for click in 0..2 {
+                for kind in [MouseKind::Down, MouseKind::Up] {
+                    app.handle(Input::Mouse(Mouse { kind, pos }));
+                    term.draw(|frame| app.render(frame)).unwrap();
+                }
+                assert_eq!(app.focus.current(), Some(id), "{page:?}");
+                assert_eq!(app.pages[page.index()].editing(), click == 1, "{page:?}");
+            }
+        }
+    }
 }

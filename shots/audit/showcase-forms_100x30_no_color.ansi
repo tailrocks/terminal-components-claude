@@ -1,0 +1,30 @@
+ ▪ [1mJunie[0m Design system / Components / Forms               no color · 100×30   i Inspector   ? Help  
+
+   Overview          [1mForms[0m  Sections, required fields, validation, submission                       
+   Buttons               
+   Inputs              New task                                                      Ctrl+S Submit  
+   Text areas            
+[1m▎› Forms           [0m    Task                                   Options                               
+   Lists                 Task name *                            Mode                                
+   Trees                 Short imperative summary              ( ) Fast                             
+   Tables                                                      (●) Balanced                         
+   Editable tables       Description                           ( ) Thorough                         
+   Panels                What should Junie do, and what…                                            
+   Sidebars                                                    [✓] Run tests before opening a PR    
+   Dialogs                                                     [ ] Open a pull request when done    
+   Progress              
+   Scrolling             Optional · Markdown                   ○── Auto-approve changes off         
+   Terminal                                                   [2m ──● Notify on completion on        [0m  
+   Code editor         Review                                   Managed by your organization        
+   Diff                  Reviewer  optional       
+   Data grid             name@company.com         
+   Chips & selects       Optional                 
+   Pickers               
+   Chrome                
+   Settings              
+   Task runner           
+
+                        [1mCreate task [0m   Reset      
+
+
+ [1m↑ ↓[0m Move  [1mEnter[0m Open  [1mTab[0m Into page  [1mq[0m Quit      

@@ -1200,6 +1200,7 @@ impl App {
                     Ctrl+X / Alt+X    EXPLAIN / EXPLAIN ANALYZE\n\
                     Esc / Ctrl+C      cancel a running query\n\
                     Ctrl+D            Data / Structure · Ctrl+F filter (grid) or find (editor)\n\
+                    Alt+D             duplicate the current grid row\n\
                     Ctrl+S            save pending row changes · p preview SQL\n\
                     Ctrl+Y            query history · Ctrl+L Safe Mode · Ctrl+B explorer · z zoom\n\
                     q                 quit";

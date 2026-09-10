@@ -303,7 +303,7 @@ impl Theme {
         };
         // scale the alpha ladder instead of collapsing it: hierarchy survives
         let fg = match style.fg {
-            // a glyph painted in its own background is a hidden gutter: keep it hidden
+            // Preserve cells with no visible foreground when dimming a plane.
             Some(c) if Some(c) == style.bg => bg,
             Some(c) if c == self.canvas || c == self.surface => bg,
             Some(c)
@@ -325,10 +325,21 @@ impl Theme {
     // All resolvers take the container background so a control looks right
     // on the canvas, on a surface, or inside a dialog.
 
+    /// Disabled text uses dim intensity in monochrome, where colour alone
+    /// cannot distinguish an unavailable control.
+    pub fn disabled_style(&self) -> Style {
+        let style = Style::new().fg(self.disabled);
+        if self.level == ColorLevel::Mono {
+            style.add_modifier(Modifier::DIM)
+        } else {
+            style
+        }
+    }
+
     /// Row-like control (nav item, list item, table row, tree node).
     pub fn row(&self, s: VisualState, bg: Color) -> Style {
         if s.disabled {
-            return Style::new().fg(self.disabled).bg(bg);
+            return self.disabled_style().bg(bg);
         }
         let mut st = Style::new().fg(self.text_primary).bg(bg);
         // selection tint only where the keyboard is (focused row); elsewhere
@@ -371,10 +382,20 @@ impl Theme {
         }
     }
 
-    /// Focus gutter glyph style. `on_accent` is used when the control itself
-    /// is filled with the accent (primary button).
+    /// Focus gutter content, independent of terminal colour support.
+    ///
+    /// Always render the returned cell, including the blank for unfocused or
+    /// disabled controls. Painting a focus bar in the background colour cannot
+    /// hide it when a backend suppresses colours (for example with `NO_COLOR`).
+    /// Pair this with [`Self::gutter`] for its style.
+    pub fn gutter_symbol(&self, s: VisualState) -> &'static str {
+        if s.focused && !s.disabled { "▎" } else { " " }
+    }
+
+    /// Style for [`Self::gutter_symbol`]. `on_accent` is used when the control
+    /// itself is filled with the accent (primary button).
     pub fn gutter(&self, s: VisualState, bg: Color, on_accent: bool) -> Style {
-        let fg = if !s.focused {
+        let fg = if !s.focused || s.disabled {
             bg
         } else if on_accent {
             self.text_primary
@@ -386,13 +407,11 @@ impl Theme {
 
     pub fn button(&self, kind: ButtonKind, s: VisualState, bg: Color) -> Style {
         if s.disabled {
-            return Style::new()
-                .fg(self.disabled)
-                .bg(if kind == ButtonKind::Subtle {
-                    bg
-                } else {
-                    self.lift(bg)
-                });
+            return self.disabled_style().bg(if kind == ButtonKind::Subtle {
+                bg
+            } else {
+                self.lift(bg)
+            });
         }
         match kind {
             ButtonKind::Primary => {
@@ -453,7 +472,7 @@ impl Theme {
     /// Text field body (input, textarea, editable cell).
     pub fn field_style(&self, s: VisualState) -> Style {
         if s.disabled {
-            return Style::new().fg(self.disabled).bg(self.field);
+            return self.disabled_style().bg(self.field);
         }
         let bg = if s.hovered && !s.editing {
             self.field_hover
@@ -471,8 +490,14 @@ impl Theme {
         })
     }
 
+    /// Text selection remains visible when `NO_COLOR` suppresses colours.
     pub fn selection(&self) -> Style {
-        Style::new().fg(self.text_primary).bg(self.popover)
+        let style = Style::new().fg(self.text_primary).bg(self.popover);
+        if self.level == ColorLevel::Mono {
+            style.add_modifier(Modifier::REVERSED)
+        } else {
+            style
+        }
     }
 
     pub fn scrollbar_track(&self) -> Style {

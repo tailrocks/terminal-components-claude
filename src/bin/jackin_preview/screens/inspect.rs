@@ -419,7 +419,12 @@ impl InspectChanges {
             let st = t.row(s, bg);
             let rect = Rect::new(list.x, y, row_w, 1);
             fill(buf, rect, st);
-            buf.set_string(rect.x, y, "▎", t.gutter(s, st.bg.unwrap_or(bg), false));
+            buf.set_string(
+                rect.x,
+                y,
+                t.gutter_symbol(s),
+                t.gutter(s, st.bg.unwrap_or(bg), false),
+            );
             if i < self.changes.files.len() {
                 let f = &self.changes.files[i];
                 buf.set_string(

@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Diff                                  256 colors · 120×40   i Inspector   ? Help  
+                                                                                                                        
+   Foundations            Diff viewer  Unified or old / new review · narrow panes use unified · select and copy text    
+   Overview                                                                                                             
+                           ○ Review    ○ Empty                                                                          
+   Components                                                                                                           
+   Buttons                ╭─ Diff ─────────────────────────────────────────────────────────────────────────────────────╮
+   Inputs                 │  M config/service.toml  +10 −5 · 5 hunks                                                 ┃ │
+   Text areas             │  @@ -1,6 +1,7 @@                                                                         ┃ │
+   Forms                  │    1   1   [service.worker_0]                                                            ┃ │
+   Lists                  │    2     - attempts = 3                                                                  ┃ │
+   Trees                  │        2 + attempts = 5                                                                  ┃ │
+   Tables                 │        3 + backoff = "exponential"                                                       ┃ │
+   Editable tables        │    3   4   region = "東京"                                                               ┃ │
+   Panels                 │    4   5   label = "café ☕"                                                             ┃ │
+   Sidebars               │    5   6   endpoint = "https://api.example.test/workers/health"                          ┃ │
+   Dialogs                │    6   7   enabled = true                                                                ┃ │
+   Progress               │  @@ -9,6 +10,7 @@                                                                        ┃ │
+   Scrolling              │    9  10   [service.worker_1]                                                            ┃ │
+   Terminal               │   10     - attempts = 3                                                                  ┃ │
+   Code editor            │       11 + attempts = 5                                                                  ┃ │
+▎› Diff                   │       12 + backoff = "exponential"                                                       ┃ │
+   Data grid              │   11  13   region = "東京"                                                               ┃ │
+   Chips & selects        │   12  14   label = "café ☕"                                                             ┃ │
+   Pickers                │   13  15   endpoint = "https://api.example.test/workers/health"                          ┃ │
+   Chrome                 │   14  16   enabled = true                                                                ┃ │
+                          │  @@ -17,6 +19,7 @@                                                                       │ │
+   Screens                │   17  19   [service.worker_2]                                                            │ │
+   Settings               │   18     - attempts = 3                                                                  │ │
+   Task runner            │       20 + attempts = 5                                                                  │ │
+                          │       21 + backoff = "exponential"                                                       │ │
+                          │   19  22   region = "東京"                                                               │ │
+                          │   20  23   label = "café ☕"                                                             │ │
+                          │   21  24   endpoint = "https://api.example.test/workers/health"                          │ │
+                          │   22  25   enabled = true                                                                │ │
+                          │  @@ -25,6 +28,7 @@                                                                       │ │
+                          │   25  28   [service.worker_3]                                                            │ │
+                          ╰────────────────────────────────────────────────────────────────────────────────────────────╯
+                                                                                                                        
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit                                                                            
