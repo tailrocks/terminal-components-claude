@@ -52,6 +52,9 @@ pub struct FinderPage {
     pub query: String,
     pub scope: Scope,
     items: Vec<Item>,
+    /// Catalogue warnings (id collisions, configuration diagnostics, failed
+    /// definition sources): shown, never silently dropped.
+    pub warnings: Vec<String>,
     rows: Vec<Row>,
     pub cursor: usize,
     scroll: ScrollState,
@@ -86,6 +89,7 @@ impl FinderPage {
             query: String::new(),
             scope: Scope::Here,
             items: vec![],
+            warnings: vec![],
             rows: vec![],
             cursor: 0,
             scroll: ScrollState::default(),
@@ -130,7 +134,9 @@ impl FinderPage {
     fn rebuild(&mut self, w: &World) {
         self.rebuilds += 1;
         let keep = self.current_id();
-        self.items = w.items();
+        let (items, warnings) = crate::domain::catalog::build_with_warnings(w);
+        self.items = items;
+        self.warnings = warnings;
         let learned = if crate::domain::ranking::Query::parse(&self.query).is_empty() {
             None
         } else {
@@ -1067,12 +1073,65 @@ impl Screen for FinderPage {
                     cx.go(Go::Scope(self.scope.inward()));
                     Outcome::Changed
                 }
+                // query editing chords (HP02): selection, undo, redo, word
+                // deletion, clear
+                KeyCode::Char('a') => {
+                    self.select_all = !self.query.is_empty();
+                    cx.status(if self.select_all {
+                        "Query selected · typing replaces it"
+                    } else {
+                        "Nothing to select"
+                    });
+                    Outcome::Changed
+                }
+                KeyCode::Char('z') if !key.shift() => {
+                    cx.status(if self.undo() {
+                        "Undone"
+                    } else {
+                        "Nothing to undo"
+                    });
+                    Outcome::Changed
+                }
+                KeyCode::Char('y') | KeyCode::Char('Z') => {
+                    cx.status(if self.redo() {
+                        "Redone"
+                    } else {
+                        "Nothing to redo"
+                    });
+                    Outcome::Changed
+                }
+                KeyCode::Char('z') => {
+                    cx.status(if self.redo() {
+                        "Redone"
+                    } else {
+                        "Nothing to redo"
+                    });
+                    Outcome::Changed
+                }
+                // Ctrl+W belongs to the shell (close tab): word deletion is
+                // Ctrl+Backspace or Alt+Backspace
+                KeyCode::Backspace => {
+                    if self.select_all {
+                        self.edit(String::new());
+                    } else {
+                        self.delete_word();
+                    }
+                    Outcome::Changed
+                }
                 KeyCode::Char('u') => {
-                    self.set_query(String::new());
+                    self.edit(String::new());
                     Outcome::Changed
                 }
                 _ => Outcome::Ignored,
             };
+        }
+        if key.alt() && key.code == KeyCode::Backspace {
+            if self.select_all {
+                self.edit(String::new());
+            } else {
+                self.delete_word();
+            }
+            return Outcome::Changed;
         }
         match key.code {
             KeyCode::Up => {
@@ -1124,51 +1183,6 @@ impl Screen for FinderPage {
                 Outcome::Changed
             }
             KeyCode::Enter => self.activate_current(cx),
-            KeyCode::Char('a') if key.ctrl() => {
-                self.select_all = !self.query.is_empty();
-                cx.status(if self.select_all {
-                    "Query selected · typing replaces it"
-                } else {
-                    "Nothing to select"
-                });
-                Outcome::Changed
-            }
-            KeyCode::Char('z') if key.ctrl() && !key.shift() => {
-                cx.status(if self.undo() {
-                    "Undone"
-                } else {
-                    "Nothing to undo"
-                });
-                Outcome::Changed
-            }
-            KeyCode::Char('y') | KeyCode::Char('Z') if key.ctrl() => {
-                cx.status(if self.redo() {
-                    "Redone"
-                } else {
-                    "Nothing to redo"
-                });
-                Outcome::Changed
-            }
-            KeyCode::Char('z') if key.ctrl() && key.shift() => {
-                cx.status(if self.redo() {
-                    "Redone"
-                } else {
-                    "Nothing to redo"
-                });
-                Outcome::Changed
-            }
-            KeyCode::Char('w') if key.ctrl() => {
-                if self.select_all {
-                    self.edit(String::new());
-                } else {
-                    self.delete_word();
-                }
-                Outcome::Changed
-            }
-            KeyCode::Char('u') if key.ctrl() => {
-                self.edit(String::new());
-                Outcome::Changed
-            }
             KeyCode::Backspace => {
                 if self.select_all {
                     self.edit(String::new());
@@ -1476,6 +1490,20 @@ impl Screen for FinderPage {
             } else if self.group.is_some() {
                 bits.center = Some(StatusItem::new("discovery complete", Tone::Muted).priority(3));
             }
+        }
+        if !self.warnings.is_empty() {
+            // below a failed source (the center item) so a narrow bar keeps
+            // the discovery failure; the configuration page carries the detail
+            bits.right.push(
+                StatusItem::new(
+                    format!(
+                        "▲ {}",
+                        plural(self.warnings.len(), "config warning", "config warnings")
+                    ),
+                    Tone::Warning,
+                )
+                .priority(5),
+            );
         }
         bits
     }

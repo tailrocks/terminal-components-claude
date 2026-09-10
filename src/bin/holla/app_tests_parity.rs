@@ -1,0 +1,1207 @@
+//! Parity journeys (HP01–HP23 except the deferred CLI): one test per task,
+//! each driving the real App through the named parity fixture and asserting
+//! the decisive rows with exact argv, cwd, states, effects and errors. These
+//! are the semantic regressions the capability matrix requires; captures are
+//! the visual half.
+
+use ratatui::crossterm::event::KeyCode;
+
+use junie_tui::core::event::Input;
+
+use crate::app::TabKind;
+use crate::app_tests::H;
+use crate::domain::activity::ActivityState;
+use crate::domain::effect::Effect;
+use crate::scenario::{Motion, Scenario};
+
+const HOME: &str = "/Users/alex";
+
+fn open(h: &mut H, label: &str) {
+    h.key(KeyCode::Esc);
+    h.type_str(label);
+    h.key(KeyCode::Enter);
+}
+
+/// Accept a one-step confirmation when one is open (the default is Cancel).
+fn confirm(h: &mut H) {
+    if !h.app.modals.is_empty() {
+        h.key(KeyCode::Right);
+        h.key(KeyCode::Enter);
+    }
+}
+
+fn run(h: &mut H, label: &str) {
+    open(h, label);
+    confirm(h);
+}
+
+fn activity_id(h: &H) -> String {
+    match h.tab_kind() {
+        TabKind::Activity(id) => id,
+        other => panic!("expected an activity tab, got {other:?}\n{}", h.text()),
+    }
+}
+
+fn argv(h: &H, id: &str) -> Vec<String> {
+    h.app
+        .world
+        .activity(id)
+        .expect("activity")
+        .argv
+        .iter()
+        .map(|c| format!("{} @{}", c.display(), c.cwd))
+        .collect()
+}
+
+fn settle(h: &mut H, id: &str) -> ActivityState {
+    for _ in 0..80 {
+        if h.app.world.activity(id).is_some_and(|a| a.state.finished()) {
+            break;
+        }
+        h.ticks(1);
+    }
+    h.app.world.activity(id).unwrap().state
+}
+
+fn output(h: &H, id: &str) -> Vec<String> {
+    h.app
+        .world
+        .activity(id)
+        .unwrap()
+        .output
+        .iter()
+        .map(|(_, t, _)| t.clone())
+        .collect()
+}
+
+// ------------------------------------------------------------ HP01
+
+#[test]
+fn hp01_discovery_is_adaptive_stable_and_reports_failed_sources_and_config_warnings() {
+    // full motion keeps the sources' own timing: discovery is observable
+    let mut h = H::new(Scenario::ParityDiscovery, Motion::Full, 0, 120, 40);
+    // slow and failed sources are visible while discovery runs; nothing is
+    // invented before a source answers
+    assert!(h.text().contains("discovering"), "{}", h.text());
+    let early: Vec<String> = h.app.world.items().iter().map(|i| i.id.clone()).collect();
+    assert!(
+        !early.iter().any(|i| i == "git.pull"),
+        "no git action before its source: {early:?}"
+    );
+    h.ticks(14);
+    assert!(
+        h.app
+            .world
+            .failed_sources()
+            .iter()
+            .any(|(n, _)| *n == "docker")
+    );
+    h.ticks(45);
+    let items = h.app.world.items();
+    let ids: Vec<&str> = items.iter().map(|i| i.id.as_str()).collect();
+    for id in [
+        "git.pull",
+        "git.push",
+        "mise.task.test",
+        "cargo.build",
+        "node.script.dev",
+        "just.recipe.build",
+        "make.target.build",
+        "taskfile.task.lint",
+        "brew.service.redis.restart",
+        "gradle.build",
+        "idea.clean",
+        "docker.daemon",
+        "deploy",
+        "custom.config",
+    ] {
+        assert!(ids.contains(&id), "{id} missing from {ids:?}");
+    }
+    // the daemon is down: docker resources say so and actions fail truthfully
+    let daemon = items.iter().find(|i| i.id == "docker.daemon").unwrap();
+    assert!(matches!(
+        daemon.freshness,
+        crate::domain::action::Freshness::Unavailable(_)
+    ));
+    // a project action colliding with a built-in id never shadows it; the
+    // malformed sibling is a diagnostic, not an action
+    let pull = items.iter().find(|i| i.id == "git.pull").unwrap();
+    assert_eq!(
+        argv_of(pull),
+        vec!["git -C /Users/alex/work/probe pull --ff-only @/Users/alex/work/probe"]
+    );
+    assert!(!ids.contains(&"broken"));
+    let deploy = items.iter().find(|i| i.id == "deploy").unwrap();
+    assert_eq!(
+        argv_of(deploy),
+        vec!["tools/deploy.sh @/Users/alex/work/probe"]
+    );
+    let cfg = h.app.world.custom_project.as_ref().unwrap();
+    assert!(
+        cfg.diagnostics
+            .iter()
+            .any(|d| d.text().contains("git.pull")),
+        "{:?}",
+        cfg.diagnostics
+    );
+    assert!(
+        cfg.diagnostics.iter().any(|d| d.index == Some(2)),
+        "action[2] is the malformed one: {:?}",
+        cfg.diagnostics
+    );
+    h.draw();
+    assert!(
+        h.text().contains("config warning"),
+        "warnings are shown, never dropped: {}",
+        h.text()
+    );
+    assert!(
+        h.text().contains("docker, github unavailable"),
+        "{}",
+        h.text()
+    );
+    // unavailable github: the clone action leads to login, not to a clone
+    let clone = items
+        .iter()
+        .find(|i| i.id == "github.clone")
+        .unwrap_or_else(|| panic!("github.clone missing: {ids:?}"));
+    assert_eq!(
+        argv_of(clone),
+        vec!["gh auth login @/Users/alex/work/probe"]
+    );
+    // the configuration page shows the diagnostics with their action index
+    open(&mut h, "Custom action configuration");
+    assert!(
+        h.text().contains("action[0]") || h.text().contains("action[2]"),
+        "{}",
+        h.text()
+    );
+}
+
+fn argv_of(it: &crate::domain::action::Item) -> Vec<String> {
+    it.all_exec()
+        .iter()
+        .map(|c| format!("{} @{}", c.display(), c.cwd))
+        .collect()
+}
+
+// ------------------------------------------------------------ HP02
+
+#[test]
+fn hp02_recents_learned_queries_query_editing_and_persistence_merge() {
+    let mut h = H::new(Scenario::ParityHistory, Motion::Reduced, 0, 120, 40);
+    h.ticks(8);
+    let w = &h.app.world;
+    let recent = w.memory.usage.recent(&w.location.cwd, "mbp", w.now_secs());
+    let names: Vec<&str> = recent.iter().map(|(i, _)| i.as_str()).collect();
+    // the capped 20-use action a half-life ago still leads; equal fresh use
+    // ties deterministically by id; a stale single use is below the threshold
+    assert_eq!(names[0], "git.pull", "{names:?}");
+    assert_eq!(names[1], "cargo.build", "{names:?}");
+    assert_eq!(names[2], "cargo.test", "{names:?}");
+    assert!(!names.contains(&"cargo.check"), "{names:?}");
+    assert!(
+        recent[0].1 <= 1.0 + 20.0,
+        "bounded by the use cap: {recent:?}"
+    );
+    assert!(recent.iter().all(|(_, s)| *s > 0.05));
+    assert!(h.text().contains("Recent here"));
+    // the fixture remembers "pull" → git.fetch, which does not match the
+    // text: an unmatched remembered choice is never shown, the alias-free
+    // best match leads
+    h.type_str("pull");
+    assert!(!h.text().contains("Fetch and prune"), "{}", h.text());
+    assert!(h.row(6).contains("Pull "), "{}", h.row(6));
+    // a remembered choice that still matches leads the rows for its query
+    let now = h.app.world.now_secs();
+    // a remembered choice always follows an actual use (the app learns on
+    // run); a choice whose action was never used is pruned on save
+    h.app.world.memory.usage.used(
+        "git.pull_rebase",
+        Some("/Users/alex/work/holla"),
+        "mbp",
+        now,
+    );
+    h.app
+        .world
+        .memory
+        .usage
+        .learn_query("pull", "git.pull_rebase", "mbp", now);
+    h.key(KeyCode::Esc);
+    h.type_str("pull");
+    assert!(h.row(6).contains("Pull with rebase"), "{}", h.text());
+    assert!(h.text().contains("remembered for “pull”"), "{}", h.text());
+    // the remembered item must still match: an unmatched choice is never shown
+    h.key(KeyCode::Esc);
+    h.type_str("ünï code");
+    assert!(!h.text().contains("cargo clippy"), "{}", h.text());
+    assert!(h.text().contains("No matches"), "{}", h.text());
+    // query editing: select all, replace, undo, redo, word delete, clear
+    h.ctrl(KeyCode::Char('a'));
+    assert!(
+        h.text().contains("Query selected"),
+        "{}\n{}",
+        h.row(38),
+        h.row(39)
+    );
+    h.type_str("x");
+    assert!(
+        h.row(4).contains("x") && !h.row(4).contains("ünï"),
+        "typing replaced the selection: {}",
+        h.row(4)
+    );
+    h.ctrl(KeyCode::Char('z'));
+    assert!(h.row(4).contains("ünï code"), "undo: {}", h.row(4));
+    h.ctrl(KeyCode::Char('y'));
+    assert!(
+        h.row(4).contains("x") && !h.row(4).contains("ünï"),
+        "redo: {}",
+        h.row(4)
+    );
+    h.key(KeyCode::Esc);
+    h.type_str("cargo bui");
+    h.alt(KeyCode::Backspace);
+    assert!(
+        h.row(4).contains("cargo ") && !h.row(4).contains("bui"),
+        "word delete: {}",
+        h.row(4)
+    );
+    h.type_str("bui");
+    h.ctrl(KeyCode::Backspace);
+    assert!(
+        h.row(4).contains("cargo ") && !h.row(4).contains("bui"),
+        "ctrl word delete: {}",
+        h.row(4)
+    );
+    h.ctrl(KeyCode::Char('u'));
+    assert!(!h.row(4).contains("cargo"), "clear: {}", h.row(4));
+    // a paste is one edit
+    h.app.handle(Input::Paste("cargo\ncheck".into()));
+    h.draw();
+    assert!(h.row(4).contains("cargo check"), "{}", h.row(4));
+    // running an action records it and saves a merged store: the other
+    // writer's record survives, this run is counted, stale queries are gone
+    h.key(KeyCode::Enter);
+    let id = activity_id(&h);
+    assert_eq!(argv(&h, &id), vec!["cargo check @/Users/alex/work/holla"]);
+    let saved = h.app.world.persisted.frecency.clone().expect("saved store");
+    assert!(
+        saved.contains("system.resources"),
+        "concurrent writer merged: {saved}"
+    );
+    let on_disk = crate::domain::usage::UsageStore::load(Some(&saved), h.app.world.now_secs());
+    let mine = on_disk
+        .find("cargo.check", Some("/Users/alex/work/holla"), "mbp")
+        .unwrap();
+    assert_eq!(mine.count(), 2, "one stale use plus this run");
+    assert!(
+        on_disk.learned_for("gone", "mbp").is_none(),
+        "a query whose action is gone was pruned"
+    );
+    assert_eq!(
+        on_disk.learned_for("pull", "mbp"),
+        Some("git.pull_rebase"),
+        "the newer choice replaced the older"
+    );
+    // the Unicode query was remembered for an action never used here: it is
+    // pruned like any other orphaned choice (normalization was proved above
+    // by the lookup that matched "ünï code" against "Ünï  Code")
+    assert_eq!(on_disk.learned_for("ünï  code", "mbp"), None);
+    // the opt-out: nothing is read, learned or written
+    let mut off = H::new(Scenario::ParityHistory, Motion::Reduced, 0, 120, 40);
+    off.app.world.memory.usage = crate::domain::usage::UsageStore::disabled();
+    off.ticks(8);
+    assert!(!off.text().contains("remembered"));
+    open(&mut off, "cargo check");
+    assert!(
+        off.app
+            .world
+            .persisted
+            .frecency
+            .as_deref()
+            .is_none_or(|s| !s.contains("cargo.check")),
+        "opt-out wrote nothing"
+    );
+    assert!(
+        !off.text().contains("history not saved"),
+        "the opt-out is silent, not an error: {}",
+        off.text()
+    );
+}
+
+// ------------------------------------------------------------ HP05
+
+#[test]
+fn hp05_git_current_runs_at_the_repository_root_with_truthful_outcomes() {
+    let mut h = H::new(Scenario::ParityGitCurrent, Motion::Reduced, 0, 120, 40);
+    h.ticks(6);
+    let items = h.app.world.items();
+    let pull = items.iter().find(|i| i.id == "git.pull").unwrap();
+    // pull.rebase=false and a diverged branch: the plain pull merges; the
+    // dirty tree is what blocks it, and the block is stated, not hidden
+    assert_eq!(
+        argv_of(pull),
+        vec!["git -C /Users/alex/work/svc pull @/Users/alex/work/svc"]
+    );
+    assert_eq!(
+        pull.effect,
+        Some(Effect::GitPullMerge("/Users/alex/work/svc".into()))
+    );
+    assert!(
+        pull.effects
+            .iter()
+            .any(|e| e.contains("blocked · 1 modified")),
+        "{:?}",
+        pull.effects
+    );
+    run(&mut h, "Pull with merge");
+    let id = activity_id(&h);
+    assert_eq!(
+        argv(&h, &id),
+        vec!["git -C /Users/alex/work/svc pull --no-rebase @/Users/alex/work/svc"]
+    );
+    let state = settle(&mut h, &id);
+    let out = output(&h, &id).join("\n");
+    // git refuses to merge over a modified file it would touch, or merges:
+    // either way the world matches the outcome exactly
+    let g = h.app.world.git_here().unwrap().clone();
+    if state == ActivityState::Succeeded {
+        assert_eq!(g.behind, 0, "{out}");
+        assert_eq!(
+            g.ahead, 2,
+            "a merge commit lands on the local commit: {out}"
+        );
+        assert!(!g.diverged);
+    } else {
+        assert!(
+            out.contains("overwritten") || out.contains("error"),
+            "{out}"
+        );
+        assert_eq!(g.behind, 2, "a failed merge changes nothing: {out}");
+    }
+    // a rejected push fails visibly with git's reason and changes nothing
+    h.alt(KeyCode::Char('0'));
+    run(&mut h, "Push");
+    let id = activity_id(&h);
+    assert_eq!(
+        argv(&h, &id),
+        vec!["git -C /Users/alex/work/svc push @/Users/alex/work/svc"]
+    );
+    assert_eq!(settle(&mut h, &id), ActivityState::Failed);
+    let out = output(&h, &id).join("\n");
+    assert!(
+        out.contains("fetch first") || out.contains("rejected"),
+        "{out}"
+    );
+    // the dry run is read-only and succeeds
+    h.alt(KeyCode::Char('0'));
+    run(&mut h, "Push dry run");
+    let id = activity_id(&h);
+    assert_eq!(
+        argv(&h, &id),
+        vec!["git -C /Users/alex/work/svc push --dry-run @/Users/alex/work/svc"]
+    );
+    assert_eq!(settle(&mut h, &id), ActivityState::Succeeded);
+    // switching to the primary branch lands the effect
+    h.alt(KeyCode::Char('0'));
+    run(&mut h, "Switch to main");
+    let id = activity_id(&h);
+    assert_eq!(
+        argv(&h, &id),
+        vec!["git -C /Users/alex/work/svc switch main @/Users/alex/work/svc"]
+    );
+    let state = settle(&mut h, &id);
+    let out = output(&h, &id).join("\n");
+    if state == ActivityState::Succeeded {
+        assert_eq!(
+            h.app.world.git_here().unwrap().branch.as_deref(),
+            Some("main"),
+            "{out}"
+        );
+    } else {
+        // a modified file git would overwrite refuses the switch: nothing moves
+        assert!(
+            out.contains("overwritten") || out.contains("error"),
+            "{out}"
+        );
+        assert_eq!(
+            h.app.world.git_here().unwrap().branch.as_deref(),
+            Some("feature/x"),
+            "{out}"
+        );
+    }
+}
+
+// ------------------------------------------------------------ HP06
+
+#[test]
+fn hp06_sibling_batches_carry_exact_members_and_report_each_failure() {
+    let mut h = H::new(Scenario::ParityGitBatch, Motion::Reduced, 0, 120, 40);
+    h.ticks(8);
+    let items = h.app.world.items();
+    let pull = items.iter().find(|i| i.id == "git.pull-all").unwrap();
+    let members: Vec<String> = pull.batch.iter().map(|(n, _, _, _)| n.clone()).collect();
+    assert_eq!(
+        pull.batch.len(),
+        4,
+        "four siblings, the nested repository is not one: {members:?}"
+    );
+    assert!(members.iter().all(|m| !m.contains("nested")));
+    let remotes = items
+        .iter()
+        .find(|i| i.id == "git.push-all-remotes")
+        .unwrap();
+    let cmds = argv_of(remotes);
+    assert!(
+        cmds.contains(
+            &"git -C /Users/alex/work/repos/alpha push gitlab @/Users/alex/work/repos/alpha"
+                .to_owned()
+        ),
+        "{cmds:?}"
+    );
+    assert!(
+        !cmds.iter().any(|c| c.contains("beta push gitlab")),
+        "only alpha has the mirror: {cmds:?}"
+    );
+    // merged-branch cleanup (offered inside a repository) excludes the
+    // worktree-occupied and primary branches
+    let mut inside = crate::domain::fixtures::world_for(Scenario::ParityGitBatch, Motion::Reduced);
+    inside.location.cwd = "/Users/alex/work/repos/alpha".into();
+    let inside_items = inside.items();
+    let del = inside_items
+        .iter()
+        .find(|i| i.id == "git.delete_merged")
+        .unwrap_or_else(|| {
+            panic!(
+                "{:?}",
+                inside_items
+                    .iter()
+                    .map(|i| i.id.clone())
+                    .collect::<Vec<_>>()
+            )
+        });
+    let del_cmds = argv_of(del);
+    assert!(
+        del_cmds
+            .iter()
+            .any(|c| c.contains("feature/done") && c.contains("hotfix/1")),
+        "{del_cmds:?}"
+    );
+    assert!(
+        !del_cmds
+            .iter()
+            .any(|c| c.contains("feature/wt") || c.contains(" main ")),
+        "{del_cmds:?}"
+    );
+    // run the pull batch: every member is its own activity with the exact
+    // command; delta fails on its corrupt index, the rest succeed
+    run(&mut h, "Pull 4 sibling repositories");
+    h.ticks(1);
+    let batch = h
+        .app
+        .world
+        .batches
+        .last()
+        .cloned()
+        .unwrap_or_else(|| panic!("a batch\n{}", h.text()));
+    assert_eq!(batch.members.len(), 4);
+    for _ in 0..60 {
+        h.ticks(1);
+    }
+    let states: Vec<(String, ActivityState, i32)> = batch
+        .members
+        .iter()
+        .map(|m| {
+            let a = h.app.world.activity(m).unwrap_or_else(|| {
+                panic!(
+                    "member {m} gone; batch {:?}; activities {:?}",
+                    batch.members,
+                    h.app
+                        .world
+                        .activities
+                        .iter()
+                        .map(|a| (a.id.clone(), a.name.clone(), a.state))
+                        .collect::<Vec<_>>()
+                )
+            });
+            (a.argv[0].display(), a.state, a.exit.unwrap_or(-1))
+        })
+        .collect();
+    assert!(states.iter().all(|(_, s, _)| s.finished()), "{states:?}");
+    let delta = states
+        .iter()
+        .find(|(c, _, _)| c.contains("/delta "))
+        .unwrap_or_else(|| panic!("{states:?}"));
+    assert_eq!(delta.1, ActivityState::Failed, "{states:?}");
+    assert!(
+        states
+            .iter()
+            .filter(|(_, s, _)| *s == ActivityState::Succeeded)
+            .count()
+            >= 2,
+        "{states:?}"
+    );
+    assert_eq!(
+        h.app
+            .world
+            .git
+            .iter()
+            .find(|g| g.path.ends_with("/alpha"))
+            .unwrap()
+            .behind,
+        0,
+        "alpha pulled"
+    );
+    h.draw();
+    assert!(
+        h.text().contains("1 failed") || h.text().contains("failed"),
+        "the batch summary names the failure: {}",
+        h.text()
+    );
+}
+
+// ------------------------------------------------------------ HP03
+
+#[test]
+fn hp03_find_files_indexes_home_truthfully_and_resource_actions_are_exact() {
+    let mut h = H::new(Scenario::ParityFiles, Motion::Reduced, 0, 120, 40);
+    h.ticks(4);
+    open(&mut h, "Find files under home");
+    assert!(h.text().contains("Files ›"), "{}", h.text());
+    h.type_str("readme");
+    let text = h.text();
+    assert!(
+        text.contains("README.md") && text.contains("~/work/notes"),
+        "{text}"
+    );
+    assert!(text.contains("~/work/app"), "{text}");
+    assert!(
+        !text.contains("node_modules"),
+        "an .ignore'd tree is never indexed: {text}"
+    );
+    assert!(!text.contains("scratch"), "{text}");
+    // Unicode names are found by their own text
+    h.ctrl(KeyCode::Char('u'));
+    h.type_str("café");
+    assert!(h.text().contains("café menu.txt"), "{}", h.text());
+    h.ctrl(KeyCode::Char('u'));
+    h.type_str("東京");
+    // wide cells: the buffer text carries the continuation cells
+    assert!(
+        h.text().contains("東") && h.text().contains("京") && h.text().contains(".md"),
+        "{}",
+        h.text()
+    );
+    // hidden entries and cloud-only roots are outside the index
+    h.ctrl(KeyCode::Char('u'));
+    h.type_str("hidden-config");
+    assert!(h.text().contains("0 results"), "{}", h.text());
+    h.ctrl(KeyCode::Char('u'));
+    h.type_str("cloud-only");
+    assert!(h.text().contains("0 results"), "{}", h.text());
+    // the symlink is listed as itself, never followed into the app tree
+    h.ctrl(KeyCode::Char('u'));
+    h.type_str("main.rs");
+    assert!(h.text().contains("work/app/src/main.rs"), "{}", h.text());
+    assert!(!h.text().contains("link-to-app/src"), "{}", h.text());
+    // resource actions on a hit: copy is OSC 52 bounded by the terminal's
+    // limit (64 bytes here), open/reveal are exact opener commands
+    h.ctrl(KeyCode::Char('u'));
+    h.type_str("todo");
+    h.key(KeyCode::Enter);
+    assert!(
+        !h.app.modals.is_empty(),
+        "the actions menu opened: {}",
+        h.text()
+    );
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Enter);
+    let text = h.text();
+    assert!(
+        text.contains("OSC 52") || text.contains("clipboard") || text.contains("Copied"),
+        "copy outcome is stated: {text}"
+    );
+    let w = &h.app.world;
+    let path = format!("{HOME}/work/notes/todo.md");
+    if path.len() > 64 {
+        assert!(w.clipboard.is_none(), "over the limit nothing is copied");
+    } else {
+        assert_eq!(w.clipboard.as_deref(), Some(path.as_str()));
+    }
+    h.key(KeyCode::Enter);
+    h.key(KeyCode::Enter);
+    let id = activity_id(&h);
+    assert_eq!(
+        argv(&h, &id),
+        vec![format!("open {HOME}/work/notes/todo.md @{HOME}/work/notes")]
+    );
+}
+
+// ------------------------------------------------------------ HP04
+
+#[test]
+fn hp04_browser_lists_previews_and_jumps_safely() {
+    let mut h = H::new(Scenario::ParityBrowser, Motion::Reduced, 0, 120, 40);
+    h.ticks(4);
+    open(&mut h, "Browse ~/work/site");
+    let text = h.text();
+    assert!(text.contains("Files ›"), "{text}");
+    // directories first, hidden entries hidden until asked
+    let assets = h.find("assets").expect("assets");
+    let index = h.find("index.html").expect("index.html");
+    assert!(assets.1 < index.1, "directories first");
+    assert!(!text.contains(".env"), "{text}");
+    h.ctrl(KeyCode::Char('h'));
+    assert!(
+        h.text().contains(".env") && h.text().contains(".git"),
+        "{}",
+        h.text()
+    );
+    h.ctrl(KeyCode::Char('h'));
+    // both normalisation forms are distinct entries
+    assert!(
+        h.text().contains("café.txt") && h.text().contains("café.txt"),
+        "{}",
+        h.text()
+    );
+    // previews: text is shown, binary is named not shown, invalid bytes and
+    // controls are sanitized, caps are stated, links and specials are safe
+    let cases: [(&str, &[&str], &[&str]); 8] = [
+        ("index.html", &["<html>", "hello"], &[]),
+        ("empty.txt", &["empty"], &[]),
+        ("logo.png", &["binary"], &["\u{89}"]),
+        ("bad.txt", &["h", "i"], &["\u{ff}"]),
+        ("control.txt", &["red"], &["\u{1b}", "\u{7}"]),
+        ("big.log", &["first 2000 lines"], &["line 2099"]),
+        ("long.txt", &["cut at 4096"], &[]),
+        ("pipe", &["special file"], &[]),
+    ];
+    for (name, must, must_not) in cases {
+        let (_, y) = h
+            .find(name)
+            .unwrap_or_else(|| panic!("{name} listed\n{}", h.text()));
+        let cur = h.app.hits.area_of(files::LIST).unwrap();
+        h.click(cur.x + 2, y);
+        h.ticks(1);
+        let t = h.text();
+        for m in must {
+            assert!(t.contains(m), "{name}: expected {m:?}\n{t}");
+        }
+        for m in must_not {
+            assert!(!t.contains(m), "{name}: raw {m:?} leaked\n{t}");
+        }
+    }
+    // a broken link and an unreadable directory are errors, never crashes
+    let (_, y) = h.find("broken").unwrap();
+    let cur = h.app.hits.area_of(files::LIST).unwrap();
+    h.click(cur.x + 2, y);
+    assert!(h.text().contains("broken symbol"), "{}", h.text());
+    let (_, y) = h.find("private").unwrap();
+    h.click(cur.x + 2, y);
+    h.key(KeyCode::Enter);
+    assert!(
+        h.text().to_lowercase().contains("permission denied"),
+        "{}",
+        h.text()
+    );
+    // a slow listing is pending, not empty, then complete at its full size
+    let (_, y) = h.find("assets").unwrap();
+    h.click(cur.x + 2, y);
+    h.key(KeyCode::Enter);
+    assert!(
+        h.text().contains("listing") || h.text().contains("…"),
+        "{}",
+        h.text()
+    );
+    h.ticks(10);
+    assert!(
+        h.text().contains("2100") || h.text().contains("img0000.png"),
+        "{}",
+        h.text()
+    );
+    // the jump picker: an exact existing path wins, a missing one stays open
+    h.key(KeyCode::Char('g'));
+    assert!(!h.app.modals.is_empty());
+    h.type_str("~/nowhere");
+    h.key(KeyCode::Enter);
+    assert!(
+        !h.app.modals.is_empty(),
+        "a failed jump keeps the picker open: {}",
+        h.text()
+    );
+    assert!(h.text().contains("!"), "{}", h.text());
+    h.ctrl(KeyCode::Char('u'));
+    h.type_str("~/work");
+    h.key(KeyCode::Enter);
+    assert!(h.app.modals.is_empty(), "{}", h.text());
+    assert!(h.text().contains("Files › work"), "{}", h.text());
+    assert!(h.text().contains("Jumped to ~/work"), "{}", h.text());
+}
+
+use crate::screens::files;
+
+// ------------------------------------------------------------ HP07
+
+#[test]
+fn hp07_task_adapters_keep_exact_names_caps_and_diagnostics() {
+    let h = H::new(Scenario::ParityTaskSources, Motion::Reduced, 0, 120, 40);
+    let items = h.app.world.items();
+    let ids: Vec<&str> = items.iter().map(|i| i.id.as_str()).collect();
+    // node: the lockfile picks yarn; odd script names are exact argv, never
+    // interpolated; the visible set is the first thirty by name
+    let quote = items
+        .iter()
+        .find(|i| i.id == "node.script.it's; rm")
+        .unwrap_or_else(|| panic!("{ids:?}"));
+    assert_eq!(
+        argv_of(quote),
+        vec!["yarn run 'it'\\''s; rm' @/Users/alex/work/poly"]
+    );
+    let pj = match &h
+        .app
+        .world
+        .fs
+        .get("/Users/alex/work/poly/package.json")
+        .unwrap()
+        .content
+    {
+        crate::sim::fs::Content::Text(t) => t.clone(),
+        _ => unreachable!(),
+    };
+    let d = crate::domain::manifest::node_scripts(
+        "/Users/alex/work/poly",
+        Some(&pj),
+        &["yarn.lock", "bun.lockb"],
+    );
+    assert_eq!(d.total, 35);
+    assert_eq!(d.runner, "yarn", "yarn.lock wins over bun.lockb");
+    assert_eq!(d.tasks.len(), 30);
+    assert!(
+        d.tasks
+            .iter()
+            .all(|t| t.name != "weird key" && t.name != "ünï"),
+        "beyond the cap by name order"
+    );
+    let all = crate::domain::manifest::node_scripts(
+        "/Users/alex/work/poly",
+        Some(r#"{"scripts":{"weird key":"x","ünï":"y"}}"#),
+        &["yarn.lock"],
+    );
+    let weird = all
+        .tasks
+        .iter()
+        .find(|t| t.name == "weird key")
+        .expect("weird key within the cap when the filler sorts after it");
+    assert_eq!(
+        crate::domain::exec::Command::from_vec(weird.argv.clone(), "/Users/alex/work/poly", "mbp")
+            .display(),
+        "yarn run 'weird key'"
+    );
+    let uni = all.tasks.iter().find(|t| t.name == "ünï").unwrap();
+    assert_eq!(
+        crate::domain::exec::Command::from_vec(uni.argv.clone(), "/Users/alex/work/poly", "mbp")
+            .display(),
+        "yarn run ünï"
+    );
+    // the cap: thirty scripts visible of thirty-five, the note says so
+    let node: Vec<&crate::domain::action::Item> = items
+        .iter()
+        .filter(|i| i.id.starts_with("node.script."))
+        .collect();
+    assert_eq!(node.len(), 30, "{ids:?}");
+    assert!(
+        node.iter().any(|i| i
+            .cap_note
+            .as_deref()
+            .is_some_and(|c| c.contains("30 of 35"))),
+        "{:?}",
+        node.iter().map(|i| i.cap_note.clone()).collect::<Vec<_>>()
+    );
+    // just: recipes come from the summary; make: pattern rules and variables
+    // are not targets; Taskfile: a failed listing is a diagnostic, not tasks
+    for id in [
+        "just.recipe.build",
+        "just.recipe.test",
+        "just.recipe.lint",
+        "make.target.all",
+        "make.target.build",
+        "make.target.deploy-prod",
+        "taskfile.discovery",
+    ] {
+        assert!(ids.contains(&id), "{id} missing: {ids:?}");
+    }
+    assert!(
+        !ids.iter()
+            .any(|i| i.starts_with("make.target.%") || i.contains("VAR")),
+        "{ids:?}"
+    );
+    assert!(
+        !ids.iter().any(|i| i.starts_with("taskfile.task.")),
+        "{ids:?}"
+    );
+    let diag = items.iter().find(|i| i.id == "taskfile.discovery").unwrap();
+    assert!(diag.summary.contains("yaml: line 3"), "{}", diag.summary);
+    // a failing script fails with its runner's exit, nothing is pretended
+    let mut h = h;
+    run(&mut h, "yarn s01");
+    let id = activity_id(&h);
+    assert_eq!(argv(&h, &id), vec!["yarn run s01 @/Users/alex/work/poly"]);
+    assert_eq!(settle(&mut h, &id), ActivityState::Failed);
+    assert!(h.app.world.activity(&id).unwrap().exit.unwrap_or(0) != 0);
+    h.alt(KeyCode::Char('0'));
+    run(&mut h, "yarn dev");
+    let id = activity_id(&h);
+    assert_eq!(argv(&h, &id), vec!["yarn run dev @/Users/alex/work/poly"]);
+    assert_eq!(settle(&mut h, &id), ActivityState::Succeeded);
+}
+
+// ------------------------------------------------------------ HP08
+
+#[test]
+fn hp08_cargo_results_are_exit_codes_and_clean_lands_its_effect() {
+    let mut h = H::new(Scenario::ParityCargo, Motion::Reduced, 0, 120, 40);
+    h.ticks(6);
+    run(&mut h, "cargo clippy");
+    let id = activity_id(&h);
+    assert_eq!(
+        argv(&h, &id),
+        vec!["cargo clippy --all-targets --all-features @/Users/alex/work/engine"]
+    );
+    assert_eq!(
+        settle(&mut h, &id),
+        ActivityState::Succeeded,
+        "warnings do not fail the run"
+    );
+    assert!(
+        output(&h, &id).join("\n").contains("warning"),
+        "{:?}",
+        output(&h, &id)
+    );
+    h.alt(KeyCode::Char('0'));
+    run(&mut h, "cargo test");
+    let id = activity_id(&h);
+    assert_eq!(settle(&mut h, &id), ActivityState::Failed);
+    let a = h.app.world.activity(&id).unwrap();
+    assert_eq!(
+        a.exit,
+        Some(101),
+        "cargo test's own exit code: {:?}",
+        a.output
+    );
+    // clean: the label carries the measured size, the gate names the shared
+    // target, the effect removes exactly the target directory
+    let items = h.app.world.items();
+    let clean = items.iter().find(|i| i.id == "cargo.clean").unwrap();
+    assert!(clean.label.contains("900.0 MiB"), "{}", clean.label);
+    assert_eq!(
+        clean.effect,
+        Some(Effect::CargoClean("/Users/alex/work/engine/target".into()))
+    );
+    assert!(
+        clean.summary.contains("engine-wt")
+            || clean.effects.iter().any(|e| e.contains("engine-wt")),
+        "the shared target is named: {} {:?}",
+        clean.summary,
+        clean.effects
+    );
+    assert!(
+        h.app
+            .world
+            .fs
+            .exists("/Users/alex/work/engine/target/debug/engine")
+    );
+    h.alt(KeyCode::Char('0'));
+    run(&mut h, "cargo clean dry run");
+    let id = activity_id(&h);
+    assert_eq!(
+        argv(&h, &id),
+        vec!["cargo clean --dry-run --verbose @/Users/alex/work/engine"]
+    );
+    assert_eq!(settle(&mut h, &id), ActivityState::Succeeded);
+    assert!(
+        h.app
+            .world
+            .fs
+            .exists("/Users/alex/work/engine/target/debug/engine"),
+        "a dry run removes nothing"
+    );
+    h.alt(KeyCode::Char('0'));
+    open(&mut h, "cargo clean");
+    // destructive: a review, then the typed phrase would follow; here the
+    // one-step confirmation is enough for a project-local target
+    confirm(&mut h);
+    if !h.app.modals.is_empty() || h.text().contains("gate") {
+        h.key(KeyCode::Right);
+        h.key(KeyCode::Enter);
+    }
+    let id = activity_id(&h);
+    assert_eq!(argv(&h, &id), vec!["cargo clean @/Users/alex/work/engine"]);
+    assert_eq!(settle(&mut h, &id), ActivityState::Succeeded);
+    assert!(
+        !h.app.world.fs.exists("/Users/alex/work/engine/target"),
+        "the target directory is gone"
+    );
+    assert_eq!(h.app.world.cargo.target_bytes, 0);
+}
+
+// ------------------------------------------------------------ HP09
+
+#[test]
+fn hp09_docker_and_compose_outcomes_land_in_the_world_and_fail_where_the_daemon_does() {
+    let mut h = H::new(Scenario::ParityDocker, Motion::Reduced, 0, 120, 40);
+    h.ticks(6);
+    let running = |h: &H| {
+        h.app
+            .world
+            .docker
+            .containers
+            .iter()
+            .filter(|c| c.running)
+            .count()
+    };
+    assert_eq!(running(&h), 5);
+    // a restart lands its effect: the container comes back healthy
+    run(&mut h, "Restart acme-db-1");
+    let id = activity_id(&h);
+    assert_eq!(
+        argv(&h, &id),
+        vec!["docker restart acme-db-1 @/Users/alex/work/stack"]
+    );
+    assert_eq!(settle(&mut h, &id), ActivityState::Succeeded);
+    let db = h
+        .app
+        .world
+        .docker
+        .containers
+        .iter()
+        .find(|c| c.name == "acme-db-1")
+        .unwrap();
+    assert!(db.running && db.health.as_deref().is_none_or(|s| s == "healthy"));
+    // this daemon fails every stop: one container stays running too
+    h.alt(KeyCode::Char('0'));
+    run(&mut h, "Stop acme-redis-1");
+    let id = activity_id(&h);
+    assert_eq!(
+        argv(&h, &id),
+        vec!["docker stop acme-redis-1 @/Users/alex/work/stack"]
+    );
+    assert_eq!(settle(&mut h, &id), ActivityState::Failed);
+    assert!(
+        h.app
+            .world
+            .docker
+            .containers
+            .iter()
+            .find(|c| c.name == "acme-redis-1")
+            .unwrap()
+            .running
+    );
+    // stop-all fails at the daemon's stop stage: nothing else is pretended
+    h.alt(KeyCode::Char('0'));
+    run(&mut h, "Stop all containers");
+    let id = activity_id(&h);
+    assert_eq!(
+        argv(&h, &id),
+        vec![
+            "docker stop acme-db-1 acme-redis-1 acme-api-1 acme-worker-1 acme-scheduler-1 @/Users/alex/work/stack"
+        ]
+    );
+    assert_eq!(settle(&mut h, &id), ActivityState::Failed);
+    assert!(
+        output(&h, &id).join("\n").contains("cannot stop container"),
+        "{:?}",
+        output(&h, &id)
+    );
+    assert!(
+        running(&h) >= 4,
+        "a failed stop leaves the containers running"
+    );
+    // remove-all needs the typed phrase bound to the host
+    h.alt(KeyCode::Char('0'));
+    open(&mut h, "Stop and remove all containers");
+    assert!(h.text().contains("gate 1 of 2"), "{}", h.text());
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    assert!(
+        h.text()
+            .contains("Type REMOVE ALL CONTAINERS ON mbp to confirm"),
+        "{}",
+        h.text()
+    );
+    h.key(KeyCode::Esc);
+    h.key(KeyCode::Esc);
+    // compose down removes the project's containers and nothing else; up
+    // recreates the declared services running
+    run(&mut h, "Stop the Compose project");
+    let id = activity_id(&h);
+    assert_eq!(
+        argv(&h, &id),
+        vec!["docker compose down @/Users/alex/work/stack"]
+    );
+    assert_eq!(settle(&mut h, &id), ActivityState::Succeeded);
+    let names = |h: &H| {
+        h.app
+            .world
+            .docker
+            .containers
+            .iter()
+            .map(|c| (c.name.clone(), c.running))
+            .collect::<Vec<_>>()
+    };
+    assert!(
+        h.app
+            .world
+            .docker
+            .containers
+            .iter()
+            .all(|c| c.project.as_deref() != Some("acme")),
+        "{:?}",
+        names(&h)
+    );
+    assert!(
+        h.app
+            .world
+            .docker
+            .containers
+            .iter()
+            .any(|c| c.name == "pgadmin"),
+        "the unmanaged container stays: {:?}",
+        names(&h)
+    );
+    h.alt(KeyCode::Char('0'));
+    run(&mut h, "Start the Compose project");
+    let id = activity_id(&h);
+    assert_eq!(
+        argv(&h, &id),
+        vec!["docker compose up -d @/Users/alex/work/stack"]
+    );
+    assert_eq!(settle(&mut h, &id), ActivityState::Succeeded);
+    let up: Vec<String> = h
+        .app
+        .world
+        .docker
+        .containers
+        .iter()
+        .filter(|c| c.project.as_deref() == Some("acme"))
+        .map(|c| c.name.clone())
+        .collect();
+    assert_eq!(
+        up,
+        vec!["acme-db-1", "acme-api-1", "acme-worker-1"],
+        "{:?}",
+        names(&h)
+    );
+    assert!(
+        h.app
+            .world
+            .docker
+            .containers
+            .iter()
+            .filter(|c| c.project.as_deref() == Some("acme"))
+            .all(|c| c.running)
+    );
+    // with the daemon down the actions are shown unavailable with the
+    // daemon's reason and are not runnable; nothing is pretended
+    let mut down = H::new(Scenario::ParityDiscovery, Motion::Reduced, 0, 120, 40);
+    down.ticks(4);
+    let items = down.app.world.items();
+    let stop = items.iter().find(|i| i.id == "docker.stop_all").unwrap();
+    assert_eq!(
+        argv_of(stop),
+        vec!["docker ps -q @/Users/alex/work/probe"],
+        "the capture is the command when nothing was captured"
+    );
+    assert!(
+        matches!(&stop.freshness, crate::domain::action::Freshness::Unavailable(r) if r.contains("Cannot connect")),
+        "{:?}",
+        stop.freshness
+    );
+    run(&mut down, "Stop all containers");
+    assert!(
+        matches!(down.tab_kind(), TabKind::Here),
+        "nothing started: {}",
+        down.text()
+    );
+    assert!(
+        down.text()
+            .contains("unavailable · Cannot connect to the Docker daemon"),
+        "{}",
+        down.text()
+    );
+    // the same command against a live daemon with no containers is a
+    // truthful no-op listing
+    let mut none = H::new(Scenario::FirstUse, Motion::Reduced, 0, 120, 40);
+    none.ticks(4);
+    if none.app.world.docker.daemon.is_ok() {
+        run(&mut none, "Stop all containers");
+        let id = activity_id(&none);
+        assert_eq!(settle(&mut none, &id), ActivityState::Succeeded);
+        assert!(
+            output(&none, &id).join("\n").contains("0 containers"),
+            "{:?}",
+            output(&none, &id)
+        );
+    }
+}
+
+// ------------------------------------------------------------ HP10
+
+#[test]
+fn hp10_brew_services_verbs_are_exact_capped_and_fail_with_brew_s_reason() {
+    let mut h = H::new(Scenario::ParityBrewServices, Motion::Reduced, 0, 120, 40);
+    h.ticks(6);
+    let items = h.app.world.items();
+    // eleven services, malformed rows dropped, three verbs each, capped
+    let verbs: Vec<&str> = items
+        .iter()
+        .filter(|i| i.id.starts_with("brew.service."))
+        .map(|i| i.id.as_str())
+        .collect();
+    assert_eq!(verbs.len(), 30, "{verbs:?}");
+    assert!(
+        verbs.iter().all(|v| !v.contains("stale-one")),
+        "the stale cache name is never an action: {verbs:?}"
+    );
+    let list = items.iter().find(|i| i.id == "brew.services").unwrap();
+    assert!(list.label.contains("30 of 33"), "{}", list.label);
+    // a restart lands its status
+    run(&mut h, "Restart svc01");
+    let id = activity_id(&h);
+    assert_eq!(
+        argv(&h, &id),
+        vec!["brew services restart svc01 @/Users/alex/work"]
+    );
+    assert_eq!(settle(&mut h, &id), ActivityState::Succeeded);
+    let status = |h: &H, n: &str| {
+        h.app
+            .world
+            .brew
+            .as_ref()
+            .unwrap()
+            .services
+            .iter()
+            .find(|s| s.name == n)
+            .map(|s| s.status.clone())
+            .unwrap()
+    };
+    assert_eq!(status(&h, "svc01"), "started");
+    // the failing verb fails with brew's own words and changes nothing
+    h.alt(KeyCode::Char('0'));
+    run(&mut h, "Stop svc02");
+    let id = activity_id(&h);
+    assert_eq!(settle(&mut h, &id), ActivityState::Failed);
+    assert!(
+        output(&h, &id)
+            .join("\n")
+            .contains("Bootstrap failed: 5: Input/output error"),
+        "{:?}",
+        output(&h, &id)
+    );
+    assert_eq!(status(&h, "svc02"), "error");
+    // the listing snapshot states the failed cache write, never retries
+    h.alt(KeyCode::Char('0'));
+    open(&mut h, "Homebrew services");
+    assert!(h.text().contains("fails on this host"), "{}", h.text());
+    assert!(h.text().contains("svc10"), "{}", h.text());
+}

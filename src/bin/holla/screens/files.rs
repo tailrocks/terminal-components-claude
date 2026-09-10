@@ -327,11 +327,12 @@ impl FilesPage {
                     long_lines,
                     link,
                 } => {
-                    let mut m = vec![format!(
-                        "{} of {}",
-                        human(bytes_shown as u64),
-                        human(total_bytes)
-                    )];
+                    // safety facts first: when the frame is narrow the
+                    // tail (the size) gives way, never a cap or a link
+                    let mut m = vec![];
+                    if let Some(l) = &link {
+                        m.push(format!("link → {}", w.location.short(l)));
+                    }
                     if truncated_bytes {
                         m.push("first 256 KiB".into());
                     }
@@ -341,9 +342,11 @@ impl FilesPage {
                     if long_lines > 0 {
                         m.push(format!("{long_lines} long lines cut at 4096"));
                     }
-                    if let Some(l) = &link {
-                        m.push(format!("link → {}", w.location.short(l)));
-                    }
+                    m.push(format!(
+                        "{} of {}",
+                        human(bytes_shown as u64),
+                        human(total_bytes)
+                    ));
                     (crate::sim::fs::sanitize(&short), m.join(" · "), lines, None)
                 }
                 Preview::Empty => (short, "empty file".into(), vec![], None),
@@ -996,9 +999,24 @@ impl FilesPage {
         } else {
             self.preview_meta.clone()
         };
-        let panel = Panel::framed(Some(&self.preview_title))
-            .focused(focused)
-            .meta(&meta);
+        // the meta carries safety facts (caps, links, binary): the path
+        // title gives way, in the middle then entirely, so the meta is
+        // always visible; an over-long meta keeps its leading facts
+        let room = area.width.saturating_sub(6) as usize;
+        let meta = if width(&meta) + 3 > room {
+            truncate(&meta, room.saturating_sub(3).max(4))
+        } else {
+            meta
+        };
+        let budget = room.saturating_sub(width(&meta) + 3);
+        let title = if width(&self.preview_title) <= budget {
+            Some(self.preview_title.clone())
+        } else if budget >= 8 {
+            Some(truncate_middle(&self.preview_title, budget))
+        } else {
+            None
+        };
+        let panel = Panel::framed(title.as_deref()).focused(focused).meta(&meta);
         let inner = panel.render(area, buf, t);
         ctx.control(PREVIEW, area, false);
         if let Some(e) = &self.preview_err {

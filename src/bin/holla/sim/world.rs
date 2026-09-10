@@ -684,8 +684,9 @@ impl World {
                     g.behind = 0;
                 }
             }
-            Effect::CargoClean(path) => {
-                let target = format!("{path}/target");
+            Effect::CargoClean(target) => {
+                // the effect names the resolved target directory itself
+                let target = target.clone();
                 let _ = self.fs.remove_permanent(&target);
                 if self.cargo.target.as_deref() == Some(target.as_str()) {
                     self.cargo.target_files = 0;

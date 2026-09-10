@@ -211,7 +211,25 @@ pub fn search_with(
                 // the whole phrase inside the label is its own top bucket,
                 // above any set of exact keyword hits
                 let phrase = item.label.to_lowercase().contains(&text);
-                let bucket: i64 = if phrase {
+                // a measured suffix (" · 900 MiB") is not part of the name
+                let core = item
+                    .label
+                    .split(" · ")
+                    .next()
+                    .unwrap_or(&item.label)
+                    .to_lowercase();
+                let exact = core == text;
+                if phrase {
+                    // among phrase matches the label closest to the query is
+                    // the intended one
+                    total =
+                        (core.chars().count().saturating_sub(text.chars().count())).min(199) as u32;
+                }
+                // the typed name itself is decisive: no learned signal moves
+                // a longer label above it
+                let bucket: i64 = if exact {
+                    10
+                } else if phrase {
                     9
                 } else {
                     match total / words.len().max(1) as u32 {
@@ -241,7 +259,9 @@ pub fn search_with(
             reason = format!("pinned here · {reason}");
         }
         if has_query && learned == Some(item.id.as_str()) {
-            score += 80_000;
+            // the remembered choice for this exact query leads every text
+            // match (it still had to match) and yields only to an alias
+            score += 950_000;
             reason = format!("remembered for “{}” · {reason}", text);
         }
         if item.frecency > 0.0 {

@@ -906,6 +906,38 @@ fn git_here_items(w: &World, g: &crate::domain::stack::GitState, out: &mut Vec<I
                 "{} commits arrive · nothing is rewritten",
                 g.behind
             )]);
+    } else if g.diverged
+        && g.pull_config != "ff-only"
+        && !g.dirty()
+        && g.conflicts == 0
+        && g.in_progress.is_none()
+    {
+        // a configured strategy integrates diverged history: not a block
+        pull = pull
+            .effects(&[&format!(
+                "{} ahead, {} behind · integrated with the configured {} strategy",
+                g.ahead, g.behind, g.pull_config
+            )])
+            .confirm(Confirmation::One)
+            .reason(
+                Signal::Context,
+                &format!("diverged · {} configured", g.pull_config),
+            );
+    } else if g.diverged
+        && g.pull_config != "ff-only"
+        && g.dirty()
+        && g.conflicts == 0
+        && g.in_progress.is_none()
+    {
+        // divergence is handled by the configured strategy; the dirty tree
+        // is the real block and is named as such
+        let r = format!("{} modified", g.changed() + g.untracked);
+        pull = pull
+            .effects(&[&format!(
+                "blocked · {r} · the command fails without changing anything"
+            )])
+            .confirm(Confirmation::One)
+            .reason(Signal::Context, &format!("blocked · {r}"));
     } else if let Some(r) = g.block_reason() {
         pull = pull
             .effects(&[&format!(
@@ -1953,9 +1985,11 @@ fn docker_system_items(w: &World, out: &mut Vec<Item>, htag: &ScopeTag, fresh: &
         .map(|c| c.name.as_str())
         .collect();
     let all: Vec<&str> = d.containers.iter().map(|c| c.name.as_str()).collect();
+    // with no containers captured, the action is the capture itself: a
+    // truthful listing that succeeds as a no-op or fails against the daemon
     let ids = |names: &[&str]| -> Vec<Command> {
         if names.is_empty() {
-            return vec![];
+            return vec![cmd(w, "docker", &["ps", "-q"], &cwd)];
         }
         let mut stop = vec!["stop"];
         stop.extend(names.iter().copied());
@@ -1993,7 +2027,11 @@ fn docker_system_items(w: &World, out: &mut Vec<Item>, htag: &ScopeTag, fresh: &
             &format!("{} running on {}", running.len(), w.host.name),
         ),
     );
-    let mut remove_cmds = ids(&running);
+    let mut remove_cmds = if all.is_empty() {
+        vec![cmd(w, "docker", &["ps", "-qa"], &cwd)]
+    } else {
+        ids(&running)
+    };
     if !all.is_empty() {
         let mut rm = vec!["rm"];
         rm.extend(all.iter().copied());
