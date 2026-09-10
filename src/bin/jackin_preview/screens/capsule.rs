@@ -545,6 +545,7 @@ impl CapsuleScreen {
                 tag: offer.blocked.as_ref().map(|_| "blocked"),
                 matched: vec![],
                 disabled: offer.blocked.is_some(),
+                key: String::new(),
             });
             self.picker_agents.push(Some(a));
         }
@@ -556,6 +557,7 @@ impl CapsuleScreen {
             tag: None,
             matched: vec![],
             disabled: false,
+            key: String::new(),
         });
         self.picker_agents.push(None);
         p.set_items(items);
@@ -635,6 +637,7 @@ impl CapsuleScreen {
                         tag: None,
                         matched: vec![],
                         disabled: false,
+                        key: String::new(),
                     });
                     self.picker_accounts.push(acc.id.clone());
                 }
@@ -909,6 +912,7 @@ impl CapsuleScreen {
                 tag: None,
                 matched,
                 disabled,
+                key: String::new(),
             });
             self.palette_cmds.push(c);
         }
@@ -933,6 +937,7 @@ impl CapsuleScreen {
                             tag: None,
                             matched: vec![],
                             disabled: false,
+                            key: String::new(),
                         })
                         .collect(),
                 );
@@ -999,6 +1004,7 @@ impl CapsuleScreen {
                                 tag: None,
                                 matched: vec![],
                                 disabled: false,
+                                key: String::new(),
                             })
                             .collect(),
                     );

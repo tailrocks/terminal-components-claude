@@ -1299,7 +1299,6 @@ impl Pane {
         if waiting {
             let last_is_prompt = self
                 .term
-                .lines
                 .last()
                 .is_some_and(|l| l.first().is_some_and(|s| s.text == self.proc.prompt));
             let pl = self.prompt_line();
@@ -1308,7 +1307,7 @@ impl Pane {
             } else {
                 self.term.push(pl);
             }
-            let n = self.term.lines.len().saturating_sub(1);
+            let n = self.term.len().saturating_sub(1);
             let col = junie_tui::ui::text::width(&self.proc.prompt)
                 + junie_tui::ui::text::width(&self.input);
             self.term.caret = Some(junie_tui::widgets::viewport::CellPos { line: n, col });
@@ -1325,11 +1324,10 @@ impl Pane {
         // remove a pending prompt row before appending output
         if self
             .term
-            .lines
             .last()
             .is_some_and(|l| l.first().is_some_and(|s| s.text == self.proc.prompt))
         {
-            self.term.lines.pop();
+            self.term.pop();
         }
         for l in lines {
             if l.first().is_some_and(|s| s.text == "\u{0}clear") {
@@ -1344,11 +1342,10 @@ impl Pane {
             // drop a previous spinner row
             if self
                 .term
-                .lines
                 .last()
                 .is_some_and(|x| x.first().is_some_and(|s| s.text == "⠋ "))
             {
-                self.term.lines.pop();
+                self.term.pop();
             }
             self.term.push(l);
             self.received_output = true;
@@ -1394,11 +1391,10 @@ impl Pane {
         let text = std::mem::take(&mut self.input);
         if self
             .term
-            .lines
             .last()
             .is_some_and(|l| l.first().is_some_and(|s| s.text == self.proc.prompt))
         {
-            self.term.lines.pop();
+            self.term.pop();
         }
         let out = self.proc.on_input(&text, now_ms, workspace);
         self.push_lines(out);
@@ -1710,8 +1706,7 @@ mod tests {
         assert_eq!(p.state(), AgentState::Done);
         assert!(
             p.term
-                .lines
-                .iter()
+                .lines()
                 .any(|l| l.iter().any(|s| s.text.contains("FAILED")))
         );
         for c in "hi".chars() {
@@ -1726,8 +1721,7 @@ mod tests {
         assert_eq!(p.state(), AgentState::Done);
         assert!(
             p.term
-                .lines
-                .iter()
+                .lines()
                 .any(|l| l.iter().any(|s| s.text.contains("\"hi\"")))
         );
         let mut sh = Pane::new(2, None, None, "payments-platform", 0);
@@ -1739,8 +1733,7 @@ mod tests {
         sh.commit(0, "payments-platform");
         assert!(
             sh.term
-                .lines
-                .iter()
+                .lines()
                 .any(|l| l.iter().any(|s| s.text.contains("github.com")))
         );
     }

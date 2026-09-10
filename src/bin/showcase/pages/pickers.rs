@@ -153,6 +153,7 @@ impl PickersPage {
                                 tag: None,
                                 matched,
                                 disabled: false,
+                                key: String::new(),
                             },
                         ))
                     })
@@ -186,6 +187,7 @@ impl PickersPage {
                         tag: if i == 1 { Some("active") } else { None },
                         matched,
                         disabled: false,
+                        key: String::new(),
                     })
                 })
                 .collect(),
@@ -226,6 +228,7 @@ impl PickersPage {
                 },
                 matched: vec![],
                 disabled: false,
+                key: String::new(),
             })
             .collect(),
         };

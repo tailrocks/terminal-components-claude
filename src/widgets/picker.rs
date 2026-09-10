@@ -25,6 +25,44 @@ pub struct PickerItem {
     pub tag: Option<&'static str>,
     pub matched: Vec<usize>,
     pub disabled: bool,
+    /// Owner identity the row stands for (a tab, an activity, a path).
+    /// Stable across refreshes; empty when the owner keys by index.
+    pub key: String,
+}
+
+impl PickerItem {
+    pub fn new(label: impl Into<String>) -> Self {
+        Self {
+            label: label.into(),
+            detail: String::new(),
+            glyph: "·",
+            group: "",
+            tag: None,
+            matched: vec![],
+            disabled: false,
+            key: String::new(),
+        }
+    }
+    pub fn detail(mut self, d: impl Into<String>) -> Self {
+        self.detail = d.into();
+        self
+    }
+    pub fn glyph(mut self, g: &'static str) -> Self {
+        self.glyph = g;
+        self
+    }
+    pub fn group(mut self, g: &'static str) -> Self {
+        self.group = g;
+        self
+    }
+    pub fn key(mut self, k: impl Into<String>) -> Self {
+        self.key = k.into();
+        self
+    }
+    pub fn disabled(mut self, d: bool) -> Self {
+        self.disabled = d;
+        self
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -100,11 +138,93 @@ impl Picker {
         }
     }
 
+    /// Replace the rows for a new query: the cursor deliberately returns to
+    /// the first eligible row.
     pub fn set_items(&mut self, items: Vec<PickerItem>) {
         self.items = items;
         self.cursor = self.items.iter().position(|i| !i.disabled).unwrap_or(0);
         self.scroll = ScrollState::new(self.items.len());
         self.cursor_dirty = true;
+    }
+
+    /// Refresh the rows while the picker stays open: the cursor follows the
+    /// row's `key`, so an insertion or removal above it never retargets the
+    /// selection. A vanished key falls to the first eligible row.
+    pub fn refresh_items(&mut self, items: Vec<PickerItem>) {
+        let keep = self
+            .items
+            .get(self.cursor)
+            .filter(|i| !i.key.is_empty())
+            .map(|i| i.key.clone());
+        let offset = self.scroll.offset;
+        self.items = items;
+        self.cursor = keep
+            .and_then(|k| self.items.iter().position(|i| i.key == k && !i.disabled))
+            .unwrap_or_else(|| self.items.iter().position(|i| !i.disabled).unwrap_or(0));
+        self.scroll.set_content(self.items.len());
+        self.scroll.scroll_to(offset);
+        self.cursor_dirty = true;
+    }
+
+    /// The row an action may target: only a real, enabled row of a ready
+    /// picker. Every path (Enter, Delete, click) resolves through this.
+    pub fn eligible(&self, i: usize) -> Option<usize> {
+        if self.status != PickerStatus::Ready {
+            return None;
+        }
+        self.items.get(i).filter(|it| !it.disabled).map(|_| i)
+    }
+
+    /// The key of the eligible cursor row, for owners that map identity.
+    pub fn current_key(&self) -> Option<&str> {
+        self.eligible(self.cursor)
+            .map(|i| self.items[i].key.as_str())
+            .filter(|k| !k.is_empty())
+    }
+
+    fn pop_grapheme(&mut self) -> bool {
+        use unicode_segmentation::UnicodeSegmentation;
+        let Some((i, _)) = self.query.grapheme_indices(true).next_back() else {
+            return false;
+        };
+        self.query.truncate(i);
+        true
+    }
+
+    fn delete_word(&mut self) -> bool {
+        let trimmed = self.query.trim_end();
+        let cut = trimmed
+            .rfind(|c: char| c.is_whitespace())
+            .map(|i| i + 1)
+            .unwrap_or(0);
+        if cut == self.query.len() {
+            return false;
+        }
+        self.query.truncate(cut);
+        true
+    }
+
+    /// Pasted text enters the query as one edit: line breaks become spaces
+    /// and exactly one `QueryChanged` is emitted.
+    pub fn on_paste(&mut self, text: &str) -> (Outcome, Option<PickerEvent>) {
+        if !self.searchable || self.status == PickerStatus::Loading(String::new()) {
+            return (Outcome::Consumed, None);
+        }
+        let flat: String = text
+            .chars()
+            .map(|c| {
+                if c == '\n' || c == '\r' || c == '\t' {
+                    ' '
+                } else {
+                    c
+                }
+            })
+            .collect();
+        if flat.is_empty() {
+            return (Outcome::Consumed, None);
+        }
+        self.query.push_str(&flat);
+        (Outcome::Changed, Some(PickerEvent::QueryChanged))
     }
 
     /// Move the cursor and ask the next render to keep it in view.
@@ -153,20 +273,17 @@ impl Picker {
                 }
                 (Outcome::Changed, Some(PickerEvent::Cancelled))
             }
-            KeyCode::Enter => {
-                if self.status == PickerStatus::Ready
-                    && self.items.get(self.cursor).is_some_and(|i| !i.disabled)
-                {
+            KeyCode::Enter => match self.eligible(self.cursor) {
+                Some(i) => {
                     let ev = if key.alt() {
-                        PickerEvent::ChosenAlt(self.cursor)
+                        PickerEvent::ChosenAlt(i)
                     } else {
-                        PickerEvent::Chosen(self.cursor)
+                        PickerEvent::Chosen(i)
                     };
                     (Outcome::Changed, Some(ev))
-                } else {
-                    (Outcome::Consumed, None)
                 }
-            }
+                None => (Outcome::Consumed, None),
+            },
             KeyCode::Down => {
                 self.step(1);
                 (Outcome::Changed, None)
@@ -192,17 +309,40 @@ impl Picker {
                 (Outcome::Changed, None)
             }
             KeyCode::Tab => (Outcome::Changed, Some(PickerEvent::NextScope)),
-            KeyCode::Delete => (Outcome::Changed, Some(PickerEvent::Secondary(self.cursor))),
+            KeyCode::Delete => match self.eligible(self.cursor) {
+                Some(i) => (Outcome::Changed, Some(PickerEvent::Secondary(i))),
+                None => (Outcome::Consumed, None),
+            },
             KeyCode::Backspace if self.query.is_empty() => {
                 (Outcome::Changed, Some(PickerEvent::Back))
             }
+            KeyCode::Backspace if self.searchable && (key.ctrl() || key.alt()) => {
+                if self.delete_word() {
+                    (Outcome::Changed, Some(PickerEvent::QueryChanged))
+                } else {
+                    (Outcome::Consumed, None)
+                }
+            }
             KeyCode::Backspace if self.searchable => {
-                self.query.pop();
-                (Outcome::Changed, Some(PickerEvent::QueryChanged))
+                if self.pop_grapheme() {
+                    (Outcome::Changed, Some(PickerEvent::QueryChanged))
+                } else {
+                    (Outcome::Consumed, None)
+                }
             }
             KeyCode::Char('u') if key.ctrl() && self.searchable => {
+                if self.query.is_empty() {
+                    return (Outcome::Consumed, None);
+                }
                 self.query.clear();
                 (Outcome::Changed, Some(PickerEvent::QueryChanged))
+            }
+            KeyCode::Char('w') if key.ctrl() && self.searchable => {
+                if self.delete_word() {
+                    (Outcome::Changed, Some(PickerEvent::QueryChanged))
+                } else {
+                    (Outcome::Consumed, None)
+                }
             }
             KeyCode::Char(c) if self.searchable && !key.ctrl() && !key.alt() => {
                 self.query.push(c);
@@ -221,10 +361,7 @@ impl Picker {
     }
 
     pub fn on_click(&mut self, id: WidgetId) -> Option<PickerEvent> {
-        let i = self.locate(id)?;
-        if self.items[i].disabled || self.status != PickerStatus::Ready {
-            return None;
-        }
+        let i = self.eligible(self.locate(id)?)?;
         self.cursor = i;
         self.cursor_dirty = true;
         Some(PickerEvent::Chosen(i))
@@ -552,10 +689,131 @@ mod tests {
                     tag: None,
                     matched: vec![],
                     disabled: false,
+                    key: format!("k{i}"),
                 })
                 .collect(),
         );
         p
+    }
+
+    fn k(code: KeyCode, mods: ratatui::crossterm::event::KeyModifiers) -> Key {
+        Key { code, mods }
+    }
+
+    #[test]
+    fn actions_only_target_eligible_rows_on_every_path() {
+        use ratatui::crossterm::event::KeyModifiers as M;
+        let mut p = picker(0);
+        assert_eq!(
+            p.on_key(&k(KeyCode::Delete, M::NONE)),
+            (Outcome::Consumed, None)
+        );
+        assert_eq!(
+            p.on_key(&k(KeyCode::Enter, M::NONE)),
+            (Outcome::Consumed, None)
+        );
+        let mut p = picker(3);
+        p.items[0].disabled = true;
+        p.cursor = 0;
+        assert_eq!(
+            p.on_key(&k(KeyCode::Delete, M::NONE)),
+            (Outcome::Consumed, None)
+        );
+        p.status = PickerStatus::Loading("…".into());
+        p.cursor = 1;
+        assert_eq!(
+            p.on_key(&k(KeyCode::Delete, M::NONE)),
+            (Outcome::Consumed, None)
+        );
+        assert_eq!(
+            p.on_key(&k(KeyCode::Enter, M::NONE)),
+            (Outcome::Consumed, None)
+        );
+        assert_eq!(
+            p.on_click(p.row_id(1)),
+            None,
+            "clicks refuse a loading picker"
+        );
+        p.status = PickerStatus::Error {
+            message: "no".into(),
+            detail: None,
+        };
+        assert_eq!(
+            p.on_key(&k(KeyCode::Delete, M::NONE)),
+            (Outcome::Consumed, None)
+        );
+        p.status = PickerStatus::Ready;
+        assert_eq!(
+            p.on_key(&k(KeyCode::Delete, M::NONE)),
+            (Outcome::Changed, Some(PickerEvent::Secondary(1)))
+        );
+        assert_eq!(p.current_key(), Some("k1"));
+    }
+
+    #[test]
+    fn refresh_keeps_identity_and_query_reset_selects_first() {
+        let mut p = picker(4);
+        p.cursor = 2;
+        // a row above the cursor disappears: the cursor follows its key
+        let mut items = p.items.clone();
+        items.remove(0);
+        p.refresh_items(items);
+        assert_eq!(p.cursor, 1);
+        assert_eq!(p.current_key(), Some("k2"));
+        // the cursor row itself disappears: first eligible row, never a
+        // neighbour pretending to be it
+        let mut items = p.items.clone();
+        items.remove(1);
+        items[0].disabled = true;
+        p.refresh_items(items);
+        assert_eq!(p.current_key(), Some("k3"));
+        // a query reset deliberately selects the first eligible row
+        p.cursor = 1;
+        p.set_items(picker(3).items);
+        assert_eq!(p.cursor, 0);
+    }
+
+    #[test]
+    fn query_edits_are_grapheme_safe_and_paste_is_one_event() {
+        use ratatui::crossterm::event::KeyModifiers as M;
+        let mut p = picker(1);
+        for c in "a👩\u{200d}💻".chars() {
+            p.on_key(&k(KeyCode::Char(c), M::NONE));
+        }
+        assert_eq!(p.query, "a👩\u{200d}💻");
+        let (o, ev) = p.on_key(&k(KeyCode::Backspace, M::NONE));
+        assert_eq!((o, ev), (Outcome::Changed, Some(PickerEvent::QueryChanged)));
+        assert_eq!(p.query, "a", "backspace removes the whole cluster");
+        p.on_key(&k(KeyCode::Backspace, M::NONE));
+        assert_eq!(
+            p.on_key(&k(KeyCode::Backspace, M::NONE)),
+            (Outcome::Changed, Some(PickerEvent::Back))
+        );
+        let (o, ev) = p.on_paste("gp\ndu\t");
+        assert_eq!((o, ev), (Outcome::Changed, Some(PickerEvent::QueryChanged)));
+        assert_eq!(p.query, "gp du ");
+        assert_eq!(p.on_paste(""), (Outcome::Consumed, None));
+        assert_eq!(
+            p.on_key(&k(KeyCode::Char('w'), M::CONTROL)),
+            (Outcome::Changed, Some(PickerEvent::QueryChanged))
+        );
+        assert_eq!(p.query, "gp ");
+        p.on_key(&k(KeyCode::Char('u'), M::CONTROL));
+        assert_eq!(p.query, "");
+        assert_eq!(
+            p.on_key(&k(KeyCode::Char('u'), M::CONTROL)),
+            (Outcome::Consumed, None)
+        );
+        // a search-disabled picker ignores paste and typing
+        p.searchable = false;
+        assert_eq!(p.on_paste("x"), (Outcome::Consumed, None));
+        let (_, ev) = p.on_key(&k(KeyCode::Char('x'), M::NONE));
+        assert_eq!(ev, None);
+        // an unassigned modified chord is consumed by the modal, not typed
+        p.searchable = true;
+        let (_, ev) = p.on_key(&k(KeyCode::Char('s'), M::CONTROL));
+        assert_eq!(ev, None);
+        assert_eq!(p.query, "");
     }
 
     fn render(p: &mut Picker) -> String {

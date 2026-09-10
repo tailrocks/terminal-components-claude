@@ -143,6 +143,15 @@ impl TreeView {
     }
 
     pub fn flatten(&mut self) {
+        // the focused node is an identity, not a display position: capture
+        // it before the rebuild and resolve it afterwards
+        let focused: Option<Path> = self.rows.get(self.cursor).map(|r| r.path.clone());
+        let before: Option<Path> = self
+            .cursor
+            .checked_sub(1)
+            .and_then(|i| self.rows.get(i))
+            .map(|r| r.path.clone());
+        let after: Option<Path> = self.rows.get(self.cursor + 1).map(|r| r.path.clone());
         fn matches(n: &TreeNode, q: &str) -> bool {
             n.label.to_lowercase().contains(q) || n.children.iter().any(|c| matches(c, q))
         }
@@ -200,8 +209,37 @@ impl TreeView {
             &mut out,
         );
         self.rows = out;
-        self.cursor = self.cursor.min(self.rows.len().saturating_sub(1));
+        self.cursor = self
+            .relocate(focused.as_deref(), before.as_deref(), after.as_deref())
+            .unwrap_or(self.cursor)
+            .min(self.rows.len().saturating_sub(1));
         self.scroll.set_content(self.rows.len());
+    }
+
+    /// Where the focused node went: itself, else its nearest visible
+    /// ancestor, else the surviving neighbour (next, then previous).
+    fn relocate(
+        &self,
+        focused: Option<&[usize]>,
+        before: Option<&[usize]>,
+        after: Option<&[usize]>,
+    ) -> Option<usize> {
+        let find = |p: &[usize]| self.rows.iter().position(|r| r.path == p);
+        let focused = focused?;
+        if let Some(i) = find(focused) {
+            return Some(i);
+        }
+        for k in (1..focused.len()).rev() {
+            if let Some(i) = find(&focused[..k]) {
+                return Some(i);
+            }
+        }
+        after.and_then(find).or_else(|| before.and_then(find))
+    }
+
+    /// The path under the cursor, when the tree has rows.
+    pub fn cursor_path(&self) -> Option<&[usize]> {
+        self.rows.get(self.cursor).map(|r| r.path.as_slice())
     }
 
     pub fn node(&self, path: &[usize]) -> Option<&TreeNode> {
@@ -321,6 +359,10 @@ impl TreeView {
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<TreeEvent>) {
         if self.rows.is_empty() {
+            return (Outcome::Ignored, None);
+        }
+        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
+            // an unassigned modified chord never performs a plain action
             return (Outcome::Ignored, None);
         }
         let out = match key.code {
@@ -582,6 +624,129 @@ impl TreeView {
             let sb = Rect::new(area.right() - 1, area.y, 1, area.height);
             scrollbar::render_vertical(sb, buf, ctx, self.id, &self.scroll, focused);
         }
+    }
+}
+
+#[cfg(test)]
+mod identity_tests {
+    use super::*;
+    use ratatui::crossterm::event::KeyModifiers;
+
+    fn key(code: KeyCode) -> Key {
+        Key {
+            code,
+            mods: KeyModifiers::NONE,
+        }
+    }
+
+    fn tree() -> TreeView {
+        TreeView::new(
+            WidgetId::of("t"),
+            vec![
+                TreeNode::lazy("alpha"),
+                TreeNode::lazy("beta"),
+                TreeNode::dir("gamma", vec![TreeNode::leaf("g1"), TreeNode::leaf("g2")]),
+                TreeNode::leaf("delta"),
+            ],
+        )
+    }
+
+    #[test]
+    fn delayed_children_above_the_cursor_keep_the_focused_node() {
+        let mut t = tree();
+        // focus beta (row 1), then alpha's children arrive above it
+        t.on_key(&key(KeyCode::Down));
+        assert_eq!(t.cursor_path(), Some(&[1][..]));
+        t.set_children(
+            &[0],
+            vec![
+                TreeNode::leaf("a1"),
+                TreeNode::leaf("a2"),
+                TreeNode::leaf("a3"),
+            ],
+        );
+        assert_eq!(t.cursor_path(), Some(&[1][..]), "beta stays focused");
+        assert_eq!(t.cursor, 4);
+        // a nested delayed load deeper in the tree does not steal focus either
+        t.set_children(&[1], vec![TreeNode::lazy("b1")]);
+        assert_eq!(t.cursor_path(), Some(&[1][..]));
+        t.set_children(&[1, 0], vec![TreeNode::leaf("b1a")]);
+        assert_eq!(t.cursor_path(), Some(&[1][..]));
+        // selection is distinct from the cursor
+        t.on_key(&key(KeyCode::Down));
+        t.on_key(&key(KeyCode::Down));
+        t.on_key(&key(KeyCode::Enter));
+        assert_eq!(t.selected.as_deref(), Some(&[1, 0, 0][..]));
+        t.on_key(&key(KeyCode::Up));
+        assert_eq!(t.selected.as_deref(), Some(&[1, 0, 0][..]));
+        assert_eq!(t.cursor_path(), Some(&[1, 0][..]));
+    }
+
+    #[test]
+    fn collapse_relocates_to_the_visible_ancestor_and_removal_to_a_neighbour() {
+        let mut t = tree();
+        t.set_children(&[0], vec![TreeNode::leaf("a1"), TreeNode::leaf("a2")]);
+        t.on_key(&key(KeyCode::Down));
+        t.on_key(&key(KeyCode::Down));
+        assert_eq!(t.cursor_path(), Some(&[0, 1][..]));
+        // Left from a leaf climbs to alpha; Left again collapses it in place
+        t.on_key(&key(KeyCode::Left));
+        assert_eq!(t.cursor_path(), Some(&[0][..]));
+        t.on_key(&key(KeyCode::Left));
+        assert!(!t.rows[0].expanded);
+        assert_eq!(t.cursor_path(), Some(&[0][..]));
+        t.toggle(0);
+        assert!(t.rows[0].expanded);
+        // mouse toggle path: click the fold glyph of alpha while a child is focused
+        t.on_key(&key(KeyCode::Down));
+        t.on_click_toggle(0);
+        assert_eq!(t.cursor_path(), Some(&[0][..]));
+        // a child that vanishes on reload: the surviving neighbour keeps focus
+        t.toggle(0);
+        t.on_key(&key(KeyCode::Down));
+        t.on_key(&key(KeyCode::Down));
+        assert_eq!(t.cursor_path(), Some(&[0, 1][..]));
+        t.set_children(&[0], vec![TreeNode::leaf("a1")]);
+        assert_eq!(
+            t.cursor_path(),
+            Some(&[0][..]),
+            "ancestor wins over neighbour"
+        );
+        // an empty reload is an empty folder, not a crash
+        t.set_children(&[0], vec![]);
+        assert!(!t.rows[0].has_children);
+        assert_eq!(t.cursor_path(), Some(&[0][..]));
+    }
+
+    #[test]
+    fn filters_reveal_and_reset_deliberately() {
+        let mut t = tree();
+        t.set_children(&[0], vec![TreeNode::leaf("a1")]);
+        t.on_key(&key(KeyCode::End));
+        assert_eq!(t.cursor_path(), Some(&[3][..]));
+        t.set_filter(Some("g"));
+        assert_eq!(t.cursor, 0, "a filter is a new list");
+        assert!(
+            t.rows
+                .iter()
+                .all(|r| r.label.contains('g') || r.label == "gamma")
+        );
+        t.set_filter(None);
+        t.reveal(&[2, 1]);
+        assert_eq!(t.cursor_path(), Some(&[2, 1][..]));
+        t.set_children(&[1], vec![TreeNode::leaf("b1"), TreeNode::leaf("b2")]);
+        assert_eq!(
+            t.cursor_path(),
+            Some(&[2, 1][..]),
+            "revealed target survives insertion above"
+        );
+        // modified chords never navigate
+        let before = t.cursor;
+        t.on_key(&Key {
+            code: KeyCode::Char('j'),
+            mods: KeyModifiers::CONTROL,
+        });
+        assert_eq!(t.cursor, before);
     }
 }
 

@@ -876,6 +876,7 @@ impl App {
                 tag: None,
                 matched: vec![],
                 disabled: false,
+                key: String::new(),
             });
         }
         for p in &self.world.plans {
@@ -900,6 +901,7 @@ impl App {
                     tag: None,
                     matched: vec![],
                     disabled: false,
+                    key: String::new(),
                 });
             }
         }

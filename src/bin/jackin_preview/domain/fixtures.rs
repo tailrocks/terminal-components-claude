@@ -1517,6 +1517,7 @@ fn populated(scenario: Scenario, rich: bool) -> World {
     d1.active = 0;
     // long shell log for scrollback
     if let Some(p) = d1.pane_mut(3) {
+        let mut history: Vec<junie_tui::widgets::viewport::Line> = vec![];
         for n in 0..1_960u32 {
             let status = match n % 7 {
                 0 => "retrying attempt=2",
@@ -1547,9 +1548,10 @@ fn populated(scenario: Scenario, rich: bool) -> World {
                     items
                 ))]
             };
-            p.term.lines.insert(0, l);
+            history.insert(0, l);
         }
-        p.term.set_lines(p.term.lines.clone());
+        history.extend(p.term.lines().cloned());
+        p.term.set_lines(history);
     }
     w.daemons.insert("jk-7f3a".into(), d1);
     let mut d3 = Daemon::new("infra-control-plane");

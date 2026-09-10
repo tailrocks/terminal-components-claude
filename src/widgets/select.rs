@@ -73,6 +73,10 @@ impl Select {
         if self.disabled {
             return (Outcome::Ignored, None);
         }
+        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
+            // an unassigned modified chord never performs a plain action
+            return (Outcome::Ignored, None);
+        }
         if self.open {
             return match key.code {
                 KeyCode::Up | KeyCode::Char('k') => {

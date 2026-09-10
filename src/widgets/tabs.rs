@@ -171,6 +171,10 @@ impl Tabs {
     }
 
     pub fn on_key(&mut self, key: &Key) -> (Outcome, Option<TabEvent>) {
+        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
+            // an unassigned modified chord never performs a plain action
+            return (Outcome::Ignored, None);
+        }
         if self.items.is_empty() {
             return match key.code {
                 KeyCode::Enter | KeyCode::Char('n') if self.allow_new => {

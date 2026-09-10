@@ -393,6 +393,10 @@ impl DataTable {
         if self.rows.is_empty() {
             return (Outcome::Ignored, None);
         }
+        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
+            // an unassigned modified chord never performs a plain action
+            return (Outcome::Ignored, None);
+        }
         let (r, c) = (self.cursor_row, self.cursor_col);
         match key.code {
             KeyCode::Up | KeyCode::Char('k') => {

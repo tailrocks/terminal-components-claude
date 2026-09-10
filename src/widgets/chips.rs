@@ -88,6 +88,10 @@ impl ChipBar {
             return (Outcome::Ignored, None);
         }
         self.cursor = self.cursor.min(n - 1);
+        if matches!(key.code, KeyCode::Char(_)) && (key.ctrl() || key.alt()) {
+            // an unassigned modified chord never performs a plain action
+            return (Outcome::Ignored, None);
+        }
         match key.code {
             KeyCode::Left | KeyCode::Char('h') if key.plain() => {
                 self.cursor = self.cursor.saturating_sub(1);

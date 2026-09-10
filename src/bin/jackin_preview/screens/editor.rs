@@ -1296,6 +1296,7 @@ impl EditorScreen {
                 },
                 matched: vec![],
                 disabled: false,
+                key: String::new(),
             });
             targets.push(r.name.clone());
         }
@@ -1412,6 +1413,7 @@ impl EditorScreen {
                 },
                 matched: vec![],
                 disabled: false,
+                key: String::new(),
             });
             targets.push(m.destination.clone());
             if let crate::domain::workspace::MountSource::Host(src) = &m.source {
@@ -1435,6 +1437,7 @@ impl EditorScreen {
                         },
                         matched: vec![],
                         disabled: false,
+                        key: String::new(),
                     });
                     targets.push(dest);
                 }
@@ -1449,6 +1452,7 @@ impl EditorScreen {
                 tag: Some("current"),
                 matched: vec![],
                 disabled: false,
+                key: String::new(),
             });
             targets.push(self.pending.workdir.clone());
         }

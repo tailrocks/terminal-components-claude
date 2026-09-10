@@ -1608,6 +1608,7 @@ impl ConfigTabs {
                 tag: if n > 0 { Some("configured") } else { None },
                 matched: vec![],
                 disabled: false,
+                key: String::new(),
             });
             targets.push(r.clone());
         }

@@ -1701,6 +1701,7 @@ impl OpFlow {
                         }),
                         matched: vec![],
                         disabled: false,
+                        key: String::new(),
                     })
                     .collect(),
                 Err(e) => {
@@ -1724,6 +1725,7 @@ impl OpFlow {
                         }),
                         matched: vec![],
                         disabled: false,
+                        key: String::new(),
                     })
                     .collect(),
                 Err(e) => {
@@ -1745,6 +1747,7 @@ impl OpFlow {
                             tag: None,
                             matched: vec![],
                             disabled: false,
+                            key: String::new(),
                         })
                         .collect(),
                     Err(e) => {
@@ -1772,6 +1775,7 @@ impl OpFlow {
                             tag: None,
                             matched: vec![],
                             disabled: self.concealed_only && f.kind != FieldKind::Concealed,
+                            key: String::new(),
                         })
                         .collect(),
                     Err(e) => {
