@@ -2,3 +2,4 @@
 /.venv
 # per-session capture arguments written by tools/capture.sh
 /shots/.args.*
+docs/refactoring-plan/evidence/*.tar.gz
