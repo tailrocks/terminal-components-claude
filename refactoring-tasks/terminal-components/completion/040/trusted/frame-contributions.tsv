@@ -1,0 +1,2 @@
+parent_scenario	contribution_id	task_owner	exact_checkpoint_selection	axes	viewports	source_clause	required_artifact	required_for_closure
+HO-RESIZE	HO-SHELL-F01	TASK-040	Only the first-use pristine Here root expansion immediately after resize60x15 and its draw, before any recovery resize	all sealed palettes and declared direct/PTY profiles for this checkpoint	60x15	src/bin/holla/app.rs::draw:2951;on_key:507	complete schema3 frame and cursor; no source/target pixel masks	true

@@ -1,0 +1,3 @@
+schema = "task-meta/v1"
+status = "pending"
+dependencies = ["terminal-components/completion/007","terminal-components/completion/039","terminal-components/completion/050","terminal-components/completion/057","terminal-components/completion/064","terminal-components/completion/065"]

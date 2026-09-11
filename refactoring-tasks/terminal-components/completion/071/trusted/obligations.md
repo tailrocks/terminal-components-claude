@@ -1,0 +1,19 @@
+# Protected TASK-071 operation boundary
+
+The exact frozen `holla-trace-corrections.md` additionally binds all sixteen named preview, raw Args and idle/editing overlay-paste branches. Original HO parent identities remain intact. Source Ctrl+C process exit, input raw-kind versus parsed fallback, F10 pass-through and true-modal isolation are distinct required observations; no generic modal-first-paste claim may replace them. These source corrections are independently captured by TASK-003 and remain immutable required membership through source-runner, accounting, architecture qualification and final closure.
+
+Product: `test-accounting`. Independent qualifier: group071 of runner-bootstrap-driver.py.
+
+The protected app-flow, Holla stage/route and shell contribution contracts/tables define separately required contribution and intact-parent identities. Account for every qualified identity, preserve closed subsets monotonically, and reject a contribution or direct-seed pass offered as parent/native/PTY closure. The independent runner qualifier exercises this mechanism; later accepted baselines supply the exact materialized application members.
+
+Preparation accounting is required for TASK-002–008 without their own future accepted inventory/disposition products. The host freezes independent pinned-source/compiler discovery, full observed executions and exact preparation expectation records before dispatch. Candidate inventory/disposition proposals cannot select membership or approve omissions/failures. Production mode requires both accepted inventory and disposition receipts; only the immutable host context selects a mode. Qualify producer-before-receipt positives and self-approved/omitted/renamed/forged-mode negatives independently.
+
+TASK-008 source assertion patches are bounded by independently approved original blob/test/span/replacement records and oracle evidence. Validate unchanged source bytes outside exact spans, unchanged cfg/ignore/module structure, retained compatible assertions and original archive bytes. Reject widened spans, outside-span changes, source swaps, removed safety assertions and proposal self-approval. No production correction authority belongs to the accounting implementation.
+
+Implement account-tests using exact source SHA/package/target/test/profile/feature identities, no-fail-fast execution and complete subordinate result accounting. Run every required identity, report its actual pass/fail/error outcome, reject missing/duplicate/filtered/ignored/unmapped identities, and preserve primary/MSRV assignments. Admit only the frozen stage's still-unfinished future-owner failures minus all already closed identities; every failure remains reported as failed. At app/final closure the relevant unresolved set must be empty.
+
+In production mode, consume trusted inventory and disposition producer receipts rather than caller-selected test filters or an editable allowed-failure file. Test listing is discovery evidence only; actual executed test results are required. Preserve exact relocation maps and all compatible architecture/safety assertions. The accounting operation cannot change source tests, historical archives, public components or accepted oracle artifacts.
+
+Pass every group071 independent fixture and recovery positive: missing target/results, duplicate identity, renamed test without relocation, early runner exit, aggregate success with absent subordinate execution, unknown failure, changed failure class, closed scenario regression, forged stage policy, wrong source/profile/run and legitimate future-owner failures reported honestly. Preserve all prior runner and comparator accepted behavior after dispatcher extension.
+
+Every exact source clause in source-obligations.tsv remains binding under its mapped requirement. The independent driver, fixture app, worker and observer are immutable judge inputs, never candidate implementation or successful product evidence.

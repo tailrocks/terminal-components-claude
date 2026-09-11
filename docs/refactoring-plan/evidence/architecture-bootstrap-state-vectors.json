@@ -1,0 +1,22 @@
+{
+  "schema": "tc-architecture-actual-state-vectors/v1",
+  "main_commit": "7b27732a8c3c131760ec3438f641cb3c11343a42",
+  "source_archive_sha256": "732e40d9cf82e98e3d6375aaeecee349e8cb774abc5094dbbff145555201633a",
+  "geometries": [[40, 12], [8, 4], [0, 0]],
+  "states": {
+    "brand": [0], "button": [0, 1, 8, 16, 128, 512, 2048],
+    "checkbox": [0, 1, 8, 16, 128], "chip_bar": [0, 1, 8, 16, 128],
+    "code_editor": [0, 1, 128, 4096], "completion": [0, 8], "context_menu": [0, 1, 8],
+    "derived_hint_bar": [0], "dialog": [0, 1, 8], "diff_view": [0, 1, 8], "empty": [0, 512, 2048],
+    "field": [0, 1, 128, 512, 4096], "filter_list": [0, 1, 8, 512, 2048], "form": [0, 1, 4096],
+    "grid": [0, 1, 8, 16, 512, 4096], "help_overlay": [0, 1], "hint_bar": [0, 512, 2048], "key_hint": [0],
+    "list": [0, 1, 8, 16, 128, 512, 1024, 2048], "menu_bar": [0, 1, 8], "meter": [0, 512, 2048],
+    "nav_list": [0, 1, 8, 16, 128], "panel": [0], "picker": [0, 1, 8], "picker_chain": [0, 1, 8, 512, 2048],
+    "probe": [0, 1, 8, 128], "progress_bar": [0, 512, 2048], "props": [0], "props_list": [0, 1, 8],
+    "radio_group": [0, 1, 8, 16, 128], "scroll_region": [0, 8], "select": [0, 1, 8, 16, 128], "spinner": [0],
+    "split_pane": [0, 1, 8], "status_bar": [0, 8, 512, 1024, 2048], "steps": [0, 1, 8, 128],
+    "tabs": [0, 1, 8, 16, 512, 2048], "text_area": [0, 1, 128, 512, 2048, 4096],
+    "text_input": [0, 1, 128, 512, 2048, 4096], "text_viewport": [0, 1, 8], "toggle": [0, 1, 8, 16, 128],
+    "too_small": [0], "tree": [0, 1, 8, 16, 128], "wizard": [0, 1, 8]
+  }
+}

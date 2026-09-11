@@ -1,0 +1,222 @@
+[
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.058,
+      55.246,
+      102.096,
+      0.035,
+      0.026
+    ]
+  },
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.057,
+      36.352,
+      102.082,
+      0.029,
+      0.024
+    ]
+  },
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.041,
+      49.872,
+      100.221,
+      0.063,
+      0.054
+    ]
+  },
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.06,
+      42.742,
+      102.125,
+      0.048,
+      0.072
+    ]
+  },
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.124,
+      41.831,
+      102.097,
+      0.046,
+      0.032
+    ]
+  },
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.075,
+      28.312,
+      102.128,
+      0.045,
+      0.026
+    ]
+  },
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.084,
+      45.727,
+      102.205,
+      0.07,
+      0.119
+    ]
+  },
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.069,
+      33.923,
+      102.209,
+      0.077,
+      0.043
+    ]
+  },
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.063,
+      33.199,
+      102.108,
+      0.081,
+      0.059
+    ]
+  },
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.092,
+      45.742,
+      102.085,
+      0.044,
+      0.027
+    ]
+  },
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.048,
+      30.767,
+      102.082,
+      0.034,
+      0.032
+    ]
+  },
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.046,
+      39.483,
+      102.068,
+      0.033,
+      0.031
+    ]
+  },
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.036,
+      32.245,
+      102.092,
+      0.047,
+      0.032
+    ]
+  },
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.041,
+      51.051,
+      100.092,
+      0.046,
+      0.037
+    ]
+  },
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.051,
+      41.324,
+      102.075,
+      0.051,
+      0.025
+    ]
+  },
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.048,
+      52.191,
+      100.353,
+      0.04,
+      0.031
+    ]
+  },
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.052,
+      45.341,
+      101.493,
+      0.039,
+      0.028
+    ]
+  },
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.048,
+      35.174,
+      102.099,
+      0.048,
+      0.032
+    ]
+  },
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.067,
+      56.305,
+      100.498,
+      0.039,
+      0.028
+    ]
+  },
+  {
+    "mode": "positive",
+    "outcome": "pass",
+    "stop_latency_ms": [
+      0.048,
+      32.74,
+      102.085,
+      0.035,
+      0.022
+    ]
+  }
+]

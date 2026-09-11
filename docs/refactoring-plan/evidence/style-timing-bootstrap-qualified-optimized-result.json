@@ -1,0 +1,1045 @@
+{
+  "actual_Instant_attestations": [
+    {
+      "case": "attest-valid",
+      "event_sha256": "aab2503df30105e1e0a297edc98008089248206a9b31e3c2f517485e47c0205e",
+      "measurement": {
+        "arithmetic_denominator_ns": null,
+        "calibration_ns": [
+          6212,
+          5665,
+          5914,
+          7004,
+          6543,
+          6257,
+          5546,
+          6629,
+          6047
+        ],
+        "clock_kind": "Instant",
+        "corrected_ns": [
+          4999,
+          5962,
+          6009,
+          4951,
+          3789,
+          3990,
+          5200,
+          4637,
+          6280
+        ],
+        "lower_ratio": 0.02281375689410178,
+        "measurement_policy": {
+          "aggregation": "per-frame paired raw-minus-calibration; max corrected/min denominator conservative ratio",
+          "batches": 9,
+          "clock_domains": {
+            "attestation": "std::time::Instant",
+            "control": "explicit injected arithmetic only"
+          },
+          "denominator": "one uninstrumented production Harness.draw, no unrelated work",
+          "frame": "Showcase::Lists@120x40/Junie",
+          "order": [
+            "disabled",
+            "calibration",
+            "measured"
+          ],
+          "profile": "release",
+          "schema": "tc-style-timing-policy/v1",
+          "threshold": 0.05,
+          "uncertainty": "entire observed batch range; no negative clamp",
+          "warmup": 12
+        },
+        "quality": "PASS",
+        "raw_numerator_ns": [
+          11211,
+          11627,
+          11923,
+          11955,
+          10332,
+          10247,
+          10746,
+          11266,
+          12327
+        ],
+        "strict_arithmetic_pass": false,
+        "strict_performance_pass": true,
+        "uninstrumented_denominator_ns": [
+          166084,
+          162834,
+          161584,
+          164000,
+          159709,
+          159334,
+          157916,
+          158042,
+          158250
+        ],
+        "upper_ratio": 0.03976797791230781
+      }
+    },
+    {
+      "case": "attest-expensive-resolution",
+      "event_sha256": "5dbf246fcf816ca6133e63990ad7b4713903952d98c63c433a46c467d8b32a87",
+      "measurement": {
+        "arithmetic_denominator_ns": null,
+        "calibration_ns": [
+          9691,
+          8375,
+          8706,
+          8754,
+          7831,
+          7297,
+          7533,
+          7037,
+          6623
+        ],
+        "clock_kind": "Instant",
+        "corrected_ns": [
+          559686,
+          485345,
+          455991,
+          418285,
+          419584,
+          384286,
+          383843,
+          413747,
+          369964
+        ],
+        "lower_ratio": 0.47959077851639065,
+        "measurement_policy": {
+          "aggregation": "per-frame paired raw-minus-calibration; max corrected/min denominator conservative ratio",
+          "batches": 9,
+          "clock_domains": {
+            "attestation": "std::time::Instant",
+            "control": "explicit injected arithmetic only"
+          },
+          "denominator": "one uninstrumented production Harness.draw, no unrelated work",
+          "frame": "Showcase::Lists@120x40/Junie",
+          "order": [
+            "disabled",
+            "calibration",
+            "measured"
+          ],
+          "profile": "release",
+          "schema": "tc-style-timing-policy/v1",
+          "threshold": 0.05,
+          "uncertainty": "entire observed batch range; no negative clamp",
+          "warmup": 12
+        },
+        "quality": "REJECT",
+        "raw_numerator_ns": [
+          569377,
+          493720,
+          464697,
+          427039,
+          427415,
+          391583,
+          391376,
+          420784,
+          376587
+        ],
+        "strict_arithmetic_pass": false,
+        "strict_performance_pass": false,
+        "uninstrumented_denominator_ns": [
+          771416,
+          692666,
+          669542,
+          628625,
+          601666,
+          560167,
+          552417,
+          558375,
+          520375
+        ],
+        "upper_ratio": 1.0755435983665627
+      }
+    },
+    {
+      "case": "attest-paint-only",
+      "event_sha256": "4030bca7723605510b61f11d8231e9a27d7a4d95f16a99f8ce58b8a06a36c71a",
+      "measurement": {
+        "arithmetic_denominator_ns": null,
+        "calibration_ns": [
+          6164,
+          6293,
+          6379,
+          6246,
+          5794,
+          6658,
+          7702,
+          5837,
+          6040
+        ],
+        "clock_kind": "Instant",
+        "corrected_ns": [
+          7328,
+          6620,
+          6151,
+          6291,
+          4832,
+          5873,
+          4920,
+          5050,
+          4131
+        ],
+        "lower_ratio": 0.0012269537776127715,
+        "measurement_policy": {
+          "aggregation": "per-frame paired raw-minus-calibration; max corrected/min denominator conservative ratio",
+          "batches": 9,
+          "clock_domains": {
+            "attestation": "std::time::Instant",
+            "control": "explicit injected arithmetic only"
+          },
+          "denominator": "one uninstrumented production Harness.draw, no unrelated work",
+          "frame": "Showcase::Lists@120x40/Junie",
+          "order": [
+            "disabled",
+            "calibration",
+            "measured"
+          ],
+          "profile": "release",
+          "schema": "tc-style-timing-policy/v1",
+          "threshold": 0.05,
+          "uncertainty": "entire observed batch range; no negative clamp",
+          "warmup": 12
+        },
+        "quality": "PASS",
+        "raw_numerator_ns": [
+          13492,
+          12913,
+          12530,
+          12537,
+          10626,
+          12531,
+          12622,
+          10887,
+          10171
+        ],
+        "strict_arithmetic_pass": false,
+        "strict_performance_pass": true,
+        "uninstrumented_denominator_ns": [
+          3366875,
+          3278209,
+          3033083,
+          3056791,
+          3297167,
+          3364583,
+          3110042,
+          3061542,
+          3239875
+        ],
+        "upper_ratio": 0.002416023564142491
+      }
+    },
+    {
+      "case": "attest-expensive-resolution/always-pass-attack",
+      "event_sha256": "966fe74a285416278072b79879ac18f37841e65edb139746f45689dd86e36732",
+      "measurement": {
+        "arithmetic_denominator_ns": null,
+        "calibration_ns": [
+          10370,
+          8528,
+          8758,
+          7179,
+          7036,
+          7414,
+          6882,
+          6040,
+          6423
+        ],
+        "clock_kind": "Instant",
+        "corrected_ns": [
+          535549,
+          499969,
+          450693,
+          432447,
+          403083,
+          387263,
+          377935,
+          376948,
+          366953
+        ],
+        "lower_ratio": 0.45562998603135185,
+        "measurement_policy": {
+          "aggregation": "per-frame paired raw-minus-calibration; max corrected/min denominator conservative ratio",
+          "batches": 9,
+          "clock_domains": {
+            "attestation": "std::time::Instant",
+            "control": "explicit injected arithmetic only"
+          },
+          "denominator": "one uninstrumented production Harness.draw, no unrelated work",
+          "frame": "Showcase::Lists@120x40/Junie",
+          "order": [
+            "disabled",
+            "calibration",
+            "measured"
+          ],
+          "profile": "release",
+          "schema": "tc-style-timing-policy/v1",
+          "threshold": 0.05,
+          "uncertainty": "entire observed batch range; no negative clamp",
+          "warmup": 12
+        },
+        "quality": "REJECT",
+        "raw_numerator_ns": [
+          545919,
+          508497,
+          459451,
+          439626,
+          410119,
+          394677,
+          384817,
+          382988,
+          373376
+        ],
+        "strict_arithmetic_pass": false,
+        "strict_performance_pass": false,
+        "uninstrumented_denominator_ns": [
+          805375,
+          706875,
+          663166,
+          616500,
+          581459,
+          591792,
+          560792,
+          541333,
+          544375
+        ],
+        "upper_ratio": 0.9893152643566899
+      }
+    }
+  ],
+  "archive_sha256": "732e40d9cf82e98e3d6375aaeecee349e8cb774abc5094dbbff145555201633a",
+  "arithmetic_control_not_performance": {
+    "arithmetic_denominator_ns": [
+      355000,
+      355000,
+      355000,
+      355000,
+      355000,
+      355000,
+      355000,
+      355000,
+      355000
+    ],
+    "calibration_ns": [
+      35500,
+      35500,
+      35500,
+      35500,
+      35500,
+      35500,
+      35500,
+      35500,
+      35500
+    ],
+    "census_count": 355,
+    "clock_kind": "injected-arithmetic-only",
+    "corrected_ns": [
+      3550,
+      3550,
+      3550,
+      3550,
+      3550,
+      3550,
+      3550,
+      3550,
+      3550
+    ],
+    "entry_counts": {
+      "CellUi::drop::bind": 12,
+      "Grid::apply_style_delta::bind": 0,
+      "StatusBar::item_style::bind": 0,
+      "bg": 0,
+      "paint_patch": 1,
+      "resolve": 0,
+      "style": 258,
+      "style_defaults": 0,
+      "style_inherited": 1,
+      "style_patched": 28,
+      "surface_style": 55
+    },
+    "lower_ratio": 0.01,
+    "measurement_policy": {
+      "aggregation": "per-frame paired raw-minus-calibration; max corrected/min denominator conservative ratio",
+      "batches": 9,
+      "clock_domains": {
+        "attestation": "std::time::Instant",
+        "control": "explicit injected arithmetic only"
+      },
+      "denominator": "one uninstrumented production Harness.draw, no unrelated work",
+      "frame": "Showcase::Lists@120x40/Junie",
+      "order": [
+        "disabled",
+        "calibration",
+        "measured"
+      ],
+      "profile": "release",
+      "schema": "tc-style-timing-policy/v1",
+      "threshold": 0.05,
+      "uncertainty": "entire observed batch range; no negative clamp",
+      "warmup": 12
+    },
+    "quality": "PASS",
+    "raw_numerator_ns": [
+      39050,
+      39050,
+      39050,
+      39050,
+      39050,
+      39050,
+      39050,
+      39050,
+      39050
+    ],
+    "strict_arithmetic_pass": true,
+    "strict_performance_pass": false,
+    "uninstrumented_denominator_ns": null,
+    "upper_ratio": 0.01
+  },
+  "fresh_recoveries": 30,
+  "malicious_external_runner_rejections": 6,
+  "negative_cases": 19,
+  "positive_control_runs": 34,
+  "pre_dispatch_Instant_attestations": [
+    {
+      "case": "attest-valid",
+      "executable_sha256": "87fc2e801fc01a33865e90d8a12c47c12533375ab013075d315e113c7057bad2",
+      "measurement": {
+        "arithmetic_denominator_ns": null,
+        "calibration_ns": [
+          7044,
+          6790,
+          6751,
+          6709,
+          5460,
+          7124,
+          6085,
+          5794,
+          5830
+        ],
+        "clock_kind": "Instant",
+        "corrected_ns": [
+          5414,
+          5131,
+          5915,
+          5218,
+          6323,
+          5543,
+          4742,
+          5624,
+          5973
+        ],
+        "lower_ratio": 0.025620937633386104,
+        "measurement_policy": {
+          "aggregation": "per-frame paired raw-minus-calibration; max corrected/min denominator conservative ratio",
+          "batches": 9,
+          "clock_domains": {
+            "attestation": "std::time::Instant",
+            "control": "explicit injected arithmetic only"
+          },
+          "denominator": "one uninstrumented production Harness.draw, no unrelated work",
+          "frame": "Showcase::Lists@120x40/Junie",
+          "order": [
+            "disabled",
+            "calibration",
+            "measured"
+          ],
+          "profile": "release",
+          "schema": "tc-style-timing-policy/v1",
+          "threshold": 0.05,
+          "uncertainty": "entire observed batch range; no negative clamp",
+          "warmup": 12
+        },
+        "quality": "PASS",
+        "raw_numerator_ns": [
+          12458,
+          11921,
+          12666,
+          11927,
+          11783,
+          12667,
+          10827,
+          11418,
+          11803
+        ],
+        "strict_arithmetic_pass": false,
+        "strict_performance_pass": true,
+        "uninstrumented_denominator_ns": [
+          185083,
+          175916,
+          172958,
+          161667,
+          165791,
+          175584,
+          165708,
+          164416,
+          168833
+        ],
+        "upper_ratio": 0.03911125956441327
+      },
+      "source_inventory_sha256": "6dc3d48dad963736c78fa7ea9409e073514eacc1d1e3a7be20ca5e28bf9a3d95"
+    },
+    {
+      "case": "attest-expensive-resolution",
+      "executable_sha256": "7d8988dcb0eac3248af6b512659f2e2cd83202f06615ffa884abbae2f03894e0",
+      "measurement": {
+        "arithmetic_denominator_ns": null,
+        "calibration_ns": [
+          6084,
+          6174,
+          6253,
+          6913,
+          6340,
+          6711,
+          6295,
+          6432,
+          5666
+        ],
+        "clock_kind": "Instant",
+        "corrected_ns": [
+          367369,
+          357907,
+          357333,
+          356201,
+          366655,
+          359955,
+          369699,
+          355142,
+          360954
+        ],
+        "lower_ratio": 0.6583311397736247,
+        "measurement_policy": {
+          "aggregation": "per-frame paired raw-minus-calibration; max corrected/min denominator conservative ratio",
+          "batches": 9,
+          "clock_domains": {
+            "attestation": "std::time::Instant",
+            "control": "explicit injected arithmetic only"
+          },
+          "denominator": "one uninstrumented production Harness.draw, no unrelated work",
+          "frame": "Showcase::Lists@120x40/Junie",
+          "order": [
+            "disabled",
+            "calibration",
+            "measured"
+          ],
+          "profile": "release",
+          "schema": "tc-style-timing-policy/v1",
+          "threshold": 0.05,
+          "uncertainty": "entire observed batch range; no negative clamp",
+          "warmup": 12
+        },
+        "quality": "REJECT",
+        "raw_numerator_ns": [
+          373453,
+          364081,
+          363586,
+          363114,
+          372995,
+          366666,
+          375994,
+          361574,
+          366620
+        ],
+        "strict_arithmetic_pass": false,
+        "strict_performance_pass": false,
+        "uninstrumented_denominator_ns": [
+          530958,
+          516833,
+          537625,
+          520625,
+          539458,
+          527584,
+          515500,
+          516417,
+          515500
+        ],
+        "upper_ratio": 0.7171658583899128
+      },
+      "source_inventory_sha256": "5dce20d0f1120653338156c02f1bf9ee25d4ca8b2cdb904a0861a03b87b9a7b3"
+    },
+    {
+      "case": "attest-paint-only",
+      "executable_sha256": "45f8d746af1426326bc5277b52673c3fc66a999480f8fe92d9e0f138f59a73f1",
+      "measurement": {
+        "arithmetic_denominator_ns": null,
+        "calibration_ns": [
+          6332,
+          5990,
+          5411,
+          6118,
+          6155,
+          6714,
+          5544,
+          6506,
+          6169
+        ],
+        "clock_kind": "Instant",
+        "corrected_ns": [
+          6586,
+          5842,
+          6659,
+          5302,
+          4766,
+          4543,
+          6333,
+          5537,
+          4877
+        ],
+        "lower_ratio": 0.001380379049717042,
+        "measurement_policy": {
+          "aggregation": "per-frame paired raw-minus-calibration; max corrected/min denominator conservative ratio",
+          "batches": 9,
+          "clock_domains": {
+            "attestation": "std::time::Instant",
+            "control": "explicit injected arithmetic only"
+          },
+          "denominator": "one uninstrumented production Harness.draw, no unrelated work",
+          "frame": "Showcase::Lists@120x40/Junie",
+          "order": [
+            "disabled",
+            "calibration",
+            "measured"
+          ],
+          "profile": "release",
+          "schema": "tc-style-timing-policy/v1",
+          "threshold": 0.05,
+          "uncertainty": "entire observed batch range; no negative clamp",
+          "warmup": 12
+        },
+        "quality": "PASS",
+        "raw_numerator_ns": [
+          12918,
+          11832,
+          12070,
+          11420,
+          10921,
+          11257,
+          11877,
+          12043,
+          11046
+        ],
+        "strict_arithmetic_pass": false,
+        "strict_performance_pass": true,
+        "uninstrumented_denominator_ns": [
+          3291125,
+          3166167,
+          3153375,
+          3162875,
+          3171000,
+          3150625,
+          3138959,
+          3153792,
+          3141708
+        ],
+        "upper_ratio": 0.0021214039431544027
+      },
+      "source_inventory_sha256": "947a85487ff01d96da32c13e45a072f5759e92280ff60b669401771a5a1be0c9"
+    }
+  ],
+  "prepared": 26,
+  "qualified_execution_receipts": [
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "091aae9487249247fc91be4e3e66907067dbe7749681d06b0fbe92c2fc525c6f",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "omitted-path",
+      "category": "ARCHITECTURE",
+      "event_sha256": "b91c8a73697b600e5dfcf72d17663f600ac23529379ae0441a3358215e51fd6e",
+      "source_inventory_sha256": "37feeb35758fe86393734d71a1c2ff858ff052bc3e1d01bb24461ced5ff18d9f",
+      "source_tree": "1977b59d84607570252ac92dd18aae471ceaed48",
+      "subject_executable_sha256": "3f74d63195e136d218616d89ef90673181e3858d7b1775f748b7d373b7b3270c"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "0c7943bf4eaecefb88908f12e1bd400f495a37837d0bad082fb2e395374b8748",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "double-count",
+      "category": "ARCHITECTURE",
+      "event_sha256": "7b8144363f3469eb279bc3ee94698c3ae3b620c7745cbc39a7dc5e8ff3d11553",
+      "source_inventory_sha256": "703815fcab76ec7da471c88048269685d948aa362d08fdc073e8faf173960a3b",
+      "source_tree": "c210385f19987ff32d94ffcca58a498cf1eb921f",
+      "subject_executable_sha256": "dd3d13eb37a2b0b73f5f7a6c6f125b9bdb57b859be5b24d434987cbf0dfc5184"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "e5f9a8f34ff49945ae46f38c54f838daf7aaeddbeea1b2a1fa2cf4e46fe4fd08",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "foreign-numerator",
+      "category": "ARCHITECTURE",
+      "event_sha256": "4620a2db26167ef1e6dff9367b29677819d28b176c22835395ca7dcaa9b7cf6d",
+      "source_inventory_sha256": "fa2bed138c3cf550dc44a0d37d903103e2de7a1514fb9c1c2dcc20bda82d94dc",
+      "source_tree": "4a50b176164007470a3d5c0963c4b361ec2ba8a0",
+      "subject_executable_sha256": "03b46958bf34f4f0a72c4aa3022920fe2bea1aeccf90c496ee20bee22a2db257"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "ec3110c4bc97bd45e9be474f1ce7575d1b7f4061a14ad6fa1d066e4673a42b9e",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "constant-numerator",
+      "category": "ARCHITECTURE",
+      "event_sha256": "d65cf08b5aabcd5142da2271c2bc4195c365536da2edf4ccf921e014ad7b2f71",
+      "source_inventory_sha256": "885c3cb6c88f6d3cc9f7571fb86eaf9aa245ebf29155b7f458764f1aa2ec793f",
+      "source_tree": "d497251a7ad280df7adbbf52d344e376f2f9a8b3",
+      "subject_executable_sha256": "eec6226e7a9af28db4e49df36a431aaba9b82113dcb53f36b038264b17aeaba4"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "fe79a7f6dfbe865f782a4d2b83931d62df3898b8594c0fc8e7142b7eb544057f",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "disabled-as-measured",
+      "category": "ARCHITECTURE",
+      "event_sha256": "9b9ed6a2b4541e53168ed82a4cd15d6d172545e82b4744e5b59d2b1543dff577",
+      "source_inventory_sha256": "7b2f192b420b8a3c490d3cea3c18115aa846aa1a58633e732a3d59ec10b5636d",
+      "source_tree": "7eb17822d43af7c1b0ed4a42dd9919e54b7c35df",
+      "subject_executable_sha256": "c782bf80736361ad3ef660a619f72121c2009eec024397fbd78f625c2e8e36f1"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "7e8af80582442b5450d18c9321b770689e73c40452c0bd005579115569298b87",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "skipped-calibration-resolver",
+      "category": "ARCHITECTURE",
+      "event_sha256": "d7db2cdb545cb453476b3439d0862fbb52c36229961384c131ade2d2834149d4",
+      "source_inventory_sha256": "f19842194c932b09d3ae1dad4833d9289cfc95af9d1fbcb4169e0b65c989ec12",
+      "source_tree": "1c1de95db0de43269bfcfb909d4f255cfe89adef",
+      "subject_executable_sha256": "b5c3f82d891e4444582e8bc208e2870cd561ae96521f2bff1a0a2610df475efb"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "8e3c19aac2b8987dd1cf58c6c62ba9711d59bc3fb3812292d6820a61b093c326",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "wrong-membership",
+      "category": "ARCHITECTURE",
+      "event_sha256": "c1fd9a5b60164a7eebdef2a9a1660e3e2b3d3d9b92d463006c9289033468b045",
+      "source_inventory_sha256": "b7c215f061a131a246eb0d7bb83ecc847c7220f810e442a30b58a0370cf60952",
+      "source_tree": "4417304bdc628aef8eeee8a603fcc0a7c93d332c",
+      "subject_executable_sha256": "87e7da77cd0a91b1f4c828c97782147b2971a74fc3b5415266247536ddcae158"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "31e64c0b3094c375caf3511f4544a2b32a2d9ed23b52743b9e9e62e4d1a78261",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "altered-cells-state",
+      "category": "ARCHITECTURE",
+      "event_sha256": "79e25a2fd6769916ae6d848e88ca1fbd489914878f99fa6217d1c15df909507d",
+      "source_inventory_sha256": "98a67401ac00dcd9aa1e13845690a3d27f37a02f444328dce847e3e919789b27",
+      "source_tree": "1cfbe57239d964f7d5d1cba687b7fbfb3d3979f3",
+      "subject_executable_sha256": "75299576a7b6bc1fdb2a92b3c910581e823a1971b71ea5a0ff24b4b0628103c2"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "96820b94d79b015f931c88b9419f2479d7245a764bb3ce54fa879d225efb6e36",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "contaminated-allocation-cache",
+      "category": "ARCHITECTURE",
+      "event_sha256": "321fc627f09ac4e3b144c6160a0bccaf7ec6b4b78e03f5396b2250202f92f12e",
+      "source_inventory_sha256": "c3c9a06fa52a350b5a79c7ddb5d6fe12fa6643ad60ad7ab4a25f8cea95194e93",
+      "source_tree": "a7c2b2e9be4b9ab16ad677ae22fdd1a7f473c51a",
+      "subject_executable_sha256": "4f43573a23bf66b79a89fdc3208a34c8eb37d27dbadb6bd51421198a9483ae64"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "467a9073352e44f31b68dea6a81f29371570fe4ba1cd2760a982655a2e4e6534",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "forged-denominator",
+      "category": "ARCHITECTURE",
+      "event_sha256": "4f101c59b96737402da1055b30b5956bbd57cf02ffe426e0bb0d9c47cde9450c",
+      "source_inventory_sha256": "c8e223eb96769f137ed3668d140698554727cbf7778beac61b9c17ce79cdaa9b",
+      "source_tree": "b81b30fd9b04d34e1df3b25e0c6e2ab57fffa522",
+      "subject_executable_sha256": "27c7de5be32e49d170bf7cffe87802fa298e1b7747686bd8ed60d14153623cc9"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "2724af648a905e71798a0de579f6ae5c76f88be2f871c613d9a4811e52f7bd16",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "foreign-calibration",
+      "category": "ARCHITECTURE",
+      "event_sha256": "de960323a5834bef53ef2aaf4aa45aecbe76e2133ef8548254192db0f1ae700d",
+      "source_inventory_sha256": "c6b6b02b3ef35318f990fefe9899d982027bb39d59eacf67ef08384b430fd069",
+      "source_tree": "7b6241578e1f69adc1191111cc411b0c30d951e6",
+      "subject_executable_sha256": "e38cc670879f3d3f179d8715ec15e15a478014499f961c30b49e166bb2a87d32"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "1a360ede5d3596e3b2f0b9e2319e0709ea03b40da2419d98030a2a262bf1325e",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "negative-corrected",
+      "category": "ARCHITECTURE",
+      "event_sha256": "adc490062e0dd8d3370ac3ac29cdd5b8dfc55f8447cf939497d7f44edbfb6051",
+      "source_inventory_sha256": "bfb904af4a0d7dd8249fc42febfa0276a7b0c5cc7ce3a9423826fe7071167a26",
+      "source_tree": "f226b28d068bb350716be3a6b445c57d2b8ec020",
+      "subject_executable_sha256": "44fd7e035b35cb57aab9f54eed6956e32bda681d7e58aad61de4b81bee62054b"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "b50e2b491b2760b41b7e7118096a24273ca977500f3e88dfac761dd836bf9fdc",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "changed-policy",
+      "category": "ARCHITECTURE",
+      "event_sha256": "bf0b36b0afa1b7d5f73152e466150d5394694dbb3640af1b9db9736baf7a626a",
+      "source_inventory_sha256": "5d7997f61a888eb4f3b1b28363c0ebb15b066bf94c65d037138b8ccce6bb655d",
+      "source_tree": "b3c51137798f5ddcfac5eeacee440948d2ea3c74",
+      "subject_executable_sha256": "133a0be26cdd785c3c6f63602673043d328bec73efe3eacf2c79e081db89298c"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "b61ea13c5e62ba23db8f6d52b6f7597582a6da2dfa1a57e3d3bd561df58b93e3",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "uncertain-threshold",
+      "category": "ARCHITECTURE",
+      "event_sha256": "4e08b8f76baa01e346b593860ee2a1219e3ea2daab5a345e0a71e7d27d2ca66b",
+      "source_inventory_sha256": "44ffe4592452acdc92e0480f172580b091528d28c7fbee2b76f6e50ea384c274",
+      "source_tree": "45f7e544f742045930a1851473b819264ecb21c4",
+      "subject_executable_sha256": "764cb47f274c6884c69c4d898d44bc9b054b49b55bee9d28d7bea9bda8938ffc"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "3b30779fc7236747a6b53f172656f50c2592e8a138772acf9e432127a451ef60",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "omitted-row-bind",
+      "category": "ARCHITECTURE",
+      "event_sha256": "29f4c358aa3ad3cff67d1de74e1254a42c51f42d745d9eea4fa1049010cb1865",
+      "source_inventory_sha256": "94fdfebbed3718e21f35042d29c1ff11521697cb82f4ae619948357f99109734",
+      "source_tree": "121146bba4d2127285ad1de5c0b4447c7fd69cf2",
+      "subject_executable_sha256": "4f006a8c06bf206cfdf4a626dcde45259971f706afe429ad38ecdeac5878f3c5"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "81a2d8cf42feb44874567926d8e097fed667fed55ccf58bfcf5fadb9e72f7b6f",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "omitted-status-bind",
+      "category": "ARCHITECTURE",
+      "event_sha256": "1baea7601642ec8e4321a06b40fcd38d37dcabdb8094bd66092999562fa5103b",
+      "source_inventory_sha256": "485671f8b32822139a6b92aeb3530592a7231411643395e6809f55af98cac86a",
+      "source_tree": "684f23278d402f4db5c935520d29045681a77c93",
+      "subject_executable_sha256": "8c2dd0ad44ae213537988d887a809f1bb40622c99e7134a5c2d9ceeb9808b50e"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "2bed9bf4b1abff7a236be4abe67c6b0cfcc03846a60c328248dd9bf0ed1d640a",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "omitted-grid-bind",
+      "category": "ARCHITECTURE",
+      "event_sha256": "a6a5b71517b9c24c1e3bfb2fd4db05ad159076c6b1cbd6aa152e637af89fdc9a",
+      "source_inventory_sha256": "f42a5117fcb5a3a271a93ab6459d7fb431e5eec1e378e97cbe98b88869c085c2",
+      "source_tree": "a6eaccee36a520348e436a4d3ac53d75fc6bb78d",
+      "subject_executable_sha256": "aebf3a57a31c89c3a81d2d43f41de94974e8d00878de061ff9f1f937580aefc5"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "872b9cbfe77479ce3464b5d9643ca48016c349a76f55a7a073b6ffc0ffbe8212",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "strict-over-budget",
+      "category": "ARCHITECTURE",
+      "event_sha256": "3394062d1bdd2e46f274a7a8b80e73aebe1d724b8fcead498d71d1d900dfd05c",
+      "source_inventory_sha256": "31038bce41955d0a7e9b6aecbfde6db6f9450ff38b7f3a62804cab1166f3864d",
+      "source_tree": "e265cafd583922271041d5ae284d1e10d2fd9eac",
+      "subject_executable_sha256": "75fca3e6f4ad07e35b2573945dc85f06741aaf68c6f22553c8448b15a60c666d"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "6e487de8283327f4242e1dd35c19108c059b75af199e1005f7d5ffc139647164",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "strict-valid",
+      "category": null,
+      "event_sha256": "ce03eb57acb6a2e5bb2acce9a6040e4ca4c795165e21c993449b60b38fc0dea6",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "strict-injected-forgery",
+      "category": "ARCHITECTURE",
+      "event_sha256": "829f1d512e1b7c171d560c47cec2b2aaee44f775b456968aa0dd989eb8744ea9",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "df40c9f2370b5460a3d288fc579acd1fcf9f073c4ac76a2af291c8944e741d45",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "strict-valid",
+      "category": null,
+      "event_sha256": "dbefbcae323cbe3666d16cca97b07fd2c7718422b68c9fd82430375ff6d51a6b",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "expensive-resolution",
+      "category": null,
+      "event_sha256": "467dba27c1269dcf567000f140048f25eb53860113b32397c117ba5c2b67f580",
+      "source_inventory_sha256": "47b61561106a21816b1a2bf6864bb209946cb1d355bc0a20a9b46a19218ed917",
+      "source_tree": "2dce29f2883a656666ea2d42d2f1f2985764e7e3",
+      "subject_executable_sha256": "d496068d803b6f2af5e130bc6b7281af6b1bdb7682d52b75b69c67ea67b35a79"
+    },
+    {
+      "case": "paint-only",
+      "category": null,
+      "event_sha256": "4bc72b4f27b0ea84913f9dfae073572a6c30c05e1a5f41122e74e96431e455a6",
+      "source_inventory_sha256": "e1dfb9ab081c68ff5efa18e1b3cfe0476ff9d937fe3f8e02a147fd6ebe06c78f",
+      "source_tree": "d62d5c18699f49236183326303531a6d094179ba",
+      "subject_executable_sha256": "763ef3b30ada94cc969ca6c1410706d554f85a045e185829d3fff9b845615f71"
+    },
+    {
+      "case": "strict-valid",
+      "category": null,
+      "event_sha256": "d82e4f82eba130dcbd3aaf5e4814e757e387e3236a18a2ffcb4de0015e423742",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "attest-valid",
+      "category": null,
+      "event_sha256": "aab2503df30105e1e0a297edc98008089248206a9b31e3c2f517485e47c0205e",
+      "source_inventory_sha256": "6dc3d48dad963736c78fa7ea9409e073514eacc1d1e3a7be20ca5e28bf9a3d95",
+      "source_tree": "a067adf1e61fa8a6fb80b89c60c1ca5bf080cebd",
+      "subject_executable_sha256": "87fc2e801fc01a33865e90d8a12c47c12533375ab013075d315e113c7057bad2"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "4b60aacaaca0e6633f8a8088009efda9688a9bc153fb34ef568d2f2a878ed91f",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "attest-expensive-resolution",
+      "category": "ARCHITECTURE",
+      "event_sha256": "5dbf246fcf816ca6133e63990ad7b4713903952d98c63c433a46c467d8b32a87",
+      "source_inventory_sha256": "5dce20d0f1120653338156c02f1bf9ee25d4ca8b2cdb904a0861a03b87b9a7b3",
+      "source_tree": "85914d1a0ba59659db44e0795de4add6fa16bb81",
+      "subject_executable_sha256": "7d8988dcb0eac3248af6b512659f2e2cd83202f06615ffa884abbae2f03894e0"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "9e247e0f066ecc535d5e6dcc9228cbc4624d0e7e673b10c5403783969cf00373",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    },
+    {
+      "case": "attest-paint-only",
+      "category": null,
+      "event_sha256": "4030bca7723605510b61f11d8231e9a27d7a4d95f16a99f8ce58b8a06a36c71a",
+      "source_inventory_sha256": "947a85487ff01d96da32c13e45a072f5759e92280ff60b669401771a5a1be0c9",
+      "source_tree": "890bc8405648f45385972c783fc9c883d7d88828",
+      "subject_executable_sha256": "45f8d746af1426326bc5277b52673c3fc66a999480f8fe92d9e0f138f59a73f1"
+    },
+    {
+      "case": "valid",
+      "category": null,
+      "event_sha256": "ac402f460470d84765f029a90fa802d15c49a91356db020b68411833dd5db010",
+      "source_inventory_sha256": "6d24259172f2c87f7041a3f663dbbc2e9489bfa648a6a3ce4172f4be0f5c6aa5",
+      "source_tree": "c645955abbe4a240cfd96f1d03f5e08f42b8e025",
+      "subject_executable_sha256": "39ca8d4665241fd5ef1351ef94ad591d2973846c29a5a711c2945eafbae0fc18"
+    }
+  ],
+  "required_negative_classes": 14,
+  "source_pin": "7b27732a8c3c131760ec3438f641cb3c11343a42"
+}

@@ -1,0 +1,72 @@
+{
+  "main": "7b27732a8c3c131760ec3438f641cb3c11343a42",
+  "holla": "2e2401393c47360741ebd321679de08982dca50a",
+  "oracle": "02f5294bfdbf38004cc49130d0aff1d01f31434c",
+  "rename_detection": false,
+  "changed_paths": 7885,
+  "partitions": {
+    "tooling-tests": {
+      "paths": 244,
+      "text": 241,
+      "binary": 3,
+      "added": 131559,
+      "removed": 6715
+    },
+    "history": {
+      "paths": 188,
+      "text": 188,
+      "binary": 0,
+      "added": 56673,
+      "removed": 11948
+    },
+    "holla": {
+      "paths": 86,
+      "text": 86,
+      "binary": 0,
+      "added": 13346,
+      "removed": 44262
+    },
+    "jackin": {
+      "paths": 92,
+      "text": 92,
+      "binary": 0,
+      "added": 27517,
+      "removed": 34598
+    },
+    "showcase": {
+      "paths": 68,
+      "text": 68,
+      "binary": 0,
+      "added": 16693,
+      "removed": 10273
+    },
+    "tablepro": {
+      "paths": 45,
+      "text": 45,
+      "binary": 0,
+      "added": 14046,
+      "removed": 12300
+    },
+    "artifacts": {
+      "paths": 7019,
+      "text": 5805,
+      "binary": 1214,
+      "added": 94841,
+      "removed": 117187
+    },
+    "foundation": {
+      "paths": 67,
+      "text": 67,
+      "binary": 0,
+      "added": 27721,
+      "removed": 4088
+    },
+    "components": {
+      "paths": 76,
+      "text": 76,
+      "binary": 0,
+      "added": 55225,
+      "removed": 17746
+    }
+  }
+}

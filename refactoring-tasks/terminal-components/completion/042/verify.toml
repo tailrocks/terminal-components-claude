@@ -1,0 +1,60 @@
+schema = "verify/v2"
+task_id = "TASK-042"
+writable_paths = ["apps/holla/src/app.rs","apps/holla/src/dispatch.rs","apps/holla/src/scenario.rs","apps/holla/src/screens/mod.rs","apps/holla/src/screens/files.rs","apps/holla/src/domain/mod.rs","apps/holla/src/domain/files.rs","apps/holla/src/domain/fs.rs","apps/holla/src/sim/mod.rs","apps/holla/src/sim/fs.rs","apps/holla/src/sim/catalogue.rs","apps/holla/src/sim/world.rs","apps/holla/tests/completion_042.rs"]
+forbidden_paths = ["docs/refactoring-plan","refactoring-tasks","tools/refactor-proof","tools/refactor-proof-adapters","tools/test-inventory","tools/test-disposition","baseline","shots","parity","Cargo.lock",".openai","AGENTS.md","CLAUDE.md"]
+
+[[checks]]
+id = "CHK-001"
+phase = "precondition"
+argv = ["/proof/bin/tc-proof","preflight","--context","/run/tc-proof/contexts/CHK-001.json"]
+expected = { exit = 0 }
+requirements = ["R-004"]
+acceptance = ["AC-004"]
+
+[[checks]]
+id = "CHK-002"
+phase = "focused"
+argv = ["/proof/bin/tc-proof","capture","--context","/run/tc-proof/contexts/CHK-002.json","--lane","direct"]
+expected = { exit = 0 }
+requirements = ["R-001"]
+acceptance = ["AC-006"]
+
+[[checks]]
+id = "CHK-003"
+phase = "focused"
+argv = ["/proof/bin/tc-proof","capture","--context","/run/tc-proof/contexts/CHK-003.json","--lane","pty"]
+expected = { exit = 0 }
+requirements = ["R-001"]
+acceptance = ["AC-007"]
+
+[[checks]]
+id = "CHK-004"
+phase = "focused"
+argv = ["/proof/bin/tc-proof","compare","--context","/run/tc-proof/contexts/CHK-004.json"]
+expected = { exit = 0 }
+requirements = ["R-001"]
+acceptance = ["AC-001"]
+
+[[checks]]
+id = "CHK-005"
+phase = "regression"
+argv = ["/proof/bin/tc-proof","account-tests","--context","/run/tc-proof/contexts/CHK-005.json"]
+expected = { exit = 0 }
+requirements = ["R-003"]
+acceptance = ["AC-003"]
+
+[[checks]]
+id = "CHK-006"
+phase = "lint"
+argv = ["/proof/bin/tc-proof","architecture","--context","/run/tc-proof/contexts/CHK-006.json"]
+expected = { exit = 0 }
+requirements = ["R-001","R-002"]
+acceptance = ["AC-008","AC-002"]
+
+[[checks]]
+id = "CHK-007"
+phase = "gate"
+argv = ["/proof/bin/tc-proof","close","--context","/run/tc-proof/contexts/CHK-007.json"]
+expected = { exit = 0 }
+requirements = ["R-005"]
+acceptance = ["AC-005"]

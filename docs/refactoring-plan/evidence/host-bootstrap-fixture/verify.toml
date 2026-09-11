@@ -1,0 +1,44 @@
+schema = "verify/v2"
+task_id = "TASK-901"
+writable_paths = ["src/**"]
+forbidden_paths = ["protected.txt", ".proof/**"]
+
+[[checks]]
+id = "CHK-001"
+phase = "precondition"
+argv = ["python3", "-I", ".proof/check.py", "sentinel"]
+expected = { exit = 0 }
+requirements = ["R-001"]
+acceptance = ["AC-001"]
+
+[[checks]]
+id = "CHK-002"
+phase = "focused"
+argv = ["python3", "-I", ".proof/check.py", "payload"]
+expected = { exit = 0 }
+requirements = ["R-002"]
+acceptance = ["AC-002"]
+
+[[checks]]
+id = "CHK-003"
+phase = "regression"
+argv = ["python3", "-I", ".proof/check.py", "sentinel"]
+expected = { exit = 0 }
+requirements = ["R-003"]
+acceptance = ["AC-003"]
+
+[[checks]]
+id = "CHK-004"
+phase = "lint"
+argv = ["python3", "-I", ".proof/check.py", "all"]
+expected = { exit = 0 }
+requirements = ["R-004"]
+acceptance = ["AC-004"]
+
+[[checks]]
+id = "CHK-005"
+phase = "gate"
+argv = ["python3", "-I", ".proof/check.py", "all"]
+expected = { exit = 0 }
+requirements = ["R-005"]
+acceptance = ["AC-005"]

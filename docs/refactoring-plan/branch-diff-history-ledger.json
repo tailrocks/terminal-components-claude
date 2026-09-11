@@ -1,0 +1,1889 @@
+{
+  "schema": "tc-history-branch-review/v1",
+  "holla": "2e2401393c47360741ebd321679de08982dca50a",
+  "oracle": "02f5294bfdbf38004cc49130d0aff1d01f31434c",
+  "main": "7b27732a8c3c131760ec3438f641cb3c11343a42",
+  "scope": "history partition only; source review, not execution proof",
+  "files": [
+    {
+      "path": "COMPONENT_ARCHITECTURE.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "3b7885e63c7a61abf94b52590529868571fd4fa8",
+      "read_status": "full_side_combined_exact_blob_ranges_and_all_hunks_read",
+      "read_evidence": "Exact main blob3b7885e63c7a61abf94b52590529868571fd4fa8. Complete §§3-16,18-20,22-75/tail reused from history-semantic-reaudit.md:13,50,169. New direct complete gap reads1-117,2294-3863,4146-4949; truncated4188-4205 separately reread. A whole side equals all changed hunks.",
+      "disposition": "Continue accepted architecture with later authority and exact main amendments; retain obsolete quoted types/signatures separately. Source examples are not standalone functional proof: Roster duplicate-label keys alias entities; custom Segmented illustration omits complete author conformance and stores positional state; old package-name migration and backend-policy snippets superseded. Current protected compile/full-runtime/paint witnesses must cover actual APIs and every stated capability; no blanket digest blessing.",
+      "task_mapping": "009-031,032-064,065-073; all A/HI/HAR/HM/HL canonical source owners"
+    },
+    {
+      "path": "CONTINUE_PROMPT.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "dc3b5e27058e3872c43da0321e723f0b0d34461e",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read in branch-history pass; entire A side equals all added hunks",
+      "disposition": "preserve_supersession_pointer_current_PLANNING_GOAL_controls",
+      "task_mapping": "TASK-069"
+    },
+    {
+      "path": "COORDINATION.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "af4b58d12ffe11ea293c904f5e74f4c64135d34a",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve incident evidence: test guards bypassed production, substring registration accepted comments, first-generation blessing pinned wrong semantics, shared-writer/index races. Current protected executor ownership and independent observer gates replace remembered rules; historical lane/model/commit/bless instructions are superseded.",
+      "task_mapping": "001,007-008,031,065-073; actual bad-input qualification and scoped writes"
+    },
+    {
+      "path": "DESIGN.md",
+      "status": "M",
+      "holla_blob": "660afb5a5cf087e58f4dd2563447e4a1b8537c58",
+      "main_blob": "e68896f99629323d4adb7c4d88234a776a231589",
+      "read_status": "full_both_sides_reconstructed_and_all_hunks_read",
+      "read_evidence": "Both exact blobs fully covered in history-source-continuation.md:5-17 (oracle full body; main full body reconstructed through all deltas); exact pinned blob-to-blob branch diff read completely in this pass.",
+      "disposition": "Preserve oracle amendments removed from main DESIGN: single-click editing, modifier/capability semantics, diff/scroll/tail/dialog/finder/gates. Main tonal-entity strip remains distinct architecture/domain exception, not authority to erase oracle document tabs. Old two-click/no-diff/no-context-menu prose is superseded.",
+      "task_mapping": "011-014,016-031,032-064,068"
+    },
+    {
+      "path": "GOAL.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "6a7f926011df0662a6661c8b0914a145f2ea4c37",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "continue_current_authority_with_later_amendments",
+      "task_mapping": "historical-obligations.tsv A127-A130/O01-O07; current PLANNING_GOAL supersedes historical execution instructions"
+    },
+    {
+      "path": "GOAL2.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "e226a9f62b80b318e7c7cf7296a17fca60ab16fd",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "continue_current_authority_with_later_amendments",
+      "task_mapping": "historical-obligations.tsv A127-A130/O01-O07; current PLANNING_GOAL supersedes historical execution instructions"
+    },
+    {
+      "path": "HANDOFF_SLICE4_WAVE1.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "44516794f6f07e28704af8fbf678315359bd8b60",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve explicitly unverified/red chrome handoff and exact middle architecture obligations; later named amendments supersede old backend/key policy, FIELD fixture and gesture assumptions. Reject old agent/commit/bless instructions, fixed slice scope and source-reference-only purity claims as current authority.",
+      "task_mapping": "009-031,051-069; HM/HL precise source clauses"
+    },
+    {
+      "path": "IMPROVEMENTS_PLAN.md",
+      "status": "D",
+      "holla_blob": "886b1e851afee16eb901eaaa3284e3b002d56033",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve explicit current Holla simulation versus Later/conditional/retired splits: F20 Jackin search and HP16 CLI wholly deferred, no hidden extension from checkboxes. Current PLANNING_GOAL and adjudications resolve architecture repair versus observable old quirks; checked source tracker never candidate proof.",
+      "task_mapping": "009-031,032-069; F/HP exact clause owners and ADJ09/10/12/13 as applicable"
+    },
+    {
+      "path": "PLANNING_GOAL.md",
+      "status": "D",
+      "holla_blob": "07c8aaf8cc6e75b383bbdc9ed63a30536350e31d",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Complete pinned blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve current controlling planning-only/oracle+architecture goal; rejects old blessing and execution permissions.",
+      "task_mapping": "001-073; planning authority"
+    },
+    {
+      "path": "README.md",
+      "status": "M",
+      "holla_blob": "179838a63908986206f52624456426294d051fb6",
+      "main_blob": "f3e3533839a8d39e0b57aab1020a1777374bd705",
+      "read_status": "full_both_sides_and_all_hunks_read",
+      "read_evidence": "Direct both pinned bodies read; truncated middle recovered by Holla chars18000:end and main chars0:2500; complete exact blob-to-blob branch diff read.",
+      "disposition": "Preserve workspace/public runtime migration but repair stale three-app architecture list, removed Diff/AltD/Holla variant CLI documentation and regressed one-click text-field wording from actual oracle. Main tail-mask description is factual historical source, not approved disclosure; current ADJ-13 governs. Baseline auto-update instructions cannot authorize candidate blessing; current whole-frame/tool receipts control. Holla complete revised simulation/priority-stack workflows cannot be replaced by older main description.",
+      "task_mapping": "003;006;009;017;032;040;051;058;063;064;068;069"
+    },
+    {
+      "path": "REFACTORING_GOAL.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "859bf16ecb176ecd967030b79227a734ea8273f5",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "continue_current_authority_with_later_amendments",
+      "task_mapping": "historical-obligations.tsv A127-A130/O01-O07; current PLANNING_GOAL supersedes historical execution instructions"
+    },
+    {
+      "path": "REFACTORING_STATE.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "3d4f655c829952b0b4fa2130a03340ac65b72366",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Complete pinned added blob decoded contiguous0:24000 through144000:168000 in24000character chunks, then168000:end. All changed hunks covered; historical commands not executed.",
+      "disposition": "Preserve complete chronological decisions, supersessions and explicit failed/partial gates; leading status names an obsolete 'last' checkpoint and cannot override later source/current planning authority. Historical main pipeline item39 reblessing does not supersede user-selected immutable02f5294 UX oracle. Registry self-enumeration, test-side bypass guards, unresolved-name allowances, status reason strings, ignored unmatched tests and incomplete frame first-failure counts are documented enabling classes, not current proof. Preserve§73 intra-module Props limit,§72 central references, exact geometry and controlled-state amendments, independent full failure accounting and no-bless boundaries. Old model routing, cleanup/deletion/push permissions are superseded. No current completeness claimed by historical247/934/2298 counts.",
+      "task_mapping": "TASK001;TASK007;TASK008;TASK009;TASK016;TASK031;TASK032;TASK040;TASK051;TASK058;TASK063;TASK064;TASK065;TASK068;TASK069;TASK070;TASK071;TASK072;TASK073"
+    },
+    {
+      "path": "RESUME_PROMPT.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "73a3cc01f3c1392812cc43454ef89b51ef2c30fe",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read in branch-history pass; entire A side equals all added hunks",
+      "disposition": "preserve_supersession_pointer_current_PLANNING_GOAL_controls",
+      "task_mapping": "TASK-069"
+    },
+    {
+      "path": "docs/REFACTORING_AUDIT_REPORT.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "cb3333ca822d42ab944c5773c7d5aa1ef706212a",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_bounded_historical_report_and_limits_not_current_execution_authority",
+      "task_mapping": "TASK-009;TASK-051;TASK-057;TASK-065;TASK-066;TASK-069; source-specific limits in branch-diff-history.md"
+    },
+    {
+      "path": "docs/REFACTORING_EXECUTION_GOAL_PROMPT.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "f6c19acf18113948063d8d7f20a401dd6bb01223",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read in branch-history pass; entire A side equals all added hunks",
+      "disposition": "preserve_supersession_pointer_current_PLANNING_GOAL_controls",
+      "task_mapping": "TASK-069"
+    },
+    {
+      "path": "docs/audit/api-audit.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "776b9927499b85633f2e6db5a1e4895374430a97",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "Exact pinned main blob matches full source read manifest: reaudit-history-inputs.md:148-166 or history-source-continuation.md:116-128; A whole side equals all changed hunks.",
+      "disposition": "Preserve historical source and explicit decisions; apply later amendments and current oracle/architecture authority, not historical PASS as current proof.",
+      "task_mapping": "009-031,032-064,065-069; exact clause owners retained in semantic history ledgers"
+    },
+    {
+      "path": "docs/audit/app-audit.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "2d7b8831135ae7dc308fcf0f01be52c2c7d9afc6",
+      "read_status": "full_side_reconstructed_from_full_body_and_all_deltas",
+      "read_evidence": "Independent reader reaudit_components_b fully read original bodies plus every amendment delta; explicit reconstruction manifest reaudit-history-inputs.md:148-169. Distinct main hashes retained; A whole side is all changed hunks.",
+      "disposition": "Preserve original audit findings and explicit later acceptance/amendment decisions, all23 app items with partial #22; do not treat old proposal status or bounded ACCEPT as current implementation proof. Current oracle supersedes historical UX-changing test migration proposals.",
+      "task_mapping": "009-031,032-064,065-069; HAR001-044 and HI001-066 exact clause owners"
+    },
+    {
+      "path": "docs/audit/architecture-research.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "a0c7d7700837b7bdea4e50ee63aadd211a139755",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "Exact pinned main blob matches full source read manifest: reaudit-history-inputs.md:148-166 or history-source-continuation.md:116-128; A whole side equals all changed hunks.",
+      "disposition": "Preserve historical source and explicit decisions; apply later amendments and current oracle/architecture authority, not historical PASS as current proof.",
+      "task_mapping": "009-031,032-064,065-069; exact clause owners retained in semantic history ledgers"
+    },
+    {
+      "path": "docs/audit/consolidation/adjudication/part1.txt",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "4c4993a64c1c7c6cd0620ab99bac09475483b5ef",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read in branch-history pass; entire A side equals all added hunks",
+      "disposition": "preserve_rejected_patch_provenance_continue_capabilities_no_old_digest_waiver",
+      "task_mapping": "HIST:A129;TASK-015;TASK-034;TASK-051"
+    },
+    {
+      "path": "docs/audit/consolidation/adjudication/part2.txt",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "e116782916259daff55a5c3ac0dca445e1ba58d5",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read in branch-history pass; entire A side equals all added hunks",
+      "disposition": "preserve_rejected_patch_provenance_continue_capabilities_no_old_digest_waiver",
+      "task_mapping": "HIST:A129;TASK-015;TASK-034;TASK-051"
+    },
+    {
+      "path": "docs/audit/consolidation/adjudication/part3.txt",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "dde7b06dcc7e565db603b8fcc2643288351f531c",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read in branch-history pass; entire A side equals all added hunks",
+      "disposition": "preserve_rejected_patch_provenance_continue_capabilities_no_old_digest_waiver",
+      "task_mapping": "HIST:A129;TASK-015;TASK-034;TASK-051"
+    },
+    {
+      "path": "docs/audit/consolidation/disposition-ledger.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "f86ddea31309c84f2ea10a080f83b42508b021ff",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct entire pinned body read contiguous chars0:22000,22000:44000,44000:66000,66000:88000,88000:end; A whole side equals changed hunks.",
+      "disposition": "Preserve exact233 worktree/113 branch historical dispositions and adopted/rejected evidence; no current deletion authority. Patch-equivalent commits alone do not prove later tree still contains behavior (later revert counterexample); historical dismissal must not serve current requirement closure. ABSENT docs labeled stale/nonfunctional cannot erase surviving requirements. Rejected ItemRow/Manager/Grid/Progress implementations do not reject capability or pinned UX; current source tests/owners remain.",
+      "task_mapping": "015;027;034;035;051;068;069"
+    },
+    {
+      "path": "docs/audit/domain-boundary-audit.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "3ac2d20ffc7719af92549b4fa982786c8c2dfc38",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "Exact pinned main blob matches full source read manifest: reaudit-history-inputs.md:148-166 or history-source-continuation.md:116-128; A whole side equals all changed hunks.",
+      "disposition": "Preserve historical source and explicit decisions; apply later amendments and current oracle/architecture authority, not historical PASS as current proof.",
+      "task_mapping": "009-031,032-064,065-069; exact clause owners retained in semantic history ledgers"
+    },
+    {
+      "path": "docs/audit/interaction-audit.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "193c27c8182266a090f7ae534e5f024c59f624ce",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "Exact pinned main blob matches full source read manifest: reaudit-history-inputs.md:148-166 or history-source-continuation.md:116-128; A whole side equals all changed hunks.",
+      "disposition": "Preserve historical source and explicit decisions; apply later amendments and current oracle/architecture authority, not historical PASS as current proof.",
+      "task_mapping": "009-031,032-064,065-069; exact clause owners retained in semantic history ledgers"
+    },
+    {
+      "path": "docs/audit/legacy-test-disposition.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "e61a91daf98d4fecbab63eab7900ec40c1283ddd",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md:15 explicitly records complete818-line pinned-main body plus both568e1ef6/9df371d5 patches; main exact blob e61a91daf98d4fecbab63eab7900ec40c1283ddd independently checked; A whole side equals all changed hunks.",
+      "disposition": "Preserve all247 historical test partitions and14 gaps; inferred-name assertion summaries and same-name perf successors explicitly insufficient. Historical DIES never authorizes dropping surviving behavior or postmigration unknown failures.",
+      "task_mapping": "007-008,066-069,071"
+    },
+    {
+      "path": "docs/audit/main-holla/README.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "b733d4904d493f0ceaff3f0477cbf6627f4d528d",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read in branch-history pass; entire A side equals all added hunks",
+      "disposition": "preserve_historical_evidence_continue_surviving_contract_reject_old_completion_as_current_proof",
+      "task_mapping": "TASK-065;TASK-066;TASK-069; exact historical family join in historical-obligations-canonical.tsv"
+    },
+    {
+      "path": "docs/audit/main-holla/app-test-source-inventory.json",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "cdd418515cf45e3feb4fe705481ef9bc8de098ac",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Entire JSON losslessly compacted with all keys/values preserved, chars0:17000,17000:36000,36000:59580 read; A whole-side equals changed hunks.",
+      "disposition": "Preserve every main/Holla TablePro/Jackin historical test and enum fragment as leads. Not four-app discovery and not complete enum/API extraction: nested struct variants truncate at first brace (Statement,ModalResult,OpError,etc.). Bare test names and renamed assertions cannot prove execution/semantic relocation; current qualified source/body/profile inventory must independently rediscover all tests. Preserve modeled-only BlockedSidecar distinction and explicit secret-policy adjudication.",
+      "task_mapping": "007;008;051-064;068;071"
+    },
+    {
+      "path": "docs/audit/main-holla/backend-boundary.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "e3954c6d3ff12fd7d8db2320282173f818f8ea01",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read in branch-history pass; entire A side equals all added hunks",
+      "disposition": "continue_backend_free_types_and_isolated_dependency_proof",
+      "task_mapping": "HIST:A90-A96;TASK-009;TASK-065;TASK-068"
+    },
+    {
+      "path": "docs/audit/main-holla/baseline.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "4a29f67b02c059fdae190d2620e04930c89657af",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read in branch-history pass; entire A side equals all added hunks",
+      "disposition": "preserve_tool_limits_archive_identity_requalify_current_host_runner",
+      "task_mapping": "TASK-001;TASK-070;TASK-071;TASK-072;TASK-069"
+    },
+    {
+      "path": "docs/audit/main-holla/capture-tool-acquisition-review.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "3cd9b006b6aafe7607f39d95074ed6f7ab5db89a",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read in branch-history pass; entire A side equals all added hunks",
+      "disposition": "preserve_tool_limits_archive_identity_requalify_current_host_runner",
+      "task_mapping": "TASK-001;TASK-070;TASK-071;TASK-072;TASK-069"
+    },
+    {
+      "path": "docs/audit/main-holla/component-inventory.json",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "1dee7b66ac483e4ad4c63651f24e287beffeff85",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Entire JSON metadata and components0-10 read original; components11:end read losslessly compacted JSON including all fields/values; full added side equals changed hunks.",
+      "disposition": "Preserve every historical component/type/part/test declaration as source leads, not executing proof or API completeness. All borrowed_slice=true, duplicate Tabs TAB, empty Diff parts and row_builder/slot booleans expose syntactic inventory limitations; capability admission must inspect actual external painter/code paths. Named Form total-validation test does not prove body (ADJ-12); Radio/Select test names conflict with oracle and need explicit current dispositions.",
+      "task_mapping": "007;008;009-031;065;068;072;073"
+    },
+    {
+      "path": "docs/audit/main-holla/components.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "9f265a2a64c24a4d5fe8acae02cc0702fdf743b7",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read in branch-history pass; entire A side equals all added hunks",
+      "disposition": "preserve_bounded_findings_reconcile_later_readiness_custom_cell_backend_amendments",
+      "task_mapping": "TASK-011;TASK-022;TASK-031;TASK-065;TASK-072"
+    },
+    {
+      "path": "docs/audit/main-holla/dialog-review.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "2d9fc23c223efb851cbc7bdbc80f5be2aaf404cd",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read in branch-history pass; entire A side equals all added hunks",
+      "disposition": "preserve_narrow_compiler_repair_no_full_customization_or_UI_parity_claim",
+      "task_mapping": "TASK-017;TASK-031;TASK-065"
+    },
+    {
+      "path": "docs/audit/main-holla/execution-checkpoints-through-825bbb6.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "4f61b171a53ae6bf11b0be75040a49703f0db75c",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve exact historical reviewed/rejected/integrated states and unresolved test/timing/publication/app failures, especially Scene stale cache, Mono carrier, missing Holla binary, pending historical mappings. Supersede historical push/agent/implementation permission and old pins under present planning goal. Root-focused counts/998 restoration do not establish current all-app parity or direct measurement acceptance.",
+      "task_mapping": "001-073"
+    },
+    {
+      "path": "docs/audit/main-holla/execution-checkpoints-through-d7b772c.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "2fd0a452412a728195f14fcf8d0add1532d152a2",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve historical structural repair/rejection lineage: exact compiler inputs/build-script confinement, same-key owner generation, native-cache deadlock, pointer suppression, immutable Plan approval, Split clipped/logical separation. Integrated component counts and normalized original assertions are bounded; strict style remains unaccepted and product visuals/3211 mappings pending. Current fixed pins and all73 tasks supersede old execution/push/merge routing.",
+      "task_mapping": "001-073"
+    },
+    {
+      "path": "docs/audit/main-holla/history/AUDIT.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "2ddd8e413f582cdfb2c1d549a08208056e5e28c6",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read in branch-history pass; entire A side equals all added hunks",
+      "disposition": "preserve_historical_evidence_continue_surviving_contract_reject_old_completion_as_current_proof",
+      "task_mapping": "TASK-065;TASK-066;TASK-069; exact historical family join in historical-obligations-canonical.tsv"
+    },
+    {
+      "path": "docs/audit/main-holla/history/CURRENT-CONTRACT.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "4bc89bd6608eb446572a01fdb6e1c92b29eadae1",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Complete pinned blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve historical source and explicit decisions; apply later amendments and current oracle/architecture authority, not historical PASS as current proof.",
+      "task_mapping": "009-031,032-064,065-069; exact clause owners retained in semantic history ledgers"
+    },
+    {
+      "path": "docs/audit/main-holla/history/INDEX.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "a9231c930b9e0570ead11983d22de2f24beb1158",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve exact68 parent-relative historical source links and both merge-parent identities. Limited two-path/pinned-old-base index is not complete current repository/history; expanded current discovered indexes control missing sources. Patch titles not accepted semantic proof.",
+      "task_mapping": "007,065,067-069; expanded history-revision-index and canonical source records"
+    },
+    {
+      "path": "docs/audit/main-holla/history/api/REPORT.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "d9f0b52f4314284b7ddebe740237e3b950b9803a",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve exact K/L/M and amendment semantics, named-test inventories and surviving boundary obligations. Reject historical acceptance as current proof, bare-index choice concession, shared-reference-only purity claim, stale universal FIELD-visible assertion (EARLY-AMEND044), and independent-Radio UX assumption without current ADJ10.",
+      "task_mapping": "009-031,065-069; exact HI/HAR/HM/HL clause owners"
+    },
+    {
+      "path": "docs/audit/main-holla/history/current-source-gaps.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "379374b40771865a61f8d9b3e25a6e0c2a484a7c",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_bounded_historical_report_and_limits_not_current_execution_authority",
+      "task_mapping": "TASK-009;TASK-051;TASK-057;TASK-065;TASK-066;TASK-069; source-specific limits in branch-diff-history.md"
+    },
+    {
+      "path": "docs/audit/main-holla/history/early/REPORT.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "b4fcfdfd380b2eb86596129e6c81adb19e0a57f8",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve complete early contract and known specification errors; current authority resolves stale historical geometry/bootstrap/backend/gesture and test-count claims. Early report already acknowledges same-package-crate rationale error. Its induction proof is bounded0-6 only, not whole188 branch completion.",
+      "task_mapping": "009-031,032-069; EARLY/HIST precise source owners"
+    },
+    {
+      "path": "docs/audit/main-holla/history/historical-named-obligation-inventory.json",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "942d16a9bc97e958d6e0faedabe6f4c3dc84a6b9",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Lossless dictionary-normalized full JSON read: all5 field schema, sole repeated disposition, complete first-index→commit map;1483 rows in0:220,220:470,470:720,720:970,970:1220,1220:1483 preserve name/index/introduction array/presence. Exact object reconstruction True; no field omitted.",
+      "disposition": "Preserve all1483 extracted strings and68-edge introduction provenance; every row explicitly requires semantic mapping. Tokens mix rejected APIs, command examples, quoted buggy expressions, regexes and actual requirements: present_verbatim is not implementation or normative acceptance. Current620 clause dispositions plus independently compiled qualified test inventory govern; no token-count based obligation closure or restored deprecated APIs.",
+      "task_mapping": "007;008;009-031;065;068;069;071;072"
+    },
+    {
+      "path": "docs/audit/main-holla/history/integrator-semantic-review.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "8259ca9c9d6b13a32820efb83587fc101802609c",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve exact K/L/M and amendment semantics, named-test inventories and surviving boundary obligations. Reject historical acceptance as current proof, bare-index choice concession, shared-reference-only purity claim, stale universal FIELD-visible assertion (EARLY-AMEND044), and independent-Radio UX assumption without current ADJ10.",
+      "task_mapping": "009-031,065-069; exact HI/HAR/HM/HL clause owners"
+    },
+    {
+      "path": "docs/audit/main-holla/history/late/AUDIT.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "9578421723fcf8c5ccc387e18a2274edc455d1ea",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve precise late history amendment sets and completeness limits. Current Grid gesture ADJ/current oracle supersedes old single-Moved/double-Activated law; detailed Grid ICON now accepted, not old no-ICON universal. Explicit initialization replaces historical paint-bootstrap. Exact FIELD exception and source app count supersede stale universal/22/96 sentences.",
+      "task_mapping": "009-031,032-069,070-073; HL001-060 precise owners"
+    },
+    {
+      "path": "docs/audit/main-holla/history/late/coverage-integrity.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "00ca9dd3a86e19ed029c6aab2d546b24ce3d2b0a",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_bounded_historical_report_and_limits_not_current_execution_authority",
+      "task_mapping": "TASK-009;TASK-051;TASK-057;TASK-065;TASK-066;TASK-069; source-specific limits in branch-diff-history.md"
+    },
+    {
+      "path": "docs/audit/main-holla/history/middle/early-large-report.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "96fe72e187045e8c389abe119d6b971bbd54efc9",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve explicitly unverified/red chrome handoff and exact middle architecture obligations; later named amendments supersede old backend/key policy, FIELD fixture and gesture assumptions. Reject old agent/commit/bless instructions, fixed slice scope and source-reference-only purity claims as current authority.",
+      "task_mapping": "009-031,051-069; HM/HL precise source clauses"
+    },
+    {
+      "path": "docs/audit/main-holla/history/middle/report-11-21.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "81a54c4d6ea55fd2c1b319875b42ada571aa7842",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read in branch-history pass; entire A side equals all added hunks",
+      "disposition": "preserve_historical_evidence_continue_surviving_contract_reject_old_completion_as_current_proof",
+      "task_mapping": "TASK-065;TASK-066;TASK-069; exact historical family join in historical-obligations-canonical.tsv"
+    },
+    {
+      "path": "docs/audit/main-holla/history/semantic-coverage-final.json",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "eb8febd46f3c944a73721892149ca88710259931",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Entire JSON losslessly compacted chars0:19000,19000:38000,38000:45009 including all68 edge records/hashes; A whole-side equals changed hunks.",
+      "disposition": "Preserve exact68 historical edges/64snapshots and inherited-text method as bounded provenance. Only two paths at oldc12base; cannot certify current all-document history, all188 branch paths or candidate runtime. Current expanded revision ledger/clause audit and exact current pins control; report hashes cannot self-certify semantic completeness.",
+      "task_mapping": "007;008;068;069;071"
+    },
+    {
+      "path": "docs/audit/main-holla/holla-disposition.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "0b585819afc3adf99ec88287325dbf5120fee19b",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve bounded source audits and public runtime-publication guard proposal; later accepted signatures/authority control. Historical parity planning PASS is not implementation evidence or permission for live OS/PTY/Trash/persistence. Stable identity correction must separately preserve current oracle-visible semantics.",
+      "task_mapping": "009-010,040-050,066-070; historical HP01-23 remain simulation-scoped"
+    },
+    {
+      "path": "docs/audit/main-holla/holla-domain-review.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "b599923747e8dbf39d73f00880526409fa1faa2b",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "continue_typed_approval_identity_and_memory_safety_reprove_actual_oracle_app_semantics",
+      "task_mapping": "TASK-040;TASK-041;TASK-047;TASK-049;TASK-050"
+    },
+    {
+      "path": "docs/audit/main-holla/holla-memory-review.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "581d2aedebd80f3ab7f8da9586b6b93b3557957d",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "continue_typed_approval_identity_and_memory_safety_reprove_actual_oracle_app_semantics",
+      "task_mapping": "TASK-040;TASK-041;TASK-047;TASK-049;TASK-050"
+    },
+    {
+      "path": "docs/audit/main-holla/holla-path-disposition.tsv",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "646faac31dbce58323fb44c8271be948d1f49014",
+      "read_status": "full_normalized_body_and_all_record_validation",
+      "read_evidence": "All6column schema,10unique dispositions,49non-immutable full normalized rows and193immutable stems x5extensions read. Checked exact immutable status/destination rule with zero exceptions; every1010nondeleted source blob/SHA matches Git and794b095 tree. Four deletion sentinel rows read. Full-record validation, not literal hash eyeballing.",
+      "disposition": "Preserve original 1014-path proposed dispositions and valid794b095 source hashes. Reject proposed filesystem destinations as present evidence: all965 evidence/holla-reference/shots destinations are absent pinned main. Historical source blobs remain valid; bind current Git revision/path archival locations rather than invent restoration or claim parity. Current four-app and shared-runtime owners still apply.",
+      "task_mapping": "TASK001;TASK040;TASK050;TASK068;TASK069;TASK070"
+    },
+    {
+      "path": "docs/audit/main-holla/holla-semantic-review-hashes.json",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "d4db4edec727464dd935bf6331c800c35fd75a66",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_bounded_historical_report_and_limits_not_current_execution_authority",
+      "task_mapping": "TASK-009;TASK-051;TASK-057;TASK-065;TASK-066;TASK-069; source-specific limits in branch-diff-history.md"
+    },
+    {
+      "path": "docs/audit/main-holla/holla-semantic-review.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "b167495e14ef074fa9801b524c51014669119712",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve complete historical source/prose coverage provenance, typed approval/effect safety, original Jackin/feedback/reference obligations and explicit supersessions. H-S findings belong to older794b initial Holla paths and require latest oracle/later amendment reconciliation, not auto new repairs. Explicitly retain pending visual/runtime proof and no live external Jackin dependency; source-only read is not capture or execution.",
+      "task_mapping": "003-008;009;040-057;064;068;069"
+    },
+    {
+      "path": "docs/audit/main-holla/initialization-report.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "c1848af25c02fc7cab3d9061567a94de5df36da9",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_bounded_historical_report_and_limits_not_current_execution_authority",
+      "task_mapping": "TASK-009;TASK-051;TASK-057;TASK-065;TASK-066;TASK-069; source-specific limits in branch-diff-history.md"
+    },
+    {
+      "path": "docs/audit/main-holla/jackin-cli-review.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "cf6f5888bf5c38ad03cb31e0ac2020dd95bec353",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_bounded_historical_report_and_limits_not_current_execution_authority",
+      "task_mapping": "TASK-009;TASK-051;TASK-057;TASK-065;TASK-066;TASK-069; source-specific limits in branch-diff-history.md"
+    },
+    {
+      "path": "docs/audit/main-holla/paint-provenance-decision.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "e864ca08f17d9a0b7467a44424ede2787000143d",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "continue_value_bound_per_channel_paint_provenance_reject_ambient_last_style_or_RGB_identity",
+      "task_mapping": "TASK-011;TASK-013;TASK-031;TASK-065"
+    },
+    {
+      "path": "docs/audit/main-holla/runtime-implementation-review.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "e32064bdede2d1eff005246d5d69418eee8b5197",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve bounded source audits and public runtime-publication guard proposal; later accepted signatures/authority control. Historical parity planning PASS is not implementation evidence or permission for live OS/PTY/Trash/persistence. Stable identity correction must separately preserve current oracle-visible semantics.",
+      "task_mapping": "009-010,040-050,066-070; historical HP01-23 remain simulation-scoped"
+    },
+    {
+      "path": "docs/audit/main-holla/runtime-proposal.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "29853b3fbcceee6a8a1f16d49345bcdbb94af223",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Continue monotonic/published-frame semantic invariants and actual retained-input timing proofs. Token-identity proposal superseded by accepted exclusive publication guard; optional focus traversal variants are proposals until current accepted API maps them. Fixture n-step maps are separate from live elapsed clock; paused policy source-specific.",
+      "task_mapping": "009-010,032-064,066-070; lifecycle and app-time witnesses"
+    },
+    {
+      "path": "docs/audit/main-holla/runtime.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "7361c6a04b822f05e8f9ff866db88f6e1f7f4607",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "continue_runtime_ownership_close_historical_publication_time_purity_gaps_without_old_pass_inheritance",
+      "task_mapping": "TASK-009;TASK-010;TASK-014;TASK-017;TASK-028"
+    },
+    {
+      "path": "docs/audit/main-holla/showcase-pages.json",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "c31ae52eb22e55798c9c9c1389de325f9db09a6f",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_source_inventory_refresh_exact_oracle_identity_no_test_execution_claim",
+      "task_mapping": "TASK-006;TASK-032;TASK-039;TASK-066"
+    },
+    {
+      "path": "docs/audit/main-holla/showcase.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "c5edc6af7bccd6cfebd615add5d08bdf006258aa",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_exact_historical_scope_and_limits_reject_inherited_current_approval",
+      "task_mapping": "TASK-006;TASK-032;TASK-039"
+    },
+    {
+      "path": "docs/audit/main-holla/tablepro-cli-review.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "420f544d0f76c9d5f8b0cbdd96bcedac4a8a9bdd",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_exact_historical_scope_and_limits_reject_inherited_current_approval",
+      "task_mapping": "TASK-058;TASK-063;TASK-064"
+    },
+    {
+      "path": "docs/audit/main-holla/tablepro-jackin.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "2038558080cd6acd5a96ed1fe6d14354643c93b2",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve missing native-test/body inventory, CLI/environment semantics and no-overpainting architecture. Old first-click-is-defect account superseded by accepted source single-click amendment. Secret reveal conflict requires explicit current adjudication, not automatic restoration or silent erasure; historical test names/counts are discovery only.",
+      "task_mapping": "007-010,013,016,019,022,025,051-064,067-069"
+    },
+    {
+      "path": "docs/audit/main-holla/tool-evaluation.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "ba6717592c4664acc1ea5a2dc0df3819ea36f376",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_exact_historical_scope_and_limits_reject_inherited_current_approval",
+      "task_mapping": "TASK-001;TASK-069;TASK-070"
+    },
+    {
+      "path": "docs/audit/main-holla/tool-pins.json",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "e9f924ca631bd3cd978a3b039351023ea8f452cc",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_exact_historical_scope_and_limits_reject_inherited_current_approval",
+      "task_mapping": "TASK-001;TASK-069;TASK-070"
+    },
+    {
+      "path": "docs/audit/main-holla/tool-qualification-report.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "ff47d84969688becae613fabbb4604f39aa8f4f7",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_exact_historical_scope_and_limits_reject_inherited_current_approval",
+      "task_mapping": "TASK-001;TASK-069;TASK-070"
+    },
+    {
+      "path": "docs/audit/modern-api-audit.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "249c491a4e3017e301801e5744f24fc202fafe23",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "Exact pinned main blob matches full source read manifest: reaudit-history-inputs.md:148-166 or history-source-continuation.md:116-128; A whole side equals all changed hunks.",
+      "disposition": "Preserve historical source and explicit decisions; apply later amendments and current oracle/architecture authority, not historical PASS as current proof.",
+      "task_mapping": "009-031,032-064,065-069; exact clause owners retained in semantic history ledgers"
+    },
+    {
+      "path": "docs/audit/performance-audit.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "9f547dae90bd36cca1040cb5992d912f6b61a1b7",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "Exact pinned main blob matches full source read manifest: reaudit-history-inputs.md:148-166 or history-source-continuation.md:116-128; A whole side equals all changed hunks.",
+      "disposition": "Preserve historical source and explicit decisions; apply later amendments and current oracle/architecture authority, not historical PASS as current proof.",
+      "task_mapping": "009-031,032-064,065-069; exact clause owners retained in semantic history ledgers"
+    },
+    {
+      "path": "docs/guides/authoring.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "bf8894d8d92caa9a357d84b340a0da69f655c632",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Continue documented author API/capability/slot contracts, but retire mandatory state_override recipe/checklist (central§72), undeclared-no-Mono claim, all-tiny-rect-empty overgeneralization, PARTS-superset-only proof and shared-reference-only purity claim. Actual current external custom component must use exact target reference scope and execute all meaningful registered capabilities.",
+      "task_mapping": "010-015,030-031,065,068,072-073; author-guide full-body correction and external proof"
+    },
+    {
+      "path": "docs/guides/migration.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "9e24804ba7bf5c500d804bda20daa6f609164488",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve current public replacement inventory and central-reference migration; old compiler-enforced purity claim and three-application ownership count are not current behavioral or four-app parity proof. Radio cursor/value account remains subject to ADJ-10 and exact oracle action compatibility; deleted-type claims need current exported-source checks.",
+      "task_mapping": "009-031;032-064;065;068;073"
+    },
+    {
+      "path": "docs/guides/overrides.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "fd73d1bc4002ad7e333c64ffa5b2ed836e249563",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A whole side equals all changed hunks.",
+      "disposition": "Preserve six-level customization, exact overlay matching/nesting, local sibling/theme independence and slot geometry; preserve undeclared/empty custom-family distinction; custom Role ban is design guidance, not repeal of accepted public escape hatch.",
+      "task_mapping": "009-011,013,015-031,065,068; source-qualified documentation/compile/conformance proofs"
+    },
+    {
+      "path": "docs/guides/quickstart.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "46a0ea587d283ebcbde0458d8f71da60a3dbba38",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A whole side equals all changed hunks.",
+      "disposition": "Continue two-pass/facade/controlled-state contract; reject stale run-does-not-detect claim against accepted automatic-detection amendment; shared-reference signature alone does not prohibit interior semantic mutation.",
+      "task_mapping": "009-011,013,015-031,065,068; source-qualified documentation/compile/conformance proofs"
+    },
+    {
+      "path": "docs/guides/theming.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "1e107277735b91ff711fa6d84cb43562e46e6a71",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve all twelve theme customization scenarios and exact Slot/surface/neutral-family/foreign theme contracts. Correct stale runtime-no-detection, per-variant-appended-Mono narrative and public-mutable Theme sketch against current accepted APIs. Seed cascading must follow exact accepted source authority, not generic inherit slogan or old undecided record.",
+      "task_mapping": "011,013,015,027-031,065-068; twelve real-paint customization cases"
+    },
+    {
+      "path": "docs/historical-regeneration-approval.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "934c4f9d6a7f9d552dcebca073a1f78aa248989a",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_exact_998_addition_exception_not_originals_no_new_bless_authority",
+      "task_mapping": "TASK-001;TASK-069;TASK-070"
+    },
+    {
+      "path": "docs/historical-regeneration/FONT-OFL.txt",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "8bee4148c1d54dbf5dae6d6c117fc80414266abb",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_font_license_and_copyright_with_archival_distribution",
+      "task_mapping": "TASK-069; archive preservation; no baseline mutation authorized"
+    },
+    {
+      "path": "docs/historical-regeneration/PROVENANCE.json",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "2de96b61d927a680b6e3056a1f8e396c3328a5c1",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_exact_historical_998_addition_proof_and_known_limits_not_current_parity",
+      "task_mapping": "TASK-069; archive preservation; no baseline mutation authorized"
+    },
+    {
+      "path": "docs/historical-regeneration/independent-review.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "a86cc074980f8247cece04b3c6c9edf6ff364460",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_exact_historical_998_addition_proof_and_known_limits_not_current_parity",
+      "task_mapping": "TASK-069; archive preservation; no baseline mutation authorized"
+    },
+    {
+      "path": "docs/historical-regeneration/installation-proof/SHA256SUMS",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "ee91bea6d16f7a1d142bc29c6391708eb68a0aa7",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_exact_historical_998_addition_proof_and_known_limits_not_current_parity",
+      "task_mapping": "TASK-069; archive preservation; no baseline mutation authorized"
+    },
+    {
+      "path": "docs/historical-regeneration/installation-proof/gate-0.log",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "8701fdbc4c0039ab8865bfd3dd15d75fe63d9422",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_exact_historical_998_addition_proof_and_known_limits_not_current_parity",
+      "task_mapping": "TASK-069; archive preservation; no baseline mutation authorized"
+    },
+    {
+      "path": "docs/historical-regeneration/installation-proof/gate-1.log",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "fddcecefa6d21e8ca5c53d649c7c00c703508ef9",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_exact_historical_998_addition_proof_and_known_limits_not_current_parity",
+      "task_mapping": "TASK-069; archive preservation; no baseline mutation authorized"
+    },
+    {
+      "path": "docs/historical-regeneration/installation-proof/gate-2.log",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "5a65f24fa391b5ae75b18b787bd2e33529cd15e8",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_exact_historical_998_addition_proof_and_known_limits_not_current_parity",
+      "task_mapping": "TASK-069; archive preservation; no baseline mutation authorized"
+    },
+    {
+      "path": "docs/historical-regeneration/installation-proof/gate-3.log",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "72a40ffdc625df0bbfc89aa355a8d312ec8e856f",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_exact_historical_998_addition_proof_and_known_limits_not_current_parity",
+      "task_mapping": "TASK-069; archive preservation; no baseline mutation authorized"
+    },
+    {
+      "path": "docs/historical-regeneration/installation-proof/gate-4.log",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_exact_historical_998_addition_proof_and_known_limits_not_current_parity",
+      "task_mapping": "TASK-069; archive preservation; no baseline mutation authorized"
+    },
+    {
+      "path": "docs/historical-regeneration/installation-proof/gates.json",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "267e05431fe1463a73bd5fd736da13a5ee692d21",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire A side equals all added hunks",
+      "disposition": "preserve_exact_historical_998_addition_proof_and_known_limits_not_current_parity",
+      "task_mapping": "TASK-069; archive preservation; no baseline mutation authorized"
+    },
+    {
+      "path": "docs/historical-regeneration/installation-proof/installation.json",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "a24e784c109753b8a32b8d5a8db79523bda9ccb2",
+      "read_status": "full_normalized_body_and_all_record_validation",
+      "read_evidence": "Complete metadata and all499 normalized output stems read; exact .html/.png pair reconstruction equals998keys; every opaque SHA checked independently against pinned Git blobs using /tmp/review-history-manifests.py. Duplicate-key rejecting JSON decode. No source or fixture execution.",
+      "disposition": "Preserve 998 regenerated historical outputs and explicit not-original/not-oracle classification. All output SHA256 values match pinned main, all outputs absent source_base, all1716 archive baseline files unchanged at source_base and main; this validates installation integrity only, not rendering correctness or UX acceptance.",
+      "task_mapping": "TASK001;TASK069;TASK070"
+    },
+    {
+      "path": "docs/historical-regeneration/installation-proof/mutation-results.json",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "deefce9ef34b20865e3f614cb52c153072f3515a",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; A/D side is all changed hunks",
+      "disposition": "preserve_historical_mutants_no_current_execution_claim",
+      "task_mapping": "TASK-069"
+    },
+    {
+      "path": "docs/holla-parity-evidence.md",
+      "status": "D",
+      "holla_blob": "561e697e600ef02943b91a3062561f99521a9e02",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct whole deleted Git blob read as decoded contiguous ranges0:22000,22000:44000,44000:66000,66000:88000,88000:110000,110000:end. All removed hunks covered; external repositories not newly fetched or executed.",
+      "disposition": "Preserve external Holla fca7d0cc and pinned TermRock d8c438a source-research atoms/negative boundaries; this is not immutable prototype02f5294 oracle and its counts are expressly nonadditive. Existing real providers, OS execution/Trash/index/config/trust/history are reference capabilities for separately scoped Holla roadmap, not permission to implement live adapters in the simulated four-app refactor. Preserve source-qualified limits: process-group cancellation is not escaped-session containment; core dry-run is not full-workflow zero effects; ancestor selection bypasses protected descendants; hardcoded collision lists and test-only registry subsets cannot prove completeness. Current task040–050 simulated truthful state/effect boundaries and071/072 actual proof remain required; no historical41tests claim grants current execution approval.",
+      "task_mapping": "TASK040;TASK041;TASK042;TASK043;TASK044;TASK045;TASK046;TASK047;TASK048;TASK049;TASK050;TASK068;TASK071;TASK072"
+    },
+    {
+      "path": "docs/holla-parity-matrix.md",
+      "status": "D",
+      "holla_blob": "86c7fac0f13b491f252c4c8f6b91f33653ba8c5e",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_normalized_body_and_all_record_validation",
+      "read_evidence": "Whole prose/metadata/dedup read;226 complete rows normalized losslessly via /tmp/review-history-matrix.py.216 old-contract cells reused by exact substring identity from fully read561e697e evidence blob;10nonidentical cells read. All226ID/source cells and43new-evidence/4disposition/66gap/23target dictionaries read; exact full-row reconstruction=True. First22000decoded chars also read directly.",
+      "disposition": "Preserve226 historical capability dispositions (3redesigned,115partial,98missing,10N/A), explicit dedup and23HP owners as a separately scoped external-Holla roadmap. Local preview215990ef and externalfca7d0cc are neither pinned main nor immutable prototype oracle. Missing CLI list/run/doctor, durable stores, real scanners/processes and package adapters do not authorize expansion of current simulated refactor; originalHP contracts retained in deferred research ledger. Three covered rows still need regression proof, not inherited pass. Explicit source negative boundaries prevent invented mouse/rescan/CLI/plugin requirements.",
+      "task_mapping": "TASK040;TASK050;TASK068;historical HP01–HP23 separately scoped deferred capability research"
+    },
+    {
+      "path": "docs/holla-parity-verification.md",
+      "status": "D",
+      "holla_blob": "f1eff271013d7b8b622321cf91b0aee13ef6c4f6",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve bounded source audits and public runtime-publication guard proposal; later accepted signatures/authority control. Historical parity planning PASS is not implementation evidence or permission for live OS/PTY/Trash/persistence. Stable identity correction must separately preserve current oracle-visible semantics.",
+      "task_mapping": "009-010,040-050,066-070; historical HP01-23 remain simulation-scoped"
+    },
+    {
+      "path": "docs/holla-preview-inventory.md",
+      "status": "D",
+      "holla_blob": "8fcf3f45294cea038d3a57c01ee9ec31a24b45fe",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve exact historical implementation/simulation/partial/docs-only taxonomy and exclusions: labels/generic-success/two-gates/attached screen are not effects/path-validator/stdin. Apply later accepted domain/review safety fixes and pinned oracle, not old snapshot gaps. No package discovery, live backend, Trash, CLI, persistence or provider expansion authority merely from historical parity comparison.",
+      "task_mapping": "003;004;006;040-050;064;069"
+    },
+    {
+      "path": "docs/improvements-plan-reference.md",
+      "status": "D",
+      "holla_blob": "c6069d3c1c227e198e6a035821dc36e207a59259",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv A127-A130/O01-O07; current PLANNING_GOAL supersedes historical execution instructions"
+    },
+    {
+      "path": "docs/improvements/f01-modal-first-paste-routing.md",
+      "status": "D",
+      "holla_blob": "ebda2c71447a081abbdd6a14dc840e7d61283d5a",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f02-picker-action-eligibility-and-destructive-target-identity.md",
+      "status": "D",
+      "holla_blob": "1e8748c0df2b3188f5e3850b0ca1e69d9760a429",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f03-atomic-listbox-mutation.md",
+      "status": "D",
+      "holla_blob": "af66a4db1d21239bbac4816a3f0928cf6e08fc59",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f04-reconcile-datagrid-read-only-transitions-before-mutation.md",
+      "status": "D",
+      "holla_blob": "8ef0909513b755423dc1d459650ec396f20de396",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f05-preserve-treeview-target-across-lazy-insertion.md",
+      "status": "D",
+      "holla_blob": "67df994e2424f2cd86bad56ba3d1422604388f05",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f06-preserve-datagrid-cursor-identity-through-local-sort.md",
+      "status": "D",
+      "holla_blob": "22f5bc8f75d2f4550254c661823bcbae787a9d6a",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f07-checked-row-schema-ingestion.md",
+      "status": "D",
+      "holla_blob": "a8e0a079cba617d46863e1286623181f82bc06d3",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f08a-between-upper-value-paste.md",
+      "status": "D",
+      "holla_blob": "8cc4d8ca5cbb2694db2243b9a74891d430e95644",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f08b-picker-grapheme-editing-query-paste.md",
+      "status": "D",
+      "holla_blob": "97d5e7db3e1ace5bf298bd0a6a7d14ea842460ec",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f08c-ctrl-shift-home-end.md",
+      "status": "D",
+      "holla_blob": "c682875e73ef17b25ea2176a2ce2a89a8da581b3",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f08d-unassigned-modifiers-perform-plain-actions.md",
+      "status": "D",
+      "holla_blob": "195f693dd89837e00cf7ee583df7b15cf0f64008",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f09-deliver-inspect-copy-without-closing-the-modal.md",
+      "status": "D",
+      "holla_blob": "653cdce59953a6d257002af235bc4340dceb10bf",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f10-segment-logical-text-before-applying-styles.md",
+      "status": "D",
+      "holla_blob": "2e65c7c3c5eb37d49ea007964892ca00d5b02558",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f11-one-retention-aware-mutation-boundary.md",
+      "status": "D",
+      "holla_blob": "64c2eb876109a98a8dd9e7d9682b393e36b15174",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f12-rebase-retained-identity-never-silently-retarget-selection.md",
+      "status": "D",
+      "holla_blob": "154287c15643ed45994a899bd0fbba4fe6755b75",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f13-make-cache-validity-part-of-content-ownership.md",
+      "status": "D",
+      "holla_blob": "3940888f2476b861bfe3cbbfcbc5263ba27da6e5",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f14-explicit-tab-control-geometry-and-copy-policy.md",
+      "status": "D",
+      "holla_blob": "b3e78489aa224a75d8a2dbc769185588b4f70613",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f15-incremental-live-output-work-measured-separately-from-idle-redraw.md",
+      "status": "D",
+      "holla_blob": "98bd6ffee26eaa1b60050f67e874c731d3b65518",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f16-reach-every-showcase-section-at-supported-sizes.md",
+      "status": "D",
+      "holla_blob": "c30a27fef2c7684eadcaeeee7b0b91c218c3f591",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f17-empty-allocations-emit-nothing.md",
+      "status": "D",
+      "holla_blob": "49aaa7fa3e2b76b1b458fbfe6aeb3b88a1e51c06",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f18-distinguish-read-only-from-disabled.md",
+      "status": "D",
+      "holla_blob": "6ea02c70d0440d79b1a7bf91b04b7abd924ab108",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f19-keyboard-selection-in-the-existing-textviewport.md",
+      "status": "D",
+      "holla_blob": "fed8239881a2b9c5b3918572a84c242094efe7ad",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f20-find-in-read-only-output-through-existing-composition.md",
+      "status": "D",
+      "holla_blob": "db18072b35532f4014fd6eb23066af521a247a62",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f21-restore-terminal-state-for-supported-job-control-suspension.md",
+      "status": "D",
+      "holla_blob": "9d03353318b9281b7eff078652da8581bc925992",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f22-separate-rasterizer-fidelity-from-terminal-correctness.md",
+      "status": "D",
+      "holla_blob": "8fb186891ab497725eb59bdf9437d09c9fb27bf7",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f23a-state-reachability-design-d4.md",
+      "status": "D",
+      "holla_blob": "885be60b7f8192f844774b78d9afbcf2c66bf8cc",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f23b-lifecycle-v01-v02.md",
+      "status": "D",
+      "holla_blob": "bbfbf57a46012e75e1b686a05bf2e8bdb09bcd74",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f23c-event-freshness-resize-v03.md",
+      "status": "D",
+      "holla_blob": "cdd02a4a1efef0b694deeee2478895b2bc2fb471",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f23d-input-flood-fairness-v04.md",
+      "status": "D",
+      "holla_blob": "c051c35d3ba305225ae9a9f53a60c6683cf2648d",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f23e-dirty-idle-performance-v05.md",
+      "status": "D",
+      "holla_blob": "e7aa14ec2cb7b865d03adeb9c437ccbcab41e0ca",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f23f-rendering-color-compatibility-v06-v07.md",
+      "status": "D",
+      "holla_blob": "bc84424f508e155eb69bd6745ea555d1feea5aca",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f23g-evidence-provenance-v08.md",
+      "status": "D",
+      "holla_blob": "a8f94d497a9c288489dbb643639a92bf0df5b78b",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/f23h-precise-subsidiary-regressions-v09.md",
+      "status": "D",
+      "holla_blob": "05cb660faa61872e50d700c2a488ef92b64fc6ad",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/goal-prompt.md",
+      "status": "D",
+      "holla_blob": "f02e9fa33fbd3e04a7860e7fca3938482d136ced",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; A/D side is all changed hunks",
+      "disposition": "preserve_simulation_boundary_current_goal_supersedes_old_execution_and_bless_permissions",
+      "task_mapping": "HIST:HP01-HP23;TASK-040;TASK-050;TASK-069"
+    },
+    {
+      "path": "docs/improvements/h00-existing-holla-design-and-coverage.md",
+      "status": "D",
+      "holla_blob": "4468bf26fc517dd8cb442e4964026962d7caacb8",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve actual Holla concept+HP simulation journeys and source-bound partial integration outcomes. Old checked H00 input/barrier claims remain source to challenge under ADJ09; historical execution/PR/merge queue superseded by current planning-only goal. No full parity from selected52 tests,288 captures, or unsafe-effect absence scan.",
+      "task_mapping": "001-008,032-069; H00/HP all current source journeys"
+    },
+    {
+      "path": "docs/improvements/hp01-adaptive-discovery-and-stable-action-identity.md",
+      "status": "D",
+      "holla_blob": "c9985dc56c9b953d63db868556c8be6fa20e6121",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp02-search-query-editing-and-durable-usage-learning.md",
+      "status": "D",
+      "holla_blob": "c944aeda904ec4533c8e943504e7285f176c65a9",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp03-find-files-and-perform-resource-actions.md",
+      "status": "D",
+      "holla_blob": "39a3f4a7006b45b98dff81a90afe5ebd821add23",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp04-browse-folders-and-safely-preview-files.md",
+      "status": "D",
+      "holla_blob": "fd97a0d3568ff4a375c35a31797a974ee4988057",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp05-current-repository-git-operations.md",
+      "status": "D",
+      "holla_blob": "a5b1cb0dfe3db1a04918d0a872c6658134032baf",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp06-repository-batches-mirrors-and-hygiene.md",
+      "status": "D",
+      "holla_blob": "3976d9af05c7af8d9482ee4c60e8a2e7b5ce7824",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp07-native-project-task-adapters.md",
+      "status": "D",
+      "holla_blob": "847de6af6623a43782ff171db78571173353e7f8",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp08-cargo-build-test-lint-and-clean.md",
+      "status": "D",
+      "holla_blob": "5cd697d64b4321785edadb723c85ea722f5915af",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp09-docker-and-compose-outcomes.md",
+      "status": "D",
+      "holla_blob": "3a7e9a6d72abfd4fd1c60a3ced8c27cd6baf3d85",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp10-homebrew-service-lifecycle.md",
+      "status": "D",
+      "holla_blob": "23c53bd7539d1af7cc4e6787a119d61c7dc99e5c",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp11-gradle-tasks-daemon-and-recursive-cleanup.md",
+      "status": "D",
+      "holla_blob": "dfebb53bc5cdac8bcdc5e38fdace860ad92d58c5",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp12-intellij-metadata-cleanup.md",
+      "status": "D",
+      "holla_blob": "392fcefc0be9976b9f47a5a8d2c0cb249cd812d7",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp13-all-legacy-upgrade-managers.md",
+      "status": "D",
+      "holla_blob": "c05e7f827a246934f7e2c7a10b9b0636f35ba226",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp14-task-execution-output-and-results.md",
+      "status": "D",
+      "holla_blob": "4319595fc7e03768f2c3ef37842db3e89d004f04",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp15-runtime-input-cancellation-and-terminal-ownership.md",
+      "status": "D",
+      "holla_blob": "677e70193ef952101d5f0b43904e4bc244e60528",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp16-cli-list-run-and-doctor-contract.md",
+      "status": "D",
+      "holla_blob": "958df29581976defcf0d07a4516f85c1ab4e898a",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp17-custom-actions-configuration-and-trust.md",
+      "status": "D",
+      "holla_blob": "5ea691bcc8d0f77bc5eb7ea1e13984c994347b63",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp18-disk-measurement-progress-and-cache.md",
+      "status": "D",
+      "holla_blob": "6887d39948d725ce5dfc462f6c8ee38b75f0617c",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp19-disk-tree-top-files-and-selection.md",
+      "status": "D",
+      "holla_blob": "a70307d74c7baa237afe4401ada2a9024c9c09ee",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp20-complete-cleanup-insight-taxonomy-and-guards.md",
+      "status": "D",
+      "holla_blob": "c099988b87903932d157d5427a2505605d7ee43b",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp21-deletion-authorization-dry-run-and-recovery-mode.md",
+      "status": "D",
+      "holla_blob": "cb714a60f8088d8b69fe619d820052067b64b2a8",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp22-cleanup-ownership-outcomes-and-operation-log.md",
+      "status": "D",
+      "holla_blob": "6e76b5c88cde3594b07f65e237eeb6af29d3560f",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/hp23-platform-and-terminal-capability-contract.md",
+      "status": "D",
+      "holla_blob": "435fa805f3093fdf36b49393273c129b13c9b54f",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "history-semantic-reaudit.md final global pass; exact pinned blob full read; A/D diff consists entirely of that side",
+      "disposition": "preserve_source_history_continue_current_semantics_defer_unselected_proposals",
+      "task_mapping": "historical-obligations.tsv exact F/HP row; per-app current/Later qualification required"
+    },
+    {
+      "path": "docs/improvements/o04-matrix-paste.md",
+      "status": "D",
+      "holla_blob": "c85ad7e48b6bf5a9baec4250b9f5f20497d816e9",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; A/D side is all changed hunks",
+      "disposition": "preserve_conditional_proposal_not_selected_no_invented_product_feature",
+      "task_mapping": "HIST:O04;TASK-022"
+    },
+    {
+      "path": "docs/improvements/o05-terminal-extensions-os-clipboard.md",
+      "status": "D",
+      "holla_blob": "000ffdba165c49be29d95ddee4c6d68d644da3c1",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; A/D side is all changed hunks",
+      "disposition": "preserve_conditional_proposal_not_selected_no_invented_product_feature",
+      "task_mapping": "HIST:O05;TASK-009"
+    },
+    {
+      "path": "docs/improvements/o07-read-only-field-apis.md",
+      "status": "D",
+      "holla_blob": "7ccae82674ff773b97c8e1665090d1a82dddff6b",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; A/D side is all changed hunks",
+      "disposition": "preserve_conditional_proposal_not_selected_no_invented_product_feature",
+      "task_mapping": "HIST:O07;TASK-016;ADJ-09 F18 remains deferred"
+    },
+    {
+      "path": "docs/improvements/scope.md",
+      "status": "D",
+      "holla_blob": "95f91bf2921c909a05cc08f590c3b21586e65f45",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; A/D side is all changed hunks",
+      "disposition": "preserve_simulation_boundary_current_goal_supersedes_old_execution_and_bless_permissions",
+      "task_mapping": "HIST:HP01-HP23;TASK-040;TASK-050;TASK-069"
+    },
+    {
+      "path": "docs/improvements/shared-contracts.md",
+      "status": "D",
+      "holla_blob": "a5be4fdbc238096367f27a4e2960aed8711f9583",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve source-authoritative current/Later partition over broad roadmap and no-operational-effect contract. Reject generic modal-first or all-app search proposals where current oracle/ADJ09 differs; retain exact target/effect/Unicode/input/provenance proof instead of checkbox or capture-count closure.",
+      "task_mapping": "001-008,009-069,070-073; precise F/HP clause owners"
+    },
+    {
+      "path": "docs/plan-api-verification.md",
+      "status": "D",
+      "holla_blob": "be8481c9b460065f5d5c72637f42df1f6d8812b2",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve exact API defect provenance, source/app versus malformed-boundary distinction and rejected blanket abstractions. Proposed fixes remain subject to oracle compatibility/ADJ-09; F03 panic has no invented successful continuation, empty-filter Picker deletion and source-index sorting require explicit dispositions. Historical temp probes are not current receipts.",
+      "task_mapping": "007;008;020-027;033;047;052;058;062;065;072"
+    },
+    {
+      "path": "docs/plan-design-verification.md",
+      "status": "D",
+      "holla_blob": "ab6c47f412f2bb0eb9d4889ae98df88c4f66cafe",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve exact unreachable-section, zero-height paint, source-only versus terminal reproduction, disabled/read-only distinction and baseline-navigation omission evidence. Proposed section switching/viewport keyboard selection cannot silently alter pinned UX. F03 terminal panic and empty-picker close remain real oracle prefix behaviors needing explicit authority, not desired successful frames.",
+      "task_mapping": "003;007;008;033-039;052;058;065;069"
+    },
+    {
+      "path": "docs/plan-ecosystem-research.md",
+      "status": "D",
+      "holla_blob": "ffbd2b42172a58ef6cf079c628e6c8c738875878",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve historical Unicode, NO_COLOR, startup rollback and queued-event evidence without universal coverage claims. Proposed viewport find/keyboard/clipboard/runtime integrations remain source- and current-goal-qualified; HP/F current-versus-Later governs absent Jackin search. Existing bounded fake-product operation states are not mandate for live OS or worker frameworks.",
+      "task_mapping": "009-010,013-014,021,025-026,032-069,070"
+    },
+    {
+      "path": "docs/plan-final-review.md",
+      "status": "D",
+      "holla_blob": "9fe8dc649fa7e083e65d097b2bf451de6e6f2108",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve four evidence layers and exact Unicode/font/HTML-padding/PNG-clipping defect distinctions, owned-PTY lifecycle and no-reaped-PID cleanup. Old plan acceptance not implementation; F04 public-API trigger differs from app-reachable trajectory. Optional protocols/live clipboard unselected; no real-terminal universal claim.",
+      "task_mapping": "001,006,013,067-072; source-qualified F21/F22/F23 lanes"
+    },
+    {
+      "path": "docs/plan-interaction-verification.md",
+      "status": "D",
+      "holla_blob": "78a4cb667940085f47be01154e169be95f481208",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve exact fixed/open interaction provenance, full-app versus public-API versus complete source-only evidence and typed preview clipboard semantics. Old modal-first, Picker paste, CtrlShift selection and viewport keyboard extensions are proposals, not authority to change oracle quirks. ADJ-09 and explicit exceptions govern; historical timing is limited repeated replacement, not current throughput proof.",
+      "task_mapping": "009;014;022-027;040-064;067;071"
+    },
+    {
+      "path": "docs/plan-prior-fixes-verification.md",
+      "status": "D",
+      "holla_blob": "94096d992036f43ebc175f24025800f3f81f2abc",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve all17+6+9 bounded prior-fix crosswalks and nine verification gaps. Historical counts exclude sidebar/cursor/underline, Facts test types keys not paste, editor wheel test is not scrollbar, modifiers Control-only, wrap0 means max1. Current plans require actual full-frame/cursor/native test/PTY evidence; no implied suspend/newUX authority. C02 effective-value sort is explicit old proposed defect fix, not automatic permission under oracle parity.",
+      "task_mapping": "002-008;009;014;024-027;032-064;067;069-071"
+    },
+    {
+      "path": "docs/plan-terminal-verification.md",
+      "status": "D",
+      "holla_blob": "dec061b4868dcb5ab99c4e2da20644a86e533172",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve four evidence layers and exact Unicode/font/HTML-padding/PNG-clipping defect distinctions, owned-PTY lifecycle and no-reaped-PID cleanup. Old plan acceptance not implementation; F04 public-API trigger differs from app-reachable trajectory. Optional protocols/live clipboard unselected; no real-terminal universal claim.",
+      "task_mapping": "001,006,013,067-072; source-qualified F21/F22/F23 lanes"
+    },
+    {
+      "path": "docs/plan-text-verification.md",
+      "status": "D",
+      "holla_blob": "214f730ac6f99d65c080d329d8ae5bba883038f1",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve source-backed text/retention/cache/control-policy and limited timing evidence; no full Unicode or latency claim. Optional matrix paste remains unapproved, old revoke-edit imperative is not app-reachable oracle authority (ADJ-09). Actual app population and selection source identity remain separate from new generic API safety; historical 132-pass/temp probes cannot close current tasks.",
+      "task_mapping": "014;024-026;043;047;054;062;067;071"
+    },
+    {
+      "path": "docs/plans/PLAN-FINDINGS.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "26c11a0ba039f3a190b5a355d463500e38010470",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; A/D side is all changed hunks",
+      "disposition": "preserve_source_findings_resolve_against_later_authority_no_old_staging_or_bless_permission",
+      "task_mapping": "TASK-011;TASK-031;TASK-065;TASK-067;TASK-068;TASK-069"
+    },
+    {
+      "path": "docs/plans/main-holla-integration-task.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "f164cfb71a70ee932d3e654bd5d2b6bfd832be21",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve main-base/Holla-product conjunction, complete history and branch-only accounting, exact three proof lanes, non-self-blessing and effect/secret protections. Supersede old implementation/merge authority and moving-ref fetch under current planning-only fixed pins. Old22-page count and132-capture matrix are historical, expanded discovery controls. Toolkit evaluation does not license replacing canonical host facilities or claiming available commands.",
+      "task_mapping": "001-073"
+    },
+    {
+      "path": "docs/plans/main-holla-integration.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "164f751de0ac197e0279665c3b74576ae141c711",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve actual Holla concept+HP simulation journeys and source-bound partial integration outcomes. Old checked H00 input/barrier claims remain source to challenge under ADJ09; historical execution/PR/merge queue superseded by current planning-only goal. No full parity from selected52 tests,288 captures, or unsafe-effect absence scan.",
+      "task_mapping": "001-008,032-069; H00/HP all current source journeys"
+    },
+    {
+      "path": "docs/plans/slice6-tablepro.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "55eb52943a89febbc2a27cb1593a7fce86458ff5",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "Exact pinned main blob matches full source read manifest: reaudit-history-inputs.md:148-166 or history-source-continuation.md:116-128; A whole side equals all changed hunks.",
+      "disposition": "Preserve historical source and explicit decisions; apply later amendments and current oracle/architecture authority, not historical PASS as current proof.",
+      "task_mapping": "009-031,032-064,065-069; exact clause owners retained in semantic history ledgers"
+    },
+    {
+      "path": "docs/plans/slice7-jackin.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "c2919098207d395509466d7dff00400f855389b5",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "Exact pinned main blob matches full source read manifest: reaudit-history-inputs.md:148-166 or history-source-continuation.md:116-128; A whole side equals all changed hunks.",
+      "disposition": "Preserve historical source and explicit decisions; apply later amendments and current oracle/architecture authority, not historical PASS as current proof.",
+      "task_mapping": "009-031,032-064,065-069; exact clause owners retained in semantic history ledgers"
+    },
+    {
+      "path": "docs/reviews/adjudication-k-form-grid.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "478535e9a6b2a13d49383e826a57960d5aee5f6f",
+      "read_status": "full_side_reconstructed_from_full_body_and_all_deltas",
+      "read_evidence": "Independent reader reaudit_components_b fully read original bodies plus every amendment delta; explicit reconstruction manifest reaudit-history-inputs.md:148-169. Distinct main hashes retained; A whole side is all changed hunks.",
+      "disposition": "Preserve original audit findings and explicit later acceptance/amendment decisions, all23 app items with partial #22; do not treat old proposal status or bounded ACCEPT as current implementation proof. Current oracle supersedes historical UX-changing test migration proposals.",
+      "task_mapping": "009-031,032-064,065-069; HAR001-044 and HI001-066 exact clause owners"
+    },
+    {
+      "path": "docs/reviews/adjudication-m-small-items.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "43520978713f052cadaf1f249813fe8105642546",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "Exact pinned main blob matches full source read manifest: reaudit-history-inputs.md:148-166 or history-source-continuation.md:116-128; A whole side equals all changed hunks.",
+      "disposition": "Preserve historical source and explicit decisions; apply later amendments and current oracle/architecture authority, not historical PASS as current proof.",
+      "task_mapping": "009-031,032-064,065-069; exact clause owners retained in semantic history ledgers"
+    },
+    {
+      "path": "docs/reviews/adjudication-n-layer-measure.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "dd51778c590073ea34a172420e2669961b4080b3",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "Exact pinned main blob matches full source read manifest: reaudit-history-inputs.md:148-166 or history-source-continuation.md:116-128; A whole side equals all changed hunks.",
+      "disposition": "Preserve historical source and explicit decisions; apply later amendments and current oracle/architecture authority, not historical PASS as current proof.",
+      "task_mapping": "009-031,032-064,065-069; exact clause owners retained in semantic history ledgers"
+    },
+    {
+      "path": "docs/reviews/adjudication-o-foundations-followups.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "8e3670a64d97bdfc6f67abbdbe32533f09591a6e",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "Exact pinned main blob matches full source read manifest: reaudit-history-inputs.md:148-166 or history-source-continuation.md:116-128; A whole side equals all changed hunks.",
+      "disposition": "Preserve historical source and explicit decisions; apply later amendments and current oracle/architecture authority, not historical PASS as current proof.",
+      "task_mapping": "009-031,032-064,065-069; exact clause owners retained in semantic history ledgers"
+    },
+    {
+      "path": "docs/reviews/adjudication-p-prototype-decisions.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "eb1c92f83b58b0d0a2d6108994a05f3fa8c56966",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "Exact pinned main blob matches full source read manifest: reaudit-history-inputs.md:148-166 or history-source-continuation.md:116-128; A whole side equals all changed hunks.",
+      "disposition": "Preserve historical source and explicit decisions; apply later amendments and current oracle/architecture authority, not historical PASS as current proof.",
+      "task_mapping": "009-031,032-064,065-069; exact clause owners retained in semantic history ledgers"
+    },
+    {
+      "path": "docs/reviews/adjudication-q-residuals.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "422391112470eb5a627d952b5db2791a6db096cf",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "Exact pinned main blob matches full source read manifest: reaudit-history-inputs.md:148-166 or history-source-continuation.md:116-128; A whole side equals all changed hunks.",
+      "disposition": "Preserve historical source and explicit decisions; apply later amendments and current oracle/architecture authority, not historical PASS as current proof.",
+      "task_mapping": "009-031,032-064,065-069; exact clause owners retained in semantic history ledgers"
+    },
+    {
+      "path": "docs/reviews/findings-from-documentation.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "e05247bc1860f03c5bfca707cc60c45b8cb0f866",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; A/D side is all changed hunks",
+      "disposition": "preserve_source_findings_resolve_against_later_authority_no_old_staging_or_bless_permission",
+      "task_mapping": "TASK-011;TASK-031;TASK-065;TASK-067;TASK-068;TASK-069"
+    },
+    {
+      "path": "docs/reviews/laneB-grid-contract.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "3c0770a44f14cf26a803bdee79cdc653da335a7d",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; A/D side is all changed hunks",
+      "disposition": "preserve_source_findings_resolve_against_later_authority_no_old_staging_or_bless_permission",
+      "task_mapping": "TASK-010;TASK-022;TASK-058;TASK-060"
+    },
+    {
+      "path": "docs/reviews/laneC-app-tick.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "582a84d547cc56fc5837aff284b6d79ccfb6df5a",
+      "read_status": "full_side_and_all_hunks_reused",
+      "read_evidence": "Exact pinned main blob matches full source read manifest: reaudit-history-inputs.md:148-166 or history-source-continuation.md:116-128; A whole side equals all changed hunks.",
+      "disposition": "Preserve historical source and explicit decisions; apply later amendments and current oracle/architecture authority, not historical PASS as current proof.",
+      "task_mapping": "009-031,032-064,065-069; exact clause owners retained in semantic history ledgers"
+    },
+    {
+      "path": "docs/reviews/slice2-architecture-review.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "8539e65a0dfca9de47e7cc714853b09a38c0113f",
+      "read_status": "full_side_reconstructed_from_full_body_and_all_deltas",
+      "read_evidence": "Independent reader reaudit_components_b fully read original bodies plus every amendment delta; explicit reconstruction manifest reaudit-history-inputs.md:148-169. Distinct main hashes retained; A whole side is all changed hunks.",
+      "disposition": "Preserve original audit findings and explicit later acceptance/amendment decisions, all23 app items with partial #22; do not treat old proposal status or bounded ACCEPT as current implementation proof. Current oracle supersedes historical UX-changing test migration proposals.",
+      "task_mapping": "009-031,032-064,065-069; HAR001-044 and HI001-066 exact clause owners"
+    },
+    {
+      "path": "docs/reviews/slice3-foundations-review.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "9d8f986c367e46d72226c063301d0bacdda23234",
+      "read_status": "full_side_reconstructed_from_full_body_and_all_deltas",
+      "read_evidence": "Independent reader reaudit_components_b fully read original bodies plus every amendment delta; explicit reconstruction manifest reaudit-history-inputs.md:148-169. Distinct main hashes retained; A whole side is all changed hunks.",
+      "disposition": "Preserve original audit findings and explicit later acceptance/amendment decisions, all23 app items with partial #22; do not treat old proposal status or bounded ACCEPT as current implementation proof. Current oracle supersedes historical UX-changing test migration proposals.",
+      "task_mapping": "009-031,032-064,065-069; HAR001-044 and HI001-066 exact clause owners"
+    },
+    {
+      "path": "docs/status/laneB.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "86d533efeb30c82a49bf972d13e1885711927c8c",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; A/D side is all changed hunks",
+      "disposition": "preserve_source_findings_resolve_against_later_authority_no_old_staging_or_bless_permission",
+      "task_mapping": "TASK-010;TASK-022;TASK-058;TASK-060"
+    },
+    {
+      "path": "docs/status/laneC.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "3f2cc5a0ffc22982726a2f854965a4c76129c937",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; A/D side is all changed hunks",
+      "disposition": "preserve_source_findings_resolve_against_later_authority_no_old_staging_or_bless_permission",
+      "task_mapping": "TASK-009;TASK-011;TASK-051;TASK-057"
+    },
+    {
+      "path": "docs/tui-audit-editor.md",
+      "status": "D",
+      "holla_blob": "eddfd6a83a8731699b10b09c5e5d512047aa129c",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; A/D side is all changed hunks",
+      "disposition": "preserve_source_findings_resolve_against_later_authority_no_old_staging_or_bless_permission",
+      "task_mapping": "TASK-013;TASK-025;TASK-066"
+    },
+    {
+      "path": "docs/tui-audit-interactions.md",
+      "status": "D",
+      "holla_blob": "a518d07eb1a43c929e72197324ee78fbab1e4723",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve missing native-test/body inventory, CLI/environment semantics and no-overpainting architecture. Old first-click-is-defect account superseded by accepted source single-click amendment. Secret reveal conflict requires explicit current adjudication, not automatic restoration or silent erasure; historical test names/counts are discovery only.",
+      "task_mapping": "007-010,013,016,019,022,025,051-064,067-069"
+    },
+    {
+      "path": "docs/tui-audit-inventory.md",
+      "status": "D",
+      "holla_blob": "33bca30616798b1db17f141cc5ef6756c4498d9d",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_normalized_body_and_all_record_validation",
+      "read_evidence": "Direct decoded0:44000 covers all non-appendix prose and initial export entries. Full1573 exported rows read via lossless owner/file/kind-prefix normalization in /tmp/review-history-api.py (files0:16,16:31,31:46), exact source/name/kind reconstruction=True; every572 derived pair+location read with exact reconstruction. Counts not interpreted as behavioral execution.",
+      "disposition": "Preserve full compiler-derived legacy1573-export/572-derived-trait research and23page final Diff coverage; lexical849 count explicitly withdrawn. API1 dataset edit reset is fixed in oracle; API2 collection invariants and API5 duplicatedshell policy are structurally addressed by accepted borrowed keyed state/shared runtime, not a mandate to preserve old owning Vec/VisualState/WidgetId APIs. New architecture may replace old API shape but must retain actual app-visible functions and intentional public capability ownership. API3Diff owner025/034, API4documentation068; currentmain actual public export/compiler proof031/065/072 remains independent of this historical inventory.",
+      "task_mapping": "TASK009–TASK031;TASK034;TASK065;TASK068;TASK072;TASK073"
+    },
+    {
+      "path": "docs/tui-audit-research.md",
+      "status": "D",
+      "holla_blob": "72b926811b6a249734ea725ddf17befb57fbb8ed",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete immutable Git blob read; entire D side equals removed hunks",
+      "disposition": "preserve_concrete_consumer_findings_reject_competitor_catalogue_as_feature_authority_one_click_supersedes_old_two_click_report",
+      "task_mapping": "TASK-013;TASK-017;TASK-025;TASK-026;TASK-028;TASK-060;TASK-068"
+    },
+    {
+      "path": "docs/tui-audit-verification.md",
+      "status": "D",
+      "holla_blob": "ecf659cbe6df908b06ab04fc25348021e4396e26",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve historical Unicode, NO_COLOR, startup rollback and queued-event evidence without universal coverage claims. Proposed viewport find/keyboard/clipboard/runtime integrations remain source- and current-goal-qualified; HP/F current-versus-Later governs absent Jackin search. Existing bounded fake-product operation states are not mandate for live OS or worker frameworks.",
+      "task_mapping": "009-010,013-014,021,025-026,032-069,070"
+    },
+    {
+      "path": "docs/tui-audit.md",
+      "status": "D",
+      "holla_blob": "6e262b0ca3cf523b04f57ba4cec6bec68ed2f804",
+      "main_blob": "0000000000000000000000000000000000000000",
+      "read_status": "full_side_and_all_hunks_read",
+      "read_evidence": "Direct complete pinned Git blob body read; A/D whole side equals all changed hunks.",
+      "disposition": "Preserve implemented immutable-oracle Unicode, event scheduling, rendering, selection and terminal lifecycle contracts. Historical 328-test/250+51-capture success is not current baseline approval; raster missing glyphs cannot prove complex geometry. Backlog optional async/framework/widgets remains unselected; no new feature authority from audit hypotheses.",
+      "task_mapping": "002-008;009;014;017;024-027;032-064;067-071"
+    },
+    {
+      "path": "docs/visual-changes.md",
+      "status": "A",
+      "holla_blob": "0000000000000000000000000000000000000000",
+      "main_blob": "eb980bbfb681ccf792a7cb9c9776daf9409aae01",
+      "read_status": "full_normalized_body_and_all_record_validation",
+      "read_evidence": "Complete 3387-line added blob: all non-strict-record prose and nonstandard rows read contiguously through lossless line-number normalization; all 1734 strict digest-row key/axes identities read via 432 groups, every exact line reconstructed and old/new hash validated. All 1652 current-matching new pairs checked against seven pinned-main baseline files; 82 historical/superseded new pairs do not match current main and are not claimed approved. No render/execution or all-picture inspection.",
+      "disposition": "Preserve exact historical classifications, rejected/superseded scratch records and review provenance; reject old blessing/count/scope statements as current oracle acceptance. Repair current evidence manifests through independently source-qualified typed records, not narrative count joins.",
+      "task_mapping": "TASK001/002–006/031/065/068/069/070/071/072"
+    }
+  ]
+}
