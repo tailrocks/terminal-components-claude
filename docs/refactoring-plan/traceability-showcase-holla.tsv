@@ -1,0 +1,862 @@
+source_namespace	source_id	task_id	requirement_id	acceptance_id	check_id	role	disposition
+APP	SC-BASE-overview	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-overview	TASK-037	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-overview	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-overview	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-buttons	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-buttons	TASK-033	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-buttons	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-buttons	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-inputs	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-inputs	TASK-033	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-inputs	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-inputs	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-textareas	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-textareas	TASK-033	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-textareas	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-textareas	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-forms	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-forms	TASK-033	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-forms	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-forms	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-lists	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-lists	TASK-037	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-lists	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-lists	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-trees	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-trees	TASK-037	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-trees	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-trees	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-tables	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-tables	TASK-034	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-tables	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-tables	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-editable	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-editable	TASK-034	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-editable	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-editable	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-panels	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-panels	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-panels	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-panels	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-sidebars	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-sidebars	TASK-037	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-sidebars	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-sidebars	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-dialogs	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-dialogs	TASK-038	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-dialogs	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-dialogs	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-progress	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-progress	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-progress	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-progress	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-scrolling	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-scrolling	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-scrolling	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-scrolling	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-terminal	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-terminal	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-terminal	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-terminal	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-editor	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-editor	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-editor	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-editor	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-diff	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-diff	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-diff	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-diff	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-grid	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-grid	TASK-034	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-grid	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-grid	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-chips	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-chips	TASK-037	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-chips	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-chips	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-pickers	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-pickers	TASK-038	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-pickers	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-pickers	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-chrome	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-chrome	TASK-038	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-chrome	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-chrome	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-settings	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-settings	TASK-035	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-settings	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-settings	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BASE-taskrunner	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BASE-taskrunner	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BASE-taskrunner	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BASE-taskrunner	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-FOCUS	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-FOCUS	TASK-039	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components; whole-app expansion closes only after all application slices
+APP	SC-FOCUS	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-RESIZE	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-RESIZE	TASK-039	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components; whole-app expansion closes only after all application slices
+APP	SC-RESIZE	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-SHELL-NAV	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-SHELL-NAV	TASK-032	R-001	AC-001	CHK-006	contribution	prove exact shell-contributions.tsv observations; never close whole parent scenario
+APP	SC-SHELL-NAV	TASK-039	R-001	AC-001	CHK-004	primary	close full unmasked parent scenario only after all page repair slices; shell contributions remain separately required
+APP	SC-SHELL-NAV	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-SHELL-HITS	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-SHELL-HITS	TASK-032	R-001	AC-001	CHK-006	contribution	prove exact shell-contributions.tsv observations; never close whole parent scenario
+APP	SC-SHELL-HITS	TASK-039	R-001	AC-001	CHK-004	primary	close full unmasked parent scenario only after all page repair slices; shell contributions remain separately required
+APP	SC-SHELL-HITS	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-SHELL-HELP	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-SHELL-HELP	TASK-032	R-001	AC-001	CHK-006	contribution	prove exact shell-contributions.tsv observations; never close whole parent scenario
+APP	SC-SHELL-HELP	TASK-039	R-001	AC-001	CHK-004	primary	close full unmasked parent scenario only after all page repair slices; shell contributions remain separately required
+APP	SC-SHELL-HELP	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-SHELL-INSPECTOR	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-SHELL-INSPECTOR	TASK-032	R-001	AC-001	CHK-006	contribution	prove exact shell-contributions.tsv observations; never close whole parent scenario
+APP	SC-SHELL-INSPECTOR	TASK-039	R-001	AC-001	CHK-004	primary	close full unmasked parent scenario only after all page repair slices; shell contributions remain separately required
+APP	SC-SHELL-INSPECTOR	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-SHELL-MINIMUM	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-SHELL-MINIMUM	TASK-032	R-001	AC-001	CHK-006	contribution	prove exact shell-contributions.tsv observations; never close whole parent scenario
+APP	SC-SHELL-MINIMUM	TASK-039	R-001	AC-001	CHK-004	primary	close full unmasked parent scenario only after all page repair slices; shell contributions remain separately required
+APP	SC-SHELL-MINIMUM	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-SHELL-STATUS	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-SHELL-STATUS	TASK-032	R-001	AC-001	CHK-006	contribution	prove exact shell-contributions.tsv observations; never close whole parent scenario
+APP	SC-SHELL-STATUS	TASK-039	R-001	AC-001	CHK-004	primary	close full unmasked parent scenario only after all page repair slices; shell contributions remain separately required
+APP	SC-SHELL-STATUS	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-SHELL-PERSIST	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-SHELL-PERSIST	TASK-032	R-001	AC-001	CHK-006	contribution	prove exact shell-contributions.tsv observations; never close whole parent scenario
+APP	SC-SHELL-PERSIST	TASK-039	R-001	AC-001	CHK-004	primary	close full unmasked parent scenario only after all page repair slices; shell contributions remain separately required
+APP	SC-SHELL-PERSIST	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BUTTON-ACTIONS	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BUTTON-ACTIONS	TASK-033	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BUTTON-ACTIONS	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BUTTON-ACTIONS	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BUTTON-DISABLED	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BUTTON-DISABLED	TASK-033	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BUTTON-DISABLED	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BUTTON-DISABLED	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-BUTTON-TIME	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-BUTTON-TIME	TASK-033	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-BUTTON-TIME	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-BUTTON-TIME	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-INPUT-EDIT	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-INPUT-EDIT	TASK-033	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-INPUT-EDIT	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-INPUT-EDIT	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-INPUT-EMAIL-MASK	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-INPUT-EMAIL-MASK	TASK-033	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-INPUT-EMAIL-MASK	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-INPUT-EMAIL-MASK	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-TEXTAREA-EDIT	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-TEXTAREA-EDIT	TASK-033	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-TEXTAREA-EDIT	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-TEXTAREA-EDIT	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-TEXTAREA-SCROLL	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-TEXTAREA-SCROLL	TASK-033	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-TEXTAREA-SCROLL	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-TEXTAREA-SCROLL	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-FORM-VALIDATE	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-FORM-VALIDATE	TASK-033	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-FORM-VALIDATE	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-FORM-VALIDATE	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-FORM-SUBMIT	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-FORM-SUBMIT	TASK-033	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-FORM-SUBMIT	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-FORM-SUBMIT	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-LIST-SELECT	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-LIST-SELECT	TASK-037	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-LIST-SELECT	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-LIST-SELECT	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-TREE-FOLD	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-TREE-FOLD	TASK-037	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-TREE-FOLD	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-TREE-FOLD	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-TABLE-SORT	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-TABLE-SORT	TASK-034	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-TABLE-SORT	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-TABLE-SORT	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-EDITABLE-CELL	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-EDITABLE-CELL	TASK-034	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-EDITABLE-CELL	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-EDITABLE-CELL	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-EDITABLE-MOUSE	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-EDITABLE-MOUSE	TASK-034	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-EDITABLE-MOUSE	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-EDITABLE-MOUSE	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-PANEL-SCROLL	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-PANEL-SCROLL	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-PANEL-SCROLL	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-PANEL-SCROLL	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-SIDEBAR-MODES	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-SIDEBAR-MODES	TASK-037	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-SIDEBAR-MODES	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-SIDEBAR-MODES	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-DIALOG-CONFIRM	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-DIALOG-CONFIRM	TASK-038	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-DIALOG-CONFIRM	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-DIALOG-CONFIRM	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-DIALOG-PROMPT	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-DIALOG-PROMPT	TASK-038	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-DIALOG-PROMPT	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-DIALOG-PROMPT	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-DIALOG-CHOICES	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-DIALOG-CHOICES	TASK-038	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-DIALOG-CHOICES	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-DIALOG-CHOICES	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-PROGRESS-RUN	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-PROGRESS-RUN	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-PROGRESS-RUN	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-PROGRESS-RUN	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-SCROLL-OWNERS	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-SCROLL-OWNERS	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-SCROLL-OWNERS	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-SCROLL-OWNERS	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-SCROLL-THUMB	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-SCROLL-THUMB	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-SCROLL-THUMB	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-SCROLL-THUMB	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-TERMINAL-RUN	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-TERMINAL-RUN	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-TERMINAL-RUN	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-TERMINAL-RUN	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-TERMINAL-SELECT	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-TERMINAL-SELECT	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-TERMINAL-SELECT	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-TERMINAL-SELECT	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-EDITOR-EDIT	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-EDITOR-EDIT	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-EDITOR-EDIT	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-EDITOR-EDIT	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-EDITOR-COMPLETE	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-EDITOR-COMPLETE	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-EDITOR-COMPLETE	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-EDITOR-COMPLETE	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-EDITOR-RUN	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-EDITOR-RUN	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-EDITOR-RUN	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-EDITOR-RUN	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-DIFF-MODES	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-DIFF-MODES	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-DIFF-MODES	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-DIFF-MODES	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-DIFF-SELECT	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-DIFF-SELECT	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-DIFF-SELECT	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-DIFF-SELECT	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-GRID-NAV	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-GRID-NAV	TASK-034	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-GRID-NAV	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-GRID-NAV	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-GRID-EDIT	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-GRID-EDIT	TASK-034	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-GRID-EDIT	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-GRID-EDIT	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-GRID-QUEUE	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-GRID-QUEUE	TASK-034	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-GRID-QUEUE	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-GRID-QUEUE	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-GRID-ACTIONS	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-GRID-ACTIONS	TASK-034	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-GRID-ACTIONS	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-GRID-ACTIONS	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-CHIP-FILTERS	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-CHIP-FILTERS	TASK-037	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-CHIP-FILTERS	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-CHIP-FILTERS	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-CHIP-SELECTS	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-CHIP-SELECTS	TASK-037	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-CHIP-SELECTS	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-CHIP-SELECTS	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-PICKER-QUICK	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-PICKER-QUICK	TASK-038	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-PICKER-QUICK	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-PICKER-QUICK	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-PICKER-TABS-LEVEL	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-PICKER-TABS-LEVEL	TASK-038	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-PICKER-TABS-LEVEL	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-PICKER-TABS-LEVEL	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-CHROME-MENUS	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-CHROME-MENUS	TASK-038	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-CHROME-MENUS	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-CHROME-MENUS	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-SETTINGS-GENERAL	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-SETTINGS-GENERAL	TASK-035	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-SETTINGS-GENERAL	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-SETTINGS-GENERAL	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-SETTINGS-MEMBERS	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-SETTINGS-MEMBERS	TASK-035	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-SETTINGS-MEMBERS	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-SETTINGS-MEMBERS	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-SETTINGS-ENV	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-SETTINGS-ENV	TASK-035	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-SETTINGS-ENV	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-SETTINGS-ENV	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-SHELL-ALL-PAGES	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-SHELL-ALL-PAGES	TASK-039	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components; whole-app expansion closes only after all application slices
+APP	SC-SHELL-ALL-PAGES	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-TASK-RUN	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-TASK-RUN	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-TASK-RUN	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-TASK-RUN	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	SC-TASK-SCROLL	TASK-002	R-001	AC-001	CHK-004	baseline	capture and seal exact oracle expansion before application repair
+APP	SC-TASK-SCROLL	TASK-036	R-001	AC-001	CHK-004	primary	restore exact scenario clauses through live public components
+APP	SC-TASK-SCROLL	TASK-039	R-001	AC-001	CHK-004	preservation	replay complete application union with zero unresolved application identities
+APP	SC-TASK-SCROLL	TASK-069	R-001	AC-001	CHK-004	integration	replay all applications on final integrated tree
+APP	HO-BASE-01	TASK-040	R-001	AC-001	CHK-006	contribution	prove exact shell-contributions.tsv observations; never close whole parent scenario
+APP	HO-ROUTE-13	TASK-040	R-001	AC-001	CHK-006	contribution	prove exact shell-contributions.tsv observations; never close whole parent scenario
+APP	HO-SHELL	TASK-040	R-001	AC-001	CHK-006	contribution	prove exact shell-contributions.tsv observations; never close whole parent scenario
+DEC	ADJ-07	TASK-033	R-002	AC-002	CHK-006	primary	place complete Buttons demonstration and production-app assertions under Showcase; render-target relocation remains TASK-066
+APP	SC-SHELL-MINIMUM	TASK-032	R-001	AC-008	CHK-004	frame-contribution	compare every cell and cursor at exact SC-SHELL-F01 checkpoints; parent remains unresolved until full closure
+APP	HO-RESIZE	TASK-040	R-001	AC-008	CHK-004	frame-contribution	compare every cell and cursor at exact HO-SHELL-F01 checkpoints; parent remains unresolved until full closure
+APP	HO-BASE-01	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-01	TASK-041	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-01	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-01	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-02	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-02	TASK-041	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-02	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-02	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-03	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-03	TASK-041	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-03	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-03	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-04	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-04	TASK-041	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-04	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-04	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-05	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-05	TASK-048	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-05	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-05	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-06	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-06	TASK-046	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-06	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-06	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-07	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-07	TASK-049	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-07	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-07	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-08	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-08	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-08	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-08	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-09	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-09	TASK-048	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-09	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-09	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-10	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-10	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-10	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-10	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-11	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-11	TASK-041	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-11	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-11	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-12	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-12	TASK-041	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-12	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-12	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-13	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-13	TASK-041	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-13	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-13	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-14	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-14	TASK-042	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-14	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-14	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-15	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-15	TASK-042	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-15	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-15	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-16	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-16	TASK-047	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-16	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-16	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-17	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-17	TASK-047	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-17	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-17	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-18	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-18	TASK-047	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-18	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-18	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-19	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-19	TASK-047	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-19	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-19	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-20	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-20	TASK-048	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-20	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-20	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-21	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-21	TASK-048	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-21	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-21	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-22	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-22	TASK-047	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-22	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-22	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-23	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-23	TASK-047	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-23	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-23	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-24	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-24	TASK-049	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-24	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-24	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-25	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-25	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-25	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-25	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-26	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-26	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-26	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-26	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-27	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-27	TASK-049	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-27	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-27	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-28	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-28	TASK-045	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-28	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-28	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-29	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-29	TASK-045	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-29	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-29	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-30	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-30	TASK-045	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-30	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-30	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-31	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-31	TASK-046	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-31	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-31	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-32	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-32	TASK-046	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-32	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-32	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-33	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-33	TASK-045	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-33	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-33	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BASE-34	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BASE-34	TASK-045	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BASE-34	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BASE-34	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP01	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP01	TASK-049	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP01	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP01	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP02	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP02	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP02	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP02	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP05	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP05	TASK-047	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP05	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP05	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP06	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP06	TASK-047	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP06	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP06	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP03	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP03	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP03	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP03	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP04	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP04	TASK-042	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP04	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP04	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP07	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP07	TASK-047	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP07	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP07	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP08	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP08	TASK-047	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP08	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP08	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP09	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP09	TASK-048	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP09	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP09	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP10	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP10	TASK-048	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP10	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP10	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP11	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP11	TASK-047	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP11	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP11	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP12	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP12	TASK-047	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP12	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP12	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP13	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP13	TASK-049	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP13	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP13	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP14	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP14	TASK-047	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP14	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP14	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP15	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP15	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP15	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP15	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP17	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP17	TASK-049	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP17	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP17	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP18	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP18	TASK-045	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP18	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP18	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP19	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP19	TASK-046	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP19	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP19	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP20	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP20	TASK-045	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP20	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP20	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP21	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP21	TASK-046	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP21	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP21	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP22	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP22	TASK-046	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP22	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP22	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP22-QUIT	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP22-QUIT	TASK-046	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP22-QUIT	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP22-QUIT	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP23	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-HP23	TASK-046	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-HP23	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-HP23	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-01	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-01	TASK-048	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-01	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-01	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-02	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-02	TASK-048	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-02	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-02	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-03	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-03	TASK-049	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-03	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-03	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-04	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-04	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-04	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-04	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-05	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-05	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-05	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-05	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-06	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-06	TASK-041	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-06	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-06	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-07	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-07	TASK-046	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-07	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-07	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-08	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-08	TASK-048	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-08	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-08	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-09	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-09	TASK-048	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-09	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-09	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-10	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-10	TASK-041	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-10	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-10	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-11	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-11	TASK-048	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-11	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-11	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-12	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-12	TASK-048	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-12	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-12	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-13	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-13	TASK-045	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-13	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-13	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-14	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-14	TASK-041	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-14	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-14	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-15	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-15	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-15	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-15	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-16	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-16	TASK-041	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-16	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-16	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-17	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-17	TASK-050	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-17	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-18	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-18	TASK-046	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-18	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-18	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-19	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-19	TASK-041	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-19	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-19	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-20	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-20	TASK-045	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-20	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-20	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-21	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-21	TASK-042	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-21	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-21	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-22	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-22	TASK-047	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-22	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-22	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-23	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-23	TASK-047	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-23	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-23	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-24	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-24	TASK-048	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-24	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-24	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-25	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-25	TASK-049	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-25	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-25	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-26	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-26	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-26	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-26	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-27	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-27	TASK-043	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-27	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-27	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-28	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-28	TASK-045	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-28	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-28	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-29	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-29	TASK-045	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-29	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-29	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-30	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-30	TASK-046	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-30	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-30	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-31	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-31	TASK-043	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-31	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-31	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-32	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-32	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-32	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-32	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-33	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-33	TASK-045	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-33	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-33	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-34	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-34	TASK-050	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-34	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-35	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-35	TASK-050	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-35	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-36	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-36	TASK-050	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-36	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-37	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-37	TASK-050	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-37	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-38	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-38	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-38	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-38	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-39	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-39	TASK-045	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-39	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-39	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-40	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-40	TASK-043	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-40	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-40	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-41	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-41	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-41	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-41	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ROUTE-42	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ROUTE-42	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ROUTE-42	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ROUTE-42	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-SHELL	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-SHELL	TASK-041	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-SHELL	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-SHELL	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-MENUS	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-MENUS	TASK-049	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-MENUS	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-MENUS	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-QUIT	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-QUIT	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-QUIT	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-QUIT	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-CLOSE	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-CLOSE	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-CLOSE	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-CLOSE	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-FINDER-EMPTY	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-FINDER-EMPTY	TASK-041	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-FINDER-EMPTY	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-FINDER-EMPTY	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-FINDER-EDIT	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-FINDER-EDIT	TASK-041	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-FINDER-EDIT	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-FINDER-EDIT	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-FINDER-SWEEP	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-FINDER-SWEEP	TASK-049	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-FINDER-SWEEP	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-FINDER-SWEEP	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-PICKER	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-PICKER	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-PICKER	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-PICKER	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ACTIVITIES	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ACTIVITIES	TASK-047	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ACTIVITIES	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ACTIVITIES	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-FILES-ACTIONS	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-FILES-ACTIONS	TASK-045	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-FILES-ACTIONS	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-FILES-ACTIONS	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-BROWSER	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-BROWSER	TASK-042	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-BROWSER	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-BROWSER	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-JUMP	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-JUMP	TASK-042	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-JUMP	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-JUMP	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-PREVIEW-SELECT	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-PREVIEW-SELECT	TASK-042	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-PREVIEW-SELECT	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-PREVIEW-SELECT	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-ARGS	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-ARGS	TASK-048	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-ARGS	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-ARGS	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-TRUST	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-TRUST	TASK-049	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-TRUST	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-TRUST	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-GATES	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-GATES	TASK-048	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-GATES	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-GATES	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-DOCKER	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-DOCKER	TASK-048	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-DOCKER	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-DOCKER	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-UPGRADE	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-UPGRADE	TASK-049	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-UPGRADE	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-UPGRADE	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-REMOTE	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-REMOTE	TASK-048	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-REMOTE	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-REMOTE	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-PLAN-REVIEW	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-PLAN-REVIEW	TASK-043	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-PLAN-REVIEW	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-PLAN-REVIEW	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-PLAN-EXEC	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-PLAN-EXEC	TASK-049	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-PLAN-EXEC	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-PLAN-EXEC	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-OUTPUT-SCROLL	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-OUTPUT-SCROLL	TASK-047	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-OUTPUT-SCROLL	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-OUTPUT-SCROLL	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-OUTPUT-FIND	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-OUTPUT-FIND	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-OUTPUT-FIND	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-OUTPUT-FIND	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-STDIN	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-STDIN	TASK-044	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-STDIN	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-STDIN	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-DISK-SCAN	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-DISK-SCAN	TASK-045	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-DISK-SCAN	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-DISK-SCAN	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-DISK-TREE	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-DISK-TREE	TASK-046	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-DISK-TREE	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-DISK-TREE	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-CLEANUP-MODES	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-CLEANUP-MODES	TASK-046	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-CLEANUP-MODES	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-CLEANUP-MODES	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-CLEANUP-SAFETY	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-CLEANUP-SAFETY	TASK-046	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-CLEANUP-SAFETY	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-CLEANUP-SAFETY	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-CLEANUP-REPORT	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-CLEANUP-REPORT	TASK-046	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-CLEANUP-REPORT	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-CLEANUP-REPORT	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-SNAPSHOTS	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-SNAPSHOTS	TASK-049	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-SNAPSHOTS	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-SNAPSHOTS	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-RESIZE	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-RESIZE	TASK-050	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-RESIZE	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-PALETTE	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-PALETTE	TASK-050	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-PALETTE	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-LIFECYCLE	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-LIFECYCLE	TASK-050	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-LIFECYCLE	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-OVERLAY-PASTE	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-OVERLAY-PASTE	TASK-043	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-OVERLAY-PASTE	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-OVERLAY-PASTE	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-POINTER-ALL	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-POINTER-ALL	TASK-050	R-001	AC-001	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-POINTER-ALL	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-CLI-PREVIEW	TASK-003	R-001	AC-001	CHK-004	baseline	freeze complete native and separately mapped resized oracle products; retain every source assertion and full checkpoint
+APP	HO-CLI-PREVIEW	TASK-040	R-001	AC-008	CHK-004	primary	complete audited source journey; every assertion and full frame required; see holla-stage-audit.tsv
+APP	HO-CLI-PREVIEW	TASK-050	R-001	AC-001	CHK-004	preservation	repeat complete Holla parent union plus all earlier contributions; zero application unresolved identities
+APP	HO-CLI-PREVIEW	TASK-069	R-001	AC-001	CHK-004	integration	complete final exact-tree campaign union with no unresolved identities
+APP	HO-HP01	TASK-041	R-001	AC-001	CHK-004	frame-contribution	HO-041-F01 only; Every production input/draw checkpoint from fresh ParityDiscovery through the assertion immediately before open(Custom action configuration); exclude that open and its later checkpoints; full parent TASK-049 remains required and cannot close from contribution
+APP	HO-HP02	TASK-041	R-001	AC-001	CHK-004	frame-contribution	HO-041-F02 only; First ParityHistory constructor through paste cargo newline check and its draw; stop immediately before the following Enter that creates an Activity; full parent TASK-044 remains required and cannot close from contribution
+APP	HO-FINDER-SWEEP	TASK-041	R-001	AC-001	CHK-004	frame-contribution	HO-041-F03 only; From each hard-cases fresh source route, retain pristine/focus/hover/press/release/key-scroll/thumb/resize checkpoints strictly before any source handler emits navigation or execution; require pristine and one focus plus one list/preview scroll checkpoint at every declared size; full parent TASK-049 remains required and cannot close from contribution
+APP	HO-ROUTE-12	TASK-041	R-001	AC-001	CHK-004	frame-contribution	HO-041-F04 only; HardCases constructor through source resize, scope and Docker query checkpoints immediately before Enter opens the unavailable Snapshot; explicit native resize events retain their literal dimensions; full parent TASK-048 remains required and cannot close from contribution
+APP	HO-HP02	TASK-041	R-001	AC-008	CHK-006	contribution	HO-041-S01 only; Native source usage assertions after first accepted invocation and in opt-out constructor; record all corresponding protected oracle checkpoint ordinals; full parent TASK-044 remains required and cannot close from contribution
+APP	HO-HP03	TASK-042	R-001	AC-001	CHK-004	frame-contribution	HO-042-F01 only; From ParityFiles start through all indexing/query/copy assertions, ending immediately before the final two Enters that choose Open in OS and create Activity; full parent TASK-044 remains required and cannot close from contribution
+APP	HO-FILES-ACTIONS	TASK-042	R-001	AC-001	CHK-004	frame-contribution	HO-042-F02 only; Each fresh file-action menu SWEEP branch: capture menu hover/Down and cursor movement before activation Up/Enter; also complete Copy and Preview-here branches; no prefix crossing Activity or Disk; full parent TASK-045 remains required and cannot close from contribution
+APP	HO-ROUTE-20	TASK-042	R-001	AC-008	CHK-006	contribution	HO-042-S01 only; Immediately after real file menu choice emits each Reveal and Analyze request, before renderer-dependent descendant checks; full parent TASK-045 remains required and cannot close from contribution
+APP	HO-ROUTE-05	TASK-043	R-001	AC-001	CHK-004	frame-contribution	HO-043-F01 only; MonorepoChild native source prefix from constructor through trust acceptance and Arguments assertion; end immediately before Ctrl+S creates Activity; full parent TASK-044 remains required and cannot close from contribution
+APP	HO-ARGS	TASK-043	R-001	AC-001	CHK-004	frame-contribution	HO-043-F02 only; Exact HO-ARGS fresh port route through pointer edit and PASTE5173; exclude first Ctrl+S and its Snapshot; include the fresh invalid-text branch through validation and Escape while still on Args; full parent TASK-048 remains required and cannot close from contribution
+APP	HO-TRUST	TASK-043	R-001	AC-001	CHK-004	frame-contribution	HO-043-F03 only; HP17 source prefix through changed-during-review refusal and Here/Trust state assertions; stop before the next successful current-byte approval. The later failed-save branch follows a previously created Activity tab and therefore is not an early full-frame contribution; full parent TASK-049 remains required and cannot close from contribution
+APP	HO-GATES	TASK-043	R-001	AC-001	CHK-004	frame-contribution	HO-043-F04 only; Docker seed prefix through wrong phrase, exact-phrase target drift and resulting Changed gate1 assertions; stop immediately before the comment second pass executes and its following Right; full parent TASK-048 remains required and cannot close from contribution
+APP	HO-TRUST	TASK-043	R-001	AC-008	CHK-006	contribution	HO-043-S01 only; Every original HP17 trust-store assertion at moved/legacy-digest, changed-byte refusal, accepted current bytes and failed save boundaries; full parent TASK-049 remains required and cannot close from contribution
+APP	HO-HP14	TASK-044	R-001	AC-001	CHK-004	frame-contribution	HO-044-F01 only; All first ParityExecutor constructor mixed-stream and burst checkpoints; end before declaration of the second H::new(ParityGitBatch) instance; full parent TASK-047 remains required and cannot close from contribution
+APP	HO-ROUTE-11	TASK-044	R-001	AC-001	CHK-004	frame-contribution	HO-044-F02 only; LaunchFailure constructor through follow-up focus Tab; stop before Enter opens Port5173 Snapshot; full parent TASK-048 remains required and cannot close from contribution
+APP	HO-PLAN-EXEC	TASK-044	R-001	AC-001	CHK-004	frame-contribution	HO-044-F03 only; Original UpgradePlan route from review through the first checkpoint whose actual oracle PlanPhase is Running, inclusive; end before the next Tick; prefix filter is materialized only against oracle; full parent TASK-049 remains required and cannot close from contribution
+APP	HO-OUTPUT-SCROLL	TASK-044	R-001	AC-001	CHK-004	frame-contribution	HO-044-F04 only; Materialize the output SWEEP from the original first ParityExecutor mixed-stream and burst checkpoint states only; retain the complete HP14 second Git-batch branch in the parent, not the early passing set; full parent TASK-047 remains required and cannot close from contribution
+APP	HO-PLAN-EXEC	TASK-044	R-001	AC-008	CHK-006	contribution	HO-044-S01 only; At the original first-running checkpoint and actual source-defined output-pane focus/maximize/restore actions reachable before any further Tick; all actions frozen by oracle-only extraction; full parent TASK-049 remains required and cannot close from contribution
+APP	HO-HP19	TASK-045	R-001	AC-001	CHK-004	frame-contribution	HO-045-F01 only; Disk navigation source prefix through TopFiles selection assertions; stop before d opens Trash review; separately include fresh Linux unavailable-Spotlight branch; full parent TASK-046 remains required and cannot close from contribution
+APP	HO-HP23	TASK-045	R-001	AC-001	CHK-004	frame-contribution	HO-045-F02 only; macOS prefix through Spotlight timeout and platform facts; Linux prefix through cleanup category selection immediately before d opens cleanup review; complete file/opener/report remainder stays046; full parent TASK-046 remains required and cannot close from contribution
+APP	HO-DISK-TREE	TASK-045	R-001	AC-001	CHK-004	frame-contribution	HO-045-F03 only; HP19 prefix before d opens Trash review, plus tree/top-files/facts SWEEP branches from restored pre-review oracle checkpoints; any navigation to Trash remains only in the complete parent; full parent TASK-046 remains required and cannot close from contribution
+APP	HO-HP23	TASK-045	R-001	AC-008	CHK-006	contribution	HO-045-S01 only; Every original capability and canonical-path assertion before accepted cleanup; no effect/report assertions included; full parent TASK-046 remains required and cannot close from contribution
+APP	HO-ACTIVITIES	TASK-044	R-001	AC-001	CHK-004	frame-contribution	HO-044-F05 only; Complete original activities_survive_navigation_and_merged_logs_keep_identity source route plus each Activity SWEEP checkpoint strictly before a follow-up emits git.review or another provider-specific route; include the whole follow-up button frame and press checkpoint before its activating Up; full parent TASK-047 remains required and cannot close from contribution

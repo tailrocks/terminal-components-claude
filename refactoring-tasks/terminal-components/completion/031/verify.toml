@@ -1,0 +1,36 @@
+schema = "verify/v2"
+task_id = "TASK-031"
+writable_paths = ["crates/tui-testing/src","crates/tui/tests/conformance.rs","crates/tui/tests/completion_031.rs"]
+forbidden_paths = ["refactoring-tasks","docs/refactoring-plan","shots","baseline","parity","tools/refactor-proof","tools/refactor-proof-adapters","tools/test-inventory","tools/test-disposition","archives"]
+
+[[checks]]
+id = "CHK-001"
+phase = "precondition"
+argv = ["/proof/bin/tc-proof","preflight","--context","/run/tc-proof/contexts/CHK-001.json"]
+expected = { exit = 0 }
+requirements = ["R-004"]
+acceptance = ["AC-004"]
+
+[[checks]]
+id = "CHK-005"
+phase = "regression"
+argv = ["/proof/bin/tc-proof","account-tests","--context","/run/tc-proof/contexts/CHK-005.json"]
+expected = { exit = 0 }
+requirements = ["R-003","R-006"]
+acceptance = ["AC-003","AC-006"]
+
+[[checks]]
+id = "CHK-006"
+phase = "lint"
+argv = ["/proof/bin/tc-proof","architecture","--context","/run/tc-proof/contexts/CHK-006.json"]
+expected = { exit = 0 }
+requirements = ["R-001","R-002"]
+acceptance = ["AC-001","AC-002"]
+
+[[checks]]
+id = "CHK-007"
+phase = "gate"
+argv = ["/proof/bin/tc-proof","close","--context","/run/tc-proof/contexts/CHK-007.json"]
+expected = { exit = 0 }
+requirements = ["R-005"]
+acceptance = ["AC-005"]

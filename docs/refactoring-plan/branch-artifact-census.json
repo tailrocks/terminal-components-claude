@@ -1,0 +1,29 @@
+{
+  "main": "7b27732a8c3c131760ec3438f641cb3c11343a42",
+  "holla": "2e2401393c47360741ebd321679de08982dca50a",
+  "changed_paths": 7019,
+  "side_records": 7019,
+  "unique_blobs": 5399,
+  "decoded_bytes": 218438713,
+  "formats": {
+    "md": 3,
+    "ansi": 1214,
+    "cursor": 1214,
+    "html": 1214,
+    "png": 1214,
+    "txt": 1214,
+    "tsv": 3,
+    "log": 219,
+    "lock": 1,
+    "guard": 112,
+    "json": 605,
+    "fade_a": 1,
+    "fade_b": 1,
+    "fade_c": 1,
+    "fade_d": 1,
+    "fade_e": 1,
+    "scroll": 1
+  },
+  "decode_errors": [],
+  "scope": "Complete byte and format inspection; not manual visual review, VT replay, or parity approval"
+}

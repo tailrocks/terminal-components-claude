@@ -1,0 +1,52 @@
+schema = "verify/v2"
+task_id = "TASK-070"
+writable_paths = ["tools/refactor-proof/runner","tools/refactor-proof/bin/tc-proof"]
+forbidden_paths = ["refactoring-tasks", "docs/refactoring-plan", "shots", "baseline", "tools/refactor-proof/core", "tools/refactor-proof/bin/tc-proof-host"]
+
+[[checks]]
+id = "CHK-001"
+phase = "precondition"
+argv = ["python3","/task/trusted/proof-bootstrap/host-bootstrap-driver.py","--taskfmt","/proof/bootstrap/bin/taskfmt","--taskfmt-source","/proof/bootstrap/task-format"]
+expected = { exit = 0 }
+requirements = ["R-004"]
+acceptance = ["AC-004"]
+
+[[checks]]
+id = "CHK-004"
+phase = "focused"
+argv = ["python3","/task/trusted/runner-bootstrap/runner-bootstrap-driver.py","--runner","/work/tools/refactor-proof/bin/tc-proof","--group","070"]
+expected = { exit = 0 }
+requirements = ["R-001"]
+acceptance = ["AC-001"]
+
+[[checks]]
+id = "CHK-005"
+phase = "regression"
+argv = ["python3","/task/trusted/runner-bootstrap/runner-bootstrap-driver.py","--runner","/work/tools/refactor-proof/bin/tc-proof","--group","070"]
+expected = { exit = 0 }
+requirements = ["R-003"]
+acceptance = ["AC-003"]
+
+[[checks]]
+id = "CHK-006"
+phase = "lint"
+argv = ["python3","/task/trusted/runner-bootstrap/runner-bootstrap-driver.py","--runner","/work/tools/refactor-proof/bin/tc-proof","--group","070"]
+expected = { exit = 0 }
+requirements = ["R-002"]
+acceptance = ["AC-002"]
+
+[[checks]]
+id = "CHK-008"
+phase = "regression"
+argv = ["python3","/task/trusted/proof-bootstrap/proof-comparator-bootstrap.py","--runner","/work/tools/refactor-proof/bin/tc-proof"]
+expected = { exit = 0 }
+requirements = ["R-003"]
+acceptance = ["AC-006"]
+
+[[checks]]
+id = "CHK-007"
+phase = "gate"
+argv = ["python3","/task/trusted/runner-bootstrap/runner-bootstrap-driver.py","--runner","/work/tools/refactor-proof/bin/tc-proof","--group","070"]
+expected = { exit = 0 }
+requirements = ["R-005"]
+acceptance = ["AC-005"]

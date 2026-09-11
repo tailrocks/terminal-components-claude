@@ -1,0 +1,58 @@
+# Independent tui-snap repair review
+
+Review date: 2026-09-11. Initial candidate: `e45d3fae2ecc628e294c0b5796a8775ad2d7f0e2`, compared with upstream `5036cf87e621e6beb66deffe3224abdbefc955cb`. The candidate worktree is `/tmp/tui-snap-audit.656lHG/repaired`. No repository-local `AGENTS.md` or `CLAUDE.md` was found. This review made no production-code changes.
+
+## Final decision
+
+**Approve the scoped repair PR at `883d03f19d890bbbf27468798db78b04e85297ac`.** Its Git tree is `dadbaa70facc317cfabb52f0374c1f3cdceb46a1`. The worktree was clean when checked. All four initial findings below are closed by inspected corrections and passing independent reproductions. No new material finding remains in the reviewed scope. This recommendation concerns the Git/path library and CLI; it does not authorize merging or claim crates.io publication readiness.
+
+The original `e45d3fa` review requested changes. That historical finding set and its failing evidence are retained below, followed by the final verification record.
+
+## Initial findings, now closed
+
+1. **P1 — The default library dependency does not compile in a normal consumer.** `Cargo.toml:36,43` selects registry vt100 and relies on a root-only Cargo patch. Cargo ignores that patch when tui-snap is a dependency, while `src/ansi.rs:57` now requires vendor-only `strikethrough`, `hidden`, and `blink` methods. A fresh external crate with only a path dependency on this candidate fails `cargo check --offline` with six E0599 errors. The documented instruction to repeat the patch explains the failure but leaves the package nonportable; merely giving tui-snap a direct vendored dependency would also leave termlens on its original vt100 and lose PTY parity. Encode the patched dependency chain in the package, then verify a plain external consumer and its dependency tree without a consumer patch.
+
+2. **P2 — DECAWM support breaks vt100 state serialization.** `vendor/vt100/src/screen.rs:225,237,384,418` writes rendered contents before setting the newly supported wrap mode. For an eight-column target with wrapping disabled, a `state_diff` to enabled wrapping and text `ABCDEFGHIJ` emits `ABCDEFGH ESC[1;8H HIJ ESC[?7h`. Replay yields `ABCDEFGJ`, losing `HI`. `state_formatted` also loses text when its target already has wrapping disabled. The serializer assumes wrapping is enabled; supporting a mode that violates that assumption requires normalizing the mode while emitting contents and restoring the intended mode afterward. Test full and differential serialization from both initial modes, including the case where the desired mode remains disabled after previously wrapped content.
+
+3. **P2 — Hidden SVG cells shift visible text.** `src/render.rs:391` replaces hidden symbols with ordinary spaces and coalesces hidden and visible cells into the same text run. The SVG has no preserved whitespace policy. A row containing hidden `H`, visible `A`, hidden `H`, visible `B` produces `<text x="12" ...> A B</text>`. Standard SVG whitespace processing drops the leading space and collapses repeated spaces, so visible glyph columns no longer match the frame. This also affects wide hidden cells. Preserve spaces explicitly or emit visible runs with explicit cell positions. The existing test only checks that the hidden letter is absent and cannot detect the displacement.
+
+4. **P2 — The documented migration command cannot run from the candidate.** `tools/migrate_fixture_v3.py:17-19` reads the current approval directory and requires schema 2, but this same candidate replaces every approval with schema 3. `python3 tools/migrate_fixture_v3.py --out /tmp/tuisnap-review.19N6Wn/migrated` fails immediately with `AssertionError: migration requires an untouched version-2 source`. Add an explicit audited source revision or source directory and document a reproducible clean-checkout command. Preserve the source-hash check and the rule that actual captures cannot become migration inputs. If modifying the script, use explicit validation rather than guards that disappear under `python -O`.
+
+## Evidence and preservation assessment
+
+The independent reproduction crate is `/tmp/tuisnap-review.19N6Wn`. Its first check used no Cargo patch and failed with six missing-method errors. Adding the exact candidate vt100 patch allowed the three adversarial regression tests to run; all three failed: differential mode serialization, full mode serialization, and hidden SVG spacing. The tests are saved alongside this review as [tuisnap-review-probes.rs](evidence/tuisnap-review-probes.rs). They do not alter the candidate or its tests.
+
+The verification owner reported 49 passing tests with all targets/features, 39 passing tests plus one doctest without default features, a passing explicit doctest, and passing formatting/Clippy. Its 11 qualification tests are included in the 49, not an additional count. The independent PTY fixture checked 384 expected cells, cursor shape/position/blinking, click/drag/hover/wheel transport, literal LF paste, resizing, style-aware settling, and child exit. The source is [tuisnap-pty-probe.rs](evidence/tuisnap-pty-probe.rs). Those checks were run before this review's failures were discovered.
+
+The original DIM cast narrows before dividing and produces 25 rather than 153 for white over black. Moving the narrowing after division is the narrow responsible fix; the exhaustive 65,536 grayscale foreground/background combinations cover the complete per-channel arithmetic domain. Wide-cell followers previously discarded colors and modifiers in all three adapters. Retaining the actual style, and creating Ratatui continuations from the wide lead, repairs canonical data rather than hiding a comparator difference.
+
+Schema 3 is justified by newly retained hidden and blink attributes. Rejecting schema 2 avoids pretending lost information can be recovered. An independent structured comparison of all 24 changed approval files found only the declared version change, added false hidden/blink fields, and continuation attributes copied from the original wide lead. There were 60 continuation color corrections and no unrelated field changes. No actual capture was used in that comparison.
+
+The vendored vt100 delta was compared with the locally cached pristine 0.16.2 sources. Behavioral changes are confined to four source files: independent bold/DIM state and formatted intensity transitions; hidden/blink/strike attributes; DECAWM; physical cursor reporting; and continuation styles. The full vendored archive is large, but its reviewed behavioral delta is small. Archive provenance, original file hashes, and the upstream license are recorded. The newly exposed serialization failure must still be repaired because the vendor retains that public API.
+
+`paste_literal` is additive and leaves `paste` unchanged. It requires bracketed-paste mode and rejects both embedded opening and closing delimiters before sending. The byte-level PTY test demonstrates literal LF transport; the mode-disabled rejection is also tested. The guarantee concerns transmitted protocol bytes, not arbitrary application handling after receipt. Hidden canonical symbols remain readable by design and are explicitly documented as non-redacted. Blink presence is retained while phase and slow/rapid rates remain intentionally collapsed.
+
+Raw ANSI cursor appearance remains a documented limitation; physical position and visibility are retained. PTY cursor assertions provide the corresponding appearance evidence. PNG output remains the pinned font approximation described by the package; this review does not infer terminal-emulator pixel equivalence from passing canonical-cell checks.
+
+## Final correction and verification record
+
+The corrected manifest uses direct paths for both termlens and vt100; termlens points to the same vendored vt100. The `tuisnap::termlens` re-export gives screen constructors the correct Rust type identity. An independent `cargo run --locked --offline --manifest-path tests/fixtures/consumer/Cargo.toml` passed without a root patch. `cargo tree --locked --offline --manifest-path tests/fixtures/consumer/Cargo.toml -i vt100` showed one vt100 package shared by tui-snap and termlens. The 12 vendored termlens source files were independently hash-checked against the recorded originals, with no source changes. Its manifest changes only dependency wiring and removal of unavailable example/test targets. Both upstream license files are present. The additional vendoring is necessary to retain PTY and raw capture parity in ordinary consumers; the formatted vt100 source changes outside the repair are mechanical formatting required by the now-expanded formatting gate.
+
+Both full and differential contents serializers now enable wrapping before painting and restore disabled wrapping afterward when required. The original two independent serialization regressions pass. A further independent test exercises all 256 combinations of bold, dim, italic, underline, reverse, blink, hidden, and strike, using full and differential serialization with both desired wrap modes. Every decoded flag, cell symbol, and final mode matches its independently constructed expectation. All four saved review probes pass after removing the review crate's root patch and depending directly on the same vendored vt100 for its test API.
+
+SVG text runs now use `xml:space="preserve"`. The saved hidden-prefix/interior probe passes, and the in-repository test checks both the whitespace policy and the expected ` A B` text. This correction also preserves the two ordinary spaces emitted for hidden wide cells. It does not change PNG or canonical-cell rendering.
+
+Migration now reads only Git blobs from the pinned upstream revision, validates that revision and the fixture hash explicitly, requires exactly 24 approvals, stages output before publication, and rejects an existing output or a different source revision. It never reads current schema-3 approvals or actual captures as migration inputs. An independent `python3 -O tools/test_migration.py` passed: all 24 exported hashes equal the approved migration, repeat output and wrong-revision requests are rejected, and approval hashes remain unchanged. The README and migration document give runnable consumer/migration commands and explicitly scope this dependency packaging to Git/path consumption.
+
+The verification owner ran and reported the following against these exact committed source bytes: example build; 51 tests across all targets/features; 40 tests plus one doctest without default features; one explicit doctest; Clippy with `-D warnings`; formatting; and `git diff --check`. All passed. Its 384-cell PTY oracle also passed again after removing its root Cargo patch. The independent reviewer reran the four review probes, ordinary consumer and tree inspection, optimized-Python migration test, vendored-source hash verification, and `git diff --check` against the final commit. The reviewer did not edit production code.
+
+Key source SHA-256 values at the reviewed commit:
+
+| File | SHA-256 |
+| --- | --- |
+| `Cargo.toml` | `674a0b68c5b95574109b3cf6b38b1eaa165cb18097117416d77d140bc0cc2298` |
+| `Cargo.lock` | `e94fa95b084ed64a03cd3a1229b2f868d61ee7e908aac4d0e5c04746e5ee108a` |
+| `src/render.rs` | `3246f2d2302559a0262109924d376f357f0ce5b28c2dde97e2d0938ab671115d` |
+| `tools/migrate_fixture_v3.py` | `d67f1f039019cb0792e83db694a3f4b3f5a4fb1d368138c1fc64a24e406ac336` |
+| `vendor/vt100/src/screen.rs` | `0a3e7037a0bc5371d57ef074c3bbb5fb3d118d8ebcc05323e018874be6e90d27` |
+| `vendor/termlens/Cargo.toml` | `d520094a0ce9d3e43d954db16d7bcb264fa4761b5d6101de1e73710d4662c81c` |

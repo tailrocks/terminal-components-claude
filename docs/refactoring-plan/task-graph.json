@@ -1,0 +1,1722 @@
+{
+  "deepest_tasks": [
+    "TASK-069"
+  ],
+  "dependency_depth": {
+    "TASK-001": 1,
+    "TASK-002": 5,
+    "TASK-003": 5,
+    "TASK-004": 5,
+    "TASK-005": 5,
+    "TASK-006": 6,
+    "TASK-007": 5,
+    "TASK-008": 7,
+    "TASK-009": 9,
+    "TASK-010": 10,
+    "TASK-011": 9,
+    "TASK-012": 9,
+    "TASK-013": 10,
+    "TASK-014": 11,
+    "TASK-015": 12,
+    "TASK-016": 12,
+    "TASK-017": 12,
+    "TASK-018": 13,
+    "TASK-019": 14,
+    "TASK-020": 14,
+    "TASK-021": 12,
+    "TASK-022": 13,
+    "TASK-023": 15,
+    "TASK-024": 16,
+    "TASK-025": 17,
+    "TASK-026": 13,
+    "TASK-027": 17,
+    "TASK-028": 18,
+    "TASK-029": 10,
+    "TASK-030": 19,
+    "TASK-031": 20,
+    "TASK-032": 21,
+    "TASK-033": 22,
+    "TASK-034": 23,
+    "TASK-035": 24,
+    "TASK-036": 25,
+    "TASK-037": 26,
+    "TASK-038": 27,
+    "TASK-039": 28,
+    "TASK-040": 21,
+    "TASK-041": 22,
+    "TASK-042": 23,
+    "TASK-043": 24,
+    "TASK-044": 25,
+    "TASK-045": 26,
+    "TASK-046": 27,
+    "TASK-047": 28,
+    "TASK-048": 29,
+    "TASK-049": 30,
+    "TASK-050": 31,
+    "TASK-051": 21,
+    "TASK-052": 22,
+    "TASK-053": 23,
+    "TASK-054": 24,
+    "TASK-055": 25,
+    "TASK-056": 26,
+    "TASK-057": 27,
+    "TASK-058": 21,
+    "TASK-059": 22,
+    "TASK-060": 23,
+    "TASK-061": 24,
+    "TASK-062": 25,
+    "TASK-063": 26,
+    "TASK-064": 27,
+    "TASK-065": 32,
+    "TASK-066": 33,
+    "TASK-067": 32,
+    "TASK-068": 34,
+    "TASK-069": 35,
+    "TASK-070": 2,
+    "TASK-071": 3,
+    "TASK-072": 4,
+    "TASK-073": 8
+  },
+  "longest_path_count": 24,
+  "longest_path_predecessors": {
+    "TASK-001": [],
+    "TASK-002": [
+      "TASK-072"
+    ],
+    "TASK-003": [
+      "TASK-072"
+    ],
+    "TASK-004": [
+      "TASK-072"
+    ],
+    "TASK-005": [
+      "TASK-072"
+    ],
+    "TASK-006": [
+      "TASK-002",
+      "TASK-003",
+      "TASK-004",
+      "TASK-005"
+    ],
+    "TASK-007": [
+      "TASK-072"
+    ],
+    "TASK-008": [
+      "TASK-006"
+    ],
+    "TASK-009": [
+      "TASK-073"
+    ],
+    "TASK-010": [
+      "TASK-009"
+    ],
+    "TASK-011": [
+      "TASK-073"
+    ],
+    "TASK-012": [
+      "TASK-073"
+    ],
+    "TASK-013": [
+      "TASK-011"
+    ],
+    "TASK-014": [
+      "TASK-010",
+      "TASK-013"
+    ],
+    "TASK-015": [
+      "TASK-014"
+    ],
+    "TASK-016": [
+      "TASK-014"
+    ],
+    "TASK-017": [
+      "TASK-014"
+    ],
+    "TASK-018": [
+      "TASK-015",
+      "TASK-016",
+      "TASK-017"
+    ],
+    "TASK-019": [
+      "TASK-018"
+    ],
+    "TASK-020": [
+      "TASK-018"
+    ],
+    "TASK-021": [
+      "TASK-014"
+    ],
+    "TASK-022": [
+      "TASK-015",
+      "TASK-016"
+    ],
+    "TASK-023": [
+      "TASK-019"
+    ],
+    "TASK-024": [
+      "TASK-023"
+    ],
+    "TASK-025": [
+      "TASK-024"
+    ],
+    "TASK-026": [
+      "TASK-021"
+    ],
+    "TASK-027": [
+      "TASK-024"
+    ],
+    "TASK-028": [
+      "TASK-027"
+    ],
+    "TASK-029": [
+      "TASK-009",
+      "TASK-011"
+    ],
+    "TASK-030": [
+      "TASK-028"
+    ],
+    "TASK-031": [
+      "TASK-030"
+    ],
+    "TASK-032": [
+      "TASK-031"
+    ],
+    "TASK-033": [
+      "TASK-032"
+    ],
+    "TASK-034": [
+      "TASK-033"
+    ],
+    "TASK-035": [
+      "TASK-034"
+    ],
+    "TASK-036": [
+      "TASK-035"
+    ],
+    "TASK-037": [
+      "TASK-036"
+    ],
+    "TASK-038": [
+      "TASK-037"
+    ],
+    "TASK-039": [
+      "TASK-038"
+    ],
+    "TASK-040": [
+      "TASK-031"
+    ],
+    "TASK-041": [
+      "TASK-040"
+    ],
+    "TASK-042": [
+      "TASK-041"
+    ],
+    "TASK-043": [
+      "TASK-042"
+    ],
+    "TASK-044": [
+      "TASK-043"
+    ],
+    "TASK-045": [
+      "TASK-044"
+    ],
+    "TASK-046": [
+      "TASK-045"
+    ],
+    "TASK-047": [
+      "TASK-046"
+    ],
+    "TASK-048": [
+      "TASK-047"
+    ],
+    "TASK-049": [
+      "TASK-048"
+    ],
+    "TASK-050": [
+      "TASK-049"
+    ],
+    "TASK-051": [
+      "TASK-031"
+    ],
+    "TASK-052": [
+      "TASK-051"
+    ],
+    "TASK-053": [
+      "TASK-052"
+    ],
+    "TASK-054": [
+      "TASK-053"
+    ],
+    "TASK-055": [
+      "TASK-054"
+    ],
+    "TASK-056": [
+      "TASK-055"
+    ],
+    "TASK-057": [
+      "TASK-056"
+    ],
+    "TASK-058": [
+      "TASK-031"
+    ],
+    "TASK-059": [
+      "TASK-058"
+    ],
+    "TASK-060": [
+      "TASK-059"
+    ],
+    "TASK-061": [
+      "TASK-060"
+    ],
+    "TASK-062": [
+      "TASK-061"
+    ],
+    "TASK-063": [
+      "TASK-062"
+    ],
+    "TASK-064": [
+      "TASK-063"
+    ],
+    "TASK-065": [
+      "TASK-050"
+    ],
+    "TASK-066": [
+      "TASK-065"
+    ],
+    "TASK-067": [
+      "TASK-050"
+    ],
+    "TASK-068": [
+      "TASK-066"
+    ],
+    "TASK-069": [
+      "TASK-068"
+    ],
+    "TASK-070": [
+      "TASK-001"
+    ],
+    "TASK-071": [
+      "TASK-070"
+    ],
+    "TASK-072": [
+      "TASK-071"
+    ],
+    "TASK-073": [
+      "TASK-008"
+    ]
+  },
+  "maximum_dependency_depth": 35,
+  "representative_critical_path": [
+    "TASK-001",
+    "TASK-070",
+    "TASK-071",
+    "TASK-072",
+    "TASK-002",
+    "TASK-006",
+    "TASK-008",
+    "TASK-073",
+    "TASK-009",
+    "TASK-010",
+    "TASK-014",
+    "TASK-015",
+    "TASK-018",
+    "TASK-019",
+    "TASK-023",
+    "TASK-024",
+    "TASK-027",
+    "TASK-028",
+    "TASK-030",
+    "TASK-031",
+    "TASK-040",
+    "TASK-041",
+    "TASK-042",
+    "TASK-043",
+    "TASK-044",
+    "TASK-045",
+    "TASK-046",
+    "TASK-047",
+    "TASK-048",
+    "TASK-049",
+    "TASK-050",
+    "TASK-065",
+    "TASK-066",
+    "TASK-068",
+    "TASK-069"
+  ],
+  "schema": "tc-plan-graph/v1",
+  "serialization_locks": [],
+  "tasks": {
+    "TASK-001": {
+      "dependencies": [],
+      "key": "B-HARNESS",
+      "title": "Implement independently qualified comparator and host core",
+      "writable_paths": [
+        "tools/refactor-proof"
+      ]
+    },
+    "TASK-002": {
+      "dependencies": [
+        "TASK-001",
+        "TASK-070",
+        "TASK-071",
+        "TASK-072"
+      ],
+      "key": "B-SHOWCASE",
+      "title": "Capture all immutable Showcase oracle scenarios",
+      "writable_paths": [
+        "tools/refactor-proof-adapters/showcase"
+      ]
+    },
+    "TASK-003": {
+      "dependencies": [
+        "TASK-001",
+        "TASK-070",
+        "TASK-071",
+        "TASK-072"
+      ],
+      "key": "B-HOLLA",
+      "title": "Capture all immutable Holla oracle scenarios",
+      "writable_paths": [
+        "tools/refactor-proof-adapters/holla"
+      ]
+    },
+    "TASK-004": {
+      "dependencies": [
+        "TASK-001",
+        "TASK-070",
+        "TASK-071",
+        "TASK-072"
+      ],
+      "key": "B-JACKIN",
+      "title": "Capture all immutable Jackin oracle scenarios",
+      "writable_paths": [
+        "tools/refactor-proof-adapters/jackin"
+      ]
+    },
+    "TASK-005": {
+      "dependencies": [
+        "TASK-001",
+        "TASK-070",
+        "TASK-071",
+        "TASK-072"
+      ],
+      "key": "B-TABLEPRO",
+      "title": "Capture all immutable TablePro oracle scenarios",
+      "writable_paths": [
+        "tools/refactor-proof-adapters/tablepro"
+      ]
+    },
+    "TASK-006": {
+      "dependencies": [
+        "TASK-002",
+        "TASK-003",
+        "TASK-004",
+        "TASK-005",
+        "TASK-070",
+        "TASK-071",
+        "TASK-072"
+      ],
+      "key": "B-COMPONENTS",
+      "title": "Capture reusable component states and seal complete baseline",
+      "writable_paths": [
+        "tools/refactor-proof-adapters/components"
+      ]
+    },
+    "TASK-007": {
+      "dependencies": [
+        "TASK-001",
+        "TASK-070",
+        "TASK-071",
+        "TASK-072"
+      ],
+      "key": "B-INVENTORY",
+      "title": "Reconcile exact historical and oracle test identities",
+      "writable_paths": [
+        "tools/test-inventory"
+      ]
+    },
+    "TASK-008": {
+      "dependencies": [
+        "TASK-007",
+        "TASK-006",
+        "TASK-070",
+        "TASK-071",
+        "TASK-072"
+      ],
+      "key": "B-TEST-DISPOSITION",
+      "title": "Replace oracle-conflicting test authority with protected staged assertions",
+      "writable_paths": [
+        "tools/test-disposition",
+        "crates/tui/tests",
+        "apps/showcase/tests",
+        "apps/holla/tests",
+        "apps/jackin-preview/tests",
+        "apps/tablepro/tests",
+        "archives/test-authority",
+        "apps/holla/src/app.rs",
+        "apps/holla/src/app/historical_tests.rs",
+        "apps/holla/src/cli.rs",
+        "apps/holla/src/clock.rs",
+        "apps/holla/src/dispatch.rs",
+        "apps/holla/src/domain/disk.rs",
+        "apps/holla/src/domain/fixtures.rs",
+        "apps/holla/src/domain/git.rs",
+        "apps/holla/src/domain/host.rs",
+        "apps/holla/src/domain/mod.rs",
+        "apps/holla/src/domain/plan.rs",
+        "apps/holla/src/domain/ranking.rs",
+        "apps/holla/src/scenario.rs",
+        "apps/holla/src/screens/activity.rs",
+        "apps/holla/src/screens/dialogs.rs",
+        "apps/holla/src/screens/home.rs",
+        "apps/holla/src/screens/plan.rs",
+        "apps/holla/src/screens/plan_gate.rs",
+        "apps/holla/src/sim/catalogue.rs",
+        "apps/holla/src/sim/pg.rs",
+        "apps/holla/src/sim/plans.rs",
+        "apps/holla/src/sim/world.rs",
+        "apps/jackin-preview/src/app.rs",
+        "apps/jackin-preview/src/app/historical_paint.rs",
+        "apps/jackin-preview/src/arbiter.rs",
+        "apps/jackin-preview/src/cli.rs",
+        "apps/jackin-preview/src/clock.rs",
+        "apps/jackin-preview/src/domain/account.rs",
+        "apps/jackin-preview/src/domain/agent.rs",
+        "apps/jackin-preview/src/domain/fixtures.rs",
+        "apps/jackin-preview/src/domain/instance.rs",
+        "apps/jackin-preview/src/domain/usage.rs",
+        "apps/jackin-preview/src/domain/workspace.rs",
+        "apps/jackin-preview/src/rain.rs",
+        "apps/jackin-preview/src/scenario.rs",
+        "apps/jackin-preview/src/screens/capsule.rs",
+        "apps/jackin-preview/src/screens/cockpit.rs",
+        "apps/jackin-preview/src/screens/editor.rs",
+        "apps/jackin-preview/src/screens/file_browser.rs",
+        "apps/jackin-preview/src/screens/manager.rs",
+        "apps/jackin-preview/src/screens/op_flow.rs",
+        "apps/jackin-preview/src/screens/settings.rs",
+        "apps/jackin-preview/src/screens/usage.rs",
+        "apps/jackin-preview/src/sim/changes.rs",
+        "apps/jackin-preview/src/sim/launch.rs",
+        "apps/jackin-preview/src/sim/onepassword.rs",
+        "apps/jackin-preview/src/sim/pty.rs",
+        "apps/jackin-preview/src/sim/world.rs",
+        "apps/showcase/src/app.rs",
+        "apps/showcase/src/pages/editor.rs",
+        "apps/showcase/src/pages/mod.rs",
+        "apps/showcase/src/pages/pickers.rs",
+        "apps/showcase/src/render_number.rs",
+        "apps/tablepro/src/app.rs",
+        "apps/tablepro/src/cli.rs",
+        "apps/tablepro/src/domain.rs",
+        "apps/tablepro/src/lib.rs",
+        "apps/tablepro/src/model.rs",
+        "apps/tablepro/src/sql.rs",
+        "apps/tablepro/src/tabs.rs",
+        "apps/tablepro/src/workbench.rs",
+        "crates/tui-testing/src/conformance/mod.rs",
+        "crates/tui-testing/src/digest.rs",
+        "crates/tui-testing/src/harness.rs",
+        "crates/tui-testing/src/perf.rs",
+        "crates/tui/src/action.rs",
+        "crates/tui/src/author.rs",
+        "crates/tui/src/capture.rs",
+        "crates/tui/src/collection/empty.rs",
+        "crates/tui/src/collection/key.rs",
+        "crates/tui/src/collection/reconcile.rs",
+        "crates/tui/src/collection/rowui.rs",
+        "crates/tui/src/components/brand.rs",
+        "crates/tui/src/components/button.rs",
+        "crates/tui/src/components/chip.rs",
+        "crates/tui/src/components/choice.rs",
+        "crates/tui/src/components/code.rs",
+        "crates/tui/src/components/completion.rs",
+        "crates/tui/src/components/dialog.rs",
+        "crates/tui/src/components/diff.rs",
+        "crates/tui/src/components/empty.rs",
+        "crates/tui/src/components/field.rs",
+        "crates/tui/src/components/filter_list.rs",
+        "crates/tui/src/components/form.rs",
+        "crates/tui/src/components/grid.rs",
+        "crates/tui/src/components/help.rs",
+        "crates/tui/src/components/hintbar.rs",
+        "crates/tui/src/components/input.rs",
+        "crates/tui/src/components/keyhint.rs",
+        "crates/tui/src/components/list.rs",
+        "crates/tui/src/components/menu.rs",
+        "crates/tui/src/components/meter.rs",
+        "crates/tui/src/components/mod.rs",
+        "crates/tui/src/components/nav_list.rs",
+        "crates/tui/src/components/panel.rs",
+        "crates/tui/src/components/picker.rs",
+        "crates/tui/src/components/picker_chain.rs",
+        "crates/tui/src/components/progress.rs",
+        "crates/tui/src/components/props.rs",
+        "crates/tui/src/components/scroll_region.rs",
+        "crates/tui/src/components/select.rs",
+        "crates/tui/src/components/split.rs",
+        "crates/tui/src/components/status.rs",
+        "crates/tui/src/components/steps.rs",
+        "crates/tui/src/components/tabs.rs",
+        "crates/tui/src/components/textarea.rs",
+        "crates/tui/src/components/too_small.rs",
+        "crates/tui/src/components/tree.rs",
+        "crates/tui/src/components/viewport.rs",
+        "crates/tui/src/components/wizard.rs",
+        "crates/tui/src/cursor.rs",
+        "crates/tui/src/diagnostics.rs",
+        "crates/tui/src/event.rs",
+        "crates/tui/src/focus.rs",
+        "crates/tui/src/hit.rs",
+        "crates/tui/src/id.rs",
+        "crates/tui/src/intent.rs",
+        "crates/tui/src/keymap.rs",
+        "crates/tui/src/layer.rs",
+        "crates/tui/src/layout.rs",
+        "crates/tui/src/measure.rs",
+        "crates/tui/src/response.rs",
+        "crates/tui/src/runtime.rs",
+        "crates/tui/src/runtime/session.rs",
+        "crates/tui/src/scroll.rs",
+        "crates/tui/src/secret.rs",
+        "crates/tui/src/text/buffer.rs",
+        "crates/tui/src/text/editor.rs",
+        "crates/tui/src/text/fuzzy.rs",
+        "crates/tui/src/text/measure.rs",
+        "crates/tui/src/theme/border.rs",
+        "crates/tui/src/theme/builder.rs",
+        "crates/tui/src/theme/builtin/mod.rs",
+        "crates/tui/src/theme/downgrade.rs",
+        "crates/tui/src/theme/glyph.rs",
+        "crates/tui/src/theme/mod.rs",
+        "crates/tui/src/theme/patch.rs",
+        "crates/tui/src/theme/recipe.rs",
+        "crates/tui/src/theme/resolve.rs",
+        "crates/tui/src/theme/tokens.rs",
+        "crates/tui/src/ui/cx.rs",
+        "crates/tui/src/ui/derived.rs",
+        "crates/tui/src/ui/layer_buf.rs",
+        "crates/tui/src/ui/mod.rs",
+        "crates/tui/src/ui/paint.rs",
+        "crates/tui/src/validate.rs"
+      ]
+    },
+    "TASK-009": {
+      "dependencies": [
+        "TASK-006",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-SESSION",
+      "title": "Preserve terminal session time input and capability contracts",
+      "writable_paths": [
+        "Cargo.toml",
+        "Cargo.lock",
+        "crates/tui/Cargo.toml",
+        "crates/tui/src/runtime.rs",
+        "crates/tui/src/runtime/session.rs",
+        "crates/tui/src/runtime/time.rs",
+        "crates/tui/src/runtime/feedback.rs",
+        "crates/tui/src/event.rs",
+        "crates/tui/tests/completion_009.rs",
+        "xtask/src/main.rs"
+      ]
+    },
+    "TASK-010": {
+      "dependencies": [
+        "TASK-009",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-RUNTIME",
+      "title": "Restore runtime focus capture and publication behavior",
+      "writable_paths": [
+        "crates/tui/src/runtime.rs",
+        "crates/tui/src/runtime/typing.rs",
+        "crates/tui/src/focus.rs",
+        "crates/tui/src/hit.rs",
+        "crates/tui/src/capture.rs",
+        "crates/tui/tests/completion_010.rs"
+      ]
+    },
+    "TASK-011": {
+      "dependencies": [
+        "TASK-006",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-THEME",
+      "title": "Complete semantic palettes overrides and ASCII glyph policy",
+      "writable_paths": [
+        "crates/tui/src/theme",
+        "crates/tui/src/ui/paint.rs",
+        "crates/tui/tests/completion_011.rs"
+      ]
+    },
+    "TASK-012": {
+      "dependencies": [
+        "TASK-006",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-LAYOUT",
+      "title": "Preserve pure layout clipping and split geometry",
+      "writable_paths": [
+        "crates/tui/src/layout.rs",
+        "crates/tui/src/measure.rs",
+        "crates/tui/src/components/split.rs",
+        "crates/tui/tests/completion_012.rs"
+      ]
+    },
+    "TASK-013": {
+      "dependencies": [
+        "TASK-011",
+        "TASK-006",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-TEXT",
+      "title": "Restore logical grapheme display copy and editor grammar",
+      "writable_paths": [
+        "crates/tui/src/ui/paint.rs",
+        "crates/tui/src/text",
+        "crates/tui/tests/completion_013.rs"
+      ]
+    },
+    "TASK-014": {
+      "dependencies": [
+        "TASK-013",
+        "TASK-010",
+        "TASK-011",
+        "TASK-012",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-SCROLL",
+      "title": "Restore shared scroll boundaries thumb capture and fades",
+      "writable_paths": [
+        "crates/tui/src/scroll.rs",
+        "crates/tui/src/components/scroll_region.rs",
+        "crates/tui/src/ui/paint.rs",
+        "crates/tui/src/author.rs",
+        "crates/tui/tests/completion_014.rs"
+      ]
+    },
+    "TASK-015": {
+      "dependencies": [
+        "TASK-011",
+        "TASK-013",
+        "TASK-008",
+        "TASK-014",
+        "TASK-073"
+      ],
+      "key": "C-ROWS",
+      "title": "Complete borrowed row part and column overrides",
+      "writable_paths": [
+        "crates/tui/src/collection",
+        "crates/tui/tests/completion_015.rs"
+      ]
+    },
+    "TASK-016": {
+      "dependencies": [
+        "TASK-010",
+        "TASK-013",
+        "TASK-014",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-FIELDS",
+      "title": "Restore shared field editing and secret lifecycle",
+      "writable_paths": [
+        "crates/tui/src/components/input.rs",
+        "crates/tui/src/components/textarea.rs",
+        "crates/tui/src/components/field.rs",
+        "crates/tui/src/components/field_control.rs",
+        "crates/tui/src/secret.rs",
+        "crates/tui/src/validate.rs",
+        "crates/tui/tests/completion_016.rs"
+      ]
+    },
+    "TASK-017": {
+      "dependencies": [
+        "TASK-010",
+        "TASK-012",
+        "TASK-008",
+        "TASK-014",
+        "TASK-073"
+      ],
+      "key": "C-LAYER-CORE",
+      "title": "Preserve runtime layer placement capture and restoration",
+      "writable_paths": [
+        "crates/tui/src/layer.rs",
+        "crates/tui/src/ui/layer_buf.rs",
+        "crates/tui/src/runtime.rs",
+        "crates/tui/tests/completion_017.rs"
+      ]
+    },
+    "TASK-018": {
+      "dependencies": [
+        "TASK-016",
+        "TASK-015",
+        "TASK-017",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-CHOICES",
+      "title": "Restore controlled choices Select and mono label geometry",
+      "writable_paths": [
+        "crates/tui/tests/conformance.rs",
+        "crates/tui/src/components/form.rs",
+        "crates/tui/src/components/choice.rs",
+        "crates/tui/src/components/select.rs",
+        "crates/tui/tests/completion_018.rs"
+      ]
+    },
+    "TASK-019": {
+      "dependencies": [
+        "TASK-018",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-FORM",
+      "title": "Complete all declared Form invariants",
+      "writable_paths": [
+        "crates/tui/src/components/choice.rs",
+        "crates/tui/src/components/form.rs",
+        "crates/tui/tests/completion_019.rs"
+      ]
+    },
+    "TASK-020": {
+      "dependencies": [
+        "TASK-018",
+        "TASK-015",
+        "TASK-014",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-COLLECTIONS",
+      "title": "Restore keyed collection selection navigation and fades",
+      "writable_paths": [
+        "apps/showcase/src/pages/chips.rs",
+        "crates/tui/tests/conformance.rs",
+        "crates/tui/src/components/list.rs",
+        "crates/tui/src/components/nav_list.rs",
+        "crates/tui/src/components/tree.rs",
+        "crates/tui/src/components/steps.rs",
+        "crates/tui/src/components/chip.rs",
+        "crates/tui/src/components/tabs.rs",
+        "crates/tui/tests/completion_020.rs"
+      ]
+    },
+    "TASK-021": {
+      "dependencies": [
+        "TASK-013",
+        "TASK-014",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-OUTPUT",
+      "title": "Restore retained output selection marks and prose policy",
+      "writable_paths": [
+        "crates/tui/src/components/viewport.rs",
+        "crates/tui/tests/completion_021.rs"
+      ]
+    },
+    "TASK-022": {
+      "dependencies": [
+        "TASK-016",
+        "TASK-015",
+        "TASK-014",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-GRID",
+      "title": "Restore generic Grid cell and table behavior",
+      "writable_paths": [
+        "crates/tui/src/components/grid.rs",
+        "crates/tui/tests/completion_022.rs"
+      ]
+    },
+    "TASK-023": {
+      "dependencies": [
+        "TASK-017",
+        "TASK-019",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-LAYERS",
+      "title": "Restore concrete dialogs menus and submenu behavior",
+      "writable_paths": [
+        "crates/tui/src/components/dialog.rs",
+        "crates/tui/src/components/menu.rs",
+        "crates/tui/tests/completion_023.rs"
+      ]
+    },
+    "TASK-024": {
+      "dependencies": [
+        "TASK-020",
+        "TASK-023",
+        "TASK-016",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-PICKERS",
+      "title": "Restore picker chains filters and completion ownership",
+      "writable_paths": [
+        "crates/tui/src/components/filter_list.rs",
+        "crates/tui/src/components/picker.rs",
+        "crates/tui/src/components/picker_chain.rs",
+        "crates/tui/src/components/completion.rs",
+        "crates/tui/tests/completion_024.rs"
+      ]
+    },
+    "TASK-025": {
+      "dependencies": [
+        "TASK-016",
+        "TASK-024",
+        "TASK-021",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-CODE",
+      "title": "Restore code editing readonly selection and diagnostics",
+      "writable_paths": [
+        "crates/tui/src/components/code.rs",
+        "crates/tui/tests/completion_025.rs"
+      ]
+    },
+    "TASK-026": {
+      "dependencies": [
+        "TASK-021",
+        "TASK-012",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-DIFF",
+      "title": "Restore Diff review fallback projection and selection",
+      "writable_paths": [
+        "crates/tui/src/components/diff.rs",
+        "crates/tui/tests/completion_026.rs"
+      ]
+    },
+    "TASK-027": {
+      "dependencies": [
+        "TASK-011",
+        "TASK-012",
+        "TASK-010",
+        "TASK-014",
+        "TASK-015",
+        "TASK-020",
+        "TASK-022",
+        "TASK-024",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-CHROME",
+      "title": "Restore reusable static chrome actions and empty states",
+      "writable_paths": [
+        "crates/tui/src/components/button.rs",
+        "crates/tui/src/components/brand.rs",
+        "crates/tui/src/components/panel.rs",
+        "crates/tui/src/components/props.rs",
+        "crates/tui/src/components/empty.rs",
+        "crates/tui/src/collection/empty.rs",
+        "crates/tui/src/components/too_small.rs",
+        "crates/tui/tests/completion_027.rs"
+      ]
+    },
+    "TASK-028": {
+      "dependencies": [
+        "TASK-027",
+        "TASK-017",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-STATUS",
+      "title": "Restore live status hints and key glyph composition",
+      "writable_paths": [
+        "crates/tui/src/components/status.rs",
+        "crates/tui/src/components/hintbar.rs",
+        "crates/tui/src/components/keyhint.rs",
+        "crates/tui/src/keymap.rs",
+        "crates/tui/src/ui/mod.rs",
+        "crates/tui/src/ui/cx.rs",
+        "crates/tui/tests/completion_028.rs"
+      ]
+    },
+    "TASK-029": {
+      "dependencies": [
+        "TASK-011",
+        "TASK-009",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-MOTION",
+      "title": "Restore deterministic progress spinner and Meter output",
+      "writable_paths": [
+        "crates/tui/src/components/progress.rs",
+        "crates/tui/src/components/meter.rs",
+        "crates/tui/tests/completion_029.rs"
+      ]
+    },
+    "TASK-030": {
+      "dependencies": [
+        "TASK-024",
+        "TASK-028",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-DISCOVERY",
+      "title": "Preserve effective help metadata and Wizard state",
+      "writable_paths": [
+        "crates/tui/src/components/help.rs",
+        "crates/tui/src/components/wizard.rs",
+        "crates/tui/tests/completion_030.rs"
+      ]
+    },
+    "TASK-031": {
+      "dependencies": [
+        "TASK-009",
+        "TASK-010",
+        "TASK-011",
+        "TASK-012",
+        "TASK-013",
+        "TASK-014",
+        "TASK-015",
+        "TASK-016",
+        "TASK-017",
+        "TASK-018",
+        "TASK-019",
+        "TASK-020",
+        "TASK-021",
+        "TASK-022",
+        "TASK-023",
+        "TASK-024",
+        "TASK-025",
+        "TASK-026",
+        "TASK-027",
+        "TASK-028",
+        "TASK-029",
+        "TASK-030",
+        "TASK-008",
+        "TASK-073"
+      ],
+      "key": "C-CONFORMANCE",
+      "title": "Prove complete attributed PARTS and painted-slot closure",
+      "writable_paths": [
+        "crates/tui-testing/src",
+        "crates/tui/tests/conformance.rs",
+        "crates/tui/tests/completion_031.rs"
+      ]
+    },
+    "TASK-032": {
+      "dependencies": [
+        "TASK-020",
+        "TASK-027",
+        "TASK-028",
+        "TASK-023",
+        "TASK-030",
+        "TASK-031"
+      ],
+      "key": "S-SHELL",
+      "title": "Restore live Showcase shell and all 23 routes",
+      "writable_paths": [
+        "apps/showcase/src/app.rs",
+        "apps/showcase/src/main.rs",
+        "apps/showcase/src/lib.rs",
+        "apps/showcase/src/pages/mod.rs",
+        "apps/showcase/src/pages/diff.rs",
+        "apps/showcase/tests/completion_032.rs"
+      ]
+    },
+    "TASK-033": {
+      "dependencies": [
+        "TASK-032",
+        "TASK-019"
+      ],
+      "key": "S-FIELDS",
+      "title": "Restore live Showcase fields forms and Buttons matrix",
+      "writable_paths": [
+        "apps/showcase/src/pages/buttons.rs",
+        "apps/showcase/src/pages/inputs.rs",
+        "apps/showcase/src/pages/textareas.rs",
+        "apps/showcase/src/pages/forms.rs",
+        "apps/showcase/tests/completion_033.rs"
+      ]
+    },
+    "TASK-034": {
+      "dependencies": [
+        "TASK-033",
+        "TASK-022"
+      ],
+      "key": "S-DATA",
+      "title": "Restore Showcase customer grid and editable tables",
+      "writable_paths": [
+        "apps/showcase/src/pages/grid.rs",
+        "apps/showcase/src/pages/tables.rs",
+        "apps/showcase/src/pages/editable.rs",
+        "apps/showcase/src/data.rs",
+        "apps/showcase/tests/completion_034.rs"
+      ]
+    },
+    "TASK-035": {
+      "dependencies": [
+        "TASK-034",
+        "TASK-024"
+      ],
+      "key": "S-SETTINGS",
+      "title": "Restore all live Showcase Settings flows",
+      "writable_paths": [
+        "apps/showcase/src/pages/settings.rs",
+        "apps/showcase/tests/completion_035.rs"
+      ]
+    },
+    "TASK-036": {
+      "dependencies": [
+        "TASK-035",
+        "TASK-025",
+        "TASK-026",
+        "TASK-029"
+      ],
+      "key": "S-OUTPUT",
+      "title": "Restore Showcase Diff editor and output journeys",
+      "writable_paths": [
+        "apps/showcase/src/pages/panels.rs",
+        "apps/showcase/src/pages/progress.rs",
+        "apps/showcase/src/pages/scrolling.rs",
+        "apps/showcase/src/pages/terminal.rs",
+        "apps/showcase/src/pages/editor.rs",
+        "apps/showcase/src/pages/diff.rs",
+        "apps/showcase/src/pages/taskrunner.rs",
+        "apps/showcase/src/pages/mod.rs",
+        "apps/showcase/src/app.rs",
+        "apps/showcase/tests/completion_036.rs"
+      ]
+    },
+    "TASK-037": {
+      "dependencies": [
+        "TASK-036"
+      ],
+      "key": "S-COLLECTIONS",
+      "title": "Restore Showcase collection demonstration journeys",
+      "writable_paths": [
+        "apps/showcase/src/pages/overview.rs",
+        "apps/showcase/src/pages/lists.rs",
+        "apps/showcase/src/pages/trees.rs",
+        "apps/showcase/src/pages/sidebars.rs",
+        "apps/showcase/src/pages/chips.rs",
+        "apps/showcase/tests/completion_037.rs"
+      ]
+    },
+    "TASK-038": {
+      "dependencies": [
+        "TASK-037"
+      ],
+      "key": "S-OVERLAYS",
+      "title": "Restore Showcase picker dialog and chrome journeys",
+      "writable_paths": [
+        "apps/showcase/src/pages/dialogs.rs",
+        "apps/showcase/src/pages/pickers.rs",
+        "apps/showcase/src/pages/chrome.rs",
+        "apps/showcase/tests/completion_038.rs"
+      ]
+    },
+    "TASK-039": {
+      "dependencies": [
+        "TASK-038"
+      ],
+      "key": "S-CLOSE",
+      "title": "Prove complete Showcase oracle and architecture closure",
+      "writable_paths": [
+        "artifacts/s-close"
+      ]
+    },
+    "TASK-040": {
+      "dependencies": [
+        "TASK-020",
+        "TASK-027",
+        "TASK-030",
+        "TASK-031"
+      ],
+      "key": "H-SHELL",
+      "title": "Restore Holla page stack tabs keys and CLI semantics",
+      "writable_paths": [
+        "apps/holla/src/app.rs",
+        "apps/holla/src/cli.rs",
+        "apps/holla/src/main.rs",
+        "apps/holla/src/lib.rs",
+        "apps/holla/src/screens/mod.rs",
+        "apps/holla/src/screens/context.rs",
+        "apps/holla/src/screens/dialogs.rs",
+        "apps/holla/tests/completion_040.rs"
+      ]
+    },
+    "TASK-041": {
+      "dependencies": [
+        "TASK-040",
+        "TASK-024",
+        "TASK-021"
+      ],
+      "key": "H-FINDER",
+      "title": "Restore Holla finder discovery query and preview",
+      "writable_paths": [
+        "apps/holla/src/app.rs",
+        "apps/holla/src/dispatch.rs",
+        "apps/holla/src/scenario.rs",
+        "apps/holla/src/screens/home.rs",
+        "apps/holla/src/screens/finder.rs",
+        "apps/holla/src/screens/actions.rs",
+        "apps/holla/src/domain/action.rs",
+        "apps/holla/src/domain/ranking.rs",
+        "apps/holla/src/domain/usage.rs",
+        "apps/holla/src/domain/discovery.rs",
+        "apps/holla/src/domain/mod.rs",
+        "apps/holla/src/sim/catalogue.rs",
+        "apps/holla/src/sim/world.rs",
+        "apps/holla/src/sim/mod.rs",
+        "apps/holla/tests/completion_041.rs",
+        "apps/holla/src/domain/config.rs",
+        "apps/holla/src/domain/fixtures.rs"
+      ]
+    },
+    "TASK-042": {
+      "dependencies": [
+        "TASK-041",
+        "TASK-026"
+      ],
+      "key": "H-FILES",
+      "title": "Restore Holla file search browser and preview actions",
+      "writable_paths": [
+        "apps/holla/src/app.rs",
+        "apps/holla/src/dispatch.rs",
+        "apps/holla/src/scenario.rs",
+        "apps/holla/src/screens/mod.rs",
+        "apps/holla/src/screens/files.rs",
+        "apps/holla/src/domain/mod.rs",
+        "apps/holla/src/domain/files.rs",
+        "apps/holla/src/domain/fs.rs",
+        "apps/holla/src/sim/mod.rs",
+        "apps/holla/src/sim/fs.rs",
+        "apps/holla/src/sim/catalogue.rs",
+        "apps/holla/src/sim/world.rs",
+        "apps/holla/tests/completion_042.rs"
+      ]
+    },
+    "TASK-043": {
+      "dependencies": [
+        "TASK-042",
+        "TASK-019",
+        "TASK-023"
+      ],
+      "key": "H-REVIEW",
+      "title": "Restore Holla arguments trust review and two-stage gates",
+      "writable_paths": [
+        "apps/holla/src/app.rs",
+        "apps/holla/src/dispatch.rs",
+        "apps/holla/src/screens/mod.rs",
+        "apps/holla/src/screens/review.rs",
+        "apps/holla/src/screens/plan.rs",
+        "apps/holla/src/screens/plan_gate.rs",
+        "apps/holla/src/screens/dialogs.rs",
+        "apps/holla/src/domain/mod.rs",
+        "apps/holla/src/domain/plan.rs",
+        "apps/holla/src/domain/trust.rs",
+        "apps/holla/src/domain/config.rs",
+        "apps/holla/src/sim/plans.rs",
+        "apps/holla/src/sim/world.rs",
+        "apps/holla/tests/completion_043.rs",
+        "apps/holla/src/scenario.rs",
+        "apps/holla/src/domain/fixtures.rs"
+      ]
+    },
+    "TASK-044": {
+      "dependencies": [
+        "TASK-043",
+        "TASK-025"
+      ],
+      "key": "H-ACTIVITY",
+      "title": "Restore Holla activity stdin cancellation and plan output",
+      "writable_paths": [
+        "apps/holla/src/app.rs",
+        "apps/holla/src/dispatch.rs",
+        "apps/holla/src/scenario.rs",
+        "apps/holla/src/screens/activity.rs",
+        "apps/holla/src/screens/plan.rs",
+        "apps/holla/src/screens/dialogs.rs",
+        "apps/holla/src/domain/activity.rs",
+        "apps/holla/src/domain/plan.rs",
+        "apps/holla/src/domain/effect.rs",
+        "apps/holla/src/sim/world.rs",
+        "apps/holla/src/sim/plans.rs",
+        "apps/holla/src/sim/catalogue.rs",
+        "apps/holla/tests/completion_044.rs",
+        "apps/holla/src/domain/fixtures.rs"
+      ]
+    },
+    "TASK-045": {
+      "dependencies": [
+        "TASK-044"
+      ],
+      "key": "H-DISK",
+      "title": "Restore Holla disk scan tree and insight navigation",
+      "writable_paths": [
+        "apps/holla/src/app.rs",
+        "apps/holla/src/dispatch.rs",
+        "apps/holla/src/scenario.rs",
+        "apps/holla/src/screens/mod.rs",
+        "apps/holla/src/screens/disk.rs",
+        "apps/holla/src/screens/cleanup.rs",
+        "apps/holla/src/domain/disk.rs",
+        "apps/holla/src/domain/mod.rs",
+        "apps/holla/src/domain/cleanup.rs",
+        "apps/holla/src/sim/world.rs",
+        "apps/holla/src/sim/catalogue.rs",
+        "apps/holla/src/sim/fs.rs",
+        "apps/holla/tests/completion_045.rs"
+      ]
+    },
+    "TASK-046": {
+      "dependencies": [
+        "TASK-045"
+      ],
+      "key": "H-CLEANUP",
+      "title": "Restore Holla simulated cleanup ownership and reports",
+      "writable_paths": [
+        "apps/holla/src/app.rs",
+        "apps/holla/src/dispatch.rs",
+        "apps/holla/src/scenario.rs",
+        "apps/holla/src/screens/cleanup.rs",
+        "apps/holla/src/screens/snapshot.rs",
+        "apps/holla/src/screens/plan_gate.rs",
+        "apps/holla/src/domain/cleanup.rs",
+        "apps/holla/src/domain/disk.rs",
+        "apps/holla/src/domain/fs.rs",
+        "apps/holla/src/domain/plan.rs",
+        "apps/holla/src/domain/accounting.rs",
+        "apps/holla/src/sim/fs.rs",
+        "apps/holla/src/sim/world.rs",
+        "apps/holla/src/sim/plans.rs",
+        "apps/holla/src/sim/catalogue.rs",
+        "apps/holla/tests/completion_046.rs"
+      ]
+    },
+    "TASK-047": {
+      "dependencies": [
+        "TASK-046"
+      ],
+      "key": "H-BUILD-TASKS",
+      "title": "Restore Holla repository and build-task outcome worlds",
+      "writable_paths": [
+        "apps/holla/src/app.rs",
+        "apps/holla/src/dispatch.rs",
+        "apps/holla/src/scenario.rs",
+        "apps/holla/src/screens/snapshot.rs",
+        "apps/holla/src/domain/git.rs",
+        "apps/holla/src/domain/mod.rs",
+        "apps/holla/src/domain/tasks.rs",
+        "apps/holla/src/domain/cargo.rs",
+        "apps/holla/src/domain/gradle.rs",
+        "apps/holla/src/domain/idea.rs",
+        "apps/holla/src/domain/effect.rs",
+        "apps/holla/src/sim/catalogue.rs",
+        "apps/holla/src/sim/world.rs",
+        "apps/holla/src/sim/plans.rs",
+        "apps/holla/src/sim/fs.rs",
+        "apps/holla/tests/completion_047.rs"
+      ]
+    },
+    "TASK-048": {
+      "dependencies": [
+        "TASK-047"
+      ],
+      "key": "H-SERVICES",
+      "title": "Restore Holla service container and remote outcomes",
+      "writable_paths": [
+        "apps/holla/src/app.rs",
+        "apps/holla/src/dispatch.rs",
+        "apps/holla/src/scenario.rs",
+        "apps/holla/src/screens/snapshot.rs",
+        "apps/holla/src/screens/activity.rs",
+        "apps/holla/src/domain/docker.rs",
+        "apps/holla/src/domain/pg.rs",
+        "apps/holla/src/domain/ssh.rs",
+        "apps/holla/src/domain/host.rs",
+        "apps/holla/src/domain/mod.rs",
+        "apps/holla/src/domain/services.rs",
+        "apps/holla/src/sim/catalogue.rs",
+        "apps/holla/src/sim/world.rs",
+        "apps/holla/src/sim/pg.rs",
+        "apps/holla/src/sim/plans.rs",
+        "apps/holla/tests/completion_048.rs",
+        "apps/holla/src/domain/processes.rs",
+        "apps/holla/src/domain/system.rs"
+      ]
+    },
+    "TASK-049": {
+      "dependencies": [
+        "TASK-048"
+      ],
+      "key": "H-CONFIG-UPGRADE",
+      "title": "Restore Holla config upgrade and snapshot outcomes",
+      "writable_paths": [
+        "apps/holla/src/app.rs",
+        "apps/holla/src/dispatch.rs",
+        "apps/holla/src/scenario.rs",
+        "apps/holla/src/screens/snapshot.rs",
+        "apps/holla/src/screens/plan.rs",
+        "apps/holla/src/screens/actions.rs",
+        "apps/holla/src/domain/config.rs",
+        "apps/holla/src/domain/trust.rs",
+        "apps/holla/src/domain/mise.rs",
+        "apps/holla/src/domain/debian.rs",
+        "apps/holla/src/domain/github.rs",
+        "apps/holla/src/domain/mod.rs",
+        "apps/holla/src/sim/catalogue.rs",
+        "apps/holla/src/sim/world.rs",
+        "apps/holla/src/sim/plans.rs",
+        "apps/holla/tests/completion_049.rs"
+      ]
+    },
+    "TASK-050": {
+      "dependencies": [
+        "TASK-049"
+      ],
+      "key": "H-CLOSE",
+      "title": "Prove complete Holla 34-world oracle closure",
+      "writable_paths": [
+        "artifacts/h-close"
+      ]
+    },
+    "TASK-051": {
+      "dependencies": [
+        "TASK-020",
+        "TASK-027",
+        "TASK-030",
+        "TASK-029",
+        "TASK-031"
+      ],
+      "key": "J-SHELL",
+      "title": "Restore Jackin rituals manager and prelude",
+      "writable_paths": [
+        "apps/jackin-preview/src",
+        "apps/jackin-preview/tests"
+      ]
+    },
+    "TASK-052": {
+      "dependencies": [
+        "TASK-051",
+        "TASK-019",
+        "TASK-022"
+      ],
+      "key": "J-CONFIG",
+      "title": "Restore Jackin editor and shared configuration forms",
+      "writable_paths": [
+        "apps/jackin-preview/src",
+        "apps/jackin-preview/tests"
+      ]
+    },
+    "TASK-053": {
+      "dependencies": [
+        "TASK-052",
+        "TASK-024"
+      ],
+      "key": "J-ACCOUNTS",
+      "title": "Restore Jackin accounts usage and secret picker flows",
+      "writable_paths": [
+        "apps/jackin-preview/src",
+        "apps/jackin-preview/tests"
+      ]
+    },
+    "TASK-054": {
+      "dependencies": [
+        "TASK-053",
+        "TASK-021"
+      ],
+      "key": "J-LAUNCH",
+      "title": "Restore Jackin cockpit launch and handoff",
+      "writable_paths": [
+        "apps/jackin-preview/src",
+        "apps/jackin-preview/tests"
+      ]
+    },
+    "TASK-055": {
+      "dependencies": [
+        "TASK-054",
+        "TASK-025"
+      ],
+      "key": "J-CAPSULE",
+      "title": "Restore Jackin capsule panes tabs and input prefixes",
+      "writable_paths": [
+        "apps/jackin-preview/src",
+        "apps/jackin-preview/tests"
+      ]
+    },
+    "TASK-056": {
+      "dependencies": [
+        "TASK-055",
+        "TASK-026"
+      ],
+      "key": "J-INSPECT",
+      "title": "Restore Jackin inspect and capsule exit overlays",
+      "writable_paths": [
+        "apps/jackin-preview/src",
+        "apps/jackin-preview/tests"
+      ]
+    },
+    "TASK-057": {
+      "dependencies": [
+        "TASK-056"
+      ],
+      "key": "J-CLOSE",
+      "title": "Prove complete Jackin world and motion closure",
+      "writable_paths": [
+        "artifacts/j-close"
+      ]
+    },
+    "TASK-058": {
+      "dependencies": [
+        "TASK-019",
+        "TASK-020",
+        "TASK-027",
+        "TASK-028",
+        "TASK-031"
+      ],
+      "key": "T-CONNECT",
+      "title": "Restore TablePro connections forms and shell strip",
+      "writable_paths": [
+        "apps/tablepro/src",
+        "apps/tablepro/tests"
+      ]
+    },
+    "TASK-059": {
+      "dependencies": [
+        "TASK-058",
+        "TASK-024"
+      ],
+      "key": "T-WORKBENCH",
+      "title": "Restore TablePro explorer tabs and responsive workbench",
+      "writable_paths": [
+        "apps/tablepro/src",
+        "apps/tablepro/tests"
+      ]
+    },
+    "TASK-060": {
+      "dependencies": [
+        "TASK-059",
+        "TASK-022"
+      ],
+      "key": "T-DATA",
+      "title": "Restore TablePro grid filters and structure surfaces",
+      "writable_paths": [
+        "apps/tablepro/src",
+        "apps/tablepro/tests"
+      ]
+    },
+    "TASK-061": {
+      "dependencies": [
+        "TASK-060",
+        "TASK-025"
+      ],
+      "key": "T-QUERY",
+      "title": "Restore TablePro code editor query and result surfaces",
+      "writable_paths": [
+        "apps/tablepro/src",
+        "apps/tablepro/tests"
+      ]
+    },
+    "TASK-062": {
+      "dependencies": [
+        "TASK-061",
+        "TASK-023"
+      ],
+      "key": "T-SAFETY",
+      "title": "Restore TablePro mounted safety and dirty-state overlays",
+      "writable_paths": [
+        "apps/tablepro/src",
+        "apps/tablepro/tests"
+      ]
+    },
+    "TASK-063": {
+      "dependencies": [
+        "TASK-062"
+      ],
+      "key": "T-HISTORY",
+      "title": "Restore TablePro history switcher and help journeys",
+      "writable_paths": [
+        "apps/tablepro/src",
+        "apps/tablepro/tests"
+      ]
+    },
+    "TASK-064": {
+      "dependencies": [
+        "TASK-063"
+      ],
+      "key": "T-CLOSE",
+      "title": "Prove complete TablePro oracle and identity closure",
+      "writable_paths": [
+        "artifacts/t-close"
+      ]
+    },
+    "TASK-065": {
+      "dependencies": [
+        "TASK-039",
+        "TASK-050",
+        "TASK-057",
+        "TASK-064",
+        "TASK-009",
+        "TASK-010",
+        "TASK-011",
+        "TASK-012",
+        "TASK-013",
+        "TASK-014",
+        "TASK-015",
+        "TASK-016",
+        "TASK-017",
+        "TASK-018",
+        "TASK-019",
+        "TASK-020",
+        "TASK-021",
+        "TASK-022",
+        "TASK-023",
+        "TASK-024",
+        "TASK-025",
+        "TASK-026",
+        "TASK-027",
+        "TASK-028",
+        "TASK-029",
+        "TASK-030",
+        "TASK-031"
+      ],
+      "key": "X-OWNERSHIP",
+      "title": "Reject duplicate painters and props ownership loopholes",
+      "writable_paths": [
+        "xtask/src/main.rs",
+        "xtask/fixtures",
+        "xtask/tests/completion_065.rs"
+      ]
+    },
+    "TASK-066": {
+      "dependencies": [
+        "TASK-007",
+        "TASK-039",
+        "TASK-050",
+        "TASK-057",
+        "TASK-064",
+        "TASK-065"
+      ],
+      "key": "X-TESTS",
+      "title": "Close exact test preservation and render-target relocation",
+      "writable_paths": [
+        "tools/test-inventory",
+        "crates/tui/tests/render.rs",
+        "crates/tui/tests/render_components.rs",
+        ".github/workflows/ci.yml",
+        "xtask/src/main.rs",
+        "crates/tui/tests/showcase_buttons.rs"
+      ]
+    },
+    "TASK-067": {
+      "dependencies": [
+        "TASK-011",
+        "TASK-021",
+        "TASK-020",
+        "TASK-039",
+        "TASK-050",
+        "TASK-057",
+        "TASK-064"
+      ],
+      "key": "X-PERF",
+      "title": "Prove actual style share allocations and workload bounds",
+      "writable_paths": [
+        "crates/tui/tests/perf.rs",
+        "crates/tui/tests/perf_collections.rs",
+        "apps/showcase/tests/perf.rs",
+        "apps/holla/tests/perf.rs",
+        "apps/jackin-preview/tests/perf.rs",
+        "apps/tablepro/tests/perf.rs"
+      ]
+    },
+    "TASK-068": {
+      "dependencies": [
+        "TASK-065",
+        "TASK-066",
+        "TASK-067"
+      ],
+      "key": "X-API",
+      "title": "Close public API documentation and obsolete deferrals",
+      "writable_paths": [
+        "COMPONENT_ARCHITECTURE.md",
+        "REFACTORING_STATE.md",
+        "crates/tui/src/lib.rs",
+        "crates/tui/src/author.rs",
+        "crates/tui/examples",
+        "xtask/doc_check_allow.txt",
+        "xtask/named_tests_allow.txt",
+        "xtask/src"
+      ]
+    },
+    "TASK-069": {
+      "dependencies": [
+        "TASK-068",
+        "TASK-031"
+      ],
+      "key": "X-FINAL",
+      "title": "Prove complete integration tree and merge readiness",
+      "writable_paths": [
+        "artifacts/refactoring-completion"
+      ]
+    },
+    "TASK-070": {
+      "dependencies": [
+        "TASK-001"
+      ],
+      "key": "B-RUNNER",
+      "title": "Implement qualified source capture and scenario runner",
+      "writable_paths": [
+        "tools/refactor-proof/runner",
+        "tools/refactor-proof/bin/tc-proof"
+      ]
+    },
+    "TASK-071": {
+      "dependencies": [
+        "TASK-070"
+      ],
+      "key": "B-ACCOUNTING",
+      "title": "Implement qualified exact test execution accounting",
+      "writable_paths": [
+        "tools/refactor-proof/accounting",
+        "tools/refactor-proof/bin/tc-proof"
+      ]
+    },
+    "TASK-072": {
+      "dependencies": [
+        "TASK-071"
+      ],
+      "key": "B-ARCHITECTURE",
+      "title": "Implement qualified architecture evidence verification",
+      "writable_paths": [
+        "tools/refactor-proof/architecture",
+        "tools/refactor-proof/bin/tc-proof"
+      ]
+    },
+    "TASK-073": {
+      "dependencies": [
+        "TASK-008",
+        "TASK-072"
+      ],
+      "key": "B-CONFORMANCE-FOUNDATION",
+      "title": "Establish truthful resolution attribution and generated registry",
+      "writable_paths": [
+        "crates/tui/src/ui/mod.rs",
+        "crates/tui/src/ui/paint.rs",
+        "crates/tui/src/lib.rs",
+        "crates/tui/src/collection/rowui.rs",
+        "crates/tui/src/components/status.rs",
+        "crates/tui/src/components/grid.rs",
+        "crates/tui-testing/src",
+        "crates/tui/tests/conformance.rs",
+        "crates/tui/tests/completion_073.rs"
+      ]
+    }
+  }
+}

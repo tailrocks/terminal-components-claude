@@ -1,0 +1,37 @@
+source_namespace	source_id	task_id	requirement_id	acceptance_id	check_id	role	disposition
+DEC	ADJ-09	TASK-032	R-001	AC-001	CHK-006	preservation	Preserve exact source shell allocation without new compact section switching from deferred F16.
+DEC	ADJ-09	TASK-033	R-001	AC-001	CHK-004	primary	Preserve clipped source fields and original disabled Read-only transcript fixture; F16/F18 proposals do not redefine source frames or focus.
+DEC	ADJ-09	TASK-039	R-001	AC-001	CHK-004	primary	Complete source app closure proves both present and absent geometry without inventing improved reachability.
+DEC	ADJ-09	TASK-056	R-001	AC-001	CHK-004	primary	JA060 compact-open and advanced Diff nonempty copy leaves preview clipboard generation modal and full frame unchanged; F09 remains deferred.
+DEC	ADJ-13	TASK-009	R-002	AC-002	CHK-006	primary	Implement sole private Unix backend signal broker and exact rule18 AST integration; unchanged enter/run APIs, same-flags fallible initialization retry and no global UI state.
+DEC	ADJ-13	TASK-072	R-002	AC-011	CHK-013	primary	Independently qualify exact broker exception and all mutable-global cfg/type/path/alias negatives against the submitted checker before009; future production singleton receipt not prerequisite.
+DEC	ADJ-13	TASK-068	R-001	AC-001	CHK-006	primary	Document explicit narrow backend exception without rewriting original core-global prohibition; retain accepted009/072 receipt boundaries.
+DEC	ADJ-12	TASK-019	R-002	AC-002	CHK-006	primary	Total ordered visible-field validation and sensitivity-safe per-field error storage implement F10; only all-field success admits cross-validation and first invalid controls single focus/action.
+DEC	ADJ-12	TASK-058	R-001	AC-001	CHK-004	primary	Oracle connection name and port validation errors remain simultaneously painted with first-error focus and blocked submit through one shared Form.
+DEC	ADJ-12	TASK-068	R-001	AC-001	CHK-006	primary	Reconcile F10 and public validation documentation with accepted total visible-field scan and cross-validation precondition while retaining historical source evidence.
+DEC	ADJ-09	TASK-016	R-002	AC-002	CHK-006	primary	Shared configured TextInput paste starts enabled idle edits and preserves validation sensitivity and controlled lifecycle without Cx or a second engine.
+DEC	ADJ-09	TASK-017	R-002	AC-002	CHK-006	preservation	Keep default runtime capture and inert-below registration; explicit source-qualified app model commands are not hidden-layer dispatch.
+DEC	ADJ-09	TASK-022	R-002	AC-002	CHK-006	preservation	F04 stays deferred; preserve accepted modern Grid eligibility guards without inventing an oracle app permission transition.
+DEC	ADJ-09	TASK-023	R-002	AC-002	CHK-006	preservation	Layer and dialog ownership remains default; do not impose a false universal modal-first oracle paste assertion.
+DEC	ADJ-09	TASK-025	R-002	AC-002	CHK-006	primary	One CodeEditor paste operation retains active-find priority and otherwise editing writable document eligibility.
+DEC	ADJ-09	TASK-040	R-002	AC-002	CHK-006	primary	Preserve Holla menu pass-through versus true modal isolation in the shell routing contribution; TASK-043 and full Holla closure prove exact original idle/editing recipients and full frames.
+DEC	ADJ-09	TASK-043	R-001	AC-001	CHK-004	primary	Eight idle/editing overlay-paste branches preserve exact Args recipients and nonrecipients through the shared TextInput command; no full service snapshot or preview-copy closure is implied.
+DEC	ADJ-09	TASK-043	R-001	AC-008	CHK-006	contribution	Source-qualified pre-submit and empty Args contributions preserve raw draft editing and validation semantics; successful raw-kind versus parsed fallback descendants close at TASK-048.
+DEC	ADJ-09	TASK-048	R-001	AC-001	CHK-004	primary	Complete source-qualified Args service descendants retain exact raw text raw emitted kind and parsed fallback observations without substituting numeric validation.
+DEC	ADJ-09	TASK-060	R-002	AC-002	CHK-006	preservation	Keep bounded F04 non-goal and existing modern safeguards; actual source-qualified user trajectories remain oracle-bound.
+DEC	ADJ-09	TASK-063	R-001	AC-001	CHK-004	primary	Switcher and TabList paste reaches the editing Query by explicit shared CodeEditor command; true consuming overlays retain isolation.
+DEC	ADJ-10	TASK-018	R-002	AC-002	CHK-006	primary	Typed Navigated versus Chose preserves controlled value and shared cursor ownership; exact geometry and exhaustive consumers remain binding.
+DEC	ADJ-10	TASK-019	R-002	AC-002	CHK-006	primary	Default-false radio_navigation_commits uses the private Form bridge with source-qualified ordered repeated-key commit effects.
+DEC	ADJ-10	TASK-033	R-001	AC-001	CHK-004	primary	Showcase Forms commits source-qualified radio navigation through the shared typed action or configured Form bridge.
+DEC	ADJ-10	TASK-035	R-001	AC-001	CHK-004	primary	Showcase Settings preserves radio navigation value effects and exact geometry through the shared API.
+DEC	ADJ-10	TASK-052	R-001	AC-001	CHK-004	primary	Jackin configuration uses the shared source-compatible radio navigation commit policy where applicable.
+DEC	ADJ-10	TASK-053	R-001	AC-001	CHK-004	primary	Jackin Accounts retains source-qualified radio value cursor and callbacks without private Form state access.
+DEC	ADJ-10	TASK-051	R-001	AC-001	CHK-004	primary	Jackin Prelude ChoiceDialog preserves source-qualified radio navigation commits through shared controls.
+DEC	ADJ-10	TASK-056	R-001	AC-001	CHK-004	primary	Jackin dirty-exit ChoiceDialog in capsule request_exit preserves source-qualified navigation commits through shared controls; this is JA-059 full ownership rather than a split control.
+DEC	ADJ-10	TASK-058	R-001	AC-001	CHK-004	primary	TablePro connection choices use the source-compatible typed navigation policy and unchanged controlled props in both phases.
+DEC	ADJ-11	TASK-020	R-002	AC-002	CHK-006	primary	One borrowed ChipBar owns lead per-item policies keyless actions clipping and focus; exact generic defaults and exhaustive compile adaptations remain supported.
+DEC	ADJ-11	TASK-037	R-001	AC-001	CHK-004	primary	Showcase Chips handles LeadRequested and ClearRequested as actual match_all and list changes with the shared clipped strip.
+DEC	ADJ-11	TASK-044	R-001	AC-001	CHK-004	primary	Holla Activity configures source chips as nonremovable through borrowed shared component props.
+DEC	ADJ-11	TASK-060	R-001	AC-001	CHK-004	primary	TablePro filters use shared lead clear checked removable and error policies with source-clipped hit and focus behavior.
+DEC	ADJ-02	TASK-065	R-001	AC-001	CHK-006	primary	Receiver-free configured-props enforcement and independent red/green reachability witnesses
+DEC	ADJ-07	TASK-066	R-001	AC-001	CHK-005	primary	Consolidate render targets and exact assertion relocation; Buttons application owner is TASK-033

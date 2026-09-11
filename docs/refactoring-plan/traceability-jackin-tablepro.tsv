@@ -1,0 +1,1046 @@
+source_namespace	source_id	task_id	requirement_id	acceptance_id	check_id	role	disposition
+APP	JA-005	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-005	TASK-051	R-001	AC-001	CHK-004	primary	required
+APP	JA-005	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-005	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-006	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-006	TASK-051	R-001	AC-001	CHK-004	primary	required
+APP	JA-006	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-006	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-010	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-010	TASK-051	R-001	AC-001	CHK-004	primary	required
+APP	JA-010	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-010	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-014	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-014	TASK-051	R-001	AC-001	CHK-004	primary	required
+APP	JA-014	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-014	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-015	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-015	TASK-051	R-001	AC-001	CHK-004	primary	required
+APP	JA-015	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-015	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-002	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-002	TASK-051	R-001	AC-001	CHK-004	primary	required
+APP	JA-002	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-002	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-003	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-003	TASK-051	R-001	AC-001	CHK-004	primary	required
+APP	JA-003	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-003	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-004	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-004	TASK-051	R-001	AC-001	CHK-004	primary	required
+APP	JA-004	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-004	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-070	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-070	TASK-051	R-001	AC-001	CHK-004	primary	required
+APP	JA-070	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-070	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-016	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-016	TASK-052	R-001	AC-001	CHK-004	primary	required
+APP	JA-016	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-016	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-017	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-017	TASK-052	R-001	AC-001	CHK-004	primary	required
+APP	JA-017	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-017	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-018	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-018	TASK-052	R-001	AC-001	CHK-004	primary	required
+APP	JA-018	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-018	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-019	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-019	TASK-052	R-001	AC-001	CHK-004	primary	required
+APP	JA-019	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-019	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-020	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-020	TASK-052	R-001	AC-001	CHK-004	primary	required
+APP	JA-020	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-020	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-021	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-021	TASK-052	R-001	AC-001	CHK-004	primary	required
+APP	JA-021	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-021	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-022	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-022	TASK-053	R-001	AC-001	CHK-004	primary	required
+APP	JA-022	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-022	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-023	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-023	TASK-052	R-001	AC-001	CHK-004	primary	required
+APP	JA-023	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-023	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-024	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-024	TASK-052	R-001	AC-001	CHK-004	primary	required
+APP	JA-024	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-024	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-025	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-025	TASK-052	R-001	AC-001	CHK-004	primary	required
+APP	JA-025	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-025	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-026	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-026	TASK-052	R-001	AC-001	CHK-004	primary	required
+APP	JA-026	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-026	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-027	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-027	TASK-052	R-001	AC-001	CHK-004	primary	required
+APP	JA-027	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-027	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-028	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-028	TASK-053	R-001	AC-001	CHK-004	primary	required
+APP	JA-028	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-028	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-029	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-029	TASK-052	R-001	AC-001	CHK-004	primary	required
+APP	JA-029	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-029	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-008	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-008	TASK-052	R-001	AC-001	CHK-004	primary	required
+APP	JA-008	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-008	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-008	TASK-051	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	JA-012	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-012	TASK-052	R-001	AC-001	CHK-004	primary	required
+APP	JA-012	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-012	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-012	TASK-051	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	JA-013	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-013	TASK-052	R-001	AC-001	CHK-004	primary	required
+APP	JA-013	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-013	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-013	TASK-051	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	JA-030	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-030	TASK-053	R-001	AC-001	CHK-004	primary	required
+APP	JA-030	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-030	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-031	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-031	TASK-053	R-001	AC-001	CHK-004	primary	required
+APP	JA-031	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-031	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-032	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-032	TASK-053	R-001	AC-001	CHK-004	primary	required
+APP	JA-032	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-032	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-033	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-033	TASK-053	R-001	AC-001	CHK-004	primary	required
+APP	JA-033	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-033	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-034	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-034	TASK-053	R-001	AC-001	CHK-004	primary	required
+APP	JA-034	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-034	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-035	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-035	TASK-053	R-001	AC-001	CHK-004	primary	required
+APP	JA-035	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-035	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-036	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-036	TASK-053	R-001	AC-001	CHK-004	primary	required
+APP	JA-036	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-036	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-037	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-037	TASK-053	R-001	AC-001	CHK-004	primary	required
+APP	JA-037	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-037	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-038	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-038	TASK-053	R-001	AC-001	CHK-004	primary	required
+APP	JA-038	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-038	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-039	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-039	TASK-053	R-001	AC-001	CHK-004	primary	required
+APP	JA-039	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-039	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-064	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-064	TASK-053	R-001	AC-001	CHK-004	primary	required
+APP	JA-064	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-064	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-011	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-011	TASK-054	R-001	AC-001	CHK-004	primary	required
+APP	JA-011	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-011	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-011	TASK-051	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	JA-040	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-040	TASK-055	R-001	AC-001	CHK-004	primary	required
+APP	JA-040	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-040	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-041	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-041	TASK-054	R-001	AC-001	CHK-004	primary	required
+APP	JA-041	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-041	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-042	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-042	TASK-054	R-001	AC-001	CHK-004	primary	required
+APP	JA-042	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-042	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-043	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-043	TASK-055	R-001	AC-001	CHK-004	primary	required
+APP	JA-043	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-043	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-044	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-044	TASK-055	R-001	AC-001	CHK-004	primary	required
+APP	JA-044	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-044	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-045	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-045	TASK-055	R-001	AC-001	CHK-004	primary	required
+APP	JA-045	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-045	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-046	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-046	TASK-055	R-001	AC-001	CHK-004	primary	required
+APP	JA-046	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-046	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-047	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-047	TASK-055	R-001	AC-001	CHK-004	primary	required
+APP	JA-047	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-047	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-048	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-048	TASK-055	R-001	AC-001	CHK-004	primary	required
+APP	JA-048	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-048	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-049	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-049	TASK-055	R-001	AC-001	CHK-004	primary	required
+APP	JA-049	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-049	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-050	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-050	TASK-055	R-001	AC-001	CHK-004	primary	required
+APP	JA-050	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-050	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-051	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-051	TASK-055	R-001	AC-001	CHK-004	primary	required
+APP	JA-051	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-051	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-052	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-052	TASK-055	R-001	AC-001	CHK-004	primary	required
+APP	JA-052	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-052	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-053	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-053	TASK-055	R-001	AC-001	CHK-004	primary	required
+APP	JA-053	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-053	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-054	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-054	TASK-055	R-001	AC-001	CHK-004	primary	required
+APP	JA-054	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-054	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-055	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-055	TASK-055	R-001	AC-001	CHK-004	primary	required
+APP	JA-055	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-055	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-056	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-056	TASK-056	R-001	AC-001	CHK-004	primary	required
+APP	JA-056	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-056	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-057	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-057	TASK-055	R-001	AC-001	CHK-004	primary	required
+APP	JA-057	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-057	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-058	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-058	TASK-056	R-001	AC-001	CHK-004	primary	required
+APP	JA-058	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-058	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-007	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-007	TASK-055	R-001	AC-001	CHK-004	primary	required
+APP	JA-007	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-007	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-007	TASK-051	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	JA-059	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-059	TASK-056	R-001	AC-001	CHK-004	primary	required
+APP	JA-059	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-059	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-060	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-060	TASK-056	R-001	AC-001	CHK-004	primary	required
+APP	JA-060	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-060	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-061	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-061	TASK-056	R-001	AC-001	CHK-004	primary	required
+APP	JA-061	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-061	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-009	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-009	TASK-056	R-001	AC-001	CHK-004	primary	required
+APP	JA-009	TASK-057	R-001	AC-001	CHK-004	closure	required
+APP	JA-009	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-009	TASK-051	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	JA-001	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-001	TASK-057	R-001	AC-001	CHK-004	primary	required
+APP	JA-001	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-065	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-065	TASK-057	R-001	AC-001	CHK-004	primary	required
+APP	JA-065	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-065	TASK-051	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	JA-066	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-066	TASK-057	R-001	AC-001	CHK-004	primary	required
+APP	JA-066	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-066	TASK-051	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	JA-067	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-067	TASK-057	R-001	AC-001	CHK-004	primary	required
+APP	JA-067	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-067	TASK-051	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	JA-068	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-068	TASK-057	R-001	AC-001	CHK-004	primary	required
+APP	JA-068	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-068	TASK-051	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	JA-069	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-069	TASK-057	R-001	AC-001	CHK-004	primary	required
+APP	JA-069	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-062	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-062	TASK-057	R-001	AC-001	CHK-004	primary	required
+APP	JA-062	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-063	TASK-004	R-001	AC-001	CHK-004	baseline	required
+APP	JA-063	TASK-057	R-001	AC-001	CHK-004	primary	required
+APP	JA-063	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	JA-063	TASK-051	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-001	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-001	TASK-058	R-001	AC-001	CHK-004	primary	required
+APP	TP-001	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-001	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-002	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-002	TASK-058	R-001	AC-001	CHK-004	primary	required
+APP	TP-002	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-002	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-003	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-003	TASK-058	R-001	AC-001	CHK-004	primary	required
+APP	TP-003	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-003	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-004	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-004	TASK-058	R-001	AC-001	CHK-004	primary	required
+APP	TP-004	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-004	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-005	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-005	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-005	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-005	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-006	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-006	TASK-058	R-001	AC-001	CHK-004	primary	required
+APP	TP-006	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-006	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-007	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-007	TASK-058	R-001	AC-001	CHK-004	primary	required
+APP	TP-007	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-007	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-008	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-008	TASK-058	R-001	AC-001	CHK-004	primary	required
+APP	TP-008	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-008	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-009	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-009	TASK-058	R-001	AC-001	CHK-004	primary	required
+APP	TP-009	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-009	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-010	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-010	TASK-058	R-001	AC-001	CHK-004	primary	required
+APP	TP-010	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-010	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-011	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-011	TASK-058	R-001	AC-001	CHK-004	primary	required
+APP	TP-011	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-011	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-012	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-012	TASK-058	R-001	AC-001	CHK-004	primary	required
+APP	TP-012	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-012	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-013	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-013	TASK-058	R-001	AC-001	CHK-004	primary	required
+APP	TP-013	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-013	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-014	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-014	TASK-058	R-001	AC-001	CHK-004	primary	required
+APP	TP-014	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-014	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-015	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-015	TASK-058	R-001	AC-001	CHK-004	primary	required
+APP	TP-015	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-015	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-016	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-016	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-016	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-016	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-017	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-017	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-017	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-017	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-018	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-018	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-018	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-018	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-019	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-019	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-019	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-019	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-021	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-021	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-021	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-021	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-026	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-026	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-026	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-026	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-074	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-074	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-074	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-074	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-027	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-027	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-027	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-027	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-028	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-028	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-028	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-028	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-029	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-029	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-029	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-029	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-030	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-030	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-030	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-030	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-031	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-031	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-031	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-031	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-032	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-032	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-032	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-032	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-033	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-033	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-033	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-033	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-037	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-037	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-037	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-037	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-038	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-038	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-038	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-038	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-039	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-039	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-039	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-039	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-040	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-040	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-040	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-040	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-041	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-041	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-041	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-041	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-042	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-042	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-042	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-042	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-043	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-043	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-043	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-043	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-044	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-044	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-044	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-044	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-079	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-079	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-079	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-079	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-020	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-020	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-020	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-020	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-020	TASK-059	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-045	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-045	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-045	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-045	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-046	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-046	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-046	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-046	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-047	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-047	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-047	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-047	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-048	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-048	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-048	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-048	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-049	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-049	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-049	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-049	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-050	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-050	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-050	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-050	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-051	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-051	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-051	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-051	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-052	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-052	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-052	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-052	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-053	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-053	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-053	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-053	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-054	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-054	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-054	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-054	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-055	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-055	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-055	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-055	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-056	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-056	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-056	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-056	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-057	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-057	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-057	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-057	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-022	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-022	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-022	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-022	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-022	TASK-059	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-023	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-023	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-023	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-023	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-023	TASK-059	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-024	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-024	TASK-061	R-001	AC-001	CHK-004	primary	required
+APP	TP-024	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-024	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-024	TASK-059	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-036	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-036	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-036	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-036	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-036	TASK-060	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-058	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-058	TASK-062	R-001	AC-001	CHK-004	primary	required
+APP	TP-058	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-058	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-058	TASK-061	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-059	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-059	TASK-062	R-001	AC-001	CHK-004	primary	required
+APP	TP-059	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-059	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-059	TASK-061	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-060	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-060	TASK-062	R-001	AC-001	CHK-004	primary	required
+APP	TP-060	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-060	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-060	TASK-061	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-061	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-061	TASK-062	R-001	AC-001	CHK-004	primary	required
+APP	TP-061	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-061	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-061	TASK-061	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-062	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-062	TASK-062	R-001	AC-001	CHK-004	primary	required
+APP	TP-062	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-062	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-063	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-063	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-063	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-063	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-063	TASK-060	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-064	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-064	TASK-062	R-001	AC-001	CHK-004	primary	required
+APP	TP-064	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-064	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-064	TASK-061	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-065	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-065	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-065	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-065	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-065	TASK-060	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-065	TASK-061	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-073	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-073	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-073	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-073	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-077	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-077	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-077	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-077	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-035	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-035	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-035	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-035	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-035	TASK-060	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-025	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-025	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-025	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-025	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-025	TASK-059	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-066	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-066	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-066	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-066	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-067	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-067	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-067	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-067	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-067	TASK-061	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-068	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-068	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-068	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-068	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-069	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-069	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-069	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-069	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-069	TASK-059	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-070	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-070	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-070	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-070	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-070	TASK-059	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-071	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-071	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-071	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-071	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-071	TASK-059	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-072	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-072	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-072	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-072	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-034	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-034	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-034	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-034	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-034	TASK-060	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-034	TASK-062	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-080	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-080	TASK-063	R-001	AC-001	CHK-004	primary	required
+APP	TP-080	TASK-064	R-001	AC-001	CHK-004	closure	required
+APP	TP-080	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-080	TASK-058	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-075	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-075	TASK-064	R-001	AC-001	CHK-004	primary	required
+APP	TP-075	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-075	TASK-058	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-076	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-076	TASK-064	R-001	AC-001	CHK-004	primary	required
+APP	TP-076	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-076	TASK-058	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	TP-078	TASK-005	R-001	AC-001	CHK-004	baseline	required
+APP	TP-078	TASK-064	R-001	AC-001	CHK-004	primary	required
+APP	TP-078	TASK-069	R-001	AC-001	CHK-004	integration	required
+APP	TP-078	TASK-058	R-003	AC-003	CHK-005	preservation	bounded-contribution; full scenario closes only at primary owner
+APP	JA-022	TASK-052	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	JFLOW-F52-022	TASK-052	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	JFLOW-F52-022	TASK-004	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	JFLOW-F52-022	TASK-057	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	JFLOW-F52-022	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	JA-028	TASK-052	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	JFLOW-F52-028	TASK-052	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	JFLOW-F52-028	TASK-004	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	JFLOW-F52-028	TASK-057	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	JFLOW-F52-028	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	JA-011	TASK-053	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	JFLOW-F53-011	TASK-053	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	JFLOW-F53-011	TASK-004	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	JFLOW-F53-011	TASK-057	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	JFLOW-F53-011	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	JA-040	TASK-054	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	JFLOW-F54-040	TASK-054	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	JFLOW-F54-040	TASK-004	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	JFLOW-F54-040	TASK-057	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	JFLOW-F54-040	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	JA-043	TASK-054	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	JFLOW-F54-043	TASK-054	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	JFLOW-F54-043	TASK-004	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	JFLOW-F54-043	TASK-057	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	JFLOW-F54-043	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	JA-044	TASK-054	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	JFLOW-F54-044	TASK-054	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	JFLOW-F54-044	TASK-004	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	JFLOW-F54-044	TASK-057	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	JFLOW-F54-044	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	JA-045	TASK-054	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	JFLOW-F54-045	TASK-054	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	JFLOW-F54-045	TASK-004	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	JFLOW-F54-045	TASK-057	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	JFLOW-F54-045	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	JA-056	TASK-055	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	JFLOW-F55-056	TASK-055	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	JFLOW-F55-056	TASK-004	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	JFLOW-F55-056	TASK-057	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	JFLOW-F55-056	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	JA-058	TASK-055	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	JFLOW-F55-058	TASK-055	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	JFLOW-F55-058	TASK-004	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	JFLOW-F55-058	TASK-057	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	JFLOW-F55-058	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-005	TASK-058	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F58-005	TASK-058	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F58-005	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F58-005	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F58-005	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-016	TASK-058	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F58-016	TASK-058	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F58-016	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F58-016	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F58-016	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-026	TASK-059	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F59-026	TASK-059	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F59-026	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F59-026	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F59-026	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-046	TASK-061	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F61-046	TASK-061	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F61-046	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F61-046	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F61-046	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-050	TASK-061	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F61-050	TASK-061	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F61-050	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F61-050	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F61-050	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-027	TASK-060	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F60-027	TASK-060	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F60-027	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F60-027	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F60-027	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-028	TASK-060	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F60-028	TASK-060	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F60-028	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F60-028	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F60-028	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-029	TASK-060	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F60-029	TASK-060	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F60-029	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F60-029	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F60-029	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-030	TASK-060	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F60-030	TASK-060	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F60-030	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F60-030	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F60-030	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-031	TASK-060	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F60-031	TASK-060	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F60-031	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F60-031	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F60-031	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-032	TASK-060	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F60-032	TASK-060	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F60-032	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F60-032	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F60-032	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-033	TASK-060	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F60-033	TASK-060	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F60-033	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F60-033	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F60-033	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-035	TASK-062	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F62-035	TASK-062	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F62-035	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F62-035	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F62-035	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-036	TASK-062	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F62-036	TASK-062	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F62-036	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F62-036	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F62-036	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-037	TASK-060	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F60-037	TASK-060	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F60-037	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F60-037	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F60-037	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-038	TASK-060	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F60-038	TASK-060	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F60-038	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F60-038	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F60-038	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-039	TASK-060	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F60-039	TASK-060	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F60-039	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F60-039	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F60-039	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-040	TASK-060	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F60-040	TASK-060	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F60-040	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F60-040	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F60-040	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-041	TASK-060	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F60-041	TASK-060	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F60-041	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F60-041	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F60-041	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-042	TASK-060	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F60-042	TASK-060	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F60-042	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F60-042	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F60-042	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-043	TASK-060	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F60-043	TASK-060	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F60-043	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F60-043	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F60-043	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-044	TASK-060	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F60-044	TASK-060	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F60-044	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F60-044	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F60-044	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-063	TASK-062	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F62-063	TASK-062	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F62-063	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F62-063	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F62-063	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-065	TASK-062	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F62-065	TASK-062	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F62-065	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F62-065	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F62-065	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-073	TASK-062	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F62-073	TASK-062	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F62-073	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F62-073	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F62-073	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-074	TASK-060	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F60-074	TASK-060	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F60-074	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F60-074	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F60-074	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-077	TASK-062	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F62-077	TASK-062	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F62-077	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F62-077	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F62-077	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-079	TASK-060	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F60-079	TASK-060	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F60-079	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F60-079	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F60-079	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-017	TASK-059	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F59-017	TASK-059	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F59-017	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F59-017	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F59-017	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-018	TASK-059	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F59-018	TASK-059	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F59-018	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F59-018	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F59-018	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-019	TASK-059	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F59-019	TASK-059	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F59-019	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F59-019	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F59-019	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-020	TASK-060	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F60-020	TASK-060	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F60-020	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F60-020	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F60-020	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	TP-021	TASK-060	R-001	AC-001	CHK-004	frame-contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-F60-021	TASK-060	R-001	AC-001	CHK-004	primary	required nonempty source-derived whole-frame contribution
+APP-FLOW	TFLOW-F60-021	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-F60-021	TASK-064	R-001	AC-001	CHK-004	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-F60-021	TASK-069	R-001	AC-001	CHK-004	integration	same-tree full campaign closure
+APP	JA-022	TASK-052	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	JFLOW-C52-022	TASK-052	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	JFLOW-C52-022	TASK-004	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	JFLOW-C52-022	TASK-057	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	JFLOW-C52-022	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	JA-028	TASK-052	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	JFLOW-C52-028	TASK-052	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	JFLOW-C52-028	TASK-004	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	JFLOW-C52-028	TASK-057	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	JFLOW-C52-028	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	JA-011	TASK-053	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	JFLOW-C53-011	TASK-053	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	JFLOW-C53-011	TASK-004	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	JFLOW-C53-011	TASK-057	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	JFLOW-C53-011	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	JA-040	TASK-054	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	JFLOW-C54-040	TASK-054	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	JFLOW-C54-040	TASK-004	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	JFLOW-C54-040	TASK-057	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	JFLOW-C54-040	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	JA-043	TASK-054	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	JFLOW-C54-043	TASK-054	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	JFLOW-C54-043	TASK-004	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	JFLOW-C54-043	TASK-057	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	JFLOW-C54-043	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	JA-044	TASK-054	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	JFLOW-C54-044	TASK-054	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	JFLOW-C54-044	TASK-004	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	JFLOW-C54-044	TASK-057	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	JFLOW-C54-044	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	JA-045	TASK-054	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	JFLOW-C54-045	TASK-054	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	JFLOW-C54-045	TASK-004	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	JFLOW-C54-045	TASK-057	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	JFLOW-C54-045	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	JA-056	TASK-055	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	JFLOW-C55-056	TASK-055	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	JFLOW-C55-056	TASK-004	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	JFLOW-C55-056	TASK-057	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	JFLOW-C55-056	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	JA-058	TASK-055	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	JFLOW-C55-058	TASK-055	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	JFLOW-C55-058	TASK-004	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	JFLOW-C55-058	TASK-057	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	JFLOW-C55-058	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-005	TASK-058	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C58-005	TASK-058	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C58-005	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C58-005	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C58-005	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-016	TASK-058	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C58-016	TASK-058	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C58-016	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C58-016	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C58-016	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-026	TASK-059	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C59-026	TASK-059	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C59-026	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C59-026	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C59-026	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-046	TASK-061	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C61-046	TASK-061	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C61-046	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C61-046	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C61-046	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-050	TASK-061	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C61-050	TASK-061	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C61-050	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C61-050	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C61-050	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-027	TASK-060	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C60-027	TASK-060	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C60-027	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C60-027	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C60-027	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-028	TASK-060	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C60-028	TASK-060	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C60-028	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C60-028	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C60-028	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-029	TASK-060	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C60-029	TASK-060	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C60-029	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C60-029	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C60-029	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-030	TASK-060	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C60-030	TASK-060	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C60-030	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C60-030	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C60-030	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-031	TASK-060	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C60-031	TASK-060	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C60-031	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C60-031	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C60-031	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-032	TASK-060	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C60-032	TASK-060	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C60-032	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C60-032	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C60-032	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-033	TASK-060	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C60-033	TASK-060	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C60-033	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C60-033	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C60-033	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-035	TASK-062	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C62-035	TASK-062	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C62-035	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C62-035	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C62-035	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-036	TASK-062	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C62-036	TASK-062	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C62-036	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C62-036	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C62-036	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-037	TASK-060	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C60-037	TASK-060	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C60-037	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C60-037	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C60-037	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-038	TASK-060	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C60-038	TASK-060	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C60-038	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C60-038	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C60-038	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-039	TASK-060	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C60-039	TASK-060	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C60-039	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C60-039	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C60-039	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-040	TASK-060	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C60-040	TASK-060	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C60-040	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C60-040	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C60-040	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-041	TASK-060	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C60-041	TASK-060	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C60-041	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C60-041	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C60-041	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-042	TASK-060	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C60-042	TASK-060	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C60-042	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C60-042	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C60-042	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-043	TASK-060	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C60-043	TASK-060	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C60-043	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C60-043	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C60-043	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-044	TASK-060	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C60-044	TASK-060	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C60-044	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C60-044	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C60-044	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-063	TASK-062	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C62-063	TASK-062	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C62-063	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C62-063	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C62-063	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-065	TASK-062	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C62-065	TASK-062	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C62-065	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C62-065	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C62-065	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-073	TASK-062	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C62-073	TASK-062	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C62-073	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C62-073	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C62-073	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-074	TASK-060	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C60-074	TASK-060	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C60-074	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C60-074	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C60-074	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-077	TASK-062	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C62-077	TASK-062	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C62-077	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C62-077	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C62-077	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-079	TASK-060	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C60-079	TASK-060	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C60-079	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C60-079	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C60-079	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-017	TASK-059	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C59-017	TASK-059	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C59-017	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C59-017	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C59-017	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-018	TASK-059	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C59-018	TASK-059	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C59-018	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C59-018	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C59-018	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-019	TASK-059	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C59-019	TASK-059	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C59-019	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C59-019	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C59-019	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-020	TASK-060	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C60-020	TASK-060	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C60-020	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C60-020	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C60-020	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
+APP	TP-021	TASK-060	R-002	AC-002	CHK-006	contribution	required separate identity; full parent retained at later primary
+APP-FLOW	TFLOW-C60-021	TASK-060	R-002	AC-002	CHK-006	primary	required nonempty source-derived semantic contribution
+APP-FLOW	TFLOW-C60-021	TASK-005	R-001	AC-001	CHK-004	baseline	freeze and independently qualify exact derived identity
+APP-FLOW	TFLOW-C60-021	TASK-064	R-002	AC-002	CHK-006	closure	rerun alongside complete intact parent
+APP-FLOW	TFLOW-C60-021	TASK-069	R-002	AC-002	CHK-006	integration	same-tree full campaign closure
