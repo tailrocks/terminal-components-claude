@@ -1,0 +1,40 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                             truecolor · 120×40  ? help [0m
+                                                                                                                        [0m
+  ≡ Query 1 ×                                                                                                       +   [0m
+ ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ╭─ Explorer ─────── public ─╮ ╭─ Query 1 ─────────────────────────────────────────────────────────────────────────  ─╮ [0m
+ │                           │ │      1 Type SQL. Ctrl+R runs the statement under the cursor.                         │ [0m
+ │   Filter objects          │ │                                                                                      │ [0m
+ │  ▾ D acme_prod            │ │                                                                                      │ [0m
+ │ ▎  ▾ S public             │ │                                                                                      │ [0m
+ │  ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────╮  │ [0m
+ │  │ [0m[1mSafe Mode · this connection[0m                                                                                  │  │ [0m
+ │  │    Silent            Writes run without asking. Destructive statements still confirm.                        │  │ [0m
+ │  │    Alert             Every write asks for confirmation before it runs.                                       │  │ [0m
+ │  │    Alert (Full)      Every statement, reads included, asks for confirmation.                                 │  │ [0m
+ │  │ [0m[1m▎[0m›[0m[1m Safe Mode         [0mWrites ask for confirmation and a deliberate acknowledgement.[0m[1m                 [0mcurrent[0m[1m  [0m │  │ [0m
+ │  │    Safe Mode (Full)  Every statement asks for confirmation and a deliberate acknowledgement.                 │  │ [0m
+ │  │    Read-Only         Writes are refused. Reads and exports still work.                                       │  │ [0m
+ │  │                                                                                                              │  │ [0m
+ │  │ ↑↓ Move · Enter Set level · Esc Keep · levels are saved to the connection                                    │  │ [0m
+ │  ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────╯  │ [0m
+ │    ▸ S analytics          │ │                                                                                      │ [0m
+ │    ▸ S audit              │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                    No results yet                                    │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │              Ctrl+R runs the statement under the cursor · Alt+R runs all             │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                        [0m
+                                                                                                Connected to Production [0m

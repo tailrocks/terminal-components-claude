@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Sidebars            i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mSidebars[0m  Sections, current item, focus cursor, hover, co… [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃                                  Tasks                      [0m
+   Text areas     ┃     Workspace                                               [0m
+   Forms          ┃   › T Tasks                3     One focus stop. ↑ ↓ move   [0m
+   Lists          ┃     R Runs                       the cursor, Enter opens.   [0m
+   Trees          ┃     B Branches                                              [0m
+   Tables         ┃                                  ›  current item ·          [0m
+   Editable tabl… ┃     Project                      persists when focus        [0m
+   Panels         ┃     M Members                    leaves                     [0m
+[0m[1m▎› Sidebars       [0m┃     E Environment                ▎  keyboard cursor · only  [0m
+   Dialogs        ┃     $ Billing                    while focused              [0m
+   Progress       ┃                                  ░  hover · follows the     [0m
+   Scrolling      ┃     Preferences                  pointer                    [0m
+   Terminal       ┃     K Keyboard                                              [0m
+   Code editor    ┃     A Appearance                 Disabled items are         [0m
+   Diff           ┃                                  skipped and ignore the     [0m
+   Data grid      │                                  pointer.                   [0m
+   Chips & selec… │    Collapse                      Collapsed mode keeps rows  [0m
+   Pickers        │                                                             [0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m

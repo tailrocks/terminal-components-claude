@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Pickers                                truecolor · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+   Foundations            Pickers  One modal list for files, tabs and levels: search, scope, tag, alternate action      [0m
+   Overview                                                                                                             [0m
+                            Open a picker                                                                               [0m
+   Components                                                                                                           [0m
+   Buttons                   Open quickly    Switch tab    Choose a level                                               [0m
+   Inputs           ╭──────────────────────────────────────────────────────────────────────────────╮                    [0m
+   Text areas       │ [0m[1mOpen quickly[0m                                                 All · Tab scope │e alternate actio…  [0m
+   Forms            │ ▎ Files and tasks…                                                           │                    [0m
+   Lists            │                                                                              │                    [0m
+   Trees            │ [0m[1m▎[0mF[0m[1m Cargo.toml                         [0mCargo.toml[0m[1m                     [0mFiles[0m[1m [0m┃ │                    [0m
+   Tables           │  F README.md                          README.md                            ┃ │                    [0m
+   Editable tables  │  F architecture.md                    docs/architecture.md                 ┃ │                    [0m
+   Panels           │  F auth.rs                            src/api/auth.rs                      ┃ │                    [0m
+   Sidebars         │  F auth_flow.rs                       tests/auth_flow.rs                   │ │                    [0m
+   Dialogs          │  F billing.rs                         src/api/billing.rs                   │ │                    [0m
+   Progress         │  F checkout.rs                        tests/checkout.rs                    │ │                    [0m
+   Scrolling        │  F config.rs                          src/config.rs                        │ │                    [0m
+   Terminal         │  F dispatch.rs                        src/api/webhooks/dispatch.rs         │ │                    [0m
+   Code editor      │  F lib.rs                             src/lib.rs                           │ │                    [0m
+   Diff             │  F mailer.rs                          src/workers/mailer.rs                │ │                    [0m
+   Data grid        │  F main.rs                            src/main.rs                          │ │                    [0m
+   Chips & selects  │  F migrations.rs                      src/db/migrations.rs                 │ │                    [0m
+ › Pickers          │ ↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close     │                    [0m
+   Chrome           ╰──────────────────────────────────────────────────────────────────────────────╯                    [0m
+                                                                                                                        [0m
+   Screens                                                                                                              [0m
+   Settings                                                                                                             [0m
+   Task runner                                                                                                          [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1mEsc[0m Close  [0m[1mTab[0m Next                                                                                                    [0m

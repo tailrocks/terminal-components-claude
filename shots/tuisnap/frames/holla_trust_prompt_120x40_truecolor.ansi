@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                         acme › frontend · Node project · pnpm  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here › Trust  [0m                                                                                                        [0m
+ ━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mTrust ~/work/acme/apps/frontend/mise.toml?[0m                                                                            [0m
+  not trusted yet · review the exact definition, commands and environment before it runs                                [0m
+                                                                                                                        [0m
+  File         ~/work/acme/apps/frontend/mise.toml                                                                      [0m
+  Defines      4 tasks · 2 tools                                                                                        [0m
+  Environment  VITE_API_URL=http://localhost:8080                                                                       [0m
+  Trust scope  this exact file · not the folder, not descendants · renewed when the content changes                     [0m
+  Provenance   committed in the project · last changed 3 d ago by the frontend team                                     [0m
+  Then         re-resolve and run //apps/frontend:test                                                                  [0m
+                                                                                                                        [0m
+ ╭─ Definition ─────────────────────────────────────────────────────────────────────────────────────── exact content ─╮ [0m
+ │  [tasks.dev]                                                                                                       │ [0m
+ │    run = "pnpm dev"                                                                                                │ [0m
+ │    description = "vite development server"                                                                         │ [0m
+ │  [tasks.build]                                                                                                     │ [0m
+ │    run = "pnpm build"                                                                                              │ [0m
+ │    description = "production build"                                                                                │ [0m
+ │  [tasks.test]                                                                                                      │ [0m
+ │    run = "pnpm test"                                                                                               │ [0m
+ │    depends = ["//apps/frontend:build"]                                                                             │ [0m
+ │    description = "vitest after a build"                                                                            │ [0m
+ │  [tasks.lint]                                                                                                      │ [0m
+ │    run = "pnpm lint"                                                                                               │ [0m
+ │    description = "eslint"                                                                                          │ [0m
+ │  [tools]                                                                                                           │ [0m
+ │    node = "26"                                                                                                     │ [0m
+ │    pnpm = "10"                                                                                                     │ [0m
+ │  [env]                                                                                                             │ [0m
+ │    VITE_API_URL = "http://localhost:8080"                                                                          │ [0m
+ │                                                                                                                    │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                        [0m
+                                                                                           ▎[0m[1mCancel [0m   [0m[1mTrust this file [0m  [0m
+                                                                                                                        [0m
+ [0m[1m~/work/acme/apps/frontend[0m   main   ↑1 • 2               trust review · one exact file               truecolor · 120×40 [0m
+                                   [0m[1m← →[0m Choose  [0m[1mEnter[0m Activate  [0m[1mTab[0m Next  [0m[1mEsc[0m Cancel                                     [0m

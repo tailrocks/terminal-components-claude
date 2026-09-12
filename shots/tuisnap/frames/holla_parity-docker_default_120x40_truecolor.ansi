@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                    no project  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here  [0m                                                                                                                [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                                                                        scope ‹ here ›  [0m
+                                                                                                                        [0m
+    Suggested here                                                               Follow acme-api-1 logs docker · here   [0m
+ [0m[1m › Follow acme-api-1 logs     [0mdocker [0m[1m  [0mhere[0m[1m  [0mservice is unhealthy[0m[1m           [0m                                           [0m
+    Follow acme-db-1 logs      docker   here  running                            Does       stream the last 10          [0m
+    Follow acme-redis-1 logs   docker   here  running                                       minutes and follow ·        [0m
+    Follow acme-scheduler-1 …  docker   here  running                                       acme/api:dev · running      [0m
+    Follow acme-worker-1 logs  docker   here  running                            Runs       docker logs -f -…e-api-1    [0m
+                                                                                 In         ~/work/stack                [0m
+    Recent here                                                                  Host       mbp · local                 [0m
+    nothing used here yet                                                        Scope      here                        [0m
+                                                                                 Why        service is unhealthy        [0m
+    Explore                                                                      Changes    none · read-only            [0m
+     Tasks   Git   Files   Disk   Services   System                              Risk       read-only                   [0m
+    System · mbp               explore  host  available on this host             Data       live · 2 s ago              [0m
+                                                                                 Gate       runs directly               [0m
+                                                                                 Alt+Enter  Restart · Stop · Pin ·      [0m
+                                                                                            Alias · Why here?           [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m~/work/stack[0m                                                                                        truecolor · 120×40 [0m
+            [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Run  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mCtrl+G[0m Activities              [0m

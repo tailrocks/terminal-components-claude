@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                          holla · Rust project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ pull                                                                                                 scope ‹ here ›
+
+    Results · 3                                                                  Pull                      git · here
+  › Pull              git  here  up to date
+    Pull with merge   git  here  ordinary pull behaviour                         Does       fast-forward
+    Pull with rebase  git  here  ordinary pull behaviour                                    ~/work/holla from
+                                                                                            origin/main
+                                                                                 Runs       git -C /Users/al…ff-only
+                                                                                 In         ~/work/holla
+                                                                                 Host       mbp · local
+                                                                                 Scope      here
+                                                                                 Why        up to date
+                                                                                 Changes    already up to date
+                                                                                 Risk       mutating
+                                                                                 Data       live · 0 s ago
+                                                                                 Gate       runs directly
+                                                                                 Alt+Enter  Fetch only · Pull with
+                                                                                            merge · Pull with rebase
+                                                                                            · Push · Pin · Alias ·
+                                                                                            Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/holla   main                                                                                 truecolor · 120×40
+                Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Esc Clear

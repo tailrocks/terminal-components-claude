@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Screens / Settings               i Inspector   ? Help  [0m
+                                                                                [0m
+[0m[2m   Inputs         [0m│  [0m[1mProject settings[0m  Composed: tabs, form, editable table, l… [0m
+   Text areas     │                                                             [0m
+   Forms          ┃  [0m[1m General  [0m  Members    Environment                         [0m
+   Lists          ┃  ━━━━━━━━━━─────────────────────────────────────────────────[0m
+   Trees          ┃                                                             [0m
+   Tables         ┃    General                                                  [0m
+   Editable tabl… ┃                                                             [0m
+   Panels         ┃      Project name *               Visibility                [0m
+   Sidebars       ┃      payments-gateway            (●) Private                [0m
+   Dialogs        ┃                                  ( ) Internal               [0m
+   Progress       ┃      Description                 ( ) Public                 [0m
+   Scrolling      ┃      Handles checkout, in…                                  [0m
+   Terminal       ┃                                  ○── Auto-merge approved …  [0m
+   Code editor    ┃                                  ──● Protect main branch    [0m
+   Diff           ┃                                                             [0m
+   Data grid      ┃                                                             [0m
+   Chips & selec… ┃                                                             [0m
+   Pickers        ┃                                                             [0m
+   Chrome         ┃     [0m[1mSave changes [0m  No changes                               [0m
+[0m[1;2m▎› Settings       [0m│                                                             [0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m

@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                                  acme · mise monorepo  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›
+
+    Suggested here                                                                                               Deploy preview                 custom · here
+    Follow acme-api-1 logs                docker   here   service is unhealthy
+    Inspect 10 GB of generated artifacts  disk     here   10 GB generated artifacts                              Does       push the current branch to the
+    Install missing tools · sqlx-cli      task     here   1 tool missing                                                    preview stack
+    Review cleanup candidates             cleanup  host   10.6 GiB across 4 categories                           Runs       tools/deploy-preview.…nv preview
+  › Deploy preview                        custom   here   Current folder · ⚠ unreviewed                          In         ~/work/acme
+                                                                                                                 Host       mbp · local
+    Recent here                                                                                                  Scope      here
+    nothing used here yet                                                                                        Why        Current folder · ⚠ unreviewed
+                                                                                                                 Changes    see the command
+    Explore                                                                                                      Risk       mutating
+     Tasks   Git   Files   Disk   Services   System                                                              Data       live · 0 s ago
+    Children · 3 projects                 explore  child  3 child projects discovered                            Gate       trust required ·
+    System · mbp                          explore  host   available on this host                                            ~/work/acme/.holla.toml
+                                                                                                                 Alt+Enter  Set an alias… · Show
+                                                                                                                            configuration diagnostics · Pin
+                                                                                                                            · Alias · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/acme   main   ↑1                                                                                                                     truecolor · 160×50
+                              Type Search  ↑↓ Move  Enter Trust…  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

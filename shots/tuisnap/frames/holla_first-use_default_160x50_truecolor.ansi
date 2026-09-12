@@ -1,0 +1,50 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                                                            no project  [0m[1mmbp · local[0m [0m
+                                                                                                                                                                [0m
+ [0m[1m Here  [0m                                                                                                                                                        [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›  [0m
+                                                                                                                                                                [0m
+    Suggested here                                                                                               Show system resources          system · host   [0m
+    Analyze disk usage     disk     here  / is 91% full                                                                                                         [0m
+    Open btm               system   host  sustained pressure · continuous view fits                              Does       CPU, load, memory, swap,            [0m
+ [0m[1m › Show system resources  [0msystem [0m[1m  [0mhost[0m[1m  [0mCPU 78% for 4 min[0m[1m                                                  [0m               pressure, disk and network          [0m
+                                                                                                                            snapshot; then hand off to btm      [0m
+    Recent here                                                                                                             for continuous monitoring           [0m
+    nothing used here yet                                                                                        Runs       'holla snapshot system'             [0m
+                                                                                                                 In         mbp · host-wide                     [0m
+    Explore                                                                                                      Host       mbp · local                         [0m
+     Tasks   Git   Files   Disk   Services   System                                                              Scope      host                                [0m
+    System · mbp           explore  host  available on this host                                                 Why        CPU 78% for 4 min                   [0m
+                                                                                                                 Changes    none · read-only                    [0m
+                                                                                                                 Risk       read-only                           [0m
+                                                                                                                 Data       live · 2 s ago                      [0m
+                                                                                                                 Gate       runs directly                       [0m
+                                                                                                                 Alt+Enter  Open btm · Show process tree ·      [0m
+                                                                                                                            Pin · Alias · Why here?             [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m~/scratch[0m                                                                                                             / ━━━━━━━━━━─ 91%     truecolor · 160×50 [0m
+                               [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mCtrl+G[0m Activities                                  [0m

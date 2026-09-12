@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                        scope ‹ here ›
+
+    Suggested here                                                               Follow acme-api-1 logs docker · here
+  › Follow acme-api-1 logs     docker   here  service is unhealthy
+    Follow acme-db-1 logs      docker   here  running                            Does       stream the last 10
+    Follow acme-redis-1 logs   docker   here  running                                       minutes and follow ·
+    Follow acme-scheduler-1 …  docker   here  running                                       acme/api:dev · running
+    Follow acme-worker-1 logs  docker   here  running                            Runs       docker logs -f -…e-api-1
+                                                                                 In         ~/work/stack
+    Recent here                                                                  Host       mbp · local
+    nothing used here yet                                                        Scope      here
+                                                                                 Why        service is unhealthy
+    Explore                                                                      Changes    none · read-only
+     Tasks   Git   Files   Disk   Services   System                              Risk       read-only
+    System · mbp               explore  host  available on this host             Data       live · 2 s ago
+                                                                                 Gate       runs directly
+                                                                                 Alt+Enter  Restart · Stop · Pin ·
+                                                                                            Alias · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/stack                                                                                        truecolor · 120×40
+            Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

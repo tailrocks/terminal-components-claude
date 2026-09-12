@@ -1,0 +1,50 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                              payments · service checkout  [0m[1m◆ prod-eu-1 · production[0m [0m
+                                                                                                                                                                [0m
+ [0m[1m Here  [0m                                                                                                                                                        [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›  [0m
+                                                                                                                                                                [0m
+    Suggested here                                                                                               Follow payments-worke… system · on prod-eu-1   [0m
+    Who is blocking the database?   postgres  here          2 sessions blocked for 4 min                                                                        [0m
+ [0m[1m › Follow payments-worker journal  [0msystem  [0m[1m  [0mon prod-eu-1[0m[1m  [0munit is restarting[0m[1m                               [0m    Does       journalctl -u payments-worker -f    [0m
+    Open btm                        system    on prod-eu-1  sustained pressure · continuous view fits            Runs       journalctl -u payment… -f -n 200    [0m
+    Show payments-worker status     system    on prod-eu-1  3 restarts in 10 min                                 In         prod-eu-1 · host-wide               [0m
+    Show system resources           system    on prod-eu-1  CPU 34% for 11 min                                   Host       prod-eu-1 · production · over       [0m
+                                                                                                                            SSH                                 [0m
+    Recent here                                                                                                  Scope      on prod-eu-1                        [0m
+    nothing used here yet                                                                                        Why        unit is restarting                  [0m
+                                                                                                                 Changes    none · read-only                    [0m
+    Explore                                                                                                      Risk       read-only                           [0m
+     Tasks   Git   Files   Disk   Services   System                                                              Data       live · 2 s ago                      [0m
+    System · prod-eu-1              explore   on prod-eu-1  available on this host                               Gate       runs directly                       [0m
+                                                                                                                 Alt+Enter  Pin · Alias · Why here?             [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m/srv/payments[0m   detached @ v2.14.3                                                                                                          truecolor · 160×50 [0m
+                                [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Run  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mCtrl+G[0m Activities                                  [0m

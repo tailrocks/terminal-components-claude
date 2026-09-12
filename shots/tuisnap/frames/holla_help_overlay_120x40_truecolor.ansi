@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                          holla · Rust project  mbp · local [0m
+                     ╭────────────────────────────────────────────────────────────────────────────╮                     [0m
+  Here               │                                                                            │                     [0m
+ ━━━━━━━─────────────│  [0m[1mKey reference[0m                                                       Here  │──────────────────── [0m
+   Search actions and│                                                                            │     scope ‹ here ›  [0m
+                     │  Finder                                                                    │                     [0m
+    Suggested here   │  [0m[1mType[0m             search actions and resources together · @parent          │enera… disk · here   [0m
+  › Inspect 12 GB of │                   @children @system @all narrow the scope                  │                     [0m
+    Pull             │  [0m[1m↑↓[0m               move · PgUp PgDn Home End                                │ldable candidate     [0m
+    Review 5 modified│  [0m[1mEnter[0m            primary action · destructive rows open a review instead  │his folder · 0       [0m
+    Run tests        │  [0m[1mAlt+Enter[0m        alternatives · run, copy, insert, arguments, pin,        │nough to start       [0m
+    Who is blocking t│                   alias, hide, why                                         │d                    [0m
+                     │  [0m[1mTab[0m              preview › tab strip › finder                             │disk anal…ifacts'    [0m
+    Recent here      │  [0m[1mCtrl+↑ / Ctrl+↓[0m  scope outward (parent, system) / inward (children)       │holla                [0m
+    nothing used here│  [0m[1mEsc[0m              clear query › scope back to here › back a page › quit    │ocal                 [0m
+                     │  [0m[1mAliases[0m          gp pull · du disk usage · test the test task here · d    │                     [0m
+    Explore          │                   then u · dc docker cleanup                               │enerated             [0m
+     Tasks   Git   Fi│                                                                            │ts                   [0m
+    System · mbp     │  Pages                                                                     │read-only            [0m
+                     │  [0m[1mDisk[0m             ↑↓ move · Space select · a all · Enter drill · c         │ly                   [0m
+                     │                   cleanup plan · p details                                 │3 s ago              [0m
+                     │  [0m[1mPlan review[0m      Space include or exclude · u undo · Enter step facts ·   │ review · the        [0m
+                     │                   c confirm                                                │n is gated there     [0m
+                     │  [0m[1mGates[0m            Gate 1 reviews facts and the full sequence · Gate 2      │phrase)              [0m
+                     │                   types the target-bound phrase                            │lias · Why here?     [0m
+                     │                                                                            │                     [0m
+                     │  Everywhere                                                                │                     [0m
+                     │  [0m[1mF10[0m              menu bar · F1 this reference                             │                     [0m
+                     │  [0m[1mCtrl+G[0m           activities · Alt+0 Here · Alt+1–9 tabs · Ctrl+W close    │                     [0m
+                     │                   tab                                                      │                     [0m
+                     │  [0m[1mCtrl+Q[0m           quit with confirmation · Ctrl+C quit now                 │                     [0m
+                     │  [0m[1mMouse[0m            click selects · double-click runs · right-click          │                     [0m
+                     │                   alternatives · wheel scrolls under the pointer           │                     [0m
+                     │                                                                            │                     [0m
+                     │                                                                            │                     [0m
+                     ╰────────────────────────────────────────────────────────────────────────────╯                     [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ ~/work/holla   main   ↓3 • 5                                                                        truecolor · 120×40 [0m
+           [0m[1m    [0m         [0m[1m  [0m       [0m[1m     [0m       [0m[1m    ↑↓ Sc[0mroll  [0m[1mEsc [0mClose     [0m[1m       [0m        [0m[1m      [0m                         [0m

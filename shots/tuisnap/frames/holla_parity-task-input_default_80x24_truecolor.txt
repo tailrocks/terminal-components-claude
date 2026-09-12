@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help      app · service checkout  ◆ devbox · production
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                scope ‹ here ›
+
+    Suggested here
+  › Follow payments-worker jo…  system   on devbox  unit is restarting
+    Show payments-worker stat…  system   on devbox  3 restarts in 10 min
+    Deploy the release          custom   here       Current folder · trusted
+    Quick no-op                 custom   here       Current folder · trusted
+    Run the stubborn worker     custom   here       Current folder · trusted
+
+    Recent here
+    nothing used here yet
+
+    Explore
+     Tasks   Git   Files   Disk   Services   System
+    System · devbox             explore  on devbox  available on this host
+
+    → journalctl -u payments-worker -f -n 200 · on devbox · read-only
+
+ /srv/app                                                     truecolor · 80×24
+ Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  …
