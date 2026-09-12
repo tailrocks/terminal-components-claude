@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Inputs              i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mInputs[0m  Focus is a bar; editing is a cursor. Enter to edi… [0m
+   Buttons        ┃                                                             [0m
+[0m[1m▎› Inputs         [0m┃    Playground  Enter Edit · Esc Cancel · Tab Commit + next  [0m
+   Text areas     ┃                                                             [0m
+   Forms          ┃      Project name *               Branch  optional          [0m
+   Lists          ┃      payments-gateway             feat/…                    [0m
+   Trees          ┃      Used as the working di…      Leave empty to work on …  [0m
+   Tables         ┃      Owner email *                API token  optional       [0m
+   Editable tabl… ┃      mira@example         [0m[1m![0m       jb_live_••••••••••••      [0m
+   Panels         ┃      Enter a valid email ad…      Managed by the organiza…  [0m
+   Sidebars       ┃      Search files  optional       API key  optional         [0m
+   Dialogs        ┃      Type a path or symbol…       ••••••••••••••••••••••…   [0m
+   Progress       ┃      Selection: Shift+← →  …      Masked while typing; th…  [0m
+   Scrolling      ┃                                                             [0m
+   Terminal       ┃                                                             [0m
+   Code editor    ┃                                                             [0m
+   Diff           ┃                                                             [0m
+   Data grid      │                                                             [0m
+   Chips & selec… │                                                             [0m
+   Pickers        │                                                             [0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m

@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Dialogs                                truecolor · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+   Foundations            Dialogs  Focus is trapped, the page dims, Esc always cancels                                  [0m
+   Overview                                                                                                             [0m
+                            Open a dialog                                                                               [0m
+   Components                                                                                                           [0m
+   Buttons                   Confirm run    Rename task…    Three choices…    Delete branch…                            [0m
+   Inputs                                                                                                               [0m
+   Text areas               Confirm: primary action focused first · y / n answer directly                               [0m
+   Forms                    Prompt: editing inside a modal, Enter submits, validation blocks                            [0m
+   Lists                    Destructive: Cancel focused first, action in danger style                                   [0m
+   Trees                    Task: Migrate sessions table                                                                [0m
+   Tables                                                                                                               [0m
+   Editable tables                                                                                                      [0m
+   Panels                   Results                                                                                     [0m
+   Sidebars                      ╭────────────────────────────────────────────────────╮                                 [0m
+ › Dialogs                  Nothi│                                                    │                                 [0m
+   Progress                      │  [0m[1mRun task now?[0m                                     │                                 [0m
+   Scrolling                     │                                                    │                                 [0m
+   Terminal                      │  Junie will check out chore/uuid-sessions, apply   │                                 [0m
+   Code editor                   │  the plan and run the test suite. You can pause    │                                 [0m
+   Diff                          │  at any step.                                      │                                 [0m
+   Data grid                     │                                                    │                                 [0m
+   Chips & selects               │                                     Cancel  ▎[0m[1mRun [0m  │                                 [0m
+   Pickers                       │                                                    │                                 [0m
+   Chrome                        ╰────────────────────────────────────────────────────╯                                 [0m
+                                                                                                                        [0m
+   Screens                                                                                                              [0m
+   Settings                                                                                                             [0m
+   Task runner                                                                                                          [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m← →[0m Choose  [0m[1mEnter[0m Confirm  [0m[1mEsc[0m Cancel  [0m[1my / n[0m Quick answer                                                              [0m

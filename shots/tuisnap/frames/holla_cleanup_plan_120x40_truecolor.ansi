@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                     work · project collection  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here › … › Clean developer artifact…nder ~/work  [0m                                                                     [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────── [0m
+  [0m[1mClean developer artifacts under ~/work[0m · mbp                                4 steps · 4 included · 0 excluded · ~9 s  [0m
+  remove selected build artifacts and caches under /Users/alex/work                                                     [0m
+                                                                                                                        [0m
+         step                           needs     lane  note              01 Trash frontend › node_modules   optional   [0m
+ [0m[1m▎[0m[✓][0m[1m [0m01[0m[1m Trash frontend › node_modules  [0m–       [0m[1m  [0ma   [0m[1m  [0moptional[0m[1m      [0m                                                  [0m
+  [✓] 02 cargo clean · backend          –         b     optional          Runs     trash                                [0m
+  [✓] 03 ./gradlew clean · android      –         c     optional                   /Users/alex/work/frontend/node_mod   [0m
+  [✓] 04 Rescan and report              01 02 03  join                             ules                                 [0m
+                                                                          In       ~/work/frontend · mbp                [0m
+    1 required · 3 optional · 3 branches run in parallel where independentNeeds    nothing · starts first               [0m
+                                                                          Unlocks  04 Rescan and report                 [0m
+                                                                          Lane     a · may run beside 02, 03            [0m
+                                                                          Effect   8.4 GB · 121,402 items · move to     [0m
+                                                                                   Trash · recoverable                  [0m
+                                                                          State    ready                                [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                  Cancel    Continue…   [0m
+                                                                                                                        [0m
+ [0m[1m~/work[0m                 review · 4 steps · 3 branches parallel                 / ━━━━━━━━━━─ 91%     truecolor · 120×40 [0m
+                            [0m[1m↑↓[0m Step  [0m[1mSpace[0m Toggle  [0m[1mu[0m Undo  [0m[1mc[0m Confirm  [0m[1mp[0m Facts  [0m[1mEsc[0m Discard                              [0m

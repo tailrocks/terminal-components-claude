@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                    no project  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here › Files › site  [0m                                                                                                 [0m
+ ━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mFiles · ~/work/site[0m                                                                                                   [0m
+  16 entries · 2 hidden hidden · Ctrl+H shows · directories first                                                       [0m
+                                                                                                                        [0m
+  ▸ assets                                 –  2026-09-06 08:41      ╭─────── first 2000 lines · 19.4 KiB of 19.4 KiB ─╮ [0m
+  ▸ private                                –  2026-09-03 08:41      │      1 line 0                                 ┃ │ [0m
+    bad.txt                              3 B  2026-09-07 08:41      │      2 line 1                                 │ │ [0m
+ [0m[1m▎[0m [0m[1m big.log                        [0m 19.4 KiB[0m[1m  [0m2026-09-08 08:41[0m[1m    [0m  │      3 line 2                                 │ │ [0m
+  → broken                               0 B  2026-09-09 08:41      │      4 line 3                                 │ │ [0m
+    café.txt                            11 B  2026-09-09 08:41      │      5 line 4                                 │ │ [0m
+    café.txt                            12 B  2026-09-09 08:41      │      6 line 5                                 │ │ [0m
+    control.txt                         13 B  2026-09-07 08:41      │      7 line 6                                 │ │ [0m
+  → current                              0 B  2026-09-09 08:41      │      8 line 7                                 │ │ [0m
+    empty.txt                            0 B  2026-09-09 08:41      │      9 line 8                                 │ │ [0m
+    index.html                          34 B  2026-09-09 08:41      │     10 line 9                                 │ │ [0m
+    logo.png                             6 B  2026-09-07 08:41      │     11 line 10                                │ │ [0m
+    long.txt                         4.9 KiB  2026-09-08 08:41      │     12 line 11                                │ │ [0m
+    package.json                        85 B  2026-09-08 08:41      │     13 line 12                                │ │ [0m
+  ◇ pipe                                 0 B  2026-09-10 08:41      │     14 line 13                                │ │ [0m
+    pnpm-lock.yaml                      19 B  2026-09-08 08:41      │     15 line 14                                │ │ [0m
+                                                                    │     16 line 15                                │ │ [0m
+                                                                    │     17 line 16                                │ │ [0m
+                                                                    │     18 line 17                                │ │ [0m
+                                                                    │     19 line 18                                │ │ [0m
+                                                                    │     20 line 19                                │ │ [0m
+                                                                    │     21 line 20                                │ │ [0m
+                                                                    │     22 line 21                                │ │ [0m
+                                                                    │     23 line 22                                │ │ [0m
+                                                                    │     24 line 23                                │ │ [0m
+                                                                    │     25 line 24                                │ │ [0m
+                                                                    │     26 line 25                                │ │ [0m
+                                                                    │     27 line 26                                │ │ [0m
+                                                                    │     28 line 27                                │ │ [0m
+                                                                    ╰─────────────────────────────────────────────────╯ [0m
+                                                                                                                        [0m
+ [0m[1m~/work/site[0m                                ~/work/site · hidden off                                 truecolor · 120×40 [0m
+      [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open / preview  [0m[1m←[0m Parent  [0m[1mg[0m Go to path  [0m[1mCtrl+H[0m Hidden  [0m[1mAlt+Enter[0m Actions  [0m[1m/[0m Find  [0m[1mEsc[0m Back         [0m

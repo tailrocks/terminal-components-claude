@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Foundations / Overview                              truecolor · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+   Foundations            Overview  Tokens and principles behind every component                                        [0m
+ › Overview                                                                                                             [0m
+                            Tokens                                          Principles                                  [0m
+   Components                                                                                                           [0m
+   Buttons                      ▏ canvas                      #000000       One hue                                     [0m
+   Inputs                       ▏ surface                     #111111       Green means focus, primary action or        [0m
+   Text areas                   ▏ surface.elevated            #18181b       selection. Everything else is achromatic.   [0m
+   Forms                        ▏ surface.overlay             #27272a                                                   [0m
+   Lists                        ▏ field                       #1e1e22       Alpha ladder                                [0m
+   Trees                 ╭────────────────────────────────────────────────────────────────────╮ep down in white         [0m
+   Tables                │                                                                    │rbitrary grays.          [0m
+   Editable tables       │  [0m[1mKeyboard & mouse[0m                                                  │                         [0m
+   Panels                │                                                                    │                         [0m
+   Sidebars              │  Tab / Shift+Tab   move keyboard focus                             │face, focus adds a bar,  [0m
+   Dialogs               │  ↑ ↓ ← →           move inside the focused control                 │rker, editing shows the  [0m
+   Progress              │  Enter / Space     activate · start editing                        │                         [0m
+   Scrolling             │  Esc               cancel editing · back to navigation             │                         [0m
+   Terminal              │  [ ]               previous / next page                            │                         [0m
+   Code editor           │  0                 jump to navigation                              │evated. Depth comes      [0m
+   Diff                  │  i                 toggle state inspector                          │ borders.                [0m
+   Data grid             │  q                 quit                                            │                         [0m
+   Chips & selects       │                                                                    │                         [0m
+   Pickers               │  Mouse: hover to preview, click to focus and activate, wheel to    │r the focused control.   [0m
+   Chrome                │  scroll, drag the scrollbar thumb.                                 │ng unless the box        [0m
+                         │                                                                    │                         [0m
+   Screens               │                                                           ▎[0m[1mClose [0m  │                         [0m
+   Settings              │                                                                    │                         [0m
+   Task runner           ╰────────────────────────────────────────────────────────────────────╯                         [0m
+                                                                                                                        [0m
+                                                                            ▎  focus                                    [0m
+                                                                            ░  hover lifts the surface                  [0m
+                                                                            ›  current / chosen                         [0m
+                                                                            ✓  checked                                  [0m
+                                                                            !  error                                    [0m
+                                                                            ▁  editing: cursor + underline              [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m← →[0m Choose  [0m[1mEnter[0m Confirm  [0m[1mEsc[0m Cancel                                                                                  [0m

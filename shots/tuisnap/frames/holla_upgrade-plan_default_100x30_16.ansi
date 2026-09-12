@@ -1,0 +1,30 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                       no project  [0m[1mdevbox · development[0m [0m
+                                                                                                    [0m
+ [0m[1m Here › Upgrade everything  [0m                                                                       [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mUpgrade everything[0m · devbox                            8 steps · 8 included · 0 excluded · ~16 s  [0m
+  upgrade Debian packages and global mise tools on devbox                                           [0m
+                                                                                                    [0m
+         step                         needs  lane  note                                             [0m
+ [0m[1m▎[0m[✓][0m[1m [0m01[0m[1m Preflight                    [0m–    [0m[1m  [0m·   [0m[1m  [0msudo[0m[1m                                            [0m [0m
+  [✓] 02 Refresh Debian metadata      01     a     sudo                                             [0m
+  [✓] 03 Review Debian upgrades       02     a                                                      [0m
+  [✓] 04 Apply Debian upgrades        03     a     sudo                                             [0m
+  [✓] 05 Inspect global mise tools    01     b                                                      [0m
+  [✓] 06 Upgrade selected mise tools  05     b     optional                                         [0m
+  [✓] 07 Package cleanup              04     a     optional                                         [0m
+  [✓] 08 Final verification           04 06  join                                                   [0m
+                                                                                                    [0m
+    6 required · 2 optional · 2 branches run in parallel where independent                          [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                           Cancel    [0m[1mConfirm plan [0m  [0m
+                                                                                                    [0m
+ [0m[1m~[0m                    review · 8 steps · 2 branches parallel                     16 colors · 100×30 [0m
+                  [0m[1m↑↓[0m Step  [0m[1mSpace[0m Toggle  [0m[1mu[0m Undo  [0m[1mc[0m Confirm  [0m[1mp[0m Facts  [0m[1mEsc[0m Discard                    [0m

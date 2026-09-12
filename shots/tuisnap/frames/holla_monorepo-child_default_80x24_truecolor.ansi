@@ -1,0 +1,24 @@
+ [0m[1m holla❯ [0m   File   Go   Help      acme › frontend · Nod…ect · pnpm  [0m[1mmbp · local[0m [0m
+                                                                                [0m
+ [0m[1m Here  [0m                                                                        [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                                scope ‹ here ›  [0m
+                                                                                [0m
+    Suggested here                                                            ┃ [0m
+ [0m[1m › Inspect 3 GB of generated…  [0mdisk   [0m[1m  [0mhere  [0m[1m  [0m3 GB generated artifacts[0m[1m     [0m┃ [0m
+    Install missing tools · s…  task     here    1 tool missing               ┃ [0m
+    Run tests                   task     here    2 files changed since the l… ┃ [0m
+    Follow acme-api-1 logs      docker   parent  service is unhealthy         ┃ [0m
+    Review 2 modified files     git      parent  2 modified · 0 untracked     ┃ [0m
+                                                                              ┃ [0m
+    Recent here                                                               ┃ [0m
+    nothing used here yet                                                     ┃ [0m
+                                                                              │ [0m
+    From acme · the parent root                                               │ [0m
+    Start development ecosyst…  task     parent  defined by ~/work/acme/mise… │ [0m
+    Start required containers   task     parent  defined by ~/work/acme/mise… │ [0m
+                                                                                [0m
+    → 'holla disk analyze --artifacts' · here · read-only                       [0m
+                                                                                [0m
+ [0m[1m~/work/acme/apps/frontend[0m   main   ↑1 • 2                    truecolor · 80×24 [0m
+       [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  …         [0m

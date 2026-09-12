@@ -1,0 +1,40 @@
+ ▪ [0m[1mJunie[0m Design system / Foundations / Overview                         truecolor · 120×40   i Inspector · on   ? Help  [0m
+                                                                                                                        [0m
+   Foundations            [0m[1mOverview[0m  Tokens and principles behind every component            State                       [0m
+[0m[1m▎› Overview             [0m                                                                                                [0m
+                            Tokens                                                          mode        NAV             [0m
+   Components                                                                               focus       0·2 24×36       [0m
+   Buttons                      ▏ canvas                     ▏ text.muted                   hover       suppressed      [0m
+   Inputs                       ▏ surface                    ▏ text.faint                   pressed     —               [0m
+   Text areas                   ▏ surface.elevated           ▏ accent                       mouse       —               [0m
+   Forms                        ▏ surface.overlay            ▏ accent.hover                 last key    i               [0m
+   Lists                        ▏ field                      ▏ accent.pressed               focus ring  1 stops         [0m
+   Trees                        ▏ popover                    ▏ accent.bg                    hit regions 26              [0m
+   Tables                       ▏ border.subtle              ▏ error                        tick        0               [0m
+   Editable tables              ▏ border.strong              ▏ warning                      colors      truecolor       [0m
+   Panels                       ▏ text.primary               ▏ info                                                     [0m
+   Sidebars                     ▏ text.secondary                                                                        [0m
+   Dialogs                                                                                                              [0m
+   Progress                                                                                                             [0m
+   Scrolling                                                                                                            [0m
+   Terminal                                                                                                             [0m
+   Code editor                                                                                                          [0m
+   Diff                     Principles                                                                                  [0m
+   Data grid                                                                                                            [0m
+   Chips & selects          [0m[1mOne hue[0m                                                                                     [0m
+   Pickers                  Green means focus, primary action or selection. Everything                                  [0m
+   Chrome                   else is achromatic.                                                                         [0m
+                                                                                                                        [0m
+   Screens                                                                                                              [0m
+   Settings                                                                                                             [0m
+   Task runner              State language                                                                              [0m
+                                                                                                                        [0m
+                            ▎  focus                                                                                    [0m
+                            ░  hover lifts the surface                                                                  [0m
+                            ›  current / chosen                                                                         [0m
+                            ✓  checked                                                                                  [0m
+                            !  error                                                                                    [0m
+                            ▁  editing: cursor + underline                                                              [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                            [0m

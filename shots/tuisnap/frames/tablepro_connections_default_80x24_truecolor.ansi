@@ -1,0 +1,24 @@
+ ▪  [0m[1mTablePro[0m  Connections  6 saved                    truecolor · 80×24  ? help [0m
+                                                                                [0m
+ ╭─[0m[1m Connections [0m────────────────────────────────────────────────────────── 6 ─╮ [0m
+ │                                                                            │ [0m
+ │   Filter connections                                                       │ [0m
+ │ [0m[1m▎▾ Personal                                                               [0m │ [0m
+ │      · Local PostgreSQL                                                pg  │ [0m
+ │      · Scratch                                                     sqlite  │ [0m
+ │  ▾ Acme                                                                    │ [0m
+ │      · Development                                                     pg  │ [0m
+ │      ◇ Staging                                                         pg  │ [0m
+ │      ◆ Analytics                                                    mysql  │ [0m
+ │      ◆ Production                                                      pg  │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Connect  [0m[1m/[0m Filter  [0m[1mCtrl+N[0m New  [0m[1mTab[0m Next                        [0m

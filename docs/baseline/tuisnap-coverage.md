@@ -37,6 +37,15 @@ pixel-exact against an approved snapshot in the store at `shots/tuisnap/`.
   randomness; `HOLLA_NO_HISTORY=1` suppresses history side effects).
 - Apps can draw a stable blank frame before first content: every capture
   carries a `wait:` needle for a fully-rendered-screen string.
+- `run_once` begins with a boot `wait_idle(200ms)` BEFORE any `--send` step,
+  and it shares `--timeout-ms` with every other wait. A screen that repaints
+  more often than every 200 ms from boot can never pass it, no matter the
+  timeout (verified against termlens `wait_idle_deadline`: it needs one
+  ≥200 ms output-silence window). Two consequences: boot-streaming screens
+  (scrolling, terminal) get a per-capture `CAP_TIMEOUT` long enough to reach
+  their idle end state; a screen animated forever from boot (showcase
+  progress, `animating()==true`) is structurally uncapturable via
+  `tuisnap run` — proven with a 30 s timeout probe.
 
 ## Naming scheme
 
@@ -69,20 +78,34 @@ Two sizes × two colours for every static surface keeps the matrix tractable
 while touching each page/scenario; the wider size×colour net remains as the
 hash/legacy complements listed in the supersession table.
 
-## The baseline matrix (371 captures)
+## The baseline matrix (367 captures)
 
 The runner `tools/tuisnap_baseline.sh` is the executable source of truth;
 every entry below appears there verbatim.
 
-### showcase — 122 captures
+### showcase — 118 captures
 
-Static defaults: all 23 pages × {80x24, 120x40} × {truecolor, none} = **92**
+Static defaults: 22 of 23 pages × {80x24, 120x40} × {truecolor, none} = **88**
 Name: `showcase_<page>_default_<size>_<color>`; argv `--page <slug> --color <c>`;
 boot needle `Junie Design system`.
 
+The progress page is EXCLUDED (was 4 captures): `ProgressPage::animating()`
+is hardcoded `true`, so the page repaints every 80 ms from boot and the boot
+`wait_idle(200ms)` inside `tuisnap run` can never observe an output-silence
+window — proven with a 30 s timeout probe. No timeout/settle/send can fix
+this on the current binary; see Honest gaps.
+
+Scrolling and terminal are captured at their deterministic idle END states
+via per-capture `CAP_TIMEOUT` overrides (the boot `wait_idle` shares
+`--timeout-ms`): scrolling streams ~1600 demo log lines (400→2000, one per
+80 ms tick ≈ 128 s) before follow-tail stops — each scrolling capture takes
+~2.5 min; terminal boots into its staged demo run (`reset()` sets
+`running=true`) which finishes in under 20 s. The gated frames show the full
+finished scrollback / completed step rail, not a mid-stream phase.
+
 Pages (name-slug → argv slug): overview, buttons, inputs, textareas, forms,
 lists, trees, tables, editable→`editabletables`, panels, sidebars, dialogs,
-progress, scrolling, terminal, codeeditor, diff, datagrid,
+scrolling, terminal, codeeditor, diff, datagrid,
 chips→`chipsselects`, pickers, chrome, settings, taskrunner.
 (`PageId::from_name` requires full normalized-label equality, so the argv
 slug for "Editable tables" is `editabletables` and for "Chips & selects" is
@@ -100,7 +123,7 @@ Interactive states, all 120x40 truecolor, needle after the boot wait = **18**:
 | showcase_inputs_selected_120x40_truecolor | tab, enter, ctrl-l, wait:EDIT | audit_flows |
 | showcase_forms_invalid_120x40_truecolor | tab, ctrl-s, wait:Required | audit_flows |
 | showcase_diff_review_120x40_truecolor | tab, enter, wait:● Review | audit_flows |
-| showcase_diff_empty_120x40_truecolor | tab, enter, backtab, enter, wait:No file selected | audit_flows (minus mouse drag) |
+| showcase_diff_empty_120x40_truecolor | tab, enter, tab, enter, wait:No file selected | focus ring [review, empty, view]; audit_flows used backtab only because a mouse drag had focused the view first |
 | showcase_buttons_focus_120x40_truecolor | tab | new |
 | showcase_lists_moved_120x40_truecolor | tab, down, down | new |
 | showcase_trees_expanded_120x40_truecolor | tab, right | new (trees had ZERO legacy frames) |
@@ -110,7 +133,7 @@ Interactive states, all 120x40 truecolor, needle after the boot wait = **18**:
 | showcase_dialogs_open_120x40_truecolor | tab, enter | new |
 | showcase_pickers_open_120x40_truecolor | tab, enter | new |
 | showcase_chips_toggled_120x40_truecolor | tab, space | new |
-| showcase_scrolling_scrolled_120x40_truecolor | tab, down, down, down | new |
+| showcase_scrolling_scrolled_120x40_truecolor | tab, down, down, down (after the ~128 s boot stream, CAP_TIMEOUT=180000) | new |
 | showcase_settings_toggled_120x40_truecolor | tab, space | new |
 | showcase_help_overlay_120x40_truecolor | ? (on overview) | new |
 | showcase_inspector_open_120x40_truecolor | i (on overview) | new |
@@ -146,12 +169,16 @@ NO_COLOR (gap closure): {rust-dirty, upgrade-plan} × 100x30 nocolor = **2**
 Minimum-size: {first-use, hard-cases} × 72x20 truecolor = **2**
 
 Journeys, all 120x40 truecolor, `--motion reduced` (as the legacy flow
-scripts drove them) except where noted = **14**:
+scripts drove them) except where noted = **14**. Reduced motion keeps
+activities/plans advancing, so its boot `wait_idle` is a race — two journeys
+already lost it on the first full run and are paused now (marked); if a
+reduced journey flakes at a later re-verify, switch it to paused the same
+way (the steady-state finder/files screens are motion-independent):
 
 | Capture name | Scenario | Sends after boot wait |
 |---|---|---|
 | holla_finder_query_120x40_truecolor | parity-history | type:pull |
-| holla_finder_query-selected_120x40_truecolor | parity-history | type:pull, ctrl-a |
+| holla_finder_query-selected_120x40_truecolor | parity-history (paused, frame 40) | type:pull, ctrl-a |
 | holla_trust_prompt_120x40_truecolor | monorepo-child | type:test, enter |
 | holla_files_results_120x40_truecolor | parity-files | type:Find files under home, enter, type:readme |
 | holla_files_unicode_120x40_truecolor | parity-files | type:Find files under home, enter, ctrl-u, type:café |
@@ -163,7 +190,7 @@ scripts drove them) except where noted = **14**:
 | holla_upgrade_confirm_120x40_truecolor | upgrade-plan | down×5, space, c |
 | holla_remote_gate-1_120x40_truecolor | remote-host | type:restart payments, enter |
 | holla_help_overlay_120x40_truecolor | rust-dirty (paused, frame 40) | f1 |
-| holla_activities_overlay_120x40_truecolor | activities-multi | ctrl-g |
+| holla_activities_overlay_120x40_truecolor | activities-multi (paused, frame 40 — reduced keeps a live spinner in the tab strip) | ctrl-g |
 
 ### tablepro — 29 captures
 
@@ -214,6 +241,11 @@ Scenarios × {80x24, 120x40} truecolor, frame 40 = **16**:
 first-use, returning, accounts-mixed, launch-running, launch-failure,
 capsule-multi, outro-last, hard-cases →
 `jackin_<scenario>_default_<size>_truecolor`.
+Needle exception: the outro-last starfield and the first-use warp frame
+(f300) carry no `jackin❯` brand line; both wait on the persistent
+`Enter Skip` hint instead (verified present on the timeout screens of the
+first full run). The outro caption ("You were in the Construct for …") is
+seed-glitched under paused motion, so it is not a reliable needle.
 
 first-use intro phases at 120x40 (INTRO_END = tick 308): frame 300 (warp) +
 frame 400 (post-intro manager) = **2** → `jackin_first-use_f{300,400}_120x40_truecolor`.
@@ -231,7 +263,7 @@ Minimum-size: first-use 72x20 truecolor = **1**
 | `h_flow_*` + `h_p3_*` (45 journey frames) | holla journeys (14) | **Partially** — retained for Alt+Enter alternatives, Alt+0..9 activity tab jumps, and wall-clock runs (upgrade run-to-failure ≈14 s sleeps, discovery progression) that the CLI cannot express deterministically |
 | `h_hp01..23_*` (69 parity slices) | holla parity scenarios in core matrix + finder/files/browser/cleanup/upgrade/remote journeys | **Partially** — retained for time-progression frames (hp01 discovering under full motion + sleep 4) and multi-step wizard states beyond the 14 baseline journeys |
 | `j_*` (~116, ad-hoc, no script) | jackin matrix (26) incl. first-use phase frames f40/f300/f400 | **Partially** — static per-scenario coverage superseded; retained for interactive cockpit/capsule menu/pane/tab states driven by unproven key sequences |
-| `f_*` + `s_*` + `s2_*` (~43 showcase, ad-hoc) | showcase matrix (122) — all 23 pages, 2 sizes × 2 colours, 18 states; closes the trees/editable zero-frame gap | **Fully superseded** |
+| `f_*` + `s_*` + `s2_*` (~43 showcase, ad-hoc) | showcase matrix (118) — 22 of 23 pages, 2 sizes × 2 colours, 18 states; closes the trees/editable zero-frame gap | **Partially** — fully supersedes the keyboard/static corpus EXCEPT progress-page frames: progress is structurally uncapturable via `tuisnap run` (see Honest gaps #0) and stays on the legacy harness |
 | `t_*` (38 tablepro, ad-hoc) | tablepro matrix (29) | **Partially** — retained for connection-form Advanced tab and Duplicate flow (reachable only via fragile multi-Tab focus walks) and EXPLAIN ANALYZE variants |
 | `shots/audit/` (250: 10 fixtures × 5 sizes × 5 colours) | per-app static matrices | **Partially** — baseline covers more surfaces but fewer size×colour combos; the 5×5 sweep (72x20/160x50 for tablepro/jackin, full 256/16 everywhere) stays as the wide net |
 | `shots/audit-flows/` (51) | showcase/tablepro interactive captures | **Partially** — keyboard flows superseded; diff text-drag (mouse) and NO_COLOR reverse-video buffer assertions stay on the legacy harness |
@@ -240,6 +272,34 @@ Minimum-size: first-use 72x20 truecolor = **1**
 
 ## Honest gaps — what tuisnap CLI cannot capture
 
+0. **Screens that never go quiet from boot cannot be captured at all.**
+   `tuisnap run` starts with a boot `wait_idle(200ms)` before any send step,
+   and it shares `--timeout-ms` with every later wait. Learned from the first
+   full run (19 failures, all diagnosed from the per-capture logs):
+   - **showcase progress (4 captures): permanently uncapturable.**
+     `ProgressPage::animating()` is hardcoded `true` → 80 ms repaints forever
+     → no 200 ms output-silence window ever occurs. Proven with a 30 s
+     `--timeout-ms` probe (same boot-wait timeout as at 8 s). No
+     timeout/settle/send/flag fixes this on the current binary; capturing a
+     blank or mid-animation frame would violate the no-weakening rule, so the
+     4 progress captures are REMOVED from the matrix. Disposition: legacy
+     `f_*`/`s_*` progress frames stay on `tools/capture.sh`; the proper fix
+     is a showcase `--motion paused` flag (holla/jackin already have one) —
+     restore the 4 captures when it lands.
+   - **showcase scrolling / terminal (8 captures): boot-streaming, fixed.**
+     Scrolling streams ~1600 demo log lines (one per 80 ms tick, ≈128 s)
+     before follow-tail stops; terminal boots into its staged demo run
+     (<20 s). Both reach a deterministic idle END state, so they are captured
+     with per-capture `CAP_TIMEOUT` overrides (180000/30000 ms) and gate that
+     end state — each scrolling capture costs ~2.5 min of wall time.
+   - **holla reduced-motion journeys (2 of 7 failed once): boot race.**
+     Under `--motion reduced` activities/plans keep advancing; if any visible
+     element repaints within every 200 ms window (activities-multi tab-strip
+     spinner did), the boot wait loses the race. `activities_overlay` and
+     `finder_query-selected` moved to `--motion paused --frame 40` (their
+     steady-state screens are motion-independent). The five journeys still on
+     reduced passed, but the race is inherent — if one flakes at re-verify,
+     switch it to paused too rather than re-running blindly.
 1. **Mouse states** (hover/pressed rows of the showcase state matrices, diff
    text-drag selection, scroll fade under wheel, hover evidence in j_*/t_*).
    CLI has no click/drag/move. Disposition: retained on the tmux harness
@@ -256,15 +316,22 @@ Minimum-size: first-use 72x20 truecolor = **1**
 4. **Alt+Enter and Alt+0..9 chords** (`alt-` takes a single character only):
    h_flow_alternatives and the activity-tab jumps cannot be expressed.
    Disposition: retained in legacy h_flow corpus.
-5. **Spinner/indeterminate mid-animation frames** (showcase progress busy /
-   taskrunner live rows, tablepro connect ticks). Residual nondeterminism:
-   the baseline captures these pages after `wait_stable` (--settle-ms 400),
-   which lands on a stable phase but cannot pin a spinner glyph. If one
+5. **Spinner/indeterminate mid-animation frames** (showcase taskrunner live
+   rows once started, tablepro connect ticks). Residual nondeterminism:
+   the baseline captures these surfaces in their static initial state after
+   `wait_stable` (--settle-ms 400); a spinner glyph cannot be pinned. If one
    flakes at re-verify time, re-run once before suspecting a regression;
    deliberate relaxation = `tuisnap report --pixel-threshold` for review.
+   (The progress page is NOT covered by this item — see gap 0: it never
+   reaches a static state at all.)
 6. **tablepro form Advanced tab + Duplicate button flow** — only reachable
    via long focus walks that a baseline should not depend on.
    Disposition: retained in t_* legacy corpus.
+7. **Glitched text is not needle-stable.** jackin's outro caption is drawn
+   through a seed-glitched renderer under paused motion, so a text needle
+   may legitimately never match; the outro/warp captures wait on the
+   persistent `Enter Skip` hint instead. General rule: needles must be
+   verified against the actual paused frame, not assumed from live motion.
 
 ## Regeneration procedure
 
@@ -273,8 +340,9 @@ Minimum-size: first-use 72x20 truecolor = **1**
 rm -rf shots/tuisnap
 tools/tuisnap_baseline.sh
 #    - cargo build --bins (skip with SKIP_BUILD=1)
-#    - runs all 371 captures; first run: every entry lands in actual/ and is
+#    - runs all 367 captures; first run: every entry lands in actual/ and is
 #      reported as pending (missing-approval) — expected, not a failure
+#    - note: the 5 scrolling captures take ~2.5 min each (boot stream)
 #    - renders frames/<name>.{ansi,txt,png,html} per capture
 #    - ends with a captured/pending/drift/failed summary (also:
 #      tools/tuisnap_baseline.sh summary)
@@ -311,3 +379,23 @@ APPS=showcase SIZES=120x40 COLORS=truecolor tools/tuisnap_baseline.sh
   (mismatch overlays), `shots/tuisnap/report.html`,
   `shots/tuisnap/frames/` (loose ansi/txt/png/html review aids — derived,
   never gated).
+
+## Git tracking policy
+
+The store is ~1.3 GB on disk; only the canonical, non-regenerable baseline is
+tracked in git (~390 MB):
+
+- **Tracked:** `shots/tuisnap/approved/` (367 × frame.json + approved PNG —
+  the gate authority), `shots/tuisnap/frames/*.ansi` and `frames/*.txt`
+  (small, and `ansi` is an explicitly required persisted format).
+- **Ignored (`.gitignore`):** `actual/`, `diff/`, `.baseline-run/`,
+  `report.html` (~1.4 GB — embeds every frame), `frames/*.html`,
+  `frames/*.png`. All ignored artifacts are deterministic re-renders of the
+  tracked approved frames: `tuisnap render --input
+  shots/tuisnap/approved/<name>.frame.json --format png --format html --out
+  <prefix>`, and `tuisnap report --store shots/tuisnap` rebuilds the report
+  after any run.
+- The legacy `shots/` corpus outside `shots/tuisnap/` is left in place;
+  supersession per category is mapped above. Physical removal is a separate
+  decision: partially superseded categories still carry mouse-driven evidence
+  (hover/drag) that tuisnap CLI cannot reproduce.

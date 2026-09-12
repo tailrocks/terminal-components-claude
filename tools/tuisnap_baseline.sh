@@ -2,7 +2,9 @@
 # Capture the tuisnap snapshot baseline: every capturable surface of the four
 # binaries, gated into the store at shots/tuisnap/. The matrix and its
 # rationale live in docs/baseline/tuisnap-coverage.md; this script is the
-# executable source of truth for the 371 capture names.
+# executable source of truth for the 367 capture names (showcase progress is
+# excluded: it repaints every 80 ms from boot and can never satisfy the boot
+# wait_idle — see the doc's honest-gap section).
 #
 # Usage:
 #   tools/tuisnap_baseline.sh            # build + run the whole matrix
@@ -13,6 +15,8 @@
 #   SIZES="120x40"  COLORS="truecolor"   # space-separated allow-lists
 #   ONLY='holla_(rust-dirty|upgrade-plan)'   # grep -E filter on capture name
 #   SETTLE_MS=400 TIMEOUT_MS=8000 STORE=shots/tuisnap
+#   CAP_TIMEOUT=<ms> is not a global knob: prefix a single cap() call with it
+#   for screens whose boot stream outlasts TIMEOUT_MS (scrolling, terminal).
 #
 # tuisnap run is fail-closed: on the first run every capture ends as
 # missing-approval (expected — logged as "pending", not failed). Approve after
@@ -67,7 +71,8 @@ MATCHED=0; PENDING=0; DRIFT=0; FAILED=0; RENDER_FAILED=0; SKIPPED=0
 # BOOT_NEEDLE: string on the fully-rendered first screen (empty to skip); sent
 # as the first step because --wait-for would run AFTER the sends. SENDS is a
 # ;-separated list of further steps (key names, type:<text>, sleep:<ms>,
-# wait:<needle>).
+# wait:<needle>). Prefix the call with CAP_TIMEOUT=<ms> for screens whose boot
+# activity outlasts TIMEOUT_MS (tuisnap's boot wait_idle shares --timeout-ms).
 cap() {
   local name=$1 cols=$2 rows=$3 color=$4 needle=$5 sends=$6; shift 6
   [ "${1:-}" = -- ] && shift
@@ -92,7 +97,7 @@ cap() {
 
   local log="$RUNDIR/logs/$name.log" status
   if tuisnap run --cols "$cols" --rows "$rows" \
-      --settle-ms "$SETTLE_MS" --timeout-ms "$TIMEOUT_MS" \
+      --settle-ms "$SETTLE_MS" --timeout-ms "${CAP_TIMEOUT:-$TIMEOUT_MS}" \
       "${steps[@]}" \
       --store "$STORE" --name "$name" \
       -- "${argv[@]}" >"$log" 2>&1; then
@@ -125,10 +130,16 @@ showcase_app() {
   local bin=$BIN_DIR/showcase
   # name-slug:argv-slug — PageId::from_name needs the full normalized label,
   # so "Editable tables"=editabletables and "Chips & selects"=chipsselects.
+  # progress is absent: its page is animating()==true from boot (80 ms
+  # repaints forever), so tuisnap's boot wait_idle(200ms) can never pass —
+  # structurally uncapturable via `tuisnap run` (verified with a 30 s
+  # timeout); evidence stays on the legacy harness, see the coverage doc.
+  # scrolling/terminal are listed explicitly below: they stream demo output
+  # at boot and need CAP_TIMEOUT overrides to reach their idle end state.
   local pages="overview:overview buttons:buttons inputs:inputs textareas:textareas \
 forms:forms lists:lists trees:trees tables:tables editable:editabletables \
-panels:panels sidebars:sidebars dialogs:dialogs progress:progress \
-scrolling:scrolling terminal:terminal codeeditor:codeeditor diff:diff \
+panels:panels sidebars:sidebars dialogs:dialogs \
+codeeditor:codeeditor diff:diff \
 datagrid:datagrid chips:chipsselects pickers:pickers chrome:chrome \
 settings:settings taskrunner:taskrunner"
   local p pair name slug size color
@@ -139,6 +150,23 @@ settings:settings taskrunner:taskrunner"
         cap "showcase_${name}_default_${size}_${color}" "${size%x*}" "${size#*x}" "$color" \
           "Junie Design system" "" -- "$bin" --page "$slug"
       done
+    done
+  done
+  # scrolling streams ~1600 demo log lines (400→2000, one per 80 ms tick ≈
+  # 128 s) before follow-tail stops; the capture waits out the stream and
+  # gates the deterministic finished-scrollback state.
+  for size in 80x24 120x40; do
+    for color in truecolor none; do
+      CAP_TIMEOUT=180000 cap "showcase_scrolling_default_${size}_${color}" "${size%x*}" "${size#*x}" "$color" \
+        "Junie Design system" "" -- "$bin" --page scrolling
+    done
+  done
+  # terminal boots into its staged demo run (reset() sets running=true); the
+  # run finishes in under 20 s, then the screen is static.
+  for size in 80x24 120x40; do
+    for color in truecolor none; do
+      CAP_TIMEOUT=30000 cap "showcase_terminal_default_${size}_${color}" "${size%x*}" "${size#*x}" "$color" \
+        "Junie Design system" "" -- "$bin" --page terminal
     done
   done
   # palette spots on the most palette-sensitive pages
@@ -161,7 +189,7 @@ settings:settings taskrunner:taskrunner"
   cap showcase_inputs_selected_120x40_truecolor 120 40 truecolor "$boot" "tab;enter;ctrl-l;wait:EDIT" -- "$bin" --page inputs
   cap showcase_forms_invalid_120x40_truecolor 120 40 truecolor "$boot" "tab;ctrl-s;wait:Required" -- "$bin" --page forms
   cap showcase_diff_review_120x40_truecolor 120 40 truecolor "$boot" "tab;enter;wait:● Review" -- "$bin" --page diff
-  cap showcase_diff_empty_120x40_truecolor 120 40 truecolor "$boot" "tab;enter;backtab;enter;wait:No file selected" -- "$bin" --page diff
+  cap showcase_diff_empty_120x40_truecolor 120 40 truecolor "$boot" "tab;enter;tab;enter;wait:No file selected" -- "$bin" --page diff
   cap showcase_buttons_focus_120x40_truecolor 120 40 truecolor "$boot" "tab" -- "$bin" --page buttons
   cap showcase_lists_moved_120x40_truecolor 120 40 truecolor "$boot" "tab;down;down" -- "$bin" --page lists
   cap showcase_trees_expanded_120x40_truecolor 120 40 truecolor "$boot" "tab;right" -- "$bin" --page trees
@@ -171,7 +199,7 @@ settings:settings taskrunner:taskrunner"
   cap showcase_dialogs_open_120x40_truecolor 120 40 truecolor "$boot" "tab;enter" -- "$bin" --page dialogs
   cap showcase_pickers_open_120x40_truecolor 120 40 truecolor "$boot" "tab;enter" -- "$bin" --page pickers
   cap showcase_chips_toggled_120x40_truecolor 120 40 truecolor "$boot" "tab;space" -- "$bin" --page chipsselects
-  cap showcase_scrolling_scrolled_120x40_truecolor 120 40 truecolor "$boot" "tab;down;down;down" -- "$bin" --page scrolling
+  CAP_TIMEOUT=180000 cap showcase_scrolling_scrolled_120x40_truecolor 120 40 truecolor "$boot" "tab;down;down;down" -- "$bin" --page scrolling
   cap showcase_settings_toggled_120x40_truecolor 120 40 truecolor "$boot" "tab;space" -- "$bin" --page settings
   cap showcase_help_overlay_120x40_truecolor 120 40 truecolor "$boot" "?" -- "$bin" --page overview
   cap showcase_inspector_open_120x40_truecolor 120 40 truecolor "$boot" "i" -- "$bin" --page overview
@@ -222,7 +250,7 @@ holla_app() {
   cap holla_finder_query_120x40_truecolor 120 40 truecolor "holla❯" \
     "type:pull" -- "$bin" --scenario parity-history --motion reduced
   cap holla_finder_query-selected_120x40_truecolor 120 40 truecolor "holla❯" \
-    "type:pull;ctrl-a" -- "$bin" --scenario parity-history --motion reduced
+    "type:pull;ctrl-a" -- "$bin" --scenario parity-history --motion paused --frame 40
   cap holla_trust_prompt_120x40_truecolor 120 40 truecolor "holla❯" \
     "type:test;enter" -- "$bin" --scenario monorepo-child --motion reduced
   cap holla_files_results_120x40_truecolor 120 40 truecolor "holla❯" \
@@ -245,8 +273,10 @@ holla_app() {
     "type:restart payments;enter" -- "$bin" --scenario remote-host --motion reduced
   cap holla_help_overlay_120x40_truecolor 120 40 truecolor "holla❯" \
     "f1" -- "$bin" --scenario rust-dirty --motion paused --frame 40
+  # activities-multi keeps a live spinner in the tab strip under reduced
+  # motion, which starves tuisnap's boot wait_idle — capture it paused.
   cap holla_activities_overlay_120x40_truecolor 120 40 truecolor "holla❯" \
-    "ctrl-g" -- "$bin" --scenario activities-multi --motion reduced
+    "ctrl-g" -- "$bin" --scenario activities-multi --motion paused --frame 40
 }
 
 # ---------------------------------------------------------------- tablepro --
@@ -312,15 +342,23 @@ JACKIN_SCENARIOS="first-use returning accounts-mixed launch-running launch-failu
 
 jackin_app() {
   local bin=$BIN_DIR/jackin-preview s size
+  # outro-last is excluded from the loop: the outro starfield carries no
+  # "jackin❯" brand line; the persistent "Enter Skip" hint is its needle.
   for s in $JACKIN_SCENARIOS; do
+    [ "$s" = outro-last ] && continue
     for size in 80x24 120x40; do
       cap "jackin_${s}_default_${size}_truecolor" "${size%x*}" "${size#*x}" truecolor \
         "jackin❯" "" -- "$bin" --scenario "$s" --motion paused --frame 40
     done
   done
-  # first-use intro phases (INTRO_END = tick 308): warp + post-intro manager
+  for size in 80x24 120x40; do
+    cap "jackin_outro-last_default_${size}_truecolor" "${size%x*}" "${size#*x}" truecolor \
+      "Enter Skip" "" -- "$bin" --scenario outro-last --motion paused --frame 40
+  done
+  # first-use intro phases (INTRO_END = tick 308): warp + post-intro manager;
+  # the warp starfield has no brand line either — "Enter Skip" again.
   cap jackin_first-use_f300_120x40_truecolor 120 40 truecolor \
-    "jackin❯" "" -- "$bin" --scenario first-use --motion paused --frame 300
+    "Enter Skip" "" -- "$bin" --scenario first-use --motion paused --frame 300
   cap jackin_first-use_f400_120x40_truecolor 120 40 truecolor \
     "jackin❯" "" -- "$bin" --scenario first-use --motion paused --frame 400
   for s in first-use capsule-multi accounts-mixed hard-cases; do

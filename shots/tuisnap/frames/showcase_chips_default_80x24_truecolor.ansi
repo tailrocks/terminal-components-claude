@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Chips & selects     i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mChips & selects[0m  Removable chips, a popup select, and str… [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃    Filters                                        2 active  [0m
+   Text areas     ┃                                                             [0m
+   Forms          ┃     match all ▾   status = 'pending' ×    total > 100 ×   … [0m
+   Lists          ┃                                                             [0m
+   Trees          ┃    last action: nothing yet                                 [0m
+   Tables         ┃                                                             [0m
+   Editable tabl… ┃                                                             [0m
+   Panels         ┃    Selects                                                  [0m
+   Sidebars       ┃                                                             [0m
+   Dialogs        ┃      Sort by           Page size         Engine             [0m
+   Progress       ┃      created_at  ▾     50          ▾     PostgreSQL     ▾   [0m
+   Scrolling      ┃      Applies to th…                      Fixed by the con…  [0m
+   Terminal       ┃                                                             [0m
+   Code editor    ┃                                                             [0m
+   Diff           ┃                                                             [0m
+   Data grid      │                                                             [0m
+[0m[1m▎› Chips & selec… [0m│    Segment strip                                            [0m
+   Pickers        │                                                             [0m
+                        ▪  [0m[1mAcme[0m  [0m[1m◆ production[0m  acme_prod › public  [0m[1msafe[0m         [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m

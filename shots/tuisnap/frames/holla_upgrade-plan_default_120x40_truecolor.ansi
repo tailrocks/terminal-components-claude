@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                           no project  [0m[1mdevbox · development[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here › Upgrade everything  [0m                                                                                           [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mUpgrade everything[0m · devbox                                                8 steps · 8 included · 0 excluded · ~16 s  [0m
+  upgrade Debian packages and global mise tools on devbox                                                               [0m
+                                                                                                                        [0m
+         step                         needs  lane  note                   01 Preflight                       required   [0m
+ [0m[1m▎[0m[✓][0m[1m [0m01[0m[1m Preflight                    [0m–    [0m[1m  [0m·   [0m[1m  [0msudo[0m[1m               [0m                                                  [0m
+  [✓] 02 Refresh Debian metadata      01     a     sudo                   Runs       cat /etc/os-release                [0m
+  [✓] 03 Review Debian upgrades       02     a                                       sudo -n true                       [0m
+  [✓] 04 Apply Debian upgrades        03     a     sudo                              fuser                              [0m
+  [✓] 05 Inspect global mise tools    01     b                                       /var/lib/dpkg/lock-frontend        [0m
+  [✓] 06 Upgrade selected mise tools  05     b     optional                          df -h /                            [0m
+  [✓] 07 Package cleanup              04     a     optional                          test -f /var/run/reboot-required   [0m
+  [✓] 08 Final verification           04 06  join                         In         / · devbox                         [0m
+                                                                          Needs      nothing · starts first             [0m
+    6 required · 2 optional · 2 branches run in parallel where independentUnlocks    02 Refresh Debian metadata · 05    [0m
+                                                                                     Inspect global mise tools          [0m
+                                                                          Lane       · trunk · ordered                  [0m
+                                                                          Privilege  sudo                               [0m
+                                                                          Effect     checks OS, privileges, package     [0m
+                                                                                     lock, network, free space,         [0m
+                                                                                     pending reboot                     [0m
+                                                                          State      ready                              [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                               Cancel    [0m[1mConfirm plan [0m  [0m
+                                                                                                                        [0m
+ [0m[1m~[0m                              review · 8 steps · 2 branches parallel                               truecolor · 120×40 [0m
+                            [0m[1m↑↓[0m Step  [0m[1mSpace[0m Toggle  [0m[1mu[0m Undo  [0m[1mc[0m Confirm  [0m[1mp[0m Facts  [0m[1mEsc[0m Discard                              [0m

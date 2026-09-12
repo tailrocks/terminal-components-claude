@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Forms               i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mForms[0m  Sections, required fields, validation, submission   [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃    New task                                  Ctrl+S Submit  [0m
+   Text areas     ┃                                                             [0m
+[0m[1m▎› Forms          [0m┃      Task name *                  Mode                      [0m
+   Lists          ┃      Short imperative summ…      ( ) Fast                   [0m
+   Trees          ┃                                  (●) Balanced               [0m
+   Tables         ┃      Description                 ( ) Thorough               [0m
+   Editable tabl… ┃      What should Junie do…       [✓] Run tests before op…   [0m
+   Panels         ┃      Optional · Markdown         [ ] Open a pull request…   [0m
+   Sidebars       ┃      Reviewer  optional          ○── Auto-approve changes   [0m
+   Dialogs        ┃      name@company.com            ──● Notify on completion   [0m
+   Progress       ┃      Optional                     Managed by your organiz…  [0m
+   Scrolling      ┃                                                             [0m
+   Terminal       ┃                                                             [0m
+   Code editor    ┃                                                             [0m
+   Diff           ┃                                                             [0m
+   Data grid      │                                                             [0m
+   Chips & selec… │     [0m[1mCreate task [0m   Reset                                    [0m
+   Pickers        │                                                             [0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m

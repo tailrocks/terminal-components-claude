@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                        scope ‹ here ›
+
+    Suggested here                                                               pnpm a                 script · here
+  › pnpm a        script   here  package.json here
+    pnpm b        script   here  package.json here                               Does       1 · package.json
+    pnpm c        script   here  package.json here                               Runs       pnpm run a
+    pnpm d        script   here  package.json here                               In         ~/work/site
+    pnpm e        script   here  package.json here                               Host       mbp · local
+                                                                                 Scope      here
+    Recent here                                                                  Why        package.json here
+    nothing used here yet                                                        Changes    see the command
+                                                                                 Risk       mutating
+    Explore                                                                      Data       live · 0 s ago
+     Tasks   Git   Files   Disk   Services   System                              Gate       runs directly
+    System · mbp  explore  host  available on this host                          Alt+Enter  Pin · Alias · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/site                                                                                         truecolor · 120×40
+            Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

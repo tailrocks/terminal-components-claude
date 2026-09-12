@@ -1,0 +1,50 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                                                            no project  [0m[1mmbp · local[0m [0m
+                                                                                                                                                                [0m
+ [0m[1m Here  [0m                                                                                                                                                        [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›  [0m
+                                                                                                                                                                [0m
+    Suggested here                                                                                               Follow acme-api-1 logs         docker · here   [0m
+ [0m[1m › Follow acme-api-1 logs        [0mdocker [0m[1m  [0mhere[0m[1m  [0mservice is unhealthy[0m[1m                                        [0m                                                   [0m
+    Follow acme-db-1 logs         docker   here  running                                                         Does       stream the last 10 minutes and      [0m
+    Follow acme-redis-1 logs      docker   here  running                                                                    follow · acme/api:dev · running     [0m
+    Follow acme-scheduler-1 logs  docker   here  running                                                         Runs       docker logs -f --sinc…acme-api-1    [0m
+    Follow acme-worker-1 logs     docker   here  running                                                         In         ~/work/stack                        [0m
+                                                                                                                 Host       mbp · local                         [0m
+    Recent here                                                                                                  Scope      here                                [0m
+    nothing used here yet                                                                                        Why        service is unhealthy                [0m
+                                                                                                                 Changes    none · read-only                    [0m
+    Explore                                                                                                      Risk       read-only                           [0m
+     Tasks   Git   Files   Disk   Services   System                                                              Data       live · 2 s ago                      [0m
+    System · mbp                  explore  host  available on this host                                          Gate       runs directly                       [0m
+                                                                                                                 Alt+Enter  Restart · Stop · Pin · Alias ·      [0m
+                                                                                                                            Why here?                           [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m~/work/stack[0m                                                                                                                                truecolor · 160×50 [0m
+                                [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Run  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mCtrl+G[0m Activities                                  [0m

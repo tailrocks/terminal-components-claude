@@ -1,0 +1,40 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Terminal                               truecolor · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+   Foundations            [0m[1mTerminal[0m  Viewport with scrollback, selection and copy · drag the seam · step rail reports a… [0m
+   Overview                                                                                                             [0m
+                          ╭─ Viewport ───────────────────── 37 lines · following ─╮ │  Step rail                7 of 7  [0m
+   Components             │    layer 02/12   19%                                │ │ │                                   [0m
+   Buttons                │    layer 03/12   34%                                │ │ │   ✓ 01 Resolve workspace  0.8 s   [0m
+   Inputs                 │    layer 04/12   50%                                │ │ │   ✓ 02 Pull base image    2.1 s   [0m
+   Text areas             │    layer 05/12   65%                                │ │ │   ✓ 03 Build container    3.2 s   [0m
+   Forms                  │    layer 06/12   80%                                │ │ │     04 Mount sources     cached   [0m
+   Lists                  │    layer 07/12   96%                                ┃ │ │   ✓ 05 Resolve credenti…  1.4 s   [0m
+   Trees                  │  ✓ Pull base image                                  ┃ │ │   ✓ 06 Start agent        1.1 s   [0m
+   Tables                 │  [0m[1m▶ Build container[0m                                  ┃ │ │   ✓ 07 Ready              0.1 s   [0m
+   Editable tables        │    #1 RUN apt-get install -y build-essential        ┃ │ │                                   [0m
+   Panels                 │    #2 COPY rust-toolchain.toml ./                   ┃ │ │                                   [0m
+   Sidebars               │    #3 RUN cargo fetch --locked                      ┃ │ │                                   [0m
+   Dialogs                │    #4 RUN cargo build --release                     ┃ │ │                                   [0m
+   Progress               │    #5 RUN apt-get install -y build-essential        ┃ │ │                                   [0m
+   Scrolling              │    #6 COPY rust-toolchain.toml ./                   ┃ │ │                                   [0m
+[0m[1m▎› Terminal             [0m  │    #7 RUN cargo fetch --locked                      ┃ │ │                                   [0m
+   Code editor            │    #8 RUN cargo build --release                     ┃ │ │                                   [0m
+   Diff                   │    #9 RUN apt-get install -y build-essential        ┃ │ │                                   [0m
+   Data grid              │    #10 COPY rust-toolchain.toml ./                  ┃ │ │                                   [0m
+   Chips & selects        │    #11 RUN cargo fetch --locked                     ┃ │ │                                   [0m
+   Pickers                │    #12 RUN cargo build --release                    ┃ │ │                                   [0m
+   Chrome                 │    #13 RUN apt-get install -y build-essential       ┃ │ │                                   [0m
+                          │    #14 COPY rust-toolchain.toml ./                  ┃ │ │                                   [0m
+   Screens                │  ✓ Build container                                  ┃ │ │                                   [0m
+   Settings               │  [0m[1m▶ Resolve credentials[0m                              ┃ │ │                                   [0m
+   Task runner            │    1Password  Engineering › Anthropic · Work › crede┃ │ │                                   [0m
+                          │  ✓ Resolve credentials                              ┃ │ │                                   [0m
+                          │  [0m[1m▶ Start agent[0m                                      ┃ │ │                                   [0m
+                          │    claude --resume  pid 4188                        ┃ │ │                                   [0m
+                          │  ✓ Start agent                                      ┃ │ │                                   [0m
+                          │  [0m[1m▶ Ready[0m                                            ┃ │ │                                   [0m
+                          │  ✓ Ready                                            ┃ │ │                                   [0m
+                          │  [0m[1mpayments-platform ❯ [0m                               ┃ │ │   [0m[1mRun [0m   Run with a failure       [0m
+                          ╰───────────────────────────────────────────────────────╯ │                                   [0m
+                                                                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                            [0m

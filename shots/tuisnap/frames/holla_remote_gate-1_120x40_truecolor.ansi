@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                      payments · service checkout  [0m[1m◆ prod-eu-1 · production[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here › Review  [0m                                                                                                       [0m
+ ━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mReview · Restart payments[0m · gate 1 of 2 · review the resolved facts, then continue deliberately                       [0m
+                                                                                                                        [0m
+  Action       systemctl restart payments on prod-eu-1 · production · in-flight requests are dropped                    [0m
+  Host         prod-eu-1 · production                                                                                   [0m
+  In           prod-eu-1 · host-wide                                                                                    [0m
+  Scope        on prod-eu-1                                                                                             [0m
+  Changes      payments restarts · brief outage on prod-eu-1                                                            [0m
+  Risk         privileged                                                                                               [0m
+  Data         live · 0 s ago                                                                                           [0m
+  Recoverable  service restarts · brief outage                                                                          [0m
+  Provenance   built-in action · resolved from live state                                                               [0m
+  Gate         second gate types the target-bound phrase                                                                [0m
+                                                                                                                        [0m
+ ╭─ Sequence · 2 commands ───────────────────────────────────────────────────────────────────────────────── y copies ─╮ [0m
+ │  01  sudo systemctl restart payments                                                                               │ [0m
+ │  02  systemctl status payments                                                                                     │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                        [0m
+                                                                                                 ▎[0m[1mCancel [0m   Continue…   [0m
+                                                                                                                        [0m
+ [0m[1m/srv/payments[0m   detached @ v2.14.3                       review · gate 1 of 2                       truecolor · 120×40 [0m
+                          [0m[1m← →[0m Choose  [0m[1mEnter[0m Activate  [0m[1mTab[0m Next  [0m[1my[0m Copy sequence  [0m[1mEsc[0m Cancel                             [0m

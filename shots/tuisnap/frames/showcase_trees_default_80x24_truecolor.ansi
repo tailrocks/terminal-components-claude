@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Trees               i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mTrees[0m  Indent carries hierarchy; the focus bar never moves [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃    Project              1–15 of 16      Selection           [0m
+   Text areas     ┃                                                             [0m
+   Forms          ┃     ▾ src                        ┃      Nothing selected    [0m
+   Lists          ┃       ▸ api                      ┃      Enter on a file sele[0m
+[0m[1m▎› Trees          [0m┃       ▸ db                       ┃                          [0m
+   Tables         ┃       ▸ workers                  ┃      cursor  src         [0m
+   Editable tabl… ┃         config.rs         1.9 KB ┃      visible 16 rows     [0m
+   Panels         ┃         lib.rs             640 B ┃      open    5 folders   [0m
+   Sidebars       ┃         main.rs           1.2 KB ┃                          [0m
+   Dialogs        ┃     ▾ tests                      ┃                          [0m
+   Progress       ┃         checkout.rs       5.3 KB ┃                          [0m
+   Scrolling      ┃         auth_flow.rs      3.0 KB ┃                          [0m
+   Terminal       ┃       ▸ fixtures                 ┃                          [0m
+   Code editor    ┃     ▾ docs                       ┃                          [0m
+   Diff           ┃         architecture.md   7.7 KB ┃                          [0m
+   Data grid      │         webhooks.md       2.2 KB ┃                          [0m
+   Chips & selec… │       Cargo.toml          1.4 KB │                          [0m
+   Pickers        │                                                             [0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m

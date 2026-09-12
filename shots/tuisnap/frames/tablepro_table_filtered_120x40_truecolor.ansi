@@ -1,0 +1,40 @@
+ ▪  [0m[1mTablePro[0m [0m[1m Production [0m [0m[1m◆ production[0m  acme_prod › public [0m[1m safe [0m                            truecolor · 120×40  ? help [0m
+                                                                                                                        [0m
+  ≡ Query 1 ×   [0m[1m [0mT[0m[1m orders ×  [0m                                                                                       +   [0m
+ ───────────────━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ╭─ Explorer ─────── public ─╮ ╭─[0m[1m public › orders [0m────────────────────────────────────────────────────────── 14 cols ─╮ [0m
+ │                           │ │  [0m[1m Data  [0m  Structure                                                                  │ [0m
+ │   Filter objects          │ │  ━━━━━━━──────────────────────────────────────────────────────────────────────────── │ [0m
+ │  ▾ D acme_prod            │ │                                                                                      │ [0m
+ │    ▾ S public             │ │   match all ▾   status = 'pending' ×    + Add filter                                 │ [0m
+ │      ▾ Tables             │ │                                                                                      │ [0m
+ │        ▸ T organizations  │ │   ‹4    status ∇     total_amount  currency    shipping_address                 7›   │ [0m
+ │        ▸ T customers      │ │  [0m[1m▎  [0m  1[0m[1m pending           1617.64  USD         {"line1": "87 Nevsky Ave", "cit…    [0m┃ │ [0m
+ │        ▸ T products       │ │       2 pending           2236.65  EUR         {"line1": "78 Via Roma", "city"…    │ │ [0m
+ │        ▸ T orders         │ │       3 pending           2376.57  EUR         {"line1": "152 Market St", "cit…    │ │ [0m
+ │        ▸ T order_items    │ │       4 pending            550.69  USD         {"line1": "196 Market St", "cit…    │ │ [0m
+ │        ▸ T payments       │ │       5 pending            290.26  EUR         {"line1": "164 Nevsky Ave", "ci…    │ │ [0m
+ │        ▸ T subscriptions  │ │       6 pending           2326.75  USD         {"line1": "139 Kungsgatan", "ci…    │ │ [0m
+ │      ▸ Views              │ │       7 pending           2392.98  USD         {"line1": "125 Rue de Rivoli", …    │ │ [0m
+ │      ▸ Functions          │ │       8 pending            497.22  EUR         {"line1": "115 Kungsgatan", "ci…    │ │ [0m
+ │      ▸ Sequences          │ │       9 pending           1326.92  USD         {"line1": "10 Via Roma", "city"…    │ │ [0m
+ │    ▸ S analytics          │ │      10 pending           1960.35  EUR         [0m[3mNULL                            [0m    │ │ [0m
+ │    ▸ S audit              │ │      11 pending           1301.77  USD         {"line1": "45 Via Roma", "city"…    │ │ [0m
+ │                           │ │      12 pending           1237.89  GBP         {"line1": "120 Queen St", "city…    │ │ [0m
+ │                           │ │      13 pending            801.07  GBP         {"line1": "1 Kungsgatan", "city…    │ │ [0m
+ │                           │ │      14 pending             78.01  EUR         {"line1": "78 Nevsky Ave", "cit…    │ │ [0m
+ │                           │ │      15 pending           1063.27  USD         {"line1": "180 Rue de Rivoli", …    │ │ [0m
+ │                           │ │      16 pending           2449.11  USD         {"line1": "42 Kungsgatan", "cit…    │ │ [0m
+ │                           │ │      17 pending           1906.29  USD         {"line1": "154 Kungsgatan", "ci…    │ │ [0m
+ │                           │ │      18 pending            618.67  USD         {"line1": "39 Nevsky Ave", "cit…    │ │ [0m
+ │                           │ │      19 pending            576.42  EUR         {"line1": "21 Market St", "city…    │ │ [0m
+ │                           │ │      20 pending            886.59  EUR         {"line1": "105 Calle Mayor", "c…    │ │ [0m
+ │                           │ │      21 pending            942.71  USD         {"line1": "41 Market St", "city…    │ │ [0m
+ │                           │ │      22 pending            446.60  EUR         {"line1": "93 Queen St", "city"…    │ │ [0m
+ │                           │ │      23 pending           1081.02  EUR         {"line1": "23 Calle Mayor", "ci…    │ │ [0m
+ │                           │ │      24 pending           1023.54  USD         {"line1": "168 Market St", "cit…    │ │ [0m
+ │                           │ │      25 pending           2231.00  EUR         {"line1": "65 Rue de Rivoli", "…    │ │ [0m
+ │                           │ │   filtered (1) · rows 1–25 of 335 loaded · ~201,559 total · cols 5–7 of 14           │ [0m
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                        [0m
+ [0m[1m↑↓←→[0m Cell  [0m[1mEnter[0m Edit  [0m[1mAlt+D[0m Duplicate row  [0m[1ms[0m Sort  [0m[1mf[0m Filter  [0m[1mSpace[0m Select row  [0m[1mTab[0m Next              1 filter applied [0m

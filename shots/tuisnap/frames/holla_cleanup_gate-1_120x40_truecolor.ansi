@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                     work · project collection  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here › … › Review  [0m                                                                                                   [0m
+ ━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mReview · Clean developer artifacts under ~/work[0m · gate 1 of 2 · review the resolved facts, then continue deliberate…  [0m
+                                                                                                                        [0m
+  Action       remove selected build artifacts and caches under /Users/alex/work                                        [0m
+  Host         mbp · local                                                                                              [0m
+  In           ~/work                                                                                                   [0m
+  Steps        4 included · 0 excluded · 3 branches parallel · ~9 s                                                     [0m
+  Targets      3 candidates selected · 24.2 GB                                                                          [0m
+  Recovery     Trash where possible · tool-managed cleanups regenerate on the next build                                [0m
+  Not touched  recent artifacts, unverifiable activity, protected paths                                                 [0m
+  Privilege    none                                                                                                     [0m
+  Provenance   resolved by holla from live state · 2 s ago                                                              [0m
+  Gate         second gate types the target-bound phrase                                                                [0m
+                                                                                                                        [0m
+ ╭─ Sequence · 4 commands ───────────────────────────────────────────────────────────────────────────────── y copies ─╮ [0m
+ │  01  trash /Users/alex/work/frontend/node_modules                                                                  │ [0m
+ │  02  cargo clean  (in /Users/alex/work/backend)                                                                    │ [0m
+ │  03  ./gradlew clean  (in /Users/alex/work/android)                                                                │ [0m
+ │  04  holla disk rescan /Users/alex/work                                                                            │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ │                                                                                                                    │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                        [0m
+                                                                                                 ▎[0m[1mCancel [0m   Continue…   [0m
+                                                                                                                        [0m
+ [0m[1m~/work[0m                          review · gate 1 of 2                          / ━━━━━━━━━━─ 91%     truecolor · 120×40 [0m
+                          [0m[1m← →[0m Choose  [0m[1mEnter[0m Activate  [0m[1mTab[0m Next  [0m[1my[0m Copy sequence  [0m[1mEsc[0m Cancel                             [0m

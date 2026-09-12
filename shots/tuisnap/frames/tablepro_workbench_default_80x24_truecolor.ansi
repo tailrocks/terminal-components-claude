@@ -1,0 +1,24 @@
+ ▪  [0m[1mTablePro[0m [0m[1m Production [0m [0m[1m◆ production[0m  acme_prod › public [0m[1m safe [0m        ? help [0m
+                                                                                [0m
+ [0m[1m [0m≡[0m[1m Query 1 ×  [0m                                                             +   [0m
+ ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────── [0m
+ ╭─[0m[1m Explorer [0m──────────────────────────────────────────────────────── public ─╮ [0m
+ │                                                                            │ [0m
+ │   Filter objects                                                           │ [0m
+ │  ▾ D acme_prod                                                           ┃ │ [0m
+ │ [0m[1m▎  ▾ [0mS[0m[1m public                                                            [0m┃ │ [0m
+ │      ▾ Tables                                                          7 ┃ │ [0m
+ │        ▸ T organizations                                           1.2 k ┃ │ [0m
+ │        ▸ T customers                                              48.9 k ┃ │ [0m
+ │        ▸ T products                                                  312 ┃ │ [0m
+ │        ▸ T orders                                                  1.2 M ┃ │ [0m
+ │        ▸ T order_items                                             3.8 M ┃ │ [0m
+ │        ▸ T payments                                                1.2 M ┃ │ [0m
+ │        ▸ T subscriptions                                           1.1 k ┃ │ [0m
+ │      ▸ Views                                                           2 ┃ │ [0m
+ │      ▸ Functions                                                       1 ┃ │ [0m
+ │      ▸ Sequences                                                       1 ┃ │ [0m
+ │    ▸ S analytics                                                         │ │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1m→[0m Expand  [0m[1m/[0m Filter  …            Connected to Production [0m

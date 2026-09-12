@@ -1,0 +1,40 @@
+ ▪  [0m[1mTablePro[0m  Connections  6 saved                                                           truecolor · 120×40  ? help [0m
+                                                                                                                        [0m
+ ╭─ Connections ─────────────────── 6 ─╮    New connection                                                Ctrl+S Save   [0m
+ │                                     │                                                                                [0m
+ │   Filter connections                │    [0m[1m Basic  [0m  Advanced                                                          [0m
+ │  ▾ Personal                         │    ━━━━━━━━─────────────────────────────────────────────────────────────────   [0m
+ │      · Local PostgreSQL         pg  │                                                                                [0m
+ │      · Scratch              sqlite  │      [0m[1mName *                                [0m      Environment                   [0m
+ │  ▾ Acme                             │    ▎                                            (●) local                      [0m
+ │      · Development              pg  │                                                 ( ) development                [0m
+ │      ◇ Staging                  pg  │      Engine                                     ( ) staging                    [0m
+ │      ◆ Analytics             mysql  │      PostgreSQL                          ▾      ( ) production                 [0m
+ │      ◆ Production               pg  │                                                                                [0m
+ │                                     │      Host  optional              Port            Group                         [0m
+ │                                     │      localhost                   5432            Personal                 ▾    [0m
+ │                                     │      Blank: driver default                                                     [0m
+ │                                     │      Database  optional                          Safe Mode                     [0m
+ │                                     │                                                 (●) Silent                     [0m
+ │                                     │      Required for PostgreSQL                    ( ) Alert                      [0m
+ │                                     │      Username  optional                         ( ) Alert (Full)               [0m
+ │                                     │                                                 ( ) Safe Mode                  [0m
+ │                                     │                                                 ( ) Safe Mode (Full)           [0m
+ │                                     │      Password  optional                         ( ) Read-Only                  [0m
+ │                                     │      stored in the keychain                      Writes run without asking.    [0m
+ │                                     │      Never written to connections.json           Destructive statements        [0m
+ │                                     │     [ ] Prompt for password on connect                                         [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │                                                                                [0m
+ │                                     │     Test connection    Cancel    Save    [0m[1mSave & connect [0m                       [0m
+ ╰─────────────────────────────────────╯                                                                                [0m
+                                                                                                                        [0m
+ [0m[1mEnter[0m Edit  [0m[1m← →[0m Basic / Advanced  [0m[1mCtrl+S[0m Save  [0m[1mTab[0m Next                                                                [0m

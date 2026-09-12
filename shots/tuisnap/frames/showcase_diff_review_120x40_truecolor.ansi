@@ -1,0 +1,40 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Diff                                   truecolor · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+   Foundations            [0m[1mDiff viewer[0m  Unified or old / new review · narrow panes use unified · select and copy text    [0m
+   Overview                                                                                                             [0m
+                          ▎[0m[1m● Review [0m   ○ Empty                                                                          [0m
+   Components                                                                                                           [0m
+   Buttons                ╭─ Diff ─────────────────────────────────────────────────────────────────────────────────────╮[0m
+   Inputs                 │  [0m[1mM[0m [0m[1mconfig/service.toml[0m  +10 −5 · 5 hunks · review                                        ┃ │[0m
+   Text areas             │  Old                                        │ New                                        ┃ │[0m
+   Forms                  │  @@ -1,6 +1,7 @@                                                                         ┃ │[0m
+   Lists                  │    1 [service.worker_0]                     │   1 [service.worker_0]                     ┃ │[0m
+   Trees                  │    2 attempts = [0m[1m3[0m                           │   2 attempts = [0m[1m5[0m                           ┃ │[0m
+   Tables                 │                                             │   3 backoff = "exponential"                ┃ │[0m
+   Editable tables        │    3 region = "東京"                        │   4 region = "東京"                        ┃ │[0m
+   Panels                 │    4 label = "café ☕"                      │   5 label = "café ☕"                      ┃ │[0m
+   Sidebars               │    5 endpoint = "https://api.example.test/… │   6 endpoint = "https://api.example.test/… ┃ │[0m
+   Dialogs                │    6 enabled = true                         │   7 enabled = true                         ┃ │[0m
+   Progress               │  ────────────────────────────────────────────────────────────────────────────────────────┃ │[0m
+   Scrolling              │  @@ -9,6 +10,7 @@                                                                        ┃ │[0m
+   Terminal               │    9 [service.worker_1]                     │  10 [service.worker_1]                     ┃ │[0m
+   Code editor            │   10 attempts = [0m[1m3[0m                           │  11 attempts = [0m[1m5[0m                           ┃ │[0m
+ › Diff                   │                                             │  12 backoff = "exponential"                ┃ │[0m
+   Data grid              │   11 region = "東京"                        │  13 region = "東京"                        ┃ │[0m
+   Chips & selects        │   12 label = "café ☕"                      │  14 label = "café ☕"                      ┃ │[0m
+   Pickers                │   13 endpoint = "https://api.example.test/… │  15 endpoint = "https://api.example.test/… ┃ │[0m
+   Chrome                 │   14 enabled = true                         │  16 enabled = true                         ┃ │[0m
+                          │  ────────────────────────────────────────────────────────────────────────────────────────│ │[0m
+   Screens                │  @@ -17,6 +19,7 @@                                                                       │ │[0m
+   Settings               │   17 [service.worker_2]                     │  19 [service.worker_2]                     │ │[0m
+   Task runner            │   18 attempts = [0m[1m3[0m                           │  20 attempts = [0m[1m5[0m                           │ │[0m
+                          │                                             │  21 backoff = "exponential"                │ │[0m
+                          │   19 region = "東京"                        │  22 region = "東京"                        │ │[0m
+                          │   20 label = "café ☕"                      │  23 label = "café ☕"                      │ │[0m
+                          │   21 endpoint = "https://api.example.test/… │  24 endpoint = "https://api.example.test/… │ │[0m
+                          │   22 enabled = true                         │  25 enabled = true                         │ │[0m
+                          │  ────────────────────────────────────────────────────────────────────────────────────────│ │[0m
+                          │  @@ -25,6 +28,7 @@                                                                       │ │[0m
+                          ╰────────────────────────────────────────────────────────────────────────────────────────────╯[0m
+                                                                                                                        [0m
+ [0m[1mEnter[0m Toggle  [0m[1mTab[0m Next control                                                                                         [0m

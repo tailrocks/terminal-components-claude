@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Diff                i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mDiff viewer[0m  Unified or old / new review · narrow panes u… [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃   ○ Review    ○ Empty                                       [0m
+   Text areas     ┃                                                             [0m
+   Forms          ┃  ╭─ Diff ──────────────────────────────────────────────────╮[0m
+   Lists          ┃  │  [0m[1mM[0m [0m[1mconfig/service.toml[0m  +10 −5 · 5 hunks              ┃ │[0m
+   Trees          ┃  │  @@ -1,6 +1,7 @@                                      ┃ │[0m
+   Tables         ┃  │    1   1 [0m[1m [0m [service.worker_0]                         ┃ │[0m
+   Editable tabl… ┃  │    2     [0m[1m-[0m attempts = 3                               ┃ │[0m
+   Panels         ┃  │        2 [0m[1m+[0m attempts = 5                               │ │[0m
+   Sidebars       ┃  │        3 [0m[1m+[0m backoff = "exponential"                    │ │[0m
+   Dialogs        ┃  │    3   4 [0m[1m [0m region = "東京"                            │ │[0m
+   Progress       ┃  │    4   5 [0m[1m [0m label = "café ☕"                          │ │[0m
+   Scrolling      ┃  │    5   6 [0m[1m [0m endpoint = "https://api.example.test/worker│ │[0m
+   Terminal       ┃  │    6   7 [0m[1m [0m enabled = true                             │ │[0m
+   Code editor    ┃  │  @@ -9,6 +10,7 @@                                     │ │[0m
+[0m[1m▎› Diff           [0m┃  │    9  10 [0m[1m [0m [service.worker_1]                         │ │[0m
+   Data grid      │  │   10     [0m[1m-[0m attempts = 3                               │ │[0m
+   Chips & selec… │  │       11 [0m[1m+[0m attempts = 5                               │ │[0m
+   Pickers        │  ╰─────────────────────────────────────────────────────────╯[0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m

@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Dialogs             i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mDialogs[0m  Focus is trapped, the page dims, Esc always canc… [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃    Open a dialog                                            [0m
+   Text areas     ┃                                                             [0m
+   Forms          ┃     [0m[1mConfirm run [0m   Rename task…    Three choices…    Del…   [0m
+   Lists          ┃                                                             [0m
+   Trees          ┃    Confirm: primary action focused first · y / n answer d…  [0m
+   Tables         ┃    Prompt: editing inside a modal, Enter submits, validat…  [0m
+   Editable tabl… ┃    Destructive: Cancel focused first, action in danger st…  [0m
+   Panels         ┃    Task: Migrate sessions table                             [0m
+   Sidebars       ┃                                                             [0m
+[0m[1m▎› Dialogs        [0m┃                                                             [0m
+   Progress       ┃    Results                                                  [0m
+   Scrolling      ┃                                                             [0m
+   Terminal       ┃    Nothing yet                                              [0m
+   Code editor    ┃                                                             [0m
+   Diff           ┃                                                             [0m
+   Data grid      │                                                             [0m
+   Chips & selec… │                                                             [0m
+   Pickers        │                                                             [0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m

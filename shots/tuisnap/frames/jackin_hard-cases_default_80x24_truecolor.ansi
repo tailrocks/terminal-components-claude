@@ -1,0 +1,24 @@
+ [0m[1m jackin❯ [0m   File   Go   Help       ! instance index unreadable  ▲ daemon stale [0m
+                                                                                [0m
+ ╭─[0m[1m Workspaces [0m─────────────────────────────────────────────────── 3 running ─╮ [0m
+ │ [0m[1m▎   Current directory                         [0msaved as payments-platform[0m[1m [0m┃ │ [0m
+ │   ▸ payments-platform                                          1 running ┃ │ [0m
+ │   ▸ infra-control-plane                                        1 running ┃ │ [0m
+ │   ▸ release-automation                                          ! failed ┃ │ [0m
+ │   ▸ customer-portal                                             ! failed ┃ │ [0m
+ │   ▸ data-pipeline                                              1 running ┃ │ [0m
+ │   ▸ docs-site                                                   1 record ┃ │ [0m
+ │     auth-service                                                    idle │ │ [0m
+ │     gateway                                                         idle │ │ [0m
+ │     mobile-app                                                      idle │ │ [0m
+ │     ml-notebooks                                                    idle │ │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+   Current directory                                              Tab details   [0m
+                                                                                [0m
+   /workspace/payments-platform · 2 mounts · 5 vars                             [0m
+   Roles the-architect ★ · 3 allowed · Auth Claude · Personal                   [0m
+   ◉ 7f3a  the-architect · Claude Code · running                                [0m
+                                                                                [0m
+                                                                                [0m
+ [0m[1m▲[0m Could not confirm running instances: instance index unreadable · entered wi… [0m

@@ -1,0 +1,40 @@
+ ▪ [0m[1mJunie[0m Design system / Foundations / Overview                              truecolor · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+   Foundations            [0m[1mOverview[0m  Tokens and principles behind every component                                        [0m
+[0m[1m▎› Overview             [0m                                                                                                [0m
+                            Tokens                                          Principles                                  [0m
+   Components                                                                                                           [0m
+   Buttons                      ▏ canvas                      #000000       [0m[1mOne hue[0m                                     [0m
+   Inputs                       ▏ surface                     #111111       Green means focus, primary action or        [0m
+   Text areas                   ▏ surface.elevated            #18181b       selection. Everything else is achromatic.   [0m
+   Forms                        ▏ surface.overlay             #27272a                                                   [0m
+   Lists                        ▏ field                       #1e1e22       [0m[1mAlpha ladder[0m                                [0m
+   Trees                        ▏ popover                     #3f3f46       Text and borders step down in white         [0m
+   Tables                       ▏ border.subtle             white 15%       opacity, never in arbitrary grays.          [0m
+   Editable tables              ▏ border.strong             white 30%                                                   [0m
+   Panels                       ▏ text.primary                #ffffff       [0m[1mState is geometry[0m                           [0m
+   Sidebars                     ▏ text.secondary            white 70%       Hover lifts the surface, focus adds a bar,  [0m
+   Dialogs                      ▏ text.muted                white 50%       selection adds a marker, editing shows the  [0m
+   Progress                     ▏ text.faint                white 30%       cursor.                                     [0m
+   Scrolling                    ▏ accent                      #48e054                                                   [0m
+   Terminal                     ▏ accent.hover                #3ab343       [0m[1mThree planes[0m                                [0m
+   Code editor                  ▏ accent.pressed              #2b8632       Canvas, surface, elevated. Depth comes      [0m
+   Diff                         ▏ accent.bg                 green 20%       from lightness, not borders.                [0m
+   Data grid                    ▏ error                       #e44545                                                   [0m
+   Chips & selects              ▏ warning                     #f59e09       [0m[1mQuiet chrome[0m                                [0m
+   Pickers                      ▏ info                        #8787ff       Bold is reserved for the focused control.   [0m
+   Chrome                                                                   No box around a thing unless the box        [0m
+                                                                            carries meaning.                            [0m
+   Screens                                                                                                              [0m
+   Settings                                                                                                             [0m
+   Task runner                                                              State language                              [0m
+                                                                                                                        [0m
+                                                                            ▎  focus                                    [0m
+                                                                            ░  hover lifts the surface                  [0m
+                                                                            ›  current / chosen                         [0m
+                                                                            ✓  checked                                  [0m
+                                                                            !  error                                    [0m
+                                                                            ▁  editing: cursor + underline              [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                            [0m

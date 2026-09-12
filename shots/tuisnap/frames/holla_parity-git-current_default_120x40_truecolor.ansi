@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                            svc · Rust project  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here  [0m                                                                                                                [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                                                                        scope ‹ here ›  [0m
+                                                                                                                        [0m
+    Suggested here                                                               Review 1 modified files git · parent   [0m
+ [0m[1m › Review 1 modified files    [0mgit    [0m[1m  [0mparent[0m[1m  [0m1 modified · 0 untracked[0m[1m     [0m                                           [0m
+                                                                                 Does       show the changed files      [0m
+    Recent here                                                                             with their diff stat        [0m
+    nothing used here yet                                                                   before committing or        [0m
+                                                                                            syncing                     [0m
+    Explore                                                                      Runs       git -C /Users/al…--short    [0m
+     Tasks   Git   Files   Disk   Services   System                                         git -C /Users/al… --stat    [0m
+    Parent · svc (Rust proje…  explore  parent  project root above this fol…     In         ~/work/svc                  [0m
+    System · mbp               explore  host    available on this host           Host       mbp · local                 [0m
+                                                                                 Scope      parent                      [0m
+                                                                                 Why        1 modified · 0 untracked    [0m
+                                                                                 Changes    none · read-only            [0m
+                                                                                 Risk       read-only                   [0m
+                                                                                 Data       live · 2 s ago              [0m
+                                                                                 Gate       runs directly               [0m
+                                                                                 Alt+Enter  Open in a Git TUI           [0m
+                                                                                            (lazygit) · Pin · Alias     [0m
+                                                                                            · Why here?                 [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m~/work/svc/src/api[0m   feature/x   ↓2 ↑1 • 1                                                          truecolor · 120×40 [0m
+           [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mCtrl+G[0m Activities              [0m

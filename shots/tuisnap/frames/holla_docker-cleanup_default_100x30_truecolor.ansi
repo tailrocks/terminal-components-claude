@@ -1,0 +1,30 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                       no project  [0m[1mdevbox · development[0m [0m
+                                                                                                    [0m
+ [0m[1m Here  [0m                                                                                            [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ [0m[4mdocker clean[0m                                                                     scope ‹ here ›  [0m
+                                                                                                    [0m
+    Results · 7                                                                                     [0m
+ [0m[1m › Clean Docker completely         [0mplan  [0m[1m  [0mon devbox[0m[1m  [0m18.4 GB reclaimable on devbox[0m[1m   [0mdestructive[0m[1m [0m [0m
+    Prune builder cache             docker  on devbox  6.1 GB of build cache           destructive  [0m
+    Stop all containers             docker  on devbox  5 running on devbox                          [0m
+    Prune unused networks           docker  on devbox  available on this host                       [0m
+    Prune unused volumes            docker  on devbox  7 volumes                       destructive  [0m
+    Remove all unused images        docker  on devbox  12 dangling                     destructive  [0m
+    Stop and remove all containers  docker  on devbox  12 containers on devbox         destructive  [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+    → docker stop acme-api-1 acme-worker-1 acme-sc…acme-db-1 acme-redis-1 · on devbox · destructive [0m
+                                                                                                    [0m
+ [0m[1m/work/scratch[0m                                                                   truecolor · 100×30 [0m
+    [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Review…  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mEsc[0m Clear      [0m

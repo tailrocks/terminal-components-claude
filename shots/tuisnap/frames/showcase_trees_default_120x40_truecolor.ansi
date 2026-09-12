@@ -1,0 +1,40 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Trees                                  truecolor · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+   Foundations            [0m[1mTrees[0m  Indent carries hierarchy; the focus bar never moves                                    [0m
+   Overview                                                                                                             [0m
+                            Project                                   1–15 of 16      Selection                         [0m
+   Components                                                                                                           [0m
+   Buttons                   ▾ src                                             ┃      Nothing selected                  [0m
+   Inputs                      ▸ api                                           ┃      Enter on a file selects it        [0m
+   Text areas                  ▸ db                                            ┃                                        [0m
+   Forms                       ▸ workers                                       ┃      cursor  src                       [0m
+   Lists                         config.rs                              1.9 KB ┃      visible 16 rows                   [0m
+[0m[1m▎› Trees                [0m         lib.rs                                  640 B ┃      open    5 folders                 [0m
+   Tables                        main.rs                                1.2 KB ┃                                        [0m
+   Editable tables           ▾ tests                                           ┃                                        [0m
+   Panels                        checkout.rs                            5.3 KB ┃                                        [0m
+   Sidebars                      auth_flow.rs                           3.0 KB ┃                                        [0m
+   Dialogs                     ▸ fixtures                                      ┃                                        [0m
+   Progress                  ▾ docs                                            ┃                                        [0m
+   Scrolling                     architecture.md                        7.7 KB ┃                                        [0m
+   Terminal                      webhooks.md                            2.2 KB ┃                                        [0m
+   Code editor                 Cargo.toml                               1.4 KB │                                        [0m
+   Diff                                                                                                                 [0m
+   Data grid                                                                                                            [0m
+   Chips & selects                                                                                                      [0m
+   Pickers                                                                                                              [0m
+   Chrome                                                                                                               [0m
+                                                                                                                        [0m
+   Screens                                                                                                              [0m
+   Settings                                                                                                             [0m
+   Task runner                                                                                                          [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                            [0m

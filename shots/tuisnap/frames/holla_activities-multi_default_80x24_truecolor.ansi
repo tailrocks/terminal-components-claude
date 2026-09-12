@@ -1,0 +1,24 @@
+ [0m[1m holla❯ [0m   File   Go   Help                  acme · mise monorepo  [0m[1mmbp · local[0m [0m
+                                                                                [0m
+     [0m[1m Here  [0m  frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×               2› [0m
+ ────━━━━━━━─────────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                                scope ‹ here ›  [0m
+                                                                                [0m
+    Suggested here                                                            ┃ [0m
+    Follow acme-api-1 logs      docker    here   service is unhealthy         ┃ [0m
+    Inspect 10 GB of generate…  disk      here   10 GB generated artifacts    ┃ [0m
+    Install missing tools · s…  task      here   1 tool missing               ┃ [0m
+    Review cleanup candidates   cleanup   host   10.6 GiB across 4 categories ┃ [0m
+ [0m[1m › Deploy preview              [0mcustom  [0m[1m  [0mhere [0m[1m  [0mCurrent folder…[0m[1m              [0m┃ [0m
+                                                                              ┃ [0m
+    Recent here                                                               ┃ [0m
+    nothing used here yet                                                     │ [0m
+                                                                              │ [0m
+    Running                                                                   │ [0m
+    logs · api worker schedul…  activity  here   ⠋ running · 3 s              │ [0m
+    api dev                     activity  child  ⠋ running · 3 s              │ [0m
+                                                                                [0m
+    → tools/deploy-preview.sh --env preview · here · mutating                   [0m
+                                                                                [0m
+ [0m[1m~/work/acme[0m   main   ↑1                       ⠋ 4 running    truecolor · 80×24 [0m
+            [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Trust…  …   api tests finished · exit 0 [0m

@@ -1,0 +1,50 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                                                  acme · mise monorepo  [0m[1mmbp · local[0m [0m
+                                                                                                                                                                [0m
+ [0m[1m Here  [0m                                                                                                                                                        [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›  [0m
+                                                                                                                                                                [0m
+    Suggested here                                                                                               Deploy preview                 custom · here   [0m
+    Follow acme-api-1 logs                docker   here   service is unhealthy                                                                                  [0m
+    Inspect 10 GB of generated artifacts  disk     here   10 GB generated artifacts                              Does       push the current branch to the      [0m
+    Install missing tools · sqlx-cli      task     here   1 tool missing                                                    preview stack                       [0m
+    Review cleanup candidates             cleanup  host   10.6 GiB across 4 categories                           Runs       tools/deploy-preview.…nv preview    [0m
+ [0m[1m › Deploy preview                        [0mcustom [0m[1m  [0mhere [0m[1m  [0mCurrent folder · ⚠ unreviewed[0m[1m                      [0m    In         ~/work/acme                         [0m
+                                                                                                                 Host       mbp · local                         [0m
+    Recent here                                                                                                  Scope      here                                [0m
+    nothing used here yet                                                                                        Why        Current folder · ⚠ unreviewed       [0m
+                                                                                                                 Changes    see the command                     [0m
+    Explore                                                                                                      Risk       mutating                            [0m
+     Tasks   Git   Files   Disk   Services   System                                                              Data       live · 0 s ago                      [0m
+    Children · 3 projects                 explore  child  3 child projects discovered                            Gate       trust required ·                    [0m
+    System · mbp                          explore  host   available on this host                                            ~/work/acme/.holla.toml             [0m
+                                                                                                                 Alt+Enter  Set an alias… · Show                [0m
+                                                                                                                            configuration diagnostics · Pin     [0m
+                                                                                                                            · Alias · Why here?                 [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m~/work/acme[0m   main   ↑1                                                                                                                     truecolor · 160×50 [0m
+                              [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Trust…  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mCtrl+G[0m Activities                                 [0m

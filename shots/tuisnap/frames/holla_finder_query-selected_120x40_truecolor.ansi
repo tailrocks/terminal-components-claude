@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                          holla · Rust project  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here  [0m                                                                                                                [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ pull                                                                                                 scope ‹ here ›  [0m
+                                                                                                                        [0m
+    Results · 3                                                                  Pull                      git · here   [0m
+ [0m[1m › Pull              [0mgit[0m[1m  [0mhere[0m[1m  [0mup to date[0m[1m                                  [0m                                           [0m
+    [0m[1mPull[0m with merge   git  here  ordinary pull behaviour                         Does       fast-forward                [0m
+    [0m[1mPull[0m with rebase  git  here  ordinary pull behaviour                                    ~/work/holla from           [0m
+                                                                                            origin/main                 [0m
+                                                                                 Runs       git -C /Users/al…ff-only    [0m
+                                                                                 In         ~/work/holla                [0m
+                                                                                 Host       mbp · local                 [0m
+                                                                                 Scope      here                        [0m
+                                                                                 Why        up to date                  [0m
+                                                                                 Changes    already up to date          [0m
+                                                                                 Risk       mutating                    [0m
+                                                                                 Data       live · 2 s ago              [0m
+                                                                                 Gate       runs directly               [0m
+                                                                                 Alt+Enter  Fetch only · Pull with      [0m
+                                                                                            merge · Pull with rebase    [0m
+                                                                                            · Push · Pin · Alias ·      [0m
+                                                                                            Why here?                   [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m~/work/holla[0m   main                                                                                 truecolor · 120×40 [0m
+   [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Run  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  …   Query selected · typing replaces it [0m

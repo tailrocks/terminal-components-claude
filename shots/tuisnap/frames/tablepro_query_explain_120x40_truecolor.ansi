@@ -1,0 +1,40 @@
+ ▪  [0m[1mTablePro[0m [0m[1m Production [0m [0m[1m◆ production[0m  acme_prod › public [0m[1m safe [0m                            truecolor · 120×40  ? help [0m
+                                                                                                                        [0m
+ [0m[1m [0m≡[0m[1m Query 1 ×  [0m                                                                                                     +   [0m
+ ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ╭─ Explorer ─────── public ─╮ ╭─[0m[1m Query 1 [0m───────────────────────────────────────────────────────────────────── 2 ms ─╮ [0m
+ │                           │ │  ▎› [0m[1m 1[0m [0m[1;4mSELECT[0m[4m * [0m[1;4mFROM[0m[4m orders                                                         [0m │ [0m
+ │   Filter objects          │ │                                                                                      │ [0m
+ │  ▾ D acme_prod            │ │                                                                                      │ [0m
+ │    ▾ S public             │ │                                                                                      │ [0m
+ │      ▾ Tables             │ │                                                                                      │ [0m
+ │        ▸ T organizations  │ │                                                                                      │ [0m
+ │        ▸ T customers      │ │                                                                                      │ [0m
+ │        ▸ T products       │ │                                                                                      │ [0m
+ │        ▸ T orders         │ │                                                                                      │ [0m
+ │        ▸ T order_items    │ │                                                                                      │ [0m
+ │        ▸ T payments       │ │                                                                     ln 1/1 · col 21  │ [0m
+ │        ▸ T subscriptions  │ │                                                                                      │ [0m
+ │      ▸ Views              │ │  [0m[1m EXPLAIN ×  [0m                                                                        │ [0m
+ │      ▸ Functions          │ │  ━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────── │ [0m
+ │      ▸ Sequences          │ │   Planning 0.210 ms · r Raw                                                          │ [0m
+ │    ▸ S analytics          │ │     Operation                                          cost     rows     actual    % │ [0m
+ │    ▸ S audit              │ │   ▾ Gather                                      1000..16254    1.2 M          —   7  │ [0m
+ │                           │ │       Parallel Seq Scan on public.orders           0..15054    1.2 M          — [0m[1m 93 ▲[0m│ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │                                                                                      │ [0m
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                        [0m
+ [0m[1m EDIT [0m  [0m[1mCtrl+R[0m Run  [0m[1mAlt+R[0m Run all  [0m[1mCtrl+Space[0m Complete  [0m[1mEsc[0m Done                               Connected to Production [0m

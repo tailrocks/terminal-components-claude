@@ -1,0 +1,24 @@
+ [0m[1m holla❯ [0m   File   Go   Help      payments · s…eckout  [0m[1m◆ prod-eu-1 · production[0m [0m
+                                                                                [0m
+ [0m[1m Here  [0m                                                                        [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                                scope ‹ here ›  [0m
+                                                                                [0m
+    Suggested here                                                              [0m
+    Who is blocking the datab…  postgres  here          2 sessions blocked fo…  [0m
+ [0m[1m › Follow payments-worker jo…  [0msystem  [0m[1m  [0mon prod-eu-1[0m[1m  [0munit is restarting[0m[1m     [0m [0m
+    Open btm                    system    on prod-eu-1  sustained pressure…     [0m
+    Show payments-worker stat…  system    on prod-eu-1  3 restarts in 10 min    [0m
+    Show system resources       system    on prod-eu-1  CPU 34% for 11 min      [0m
+                                                                                [0m
+    Recent here                                                                 [0m
+    nothing used here yet                                                       [0m
+                                                                                [0m
+    Explore                                                                     [0m
+     Tasks   Git   Files   Disk   Services   System                             [0m
+    System · prod-eu-1          explore   on prod-eu-1  available on this host  [0m
+                                                                                [0m
+    → journalctl -u payments-worker -f -n 200 · on prod-eu-1 · read-only        [0m
+                                                                                [0m
+ [0m[1m/srv/payments[0m   detached @ v2.14.3                           truecolor · 80×24 [0m
+ [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Run  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  … [0m

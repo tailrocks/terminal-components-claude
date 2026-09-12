@@ -1,0 +1,40 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Buttons                                truecolor · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+   Foundations            [0m[1mButtons[0m  Primary, secondary, subtle, danger, toggle, disabled, busy                           [0m
+   Overview                                                                                                             [0m
+                            Playground                                             hover · click · Tab · Enter / Space  [0m
+   Components                                                                                                           [0m
+ › Buttons                  Actions                                                                                     [0m
+   Inputs                   ▎[0m[1mRun task [0m   Preview    Cancel    Delete branch                                             [0m
+   Text areas                                                                                                           [0m
+   Forms                    Toggles                                                                                     [0m
+   Lists                     ○ Auto-approve    ● Verbose                                                                [0m
+   Trees                                                                                                                [0m
+   Tables                   Disabled                                                                                    [0m
+   Editable tables           Disabled primary    Disabled                                                               [0m
+   Panels                                                                                                               [0m
+   Sidebars                 Busy                                                                                        [0m
+   Dialogs                   Start long job                                                                             [0m
+   Progress                                                                                                             [0m
+   Scrolling                                                                                                            [0m
+   Terminal                                                                                                             [0m
+   Code editor              State matrix                                                           reference rendering  [0m
+   Diff                                                                                                                 [0m
+   Data grid                               Primary        Secondary      Subtle         Danger                          [0m
+   Chips & selects          default         [0m[1m Label [0m         Label          Label          Label                         [0m
+   Pickers                  hover           [0m[1m Label [0m         Label          Label          Label                         [0m
+   Chrome                   focus          ▎[0m[1m Label [0m       ▎[0m[1m Label [0m       ▎[0m[1m Label [0m       ▎[0m[1m Label [0m                        [0m
+                            focus + hover  ▎[0m[1m Label [0m       ▎[0m[1m Label [0m       ▎[0m[1m Label [0m       ▎[0m[1m Label [0m                        [0m
+   Screens                  pressed        ▎[0m[1m Label [0m       ▎ Label        ▎ Label        ▎ Label                         [0m
+   Settings                 disabled         Label          Label          Label          Label                         [0m
+   Task runner                                                                                                          [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1mEnter / Space[0m Activate  [0m[1mTab[0m Next                                                                                       [0m

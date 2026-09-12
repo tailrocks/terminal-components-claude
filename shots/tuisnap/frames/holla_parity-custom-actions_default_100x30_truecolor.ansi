@@ -1,0 +1,30 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                       team · Rust project  [0m[1mmbp · local[0m [0m
+                                                                                                    [0m
+ [0m[1m Here  [0m                                                                                            [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                                                    scope ‹ here ›  [0m
+                                                                                                    [0m
+    Suggested here                                                                                  [0m
+ [0m[1m › Deploy preview       [0mcustom [0m[1m  [0mhere[0m[1m  [0mCurrent folder · ⚠ unreviewed…[0m[1m                             [0m [0m
+    Global shared id     custom   here  Custom · trusted                                            [0m
+    Multi-line argument  custom   here  Current folder · ⚠ unreviewed…                              [0m
+    Open notes           custom   here  Custom · trusted                                            [0m
+    Show git status      git      here  on main                                                     [0m
+                                                                                                    [0m
+    Recent here                                                                                     [0m
+    nothing used here yet                                                                           [0m
+                                                                                                    [0m
+    Explore                                                                                         [0m
+     Tasks   Git   Files   Disk   Services   System                                                 [0m
+    System · mbp         explore  host  available on this host                                      [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+    → tools/deploy-preview.sh --env 'preview stack' '$(whoami)' · here · mutating                   [0m
+                                                                                                    [0m
+ [0m[1m~/work/team[0m   main                                        ▲ 2 config warnings   truecolor · 100×30 [0m
+ [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Trust…  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mCtrl+G[0m Activities  [0m
