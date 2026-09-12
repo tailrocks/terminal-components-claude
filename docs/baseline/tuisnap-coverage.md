@@ -1,0 +1,313 @@
+# tuisnap snapshot baseline — coverage design
+
+Provenance: designed 2026-09-12 from the completed capturable-surface inventory
+(apps/CLI, existing `shots/` corpus, known gaps) and the tui-snap 0.2.0
+documentation (`~/Projects/tui-snap/docs/USAGE.md`). CLI behavior quoted below
+was validated against the installed `tuisnap` 0.2.0 binary on live captures of
+`showcase`, `holla` and `tablepro` (see "Validated CLI facts").
+
+The baseline is the artifact that later proves the refactoring did not change
+UI/UX: every capture is a real binary running in a PTY, gated cell-exact and
+pixel-exact against an approved snapshot in the store at `shots/tuisnap/`.
+
+## Validated CLI facts (probed 2026-09-12)
+
+- `tuisnap run --store shots/tuisnap --name N` writes `actual/N.frame.json` +
+  `actual/N.png` FIRST, then gates. Missing approval exits 1 with
+  `requires review (missing-approval)`; content drift exits 1 with
+  `(cells-differ)`; spawn/timeout errors exit 1 with a different message
+  (`spawn PTY`, wait-timeout). The summary classifier keys on these strings.
+- `--format`/`--out` are IGNORED in store mode — loose artifacts are only
+  written when no `--store` is given. Loose per-frame artifacts are therefore
+  produced by a second, offline step:
+  `tuisnap render --input actual/N.frame.json --format ansi --format txt
+  --format png --format html --out frames/N` (byte-identical re-render of the
+  canonical frame; no second PTY session).
+- `--wait-for T` is appended AFTER all `--send` steps. A boot wait must be the
+  first `--send wait:<needle>` step instead.
+- Step syntax: key names (`enter escape tab backtab backspace insert delete up
+  down left right home end pageup pagedown space f1..f12 ctrl-<c> alt-<c>`,
+  any single printable char), `type:<text>`, `sleep:<ms>`, `wait:<needle>`.
+  `alt-` accepts a single character only — `Alt+Enter`/`Alt+0..9` chords
+  cannot be expressed (see Honest gaps).
+- `argv[0]` is resolved via PATH: pass absolute binary paths.
+  `env NO_COLOR=1 <bin>` works as the command for real NO_COLOR captures.
+- With `--motion paused --frame N`, holla/jackin captures are deterministic:
+  an accepted holla frame re-ran `matched` (seeded sim, no wall-clock
+  randomness; `HOLLA_NO_HISTORY=1` suppresses history side effects).
+- Apps can draw a stable blank frame before first content: every capture
+  carries a `wait:` needle for a fully-rendered-screen string.
+
+## Naming scheme
+
+`<app>_<surface>_<state>_<cols>x<rows>_<color>`
+
+- `<state>` is `default` for the freshly-opened surface, otherwise a short
+  slug of the driven state (`editing`, `invalid`, `sorted`, `gate-1`, ...).
+- `<color>` ∈ `truecolor 256 16 none nocolor`; `nocolor` = real `NO_COLOR=1`
+  in the environment (no `--color` flag), everything else = `--color <v>`.
+- Examples: `showcase_buttons_default_120x40_truecolor`,
+  `holla_rust-dirty_default_100x30_none`,
+  `tablepro_ack_gate_120x40_truecolor`, `jackin_first-use_f300_120x40_truecolor`.
+
+## Geometry and colour justification
+
+- `80x24` — the canonical default terminal; most of the legacy corpus uses it.
+- `120x40` — primary review geometry; all interactive states are captured here.
+- `100x30` — holla's legacy scripted mono size, and below tablepro's
+  explorer→drawer breakpoint (<100 cols), so one size exercises both contracts.
+- `160x50` — wide-screen holla layout (legacy scripted matrix included it).
+- `72x20` — documented minimum; holla renders "Terminal too small / Need
+  72×20" below it, so exactly-72×20 is the boundary worth gating (spot only).
+- `truecolor` is the primary palette; `none` (mono) proves structure survives
+  hue loss; `256`/`16` are spot-checked on the most palette-sensitive surfaces
+  (full sweeps stay in the legacy audit net, see supersession table);
+  `nocolor` proves real backend suppression, which `--color none` cannot
+  (backend rule vs app rule).
+
+Two sizes × two colours for every static surface keeps the matrix tractable
+while touching each page/scenario; the wider size×colour net remains as the
+hash/legacy complements listed in the supersession table.
+
+## The baseline matrix (371 captures)
+
+The runner `tools/tuisnap_baseline.sh` is the executable source of truth;
+every entry below appears there verbatim.
+
+### showcase — 122 captures
+
+Static defaults: all 23 pages × {80x24, 120x40} × {truecolor, none} = **92**
+Name: `showcase_<page>_default_<size>_<color>`; argv `--page <slug> --color <c>`;
+boot needle `Junie Design system`.
+
+Pages (name-slug → argv slug): overview, buttons, inputs, textareas, forms,
+lists, trees, tables, editable→`editabletables`, panels, sidebars, dialogs,
+progress, scrolling, terminal, codeeditor, diff, datagrid,
+chips→`chipsselects`, pickers, chrome, settings, taskrunner.
+(`PageId::from_name` requires full normalized-label equality, so the argv
+slug for "Editable tables" is `editabletables` and for "Chips & selects" is
+`chipsselects` — verified live that `--page editable` is rejected.)
+
+Palette spots: {buttons, forms, datagrid, diff} × 120x40 × {256, 16} = **8**
+NO_COLOR spots: {overview, inputs} × 120x40 nocolor = **2**
+Minimum-size spots: {overview, buttons} × 72x20 truecolor = **2**
+
+Interactive states, all 120x40 truecolor, needle after the boot wait = **18**:
+
+| Capture name | Sends after boot wait | Provenance |
+|---|---|---|
+| showcase_inputs_editing_120x40_truecolor | tab, enter, wait:EDIT | audit_flows |
+| showcase_inputs_selected_120x40_truecolor | tab, enter, ctrl-l, wait:EDIT | audit_flows |
+| showcase_forms_invalid_120x40_truecolor | tab, ctrl-s, wait:Required | audit_flows |
+| showcase_diff_review_120x40_truecolor | tab, enter, wait:● Review | audit_flows |
+| showcase_diff_empty_120x40_truecolor | tab, enter, backtab, enter, wait:No file selected | audit_flows (minus mouse drag) |
+| showcase_buttons_focus_120x40_truecolor | tab | new |
+| showcase_lists_moved_120x40_truecolor | tab, down, down | new |
+| showcase_trees_expanded_120x40_truecolor | tab, right | new (trees had ZERO legacy frames) |
+| showcase_tables_selected_120x40_truecolor | tab, down, down | new |
+| showcase_editable_editing_120x40_truecolor | tab, enter | new (editable had ZERO legacy frames) |
+| showcase_datagrid_selected_120x40_truecolor | tab, down, right | new |
+| showcase_dialogs_open_120x40_truecolor | tab, enter | new |
+| showcase_pickers_open_120x40_truecolor | tab, enter | new |
+| showcase_chips_toggled_120x40_truecolor | tab, space | new |
+| showcase_scrolling_scrolled_120x40_truecolor | tab, down, down, down | new |
+| showcase_settings_toggled_120x40_truecolor | tab, space | new |
+| showcase_help_overlay_120x40_truecolor | ? (on overview) | new |
+| showcase_inspector_open_120x40_truecolor | i (on overview) | new |
+
+Rows marked "new" use the library's documented key semantics (Tab enters the
+page, arrows/space/enter act on the focused widget); they are confirmed
+visually at accept time, like every first-run capture.
+
+### holla — 194 captures
+
+All static holla captures run `--motion paused --frame 40` with
+`HOLLA_NO_HISTORY=1`; boot needle `holla❯` (row 0 of every scenario).
+
+Core matrix: all 34 scenarios × {80x24, 100x30, 120x40, 160x50} truecolor =
+**136**. Name: `holla_<scenario>_default_<size>_truecolor`.
+Scenarios: first-use, rust-dirty, monorepo-root, monorepo-child,
+docker-cleanup, disk-cleanup, upgrade-plan, activities-multi, remote-host,
+launch-failure, hard-cases, parity-discovery, parity-history, parity-files,
+parity-browser, parity-git-current, parity-git-batch, parity-task-sources,
+parity-cargo, parity-docker, parity-brew-services, parity-gradle, parity-idea,
+parity-upgrade-managers, parity-executor, parity-task-input,
+parity-custom-actions, parity-disk-scan, parity-disk-navigation,
+parity-insights, parity-delete-safety, parity-cleanup-results,
+parity-platforms, parity-platforms-linux.
+
+Mono: all 34 scenarios × 100x30 none = **34** (matches the legacy scripted
+mono contract: lose nothing but hue).
+16-colour: {upgrade-plan, disk-cleanup} × 100x30, `--frame 80` = **2**
+(the two screens whose tinted rows the legacy 16-colour frames proved).
+256-colour (gap closure — no legacy 256 holla captures existed):
+{rust-dirty, upgrade-plan, disk-cleanup, hard-cases} × 100x30 = **4**
+NO_COLOR (gap closure): {rust-dirty, upgrade-plan} × 100x30 nocolor = **2**
+Minimum-size: {first-use, hard-cases} × 72x20 truecolor = **2**
+
+Journeys, all 120x40 truecolor, `--motion reduced` (as the legacy flow
+scripts drove them) except where noted = **14**:
+
+| Capture name | Scenario | Sends after boot wait |
+|---|---|---|
+| holla_finder_query_120x40_truecolor | parity-history | type:pull |
+| holla_finder_query-selected_120x40_truecolor | parity-history | type:pull, ctrl-a |
+| holla_trust_prompt_120x40_truecolor | monorepo-child | type:test, enter |
+| holla_files_results_120x40_truecolor | parity-files | type:Find files under home, enter, type:readme |
+| holla_files_unicode_120x40_truecolor | parity-files | type:Find files under home, enter, ctrl-u, type:café |
+| holla_browser_hidden_120x40_truecolor | parity-browser | type:Browse ~/work/site, enter, ctrl-h |
+| holla_browser_preview_120x40_truecolor | parity-browser | type:Browse ~/work/site, enter, down, down, down |
+| holla_cleanup_plan_120x40_truecolor | disk-cleanup (paused, frame 80) | c |
+| holla_cleanup_gate-1_120x40_truecolor | disk-cleanup (paused, frame 80) | c, c |
+| holla_upgrade_excluded_120x40_truecolor | upgrade-plan | down×5, space |
+| holla_upgrade_confirm_120x40_truecolor | upgrade-plan | down×5, space, c |
+| holla_remote_gate-1_120x40_truecolor | remote-host | type:restart payments, enter |
+| holla_help_overlay_120x40_truecolor | rust-dirty (paused, frame 40) | f1 |
+| holla_activities_overlay_120x40_truecolor | activities-multi | ctrl-g |
+
+### tablepro — 29 captures
+
+Boot needles: `TablePro` (connections), `Explorer` (workbench). Workbench
+captures pass `--connect Production` (in-memory fixture, no drivers); the
+settle wait rides out the simulated connect ticks.
+
+Static = **9**: `tablepro_connections_default_{80x24,120x40}_truecolor` (2);
+`tablepro_workbench_default_{80x24,120x40}_truecolor` (2 — 80x24 exercises
+the <100-col drawer mode); `tablepro_workbench_default_120x40_{256,16,none}`
+(3); `tablepro_workbench_default_120x40_nocolor` (1);
+`tablepro_connections_default_120x40_none` (1).
+
+Interactive, all 120x40 truecolor = **20** (sequences traced from
+`src/bin/tablepro/app_tests.rs` and tools/audit_flows.sh; "open orders" below
+= down×5, enter from the fresh workbench):
+
+| Capture name | Sends after boot wait |
+|---|---|
+| tablepro_form_new_120x40_truecolor | (connections) ctrl-n |
+| tablepro_form_new-filled_120x40_truecolor | (connections) ctrl-n, type:Staging replica |
+| tablepro_table_data_120x40_truecolor | open orders, wait:public › orders |
+| tablepro_table_structure_120x40_truecolor | open orders, ctrl-d, wait:Columns |
+| tablepro_table_sorted_120x40_truecolor | open orders, right×12, s, wait:sort created_at ▴ |
+| tablepro_table_filtered_120x40_truecolor | open orders, home, right×4, f, backtab, backtab, enter, ctrl-l, type:pending, enter, wait:filtered (1) |
+| tablepro_cell_editing_120x40_truecolor | open orders, home, right×4, enter |
+| tablepro_row_duplicated_120x40_truecolor | open orders, alt-d (pending-change queue) |
+| tablepro_query_completion_120x40_truecolor | tab, i, type:SELECT * FROM ord, wait:order_items |
+| tablepro_query_results_120x40_truecolor | tab, i, type:SELECT * FROM ord, enter, type:" WHERE st", tab, type:" = 'pending' ORDER BY created_at DESC LIMIT 25", escape, ctrl-r, wait:25 rows |
+| tablepro_query_error_120x40_truecolor | tab, i, type:SELECT * FROM missing_table, escape, ctrl-r, sleep:800 |
+| tablepro_query_explain_120x40_truecolor | tab, i, type:SELECT * FROM orders, escape, ctrl-x, sleep:500 |
+| tablepro_ack_gate_120x40_truecolor | tab, i, type:UPDATE orders SET status = 'paid' WHERE id = 'x', escape, ctrl-r, wait:Type orders to confirm |
+| tablepro_ack_armed_120x40_truecolor | gate + enter, type:orders, enter, right, wait:Execute |
+| tablepro_ack_executed_120x40_truecolor | armed + enter, wait:rows affected |
+| tablepro_history_tab_120x40_truecolor | ctrl-y, wait:History |
+| tablepro_picker_open_120x40_truecolor | ctrl-o, wait:Open Quickly |
+| tablepro_tablist_open_120x40_truecolor | ctrl-g |
+| tablepro_safemode_picker_120x40_truecolor | ctrl-l, wait:Safe Mode |
+| tablepro_help_overlay_120x40_truecolor | ?, wait:Keyboard |
+
+### jackin-preview — 26 captures
+
+All static jackin captures run `--motion paused`; boot needle `jackin❯`.
+Rain/motion is seeded (`MOTION_SEED`, no wall-clock randomness), so a paused
+frame is exact.
+
+Scenarios × {80x24, 120x40} truecolor, frame 40 = **16**:
+first-use, returning, accounts-mixed, launch-running, launch-failure,
+capsule-multi, outro-last, hard-cases →
+`jackin_<scenario>_default_<size>_truecolor`.
+
+first-use intro phases at 120x40 (INTRO_END = tick 308): frame 300 (warp) +
+frame 400 (post-intro manager) = **2** → `jackin_first-use_f{300,400}_120x40_truecolor`.
+Mono: {first-use, capsule-multi, accounts-mixed, hard-cases} × 120x40 none = **4**
+Palette spots: capsule-multi 256 + accounts-mixed 16, 120x40 = **2**
+NO_COLOR: first-use 120x40 nocolor = **1**
+Minimum-size: first-use 72x20 truecolor = **1**
+
+## Legacy supersession table
+
+| Legacy category | Replaced by | Verdict |
+|---|---|---|
+| `h_parity_*` (115: 23 parity scenarios × 4 sizes + mono) | holla core matrix (136) + mono (34) — same 4 sizes, same mono@100x30 contract | **Fully superseded** (adds store gating) |
+| `h_<concept>_*` (57) | holla core matrix covers all 11 concept scenarios at 4 sizes + mono | **Fully superseded** |
+| `h_flow_*` + `h_p3_*` (45 journey frames) | holla journeys (14) | **Partially** — retained for Alt+Enter alternatives, Alt+0..9 activity tab jumps, and wall-clock runs (upgrade run-to-failure ≈14 s sleeps, discovery progression) that the CLI cannot express deterministically |
+| `h_hp01..23_*` (69 parity slices) | holla parity scenarios in core matrix + finder/files/browser/cleanup/upgrade/remote journeys | **Partially** — retained for time-progression frames (hp01 discovering under full motion + sleep 4) and multi-step wizard states beyond the 14 baseline journeys |
+| `j_*` (~116, ad-hoc, no script) | jackin matrix (26) incl. first-use phase frames f40/f300/f400 | **Partially** — static per-scenario coverage superseded; retained for interactive cockpit/capsule menu/pane/tab states driven by unproven key sequences |
+| `f_*` + `s_*` + `s2_*` (~43 showcase, ad-hoc) | showcase matrix (122) — all 23 pages, 2 sizes × 2 colours, 18 states; closes the trees/editable zero-frame gap | **Fully superseded** |
+| `t_*` (38 tablepro, ad-hoc) | tablepro matrix (29) | **Partially** — retained for connection-form Advanced tab and Duplicate flow (reachable only via fragile multi-Tab focus walks) and EXPLAIN ANALYZE variants |
+| `shots/audit/` (250: 10 fixtures × 5 sizes × 5 colours) | per-app static matrices | **Partially** — baseline covers more surfaces but fewer size×colour combos; the 5×5 sweep (72x20/160x50 for tablepro/jackin, full 256/16 everywhere) stays as the wide net |
+| `shots/audit-flows/` (51) | showcase/tablepro interactive captures | **Partially** — keyboard flows superseded; diff text-drag (mouse) and NO_COLOR reverse-video buffer assertions stay on the legacy harness |
+| `shots/fade/` (17 scroll-fade) | none | **Retained** — scroll fade appears under live wheel/scroll; needs the mouse-capable harness |
+| `tests/showcase_baseline.txt` (460 hashes: 23 pages × 5 sizes × 4 palettes) | showcase matrix | **Partially** — retained as the cheap hash-level wide net (5 sizes × 4 palettes) complementing the pixel-gated subset |
+
+## Honest gaps — what tuisnap CLI cannot capture
+
+1. **Mouse states** (hover/pressed rows of the showcase state matrices, diff
+   text-drag selection, scroll fade under wheel, hover evidence in j_*/t_*).
+   CLI has no click/drag/move. Disposition: retained on the tmux harness
+   (`tools/capture.sh mouse`, audit-flows + fade corpora). The Rust library
+   API (`Session::click/drag`) could gate these later from a Rust test.
+2. **Mid-session resize sequences.** CLI geometry is fixed per run; the
+   baseline gates layout at each static size (incl. the 100-col tablepro
+   drawer breakpoint and 72x20 minimum) but not reflow behaviour.
+   Disposition: resize evidence retained on `tools/capture.sh resize`.
+3. **Wall-clock motion phases** (holla hp01 discovery progression, upgrade
+   run-to-failure after ~14 s, jackin live rain). Nondeterministic under a
+   cell/pixel gate. Disposition: deterministic `--motion paused --frame N`
+   captures in the baseline (seeded sim); live-motion frames stay legacy.
+4. **Alt+Enter and Alt+0..9 chords** (`alt-` takes a single character only):
+   h_flow_alternatives and the activity-tab jumps cannot be expressed.
+   Disposition: retained in legacy h_flow corpus.
+5. **Spinner/indeterminate mid-animation frames** (showcase progress busy /
+   taskrunner live rows, tablepro connect ticks). Residual nondeterminism:
+   the baseline captures these pages after `wait_stable` (--settle-ms 400),
+   which lands on a stable phase but cannot pin a spinner glyph. If one
+   flakes at re-verify time, re-run once before suspecting a regression;
+   deliberate relaxation = `tuisnap report --pixel-threshold` for review.
+6. **tablepro form Advanced tab + Duplicate button flow** — only reachable
+   via long focus walks that a baseline should not depend on.
+   Disposition: retained in t_* legacy corpus.
+
+## Regeneration procedure
+
+```bash
+# 1. full rebuild from scratch (store is disposable until accepted)
+rm -rf shots/tuisnap
+tools/tuisnap_baseline.sh
+#    - cargo build --bins (skip with SKIP_BUILD=1)
+#    - runs all 371 captures; first run: every entry lands in actual/ and is
+#      reported as pending (missing-approval) — expected, not a failure
+#    - renders frames/<name>.{ansi,txt,png,html} per capture
+#    - ends with a captured/pending/drift/failed summary (also:
+#      tools/tuisnap_baseline.sh summary)
+# 2. review every actual
+open shots/tuisnap/report.html
+# 3. approve after review (explicit; no env var approves anything)
+tuisnap accept --store shots/tuisnap --all
+# 4. re-verify: every approved frame must report matched
+tuisnap report --store shots/tuisnap
+```
+
+Subset re-runs (after touching one surface):
+
+```bash
+APPS=tablepro SKIP_BUILD=1 tools/tuisnap_baseline.sh
+ONLY='holla_(rust-dirty|upgrade-plan)' SKIP_BUILD=1 tools/tuisnap_baseline.sh
+APPS=showcase SIZES=120x40 COLORS=truecolor tools/tuisnap_baseline.sh
+```
+
+## How the baseline is used later (refactoring gate)
+
+- After any refactoring change: `tools/tuisnap_baseline.sh` (rebuilds, then
+  re-runs the PTY for every approved name). `matched` = no UI/UX drift.
+  `cells-differ`/`pixels-differ` = drift: inspect `shots/tuisnap/diff/<name>.png`
+  (red overlay) + the first-100 cell diagnostics, fix the regression or — only
+  for an intended visual change — re-accept that name explicitly.
+- `tuisnap report --store shots/tuisnap` re-verifies every
+  `actual/*.frame.json` against `approved/` and rewrites `report.html`
+  (publishable CI artifact).
+- Single capture check without a PTY:
+  `tuisnap check --store shots/tuisnap --name N --input shots/tuisnap/actual/N.frame.json`.
+- Store layout: `shots/tuisnap/actual/` (latest frames + PNGs),
+  `shots/tuisnap/approved/` (approved PNG baselines), `shots/tuisnap/diff/`
+  (mismatch overlays), `shots/tuisnap/report.html`,
+  `shots/tuisnap/frames/` (loose ansi/txt/png/html review aids — derived,
+  never gated).
