@@ -18,8 +18,8 @@ what `main` actually completed, without breaking UI/UX or visual output. Reading
 ## Visual baseline (regression guard)
 
 - [baseline/tuisnap-coverage.md](baseline/tuisnap-coverage.md) — the full capturable-surface inventory, the baseline matrix, legacy supersession map, and regeneration procedure.
-- `tools/tuisnap_baseline.sh` — regenerates the whole baseline into `shots/tuisnap/` (tuisnap store: frame.json + ansi/txt/png/html per capture, `report.html` index).
-- Re-verify after changes: `tuisnap report --store shots/tuisnap` (or per-capture `tuisnap check`).
+- `tests/visual_baseline/` — the Rust suite that regenerates the whole baseline into `shots/tuisnap/` (tuisnap store: frame.json + PNG per capture, `report.html` index). Run: `cargo test --test visual_baseline -- --ignored --skip report`.
+- Re-verify after changes: `cargo test --test visual_baseline report -- --ignored` (or `tuisnap report --store shots/tuisnap`; per-capture `tuisnap check`).
 
 ## Directories
 
@@ -41,4 +41,4 @@ what `main` actually completed, without breaking UI/UX or visual output. Reading
 
 - `refactoring-tasks/` — the sealed execution catalog (73 task-format packages 001–073 + catalog READMEs). Read-only task contracts; execution order comes from each `task.toml`.
 - `shots/` — snapshot corpus: `shots/tuisnap/` is the current baseline; legacy categories and their supersession are mapped in [baseline/tuisnap-coverage.md](baseline/tuisnap-coverage.md).
-- `tools/` — the tuisnap baseline runner (`tuisnap_baseline.sh`). The legacy tmux-based capture harness was removed 2026-09-12 (see [baseline/tuisnap-coverage.md](baseline/tuisnap-coverage.md)).
+- `tests/visual_baseline/` — the baseline suite (it replaced `tools/tuisnap_baseline.sh`, removed 2026-09-12; the legacy tmux capture harness was removed the same day — see [baseline/tuisnap-coverage.md](baseline/tuisnap-coverage.md)).

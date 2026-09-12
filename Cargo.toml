@@ -33,6 +33,9 @@ ratatui = { version = "0.30", features = ["crossterm_0_29"] }
 unicode-width = "0.2"
 unicode-segmentation = "1"
 
+[dev-dependencies]
+tuisnap = { git = "https://github.com/donbeave/tui-snap", rev = "e49d9e7" }
+
 [profile.release]
 lto = "thin"
 codegen-units = 1

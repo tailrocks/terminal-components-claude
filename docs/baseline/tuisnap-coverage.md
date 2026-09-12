@@ -4,11 +4,20 @@ Provenance: designed 2026-09-12 from the completed capturable-surface inventory
 (apps/CLI, existing `shots/` corpus, known gaps) and the tui-snap 0.2.0
 documentation (`~/Projects/tui-snap/docs/USAGE.md`). CLI behavior quoted below
 was validated against the installed `tuisnap` 0.2.0 binary on live captures of
-`showcase`, `holla` and `tablepro` (see "Validated CLI facts").
+`showcase`, `holla` and `tablepro` (see "Validated CLI facts"). Later the same
+day the bash runner (`tools/tuisnap_baseline.sh`) was replaced by the Rust
+integration suite `tests/visual_baseline/` (tuisnap as a library, git dep
+pinned to tui-snap@e49d9e7): the 367 ported captures keep their names, argv,
+needles, sends and CAP_TIMEOUTs verbatim, and a pointer group adds the
+mouse/resize captures the CLI could not express.
 
 The baseline is the artifact that later proves the refactoring did not change
 UI/UX: every capture is a real binary running in a PTY, gated cell-exact and
-pixel-exact against an approved snapshot in the store at `shots/tuisnap/`.
+pixel-exact against an approved snapshot in the store at `shots/tuisnap/`. The
+whole matrix runs through PTYs on purpose: showcase's in-process test path
+(the `tests/showcase_baseline.txt` digest harness) renders pages without the
+application shell — no nav sidebar — so it cannot reproduce the approved
+full-shell frames; only a PTY boot of the real binary produces them.
 
 ## Validated CLI facts (probed 2026-09-12)
 
@@ -80,10 +89,17 @@ while touching each page/scenario; the wider size×colour net lives on as the
 showcase hash baseline plus the frozen legacy frames listed in the
 supersession table.
 
-## The baseline matrix (367 captures)
+## The baseline matrix (367 captures + 15 pointer captures)
 
-The runner `tools/tuisnap_baseline.sh` is the executable source of truth;
-every entry below appears there verbatim.
+The suite `tests/visual_baseline/` is the executable source of truth; every
+entry below appears there verbatim (one `#[test]` per capture, generated from
+static case tables, all `#[ignore]`d so default `cargo test` compiles but does
+not run captures). The suite drives `tuisnap::pty::run_once` — the same
+runner the CLI wrapped — with per-capture env hygiene (`NO_COLOR` stripped,
+`HOLLA_NO_HISTORY=1`) replacing the bash script's process-level contract, and
+gates through `Store::check_with` on a per-test-thread cached `Renderer`.
+Every spawn is a fresh PTY (no session reuse): the matrix cells differ in
+argv, and per-case isolation keeps flakes attributable.
 
 ### showcase — 118 captures
 
@@ -256,6 +272,33 @@ Palette spots: capsule-multi 256 + accounts-mixed 16, 120x40 = **2**
 NO_COLOR: first-use 120x40 nocolor = **1**
 Minimum-size: first-use 72x20 truecolor = **1**
 
+### pointer group (mouse + resize) — 15 captures
+
+Added with the Rust suite (the CLI had no click/drag/scroll/resize), closing
+honest gaps 1–2 below. All in `tests/visual_baseline/pointer.rs`, driven by
+`Session::click/drag/scroll/resize`; hover is a bare SGR any-motion report
+(the apps enable `?1003h`/`?1006h`, so a move is written verbatim — termlens
+models clicks/drags/wheel but no button-less move). States are deterministic:
+seeded fixtures, paused motion or content/settle waits.
+
+| Capture name | Driven state | Reference evidence |
+|---|---|---|
+| showcase_buttons_hover_120x40_truecolor | pointer over the Playground `Preview` button | `shots/f_buttons_hover.*` |
+| showcase_lists_hover_120x40_truecolor | pointer over the `Python` row | `shots/f_lists_hover.*` |
+| showcase_tables_hover_120x40_truecolor | pointer over row `#1042` | `shots/f_tables_hover.*` |
+| showcase_diff_drag-selected_120x40_truecolor | Review mode, drag-select `attempts = 3` in the Old pane | `shots/audit-flows/diff_drag_*` (the legacy `y`-copy status is transient, so the gated state is the selection itself) |
+| showcase_lists_wheel-fade_120x40_truecolor | wheel ×2 in the Language list → offset 6, top+bottom edge fade | `shots/fade/s_fade_lists.*` |
+| showcase_trees_wheel-fade_120x40_truecolor | wheel ×1 in the tree → offset 1, top fade | `shots/fade/s_fade_trees.*` |
+| showcase_datagrid_wheel_120x40_truecolor | wheel ×2 in the grid → rows 7–32 of 40, top fade | `shots/fade/s_fade_grid.*` |
+| holla_browser_wheel_120x40_truecolor | wheel ×2 in the big.log preview pane (reduced motion, like the browser journeys) | `shots/fade/h_fade_*` |
+| tablepro_table_wheel_120x40_truecolor | orders open, wheel ×3 → rows 10–36 of 500, top fade | — |
+| showcase_overview_shrunk_80x24_truecolor | spawned 120x40 → resized 80x24 | no resize corpus ever existed |
+| showcase_overview_grown_120x40_truecolor | spawned 80x24 → resized 120x40 | — |
+| holla_rust-dirty_shrunk_80x24_truecolor | spawned 120x40 → resized 80x24 (paused f40) | — |
+| holla_rust-dirty_grown_120x40_truecolor | spawned 80x24 → resized 120x40 (paused f40) | — |
+| tablepro_workbench_shrunk_80x24_truecolor | 120x40 → 80x24, the <100-col drawer reflow live | — |
+| tablepro_workbench_grown_120x40_truecolor | 80x24 → 120x40 | — |
+
 ## Legacy supersession table
 
 The tmux/Python harness that produced the legacy corpus was removed
@@ -277,20 +320,20 @@ showcase `--motion` flag for the progress page.
 | `f_*` + `s_*` + `s2_*` (~43 showcase, ad-hoc) | showcase matrix (118) — 22 of 23 pages, 2 sizes × 2 colours, 18 states; closes the trees/editable zero-frame gap | **Partially** — fully supersedes the keyboard/static corpus EXCEPT progress-page frames: progress is structurally uncapturable via `tuisnap run` (see Honest gaps #0); the legacy progress frames are frozen until a showcase `--motion` flag lands |
 | `t_*` (38 tablepro, ad-hoc) | tablepro matrix (29) | **Partially** — connection-form Advanced tab and Duplicate flow (reachable only via fragile multi-Tab focus walks) and EXPLAIN ANALYZE variants are frozen frames |
 | `shots/audit/` (250: 10 fixtures × 5 sizes × 5 colours) | per-app static matrices | **Partially** — baseline covers more surfaces but fewer size×colour combos; the 5×5 sweep (72x20/160x50 for tablepro/jackin, full 256/16 everywhere) is frozen wide-net evidence; successor for a live wide net: extend the tuisnap matrix |
-| `shots/audit-flows/` (51) | showcase/tablepro interactive captures | **Partially** — keyboard flows superseded; the diff text-drag (mouse) frames and NO_COLOR reverse-video buffer assertions are frozen (the flow script was removed with the harness); successor: `Session::click/drag` from a Rust test |
-| `shots/fade/` (17 scroll-fade) | none | **Frozen** — scroll fade appears under live wheel/scroll; these frames were ad-hoc (never scripted), so only the frames remain; successor: `Session::click/drag` + wheel from a Rust test |
+| `shots/audit-flows/` (51) | showcase/tablepro interactive captures | **Partially** — keyboard flows superseded; the diff text-drag state is now gated (`showcase_diff_drag-selected_120x40_truecolor`, pointer group); the NO_COLOR reverse-video buffer assertions are frozen (the flow script was removed with the harness) |
+| `shots/fade/` (17 scroll-fade) | pointer-group wheel captures (lists/trees/datagrid/holla-browser/tablepro-table) | **Superseded for the gated states** — scroll fade under live wheel is now captured deterministically; the ad-hoc legacy frames remain as provenance |
 | `tests/showcase_baseline.txt` (460 hashes: 23 pages × 5 sizes × 4 palettes) | showcase matrix | **Partially** — retained as the cheap hash-level wide net (5 sizes × 4 palettes) complementing the pixel-gated subset |
 
-## Honest gaps — what tuisnap CLI cannot capture
+## Honest gaps — what the baseline cannot capture
 
 0. **Screens that never go quiet from boot cannot be captured at all.**
-   `tuisnap run` starts with a boot `wait_idle(200ms)` before any send step,
-   and it shares `--timeout-ms` with every later wait. Learned from the first
-   full run (19 failures, all diagnosed from the per-capture logs):
+   The runner starts with a boot `wait_idle(200ms)` before any send step,
+   and it shares the per-capture timeout with every later wait. Learned from
+   the first full run (19 failures, all diagnosed from the per-capture logs):
    - **showcase progress (4 captures): permanently uncapturable.**
      `ProgressPage::animating()` is hardcoded `true` → 80 ms repaints forever
      → no 200 ms output-silence window ever occurs. Proven with a 30 s
-     `--timeout-ms` probe (same boot-wait timeout as at 8 s). No
+     timeout probe (same boot-wait timeout as at 8 s). No
      timeout/settle/send/flag fixes this on the current binary; capturing a
      blank or mid-animation frame would violate the no-weakening rule, so the
      4 progress captures are REMOVED from the matrix. Disposition: the
@@ -309,23 +352,21 @@ showcase `--motion` flag for the progress page.
      element repaints within every 200 ms window (activities-multi tab-strip
      spinner did), the boot wait loses the race. `activities_overlay` and
      `finder_query-selected` moved to `--motion paused --frame 40` (their
-     steady-state screens are motion-independent). The five journeys still on
+     steady-state screens are motion-independent). The journeys still on
      reduced passed, but the race is inherent — if one flakes at re-verify,
      switch it to paused too rather than re-running blindly.
-1. **Mouse states** (hover/pressed rows of the showcase state matrices, diff
-   text-drag selection, scroll fade under wheel, hover evidence in j_*/t_*).
-   CLI has no click/drag/move. Disposition: the existing frames (audit-flows
-   diff_drag, shots/fade, hover evidence in j_*/t_*) are frozen historical
-   evidence — the tmux harness was removed 2026-09-12, and the hover/fade
-   frames were ad-hoc (never scripted), so what is lost is the regeneration
-   mechanism, not evidence. Successor: tuisnap's Rust PTY API
-   (`Session::click/drag`) from a Rust test.
-2. **Mid-session resize sequences.** CLI geometry is fixed per run; the
-   baseline gates layout at each static size (incl. the 100-col tablepro
-   drawer breakpoint and 72x20 minimum) but not reflow behaviour.
-   Disposition: no resize-sequence corpus ever existed (the legacy harness's
-   resize command was a capability, never run into `shots/`), so only the
-   capability is gone. Successor: `Session::resize` from a Rust test.
+1. ~~**Mouse states**~~ — **COVERED by the pointer group.** Hover
+   (buttons/lists/tables), diff drag-select, wheel scrolling with scroll-fade
+   evidence: 9 captures in `tests/visual_baseline/pointer.rs` via
+   `Session::click/drag/scroll` (+ a verbatim SGR any-motion report for
+   hover). The legacy hover/fade frames (`shots/f_buttons_hover`,
+   `shots/f_lists_hover`, `shots/f_tables_hover`, `shots/audit-flows/
+   diff_drag_*`, `shots/fade/*`) remain as provenance; the gated baseline now
+   regenerates those states.
+2. ~~**Mid-session resize sequences**~~ — **COVERED by the pointer group.**
+   6 captures: spawn 120x40 → resize 80x24 and the reverse, for
+   showcase/holla/tablepro, via `Session::resize` (incl. the live <100-col
+   tablepro drawer reflow).
 3. **Wall-clock motion phases** (holla hp01 discovery progression, upgrade
    run-to-failure after ~14 s, jackin live rain). Nondeterministic under a
    cell/pixel gate. Disposition: deterministic `--motion paused --frame N`
@@ -356,82 +397,92 @@ showcase `--motion` flag for the progress page.
 
 ## Regeneration procedure
 
+The runner is the Rust suite (it replaced `tools/tuisnap_baseline.sh`
+2026-09-12). Every capture test is `#[ignore]`d: default `cargo test`
+compiles the suite but runs no PTY captures.
+
 ```bash
 # 1. full rebuild from scratch (store is disposable until accepted)
 rm -rf shots/tuisnap
-tools/tuisnap_baseline.sh
-#    - cargo build --bins (skip with SKIP_BUILD=1)
-#    - runs all 367 captures; first run: every entry lands in actual/ and is
-#      reported as pending (missing-approval) — expected, not a failure
+cargo test --test visual_baseline -- --ignored --skip report
+#    - builds the bins as part of the test build; ~382 PTY captures
 #    - note: the 5 scrolling captures take ~2.5 min each (boot stream)
-#    - renders frames/<name>.{ansi,txt,png,html} per capture
-#    - ends with a captured/pending/drift/failed summary (also:
-#      tools/tuisnap_baseline.sh summary)
+#    - first run: every entry lands in actual/ and is logged PENDING
+#      (missing-approval) — expected, not a failure; drift after approval
+#      or a capture error fails the test
 # 2. review every actual
-open shots/tuisnap/report.html
+open shots/tuisnap/report.html   # after step 4's report, or the CLI's
 # 3. approve after review (explicit; no env var approves anything)
 tuisnap accept --store shots/tuisnap --all
-# 4. re-verify: every approved frame must report matched
-tuisnap report --store shots/tuisnap
+# 4. re-verify + rebuild report.html: every approved frame must report matched
+cargo test --test visual_baseline report -- --ignored   # asserts 0 failed
+#    (or: tuisnap report --store shots/tuisnap; either way ~10–15 min:
+#     382 re-gates + a ~1.9 GB report.html write)
 ```
 
-Subset re-runs (after touching one surface):
+Subset re-runs (after touching one surface) use cargo's name filter:
 
 ```bash
-APPS=tablepro SKIP_BUILD=1 tools/tuisnap_baseline.sh
-ONLY='holla_(rust-dirty|upgrade-plan)' SKIP_BUILD=1 tools/tuisnap_baseline.sh
-APPS=showcase SIZES=120x40 COLORS=truecolor tools/tuisnap_baseline.sh
+cargo test --test visual_baseline tablepro_ -- --ignored
+cargo test --test visual_baseline -- --ignored holla_rust_dirty
+cargo test --test visual_baseline showcase_ -- --ignored --test-threads 8
 ```
 
 ## How the baseline is used later (refactoring gate)
 
-- After any refactoring change: `tools/tuisnap_baseline.sh` (rebuilds, then
-  re-runs the PTY for every approved name). `matched` = no UI/UX drift.
-  `cells-differ`/`pixels-differ` = drift: inspect `shots/tuisnap/diff/<name>.png`
-  (red overlay) + the first-100 cell diagnostics, fix the regression or — only
-  for an intended visual change — re-accept that name explicitly.
-- `tuisnap report --store shots/tuisnap` re-verifies every
-  `actual/*.frame.json` against `approved/` and rewrites `report.html`
-  (publishable CI artifact).
+- After any refactoring change: `cargo test --test visual_baseline --
+  --ignored --skip report` (rebuilds, then re-runs the PTY for every approved
+  name). `matched` = no UI/UX drift. `cells-differ`/`pixels-differ` = drift:
+  inspect `shots/tuisnap/diff/<name>.png` (red overlay) + the first-100 cell
+  diagnostics, fix the regression or — only for an intended visual change —
+  re-accept that name explicitly.
+- `cargo test --test visual_baseline report -- --ignored` (or `tuisnap report
+  --store shots/tuisnap`) re-verifies every `actual/*.frame.json` against
+  `approved/` and rewrites `report.html` (publishable CI artifact).
 - Single capture check without a PTY:
   `tuisnap check --store shots/tuisnap --name N --input shots/tuisnap/actual/N.frame.json`.
 - Store layout: `shots/tuisnap/actual/` (latest frames + PNGs),
   `shots/tuisnap/approved/` (approved PNG baselines), `shots/tuisnap/diff/`
   (mismatch overlays), `shots/tuisnap/report.html`,
   `shots/tuisnap/frames/` (loose ansi/txt/png/html review aids — derived,
-  never gated).
+  never gated; rendered by `tuisnap render --input
+  shots/tuisnap/approved/<name>.frame.json --format ansi --format txt
+  --format png --format html --out shots/tuisnap/frames/<name>`, not by the
+  suite).
 
 ## Git tracking policy
 
 The store is ~3.2 GB on disk; only the canonical, non-regenerable baseline is
 tracked in git (~490 MB):
 
-- **Tracked:** `shots/tuisnap/approved/` (367 × frame.json + approved PNG +
+- **Tracked:** `shots/tuisnap/approved/` (382 × frame.json + approved PNG +
   `.png.fidelity.json` — the gate authority), `shots/tuisnap/frames/*.ansi`
   and `frames/*.txt` (small, and `ansi` is an explicitly required persisted
   format).
-- **Ignored (`.gitignore`):** `actual/`, `diff/`, `.baseline-run/`,
-  `report.html` (~1.4 GB — embeds every frame), `frames/*.html`,
-  `frames/*.png`. All ignored artifacts are deterministic re-renders of the
-  tracked approved frames: `tuisnap render --input
-  shots/tuisnap/approved/<name>.frame.json --format png --format html --out
-  <prefix>`, and `tuisnap report --store shots/tuisnap` rebuilds the report
-  after any run.
+- **Ignored (`.gitignore`):** `actual/`, `diff/`, `report.html` (~1.4 GB —
+  embeds every frame), `frames/*.html`, `frames/*.png`. All ignored artifacts
+  are deterministic re-renders of the tracked approved frames: `tuisnap
+  render --input shots/tuisnap/approved/<name>.frame.json --format png
+  --format html --out <prefix>`, and the suite's `report` test (or `tuisnap
+  report --store shots/tuisnap`) rebuilds the report after any run.
+  (`.baseline-run/` was the bash runner's log dir; the suite keeps per-test
+  output in cargo's own log.)
 - The legacy `shots/` corpus outside `shots/tuisnap/` is left in place as
   frozen historical evidence; the tmux/Python harness that produced it was
   removed 2026-09-12. Supersession per category is mapped above. Physical
   removal is a separate decision: partially superseded categories still carry
-  mouse-driven evidence (hover/drag) that tuisnap CLI cannot reproduce — the
-  regeneration path for those lanes is a Rust test driving tuisnap's Rust
-  PTY API (`Session::click/drag/resize`).
+  evidence the baseline does not regenerate (wall-clock motion phases,
+  Alt+Enter/Alt+0..9 flows, tablepro Advanced-tab walks). The mouse lanes
+  (hover/drag/wheel-fade) and resize sequences are no longer in that set —
+  the suite's pointer group regenerates them.
 - Renderer pin: approved PNGs were rendered by tuisnap built from
   tui-snap@263eeeb (JetBrainsMono Nerd Font Mono faces, HiDPI rasterization,
   10×21 cells at 16px). A different tuisnap build pixel-drifts by design;
   after an intentional renderer upgrade: `tuisnap report --store
   shots/tuisnap`, review, `tuisnap accept --store shots/tuisnap --all`.
-- Capture environment: the runner strips `NO_COLOR` from its environment
-  (`PRESERVE_NO_COLOR=1` opts out). An exported NO_COLOR (agent and CI shells
-  set it) silently poisons every colour capture — crossterm suppresses colour
-  SGR by *presence*, even under `--color truecolor`: frames claim truecolor in
-  their header yet record all-Default cells. The 2026-09-12 first baseline was
-  re-captured for exactly this reason.
+- Capture environment: every spawn strips `NO_COLOR` from the inherited
+  environment (`PtyOptions::without_env`). An exported NO_COLOR (agent and CI
+  shells set it) silently poisons every colour capture — crossterm suppresses
+  colour SGR by *presence*, even under `--color truecolor`: frames claim
+  truecolor in their header yet record all-Default cells. The 2026-09-12
+  first baseline was re-captured for exactly this reason.
