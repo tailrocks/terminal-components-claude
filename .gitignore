@@ -1,7 +1,8 @@
 /target
 /.venv
 .DS_Store
-# per-session capture arguments written by tools/capture.sh
+__pycache__/
+# per-session capture arguments in shots/ (written by the retired capture.sh)
 /shots/.args.*
 docs/refactoring-plan/evidence/*.tar.gz
 

@@ -428,22 +428,41 @@ Baselines: only the showcase has `tests/showcase_baseline.txt` (FNV digest of ev
 
 ---
 
-## 9. Capture harness (`tools/capture.sh`)
+## 9. Visual baseline (`tools/tuisnap_baseline.sh`)
+
+The tmux/Python capture harness this note originally documented (capture.sh +
+ansi2png.py + env.sh) was removed 2026-09-12; the `shots/` corpus it produced
+(`f_*` showcase, `s_*` component pages, `t_*` tablepro, `j_*` jackin, `h_*`
+holla) is frozen historical evidence. The current recipe is the tuisnap
+snapshot store at `shots/tuisnap/`:
 
 ```sh
-cargo build --bin holla
-BIN=target/debug/holla ARGS="--scenario returning --motion reduced" tools/capture.sh start 120 40   # tmux session junie_cap, TERM=xterm-256color COLORTERM=truecolor
-tools/capture.sh keys Tab Down Enter "j"                      # tmux key names: Escape (NOT Esc), Enter, Tab, BTab, Up/Down/Left/Right, F10, C-b (ctrl), PPage/NPage, Home/End
-tools/capture.sh mouse 40 12 click                            # move|click|rclick|down|up|drag|wheelup|wheeldown (SGR sequences; x,y 1-based)
-tools/capture.sh shot h_manager_tree                          # → shots/<name>.{ansi,txt,html,cursor,png}
-tools/capture.sh resize 80 24 ; tools/capture.sh shot h_manager_80
-tools/capture.sh stop
+tools/tuisnap_baseline.sh                      # build + capture the 367-capture matrix
+open shots/tuisnap/report.html                 # review every actual
+tuisnap accept --store shots/tuisnap --all     # approve after review
+tuisnap report --store shots/tuisnap           # re-verify: approved frames must report matched
+APPS=holla ONLY='holla_rust-dirty' SKIP_BUILD=1 tools/tuisnap_baseline.sh   # subset re-run
 ```
-- Naming convention: `f_*` showcase, `s_*` component pages, `t_*` tablepro, `j_*` jackin → use `h_*` for holla. Sizes used: 120×40 (primary), 80×24 (minimum-ish), 160×40 (`j_accounts_160`, `j_editor_160_auth`), 100×30 in tests.
-- Paused frame captures: `ARGS="--scenario first-use --motion paused --frame 282"` (jackin `j_intro_warp_*`).
-- `shots/` is git-ignored (`.gitignore`: `shots/`, `/target`). Stderr goes to `shots/stderr.log`; the session lingers 30 s after exit.
-- PNG: `${PY:-python3} tools/ansi2png.py …` (fails silently `|| true`). `tools/env.sh` exports `PY=/private/tmp/claude-501/-Users-donbeave-terminal-components-claude/5ee8aeed-…/scratchpad/venv/bin/python` — **that path does not exist any more**. System `python3` (mise shim) has no Pillow. Working venvs with Pillow 12.3.0 exist at `/private/tmp/claude-501/-Users-donbeave-Projects-terminal-components-claude/{eb2f0f62-487c-496e-98c4-65ece9a07b9a,c9259ad1-43e8-401d-841f-ce3eb5054597}/scratchpad/venv/bin/python` — pass `PY=<that>` explicitly (or `python3 -m venv … && pip install pillow`). `ansi2png.py` wants `~/Library/Fonts/JetBrainsMonoNerdFontMono-*.ttf` (installed fonts are `JetBrainsMono-*.ttf`; script says it falls back to Menlo) — verify the PNG visually once.
-- `.html` (ansi2html.py, stdlib only) always works and is the reliable colour artefact.
+
+- Naming: `<app>_<surface>_<state>_<cols>x<rows>_<color>`; the matrix and its
+  rationale live in `docs/baseline/tuisnap-coverage.md`; the runner is the
+  executable source of truth. Sizes used: 120×40 (primary review), 80×24
+  (canonical default), 100×30 (holla mono + tablepro drawer breakpoint),
+  160×50 (wide holla), 72×20 (documented minimum, spot only).
+- Paused-frame determinism: captures pass `--scenario … --motion paused
+  --frame N`; holla/jackin frames are exact under the seeded sim, and
+  `HOLLA_NO_HISTORY=1` (exported by the runner) suppresses history side
+  effects.
+- Git tracking: `approved/` and `frames/*.{ansi,txt}` are tracked; `actual/`,
+  `diff/`, `report.html` and `frames/*.{png,html}` are ignored deterministic
+  re-renders (`tuisnap render`, `tuisnap report`).
+- The runner strips `NO_COLOR` from its environment (`PRESERVE_NO_COLOR=1`
+  opts out) — an exported NO_COLOR silently poisons every colour capture.
+- Lanes tuisnap CLI cannot drive (mouse hover/drag, mid-session resize,
+  wall-clock motion phases, Alt+Enter/Alt+0..9 chords, the showcase progress
+  page) survive only as frozen legacy frames; the successor path is tuisnap's
+  Rust PTY API (`Session::click/drag/resize`) from a Rust test — see the
+  coverage doc's honest-gap section.
 
 ---
 
@@ -477,4 +496,4 @@ tools/capture.sh stop
 11. Widget-id constants: `pub const TREE: WidgetId = WidgetId::of("manager.tree");` (const fn FNV) — export from the screen so tests can `tab_to(TREE)`.
 12. `too_small` is decided inside `draw` from the frame area (not from Resize), so tests must `draw()` after `resize()` (the harness does).
 13. `Tabs::render` requires a 2-row area; `TextInput::HEIGHT`/`Select::HEIGHT` are the field heights.
-14. `tools/env.sh` PY path is stale — export `PY` to a venv with Pillow before `shot` if PNGs are needed.
+14. The tuisnap runner strips `NO_COLOR` from its environment (`PRESERVE_NO_COLOR=1` opts out) — an exported NO_COLOR silently turns every colour capture mono.

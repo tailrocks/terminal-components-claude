@@ -84,7 +84,6 @@ cargo clippy --all-targets -- -D warnings
 cargo test --bin holla        # domain, ranking, plans, concept journeys, parity journeys (HP01–HP23), row proofs, F23 proofs
 cargo test --test terminal_suspend   # owned-pty job-control suspension (F21)
 cargo test --test holla_pty          # fresh-process palette / NO_COLOR matrix and the bounded input flood
-cargo build --example cells && .venv/bin/python tools/fidelity_check.py   # capture-tool fidelity fixtures (F22)
 ```
 
 **2. Interactive — one scenario at a time:**
@@ -102,7 +101,7 @@ cargo build --example cells && .venv/bin/python tools/fidelity_check.py   # capt
 | `remote-host` | `◆ prod-eu-1 · production` identity; `on prod-eu-1` scope words; restart phrase bound to the host |
 | `launch-failure` | failed activity tab with honest output and `Next` follow-ups |
 | `hard-cases` | detached and rebase states, unreadable children (partial), docker and github unavailable |
-| `parity-*` | one scenario per capability slice; `src/bin/holla/app_tests_parity.rs` names the decisive rows and `tools/holla_parity_flows.sh` captures them as `h_hp*.png` |
+| `parity-*` | one scenario per capability slice; `src/bin/holla/app_tests_parity.rs` names the decisive rows and the tuisnap baseline captures every parity scenario at four sizes plus mono |
 
 Cross-cutting, in any scenario: `F1` is the full key reference; `Alt+Enter`
 on a row lists the alternatives (pin, alias, hide, why is this here?);
@@ -110,7 +109,9 @@ on a row lists the alternatives (pin, alias, hide, why is this here?);
 `!`, focus keeps `▎`); `--motion paused --frame N` is byte-identical across
 runs; resizing keeps type and scope on every row.
 
-Which capture shows what: `h_<scenario>_<WxH>.png` are the base frames,
+Which frozen legacy capture shows what (the `shots/h_*` corpus was captured
+with the retired tmux harness and is now historical evidence):
+`h_<scenario>_<WxH>.png` are the base frames,
 `h_<scenario>_mono.png` the monochrome pass, `h_*_16.png` sixteen colours,
 `h_flow_*.png` the journeys (trust → arguments, alternatives, help,
 activities and merged logs, `btm` attached, the upgrade plan from exclusion
@@ -128,26 +129,26 @@ approximate and why; the `.txt` capture is authoritative for content.
 `--color none` is a four-grey palette; actual `NO_COLOR` proof is the
 fresh-process test in `tests/holla_pty.rs`, not a capture.
 
-**3. Capture matrix — the full visual pass:**
+**3. Baseline matrix — the full visual pass:**
 
 ```sh
-python3 -m venv .venv && .venv/bin/pip install pillow   # once; PNG rendering
-source tools/env.sh                                    # exports PY
-cargo build --bin holla                                # captures run the debug binary
-tools/holla_shots.sh          # 34 scenarios × 4 sizes + mono + 16 colours
-tools/holla_flows.sh          # gates, plans, activities, snapshots, scopes
-tools/holla_parity_flows.sh   # the HP01–HP23 states (h_hp*.png)
-tools/capture.sh review h_hp21_gate1 "inspected: …"   # records the verdict in the manifest
-open shots/h_*.png
+tools/tuisnap_baseline.sh                      # builds the binaries, captures the matrix into shots/tuisnap/
+open shots/tuisnap/report.html                 # review every actual
+tuisnap accept --store shots/tuisnap --all     # approve after review
+tuisnap report --store shots/tuisnap           # re-verify: every approved frame must report matched
 ```
 
-Captures need `tmux` on the path. Each frame lands as `.txt` (plain),
-`.ansi`, `.html` and `.png`; the `.txt` is what the tests compare against.
+The holla slice is 194 captures: all 34 scenarios at four sizes plus mono,
+256/16-colour and real-`NO_COLOR` spots, the 72×20 minimum-size boundary,
+and 14 journeys (finder, files, browser, cleanup gates, upgrade plan,
+remote gates, help, activities). The matrix and its rationale live in
+`docs/baseline/tuisnap-coverage.md`; `tools/tuisnap_baseline.sh` is the
+executable source of truth.
 
-After changing one surface, rerun only what moved and look at the PNGs:
+After changing one surface, rerun only what moved and look at the report:
 
 ```sh
-SCENARIOS=hard-cases SIZES="80x24 120x40" COLORS=mono tools/holla_shots.sh
+APPS=holla ONLY='holla_hard-cases' SKIP_BUILD=1 tools/tuisnap_baseline.sh
 ```
 
 **Simulation guarantee (adversarial):** walk every plan and gate while

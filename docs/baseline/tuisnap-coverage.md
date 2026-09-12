@@ -70,13 +70,15 @@ pixel-exact against an approved snapshot in the store at `shots/tuisnap/`.
   72×20" below it, so exactly-72×20 is the boundary worth gating (spot only).
 - `truecolor` is the primary palette; `none` (mono) proves structure survives
   hue loss; `256`/`16` are spot-checked on the most palette-sensitive surfaces
-  (full sweeps stay in the legacy audit net, see supersession table);
+  (the retired 5×5 audit sweep covered every combo — its frames are now
+  frozen historical evidence, see the supersession table);
   `nocolor` proves real backend suppression, which `--color none` cannot
   (backend rule vs app rule).
 
 Two sizes × two colours for every static surface keeps the matrix tractable
-while touching each page/scenario; the wider size×colour net remains as the
-hash/legacy complements listed in the supersession table.
+while touching each page/scenario; the wider size×colour net lives on as the
+showcase hash baseline plus the frozen legacy frames listed in the
+supersession table.
 
 ## The baseline matrix (367 captures)
 
@@ -119,11 +121,11 @@ Interactive states, all 120x40 truecolor, needle after the boot wait = **18**:
 
 | Capture name | Sends after boot wait | Provenance |
 |---|---|---|
-| showcase_inputs_editing_120x40_truecolor | tab, enter, wait:EDIT | audit_flows |
-| showcase_inputs_selected_120x40_truecolor | tab, enter, ctrl-l, wait:EDIT | audit_flows |
-| showcase_forms_invalid_120x40_truecolor | tab, ctrl-s, wait:Required | audit_flows |
-| showcase_diff_review_120x40_truecolor | tab, enter, wait:● Review | audit_flows |
-| showcase_diff_empty_120x40_truecolor | tab, enter, tab, enter, wait:No file selected | focus ring [review, empty, view]; audit_flows used backtab only because a mouse drag had focused the view first |
+| showcase_inputs_editing_120x40_truecolor | tab, enter, wait:EDIT | legacy audit_flows (retired) |
+| showcase_inputs_selected_120x40_truecolor | tab, enter, ctrl-l, wait:EDIT | legacy audit_flows (retired) |
+| showcase_forms_invalid_120x40_truecolor | tab, ctrl-s, wait:Required | legacy audit_flows (retired) |
+| showcase_diff_review_120x40_truecolor | tab, enter, wait:● Review | legacy audit_flows (retired) |
+| showcase_diff_empty_120x40_truecolor | tab, enter, tab, enter, wait:No file selected | focus ring [review, empty, view]; legacy audit_flows (retired) used backtab only because a mouse drag had focused the view first |
 | showcase_buttons_focus_120x40_truecolor | tab | new |
 | showcase_lists_moved_120x40_truecolor | tab, down, down | new |
 | showcase_trees_expanded_120x40_truecolor | tab, right | new (trees had ZERO legacy frames) |
@@ -205,7 +207,7 @@ the <100-col drawer mode); `tablepro_workbench_default_120x40_{256,16,none}`
 `tablepro_connections_default_120x40_none` (1).
 
 Interactive, all 120x40 truecolor = **20** (sequences traced from
-`src/bin/tablepro/app_tests.rs` and tools/audit_flows.sh; "open orders" below
+`src/bin/tablepro/app_tests.rs` and the retired tools/audit_flows.sh; "open orders" below
 = down×5, enter from the fresh workbench):
 
 | Capture name | Sends after boot wait |
@@ -256,18 +258,27 @@ Minimum-size: first-use 72x20 truecolor = **1**
 
 ## Legacy supersession table
 
+The tmux/Python harness that produced the legacy corpus was removed
+2026-09-12. Every "frozen" verdict below means the frames in `shots/` remain
+as historical evidence but can no longer be regenerated — what was lost is
+the regeneration mechanism, not evidence (the hover/fade frames were ad-hoc
+and never scripted, and no resize-sequence corpus ever existed). The
+successor path for the lost lanes is tuisnap's Rust PTY API
+(`Session::click/drag/resize`) driven from a Rust test, plus a future
+showcase `--motion` flag for the progress page.
+
 | Legacy category | Replaced by | Verdict |
 |---|---|---|
 | `h_parity_*` (115: 23 parity scenarios × 4 sizes + mono) | holla core matrix (136) + mono (34) — same 4 sizes, same mono@100x30 contract | **Fully superseded** (adds store gating) |
 | `h_<concept>_*` (57) | holla core matrix covers all 11 concept scenarios at 4 sizes + mono | **Fully superseded** |
-| `h_flow_*` + `h_p3_*` (45 journey frames) | holla journeys (14) | **Partially** — retained for Alt+Enter alternatives, Alt+0..9 activity tab jumps, and wall-clock runs (upgrade run-to-failure ≈14 s sleeps, discovery progression) that the CLI cannot express deterministically |
-| `h_hp01..23_*` (69 parity slices) | holla parity scenarios in core matrix + finder/files/browser/cleanup/upgrade/remote journeys | **Partially** — retained for time-progression frames (hp01 discovering under full motion + sleep 4) and multi-step wizard states beyond the 14 baseline journeys |
-| `j_*` (~116, ad-hoc, no script) | jackin matrix (26) incl. first-use phase frames f40/f300/f400 | **Partially** — static per-scenario coverage superseded; retained for interactive cockpit/capsule menu/pane/tab states driven by unproven key sequences |
-| `f_*` + `s_*` + `s2_*` (~43 showcase, ad-hoc) | showcase matrix (118) — 22 of 23 pages, 2 sizes × 2 colours, 18 states; closes the trees/editable zero-frame gap | **Partially** — fully supersedes the keyboard/static corpus EXCEPT progress-page frames: progress is structurally uncapturable via `tuisnap run` (see Honest gaps #0) and stays on the legacy harness |
-| `t_*` (38 tablepro, ad-hoc) | tablepro matrix (29) | **Partially** — retained for connection-form Advanced tab and Duplicate flow (reachable only via fragile multi-Tab focus walks) and EXPLAIN ANALYZE variants |
-| `shots/audit/` (250: 10 fixtures × 5 sizes × 5 colours) | per-app static matrices | **Partially** — baseline covers more surfaces but fewer size×colour combos; the 5×5 sweep (72x20/160x50 for tablepro/jackin, full 256/16 everywhere) stays as the wide net |
-| `shots/audit-flows/` (51) | showcase/tablepro interactive captures | **Partially** — keyboard flows superseded; diff text-drag (mouse) and NO_COLOR reverse-video buffer assertions stay on the legacy harness |
-| `shots/fade/` (17 scroll-fade) | none | **Retained** — scroll fade appears under live wheel/scroll; needs the mouse-capable harness |
+| `h_flow_*` + `h_p3_*` (45 journey frames) | holla journeys (14) | **Partially** — the Alt+Enter alternatives, Alt+0..9 activity tab jumps, and wall-clock runs (upgrade run-to-failure ≈14 s sleeps, discovery progression) that the CLI cannot express deterministically are frozen frames; successor: Rust test via the tuisnap Rust PTY API |
+| `h_hp01..23_*` (69 parity slices) | holla parity scenarios in core matrix + finder/files/browser/cleanup/upgrade/remote journeys | **Partially** — time-progression frames (hp01 discovering under full motion + sleep 4) and multi-step wizard states beyond the 14 baseline journeys are frozen frames; successor: Rust test via the tuisnap Rust PTY API |
+| `j_*` (~116, ad-hoc, no script) | jackin matrix (26) incl. first-use phase frames f40/f300/f400 | **Partially** — static per-scenario coverage superseded; interactive cockpit/capsule menu/pane/tab states driven by unproven key sequences are frozen frames (they were ad-hoc, never scripted, so no regeneration mechanism was lost) |
+| `f_*` + `s_*` + `s2_*` (~43 showcase, ad-hoc) | showcase matrix (118) — 22 of 23 pages, 2 sizes × 2 colours, 18 states; closes the trees/editable zero-frame gap | **Partially** — fully supersedes the keyboard/static corpus EXCEPT progress-page frames: progress is structurally uncapturable via `tuisnap run` (see Honest gaps #0); the legacy progress frames are frozen until a showcase `--motion` flag lands |
+| `t_*` (38 tablepro, ad-hoc) | tablepro matrix (29) | **Partially** — connection-form Advanced tab and Duplicate flow (reachable only via fragile multi-Tab focus walks) and EXPLAIN ANALYZE variants are frozen frames |
+| `shots/audit/` (250: 10 fixtures × 5 sizes × 5 colours) | per-app static matrices | **Partially** — baseline covers more surfaces but fewer size×colour combos; the 5×5 sweep (72x20/160x50 for tablepro/jackin, full 256/16 everywhere) is frozen wide-net evidence; successor for a live wide net: extend the tuisnap matrix |
+| `shots/audit-flows/` (51) | showcase/tablepro interactive captures | **Partially** — keyboard flows superseded; the diff text-drag (mouse) frames and NO_COLOR reverse-video buffer assertions are frozen (the flow script was removed with the harness); successor: `Session::click/drag` from a Rust test |
+| `shots/fade/` (17 scroll-fade) | none | **Frozen** — scroll fade appears under live wheel/scroll; these frames were ad-hoc (never scripted), so only the frames remain; successor: `Session::click/drag` + wheel from a Rust test |
 | `tests/showcase_baseline.txt` (460 hashes: 23 pages × 5 sizes × 4 palettes) | showcase matrix | **Partially** — retained as the cheap hash-level wide net (5 sizes × 4 palettes) complementing the pixel-gated subset |
 
 ## Honest gaps — what tuisnap CLI cannot capture
@@ -282,8 +293,9 @@ Minimum-size: first-use 72x20 truecolor = **1**
      `--timeout-ms` probe (same boot-wait timeout as at 8 s). No
      timeout/settle/send/flag fixes this on the current binary; capturing a
      blank or mid-animation frame would violate the no-weakening rule, so the
-     4 progress captures are REMOVED from the matrix. Disposition: legacy
-     `f_*`/`s_*` progress frames stay on `tools/capture.sh`; the proper fix
+     4 progress captures are REMOVED from the matrix. Disposition: the
+     legacy `f_*`/`s_*` progress frames are frozen historical evidence (the
+     capture tooling that made them was removed 2026-09-12); the proper fix
      is a showcase `--motion paused` flag (holla/jackin already have one) —
      restore the 4 captures when it lands.
    - **showcase scrolling / terminal (8 captures): boot-streaming, fixed.**
@@ -302,20 +314,28 @@ Minimum-size: first-use 72x20 truecolor = **1**
      switch it to paused too rather than re-running blindly.
 1. **Mouse states** (hover/pressed rows of the showcase state matrices, diff
    text-drag selection, scroll fade under wheel, hover evidence in j_*/t_*).
-   CLI has no click/drag/move. Disposition: retained on the tmux harness
-   (`tools/capture.sh mouse`, audit-flows + fade corpora). The Rust library
-   API (`Session::click/drag`) could gate these later from a Rust test.
+   CLI has no click/drag/move. Disposition: the existing frames (audit-flows
+   diff_drag, shots/fade, hover evidence in j_*/t_*) are frozen historical
+   evidence — the tmux harness was removed 2026-09-12, and the hover/fade
+   frames were ad-hoc (never scripted), so what is lost is the regeneration
+   mechanism, not evidence. Successor: tuisnap's Rust PTY API
+   (`Session::click/drag`) from a Rust test.
 2. **Mid-session resize sequences.** CLI geometry is fixed per run; the
    baseline gates layout at each static size (incl. the 100-col tablepro
    drawer breakpoint and 72x20 minimum) but not reflow behaviour.
-   Disposition: resize evidence retained on `tools/capture.sh resize`.
+   Disposition: no resize-sequence corpus ever existed (the legacy harness's
+   resize command was a capability, never run into `shots/`), so only the
+   capability is gone. Successor: `Session::resize` from a Rust test.
 3. **Wall-clock motion phases** (holla hp01 discovery progression, upgrade
    run-to-failure after ~14 s, jackin live rain). Nondeterministic under a
    cell/pixel gate. Disposition: deterministic `--motion paused --frame N`
-   captures in the baseline (seeded sim); live-motion frames stay legacy.
+   captures in the baseline (seeded sim); live-motion frames are frozen
+   legacy evidence. Successor: a Rust-side driver via tuisnap's Rust PTY API.
 4. **Alt+Enter and Alt+0..9 chords** (`alt-` takes a single character only):
    h_flow_alternatives and the activity-tab jumps cannot be expressed.
-   Disposition: retained in legacy h_flow corpus.
+   Disposition: the legacy h_flow frames for these chords are frozen
+   historical evidence. Successor: drive the chords from a Rust test via
+   tuisnap's Rust PTY API.
 5. **Spinner/indeterminate mid-animation frames** (showcase taskrunner live
    rows once started, tablepro connect ticks). Residual nondeterminism:
    the baseline captures these surfaces in their static initial state after
@@ -326,7 +346,8 @@ Minimum-size: first-use 72x20 truecolor = **1**
    reaches a static state at all.)
 6. **tablepro form Advanced tab + Duplicate button flow** — only reachable
    via long focus walks that a baseline should not depend on.
-   Disposition: retained in t_* legacy corpus.
+   Disposition: the t_* legacy frames covering these are frozen historical
+   evidence (the capture tooling was removed 2026-09-12).
 7. **Glitched text is not needle-stable.** jackin's outro caption is drawn
    through a seed-glitched renderer under paused motion, so a text needle
    may legitimately never match; the outro/warp captures wait on the
@@ -396,10 +417,13 @@ tracked in git (~490 MB):
   shots/tuisnap/approved/<name>.frame.json --format png --format html --out
   <prefix>`, and `tuisnap report --store shots/tuisnap` rebuilds the report
   after any run.
-- The legacy `shots/` corpus outside `shots/tuisnap/` is left in place;
-  supersession per category is mapped above. Physical removal is a separate
-  decision: partially superseded categories still carry mouse-driven evidence
-  (hover/drag) that tuisnap CLI cannot reproduce.
+- The legacy `shots/` corpus outside `shots/tuisnap/` is left in place as
+  frozen historical evidence; the tmux/Python harness that produced it was
+  removed 2026-09-12. Supersession per category is mapped above. Physical
+  removal is a separate decision: partially superseded categories still carry
+  mouse-driven evidence (hover/drag) that tuisnap CLI cannot reproduce — the
+  regeneration path for those lanes is a Rust test driving tuisnap's Rust
+  PTY API (`Session::click/drag/resize`).
 - Renderer pin: approved PNGs were rendered by tuisnap built from
   tui-snap@263eeeb (JetBrainsMono Nerd Font Mono faces, HiDPI rasterization,
   10×21 cells at 16px). A different tuisnap build pixel-drifts by design;

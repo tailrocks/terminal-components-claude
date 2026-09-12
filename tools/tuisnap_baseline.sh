@@ -41,8 +41,9 @@ export HOLLA_NO_HISTORY=1
 # NO_COLOR=1). crossterm honours NO_COLOR by *presence* and then no-ops every
 # colour SGR — frames come out mono even with --color truecolor and a
 # truecolor-advertising PTY. Strip it for this process (tuisnap run inherits
-# our env); nocolor captures re-add NO_COLOR=1 per invocation. Mirrors
-# tools/capture.sh; PRESERVE_NO_COLOR=1 passes the caller's value through.
+# our env); nocolor captures re-add NO_COLOR=1 per invocation — the same
+# NO_COLOR contract the retired tmux harness had. PRESERVE_NO_COLOR=1 passes
+# the caller's value through.
 if [ "${PRESERVE_NO_COLOR:-0}" != 1 ]; then
   unset NO_COLOR
 fi
@@ -142,7 +143,8 @@ showcase_app() {
   # progress is absent: its page is animating()==true from boot (80 ms
   # repaints forever), so tuisnap's boot wait_idle(200ms) can never pass —
   # structurally uncapturable via `tuisnap run` (verified with a 30 s
-  # timeout); evidence stays on the legacy harness, see the coverage doc.
+  # timeout); evidence is the frozen legacy shots/ corpus, see the coverage
+  # doc.
   # scrolling/terminal are listed explicitly below: they stream demo output
   # at boot and need CAP_TIMEOUT overrides to reach their idle end state.
   local pages="overview:overview buttons:buttons inputs:inputs textareas:textareas \
