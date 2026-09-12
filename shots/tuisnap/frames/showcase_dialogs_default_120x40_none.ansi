@@ -1,40 +1,40 @@
- ▪ [0m[1mJunie[0m Design system / Components / Dialogs                                 no color · 120×40   i Inspector   ? Help  [0m
-                                                                                                                        [0m
-   Foundations            [0m[1mDialogs[0m  Focus is trapped, the page dims, Esc always cancels                                  [0m
-   Overview                                                                                                             [0m
-                            Open a dialog                                                                               [0m
-   Components                                                                                                           [0m
-   Buttons                   [0m[1mConfirm run [0m   Rename task…    Three choices…    Delete branch…                            [0m
-   Inputs                                                                                                               [0m
-   Text areas               Confirm: primary action focused first · y / n answer directly                               [0m
-   Forms                    Prompt: editing inside a modal, Enter submits, validation blocks                            [0m
-   Lists                    Destructive: Cancel focused first, action in danger style                                   [0m
-   Trees                    Task: Migrate sessions table                                                                [0m
-   Tables                                                                                                               [0m
-   Editable tables                                                                                                      [0m
-   Panels                   Results                                                                                     [0m
-   Sidebars                                                                                                             [0m
-[0m[1m▎› Dialogs              [0m    Nothing yet                                                                                 [0m
-   Progress                                                                                                             [0m
-   Scrolling                                                                                                            [0m
-   Terminal                                                                                                             [0m
-   Code editor                                                                                                          [0m
-   Diff                                                                                                                 [0m
-   Data grid                                                                                                            [0m
-   Chips & selects                                                                                                      [0m
-   Pickers                                                                                                              [0m
-   Chrome                                                                                                               [0m
-                                                                                                                        [0m
-   Screens                                                                                                              [0m
-   Settings                                                                                                             [0m
-   Task runner                                                                                                          [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                            [0m
+[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m▪[0m[38;5;15;48;5;0m [0m[1;38;5;15;48;5;0mJunie[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mDesign system[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m/ Components / Dialogs[0m[38;5;15;48;5;0m                                 [0m[38;5;8;48;5;0mno color · 120×40[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0m i Inspector [0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m ? Help [0m[38;5;15;48;5;0m [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m   [0m[38;5;8;48;5;0mFoundations[0m[38;5;15;48;5;0m            [0m[1;38;5;15;48;5;0mDialogs[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mFocus is trapped, the page dims, Esc always cancels[0m[38;5;15;48;5;0m                                  [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mOverview            [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;15;48;5;0m                            [0m[38;5;7;48;5;0mOpen a dialog[0m[38;5;15;48;5;0m                                                                               [0m
+[0m[38;5;15;48;5;0m   [0m[38;5;8;48;5;0mComponents[0m[38;5;15;48;5;0m                                                                                                           [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mButtons             [0m[38;5;15;48;5;0m     [0m[38;5;7;48;5;7m [0m[1;38;5;0;48;5;7mConfirm run [0m[38;5;15;48;5;0m  [0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0mRename task…   [0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0mThree choices…   [0m[38;5;0;48;5;0m [0m[38;5;7;48;5;0mDelete branch… [0m[38;5;15;48;5;0m                           [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mInputs              [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mText areas          [0m[38;5;15;48;5;0m     [0m[38;5;7;48;5;0mConfirm: primary action focused first · y / n answer directly[0m[38;5;15;48;5;0m                               [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mForms               [0m[38;5;15;48;5;0m     [0m[38;5;7;48;5;0mPrompt: editing inside a modal, Enter submits, validation blocks[0m[38;5;15;48;5;0m                            [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mLists               [0m[38;5;15;48;5;0m     [0m[38;5;7;48;5;0mDestructive: Cancel focused first, action in danger style[0m[38;5;15;48;5;0m                                   [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mTrees               [0m[38;5;15;48;5;0m     [0m[38;5;7;48;5;0mTask: Migrate sessions table[0m[38;5;15;48;5;0m                                                                [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mTables              [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mEditable tables     [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mPanels              [0m[38;5;15;48;5;0m     [0m[38;5;7;48;5;0mResults[0m[38;5;15;48;5;0m                                                                                     [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mSidebars            [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[1;38;5;7;48;5;0m▎›[0m[1;38;5;15;48;5;0m Dialogs              [0m[38;5;15;48;5;0m    [0m[38;5;7;48;5;0mNothing yet[0m[38;5;15;48;5;0m                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mProgress            [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mScrolling           [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mTerminal            [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mCode editor         [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mDiff                [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mData grid           [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mChips & selects     [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mPickers             [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mChrome              [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m   [0m[38;5;8;48;5;0mScreens[0m[38;5;15;48;5;0m                                                                                                              [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mSettings            [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mTask runner         [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m [0m[1;38;5;15;48;5;0m↑ ↓[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mMove[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mEnter[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mOpen[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mTab[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mInto page[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mq[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mQuit[0m[38;5;15;48;5;0m                                                                            [0m

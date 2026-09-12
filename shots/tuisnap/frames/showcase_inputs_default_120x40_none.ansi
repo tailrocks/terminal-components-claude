@@ -1,40 +1,40 @@
- ▪ [0m[1mJunie[0m Design system / Components / Inputs                                  no color · 120×40   i Inspector   ? Help  [0m
-                                                                                                                        [0m
-   Foundations            [0m[1mInputs[0m  Focus is a bar; editing is a cursor. Enter to edit, Esc to revert.                    [0m
-   Overview                                                                                                             [0m
-                            Playground                                     Enter Edit · Esc Cancel · Tab Commit + next  [0m
-   Components                                                                                                           [0m
-   Buttons                    Project name *                                 Branch  optional                           [0m
-[0m[1m▎› Inputs               [0m      payments-gateway                               feat/…                                     [0m
-   Text areas                 Used as the working directory name             Leave empty to work on a detached checko…  [0m
-   Forms                      Owner email *                                  API token  optional                        [0m
-   Lists                      mira@example                           [0m[1m![0m     [0m[2m  jb_live_••••••••••••                     [0m  [0m
-   Trees                      Enter a valid email address                    Managed by the organization                [0m
-   Tables                     Search files  optional                         API key  optional                          [0m
-   Editable tables            Type a path or symbol…                         ••••••••••••••••••••••••c1f2               [0m
-   Panels                     Selection: Shift+← →  ·  words: Ctrl+← →…      Masked while typing; the last four chara…  [0m
-   Sidebars                                                                                                             [0m
-   Dialogs                                                                                                              [0m
-   Progress                                                                                                             [0m
-   Scrolling                                                                                                            [0m
-   Terminal                                                                                                             [0m
-   Code editor                                                                                                          [0m
-   Diff                                                                                                                 [0m
-   Data grid                State reference                                                                     static  [0m
-   Chips & selects                                                                                                      [0m
-   Pickers                  default           payments-gateway                                                          [0m
-   Chrome                   placeholder       (feat/…)                                                                  [0m
-                            hover             payments-gateway                                                          [0m
-   Screens                  focused         ▎ payments-gateway                                                          [0m
-   Settings                 editing         ▎ [0m[4mpayments-gateway[0m                                                          [0m
-   Task runner              error             mira@example                  [0m[1m![0m                                           [0m
-                            error + focus   ▎ mira@example                  [0m[1m![0m                                           [0m
-                            disabled        [0m[2m  jb_live_••••                    [0m                                          [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                            [0m
+[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m▪[0m[38;5;15;48;5;0m [0m[1;38;5;15;48;5;0mJunie[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mDesign system[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m/ Components / Inputs[0m[38;5;15;48;5;0m                                  [0m[38;5;8;48;5;0mno color · 120×40[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0m i Inspector [0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m ? Help [0m[38;5;15;48;5;0m [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m   [0m[38;5;8;48;5;0mFoundations[0m[38;5;15;48;5;0m            [0m[1;38;5;15;48;5;0mInputs[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mFocus is a bar; editing is a cursor. Enter to edit, Esc to revert.[0m[38;5;15;48;5;0m                    [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mOverview            [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;15;48;5;0m                            [0m[38;5;7;48;5;0mPlayground[0m[38;5;15;48;5;0m                                     [0m[38;5;8;48;5;0mEnter Edit · Esc Cancel · Tab Commit + next[0m[38;5;15;48;5;0m  [0m
+[0m[38;5;15;48;5;0m   [0m[38;5;8;48;5;0mComponents[0m[38;5;15;48;5;0m                                                                                                           [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mButtons             [0m[38;5;15;48;5;0m       [0m[38;5;7;48;5;0mProject name *                           [0m[38;5;15;48;5;0m      [0m[38;5;7;48;5;0mBranch  [0m[38;5;8;48;5;0moptional[0m[38;5;7;48;5;0m                         [0m[38;5;15;48;5;0m  [0m
+[0m[1;38;5;7;48;5;0m▎›[0m[1;38;5;15;48;5;0m Inputs               [0m[38;5;15;48;5;0m    [0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m payments-gateway                             [0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mfeat/…[0m[38;5;15;48;5;0m                                     [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mText areas          [0m[38;5;15;48;5;0m       [0m[38;5;7;48;5;0mUsed as the working directory name[0m[38;5;15;48;5;0m             [0m[38;5;7;48;5;0mLeave empty to work on a detached checko…[0m[38;5;15;48;5;0m  [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mForms               [0m[38;5;15;48;5;0m       [0m[38;5;7;48;5;0mOwner email *                            [0m[38;5;15;48;5;0m      [0m[38;5;8;48;5;0mAPI token  optional                      [0m[38;5;15;48;5;0m  [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mLists               [0m[38;5;15;48;5;0m     [0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m mira@example                           [0m[1;38;5;7;48;5;0m![0m[38;5;15;48;5;0m     [0m[2;38;5;0;48;5;0m [0m[2;38;5;8;48;5;0m jb_live_••••••••••••                     [0m[38;5;15;48;5;0m  [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mTrees               [0m[38;5;15;48;5;0m       [0m[38;5;7;48;5;0mEnter a valid email address[0m[38;5;15;48;5;0m                    [0m[38;5;7;48;5;0mManaged by the organization[0m[38;5;15;48;5;0m                [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mTables              [0m[38;5;15;48;5;0m       [0m[38;5;7;48;5;0mSearch files  [0m[38;5;8;48;5;0moptional[0m[38;5;7;48;5;0m                   [0m[38;5;15;48;5;0m      [0m[38;5;7;48;5;0mAPI key  [0m[38;5;8;48;5;0moptional[0m[38;5;7;48;5;0m                        [0m[38;5;15;48;5;0m  [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mEditable tables     [0m[38;5;15;48;5;0m     [0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mType a path or symbol…[0m[38;5;15;48;5;0m                       [0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m ••••••••••••••••••••••••c1f2               [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mPanels              [0m[38;5;15;48;5;0m       [0m[38;5;7;48;5;0mSelection: Shift+← →  ·  words: Ctrl+← →…[0m[38;5;15;48;5;0m      [0m[38;5;7;48;5;0mMasked while typing; the last four chara…[0m[38;5;15;48;5;0m  [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mSidebars            [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mDialogs             [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mProgress            [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mScrolling           [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mTerminal            [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mCode editor         [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mDiff                [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mData grid           [0m[38;5;15;48;5;0m     [0m[38;5;7;48;5;0mState reference[0m[38;5;15;48;5;0m                                                                     [0m[38;5;8;48;5;0mstatic[0m[38;5;15;48;5;0m  [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mChips & selects     [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mPickers             [0m[38;5;15;48;5;0m     [0m[38;5;7;48;5;0mdefault[0m[38;5;15;48;5;0m         [0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m payments-gateway                                                          [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mChrome              [0m[38;5;15;48;5;0m     [0m[38;5;7;48;5;0mplaceholder[0m[38;5;15;48;5;0m     [0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m(feat/…)[0m[38;5;15;48;5;0m                                                                  [0m
+[0m[38;5;15;48;5;0m                            [0m[38;5;7;48;5;0mhover[0m[38;5;15;48;5;0m           [0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m payments-gateway                                                          [0m
+[0m[38;5;15;48;5;0m   [0m[38;5;8;48;5;0mScreens[0m[38;5;15;48;5;0m                  [0m[38;5;7;48;5;0mfocused[0m[38;5;15;48;5;0m         [0m[38;5;7;48;5;0m▎[0m[38;5;15;48;5;0m payments-gateway                                                          [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mSettings            [0m[38;5;15;48;5;0m     [0m[38;5;7;48;5;0mediting[0m[38;5;15;48;5;0m         [0m[38;5;7;48;5;0m▎[0m[38;5;15;48;5;0m [0m[4;38;5;15;48;5;0mpayments-gateway[0m[38;5;15;48;5;15m [0m[38;5;15;48;5;0m                                                         [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mTask runner         [0m[38;5;15;48;5;0m     [0m[38;5;7;48;5;0merror[0m[38;5;15;48;5;0m           [0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m mira@example                  [0m[1;38;5;7;48;5;0m![0m[38;5;15;48;5;0m                                           [0m
+[0m[38;5;15;48;5;0m                            [0m[38;5;7;48;5;0merror + focus[0m[38;5;15;48;5;0m   [0m[38;5;7;48;5;0m▎[0m[38;5;15;48;5;0m mira@example                  [0m[1;38;5;7;48;5;0m![0m[38;5;15;48;5;0m                                           [0m
+[0m[38;5;15;48;5;0m                            [0m[38;5;7;48;5;0mdisabled[0m[38;5;15;48;5;0m        [0m[2;38;5;0;48;5;0m [0m[2;38;5;8;48;5;0m jb_live_••••                    [0m[38;5;15;48;5;0m                                          [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m [0m[1;38;5;15;48;5;0m↑ ↓[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mMove[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mEnter[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mOpen[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mTab[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mInto page[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mq[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mQuit[0m[38;5;15;48;5;0m                                                                            [0m

@@ -382,12 +382,13 @@ APPS=showcase SIZES=120x40 COLORS=truecolor tools/tuisnap_baseline.sh
 
 ## Git tracking policy
 
-The store is ~1.3 GB on disk; only the canonical, non-regenerable baseline is
-tracked in git (~390 MB):
+The store is ~3.2 GB on disk; only the canonical, non-regenerable baseline is
+tracked in git (~490 MB):
 
-- **Tracked:** `shots/tuisnap/approved/` (367 × frame.json + approved PNG —
-  the gate authority), `shots/tuisnap/frames/*.ansi` and `frames/*.txt`
-  (small, and `ansi` is an explicitly required persisted format).
+- **Tracked:** `shots/tuisnap/approved/` (367 × frame.json + approved PNG +
+  `.png.fidelity.json` — the gate authority), `shots/tuisnap/frames/*.ansi`
+  and `frames/*.txt` (small, and `ansi` is an explicitly required persisted
+  format).
 - **Ignored (`.gitignore`):** `actual/`, `diff/`, `.baseline-run/`,
   `report.html` (~1.4 GB — embeds every frame), `frames/*.html`,
   `frames/*.png`. All ignored artifacts are deterministic re-renders of the
@@ -399,3 +400,14 @@ tracked in git (~390 MB):
   supersession per category is mapped above. Physical removal is a separate
   decision: partially superseded categories still carry mouse-driven evidence
   (hover/drag) that tuisnap CLI cannot reproduce.
+- Renderer pin: approved PNGs were rendered by tuisnap built from
+  tui-snap@263eeeb (JetBrainsMono Nerd Font Mono faces, HiDPI rasterization,
+  10×21 cells at 16px). A different tuisnap build pixel-drifts by design;
+  after an intentional renderer upgrade: `tuisnap report --store
+  shots/tuisnap`, review, `tuisnap accept --store shots/tuisnap --all`.
+- Capture environment: the runner strips `NO_COLOR` from its environment
+  (`PRESERVE_NO_COLOR=1` opts out). An exported NO_COLOR (agent and CI shells
+  set it) silently poisons every colour capture — crossterm suppresses colour
+  SGR by *presence*, even under `--color truecolor`: frames claim truecolor in
+  their header yet record all-Default cells. The 2026-09-12 first baseline was
+  re-captured for exactly this reason.

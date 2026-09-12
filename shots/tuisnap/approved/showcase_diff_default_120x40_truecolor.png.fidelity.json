@@ -1,0 +1,82 @@
+{
+  "profile": "tuisnap-default",
+  "font_sha256": "f2a5ea6cfab397445ffab00c0370927b66d61e560a05db5db271b42006381c1a",
+  "font_desc": "vendored JetBrainsMonoNerdFontMono-Regular (SIL OFL 1.1)",
+  "scale": 2,
+  "approximate": true,
+  "faces_fell_back": [],
+  "missing": [
+    {
+      "x": 49,
+      "y": 13,
+      "symbol": "東",
+      "codepoints": [
+        "U+6771"
+      ]
+    },
+    {
+      "x": 51,
+      "y": 13,
+      "symbol": "京",
+      "codepoints": [
+        "U+4EAC"
+      ]
+    },
+    {
+      "x": 53,
+      "y": 14,
+      "symbol": "☕",
+      "codepoints": [
+        "U+2615"
+      ]
+    },
+    {
+      "x": 49,
+      "y": 22,
+      "symbol": "東",
+      "codepoints": [
+        "U+6771"
+      ]
+    },
+    {
+      "x": 51,
+      "y": 22,
+      "symbol": "京",
+      "codepoints": [
+        "U+4EAC"
+      ]
+    },
+    {
+      "x": 53,
+      "y": 23,
+      "symbol": "☕",
+      "codepoints": [
+        "U+2615"
+      ]
+    },
+    {
+      "x": 49,
+      "y": 31,
+      "symbol": "東",
+      "codepoints": [
+        "U+6771"
+      ]
+    },
+    {
+      "x": 51,
+      "y": 31,
+      "symbol": "京",
+      "codepoints": [
+        "U+4EAC"
+      ]
+    },
+    {
+      "x": 53,
+      "y": 32,
+      "symbol": "☕",
+      "codepoints": [
+        "U+2615"
+      ]
+    }
+  ]
+}

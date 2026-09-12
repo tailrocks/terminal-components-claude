@@ -1,30 +1,30 @@
- [0m[1m holla❯ [0m   File   Go   Help      northwind-traders-platform-migrati…conciliation-core  [0m[1mmbp · local[0m [0m
-                                                                                                    [0m
- [0m[1m Here  [0m                                                                                            [0m
- ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────── [0m
- ▎ Search actions and resources…                                                    scope ‹ here ›  [0m
-                                                                                                    [0m
-    Suggested here                                                                                  [0m
- [0m[1m › Analyze disk usage                 [0mdisk   [0m[1m  [0mhere  [0m[1m  [0m/ is 91% full[0m[1m                              [0m [0m
-    Resolve the rebase in lazygit      git      here    rebase in progress · 2 conflicts            [0m
-    Review 7 modified files            git      here    7 modified · 0 untracked                    [0m
-    Open btm                           system   host    sustained pressure · continuous view fits   [0m
-    Review cleanup candidates          cleanup  host    8.0 GiB across 4 categories                 [0m
-                                                                                                    [0m
-    Recent here                                                                                     [0m
-    nothing used here yet                                                                           [0m
-                                                                                                    [0m
-    Explore                                                                                         [0m
-     Tasks   Git   Files   Disk   Services   System                                                 [0m
-    Children · 14 projects             explore  child   14 child projects discovered                [0m
-    Parent · northwind-traders-platf…  explore  parent  workspace root above this folder            [0m
-    System · mbp                       explore  host    available on this host                      [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                                                                                                    [0m
-    → 'holla disk analyze' · here · read-only                                                       [0m
-                                                                                                    [0m
- [0m[1m~/work/clients/northwind-trad…iation-service[0m   ↓14 ↑3 • 7 · rebase   ! docker, github unavailable  [0m
- [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mCtrl+G[0m Activities    [0m
+[0m[38;5;15;48;5;0m [0m[1;38;5;0;48;5;7m holla❯ [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0m File [0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m Go [0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m Help [0m[38;5;15;48;5;0m     [0m[38;5;7;48;5;0mnorthwind-traders-platform-migrati…conciliation-core[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mmbp · local[0m[38;5;15;48;5;0m [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m [0m[1;38;5;15;48;5;0m Here  [0m[38;5;15;48;5;0m                                                                                            [0m
+[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m━━━━━━━[0m[38;5;0;48;5;0m───────────────────────────────────────────────────────────────────────────────────────────[0m[38;5;15;48;5;0m [0m
+[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m▎[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mSearch actions and resources…[0m[38;5;15;48;5;0m                                                   [0m[38;5;7;48;5;0m scope ‹ here › [0m[38;5;15;48;5;0m [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m    [0m[38;5;8;48;5;0mSuggested here[0m[38;5;15;48;5;0m                                                                                  [0m
+[0m[38;5;15;48;5;0m [0m[1;38;5;15;48;5;0m [0m[1;38;5;7;48;5;0m›[0m[1;38;5;15;48;5;0m Analyze disk usage                 [0m[38;5;7;48;5;0mdisk   [0m[1;38;5;15;48;5;0m  [0m[38;5;7;48;5;0mhere  [0m[1;38;5;15;48;5;0m  [0m[38;5;7;48;5;0m/ is 91% full[0m[1;38;5;15;48;5;0m                              [0m[38;5;15;48;5;0m [0m
+[0m[38;5;15;48;5;0m    Resolve the rebase in lazygit      [0m[38;5;7;48;5;0mgit    [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mhere  [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mrebase in progress · 2 conflicts[0m[38;5;15;48;5;0m            [0m
+[0m[38;5;15;48;5;0m    Review 7 modified files            [0m[38;5;7;48;5;0mgit    [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mhere  [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0m7 modified · 0 untracked[0m[38;5;15;48;5;0m                    [0m
+[0m[38;5;15;48;5;0m    Open btm                           [0m[38;5;7;48;5;0msystem [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mhost  [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0msustained pressure · continuous view fits[0m[38;5;15;48;5;0m   [0m
+[0m[38;5;15;48;5;0m    Review cleanup candidates          [0m[38;5;7;48;5;0mcleanup[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mhost  [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0m8.0 GiB across 4 categories[0m[38;5;15;48;5;0m                 [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m    [0m[38;5;8;48;5;0mRecent here[0m[38;5;15;48;5;0m                                                                                     [0m
+[0m[38;5;15;48;5;0m    [0m[38;5;8;48;5;0mnothing used here yet[0m[38;5;15;48;5;0m                                                                           [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m    [0m[38;5;8;48;5;0mExplore[0m[38;5;15;48;5;0m                                                                                         [0m
+[0m[38;5;15;48;5;0m [0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m   Tasks   Git   Files   Disk   Services   System                                                 [0m
+[0m[38;5;15;48;5;0m    Children · 14 projects             [0m[38;5;7;48;5;0mexplore[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mchild [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0m14 child projects discovered[0m[38;5;15;48;5;0m                [0m
+[0m[38;5;15;48;5;0m    Parent · northwind-traders-platf…  [0m[38;5;7;48;5;0mexplore[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mparent[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mworkspace root above this folder[0m[38;5;15;48;5;0m            [0m
+[0m[38;5;15;48;5;0m    System · mbp                       [0m[38;5;7;48;5;0mexplore[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mhost  [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mavailable on this host[0m[38;5;15;48;5;0m                      [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m    [0m[38;5;7;48;5;0m→ 'holla disk analyze' · here · read-only[0m[38;5;15;48;5;0m                                                       [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m [0m[1;38;5;15;48;5;0m~/work/clients/northwind-trad…iation-service[0m[38;5;15;48;5;0m   [0m[38;5;7;48;5;0m↓14 ↑3 • 7 · rebase[0m[38;5;15;48;5;0m   [0m[38;5;7;48;5;0m! docker, github unavailable[0m[38;5;15;48;5;0m  [0m
+[0m[38;5;15;48;5;0m [0m[1;38;5;15;48;5;0mType[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mSearch[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0m↑↓[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mMove[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mEnter[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mOpen[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mAlt+Enter[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mMore[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mTab[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mPreview[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mCtrl+↑↓[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mScope[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mCtrl+G[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mActivities[0m[38;5;15;48;5;0m    [0m

@@ -37,6 +37,15 @@ ONLY=${ONLY:-}
 # Determinism: fixture scenarios plus paused motion make holla/jackin frames
 # exact (seeded sim, no wall-clock randomness). History side effects off.
 export HOLLA_NO_HISTORY=1
+# Colour hygiene: an agent/CI shell may export NO_COLOR (Kimi Code exports
+# NO_COLOR=1). crossterm honours NO_COLOR by *presence* and then no-ops every
+# colour SGR — frames come out mono even with --color truecolor and a
+# truecolor-advertising PTY. Strip it for this process (tuisnap run inherits
+# our env); nocolor captures re-add NO_COLOR=1 per invocation. Mirrors
+# tools/capture.sh; PRESERVE_NO_COLOR=1 passes the caller's value through.
+if [ "${PRESERVE_NO_COLOR:-0}" != 1 ]; then
+  unset NO_COLOR
+fi
 # Residual nondeterminism: tick-driven spinners (showcase progress/taskrunner
 # busy rows, tablepro connect ticks) are captured after wait_stable and land
 # on a stable phase, but a spinner glyph cannot be pinned — if exactly one of

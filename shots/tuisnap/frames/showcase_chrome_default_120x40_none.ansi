@@ -1,40 +1,40 @@
- ▪ [0m[1mJunie[0m Design system / Components / Chrome                                  no color · 120×40   i Inspector   ? Help  [0m
-                                                                                                                        [0m
-   Foundations            [0m[1mChrome[0m  Brand lockup · menu bar with anchored menus · status bar planes and priorities · con… [0m
-   Overview                                                                                                             [0m
-                           [0m[1m app❯ [0m   File   View   Help                                                                  [0m
-   Components                                                                                                           [0m
-   Buttons                  Sessions                                                 right-click or m for the tab menu  [0m
-   Inputs                                                                                                               [0m
-   Text areas                  1 Claude Code (Work)                 working     The status bar below sits on its own …  [0m
-   Forms                       2 Codex (Primary)                       idle     separator glyphs, and items leave by …  [0m
-   Lists                       3 Shell                                          narrow — resize the terminal to watch…  [0m
-   Trees                       4 docs                               blocked                                             [0m
-   Tables                                                                       Brand: one lockup, accent-filled, the…  [0m
-   Editable tables                                                                                                      [0m
-   Panels                                                                                                               [0m
-   Sidebars                                                                                                             [0m
-   Dialogs                                                                                                              [0m
-   Progress                                                                                                             [0m
-   Scrolling                                                                                                            [0m
-   Terminal                                                                                                             [0m
-   Code editor                                                                                                          [0m
-   Diff                                                                                                                 [0m
-   Data grid                                                                                                            [0m
-   Chips & selects                                                                                                      [0m
-   Pickers                                                                                                              [0m
-[0m[1m▎› Chrome               [0m                                                                                                [0m
-                                                                                                                        [0m
-   Screens                                                                                                              [0m
-   Settings                                                                                                             [0m
-   Task runner                                                                                                          [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                                                                                                                        [0m
-                           [0m[1mpayments-platform[0m   PR #482 · settlement backoff                                 Weekly 59%  [0m
-                           hint bar · topmost layer wins:                                                               [0m
-                           [0m[1m↑↓[0m Move  [0m[1mm[0m Context menu  [0m[1mright-click[0m Context menu  [0m[1mTab[0m Next                last: nothing yet [0m
-                                                                                                                        [0m
- [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                            [0m
+[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m▪[0m[38;5;15;48;5;0m [0m[1;38;5;15;48;5;0mJunie[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mDesign system[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m/ Components / Chrome[0m[38;5;15;48;5;0m                                  [0m[38;5;8;48;5;0mno color · 120×40[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0m i Inspector [0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m ? Help [0m[38;5;15;48;5;0m [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m   [0m[38;5;8;48;5;0mFoundations[0m[38;5;15;48;5;0m            [0m[1;38;5;15;48;5;0mChrome[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mBrand lockup · menu bar with anchored menus · status bar planes and priorities · con…[0m[38;5;15;48;5;0m [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mOverview            [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;15;48;5;0m                           [0m[1;38;5;0;48;5;7m app❯ [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0m File [0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m View [0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m Help [0m[38;5;15;48;5;0m                                                                 [0m
+[0m[38;5;15;48;5;0m   [0m[38;5;8;48;5;0mComponents[0m[38;5;15;48;5;0m                                                                                                           [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mButtons             [0m[38;5;15;48;5;0m     [0m[38;5;7;48;5;0mSessions[0m[38;5;15;48;5;0m                                                 [0m[38;5;8;48;5;0mright-click or m for the tab menu[0m[38;5;15;48;5;0m  [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mInputs              [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mText areas          [0m[38;5;15;48;5;0m     [0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  1 Claude Code (Work)                 [0m[38;5;7;48;5;0mworking[0m[38;5;15;48;5;0m     [0m[38;5;7;48;5;0mThe status bar below sits on its own …[0m[38;5;15;48;5;0m  [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mForms               [0m[38;5;15;48;5;0m     [0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  2 Codex (Primary)                       [0m[38;5;7;48;5;0midle[0m[38;5;15;48;5;0m     [0m[38;5;7;48;5;0mseparator glyphs, and items leave by …[0m[38;5;15;48;5;0m  [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mLists               [0m[38;5;15;48;5;0m     [0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  3 Shell                                          [0m[38;5;7;48;5;0mnarrow — resize the terminal to watch…[0m[38;5;15;48;5;0m  [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mTrees               [0m[38;5;15;48;5;0m     [0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  4 docs                               [0m[38;5;7;48;5;0mblocked[0m[38;5;15;48;5;0m                                             [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mTables              [0m[38;5;15;48;5;0m                                                         [0m[38;5;7;48;5;0mBrand: one lockup, accent-filled, the…[0m[38;5;15;48;5;0m  [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mEditable tables     [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mPanels              [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mSidebars            [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mDialogs             [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mProgress            [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mScrolling           [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mTerminal            [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mCode editor         [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mDiff                [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mData grid           [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mChips & selects     [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mPickers             [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[1;38;5;7;48;5;0m▎›[0m[1;38;5;15;48;5;0m Chrome               [0m[38;5;15;48;5;0m                                                                                                [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m   [0m[38;5;8;48;5;0mScreens[0m[38;5;15;48;5;0m                                                                                                              [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mSettings            [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;0;48;5;0m [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mTask runner         [0m[38;5;15;48;5;0m                                                                                                 [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m                           [0m[1;38;5;15;48;5;0mpayments-platform[0m[38;5;15;48;5;0m   [0m[38;5;7;48;5;0mPR #482 · settlement backoff[0m[38;5;15;48;5;0m                                [0m[38;5;7;48;5;0m Weekly 59% [0m[38;5;15;48;5;0m [0m
+[0m[38;5;15;48;5;0m                           [0m[38;5;8;48;5;0mhint bar · topmost layer wins:[0m[38;5;15;48;5;0m                                                               [0m
+[0m[38;5;15;48;5;0m                           [0m[1;38;5;15;48;5;0m↑↓[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mMove[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mm[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mContext menu[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mright-click[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mContext menu[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mTab[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mNext[0m[38;5;15;48;5;0m                [0m[38;5;7;48;5;0mlast: nothing yet[0m[38;5;15;48;5;0m [0m
+[0m[38;5;15;48;5;0m                                                                                                                        [0m
+[0m[38;5;15;48;5;0m [0m[1;38;5;15;48;5;0m↑ ↓[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mMove[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mEnter[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mOpen[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mTab[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mInto page[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mq[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mQuit[0m[38;5;15;48;5;0m                                                                            [0m
