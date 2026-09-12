@@ -1,6 +1,6 @@
 # F20 — Find in read-only output through existing composition
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase
 
@@ -41,7 +41,7 @@ restoration. Defer regex, replacement, file search and multiple cursors; current
 evidence supports text finding, not those broader semantics.
 
 Design evidence and peer dispositions:
-[design verification](../plan-design-verification.md).
+[design verification](../plan-verification/plan-design-verification.md).
 
 ## Evidence
 

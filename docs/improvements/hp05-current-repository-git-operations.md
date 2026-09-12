@@ -1,6 +1,6 @@
 # HP05 — Current-repository Git operations
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve current Git pull, push and full status. Preview pull is ff-only, status is a snapshot and push has no modeled effect.
 
-**Source evidence and mandatory scope:** [matrix HP05](../holla-parity-matrix.md#hp05--current-repository-git-operations) — `OP01`, `OP02`, `OP03`, `OP04`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP05](../parity/holla-parity-matrix.md#hp05--current-repository-git-operations) — `OP01`, `OP02`, `OP03`, `OP04`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** A Git resource exposes full status and synchronization alternatives with effective repository/cwd. Retain fast-forward default while offering the ordinary configured pull behavior after explicit conflict/rebase/merge review; do not silently remove configurations that old git pull supports. Push must change modeled remote state and report rejection/auth/upstream failures. Status retains the detail users obtain from full git status.
 

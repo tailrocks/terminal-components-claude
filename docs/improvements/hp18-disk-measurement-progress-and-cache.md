@@ -1,6 +1,6 @@
 # HP18 — Disk measurement, progress and cache
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve trustworthy disk bytes, progressive scans, cancellation, error states and durable cached hints. Timed fixture GB counts lack scanner semantics.
 
-**Source evidence and mandatory scope:** [matrix HP18](../holla-parity-matrix.md#hp18--disk-measurement-progress-and-cache) — `LD004`, `LD005`, `LD006`, `LD010`, `LD011`, `LD007`, `LD008`, `LD009`, `LD017`, `LD018`, `LD019`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP18](../parity/holla-parity-matrix.md#hp18--disk-measurement-progress-and-cache) — `LD004`, `LD005`, `LD006`, `LD010`, `LD011`, `LD007`, `LD008`, `LD009`, `LD017`, `LD018`, `LD019`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Model file/directory roots, allocated versus apparent bytes, hardlink identity, symlink leaves, hidden entries, skip subtrees and inaccessible/dataless outcomes. Stream bounded updates after first paint without moving active targets. Cache age is a hint: root/depth-two v3 sizes, seven-day/mtime validation, pre-scan snapshot, changed-path omission, merge/atomic save; partial and deep-unverified data must remain labeled.
 

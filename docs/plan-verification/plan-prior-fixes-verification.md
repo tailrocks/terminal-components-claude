@@ -70,7 +70,7 @@ process claims cannot be re-established from current files alone.
 
 ## Main report: all 17 finding rows
 
-This section follows the table order in [the consolidated report](tui-audit.md).
+This section follows the table order in [the consolidated report](../audits/tui-audit.md).
 
 | ID / prior claim | Current responsible symbols | Retained regression evidence | Status and exact boundary |
 | --- | --- | --- | --- |
@@ -106,7 +106,7 @@ This section follows the table order in [the consolidated report](tui-audit.md).
 ## Subsidiary editor report: all nine rows
 
 This explicit crosswalk prevents the less prominent claims in
-[the editor report](tui-audit-editor.md) from disappearing into F02/F08/F09.
+[the editor report](../audits/tui-audit-editor.md) from disappearing into F02/F08/F09.
 
 | ID / subsidiary claim | Current symbol / retained test | Status |
 | --- | --- | --- |

@@ -1,6 +1,6 @@
 # HP22 — Cleanup ownership, outcomes and operation log
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve cleanup progress, mixed outcomes, estimates, per-item operation logs and ownership. Current history records only simulated successful removal and falsely frees Trash space immediately.
 
-**Source evidence and mandatory scope:** [matrix HP22](../holla-parity-matrix.md#hp22--cleanup-ownership-outcomes-and-operation-log) — `LD016`, `LD059`, `LD060`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP22](../parity/holla-parity-matrix.md#hp22--cleanup-ownership-outcomes-and-operation-log) — `LD016`, `LD059`, `LD060`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Keep cleanup in an activity independent of modal lifetime. Before irreversible commit allow cancellation; after commit keep execution/report ownership until settled and make quit wait explicit. Report removed/trashed/would-remove/failed/skipped separately, with counts, path/reason detail and log health. Same-volume Trash preserves filesystem used bytes until emptied; estimates and measured capacity change remain separate.
 

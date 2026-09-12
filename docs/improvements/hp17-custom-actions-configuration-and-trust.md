@@ -1,6 +1,6 @@
 # HP17 — Custom actions, configuration and trust
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve global/project custom actions, declared risk/confirm, exact argv, scoped execution and durable content trust. Session path trust is insufficient.
 
-**Source evidence and mandatory scope:** [matrix HP17](../holla-parity-matrix.md#hp17--custom-actions-configuration-and-trust) — `E11`, `E12`, `E13`, `E15`, `E16`, `E17`, `E18`, `E19`, `E14`, `E20`, `E21`, `E22`, `E23`, `E24`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP17](../parity/holla-parity-matrix.md#hp17--custom-actions-configuration-and-trust) — `E11`, `E12`, `E13`, `E15`, `E16`, `E17`, `E18`, `E19`, `E14`, `E20`, `E21`, `E22`, `E23`, `E24`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Read XDG_CONFIG_HOME/holla/actions.toml or ~/.config/holla/actions.toml plus cwd .holla.toml; retain every required/optional [[action]] field and default. Present configuration resources, diagnostics with source/index, valid siblings, grouping and keywords. Reserve IDs against actual registry rather than stale hardcoded names. Show program/each argv/cwd/source/trust/risk before execution; explicit sh -c remains possible and clearly identified.
 

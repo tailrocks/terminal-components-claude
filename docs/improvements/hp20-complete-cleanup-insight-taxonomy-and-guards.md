@@ -1,6 +1,6 @@
 # HP20 — Complete cleanup insight taxonomy and guards
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve all 18 reachable cleanup categories, project artifact classifier, streaming sizing, age policy and process guards. Family enums and a few candidates are not full coverage.
 
-**Source evidence and mandatory scope:** [matrix HP20](../holla-parity-matrix.md#hp20--complete-cleanup-insight-taxonomy-and-guards) — `LD022`, `LD023`, `LD024`, `LD025`, `LD026`, `LD027`, `LD029`, `LD030`, `LD033`, `LD034`, `LD035`, `LD037`, `LD039`, `LD028`, `LD031`, `LD032`, `LD038`, `LD040`, `LD041`, `LD042`, `LD043`, `LD044`, `LD045`, `LD046`, `LD047`, `LD036`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP20](../parity/holla-parity-matrix.md#hp20--complete-cleanup-insight-taxonomy-and-guards) — `LD022`, `LD023`, `LD024`, `LD025`, `LD026`, `LD027`, `LD029`, `LD030`, `LD033`, `LD034`, `LD035`, `LD037`, `LD039`, `LD028`, `LD031`, `LD032`, `LD038`, `LD040`, `LD041`, `LD042`, `LD043`, `LD044`, `LD045`, `LD046`, `LD047`, `LD036`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Implement every LD022–LD047 root/tool/platform/age contract. Category resources lead to candidate detail or one cleanup plan. Preserve rebuildable/old-only/review-first distinctions; review-first starts unchecked; too-recent/unknown-age gated items remain visible but ineligible. Keep Xcode/Simulator guards, restricted pnpm root resolution and explicit Gradle stop prerequisite. Global review and category-specific entry remain searchable.
 

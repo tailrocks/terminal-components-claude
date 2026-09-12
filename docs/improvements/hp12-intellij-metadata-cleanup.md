@@ -1,6 +1,6 @@
 # HP12 — IntelliJ metadata cleanup
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve IntelliJ .idea/.iml cleanup and shared bounded filesystem discovery. The preview has no corresponding provider.
 
-**Source evidence and mandatory scope:** [matrix HP12](../holla-parity-matrix.md#hp12--intellij-metadata-cleanup) — `OP49`, `OP50`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP12](../parity/holla-parity-matrix.md#hp12--intellij-metadata-cleanup) — `OP49`, `OP50`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Discover when .idea exists or idea is installed, then review exact .idea directories and lowercase .iml files under cwd to depth five. Keep no-match success visible. Do not imply IDE shutdown exists in the baseline; new process-aware guard policy must explain any additional block. Combine overlapping candidates once and preserve per-path errors.
 

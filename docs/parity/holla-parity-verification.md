@@ -8,7 +8,7 @@ Disposition counts independently checked: **0 Covered — equivalent**,
 **3 Covered — redesigned/superseded**, **115 Partial**, **98 Missing**,
 **10 Not applicable**, **0 Deliberately rejected**.
 Every Partial/Missing row has a concrete HP01–HP23 implementation contract in
-[IMPROVEMENTS_PLAN.md](../IMPROVEMENTS_PLAN.md#existing-holla-functional-parity-audit).
+[IMPROVEMENTS_PLAN.md](../improvements/PLAN.md#existing-holla-functional-parity-audit).
 This verifies the plan, not implementation of those capabilities.
 
 ## Independence and comparison boundary

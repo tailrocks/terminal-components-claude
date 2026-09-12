@@ -1,6 +1,6 @@
 # HP15 — Runtime input, cancellation and terminal ownership
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve prompt input, password attention, cancellation/reaping and terminal restoration. Attached monitor fixtures currently consume ordinary keys without a response model.
 
-**Source evidence and mandatory scope:** [matrix HP15](../holla-parity-matrix.md#hp15--runtime-input-cancellation-and-terminal-ownership) — `E29`, `E33`, `E34`, `E35`, `E38`, `E39`, `E40`, `E43`, `E37`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP15](../parity/holla-parity-matrix.md#hp15--runtime-input-cancellation-and-terminal-ownership) — `E29`, `E33`, `E34`, `E35`, `E38`, `E39`, `E40`, `E43`, `E37`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Add explicit task input mode separate from launch arguments and screen navigation. Show background password/confirmation attention, select the owning task without silently sending keys, and retain task/cwd/host identity. Forward Unicode, CR/DEL/Tab and supported control bytes; Escape returns to controls. Protect secret input from echo/history/inspection/copy. Stop request enters Cancelling; completion waits for owned process cleanup.
 

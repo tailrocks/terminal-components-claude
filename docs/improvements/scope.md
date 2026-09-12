@@ -13,9 +13,9 @@ work outside this phase stays unchecked under Later in the tracker.
 
 - Work in `src/bin/holla/`: Here/context, resource/action previews, scope,
   activities, plans, files, disk/cleanup and the named provider fixtures.
-- Use [CONCEPT.md](../../holla-project/CONCEPT.md) for product intent,
-  [DESIGN.md](../../DESIGN.md) for Junie visual/interaction grammar and the
-  [Holla design note](../../holla-project/notes/04-design-note.md) for the
+- Use [CONCEPT.md](../product/CONCEPT.md) for product intent,
+  [DESIGN.md](../design/DESIGN.md) for Junie visual/interaction grammar and the
+  [Holla design note](../product/notes/04-design-note.md) for the
   existing prototype model. Extend this model; do not restart the design.
 - Reuse and extend existing `src/widgets`, `src/core`, `src/ui` and theme
   semantics where a selected Holla flow needs them. Inspect existing widget
@@ -53,7 +53,7 @@ remain deferred. Unavailable real-platform evidence cannot pass via fixtures.
 
 ## Current task selection
 
-The [tracker](../../IMPROVEMENTS_PLAN.md) is authoritative for Current versus
+The [tracker](PLAN.md) is authoritative for Current versus
 Later checkboxes. Each task states its current slice, deferred remainder and
 full retained acceptance contract. A current checkbox only closes that slice.
 Full task completion requires every retained acceptance clause, including any

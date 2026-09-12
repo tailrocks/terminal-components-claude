@@ -1,6 +1,6 @@
 # HP14 — Task execution, output and results
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve real task specifications, sequential/parallel scheduling, live output, focus and summaries in activities. Current fixtures cover selected scripts, not all execution semantics.
 
-**Source evidence and mandatory scope:** [matrix HP14](../holla-parity-matrix.md#hp14--task-execution-output-and-results) — `L23`, `E25`, `E26`, `E27`, `E28`, `E30`, `E31`, `E32`, `E36`, `E41`, `E42`, `E44`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP14](../parity/holla-parity-matrix.md#hp14--task-execution-output-and-results) — `L23`, `E25`, `E26`, `E27`, `E28`, `E30`, `E31`, `E32`, `E36`, `E41`, `E42`, `E44`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Model queued/running/cancelling/succeeded/failed/cancelled with exact task identity, cwd/host and result. Independent batch jobs continue after peer failure; dependent plan steps block. Preserve per-task retained output, manual reading position and follow-tail, post-completion inspection, empty batch and final shell summary. Every mutating action needs an explicit effect or failure; unknown scripts must not silently succeed.
 

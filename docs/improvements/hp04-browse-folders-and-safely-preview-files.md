@@ -1,6 +1,6 @@
 # HP04 — Browse folders and safely preview files
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve the real browser and safe file preview, including obscure path navigation and asynchronous race protection. No equivalent general browser exists in the preview.
 
-**Source evidence and mandatory scope:** [matrix HP04](../holla-parity-matrix.md#hp04--browse-folders-and-safely-preview-files) — `I-B01`, `I-B03`, `I-B04`, `I-B05`, `I-B07`, `I-B08`, `I-B10`, `I-B12`, `I-B14`, `I-B02`, `I-B06`, `I-B09`, `I-B11`, `I-B13`, `I-P01`, `I-P02`, `I-P03`, `I-P04`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP04](../parity/holla-parity-matrix.md#hp04--browse-folders-and-safely-preview-files) — `I-B01`, `I-B03`, `I-B04`, `I-B05`, `I-B07`, `I-B08`, `I-B10`, `I-B12`, `I-B14`, `I-B02`, `I-B06`, `I-B09`, `I-B11`, `I-B13`, `I-P01`, `I-P02`, `I-P03`, `I-P04`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Create a Files page inside Here: real directory semantics in simulated fixtures, directories first, type/size/mtime/hidden metadata, parent/child navigation and highlighted return target. Exact-path picker accepts relative/home/absolute paths and prioritizes exact existing paths over fuzzy suggestions. Preserve page/query/scroll state when returning to Here; make any context rebind explicit. File Enter previews; OS open remains an alternative. Directory command recommendations identify preview-only versus executable actions.
 

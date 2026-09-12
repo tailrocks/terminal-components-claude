@@ -1,6 +1,6 @@
 # HP07 — Native project-task adapters
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve package.json, Just, Make, Taskfile and mise tasks. Current pnpm-looking tasks are mise fixtures, not native adapters.
 
-**Source evidence and mandatory scope:** [matrix HP07](../holla-parity-matrix.md#hp07--native-project-task-adapters) — `OP20`, `OP21`, `OP22`, `OP23`, `OP24`, `OP25`, `OP26`, `OP27`, `OP28`, `OP29`, `OP30`, `OP58`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP07](../parity/holla-parity-matrix.md#hp07--native-project-task-adapters) — `OP20`, `OP21`, `OP22`, `OP23`, `OP24`, `OP25`, `OP26`, `OP27`, `OP28`, `OP29`, `OP30`, `OP58`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Each task resource states defining file, runner, effective cwd, description, provenance and exact argv. Preserve package lock precedence pnpm/yarn/bun/npm, sorted script names and string-only values; Just summary discovery; conservative Make declaration order; Taskfile JSON discovery; uncapped ordered mise descriptions. Preserve visible first-30 limits where legacy has them, or provide an explicit more-results control. Missing runners/discovery errors must be truthful rather than invented task success.
 
