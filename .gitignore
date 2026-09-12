@@ -7,11 +7,10 @@ __pycache__/
 docs/refactoring-plan/evidence/*.tar.gz
 
 # tuisnap baseline: approved frames are the tracked baseline; actuals, diffs,
-# run logs, the HTML report and loose heavy artifacts are regenerable
-# (tuisnap report / tuisnap render — see docs/baseline/tuisnap-coverage.md)
+# the HTML report and loose heavy artifacts are regenerable
+# (tests/visual_baseline report test / tuisnap render — see docs/baseline/tuisnap-coverage.md)
 /shots/tuisnap/actual/
 /shots/tuisnap/diff/
-/shots/tuisnap/.baseline-run/
 /shots/tuisnap/report.html
 /shots/tuisnap/frames/*.html
 /shots/tuisnap/frames/*.png

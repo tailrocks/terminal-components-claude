@@ -132,23 +132,23 @@ fresh-process test in `tests/holla_pty.rs`, not a capture.
 **3. Baseline matrix — the full visual pass:**
 
 ```sh
-tools/tuisnap_baseline.sh                      # builds the binaries, captures the matrix into shots/tuisnap/
-open shots/tuisnap/report.html                 # review every actual
-tuisnap accept --store shots/tuisnap --all     # approve after review
-tuisnap report --store shots/tuisnap           # re-verify: every approved frame must report matched
+cargo test --test visual_baseline -- --ignored --skip report   # captures the matrix into shots/tuisnap/
+open shots/tuisnap/report.html                                 # review every actual
+tuisnap accept --store shots/tuisnap --all                     # approve after review
+cargo test --test visual_baseline report -- --ignored          # re-verify: every approved frame must report matched
 ```
 
 The holla slice is 194 captures: all 34 scenarios at four sizes plus mono,
 256/16-colour and real-`NO_COLOR` spots, the 72×20 minimum-size boundary,
 and 14 journeys (finder, files, browser, cleanup gates, upgrade plan,
 remote gates, help, activities). The matrix and its rationale live in
-`docs/baseline/tuisnap-coverage.md`; `tools/tuisnap_baseline.sh` is the
-executable source of truth.
+`docs/baseline/tuisnap-coverage.md`; the suite `tests/visual_baseline/` is
+the executable source of truth.
 
 After changing one surface, rerun only what moved and look at the report:
 
 ```sh
-APPS=holla ONLY='holla_hard-cases' SKIP_BUILD=1 tools/tuisnap_baseline.sh
+cargo test --test visual_baseline holla_hard_cases -- --ignored
 ```
 
 **Simulation guarantee (adversarial):** walk every plan and gate while
