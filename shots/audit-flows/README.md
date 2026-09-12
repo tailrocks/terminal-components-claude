@@ -1,8 +1,12 @@
 # Interaction capture evidence
 
-Regenerate from current sources with `PY=/path/to/python-with-pillow tools/audit_flows.sh`.
-The script builds `showcase` and `tablepro`, uses a private tmux socket, and records
-ANSI, text, cursor metadata, HTML, and PNG. It modifies no baselines.
+Frozen historical evidence. The `tools/audit_flows.sh` script that produced
+these frames (it built `showcase` and `tablepro`, used a private tmux socket,
+and recorded ANSI, text, cursor metadata, HTML, and PNG) was removed with the
+legacy capture harness on 2026-09-12 — the frames can no longer be
+regenerated. The successor workflow is the tuisnap baseline
+(`tools/tuisnap_baseline.sh` → `shots/tuisnap/`); see
+`docs/baseline/tuisnap-coverage.md` for the supersession map.
 
 The 51 capture sets cover:
 
