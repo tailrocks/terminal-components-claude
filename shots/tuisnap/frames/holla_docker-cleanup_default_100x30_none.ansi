@@ -1,30 +1,30 @@
- [0m[1m holla❯ [0m   File   Go   Help                                       no project  [0m[1mdevbox · development[0m [0m
-                                                                                                    [0m
- [0m[1m Here  [0m                                                                                            [0m
- ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────── [0m
- ▎ [0m[4mdocker clean[0m                                                                     scope ‹ here ›  [0m
-                                                                                                    [0m
-    Results · 7                                                                                     [0m
- [0m[1m › Clean Docker completely         [0mplan  [0m[1m  [0mon devbox[0m[1m  [0m18.4 GB reclaimable on devbox[0m[1m   [0mdestructive[0m[1m [0m [0m
-    Prune builder cache             docker  on devbox  6.1 GB of build cache           destructive  [0m
-    Stop all containers             docker  on devbox  5 running on devbox                          [0m
-    Prune unused networks           docker  on devbox  available on this host                       [0m
-    Prune unused volumes            docker  on devbox  7 volumes                       destructive  [0m
-    Remove all unused images        docker  on devbox  12 dangling                     destructive  [0m
-    Stop and remove all containers  docker  on devbox  12 containers on devbox         destructive  [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                                                                                                    [0m
-                                                                                                    [0m
-    → docker stop acme-api-1 acme-worker-1 acme-sc…acme-db-1 acme-redis-1 · on devbox · destructive [0m
-                                                                                                    [0m
- [0m[1m/work/scratch[0m                                                                    no color · 100×30 [0m
-    [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Review…  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mEsc[0m Clear      [0m
+[0m[38;5;15;48;5;0m [0m[1;38;5;0;48;5;7m holla❯ [0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0m File [0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m Go [0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m Help [0m[38;5;15;48;5;0m                                      [0m[38;5;7;48;5;0mno project[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mdevbox · development[0m[38;5;15;48;5;0m [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m [0m[1;38;5;15;48;5;0m Here  [0m[38;5;15;48;5;0m                                                                                            [0m
+[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m━━━━━━━[0m[38;5;0;48;5;0m───────────────────────────────────────────────────────────────────────────────────────────[0m[38;5;15;48;5;0m [0m
+[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0m▎[0m[38;5;15;48;5;0m [0m[4;38;5;15;48;5;0mdocker clean[0m[38;5;15;48;5;0m                                                                    [0m[38;5;7;48;5;0m scope ‹ here › [0m[38;5;15;48;5;0m [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m    [0m[38;5;8;48;5;0mResults · 7[0m[38;5;15;48;5;0m                                                                                     [0m
+[0m[38;5;15;48;5;0m [0m[1;38;5;15;48;5;0m [0m[1;38;5;7;48;5;0m›[0m[1;38;5;15;48;5;0m Clean Docker completely         [0m[38;5;7;48;5;0mplan  [0m[1;38;5;15;48;5;0m  [0m[38;5;7;48;5;0mon devbox[0m[1;38;5;15;48;5;0m  [0m[38;5;7;48;5;0m18.4 GB reclaimable on devbox[0m[1;38;5;15;48;5;0m   [0m[38;5;7;48;5;0mdestructive[0m[1;38;5;15;48;5;0m [0m[38;5;15;48;5;0m [0m
+[0m[38;5;15;48;5;0m    Prune builder cache             [0m[38;5;7;48;5;0mdocker[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mon devbox[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0m6.1 GB of build cache[0m[38;5;15;48;5;0m           [0m[38;5;7;48;5;0mdestructive[0m[38;5;15;48;5;0m  [0m
+[0m[38;5;15;48;5;0m    Stop all containers             [0m[38;5;7;48;5;0mdocker[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mon devbox[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0m5 running on devbox[0m[38;5;15;48;5;0m                          [0m
+[0m[38;5;15;48;5;0m    Prune unused networks           [0m[38;5;7;48;5;0mdocker[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mon devbox[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mavailable on this host[0m[38;5;15;48;5;0m                       [0m
+[0m[38;5;15;48;5;0m    Prune unused volumes            [0m[38;5;7;48;5;0mdocker[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mon devbox[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0m7 volumes[0m[38;5;15;48;5;0m                       [0m[38;5;7;48;5;0mdestructive[0m[38;5;15;48;5;0m  [0m
+[0m[38;5;15;48;5;0m    Remove all unused images        [0m[38;5;7;48;5;0mdocker[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mon devbox[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0m12 dangling[0m[38;5;15;48;5;0m                     [0m[38;5;7;48;5;0mdestructive[0m[38;5;15;48;5;0m  [0m
+[0m[38;5;15;48;5;0m    Stop and remove all containers  [0m[38;5;7;48;5;0mdocker[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0mon devbox[0m[38;5;15;48;5;0m  [0m[38;5;7;48;5;0m12 containers on devbox[0m[38;5;15;48;5;0m         [0m[38;5;7;48;5;0mdestructive[0m[38;5;15;48;5;0m  [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m    [0m[38;5;7;48;5;0m→ docker stop acme-api-1 acme-worker-1 acme-sc…acme-db-1 acme-redis-1 · on devbox · destructive[0m[38;5;15;48;5;0m [0m
+[0m[38;5;15;48;5;0m                                                                                                    [0m
+[0m[38;5;15;48;5;0m [0m[1;38;5;15;48;5;0m/work/scratch[0m[38;5;15;48;5;0m                                                                    [0m[38;5;8;48;5;0mno color · 100×30[0m[38;5;15;48;5;0m [0m
+[0m[38;5;15;48;5;0m    [0m[1;38;5;15;48;5;0mType[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mSearch[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0m↑↓[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mMove[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mEnter[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mReview…[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mAlt+Enter[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mMore[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mTab[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mPreview[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mCtrl+↑↓[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mScope[0m[38;5;15;48;5;0m  [0m[1;38;5;15;48;5;0mEsc[0m[38;5;15;48;5;0m [0m[38;5;7;48;5;0mClear[0m[38;5;15;48;5;0m      [0m

@@ -1,8 +1,8 @@
-tuisnap baseline run — 2026-09-12 12:59:56
+tuisnap baseline run — 2026-09-12 17:28:12
 store:   shots/tuisnap (frames: shots/tuisnap/frames, logs: shots/tuisnap/.baseline-run/logs)
-total:   5 captures (362 skipped by filters)
+total:   367 captures (0 skipped by filters)
 matched: 0 (gated clean against approved)
-pending: 5 (missing approval — expected on first run; review report.html, then: tuisnap accept --store shots/tuisnap --all)
+pending: 367 (missing approval — expected on first run; review report.html, then: tuisnap accept --store shots/tuisnap --all)
 drift:   0 (cells/pixels differ from approved — inspect diff/, fix or re-accept)
 failed:  0 (spawn/timeout/tool errors — NOT expected)
 render failures: 0
