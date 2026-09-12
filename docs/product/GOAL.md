@@ -5,8 +5,8 @@ and `jackin-preview` were built: a binary in `src/bin/`, on the Junie TUI design
 system (`DESIGN.md`), with deterministic fixtures, capture-harness evidence, and
 an iterative visual review loop.
 
-Everything about what Holla IS lives in `holla-project/CONCEPT.md` and
-`holla-project/references/`. Everything about how it must LOOK and FEEL lives in
+Everything about what Holla IS lives in `docs/product/CONCEPT.md` and
+`docs/product/references/`. Everything about how it must LOOK and FEEL lives in
 `DESIGN.md`. Everything about HOW to run this work lives in this file and in the
 original design-system goal this repo descends from
 (https://raw.githubusercontent.com/donbeave/terminal-components-claude/e43cf670d6cb793e5761819e8778600797bbf1aa/GOAL.md).
@@ -19,13 +19,13 @@ Do not write code before the reading and research gates below pass.
 
 Authoritative, in priority order:
 
-1. `holla-project/CONCEPT.md` — the product concept. The single source of truth
+1. `docs/product/CONCEPT.md` — the product concept. The single source of truth
    for what Holla is: vision (§1), problem (§2), product model (§4), context
    model and rings (§5), root experience (§6), experience states (§7), core
    domains (§8), personalization/ranking (§9), safety and two-gate confirmation
    (§10), plan-based workflows (§8.15), activity multiplexing (§8.14),
    boundaries (§14), open questions (§18).
-2. `holla-project/references/` — pattern notes supporting the concept:
+2. `docs/product/references/` — pattern notes supporting the concept:
    - `universal-launcher-patterns.md` — one root surface, useful empty state,
      mixed result types, primary action + alternatives, fuzzy + deterministic
      aliases, user control over ranking, Holla expands local → global.

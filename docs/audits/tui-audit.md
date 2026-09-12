@@ -116,22 +116,22 @@ Final combined-worktree gates pass:
 
 The final capture matrix contains 250 complete sets across ten representative
 fixtures, five sizes and five color modes. It was regenerated after the runtime
-fix. A further [51 interaction capture sets](../shots/audit-flows/README.md)
+fix. A further [51 interaction capture sets](../../shots/audit-flows/README.md)
 exercise selection/editing, invalid forms, Diff review/drag/copy/empty states,
 and TablePro's acknowledgement gate through real terminal events. The final
 interaction rerun includes the contextual-hint correction.
 
 Representative inspected evidence:
 
-- [Minimum-size form under actual NO_COLOR](../shots/audit/showcase-forms_72x20_no_color.png)
-- [Selected input with reverse video](../shots/audit-flows/inputs_selected_120x40_no_color.png)
-- [Small invalid form](../shots/audit-flows/forms_invalid_80x24_none.png)
-- [Diff review with Old/New columns](../shots/audit-flows/diff_review_120x40_none.png)
-- [Wide mouse-selected diff](../shots/audit-flows/diff_drag_160x50_no_color.png)
-- [Acknowledgement armed by typing and navigation](../shots/audit-flows/tablepro_ack_armed_120x40_truecolor.png)
-- [TablePro minimum-size drawer](../shots/audit/tablepro-production_72x20_no_color.png)
-- [Jackin account error/disabled/busy states](../shots/audit/jackin-accounts_120x40_256.png)
-- [Holla plan at small size](../shots/audit/holla-upgrade_80x24_no_color.png)
+- [Minimum-size form under actual NO_COLOR](../../shots/audit/showcase-forms_72x20_no_color.png)
+- [Selected input with reverse video](../../shots/audit-flows/inputs_selected_120x40_no_color.png)
+- [Small invalid form](../../shots/audit-flows/forms_invalid_80x24_none.png)
+- [Diff review with Old/New columns](../../shots/audit-flows/diff_review_120x40_none.png)
+- [Wide mouse-selected diff](../../shots/audit-flows/diff_drag_160x50_no_color.png)
+- [Acknowledgement armed by typing and navigation](../../shots/audit-flows/tablepro_ack_armed_120x40_truecolor.png)
+- [TablePro minimum-size drawer](../../shots/audit/tablepro-production_72x20_no_color.png)
+- [Jackin account error/disabled/busy states](../../shots/audit/jackin-accounts_120x40_256.png)
+- [Holla plan at small size](../../shots/audit/holla-upgrade_80x24_no_color.png)
 
 The PNG renderer has a confirmed font/grapheme limitation: some CJK and emoji
 appear as missing-glyph boxes, and its code-point width heuristic cannot prove

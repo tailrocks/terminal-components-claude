@@ -2,9 +2,9 @@
 
 Research date: 2026-09-10. Scope: the current `holla-fable` worktree only.
 No other project branch or history was inspected. This extends
-[the first research report](tui-audit-research.md), reconciles its findings with
-[the completed audit](tui-audit.md), and uses the final coverage/API sections of
-[the inventory](tui-audit-inventory.md). Earlier reports contain historical
+[the first research report](../audits/tui-audit-research.md), reconciles its findings with
+[the completed audit](../audits/tui-audit.md), and uses the final coverage/API sections of
+[the inventory](../audits/tui-audit-inventory.md). Earlier reports contain historical
 snapshots; the local symbols named below were inspected again.
 
 Primary documentation was fetched live. Rat-focus reported 2.1.1, rat-widget

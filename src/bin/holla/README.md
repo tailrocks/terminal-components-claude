@@ -48,7 +48,7 @@ the way. Flows push pages inside Here with a breadcrumb; only activities
 and executing plans become tabs. A committed cleanup is owned by the world,
 not by the gate that started it: it runs one item per tick, its report page
 fills in as it goes, and quitting waits for it to settle. The design note in
-`holla-project/notes/04-design-note.md` records the model, the rejected
+`docs/product/notes/04-design-note.md` records the model, the rejected
 alternatives and how each CONCEPT §13 principle is met.
 
 ## Keys

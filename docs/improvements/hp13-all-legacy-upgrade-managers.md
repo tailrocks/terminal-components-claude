@@ -1,6 +1,6 @@
 # HP13 — All legacy upgrade managers
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve Brew packages/casks, mise, Amp, Oh My Zsh and upgrade-all. Current apt+mise graph misses macOS workflows; standalone mise upgrade loops.
 
-**Source evidence and mandatory scope:** [matrix HP13](../holla-parity-matrix.md#hp13--all-legacy-upgrade-managers) — `OP51`, `OP52`, `OP55`, `OP53`, `OP54`, `OP56`, `OP57`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP13](../parity/holla-parity-matrix.md#hp13--all-legacy-upgrade-managers) — `OP51`, `OP52`, `OP55`, `OP53`, `OP54`, `OP56`, `OP57`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Build host-specific plan from detected managers, and keep each manager directly searchable. Preserve Brew update, greedy --yes upgrade, cleanup, autoremove, doctor; cask variant only macOS. Preserve amp update, mise upgrade and sh <resolved ZSH>/tools/upgrade.sh. Show $ZSH override exactly. Aggregate independently runnable managers; review before apply and keep per-stage output.
 

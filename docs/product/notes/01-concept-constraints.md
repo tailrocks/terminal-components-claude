@@ -1,6 +1,6 @@
 # 01 · Concept constraints every Holla design must satisfy
 
-Source of truth: `holla-project/CONCEPT.md` (cited as CONCEPT §n), `references/`
+Source of truth: `docs/product/CONCEPT.md` (cited as CONCEPT §n), `references/`
 (cited as launcher, workflow, principles, tech-stack §n, mole), and `GOAL.md`
 (cited as GOAL §n). One line per constraint, imperative. No visuals prescribed.
 

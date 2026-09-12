@@ -4,7 +4,7 @@ Use the following text as the goal prompt. This file defines future execution;
 creating it does not start implementation.
 
 ```text
-Complete only the Current implementation phase in IMPROVEMENTS_PLAN.md.
+Complete only the Current implementation phase in docs/improvements/PLAN.md.
 Read docs/improvements/scope.md first, then the linked task files and relevant
 parts of docs/improvements/shared-contracts.md. Treat the current scope as the
 execution boundary when original full-roadmap task wording is broader.
@@ -13,8 +13,8 @@ Deliver a usable, keyboard-complete Holla design prototype on the existing
 Junie system. Complete H00, the selected shared-component/coverage slices,
 and the simulated UI slices of HP01–HP15 and HP17–HP23. Preserve the existing
 Here/context, resource/action, preview, scope, activity and plan model. Use
-holla-project/CONCEPT.md for product intent, DESIGN.md for visual/interaction
-rules and holla-project/notes/04-design-note.md for the existing design.
+docs/product/CONCEPT.md for product intent, docs/design/DESIGN.md for visual/interaction
+rules and docs/product/notes/04-design-note.md for the existing design.
 
 All product providers and external effects stay deterministic and in memory.
 Implement real interactions and exact simulated target/cwd/argv, state changes,

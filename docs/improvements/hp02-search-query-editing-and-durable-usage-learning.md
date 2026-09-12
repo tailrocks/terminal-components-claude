@@ -1,6 +1,6 @@
 # HP02 — Search, query editing and durable usage learning
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve fuzzy matching, query editing, recents, learned query choices and resilient persisted usage. Current usage is in memory; stored last-used timestamps do not establish decay.
 
-**Source evidence and mandatory scope:** [matrix HP02](../holla-parity-matrix.md#hp02--search-query-editing-and-durable-usage-learning) — `L08`, `L10`, `L15`, `L30`, `L09`, `I-H01`, `I-H02`, `I-H03`, `I-H04`, `I-H05`, `I-H06`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP02](../parity/holla-parity-matrix.md#hp02--search-query-editing-and-durable-usage-learning) — `L08`, `L10`, `L15`, `L30`, `L09`, `I-H01`, `I-H02`, `I-H03`, `I-H04`, `I-H05`, `I-H06`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Keep exact user aliases strongest. Preserve matching across label/group/description/keywords and grapheme-safe emphasis; learned choices must still match and must not authorize execution. Explain the difference between an explicit pin, a remembered query and contextual frequency. Retain five-item recent projection and truthful invocation history, including failed invocations; headless runs remain outside implicit learning. Implement visible query selection/undo/redo/word deletion.
 

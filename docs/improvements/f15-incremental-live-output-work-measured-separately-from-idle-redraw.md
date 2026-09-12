@@ -1,6 +1,6 @@
 # F15 — Incremental live-output work, measured separately from idle redraw
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase
 
@@ -43,7 +43,7 @@ timings, establish a representative latency target, then prove it; no arbitrary
 threshold inferred from one sample. Preserve existing idle zero-reflow gate.
 
 Full text evidence, temporary probe results and exact limits:
-[text verification](../plan-text-verification.md). Temporary probes are current
+[text verification](../plan-verification/plan-text-verification.md). Temporary probes are current
 evidence, not repository regression tests; implementation must retain them.
 
 ## Evidence

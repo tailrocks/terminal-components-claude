@@ -29,7 +29,7 @@ Four binaries share one library:
   branches and failure propagation, and named activities that survive
   navigation. Every stack system is an in-memory fixture; no command is ever
   spawned, and a finished run changes the in-memory world it claimed to.
-  Concept and notes live in `holla-project/`; `src/bin/holla/README.md`
+  Concept and notes live in `docs/product/`; `src/bin/holla/README.md`
   carries the per-scenario verification table.
 
 The application is the specification: *if the
@@ -347,13 +347,13 @@ state and dialogs.
 
 ## Towards a reusable library
 
-The branch audit and coverage map are in [docs/tui-audit.md](docs/tui-audit.md)
-and [docs/tui-audit-inventory.md](docs/tui-audit-inventory.md). The ideas below
+The branch audit and coverage map are in [docs/tui-audit.md](docs/audits/tui-audit.md)
+and [docs/tui-audit-inventory.md](docs/audits/tui-audit-inventory.md). The ideas below
 are hypotheses, not required additions: existing public theme tokens and
 typed component events already support the four applications.
 
 Follow-up research, independently verified findings, and ordered acceptance
-criteria are in [IMPROVEMENTS_PLAN.md](IMPROVEMENTS_PLAN.md). This is a plan,
+criteria are in [docs/improvements/PLAN.md](docs/improvements/PLAN.md). This is a plan,
 not a claim that its remaining fixes have been implemented.
 
 - `core/`, `theme.rs`, `ui/`, `widgets/` and `runtime.rs` are the library
@@ -392,5 +392,5 @@ tools/audit_shots.sh` after `cargo build --bins`. It uses an isolated tmux
 socket and writes to `shots/audit`; `CASES`, `SIZES`, `COLORS`, and `SHOT_DIR`
 select a subset. `no_color` tests actual `NO_COLOR=1` backend behavior separately
 from `--color none`. PNG font and grapheme limitations are documented in the
-[verification report](docs/tui-audit-verification.md); buffer tests establish
+[verification report](docs/audits/tui-audit-verification.md); buffer tests establish
 Unicode cursor, selection, and cell-width correctness.

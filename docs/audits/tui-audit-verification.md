@@ -267,11 +267,11 @@ remain current. Focused interaction captures were reviewed separately.
 
 Representative review links:
 
-- [Forms at minimum size, actual NO_COLOR](../shots/audit/showcase-forms_72x20_no_color.png)
-- [TablePro minimum-size drawer, actual NO_COLOR](../shots/audit/tablepro-production_72x20_no_color.png)
-- [Jackin capsule at normal size](../shots/audit/jackin-capsule_120x40_truecolor.png)
-- [Holla upgrade plan at wide size, monochrome palette](../shots/audit/holla-upgrade_160x50_none.png)
-- [Diff at normal size](../shots/audit/showcase-diff_120x40_truecolor.png), subject to the Unicode rasterizer limitation above.
+- [Forms at minimum size, actual NO_COLOR](../../shots/audit/showcase-forms_72x20_no_color.png)
+- [TablePro minimum-size drawer, actual NO_COLOR](../../shots/audit/tablepro-production_72x20_no_color.png)
+- [Jackin capsule at normal size](../../shots/audit/jackin-capsule_120x40_truecolor.png)
+- [Holla upgrade plan at wide size, monochrome palette](../../shots/audit/holla-upgrade_160x50_none.png)
+- [Diff at normal size](../../shots/audit/showcase-diff_120x40_truecolor.png), subject to the Unicode rasterizer limitation above.
 
 The monochrome owner additionally verified live input selection after
 `Tab`, `Enter`, `Ctrl+L` on the Inputs page. The actual NO_COLOR capture retains

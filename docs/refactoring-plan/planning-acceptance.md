@@ -1,6 +1,6 @@
 # Planning completion audit
 
-This register evaluates all twenty items in [PLANNING_GOAL.md §22](../../PLANNING_GOAL.md). It tracks planning readiness, not completion of the future refactoring. Investigations can be evidence-complete while verification qualification or final independent acceptance remains incomplete.
+This register evaluates all twenty items in [PLANNING_GOAL.md §22](../sources/PLANNING_GOAL.md). It tracks planning readiness, not completion of the future refactoring. Investigations can be evidence-complete while verification qualification or final independent acceptance remains incomplete.
 
 Current overall assessment: **reopened; the table below records the previous acceptance pass, not current execution readiness**. A renewed source-first, line-by-line audit has identified additional scope and contract gaps. See [the re-audit register](reaudit-plan.md). All twenty conditions require renewed current evidence after repairs. Qualified preparation is not a claim that the future production harness or refactored applications already pass.
 
@@ -29,7 +29,7 @@ Current overall assessment: **reopened; the table below records the previous acc
 
 ## Previous pass additional deliverable checks
 
-- [REFACTORING_COMPLETION_PLAN.md](../../REFACTORING_COMPLETION_PLAN.md) contains all24 required sections. Required matrices, current tool/source pins and complete canonical packages are present; [executed verification](planning-verification.md) records their checks.
+- [REFACTORING_COMPLETION_PLAN.md](../sources/REFACTORING_COMPLETION_PLAN.md) contains all24 required sections. Required matrices, current tool/source pins and complete canonical packages are present; [executed verification](planning-verification.md) records their checks.
 - Canonical graph, source ledgers, protected clauses, all derived contributions and typed R/AC/CHK references pass final cross-artifact validation. [Frozen bootstrap hashes](bootstrap-assets.tsv) bind151 assets; [complete artifact hashes](planning-artifacts.tsv) bind the delivered planning tree.
 - Oracle source, membership, expected frames, comparison policy and judge inputs are protected. Independently qualified mutation fixtures cover exact inline-test spans, untrusted extraction, real preparation transitions, qualified closure, host isolation and actual production ownership witnesses.
 - Current task-format schemas are preserved. [Campaign executor adaptation](campaign-executor-protocol.md) explicitly reconciles canonical template provenance with operator-controlled frozen verification, complete progress and host-only acceptance.
