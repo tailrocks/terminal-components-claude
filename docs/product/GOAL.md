@@ -250,12 +250,11 @@ blank row could separate.
 - `cargo fmt --check`; `cargo clippy --all-targets -- -D warnings`;
   `cargo test` (app tests + scenario/motion determinism tests + plan-graph
   logic tests).
-- `tools/capture.sh` frames for every scenario at 80×24, 100×30, 120×40,
-  160×50, plus mono; prefix capture names `h_*` (family convention: `f_*`
-  showcase, `t_*` tablepro, `j_*` jackin). Drive it as the other binaries are
-  driven (`BIN=target/debug/holla ARGS="--scenario … --motion …"`); the tmux
-  key name is `Escape`, never `Esc`. Inspect the PNGs. A change is not done
-  until the frame has been looked at.
+- tuisnap baseline frames for every scenario at 80×24, 100×30, 120×40,
+  160×50, plus mono (`tools/tuisnap_baseline.sh` → `shots/tuisnap/`;
+  `holla_<scenario>_default_<size>_<color>` captures). Review
+  `shots/tuisnap/report.html`, then `tuisnap accept --store shots/tuisnap
+  --all`. A change is not done until the frame has been looked at.
 - Journeys demonstrable: CONCEPT.md §12 Rust project, monorepo root/child,
   mise trust, git across children, docker cleanup, disk cleanup, upgrade
   plan, activities, remote host.

@@ -75,18 +75,20 @@ system; `@parent @children @system @all` in the query do the same), `Ctrl+G`
 lists activities, `Alt+0–9` switch tabs, `Esc` climbs clear query › scope
 back to here › back a page › quit. Exact aliases never drift: `gp` pull, `du`
 disk usage, `test` the test task here, `dc` the Docker cleanup, `d` then `u`.
-The `h_*` captures in `shots/` are the review evidence
-(`tools/holla_shots.sh`, `tools/holla_flows.sh`, `tools/holla_parity_flows.sh`);
-each frame carries a provenance manifest and a raster-fidelity sidecar.
+The `h_*` captures in `shots/` are frozen historical review evidence from the
+retired tmux harness; the current gated baseline lives in `shots/tuisnap/`
+(see `docs/baseline/tuisnap-coverage.md`).
 
 **Previewing holla.** Three routes, fastest first: open `shots/h_*.png`
-(every scenario at four sizes plus mono, and the gate, plan, activity,
-disk and snapshot flows); run one scenario at a time with
+(frozen historical frames: every scenario at four sizes plus mono, and the
+gate, plan, activity, disk and snapshot flows) or the baseline renders under
+`shots/tuisnap/frames/`; run one scenario at a time with
 `cargo run --release --bin holla -- --scenario <name>` (the table in
 `src/bin/holla/README.md` says what each scenario shows and which keys to
-press); or regenerate the matrix with `tools/holla_shots.sh` and
-`tools/holla_flows.sh` after `source tools/env.sh` (needs a Python with
-Pillow, see that file). `holla --help` prints the flags and scenarios.
+press); or regenerate the gated matrix with `tools/tuisnap_baseline.sh` and
+review it via `tuisnap report` / `tuisnap accept` (see
+`docs/baseline/tuisnap-coverage.md`). `holla --help` prints the flags and
+scenarios.
 
 Every screen's first row is the application menu bar (`F10`, or click a
 label; the `jackin❯` lockup opens the app menu). Host screens share one bar —
@@ -336,7 +338,7 @@ src/bin/showcase   pages/ (one per component + two composed screens), app.rs she
 src/bin/tablepro   db.rs (demo catalog + row generator), sql.rs (tokens, statements, safety tiers, runner, EXPLAIN),
                    model.rs (history, completion, switcher index), tabs.rs (table / query / history tabs),
                    workbench.rs, connections.rs, app.rs (modals, safety gate, chords), app_tests.rs
-tools/        headless capture harness (tmux → ANSI → PNG) used for visual review
+tools/        tuisnap snapshot-baseline runner used for visual review
 ```
 
 Widgets are plain state structs with `render(area, buf, ctx)` — which draws
@@ -371,14 +373,15 @@ not a claim that its remaining fixes have been implemented.
 
 ## Visual review tooling
 
-`tools/capture.sh` runs a binary in a fixed-size tmux pane (`BIN=target/debug/tablepro
-ARGS="--connect Production"`), sends keys and SGR mouse events, and captures the
-pane with colours; `tools/ansi2png.py` rasterises the capture with JetBrains
-Mono so rendered output can be inspected as an image. Screens in `shots/`
-were produced this way: `f_*` are the showcase, `s_*` the new component
-pages, `t_*` the workbench, `j_*` the Jackin preview (`BIN=target/debug/jackin-preview
-ARGS="--scenario returning --motion reduced"`; use the tmux key name `Escape`,
-not `Esc`, when scripting).
+The visual baseline is a tuisnap snapshot store at `shots/tuisnap/`, gated
+cell-exact and pixel-exact: `tools/tuisnap_baseline.sh` builds the four
+binaries and captures the whole matrix (367 captures; the matrix and its
+rationale live in [docs/baseline/tuisnap-coverage.md](docs/baseline/tuisnap-coverage.md)).
+On a first run every capture lands as missing-approval; review
+`shots/tuisnap/report.html`, approve with `tuisnap accept --store
+shots/tuisnap --all`, and re-verify with `tuisnap report --store
+shots/tuisnap`. `SKIP_BUILD`, `APPS`, `SIZES`, `COLORS` and `ONLY` select a
+subset after touching one surface.
 
 The showcase also carries a visual baseline (`tests/showcase_baseline.txt`):
 a digest of every page at 72×20, 80×24, 100×30, 120×40 and 160×50 in all
@@ -387,10 +390,9 @@ cover sidebar scrolling and focus visibility at the minimum terminal size.
 `cargo test` fails when a page changes; regenerate deliberately with
 `UPDATE_BASELINE=1 cargo test --bin showcase showcase_visual_baseline`.
 
-For the reproducible audit matrix, run `PY=/path/to/python-with-pillow
-tools/audit_shots.sh` after `cargo build --bins`. It uses an isolated tmux
-socket and writes to `shots/audit`; `CASES`, `SIZES`, `COLORS`, and `SHOT_DIR`
-select a subset. `no_color` tests actual `NO_COLOR=1` backend behavior separately
-from `--color none`. PNG font and grapheme limitations are documented in the
-[verification report](docs/audits/tui-audit-verification.md); buffer tests establish
-Unicode cursor, selection, and cell-width correctness.
+The older corpus under `shots/` (`f_*`, `s_*`, `t_*`, `j_*`, `h_*`,
+`shots/audit/`, `shots/audit-flows/`, `shots/fade/`) is frozen historical
+evidence produced by the retired tmux/Python capture harness (removed
+2026-09-12). The coverage doc maps how each category is superseded by the
+tuisnap matrix and which lanes (mouse hover/drag, mid-session resize,
+wall-clock motion phases) survive only as frozen frames.

@@ -41,4 +41,4 @@ what `main` actually completed, without breaking UI/UX or visual output. Reading
 
 - `refactoring-tasks/` — the sealed execution catalog (73 task-format packages 001–073 + catalog READMEs). Read-only task contracts; execution order comes from each `task.toml`.
 - `shots/` — snapshot corpus: `shots/tuisnap/` is the current baseline; legacy categories and their supersession are mapped in [baseline/tuisnap-coverage.md](baseline/tuisnap-coverage.md).
-- `tools/` — capture and audit harnesses (legacy tmux-based `capture.sh` family + `tuisnap_baseline.sh`).
+- `tools/` — the tuisnap baseline runner (`tuisnap_baseline.sh`). The legacy tmux-based capture harness was removed 2026-09-12 (see [baseline/tuisnap-coverage.md](baseline/tuisnap-coverage.md)).
