@@ -1,0 +1,40 @@
+ [0m[1m jackin❯ [0m   File   Go   Help             Workspaces  inside the Construct  ! instance index unreadable  ▲ daemon stale [0m
+                                                                                                                        [0m
+ ╭─[0m[1m Workspaces [0m────────── 3 running ─╮ │  Current directory · payments-platform                       saved workspace   [0m
+ │ [0m[1m▎   Current directory            [0m │ │                                                                                [0m
+ │   ▸ payments-platform             │ │  Working dir   /workspace/payments-platform                                    [0m
+ │   ▸ infra-control-plane           │ │  Mounts        ~/src/payments-platform · rw worktree                           [0m
+ │   ▸ release-automation            │ │                ~/src/shared-libs · ro shared                                   [0m
+ │   ▸ customer-portal               │ │  Roles         the-architect ★ · allowed 3 of 126                              [0m
+ │   ▸ data-pipeline                 │ │  Environments  5 vars · 2 [op]                                                 [0m
+ │   ▸ docs-site                     │ │  Accounts      Claude · Personal ★ · Claude · Work · Codex · Primary ★ ·       [0m
+ │     auth-service                  │ │                Grok · Team ★ · OpenCode · Go subscription ★                    [0m
+ │     gateway                       │ │  Policies      git pull enabled · keep awake on · dirty exit ask               [0m
+ │     mobile-app                    │ │                                                                                [0m
+ │     ml-notebooks                  │ │  [0m[1mInstances[0m                                          ▲ daemon stale · 3 s ago   [0m
+ │     search-indexer                │ │  ◉ 7f3a  the-architect · Claude Code · running                                 [0m
+ │     staging-env                   │ │  ◌ c41e  reviewer · Codex · preserved · dirty                                  [0m
+ │     billing-reconcilia…runcation  │ │  ◌ b000  reviewer · Codex · exited                                             [0m
+ │     legacy-monolith               │ │  ◌ b111  reviewer · Codex · restore available                                  [0m
+ │     + New workspace               │ │  ◌ b222  reviewer · Codex · exited                                             [0m
+ │                                   │ │  ◌ b333  reviewer · Codex · restore available                                  [0m
+ │                                   │ │  ◌ b444  reviewer · Codex · exited                                             [0m
+ │                                   │ │  ◌ b555  reviewer · Codex · restore available                                  [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │                                                                                [0m
+ │                                   │ │  Launch    Edit                                                                [0m
+ ╰───────────────────────────────────╯ │                                                                                [0m
+                                                                                                                        [0m
+ [0m[1mEnter[0m Launch  [0m[1mn[0m New  …   [0m[1m▲[0m Could not confirm running instances: instance index unreadable · entered without the ritual [0m

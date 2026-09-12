@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                          acme · mise monorepo  mbp · local [0m
+                                                                                                                        [0m
+  Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×    logs · api worker sched… ⠋ ×    btm ○ ×                   [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+   Search actions and resources…                                                                        scope ‹ here ›  [0m
+                                                                                                                        [0m
+    Suggested here                                                               Deploy preview         custom · here   [0m
+    Follow acme-api-1 logs     docker    here   service is unhealthy                                                    [0m
+    Inspect 10 GB of generat…  disk      here   10 GB generated artifacts        Does       push the current branch     [0m
+    Install missing tools · …  task      here   1 tool missing                              to the preview stack        [0m
+    Review cleanup candid╭────────────────────────────────────────────────────────────────────╮ls/deploy-pre…preview    [0m
+  › Deploy preview       │ [0m[1mActivities[0m                                                  4 live │ork/acme                 [0m
+                         │ [0m[1m▎[0m⠋[0m[1m frontend dev                 [0mrunning · child · 3 s[0m[1m  [0mactivities[0m[1m [0m │ · local                 [0m
+    Recent here          │  ⠋ api dev                      running · child · 3 s              │e                        [0m
+    nothing used here yet│  ✓ api tests                    succeeded · project ·…             │rent folder · ⚠          [0m
+                         │  ⠋ logs · api worker scheduler  running · here · 3 s               │eviewed                  [0m
+    Running              │  ○ btm                          detached · host · 3 s              │ the command             [0m
+    logs · api worker sch│                                                                    │ating                    [0m
+    api dev              │                                                                    │e · 0 s ago              [0m
+    btm                  ╰────────────────────────────────────────────────────────────────────╯st required ·            [0m
+    frontend dev               activity  child  ⠋ running · 3 s                             ~/work/acme/.holla.toml     [0m
+                                                                                 Alt+Enter  Set an alias… · Show        [0m
+    Explore                                                                                 configuration               [0m
+     Tasks   Git   Files   Disk   Services   System                                         diagnostics · Pin ·         [0m
+    Children · 3 projects      explore   child  3 child projects discovered                 Alias · Why here?           [0m
+    System · mbp               explore   host   available on this host                                                  [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ ~/work/acme   main   ↑1                                                              ⠋ 4 running    truecolor · 120×40 [0m
+        [0m[1m    [0m         [0m[1m  [0m       [0m[1m     [0m       [0m[1m↑↓ Move  Enter[0m Swi[0m[1mtch[0m  [0m[1mEsc[0m Canc[0m[1mel     [0m            api tests finished · exit 0 [0m

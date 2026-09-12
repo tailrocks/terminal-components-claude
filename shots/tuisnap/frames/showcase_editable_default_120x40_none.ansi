@@ -1,0 +1,40 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Editable tables                         no color · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+   Foundations            [0m[1mEditable tables[0m  Navigation is reversed cell; editing is a cursor. They never look alike.     [0m
+   Overview                                                                                                             [0m
+                            Tasks                                                                              0 edits  [0m
+   Components                                                                                                           [0m
+   Buttons                     ID     Task                               Owner     Status     Branch                 …  [0m
+   Inputs                      #1040  Add rate limiting to auth endpoi…  mira      Done       feat/rate-limit           [0m
+   Text areas                  #1041  Migrate sessions table to UUID k…  jonas     ▸ Running  chore/uuid-sessions       [0m
+   Forms                       #1042  Fix flaky checkout integration t…  ana       Failed     fix/checkout flake   [0m[1m![0m    [0m
+   Lists                       #1043  Write release notes for 3.2        mira      Queued     docs/release-3.2          [0m
+   Trees                       #1044  Replace deprecated Vue mixins      kai       Done       refactor/mixins           [0m
+   Tables                      #1045  Upgrade Postgres driver to 0.9     jonas     Paused     chore/pg-driver           [0m
+[0m[1m▎› Editable tables      [0m       #1046  Extract billing service module     sofia     Done       refactor/billing          [0m
+   Panels                      #1047  Add OpenTelemetry tracing spans    kai       ▸ Running  feat/otel                 [0m
+   Sidebars                    #1048  Remove legacy feature flags        ana       Queued     chore/flags               [0m
+   Dialogs                     #1049  Generate API client from OpenAPI   sofia     Done       feat/api-client           [0m
+   Progress                    #1050  Harden CSP headers                 mira      Done       sec/csp                   [0m
+   Scrolling                   #1051  Speed up cold start of worker      jonas     Failed     perf/worker-boot          [0m
+   Terminal                    #1052  Localize onboarding emails         kai       Queued     feat/i18n-emails          [0m
+   Code editor                 #1053  Add pagination to audit log        ana       Done       feat/audit-pages          [0m
+   Diff                                                                                                                 [0m
+   Data grid                                                                                                            [0m
+   Chips & selects        reversed  cell cursor (navigation)                                                            [0m
+   Pickers                ▁         editing cursor + accent underline                                                   [0m
+   Chrome                 !         validation error                                                                    [0m
+                                                                                                                        [0m
+   Screens                                                                                                              [0m
+   Settings                                                                                                             [0m
+   Task runner                                                                                                          [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                            [0m

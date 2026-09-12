@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help      northwind-traders-platform-migration › inventory…ory-reconciliation-core  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                        scope ‹ here ›
+
+    Suggested here                                                               Analyze disk usage       disk · here
+  › Analyze disk usage         disk     here    / is 91% full
+    Resolve the rebase in la…  git      here    rebase in progress…              Does       largest-first tree of
+    Review 7 modified files    git      here    7 modified · 0 untracked                    this folder that deepens
+    Open btm                   system   host    sustained pressure…                         as the scan streams;
+    Review cleanup candidates  cleanup  host    8.0 GiB across 4 categories                 select any entry or
+                                                                                            rebuildable artifacts
+    Recent here                                                                             for cleanup
+    nothing used here yet                                                        Runs       'holla disk analyze'
+                                                                                 In         ~/work/clients/n…service
+    Explore                                                                      Host       mbp · local
+     Tasks   Git   Files   Disk   Services   System                              Scope      here
+    Children · 14 projects     explore  child   14 child projects discovered     Why        / is 91% full
+    Parent · northwind-trade…  explore  parent  workspace root above this f…     Changes    none · read-only
+    System · mbp               explore  host    available on this host           Risk       read-only
+                                                                                 Data       live · 3 s ago
+                                                                                 Gate       opens a review · the
+                                                                                            deletion is gated there
+                                                                                            (typed phrase)
+                                                                                 Alt+Enter  Disk overview (home
+                                                                                            folders) · Analyze a
+                                                                                            custom path… · Top files
+                                                                                            on this Mac · Pin ·
+                                                                                            Alias · Why here?
+
+
+
+
+
+
+
+
+ ~/work/clients/northwind-trad…iation-service   ↓14 ↑3 • 7 · rebase            ! docker, github unavailable
+           Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

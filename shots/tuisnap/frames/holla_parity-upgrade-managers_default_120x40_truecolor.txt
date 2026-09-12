@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                        scope ‹ here ›
+
+                                                                                 Tasks                 explore · here
+    Recent here
+    nothing used here yet                                                        Does       project tasks from mise
+                                                                                            and the build system,
+    Explore                                                                                 here and around
+ ▎  ›Tasks   Git   Files   Disk   Services   System                              Runs       no command · opens
+    System · mbp  explore  host  available on this host                                     inside holla
+                                                                                 In         ~
+                                                                                 Host       mbp · local
+                                                                                 Scope      here
+                                                                                 Why        stable entry point
+                                                                                 Changes    none · read-only
+                                                                                 Risk       read-only
+                                                                                 Data       live · 0 s ago
+                                                                                 Gate       runs directly
+                                                                                 Alt+Enter  Pin · Alias · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~                                                                                                   truecolor · 120×40
+           Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

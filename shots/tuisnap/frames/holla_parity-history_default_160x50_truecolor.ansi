@@ -1,0 +1,50 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                                                  holla · Rust project  [0m[1mmbp · local[0m [0m
+                                                                                                                                                                [0m
+ [0m[1m Here  [0m                                                                                                                                                        [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›  [0m
+                                                                                                                                                                [0m
+    Suggested here                                                                                               Run check                        task · here   [0m
+ [0m[1m › Run check     [0mtask   [0m[1m  [0mhere[0m[1m  [0mdefined by ~/work/holla/mise.toml[0m[1m                                           [0m                                                   [0m
+    Run fmt       task     here  defined by ~/work/holla/mise.toml                                               Does       type-check every target · runs      [0m
+    Run lint      task     here  defined by ~/work/holla/mise.toml                                                          in ~/work/holla                     [0m
+    Run shots     task     here  defined by ~/work/holla/mise.toml                                               Runs       mise run check                      [0m
+    Run tests     task     here  defined by ~/work/holla/mise.toml                                               In         ~/work/holla                        [0m
+                                                                                                                 Host       mbp · local                         [0m
+    Recent here                                                                                                  Scope      here                                [0m
+    nothing used here yet                                                                                        Why        defined by                          [0m
+                                                                                                                            ~/work/holla/mise.toml              [0m
+    Explore                                                                                                      Changes    runs `cargo check --workspace`      [0m
+     Tasks   Git   Files   Disk   Services   System                                                                         in ~/work/holla                     [0m
+    System · mbp  explore  host  available on this host                                                          Risk       mutating                            [0m
+                                                                                                                 Data       live · 2 s ago                      [0m
+                                                                                                                 Gate       runs directly                       [0m
+                                                                                                                 Alt+Enter  Show the task definition · Dry      [0m
+                                                                                                                            run · Pin · Alias · Why here?       [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m~/work/holla[0m   main                                                                                                                         truecolor · 160×50 [0m
+                                [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Run  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mCtrl+G[0m Activities                                  [0m

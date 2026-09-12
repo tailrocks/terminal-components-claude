@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                          holla · Rust project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                        scope ‹ here ›
+
+    Suggested here                                                               Run check                task · here
+  › Run check     task     here  defined by ~/work/holla/mise.toml
+    Run fmt       task     here  defined by ~/work/holla/mise.toml               Does       type-check every target
+    Run lint      task     here  defined by ~/work/holla/mise.toml                          · runs in ~/work/holla
+    Run shots     task     here  defined by ~/work/holla/mise.toml               Runs       mise run check
+    Run tests     task     here  defined by ~/work/holla/mise.toml               In         ~/work/holla
+                                                                                 Host       mbp · local
+    Recent here                                                                  Scope      here
+    nothing used here yet                                                        Why        defined by
+                                                                                            ~/work/holla/mise.toml
+    Explore                                                                      Changes    runs `cargo check
+     Tasks   Git   Files   Disk   Services   System                                         --workspace` in
+    System · mbp  explore  host  available on this host                                     ~/work/holla
+                                                                                 Risk       mutating
+                                                                                 Data       live · 2 s ago
+                                                                                 Gate       runs directly
+                                                                                 Alt+Enter  Show the task definition
+                                                                                            · Dry run · Pin · Alias
+                                                                                            · Why here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/holla   main                                                                                 truecolor · 120×40
+            Type Search  ↑↓ Move  Enter Run  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

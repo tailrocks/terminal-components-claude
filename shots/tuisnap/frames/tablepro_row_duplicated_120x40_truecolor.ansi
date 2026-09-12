@@ -1,0 +1,40 @@
+ ▪  [0m[1mTablePro[0m [0m[1m Production [0m [0m[1m◆ production[0m  acme_prod › public [0m[1m safe [0m               • 1 pending  truecolor · 120×40  ? help [0m
+                                                                                                                        [0m
+  ≡ Query 1 ×   [0m[1m [0mT[0m[1m orders ×  [0m                                                                                       +   [0m
+ ───────────────━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ╭─ Explorer ─────── public ─╮ ╭─[0m[1m public › orders [0m────────────────────────────────────────────────────────── 14 cols ─╮ [0m
+ │                           │ │  [0m[1m Data  [0m  Structure                                                                  │ [0m
+ │   Filter objects          │ │  ━━━━━━━──────────────────────────────────────────────────────────────────────────── │ [0m
+ │  ▾ D acme_prod            │ │                                                                                      │ [0m
+ │    ▾ S public             │ │         ⚷ id                                    order_number  customer_id       12›  │ [0m
+ │      ▾ Tables             │ │     475 1bdd3a65-1d25-429b-8aa3-0e342f385dcc           10474  5d1cd2f7-4a…eccf→    │ │ [0m
+ │        ▸ T organizations  │ │     476 1bc919d4-b32d-44fe-a25f-1d2b0a29aedc           10475  e8b8e347-2b…db3e→    │ │ [0m
+ │        ▸ T customers      │ │     477 3c66789d-917f-4402-a1c6-175de6daac67           10476  2968db69-02…6e50→    │ │ [0m
+ │        ▸ T products       │ │     478 29839ddb-3da3-41e0-9581-b69c40ed4990           10477  f1ecd42b-fd…b8b1→    │ │ [0m
+ │        ▸ T orders         │ │     479 4ed3119f-b5a4-4697-ac8f-a35c5c3d99dc           10478  71162bfb-7f…1017→    │ │ [0m
+ │        ▸ T order_items    │ │     480 5c3d99dc-a35c-4c8f-9c56-7fbb71162bfb           10479  67d1017b-e6…19df→    │ │ [0m
+ │        ▸ T payments       │ │     481 910fb65a-b88a-4f11-adbf-a4c3852d0f2e           10480  0578e0c7-00…9169→    │ │ [0m
+ │        ▸ T subscriptions  │ │     482 9773dce2-1422-4d46-848f-df53a0922de2           10481  708ed4da-e0…3a0f→    │ │ [0m
+ │      ▸ Views              │ │     483 b47520f6-7e87-42b7-bb4a-5fd129ba9378           10482  6bfe6a8c-f2…0298→    │ │ [0m
+ │      ▸ Functions          │ │     484 b6062a21-a66c-41cd-80d3-35a241666cad           10483  021b8808-f5…96cf→    │ │ [0m
+ │      ▸ Sequences          │ │     485 d5c0b11b-3833-40de-a64d-a7b65c91c707           10484  2313b76a-a0…e1c4→    │ │ [0m
+ │    ▸ S analytics          │ │     486 ad8045e9-fecb-49ab-bdc5-77c375e7e122           10485  fc493fac-90…c7dc→    │ │ [0m
+ │    ▸ S audit              │ │     487 75e7e122-77c3-4dc5-8167-90e7fc493fac           10486  031c7dcf-04…a5a3→    │ │ [0m
+ │                           │ │     488 ed273d96-a94e-4c54-ad3c-368302de0fa6           10487  14f1927e-2c…913c→    │ │ [0m
+ │                           │ │     489 58a291e1-49d7-4f60-b246-cd7df9dc71b5           10488  4b3a182e-8c…0680→    │ │ [0m
+ │                           │ │     490 19e3a260-57b7-406a-a0e3-07c13c95bcf1           10489  53ace96a-67…d25b→    │ │ [0m
+ │                           │ │     491 63803b5f-29a5-4c74-a8ff-e559c0edb695           10490  8f308a1a-c7…5b30→    │ │ [0m
+ │                           │ │     492 5d9a96aa-bac3-4075-9060-e3d81c23cc44           10491  53446c08-f4…4915→    │ │ [0m
+ │                           │ │     493 dcb6db82-d77a-4181-b9c0-3dbbb55eca8c           10492  363b8257-a3…f3b4→    │ │ [0m
+ │                           │ │     494 b55eca8c-3dbb-49c0-b06f-a389363b8257           10493  6bef3b46-34…ebf4→    │ │ [0m
+ │                           │ │     495 fa70b703-caef-4854-9997-6a5ffc4309f9           10494  3c01cd97-1b…bc69→    │ │ [0m
+ │                           │ │     496 12afd08f-4342-47c5-a0b6-ad06a18e0c1c           10495  18f879fd-46…af3d→    │ │ [0m
+ │                           │ │     497 dce6f3f6-ff9d-4d2e-8c35-bfb812cc2d50           10496  3ec43e01-54…4707→    │ │ [0m
+ │                           │ │     498 c3ad24b1-ad5f-419d-8a25-cf181b6f0a7a           10497  ac4db596-66…520d→    │ │ [0m
+ │                           │ │     499 ea3426ef-d76a-47d4-9acf-2f938e2a6096           10498  8cd34c0f-f2…442d→    ┃ │ [0m
+ │                           │ │                                                                                      │ [0m
+ │                           │ │   • 1 pending · 1 insert                              Preview SQL   Discard   [0m[1mSave [0m  │ [0m
+ │                           │ │   rows 475–499 of 501 loaded · 1,203,338 total · cols 1–2 of 14                      │ [0m
+ ╰───────────────────────────╯ ╰──────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                        [0m
+ [0m[1m↑↓←→[0m Cell  [0m[1mEnter[0m Edit  [0m[1mAlt+D[0m Duplicate row  [0m[1ms[0m Sort  [0m[1mf[0m Filter  [0m[1mCtrl+S[0m Save  [0m[1mTab[0m Next            Connected to Production [0m

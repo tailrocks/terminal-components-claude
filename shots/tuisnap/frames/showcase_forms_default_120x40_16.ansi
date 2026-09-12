@@ -1,0 +1,40 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Forms                                  16 colors · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+   Foundations            [0m[1mForms[0m  Sections, required fields, validation, submission                                      [0m
+   Overview                                                                                                             [0m
+                            New task                                                                     Ctrl+S Submit  [0m
+   Components                                                                                                           [0m
+   Buttons                  Task                                           Options                                      [0m
+   Inputs                     Task name *                                    Mode                                       [0m
+   Text areas                 Short imperative summary                      ( ) Fast                                    [0m
+[0m[1m▎› Forms                [0m                                                    (●) Balanced                                [0m
+   Lists                      Description                                   ( ) Thorough                                [0m
+   Trees                      What should Junie do, and what does do…                                                   [0m
+   Tables                                                                   [✓] Run tests before opening a PR           [0m
+   Editable tables                                                          [ ] Open a pull request when done           [0m
+   Panels                                                                                                               [0m
+   Sidebars                   Optional · Markdown                           ○── Auto-approve changes off                [0m
+   Dialogs                                                                  ──● Notify on completion on                 [0m
+   Progress                 Review                                           Managed by your organization               [0m
+   Scrolling                  Reviewer  optional                                                                        [0m
+   Terminal                   name@company.com                                                                          [0m
+   Code editor                Optional                                                                                  [0m
+   Diff                                                                                                                 [0m
+   Data grid                                                                                                            [0m
+   Chips & selects                                                                                                      [0m
+   Pickers                                                                                                              [0m
+   Chrome                                                                                                               [0m
+                             [0m[1mCreate task [0m   Reset                                                                       [0m
+   Screens                                                                                                              [0m
+   Settings                                                                                                             [0m
+   Task runner                                                                                                          [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                            [0m

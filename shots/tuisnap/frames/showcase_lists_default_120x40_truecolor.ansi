@@ -1,0 +1,40 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Lists                                  truecolor · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+   Foundations            [0m[1mLists[0m  Single and multiple selection, disabled items, scrolling, empty state                  [0m
+   Overview                                                                                                             [0m
+                            Language        1–13 of 20      Files to inclu… 2 selected      Search results              [0m
+   Components                                                                                                           [0m
+   Buttons                  Chosen: Rust                    Space toggle · a all · Sh…                                  [0m
+   Inputs                                                                                                               [0m
+   Text areas                › Rust                  ┃       ✓ src/api/auth… modified                                   [0m
+   Forms                       TypeScript            ┃       ✓ src/api/bill… modified                                   [0m
+[0m[1m▎› Lists                [0m       Python                ┃         src/db/sche… generated                                   [0m
+   Trees                       Kotlin                ┃         tests/checkout.rs  new                                   [0m
+   Tables                      Go                    ┃         Cargo.lock      locked                                   [0m
+   Editable tables             Java                  ┃         docs/webhook… modified         No results for “retry”    [0m
+   Panels                      Swift                 ┃         src/workers/… modified                                   [0m
+   Sidebars                    C#                    ┃         src/config.rs modified                                   [0m
+   Dialogs                     Ruby                  │         README.md     modified                                   [0m
+   Progress                    Scala                 │         src/main.rs   modified                                   [0m
+   Scrolling                   Elixir                │         tests/auth_flow.rs new                                   [0m
+   Terminal                    Haskell               │         src/db/pool.… modified                                   [0m
+   Code editor                 Zig                   │                                                                  [0m
+   Diff                                                                                                                 [0m
+   Data grid                                                                                                            [0m
+   Chips & selects                                                                                                      [0m
+   Pickers                                                                                                              [0m
+   Chrome                                                                                                               [0m
+                                                                                                                        [0m
+   Screens                                                                                                              [0m
+   Settings                                                                                                             [0m
+   Task runner                                                                                                          [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                            [0m

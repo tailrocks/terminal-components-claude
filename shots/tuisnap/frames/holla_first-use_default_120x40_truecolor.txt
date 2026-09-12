@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                                    no project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                                                        scope ‹ here ›
+
+    Suggested here                                                               Show system resources  system · host
+    Analyze disk usage     disk     here  / is 91% full
+    Open btm               system   host  sustained pressure…                    Does       CPU, load, memory, swap,
+  › Show system resources  system   host  CPU 78% for 4 min                                 pressure, disk and
+                                                                                            network snapshot; then
+    Recent here                                                                             hand off to btm for
+    nothing used here yet                                                                   continuous monitoring
+                                                                                 Runs       'holla snapshot system'
+    Explore                                                                      In         mbp · host-wide
+     Tasks   Git   Files   Disk   Services   System                              Host       mbp · local
+    System · mbp           explore  host  available on this host                 Scope      host
+                                                                                 Why        CPU 78% for 4 min
+                                                                                 Changes    none · read-only
+                                                                                 Risk       read-only
+                                                                                 Data       live · 2 s ago
+                                                                                 Gate       runs directly
+                                                                                 Alt+Enter  Open btm · Show process
+                                                                                            tree · Pin · Alias · Why
+                                                                                            here?
+
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/scratch                                                                     / ━━━━━━━━━━─ 91%     truecolor · 120×40
+           Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  Ctrl+↑↓ Scope  Ctrl+G Activities

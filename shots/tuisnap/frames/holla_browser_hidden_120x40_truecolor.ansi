@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                    no project  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here › Files › site  [0m                                                                                                 [0m
+ ━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mFiles · ~/work/site[0m                                                                                                   [0m
+  18 entries · 2 hidden shown · directories first                                                                       [0m
+                                                                                                                        [0m
+ [0m[1m▎[0m▸[0m[1m .git                           [0m        –[0m[1m  [0m2026-09-08 08:41[0m[1m    [0m    ~/work/site/.git                      directory   [0m
+  ▸ assets                                 –  2026-09-06 08:41                                                          [0m
+  ▸ private                                –  2026-09-03 08:41        0 visible · 0 hidden                              [0m
+    .env                                 9 B  2026-09-09 08:41        modified 2026-09-08 08:41                         [0m
+    bad.txt                              3 B  2026-09-07 08:41        Find and Browse are always available from Here    [0m
+    big.log                         19.4 KiB  2026-09-08 08:41                                                          [0m
+  → broken                               0 B  2026-09-09 08:41                                                          [0m
+    café.txt                            11 B  2026-09-09 08:41                                                          [0m
+    café.txt                            12 B  2026-09-09 08:41                                                          [0m
+    control.txt                         13 B  2026-09-07 08:41                                                          [0m
+  → current                              0 B  2026-09-09 08:41                                                          [0m
+    empty.txt                            0 B  2026-09-09 08:41                                                          [0m
+    index.html                          34 B  2026-09-09 08:41                                                          [0m
+    logo.png                             6 B  2026-09-07 08:41                                                          [0m
+    long.txt                         4.9 KiB  2026-09-08 08:41                                                          [0m
+    package.json                        85 B  2026-09-08 08:41                                                          [0m
+  ◇ pipe                                 0 B  2026-09-10 08:41                                                          [0m
+    pnpm-lock.yaml                      19 B  2026-09-08 08:41                                                          [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m~/work/site[0m                               ~/work/site · hidden shown                                truecolor · 120×40 [0m
+ [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open / preview  [0m[1m←[0m Parent  [0m[1mg[0m Go to path  [0m[1mCtrl+H[0m Hidden  …   Hidden entries shown · from the same listing [0m

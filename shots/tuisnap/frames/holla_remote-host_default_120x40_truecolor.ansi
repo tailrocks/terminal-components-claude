@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                      payments · service checkout  [0m[1m◆ prod-eu-1 · production[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here  [0m                                                                                                                [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                                                                        scope ‹ here ›  [0m
+                                                                                                                        [0m
+    Suggested here                                                               Follow paymen… system · on prod-eu-1   [0m
+    Who is blocking the data…  postgres  here          2 sessions blocked f…                                            [0m
+ [0m[1m › Follow payments-worker j…  [0msystem  [0m[1m  [0mon prod-eu-1[0m[1m  [0munit is restarting[0m[1m    [0m    Does       journalctl -u               [0m
+    Open btm                   system    on prod-eu-1  sustained pressure…                  payments-worker -f          [0m
+    Show payments-worker sta…  system    on prod-eu-1  3 restarts in 10 min      Runs       journalctl -u pa… -n 200    [0m
+    Show system resources      system    on prod-eu-1  CPU 34% for 11 min        In         prod-eu-1 · host-wide       [0m
+                                                                                 Host       prod-eu-1 · production ·    [0m
+    Recent here                                                                             over SSH                    [0m
+    nothing used here yet                                                        Scope      on prod-eu-1                [0m
+                                                                                 Why        unit is restarting          [0m
+    Explore                                                                      Changes    none · read-only            [0m
+     Tasks   Git   Files   Disk   Services   System                              Risk       read-only                   [0m
+    System · prod-eu-1         explore   on prod-eu-1  available on this ho…     Data       live · 2 s ago              [0m
+                                                                                 Gate       runs directly               [0m
+                                                                                 Alt+Enter  Pin · Alias · Why here?     [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m/srv/payments[0m   detached @ v2.14.3                                                                  truecolor · 120×40 [0m
+            [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Run  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mCtrl+G[0m Activities              [0m

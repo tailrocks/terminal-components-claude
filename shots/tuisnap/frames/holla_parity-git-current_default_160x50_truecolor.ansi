@@ -1,0 +1,50 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                                                    svc · Rust project  [0m[1mmbp · local[0m [0m
+                                                                                                                                                                [0m
+ [0m[1m Here  [0m                                                                                                                                                        [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›  [0m
+                                                                                                                                                                [0m
+    Suggested here                                                                                               Review 1 modified files         git · parent   [0m
+ [0m[1m › Review 1 modified files      [0mgit    [0m[1m  [0mparent[0m[1m  [0m1 modified · 0 untracked[0m[1m                                   [0m                                                   [0m
+                                                                                                                 Does       show the changed files with         [0m
+    Recent here                                                                                                             their diff stat before              [0m
+    nothing used here yet                                                                                                   committing or syncing               [0m
+                                                                                                                 Runs       git -C /Users/alex/wo…us --short    [0m
+    Explore                                                                                                                 git -C /Users/alex/wo…iff --stat    [0m
+     Tasks   Git   Files   Disk   Services   System                                                              In         ~/work/svc                          [0m
+    Parent · svc (Rust project)  explore  parent  project root above this folder                                 Host       mbp · local                         [0m
+    System · mbp                 explore  host    available on this host                                         Scope      parent                              [0m
+                                                                                                                 Why        1 modified · 0 untracked            [0m
+                                                                                                                 Changes    none · read-only                    [0m
+                                                                                                                 Risk       read-only                           [0m
+                                                                                                                 Data       live · 2 s ago                      [0m
+                                                                                                                 Gate       runs directly                       [0m
+                                                                                                                 Alt+Enter  Open in a Git TUI (lazygit) ·       [0m
+                                                                                                                            Pin · Alias · Why here?             [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m~/work/svc/src/api[0m   feature/x   ↓2 ↑1 • 1                                                                                                  truecolor · 160×50 [0m
+                               [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Open  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mCtrl+G[0m Activities                                  [0m

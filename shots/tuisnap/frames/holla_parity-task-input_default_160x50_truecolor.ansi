@@ -1,0 +1,50 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                                      app · service checkout  [0m[1m◆ devbox · production[0m [0m
+                                                                                                                                                                [0m
+ [0m[1m Here  [0m                                                                                                                                                        [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                                                                                                                scope ‹ here ›  [0m
+                                                                                                                                                                [0m
+    Suggested here                                                                                               Follow payments-worker j… system · on devbox   [0m
+ [0m[1m › Follow payments-worker journal  [0msystem [0m[1m  [0mon devbox[0m[1m  [0munit is restarting[0m[1m                                   [0m                                                   [0m
+    Show payments-worker status     system   on devbox  3 restarts in 10 min                                     Does       journalctl -u payments-worker -f    [0m
+    Deploy the release              custom   here       Current folder · trusted                                 Runs       journalctl -u payment… -f -n 200    [0m
+    Quick no-op                     custom   here       Current folder · trusted                                 In         devbox · host-wide                  [0m
+    Run the stubborn worker         custom   here       Current folder · trusted                                 Host       devbox · production · over SSH      [0m
+                                                                                                                 Scope      on devbox                           [0m
+    Recent here                                                                                                  Why        unit is restarting                  [0m
+    nothing used here yet                                                                                        Changes    none · read-only                    [0m
+                                                                                                                 Risk       read-only                           [0m
+    Explore                                                                                                      Data       live · 2 s ago                      [0m
+     Tasks   Git   Files   Disk   Services   System                                                              Gate       runs directly                       [0m
+    System · devbox                 explore  on devbox  available on this host                                   Alt+Enter  Pin · Alias · Why here?             [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m/srv/app[0m                                                                                                                                    truecolor · 160×50 [0m
+                                [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Run  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mCtrl+G[0m Activities                                  [0m

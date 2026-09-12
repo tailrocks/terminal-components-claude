@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Tables              i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mTables[0m  Sort by header, hover rows, select with Enter, ov… [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃    Tasks                              unsorted · 1–5 of 24  [0m
+   Text areas     ┃                                                             [0m
+   Forms          ┃       ID     Task                               Owner   …   [0m
+   Lists          ┃       #1040  Add rate limiting to auth endpoi…  mira     ┃  [0m
+   Trees          ┃       #1041  Migrate sessions table to UUID k…  jonas    │  [0m
+[0m[1m▎› Tables         [0m┃       #1042  Fix flaky checkout integration t…  ana      │  [0m
+   Editable tabl… ┃       #1043  Write release notes for 3.2        mira     │  [0m
+   Panels         ┃       #1044  Replace deprecated Vue mixins      kai      │  [0m
+   Sidebars       ┃                                                             [0m
+   Dialogs        ┃                                                             [0m
+   Progress       ┃    Checks                                                   [0m
+   Scrolling      ┃                                                             [0m
+   Terminal       ┃       Check                                     Result      [0m
+   Code editor    ┃                                                             [0m
+   Diff           ┃                                                             [0m
+   Data grid      │                    No checks have run yet                   [0m
+   Chips & selec… │                                                             [0m
+   Pickers        │                                                             [0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m

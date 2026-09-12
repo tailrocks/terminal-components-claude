@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                  acme · mise monorepo  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                                scope ‹ here ›
+
+    Suggested here                                                            ┃
+    Follow acme-api-1 logs      docker   here   service is unhealthy          ┃
+    Inspect 10 GB of generate…  disk     here   10 GB generated artifacts     ┃
+    Install missing tools · s…  task     here   1 tool missing                ┃
+    Review cleanup candidates   cleanup  host   10.6 GiB across 4 categories  ┃
+  › Deploy preview              custom   here   Current folder · ⚠ unreviewed ┃
+                                                                              ┃
+    Recent here                                                               ┃
+    nothing used here yet                                                     ┃
+                                                                              ┃
+    Explore                                                                   ┃
+     Tasks   Git   Files   Disk   Services   System                           ┃
+    Children · 3 projects       explore  child  3 child projects discovered   │
+
+    → tools/deploy-preview.sh --env preview · here · mutating
+
+ ~/work/acme   main   ↑1                                      truecolor · 80×24
+      Type Search  ↑↓ Move  Enter Trust…  Alt+Enter More  Tab Preview  …

@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                           no project  devbox · development
+
+  Here › Upgrade everything
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────
+  Upgrade everything · devbox                                                8 steps · 7 included · 1 excluded · ~16 s
+  upgrade Debian packages and global mise tools on devbox
+
+         step                         needs  lane  note                   06 Upgrade selected mise tools     optional
+  [✓] 01 Preflight                    –      ·     sudo
+  [✓] 02 Refresh Debia╭──────────────────────────────────────────────────────────────────────────╮exclude go
+  [✓] 03 Review Debian│                                                                          │
+  [✓] 04 Apply Debian │  Start upgrade everything?                                               │al mise tools
+  [✓] 05 Inspect globa│                                                                          │cation
+  [ ] 06 Upgrade selec│  Plan       Upgrade everything · upgrade Debian packages and global      │
+  [✓] 07 Package clean│             mise tools on devbox                                         │6.1.0 · python
+  [✓] 08 Final verific│  Host       devbox                                                       │ · pnpm 10.4.0 →
+                      │  Steps      7 included · 1 excluded · ~16 s                              │luded
+    08 Final verificat│  Privilege  sudo · cached for this session                               │
+                      │  Debian     14 upgradable · 2 security                                   │
+                      │  mise       4 outdated global tools · go excluded                        │
+                      │  Reboot     required after the kernel upgrade                            │
+                      │                                                                          │
+                      │  cat /etc/os-release                                                     │
+                      │  sudo -n true                                                            │
+                      │  fuser /var/lib/dpkg/lock-frontend                                       │
+                      │  df -h /                                                                 │
+                      │  test -f /var/run/reboot-required                                        │
+                      │  sudo apt-get update … 8 more                                            │
+                      │                                                                          │
+                      │                                                   ▎Cancel   Start plan   │
+                      │                                                                          │
+                      ╰──────────────────────────────────────────────────────────────────────────╯
+
+
+
+
+                                                                                               Cancel    Confirm plan
+
+ ~                              review · 7 steps · 2 branches parallel                               truecolor · 120×40
+                                        ← → Choose  Enter Confirm  Esc Cancel              06 excluded · 08 now blocked

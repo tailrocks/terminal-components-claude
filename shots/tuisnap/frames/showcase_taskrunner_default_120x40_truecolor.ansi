@@ -1,0 +1,40 @@
+ ▪ [0m[1mJunie[0m Design system / Screens / Task runner                               truecolor · 120×40   i Inspector   ? Help  [0m
+                                                                                                                        [0m
+   Foundations            [0m[1mTask runner[0m  Composed: tree, live progress, following log, busy states                        [0m
+   Overview                                                                                                             [0m
+                            Targets                         Pipeline                                       0 of 6 done  [0m
+   Components                                                                                                           [0m
+   Buttons                   ▾ payments-gateway             compile       queued                                        [0m
+   Inputs                      ▾ build                      lint          queued                                        [0m
+   Text areas                      compile                  typecheck     queued                                        [0m
+   Forms                           lint                     unit          queued                                        [0m
+   Lists                           typecheck                integration   queued                                        [0m
+   Trees                       ▾ test                       e2e           queued                                        [0m
+   Tables                          unit                                                                                 [0m
+   Editable tables                 integration               [0m[1mRun pipeline [0m   Cancel                                     [0m
+   Panels                          e2e                                                                                  [0m
+   Sidebars                    ▾ deploy                                                                                 [0m
+   Dialogs                         staging                  Log                                            · following  [0m
+   Progress                        production                                                                           [0m
+   Scrolling                 ▾ shared-libs                  Ready. Press r or Run to start the pipeline.                [0m
+   Terminal                      compile                                                                                [0m
+   Code editor                   publish                                                                                [0m
+   Diff                                                                                                                 [0m
+   Data grid                                                                                                            [0m
+   Chips & selects                                                                                                      [0m
+   Pickers                                                                                                              [0m
+   Chrome                                                                                                               [0m
+                                                                                                                        [0m
+   Screens                                                                                                              [0m
+   Settings                                                                                                             [0m
+[0m[1m▎› Task runner          [0m                                                                                                [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                            [0m

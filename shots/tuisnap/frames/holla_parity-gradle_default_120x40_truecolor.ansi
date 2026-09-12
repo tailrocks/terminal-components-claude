@@ -1,0 +1,40 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                        android · Gradle build  [0m[1mmbp · local[0m [0m
+                                                                                                                        [0m
+ [0m[1m Here  [0m                                                                                                                [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                                                                        scope ‹ here ›  [0m
+                                                                                                                        [0m
+    Suggested here                                                               Clean Gradle outputs… cleanup · here   [0m
+ [0m[1m › Clean Gradle outputs und…  [0mcleanup[0m[1m  [0mhere[0m[1m  [0m4 candidates[0m[1m       [0mdestructive[0m[1m [0m                                           [0m
+    gradle build               gradle   here  build.gradle.kts…                  Does       gradle --stop, then move    [0m
+    gradle clean               gradle   here  build.gradle.kts…                             every .gradle and build     [0m
+    gradle test                gradle   here  build.gradle.kts…                             directory below this        [0m
+                                                                                            folder (depth 5, no         [0m
+    Recent here                                                                             symlinks, no                [0m
+    nothing used here yet                                                                   node_modules) to the        [0m
+                                                                                            Trash · 4 candidates · a    [0m
+    Explore                                                                                 daemon is running ·         [0m
+     Tasks   Git   Files   Disk   Services   System                                         gradle --stop is the        [0m
+    System · mbp               explore  host  available on thi…                             first step                  [0m
+                                                                                 Runs       gradle --stop               [0m
+                                                                                 In         ~/work/android              [0m
+                                                                                 Host       mbp · local                 [0m
+                                                                                 Scope      here                        [0m
+                                                                                 Why        4 candidates                [0m
+                                                                                 Changes    see the command             [0m
+                                                                                 Risk       destructive                 [0m
+                                                                                 Data       live · 0 s ago              [0m
+                                                                                 Gate       opens a review · the        [0m
+                                                                                            deletion is gated there     [0m
+                                                                                            (typed phrase)              [0m
+                                                                                 Alt+Enter  Pin · Alias · Why here?     [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+ [0m[1m~/work/android[0m                                                                                      truecolor · 120×40 [0m
+         [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Confirm…  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mCtrl+G[0m Activities            [0m

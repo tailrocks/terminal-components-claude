@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                           no project  devbox · development [0m
+                                                                                                                        [0m
+  Here › Upgrade everything                                                                                             [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────── [0m
+  Upgrade everything · devbox                                                8 steps · 7 included · 1 excluded · ~16 s  [0m
+  upgrade Debian packages and global mise tools on devbox                                                               [0m
+                                                                                                                        [0m
+         step                         needs  lane  note                   06 Upgrade selected mise tools     optional   [0m
+  [✓] 01 Preflight                    –      ·     sudo                                                                 [0m
+  [✓] 02 Refresh Debia╭──────────────────────────────────────────────────────────────────────────╮exclude go            [0m
+  [✓] 03 Review Debian│                                                                          │                      [0m
+  [✓] 04 Apply Debian │  [0m[1mStart upgrade everything?[0m                                               │al mise tools         [0m
+  [✓] 05 Inspect globa│                                                                          │cation                [0m
+  [ ] 06 Upgrade selec│  Plan       Upgrade everything · upgrade Debian packages and global      │                      [0m
+  [✓] 07 Package clean│             mise tools on devbox                                         │6.1.0 · python        [0m
+  [✓] 08 Final verific│  Host       devbox                                                       │ · pnpm 10.4.0 →      [0m
+                      │  Steps      7 included · 1 excluded · ~16 s                              │luded                 [0m
+    08 Final verificat│  Privilege  sudo · cached for this session                               │                      [0m
+                      │  Debian     14 upgradable · 2 security                                   │                      [0m
+                      │  mise       4 outdated global tools · go excluded                        │                      [0m
+                      │  Reboot     required after the kernel upgrade                            │                      [0m
+                      │                                                                          │                      [0m
+                      │  cat /etc/os-release                                                     │                      [0m
+                      │  sudo -n true                                                            │                      [0m
+                      │  fuser /var/lib/dpkg/lock-frontend                                       │                      [0m
+                      │  df -h /                                                                 │                      [0m
+                      │  test -f /var/run/reboot-required                                        │                      [0m
+                      │  sudo apt-get update … 8 more                                            │                      [0m
+                      │                                                                          │                      [0m
+                      │                                                   ▎[0m[1mCancel [0m  [0m[1mStart plan [0m  │                      [0m
+                      │                                                                          │                      [0m
+                      ╰──────────────────────────────────────────────────────────────────────────╯                      [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                               Cancel    Confirm plan   [0m
+                                                                                                                        [0m
+ ~                              review · 7 steps · 2 branches parallel                               truecolor · 120×40 [0m
+                         [0m[1m  [0m       [0m[1m     [0m [0m[1m← →[0m Choo[0m[1ms[0me  [0m[1mEnter[0m Confirm  [0m[1mEsc[0m Cance[0m[1ml  [0m            06 excluded · 08 now blocked [0m

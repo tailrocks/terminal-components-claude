@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Buttons             i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mButtons[0m  Primary, secondary, subtle, danger, toggle, disa… [0m
+[0m[1m▎› Buttons        [0m┃                                                             [0m
+   Inputs         ┃    Playground          hover · click · Tab · Enter / Space  [0m
+   Text areas     ┃                                                             [0m
+   Forms          ┃    Actions                                                  [0m
+   Lists          ┃     [0m[1mRun task [0m   Preview    Cancel    Delete branch          [0m
+   Trees          ┃                                                             [0m
+   Tables         ┃    Toggles                                                  [0m
+   Editable tabl… ┃     ○ Auto-approve    ● Verbose                             [0m
+   Panels         ┃                                                             [0m
+   Sidebars       ┃    Disabled                                                 [0m
+   Dialogs        ┃     Disabled primary    Disabled                            [0m
+   Progress       ┃                                                             [0m
+   Scrolling      ┃    Busy                                                     [0m
+   Terminal       ┃     Start long job                                          [0m
+   Code editor    ┃                                                             [0m
+   Diff           ┃                                                             [0m
+   Data grid      │                                                             [0m
+   Chips & selec… │    State matrix                        reference rendering  [0m
+   Pickers        │                                                             [0m
+                                      Primary        Secondary                  [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m
