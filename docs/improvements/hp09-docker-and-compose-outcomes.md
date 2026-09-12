@@ -1,6 +1,6 @@
 # HP09 — Docker and Compose outcomes
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve Compose up/down/finite logs, container stop-and-remove, full cleanup and builder prune. Full cleanup graph alone does not cover standalone variants.
 
-**Source evidence and mandatory scope:** [matrix HP09](../holla-parity-matrix.md#hp09--docker-and-compose-outcomes) — `OP31`, `OP32`, `OP33`, `OP34`, `OP35`, `OP36`, `OP37`, `OP38`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP09](../parity/holla-parity-matrix.md#hp09--docker-and-compose-outcomes) — `OP31`, `OP32`, `OP33`, `OP34`, `OP35`, `OP36`, `OP37`, `OP38`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Separate Compose project from host container resources. Include all four manifest names, docker executable/daemon/plugin states and finite logs --tail 200 independently of follow logs. Legacy docker.stop-all stops and removes captured running/stopped IDs: offer an explicit Stop and remove all plan retaining that outcome, alongside new stop-only/remove-only alternatives. Full cleanup includes all images, network/system/volume prune; builder prune remains independently callable. Explain named-volume and buildx expansion separately.
 

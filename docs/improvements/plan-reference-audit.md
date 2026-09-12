@@ -1,7 +1,7 @@
 # Improvements plan: audit reference
 
 This document preserves research, evidence inventories and verification narratives
-moved from [IMPROVEMENTS_PLAN.md](../IMPROVEMENTS_PLAN.md). These records describe
+moved from [IMPROVEMENTS_PLAN.md](PLAN.md). These records describe
 the 2026-09-10 audit snapshots; their test results and completion claims are
 historical, not evidence that implementation is complete or current checks pass.
 The active plan owns scope, delivery order and acceptance criteria. The prior-fix
@@ -13,7 +13,7 @@ that time. The retired proposals section records the later scope decision.
 
 ## Verified baseline and evidence boundaries
 
-The [compiler-derived inventory](tui-audit-inventory.md) covers the existing
+The [compiler-derived inventory](../audits/tui-audit-inventory.md) covers the existing
 31 widget modules, primitives, interaction states, public API and four consumers:
 Showcase, TablePro, Jackin Preview and Holla. Final inventory: **1,573 source-backed
 exported entries**, including all 37 production `TextBuffer` methods; **572
@@ -46,9 +46,9 @@ separate from selecting the library's monochrome palette.
 
 ## Previous findings: disposition map
 
-The [original audit](tui-audit.md), [interaction report](tui-audit-interactions.md),
-[editor report](tui-audit-editor.md), [inventory](tui-audit-inventory.md)
-and [initial ecosystem research](tui-audit-research.md) are historical
+The [original audit](../audits/tui-audit.md), [interaction report](../audits/tui-audit-interactions.md),
+[editor report](../audits/tui-audit-editor.md), [inventory](../audits/tui-audit-inventory.md)
+and [initial ecosystem research](../audits/tui-audit-research.md) are historical
 records. Their original defect descriptions do not imply those fixes are still
 missing. The new prior-fix verification ledger gives current symbols, retained
 regressions and corrected claim scope for each row.
@@ -84,7 +84,7 @@ are one work item, not independent defect counts.
 Fetched live on 2026-09-10 through Firecrawl. This extends, rather than replaces,
 the earlier Bubbles/Textual/fzf/Lazygit comparison. Local reproductions decide
 defect status; another project's feature list is not proof of a missing widget.
-Full source-to-consumer reasoning: [ecosystem report](plan-ecosystem-research.md).
+Full source-to-consumer reasoning: [ecosystem report](../plan-verification/plan-ecosystem-research.md).
 
 | Primary evidence | Useful contract / local decision |
 | --- | --- |
@@ -132,14 +132,14 @@ review. The authoring agent's report remains the detailed evidence record.
 
 Evidence documents:
 
-- [API verification](plan-api-verification.md)
-- [Interaction verification](plan-interaction-verification.md)
-- [Text verification](plan-text-verification.md)
-- [Design verification](plan-design-verification.md)
-- [Extended ecosystem research](plan-ecosystem-research.md)
-- [Prior-fix ledger](plan-prior-fixes-verification.md)
-- [Terminal verification](plan-terminal-verification.md)
-- [Final cross-review](plan-final-review.md)
+- [API verification](../plan-verification/plan-api-verification.md)
+- [Interaction verification](../plan-verification/plan-interaction-verification.md)
+- [Text verification](../plan-verification/plan-text-verification.md)
+- [Design verification](../plan-verification/plan-design-verification.md)
+- [Extended ecosystem research](../plan-verification/plan-ecosystem-research.md)
+- [Prior-fix ledger](../plan-verification/plan-prior-fixes-verification.md)
+- [Terminal verification](../plan-verification/plan-terminal-verification.md)
+- [Final cross-review](../plan-verification/plan-final-review.md)
 
 Earlier library planning gate (historical evidence): all four cross-review findings resolved; no omitted finding
 or unresolved factual issue. Main checked 34 local links across this plan and

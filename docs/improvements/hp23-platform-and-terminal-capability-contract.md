@@ -1,6 +1,6 @@
 # HP23 — Platform and terminal capability contract
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve implemented macOS/Linux and terminal behavior while keeping explicit exclusions separate. Current platform fixtures do not cover legacy fallbacks.
 
-**Source evidence and mandatory scope:** [matrix HP23](../holla-parity-matrix.md#hp23--platform-and-terminal-capability-contract) — `X01`, `X02`, `X03`, `X04`, `X05`, `X06`, `X07`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP23](../parity/holla-parity-matrix.md#hp23--platform-and-terminal-capability-contract) — `X01`, `X02`, `X03`, `X04`, `X05`, `X06`, `X07`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Provide host-specific fixtures for every platform-sensitive matrix row: macOS casks/insights/dataless scanning/Spotlight/native Trash/open/reveal; Linux portable tools, hidden mac-only actions, FreeDesktop Trash, xdg-open fallback and process subreaper. Do not add apt/dnf/systemd-user as an old requirement. Do not call Windows, plugins, release infrastructure or nonexistent CLI strings parity gaps.
 

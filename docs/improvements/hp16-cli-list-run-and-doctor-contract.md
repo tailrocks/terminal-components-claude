@@ -1,6 +1,6 @@
 # HP16 — CLI list, run and doctor contract
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase
 
@@ -20,7 +20,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve bare launcher, browse, list, list --json, exact-ID run, doctor, help/version and exits. Preview parser currently ignores unknown arguments.
 
-**Source evidence and mandatory scope:** [matrix HP16](../holla-parity-matrix.md#hp16--cli-list-run-and-doctor-contract) — `E01`, `E03`, `E04`, `E06`, `E07`, `E08`, `E09`, `E10`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP16](../parity/holla-parity-matrix.md#hp16--cli-list-run-and-doctor-contract) — `E01`, `E03`, `E04`, `E06`, `E07`, `E08`, `E09`, `E10`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Specify one CLI over the shared registry, with deterministic simulated adapters while in preview. Preserve JSON v1 fields id/label/group/danger and text listing, warnings on stderr, exits 0/1/2/3/4, global warning refusal for run, exact-ID lookup and confirmation requirements. Doctor exposes detected groups/counts, scan timing and config paths/health. Bare invocation remains Here; browse retains file/directory start semantics.
 

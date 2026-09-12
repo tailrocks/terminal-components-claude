@@ -3,7 +3,7 @@
 Planning only; current `holla-fable` worktree, inspected 2026-09-10. No product
 code, capture baseline, dependency or terminal configuration changed. The probes
 below used existing binaries/interpreters and synthetic text. Prior fixes in
-[the verification report](tui-audit-verification.md) remain closed regressions.
+[the verification report](../audits/tui-audit-verification.md) remain closed regressions.
 
 ## Findings and boundaries
 
@@ -97,7 +97,7 @@ SIGTSTP/SIGCONT transition is wired into this owner. Module documentation at
 `:4` says every exit path; `run` at `:131–132` enumerates normal quit, I/O error
 and panic. Suspension is not an exit, and neither wording establishes signal
 recovery. Existing limitations already acknowledge missing job-control tests
-at `docs/tui-audit-verification.md:171–173`.
+at `docs/audits/tui-audit-verification.md:171–173`.
 
 Executed diagnostic topology, entirely separate from the user's terminal:
 

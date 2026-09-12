@@ -1,6 +1,6 @@
 # HP01 — Adaptive discovery and stable action identity
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve available actions, instant discovery, stable identity, grouping and keyboard invocation. The preview has timed sources and a finder, but lacks the complete legacy probe/registry contract.
 
-**Source evidence and mandatory scope:** [matrix HP01](../holla-parity-matrix.md#hp01--adaptive-discovery-and-stable-action-identity) — `L01`, `L07`, `L02`, `L03`, `L04`, `L05`, `L14`, `L06`, `L16`, `L17`, `L18`, `L19`, `L25`, `L26`, `L27`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP01](../parity/holla-parity-matrix.md#hp01--adaptive-discovery-and-stable-action-identity) — `L01`, `L07`, `L02`, `L03`, `L04`, `L05`, `L14`, `L06`, `L16`, `L17`, `L18`, `L19`, `L25`, `L26`, `L27`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Model executable missing/present, local markers, daemon failure and unknown state separately. Keep Current/Project/Host provenance visible; unavailable tools cannot become runnable through aliases. Retain built-in Find/Disk/Cleanup routes. Merge provider contributions deterministically by canonical action ID; report collisions and malformed-source warnings without retargeting existing selection. First render must precede slow discovery/history work.
 

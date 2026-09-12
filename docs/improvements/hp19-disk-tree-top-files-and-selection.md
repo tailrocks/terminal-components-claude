@@ -1,6 +1,6 @@
 # HP19 — Disk tree, top files and selection
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve root overview/custom path, expanding size tree, noise folding, arbitrary selection and Spotlight top files. Current disk page is flat and ignores requested path.
 
-**Source evidence and mandatory scope:** [matrix HP19](../holla-parity-matrix.md#hp19--disk-tree-top-files-and-selection) — `LD001`, `LD002`, `LD003`, `LD012`, `LD013`, `LD014`, `LD015`, `LD020`, `LD021`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP19](../parity/holla-parity-matrix.md#hp19--disk-tree-top-files-and-selection) — `LD001`, `LD002`, `LD003`, `LD012`, `LD013`, `LD014`, `LD015`, `LD020`, `LD021`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Make Here/selected/custom root explicit and validate the path with recoverable inline errors. Offer actual hierarchical allocated-largest-first tree, apparent-sort alternative, parent percentages and presentation-only noise folding. Space selects files/directories; parent dominates descendants without losing stricter safety policies. Keep paths/focus/checks stable across sorting/live updates and rescan after cleanup. Add macOS global Top files as a distinct scope with tree-scan fallback on Linux.
 

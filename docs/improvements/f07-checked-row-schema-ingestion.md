@@ -1,6 +1,6 @@
 # F07 — Checked row/schema ingestion
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase
 
@@ -33,8 +33,8 @@ well-formed behavior is unchanged. Additive checked APIs are a migration step,
 not a complete root fix while unchecked storage remains writable.
 
 Evidence and detailed probes for F02/F03/F05–F07:
-[API verification](../plan-api-verification.md), with independent user-flow
-checks in [design verification](../plan-design-verification.md).
+[API verification](../plan-verification/plan-api-verification.md), with independent user-flow
+checks in [design verification](../plan-verification/plan-design-verification.md).
 
 ## Evidence
 

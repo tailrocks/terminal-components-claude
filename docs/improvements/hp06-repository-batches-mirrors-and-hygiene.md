@@ -1,6 +1,6 @@
 # HP06 — Repository batches, mirrors and hygiene
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve sibling-repository pull/push/status, origin+GitLab mirroring and Git hygiene. Existing child plans cover only part of these outcomes.
 
-**Source evidence and mandatory scope:** [matrix HP06](../holla-parity-matrix.md#hp06--repository-batches-mirrors-and-hygiene) — `OP05`, `OP06`, `OP08`, `OP10`, `OP11`, `OP07`, `OP09`, `OP12`, `OP13`, `OP14`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP06](../parity/holla-parity-matrix.md#hp06--repository-batches-mirrors-and-hygiene) — `OP05`, `OP06`, `OP08`, `OP10`, `OP11`, `OP07`, `OP09`, `OP12`, `OP13`, `OP14`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Show immediate discovered repositories as resources, including legacy multi-repo threshold behavior as a fixture; new scope controls may expose one repository too. Build plans for parallel pull/push, sequential status --short and origin plus optional GitLab pushes. Label mirror scope exactly; do not call arbitrary remotes included. Offer fetch --prune and gc independently of merged-branch availability. Resolve origin/HEAD then main/master fallback; explain unavailable default.
 

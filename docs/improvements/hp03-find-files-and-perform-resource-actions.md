@@ -1,6 +1,6 @@
 # HP03 — Find files and perform resource actions
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve home file/folder discovery and Open, Reveal, Copy path, Analyze actions. Current file rows are fixture resources; Reveal incorrectly copies cwd.
 
-**Source evidence and mandatory scope:** [matrix HP03](../holla-parity-matrix.md#hp03--find-files-and-perform-resource-actions) — `I-F01`, `I-F02`, `I-F03`, `I-F04`, `I-F05`, `I-F06`, `I-F07`, `I-F08`, `I-F09`, `I-F10`, `I-F11`, `I-F12`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP03](../parity/holla-parity-matrix.md#hp03--find-files-and-perform-resource-actions) — `I-F01`, `I-F02`, `I-F03`, `I-F04`, `I-F05`, `I-F06`, `I-F07`, `I-F08`, `I-F09`, `I-F10`, `I-F11`, `I-F12`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Provide a Files scope in Here with mixed files/directories, indexed/partial counts and exact resource identity. Rank exact filename/stem, filename substring and fuzzy matches with deterministic path ties; expose bounded results (legacy 100) honestly. Keep an explicit blank-query state. Alternatives must operate on the selected path, not current cwd. Analyze directories directly and files via parent; preview resulting scope.
 

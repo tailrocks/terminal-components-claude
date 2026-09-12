@@ -1,6 +1,6 @@
 # HP10 — Homebrew service lifecycle
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve Homebrew service discovery, cache and start/stop/restart. Existing remote systemd resources are a different provider.
 
-**Source evidence and mandatory scope:** [matrix HP10](../holla-parity-matrix.md#hp10--homebrew-service-lifecycle) — `OP39`, `OP40`, `OP41`, `OP42`, `OP43`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP10](../parity/holla-parity-matrix.md#hp10--homebrew-service-lifecycle) — `OP39`, `OP40`, `OP41`, `OP42`, `OP43`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Expose service resources on hosts with brew, including Linuxbrew. Support both array and services-array JSON forms, valid sorted unique names and all three verbs regardless initial status. Preserve 30-action/10-service bound visibly or allow explicit further discovery. Show cache age; refresh stale names before target-changing operations.
 

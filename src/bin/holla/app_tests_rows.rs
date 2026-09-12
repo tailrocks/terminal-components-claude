@@ -1,5 +1,5 @@
 //! Row-level proofs for capability rows the journeys leave implicit. Each
-//! test names the matrix rows it closes (docs/holla-parity-matrix.md) and
+//! test names the matrix rows it closes (docs/parity/holla-parity-matrix.md) and
 //! asserts the exact argv, state or text the row contract requires.
 
 use ratatui::crossterm::event::KeyCode;

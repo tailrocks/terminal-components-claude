@@ -1,6 +1,6 @@
 # HP21 — Deletion authorization, dry run and recovery mode
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve deletion review, Trash default, explicit permanent mode, dry-run and path protections. Current gates protect fixture labels, not filesystem identity.
 
-**Source evidence and mandatory scope:** [matrix HP21](../holla-parity-matrix.md#hp21--deletion-authorization-dry-run-and-recovery-mode) — `L20`, `L21`, `LD048`, `LD049`, `LD051`, `LD055`, `LD057`, `LD058`, `LD050`, `LD052`, `LD053`, `LD054`, `LD056`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP21](../parity/holla-parity-matrix.md#hp21--deletion-authorization-dry-run-and-recovery-mode) — `L20`, `L21`, `LD048`, `LD049`, `LD051`, `LD055`, `LD057`, `LD058`, `LD050`, `LD052`, `LD053`, `LD054`, `LD056`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Resolve paths, inherited policies, recovery mode and estimated effects before review. Keep Cancel default; permanent selection is explicit and resets authorization; broad operation adds typed target-bound phrase. Dry-run uses identical discovery/validation and emits Would remove, with no daemon stop, cleanup-target mutation or false Removed result; its audit-log write is explicit. Application-owned filesystem mutation has one shared boundary; external Cargo/Gradle/Docker effects disclose tool-native behavior.
 

@@ -1,6 +1,6 @@
 # H00 — Existing Holla design and journey coverage
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase
 
@@ -8,10 +8,10 @@ Preserve and improve the existing Holla concept flows while adding the HP
 representations. This task owns design consistency and existing-flow coverage;
 it does not add all unimplemented ideas from CONCEPT.md to the backlog.
 
-Inspect current code and [preview inventory](../holla-preview-inventory.md),
+Inspect current code and [preview inventory](../parity/holla-preview-inventory.md),
 [Holla README](../../src/bin/holla/README.md),
-[design note](../../holla-project/notes/04-design-note.md),
-[CONCEPT.md](../../holla-project/CONCEPT.md) and [DESIGN.md](../../DESIGN.md).
+[design note](../product/notes/04-design-note.md),
+[CONCEPT.md](../product/CONCEPT.md) and [DESIGN.md](../design/DESIGN.md).
 The historical inventory is a starting point, not current completion evidence.
 
 ## Acceptance checklist
@@ -67,7 +67,7 @@ changed geometry/state grammar. Capture files alone do not pass review.
 
 ## Evidence
 
-**Inventory and baseline:** the historical [preview inventory](../holla-preview-inventory.md) was the starting point; the executable inventory is `app_tests_proofs.rs: inventory` (19 states, focus owners, markers, sizes, palettes). Baseline failures found while implementing and fixed at their owning boundary are recorded in the commit series `c9710d8` to this change (picker eligibility, tree identity, viewport retention and identity, finder ranking and cursor, drawer focus stops, prompt line buffering, fixture seeding, dialog measuring, breadcrumb nesting, cleanup ownership).
+**Inventory and baseline:** the historical [preview inventory](../parity/holla-preview-inventory.md) was the starting point; the executable inventory is `app_tests_proofs.rs: inventory` (19 states, focus owners, markers, sizes, palettes). Baseline failures found while implementing and fixed at their owning boundary are recorded in the commit series `c9710d8` to this change (picker eligibility, tree identity, viewport retention and identity, finder ranking and cursor, drawer focus stops, prompt line buffering, fixture seeding, dialog measuring, breadcrumb nesting, cleanup ownership).
 
 **Here as the decision surface, activities and plans as running work:** the concept journeys in `src/bin/holla/app_tests_flows.rs` (17 tests, table above) plus the 23 parity journeys in `app_tests_parity.rs`, the 12 row proofs in `app_tests_rows.rs` and the 9 proofs in `app_tests_proofs.rs`; 140 tests in the holla binary. Aliases, pins, hide and why never bypass matching, availability, trust or eligibility: `alternatives_pin_alias_hide_and_why`, `ranking.rs: aliases_beat_everything_and_carry_a_tag`, `risk_never_demotes_a_strong_match`, `app_tests_parity.rs: hp01_…` (an unavailable tool leads to `gh auth login`, never a clone), `hp09_…` (daemon-down rows are unavailable with the daemon's reason), `hp17_…` (an untrusted action lands on the trust page, an unsaved trust runs nothing).
 
@@ -85,4 +85,4 @@ changed geometry/state grammar. Capture files alone do not pass review.
 
 **Repository gates:** `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`, `cargo test` (all suites), `cargo doc --no-deps`, `git diff --check` pass at the closing commit (see the commit message for the counts).
 
-**Limits and Later:** Linux behaviour is fixture-modeled and captured, not run on Linux; job-control and PTY proofs ran on macOS only; HP16 CLI parity and every operational clause listed under Later in the HP task files remain open; the design note in `holla-project/notes/04-design-note.md` still describes the model accurately and was not changed.
+**Limits and Later:** Linux behaviour is fixture-modeled and captured, not run on Linux; job-control and PTY proofs ran on macOS only; HP16 CLI parity and every operational clause listed under Later in the HP task files remain open; the design note in `docs/product/notes/04-design-note.md` still describes the model accurately and was not changed.

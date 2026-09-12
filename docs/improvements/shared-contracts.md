@@ -5,7 +5,7 @@ requirements and full-roadmap delivery/closure rules. Apply acceptance to the
 selected slice; the broad roadmap does not expand the current goal into deferred
 applications, production providers, persistence or CLI work.
 
-The [tracker](../../IMPROVEMENTS_PLAN.md) owns progress. Original audit status and
+The [tracker](PLAN.md) owns progress. Original audit status and
 counts are historical. References below to task bodies point to the linked task
 files in that tracker. No task has been completed by reorganizing this document.
 Source paths in retained contracts are repository-relative; their line numbers
@@ -15,7 +15,7 @@ describe the audit snapshot and must be checked against current code.
 
 Generic widget/theme/glyph, keyed-collection, container/modal and worker
 framework proposals remain removed. Former O01/O02/O03/O06 entries are historical
-context in the [audit reference](../improvements-plan-reference.md#retired-framework-proposals).
+context in the [audit reference](plan-reference-audit.md#retired-framework-proposals).
 Concrete fixes retain their task contracts, with current versus later ownership
 defined in scope.md. HP14/HP15 require task ownership, cancellation,
 generation/revision matching, stale completion rejection, failure inspection and
@@ -37,8 +37,8 @@ future evidence. Reuse and extend existing components for selected Holla flows.
 
 Preserve every useful existing-Holla outcome within the new Here/context,
 resource/action, preview, scope, activity and plan model. The external baseline
-defines capability requirements; `holla-project/CONCEPT.md` defines the new
-product model; `DESIGN.md` defines the Junie interaction and visual system.
+defines capability requirements; `docs/product/CONCEPT.md` defines the new
+product model; `docs/design/DESIGN.md` defines the Junie interaction and visual system.
 This pass specifies deterministic product representations and future execution
 contracts. It does not enable real commands in the preview.
 
@@ -66,9 +66,9 @@ itself verified until its acceptance tests pass.
 ## Evidence boundaries and protected regressions
 
 Audit counts, prior-finding dispositions, source snapshots and verification
-history are in the [audit reference](../improvements-plan-reference.md).
-Preserve the [prior-fix ledger](../plan-prior-fixes-verification.md) and
-[disposition-map regression obligations](../improvements-plan-reference.md#previous-findings-disposition-map);
+history are in the [audit reference](plan-reference-audit.md).
+Preserve the [prior-fix ledger](../plan-verification/plan-prior-fixes-verification.md) and
+[disposition-map regression obligations](plan-reference-audit.md#previous-findings-disposition-map);
 completed fixes are not work to repeat. F23 retains the missing proof requirements.
 This plan's priorities govern duplicate findings, which count as one work item.
 
@@ -134,7 +134,7 @@ rtk git diff --check
 
 Regenerate only deliberate affected baselines after inspecting output. Capture
 scripts default to seven fixtures, not the ten-case 250-set audit; the exact
-ten-case reproduction is in the [verification ledger](../plan-prior-fixes-verification.md).
+ten-case reproduction is in the [verification ledger](../plan-verification/plan-prior-fixes-verification.md).
 Use an isolated socket and a new explicit output directory. Retain provenance
 and failed cases. Larger screenshot counts cannot replace state assertions.
 
@@ -142,16 +142,16 @@ and failed cases. Larger screenshot counts cannot replace state assertions.
 
 ### Authority, scope and counting
 
-The authoritative comparison is [the capability matrix](../holla-parity-matrix.md).
-It is backed by [source inventories](../holla-parity-evidence.md),
-[the preview inventory](../holla-preview-inventory.md), and
-[independent verification](../holla-parity-verification.md).
+The authoritative comparison is [the capability matrix](../parity/holla-parity-matrix.md).
+It is backed by [source inventories](../parity/holla-parity-evidence.md),
+[the preview inventory](../parity/holla-preview-inventory.md), and
+[independent verification](../parity/holla-parity-verification.md).
 Only matrix rows count as capabilities; evidence-report subrows, action variants,
 tests and plan items are not extra counts. Each matrix row has exactly one
 disposition and one owning HP item. Shared dependencies do not double-count it.
 
 The comparison is pinned to the 2026-09-10 audit snapshots in the
-[audit reference](../improvements-plan-reference.md#holla-audit-snapshots-and-counts).
+[audit reference](plan-reference-audit.md#holla-audit-snapshots-and-counts).
 The matrix and linked source inventories retain exact revisions and evidence.
 
 “Covered” proves the complete stated interaction and outcome in the current
@@ -283,12 +283,12 @@ updates must pin both revisions, repeat that sweep and classify new capabilities
 otherwise the current parity claim does not automatically extend to newer code.
 
 Historical verification results are retained in the
-[audit reference](../improvements-plan-reference.md#holla-audit-completion-evidence).
+[audit reference](plan-reference-audit.md#holla-audit-completion-evidence).
 
 ## Stop conditions
 
 Planning history and its completion criteria are retained in the
-[audit reference](../improvements-plan-reference.md#historical-planning-completion-criteria).
+[audit reference](plan-reference-audit.md#historical-planning-completion-criteria).
 This plan and its linked references retain finding dispositions, evidence,
 uncertainty, dependencies, compatibility decisions and acceptance criteria.
 All local evidence links must resolve.
@@ -306,7 +306,7 @@ this plan, passing the old suite, or updating hashes with implementing the work.
 ## F08 shared context
 
 Four related but independently testable items; none needs a new input widget.
-Detailed evidence: [interaction verification](../plan-interaction-verification.md).
+Detailed evidence: [interaction verification](../plan-verification/plan-interaction-verification.md).
 
 
 Key hints and matching remain separate data (`widgets/keyhint.rs::Hint`). Once
@@ -320,7 +320,7 @@ state displaying its hint, not merely absence of duplicate labels.
 **P2 · coverage gaps / verification architecture weaknesses.** Existing hashes
 pass with F16/F17 present. They cover one focused frame per page, exclude sidebar,
 and omit hardware cursor/underline-color metadata. Capture counts have no automatic
-source/binary provenance. The [prior-fix ledger](../plan-prior-fixes-verification.md)
+source/binary provenance. The [prior-fix ledger](../plan-verification/plan-prior-fixes-verification.md)
 and independent design review establish these limits.
 
 

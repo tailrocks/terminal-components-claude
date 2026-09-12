@@ -4,7 +4,7 @@ Scope: current `holla-fable` worktree only, September 10, 2026. This is a planni
 
 ## Inventory verification
 
-The final [inventory](tui-audit-inventory.md) remains current. The SHA-256 over sorted library paths, NUL, file bytes and NUL is:
+The final [inventory](../audits/tui-audit-inventory.md) remains current. The SHA-256 over sorted library paths, NUL, file bytes and NUL is:
 
 `40e412fd6bb7ff7700b90db054b0a4e5a5d535863e4eea4e55594f6bfb26202e`
 

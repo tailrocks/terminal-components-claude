@@ -1,6 +1,6 @@
 # HP08 — Cargo build, test, lint and clean
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve cargo build, test, clippy --all-targets --all-features and cargo clean. Existing generic output and target-path assumption are insufficient.
 
-**Source evidence and mandatory scope:** [matrix HP08](../holla-parity-matrix.md#hp08--cargo-build-test-lint-and-clean) — `OP15`, `OP16`, `OP17`, `OP18`, `OP19`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP08](../parity/holla-parity-matrix.md#hp08--cargo-build-test-lint-and-clean) — `OP15`, `OP16`, `OP17`, `OP18`, `OP19`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Expose all four legacy choices as Cargo alternatives with exact flags and cwd. Keep richer check/fmt/run/nextest choices as category B. Provide distinct build/test/lint success/failure output; clean must state tool-native permanent effects rather than Trash. Resolve actual target ownership so the modeled effect matches the command; shared/custom targets must not produce a false deletion claim.
 

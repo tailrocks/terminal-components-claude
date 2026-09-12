@@ -1,6 +1,6 @@
 # HP11 — Gradle tasks, daemon and recursive cleanup
 
-[Tracker](../../IMPROVEMENTS_PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
+[Tracker](PLAN.md) · [Current scope](scope.md) · [Shared acceptance](shared-contracts.md#per-change-acceptance-gate)
 
 ## Current phase — simulated representation
 
@@ -31,7 +31,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **Preserved capability / current gap:** Preserve installed-Gradle clean/build/test and recursive .gradle/build cleanup with daemon stop. One wrapper-clean fixture does not cover these.
 
-**Source evidence and mandatory scope:** [matrix HP11](../holla-parity-matrix.md#hp11--gradle-tasks-daemon-and-recursive-cleanup) — `OP44`, `OP45`, `OP46`, `OP47`, `OP48`. Exact old source/test citations and current preview anchors are in those rows.
+**Source evidence and mandatory scope:** [matrix HP11](../parity/holla-parity-matrix.md#hp11--gradle-tasks-daemon-and-recursive-cleanup) — `OP44`, `OP45`, `OP46`, `OP47`, `OP48`. Exact old source/test citations and current preview anchors are in those rows.
 
 **Junie interaction and safety:** Keep Gradle command actions for build.gradle/build.gradle.kts with installed gradle. Wrapper preference may extend the new model but must retain legacy routes. Separate ordinary tool clean from depth-five Trash cleanup and global cache insights. Resolve exact candidates, review rebuild cost and show daemon stop as an explicit prerequisite; stop failure/unknown state must prevent unsafe cache deletion.
 
