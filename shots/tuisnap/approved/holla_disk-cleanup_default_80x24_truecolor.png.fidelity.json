@@ -1,0 +1,42 @@
+{
+  "profile": "tuisnap-default",
+  "font_sha256": "f2a5ea6cfab397445ffab00c0370927b66d61e560a05db5db271b42006381c1a",
+  "font_desc": "vendored JetBrainsMonoNerdFontMono-Regular (SIL OFL 1.1)",
+  "scale": 2,
+  "approximate": true,
+  "faces_fell_back": [],
+  "missing": [
+    {
+      "x": 4,
+      "y": 8,
+      "symbol": "◐",
+      "codepoints": [
+        "U+25D0"
+      ]
+    },
+    {
+      "x": 6,
+      "y": 9,
+      "symbol": "◐",
+      "codepoints": [
+        "U+25D0"
+      ]
+    },
+    {
+      "x": 6,
+      "y": 10,
+      "symbol": "◐",
+      "codepoints": [
+        "U+25D0"
+      ]
+    },
+    {
+      "x": 6,
+      "y": 12,
+      "symbol": "◐",
+      "codepoints": [
+        "U+25D0"
+      ]
+    }
+  ]
+}
