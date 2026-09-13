@@ -129,7 +129,27 @@ actuals on every run).
 
 Stem-by-stem map: [shots-coverage-map.tsv](shots-coverage-map.tsv)
 (1205 unique `shots/` stems → `MAP <snapshots path>` or `DROP <reason>`;
-0 MISSING, 0 UNMAPPED).
+674 MAP, **531 DROP**, 0 MISSING, 0 UNMAPPED).
+
+DROP tally (must sum to 531; same stems as the TSV):
+
+| n | reason |
+|---:|---|
+| 383 | v1 classic `shots/tuisnap/` store; replaced by `snapshots/` |
+| 66 | generational jackin `j2_*`–`j6_*` (7+25+12+18+4) |
+| 11 | harness sidecar (README, stderr, `.args.*`) |
+| 11 | fade sidecar / superseded wheel frame |
+| 7 | attached/streaming TTY never settles |
+| 7 | tick-driven jackin prelude stages |
+| 7 | superseded tablepro size variant `t_80*`/`t_100*`/`t_160*` |
+| 4 | jackin `j_accounts_op*` mid-operation animation |
+| 3 | wall-clock spinner (`h_hp15_*` mid-states) |
+| 3 | debug orphan (`shot`, `t1`, `t2`) |
+| 2 | wall-clock trusted running |
+| 2 | jackin intro rain phase; boundary `jackin/intro/f300` |
+| 2 | debug `source_f_lists_*`; covered by `showcase/flows/lists/moved` |
+| 23 | other wall-clock / unreachable / duplicate singles (see TSV) |
+| **531** | **total** |
 
 Every legacy scenario has a v2 counterpart or a documented drop. The drops,
 with reasons (from the v2 coverage plan §4):
