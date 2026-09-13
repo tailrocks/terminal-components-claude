@@ -19,7 +19,8 @@ default-filter = "not test(rebuild_review_html)"
 [[profile.default.overrides]]
 filter = "binary(visual_baseline)"
 test-group = "pty"
-slow-timeout = { period = "60s", terminate-after = 4 }
+# Audit matrices run 25 PTYs in one test; 4×60s killed them under load.
+slow-timeout = { period = "60s", terminate-after = 10 }
 
 [[profile.default.overrides]]
 filter = '''
@@ -35,4 +36,4 @@ threads-required = 2
 
 [profile.ci]
 fail-fast = false
-slow-timeout = { period = "60s", terminate-after = 4 }
+slow-timeout = { period = "60s", terminate-after = 10 }
