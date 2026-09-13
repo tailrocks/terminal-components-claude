@@ -2373,7 +2373,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.3.4",
+ "getrandom 0.4.3",
  "once_cell",
  "rustix",
  "windows-sys",
@@ -2416,7 +2416,7 @@ dependencies = [
 [[package]]
 name = "termlens"
 version = "0.9.0"
-source = "git+https://github.com/donbeave/tui-snap?rev=e49d9e7#e49d9e7ecd51557c6dd5c71a51e1123e7b1c57f3"
+source = "git+https://github.com/donbeave/tui-snap?rev=c4b5975764b61fb0bc82aff83253ebab68ab0694#c4b5975764b61fb0bc82aff83253ebab68ab0694"
 dependencies = [
  "insta",
  "libc",
@@ -2581,7 +2581,7 @@ dependencies = [
 [[package]]
 name = "tuisnap"
 version = "0.2.0"
-source = "git+https://github.com/donbeave/tui-snap?rev=e49d9e7#e49d9e7ecd51557c6dd5c71a51e1123e7b1c57f3"
+source = "git+https://github.com/donbeave/tui-snap?rev=c4b5975764b61fb0bc82aff83253ebab68ab0694#c4b5975764b61fb0bc82aff83253ebab68ab0694"
 dependencies = [
  "anyhow",
  "base64 0.23.1",

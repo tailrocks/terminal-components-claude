@@ -6,11 +6,12 @@ __pycache__/
 /shots/.args.*
 docs/refactoring-plan/evidence/*.tar.gz
 
-# tuisnap baseline: approved frames are the tracked baseline; actuals, diffs,
-# the HTML report and loose heavy artifacts are regenerable
-# (tests/visual_baseline report test / tuisnap render — see docs/baseline/tuisnap-coverage.md)
-/shots/tuisnap/actual/
-/shots/tuisnap/diff/
-/shots/tuisnap/report.html
-/shots/tuisnap/frames/*.html
-/shots/tuisnap/frames/*.png
+# tuisnap grouped baseline: approved frames at snapshots/ are the tracked
+# baseline (exactly four artifacts per scenario); actuals, diffs and the HTML
+# report are regenerable scratch under target/ (gitignored above).
+# `snapshots.actual` is a local symlink bridging the suite's
+# target/tuisnap/actual root to the tuisnap CLI's default sibling roots so
+# `tuisnap accept|report --grouped --store snapshots` works verbatim
+# (see docs/baseline/snapshots-v2.md).
+/snapshots.actual
+/snapshots.diff
