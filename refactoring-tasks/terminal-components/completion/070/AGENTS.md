@@ -43,7 +43,7 @@ Cucumber feature files, and have no runtime step definitions.
 - Special-casing known fixtures or verifier inputs.
 - Suppressing errors, warnings, lint rules, type checks, or exit codes.
 - Changing any file outside `writable_paths` in `/task/verify.toml`; the gate rejects every other path.
-- Writing `snapshots/` or `shots/`, or running `tuisnap accept`. Visual proof is `cargo test --test visual_baseline -- --ignored --skip rebuild_review_html` against the committed grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`).
+- Writing `snapshots/` or `shots/`, or running `tuisnap accept`. Visual proof is `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` against the committed grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`).
 - Changing user-visible behavior with no `R-*`/`AC-*` names, even inside `writable_paths`; note it under `FOLLOW_UP`.
 - Claiming `DONE` without a `taskfmt verify` run in this session whose output is in the transcript.
 

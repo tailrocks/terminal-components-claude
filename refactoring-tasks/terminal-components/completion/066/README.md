@@ -13,7 +13,7 @@ Consolidate the expired render/render_components split into one test target whil
 
 ## Context
 
-Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo test --test visual_baseline -- --ignored --skip rebuild_review_html` must match. Never write `snapshots/` or run `tuisnap accept`.
+Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
 
 Exact historical/oracle executions and qualified scenario identities survive Buttons/render-target relocations; no unresolved required inventory entries. This is a bounded closure of already restored production work, not permission to reopen unrelated design choices. ARCH:A28; ARCH:A29; DEC:ADJ-07; HIST:A113; HIST:A115; main COMPONENT_ARCHITECTURE.md:2054,3934; tools/test-inventory/README.md:69 and required.json; TASK-007/TASK-008 sealed identity and disposition receipts.
 

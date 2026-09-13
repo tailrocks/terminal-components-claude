@@ -377,16 +377,17 @@ The visual baseline is the grouped tuisnap store at
 and pixel-exact. The runner is the Rust integration suite
 `tests/visual_baseline/` (tuisnap as a library): one `#[test] #[ignore]` per
 capture — ~792 grouped captures (786 prior + 6 LIVE-hole fills) — so default
-`cargo test` compiles the suite but runs no PTYs
+`cargo nextest run` compiles the suite but runs no PTYs
 (the matrix and its rationale live in
 [docs/baseline/tuisnap-coverage.md](docs/baseline/tuisnap-coverage.md)).
 
 ```sh
-cargo test --test visual_baseline -- --ignored --skip rebuild_review_html  # regenerate the matrix
-cargo test --test visual_baseline holla_ -- --ignored         # one app
+cargo nextest run                                              # unit/lib tests
+cargo nextest run --run-ignored only -E 'binary(visual_baseline)'  # regenerate the matrix
+cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(holla_)'
 ln -sfn target/tuisnap/actual snapshots.actual                # CLI actuals sibling
 tuisnap accept --grouped --store snapshots --all              # approve after review
-cargo test --test visual_baseline report -- --ignored         # rebuild report.html, 0 failed
+cargo nextest run --run-ignored only --ignore-default-filter -E 'test(rebuild_review_html)'
 ```
 
 On a first run every capture lands as missing-approval (logged PENDING, not

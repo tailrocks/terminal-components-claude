@@ -2,7 +2,7 @@
 
 The visual-baseline suite (`tests/visual_baseline/`) stores approved frames in
 the **grouped multi-artifact store** (`tuisnap::grouped::GroupedStore`, tui-snap
-rev `c4b5975764b61fb0bc82aff83253ebab68ab0694`). It replaces the classic
+rev `dad8c115e52763909ced3fd813f8cdce8d6322d1`). It replaces the classic
 single-PNG store at `shots/tuisnap/` (v1, frozen legacy corpus under `shots/`).
 This document is the taxonomy + workflow reference; capture rationale and the
 honest-gaps list stay in `docs/baseline/tuisnap-coverage.md`.
@@ -97,7 +97,7 @@ target/tuisnap/report.html                         expected/actual/diff report
 ```sh
 # 1. regenerate from scratch (every capture logs PENDING — nothing approved yet)
 rm -rf snapshots/ target/tuisnap/
-cargo test --test visual_baseline -- --ignored --skip rebuild_review_html
+cargo nextest run --run-ignored only -E 'binary(visual_baseline)'
 
 # 2. bridge the suite's target/ actual root to the CLI's default sibling
 #    roots (one-time; gitignored). The CLI's grouped accept/report derive
@@ -109,11 +109,11 @@ cargo run --manifest-path ~/Projects/tui-snap/Cargo.toml --release -- \
   accept --grouped --store snapshots --all          # or: --name <group/leaf>
 
 # 4. re-run until every capture reports Matched (0 PENDING, 0 failures)
-cargo test --test visual_baseline -- --ignored --skip rebuild_review_html
+cargo nextest run --run-ignored only -E 'binary(visual_baseline)'
 
 # 5. rebuild the HTML report (re-verifies every actual against its approval;
 #    asserts 0 failed)
-cargo test --test visual_baseline report -- --ignored
+cargo nextest run --run-ignored only --ignore-default-filter -E 'test(rebuild_review_html)'
 # CLI equivalent:
 # cargo run --manifest-path ~/Projects/tui-snap/Cargo.toml --release -- \
 #   report --grouped --store snapshots --report-path target/tuisnap/report.html

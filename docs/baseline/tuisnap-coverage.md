@@ -419,7 +419,7 @@ the short form:
 ```bash
 # 1. full rebuild from scratch (store is disposable until accepted)
 rm -rf snapshots/ target/tuisnap/
-cargo test --test visual_baseline -- --ignored --skip rebuild_review_html
+cargo nextest run --run-ignored only -E 'binary(visual_baseline)'
 #    - builds the bins as part of the test build; ~618 PTY captures
 #    - note: the 5 scrolling captures take ~2.5 min each (boot stream)
 #    - first run: every entry lands in target/tuisnap/actual/ and is logged
@@ -430,28 +430,28 @@ ln -sfn target/tuisnap/actual snapshots.actual
 # 3. approve after review (explicit; no env var approves anything)
 tuisnap accept --grouped --store snapshots --all
 # 4. re-run until every capture reports matched, then rebuild report.html
-cargo test --test visual_baseline -- --ignored --skip rebuild_review_html
-cargo test --test visual_baseline report -- --ignored   # asserts 0 failed
+cargo nextest run --run-ignored only -E 'binary(visual_baseline)'
+cargo nextest run --run-ignored only --ignore-default-filter -E 'test(rebuild_review_html)'
 open target/tuisnap/report.html
 ```
 
 Subset re-runs (after touching one surface) use cargo's name filter:
 
 ```bash
-cargo test --test visual_baseline tablepro_ -- --ignored
-cargo test --test visual_baseline -- --ignored holla_concept_rust
-cargo test --test visual_baseline showcase_ -- --ignored --test-threads 8
+cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(tablepro_)'
+cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(holla_concept_rust)'
+cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(showcase_)'
 ```
 
 ## How the baseline is used later (refactoring gate)
 
-- After any refactoring change: `cargo test --test visual_baseline --
-  --ignored --skip rebuild_review_html` (rebuilds, then re-runs the PTY for every approved
+- After any refactoring change: `cargo nextest run --run-ignored only -E
+  'binary(visual_baseline)'` (rebuilds, then re-runs the PTY for every approved
   name). `matched` = no UI/UX drift. `cells-differ`/`pixels-differ` = drift:
   inspect `target/tuisnap/diff/<name>.png` (red overlay) + the
   first-difference diagnostics, fix the regression or — only for an intended
   visual change — re-accept that name explicitly.
-- `cargo test --test visual_baseline report -- --ignored` (or `tuisnap report
+- `cargo nextest run --run-ignored only --ignore-default-filter -E 'test(rebuild_review_html)'` (or `tuisnap report
   --grouped --store snapshots --report-path target/tuisnap/report.html`)
   re-verifies every `actual/*.frame.json` against the approved artifacts and
   rewrites the report (publishable CI artifact).

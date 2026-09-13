@@ -13,7 +13,7 @@ Restore Diff unified/review/empty modes and narrow review fallback, original Uni
 
 ## Context
 
-Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo test --test visual_baseline -- --ignored --skip rebuild_review_html` must match. Never write `snapshots/` or run `tuisnap accept`.
+Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
 
 Missing Diff page plus editor/panels/scrolling/terminal/task runner/progress journeys use shared output/editor/diff components. The application report shows that a migrated file, a green self-baseline or a generic component call can coexist with wrong live behavior. This task proves actual public-component state transitions and oracle output, not nominal API use.
 

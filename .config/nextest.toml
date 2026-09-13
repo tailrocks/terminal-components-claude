@@ -1,0 +1,38 @@
+# cargo-nextest config. Process-per-test isolation is the default and is
+# required for PTY captures (libtest --test-threads shares one process).
+#
+# Default: `cargo nextest run`
+# Visual baseline: `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'`
+# HTML report: `cargo nextest run --run-ignored only --ignore-default-filter -E 'test(rebuild_review_html)'`
+
+[test-groups]
+# Real TUI binaries in PTYs; cap concurrency so boot does not starve.
+pty = { max-threads = 8 }
+
+[profile.default]
+fail-fast = false
+slow-timeout = { period = "60s" }
+# The HTML report re-verifies every actual; it is a publish step, not the
+# capture gate.
+default-filter = "not test(rebuild_review_html)"
+
+[[profile.default.overrides]]
+filter = "binary(visual_baseline)"
+test-group = "pty"
+slow-timeout = { period = "60s", terminate-after = 4 }
+
+[[profile.default.overrides]]
+filter = '''
+  test(scrolling)
+  or test(tablepro_audit)
+  or test(holla_audit)
+  or test(jackin_audit)
+  or test(showcase_audit)
+  or test(terminal_default)
+  or test(docker_done)
+'''
+threads-required = 2
+
+[profile.ci]
+fail-fast = false
+slow-timeout = { period = "60s", terminate-after = 4 }

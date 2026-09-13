@@ -13,7 +13,7 @@ A separately installed tc-proof comparator and tc-proof-host core pass independe
 
 ## Context
 
-Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo test --test visual_baseline -- --ignored --skip rebuild_review_html` must match. Never write `snapshots/` or run `tuisnap accept`.
+Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
 
 This is a later execution task. The current planning goal only creates this immutable package. UI authority is `02f5294bfdbf38004cc49130d0aff1d01f31434c`; architecture starts from `7b27732a8c3c131760ec3438f641cb3c11343a42`. The accepted producer product is `qualified-harness`. Task dependencies are none; independently qualified external tooling and planner bootstrap are host preconditions. Dependency status alone never proves integrated source ancestry or trusted product acceptance. Follow the standalone host workflow in proof-contract.md; do not execute taskfmt's main-only dispatcher or promotion.
 
