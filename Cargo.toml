@@ -34,7 +34,7 @@ unicode-width = "0.2"
 unicode-segmentation = "1"
 
 [dev-dependencies]
-tuisnap = { git = "https://github.com/donbeave/tui-snap", rev = "dad8c115e52763909ced3fd813f8cdce8d6322d1" }
+tuisnap = { git = "https://github.com/donbeave/tui-snap", rev = "2d43458ad2bc37d76653c22d56e61ee74512d893" }
 
 [profile.release]
 lto = "thin"

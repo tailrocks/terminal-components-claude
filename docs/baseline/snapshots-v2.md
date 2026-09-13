@@ -2,7 +2,7 @@
 
 The visual-baseline suite (`tests/visual_baseline/`) stores approved frames in
 the **grouped multi-artifact store** (`tuisnap::grouped::GroupedStore`, tui-snap
-rev `dad8c115e52763909ced3fd813f8cdce8d6322d1`). It replaces the classic
+rev `2d43458ad2bc37d76653c22d56e61ee74512d893`). It replaces the classic
 single-PNG store at `shots/tuisnap/` (v1, frozen legacy corpus under `shots/`).
 This document is the taxonomy + workflow reference; capture rationale and the
 honest-gaps list stay in `docs/baseline/tuisnap-coverage.md`.

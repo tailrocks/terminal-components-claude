@@ -23,7 +23,8 @@
 //! ```sh
 //! cargo test --test visual_baseline -- --ignored --test-threads=4       # whole matrix
 //! cargo test --test visual_baseline holla_ -- --ignored                 # one app
-//! cargo test --test visual_baseline rebuild_review_html -- --ignored    # rebuild report.html
+//! cargo nextest run --run-ignored only -E 'binary(visual_baseline)'     # PTY gates (the real suite)
+//! cargo nextest run --run-ignored only --ignore-default-filter -E 'test(rebuild_review_html)'  # fast file-link index
 //! ```
 //!
 //! Gate policy (fail-closed, unchanged from the CLI): `matched` passes,
@@ -182,10 +183,9 @@ fn posix_rel(root: &Path, path: &Path) -> String {
         .join("/")
 }
 
-/// Rebuild `target/tuisnap/report.html` from the store (the library form of
-/// `tuisnap report --grouped --store snapshots`): re-verifies every actual
-/// frame against its approval. Run after a generation run + accept; 0 failed
-/// is the green gate.
+/// Write a fast file-link index at `target/tuisnap/report.html`. Does not
+/// re-render PNGs and does not embed them. Per-capture `#[ignore]` tests are
+/// the gate; this only indexes on-disk actual vs approved bytes.
 #[test]
 #[ignore = "rebuilds target/tuisnap/report.html; run after accept; skip with --skip rebuild_review_html"]
 fn rebuild_review_html() {
