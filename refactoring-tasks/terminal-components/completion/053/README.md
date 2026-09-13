@@ -13,7 +13,7 @@ Restore Accounts tree/filter/detail/actions, local-folder/reference/plain-key fo
 
 ## Context
 
-Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo test --test visual_baseline -- --ignored --skip rebuild_review_html` must match. Never write `snapshots/` or run `tuisnap accept`.
+Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
 
 The immutable UX oracle is holla-fable-2026-09-10, commit 02f5294bfdbf38004cc49130d0aff1d01f31434c; accepted architecture starts at main 7b27732a8c3c131760ec3438f641cb3c11343a42. This package owns J-ACCOUNTS, not an application rewrite. The architectural enabling condition is that copied painting, surface labels and real input/model ownership can diverge. Restore the production owner instead of adding another visual facade.
 

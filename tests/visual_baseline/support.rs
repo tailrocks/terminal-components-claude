@@ -1,10 +1,10 @@
 //! Shared driver for the visual-baseline suite.
 //!
-//! One PTY per capture: spawn → boot idle(200 ms) → boot-needle wait → send
-//! steps (120 ms pacing) → `wait_stable`(SETTLE) → frame → store gate —
-//! exactly the flow `tuisnap run` executed for the retired bash runner (its
-//! [`run_once`] is reused verbatim for the ported matrix; [`boot`]/[`drive`]
-//! mirror it for the pointer group, which needs the live session afterwards).
+//! One PTY per capture: spawn → boot needle (or idle if none) → send
+//! steps (120 ms pacing) → `wait_stable`(SETTLE) → frame → store gate.
+//! [`run_once`] runs the ported matrix; [`boot`]/[`drive`] mirror it for
+//! the pointer group, which needs the live session afterwards. A leading
+//! `wait:` needle is readiness — live clocks skip the 200 ms quiet window.
 //!
 //! Store: the grouped multi-artifact store (`tuisnap::grouped`). Approved
 //! frames live at `snapshots/<group>/<sub_group>/<name>.{ansi,txt,png,html}`
@@ -434,16 +434,17 @@ pub fn spawn(case: &Case) -> Session {
         .unwrap_or_else(|e| panic!("spawn `{}` failed: {e:#}", case.name))
 }
 
-/// `run_once`'s boot wait: 200 ms of output silence before any step.
+/// Boot: needle first. Live clocks starve a quiet-window wait_idle.
 pub fn boot(session: &mut Session, needle: &str) {
-    session
-        .wait_idle(Duration::from_millis(200))
-        .unwrap_or_else(|e| panic!("boot idle failed: {e:#}"));
     if !needle.is_empty() {
         session
             .wait_for_text(needle)
             .unwrap_or_else(|e| panic!("boot needle `{needle}` never appeared: {e:#}"));
+        return;
     }
+    session
+        .wait_idle(Duration::from_millis(200))
+        .unwrap_or_else(|e| panic!("boot idle failed: {e:#}"));
 }
 
 /// `run_once`'s step loop on a live session, pacing included.

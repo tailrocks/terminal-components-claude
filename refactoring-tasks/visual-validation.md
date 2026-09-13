@@ -16,12 +16,15 @@ Fail-closed. Tests never bless. Candidates never write `snapshots/` and never
 run `tuisnap accept`.
 
 ```sh
-# full suite (skip HTML report rebuild)
-cargo test --test visual_baseline -- --ignored --skip rebuild_review_html --test-threads=4
+# unit/lib tests
+cargo nextest run
+
+# visual baseline (ignored captures; HTML report filtered out)
+cargo nextest run --run-ignored only -E 'binary(visual_baseline)'
 
 # one family
-cargo test --test visual_baseline holla_ -- --ignored --skip rebuild_review_html
-cargo test --test visual_baseline store_integrity -- --exact
+cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(holla_)'
+cargo nextest run -E 'test(store_integrity)'
 ```
 
 `matched` = no UI/UX drift. `cells-differ` / `pixels-differ` = regression.

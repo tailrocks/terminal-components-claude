@@ -10,4 +10,4 @@ Each package includes canonical README, execution protocol, verify.toml, depende
 
 The host implements source freezing, independent isolated verification and compare-and-swap local integration. It invokes supported standalone taskfmt verification, never the main-targeting run/promote lifecycle. A final passing task establishes readiness only; pushing or merging remains a separately authorized action.
 
-Product edits also prove visual non-regression against the committed `snapshots/` grouped store (`../../visual-validation.md`). `cargo test --test visual_baseline -- --ignored --skip rebuild_review_html` must match. Candidates never write `snapshots/` or run `tuisnap accept`.
+Product edits also prove visual non-regression against the committed `snapshots/` grouped store (`../../visual-validation.md`). `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Candidates never write `snapshots/` or run `tuisnap accept`.

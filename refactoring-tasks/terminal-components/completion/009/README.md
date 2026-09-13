@@ -13,7 +13,7 @@ Terminal session cleanup, normalized input, bootstrap and monotonic deadlines ma
 
 ## Context
 
-Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo test --test visual_baseline -- --ignored --skip rebuild_review_html` must match. Never write `snapshots/` or run `tuisnap accept`.
+Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
 
 ADJ-13 fixes the sole private Unix backend signal-broker exception and exact AST enforcement under R-002/AC-002/CHK-006. Preserve enter/run signatures; implement stable fallible-registration retry with the same broker flags, not a new per-session registration. Bounded xtask/src/main.rs authority covers rule18 integration only; TASK-072 supplies its independent positive/negative qualification. No global UI state or backend-free dependency leak is allowed.
 
