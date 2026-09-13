@@ -1,0 +1,1208 @@
+# shots stems @ e741cde7a1a111a123acf426e62e67916727600e files=6547 unique=1205
+# snapshots scenarios=792
+# counts MAP=674 DROP=531 MISSING=0 UNMAPPED=0
+shots/audit-flows/README.md	DROP harness sidecar
+shots/audit-flows/diff_drag_120x40_no_color	MAP showcase/flows/diff/drag-selected/120x40/nocolor
+shots/audit-flows/diff_drag_120x40_none	MAP showcase/flows/diff/drag-selected/120x40/none
+shots/audit-flows/diff_drag_120x40_truecolor	MAP showcase/flows/diff/drag-selected/120x40/truecolor
+shots/audit-flows/diff_drag_160x50_no_color	MAP showcase/flows/diff/drag-selected/160x50/nocolor
+shots/audit-flows/diff_drag_160x50_none	MAP showcase/flows/diff/drag-selected/160x50/none
+shots/audit-flows/diff_drag_160x50_truecolor	MAP showcase/flows/diff/drag-selected/160x50/truecolor
+shots/audit-flows/diff_drag_80x24_no_color	MAP showcase/flows/diff/drag-selected/80x24/nocolor
+shots/audit-flows/diff_drag_80x24_none	MAP showcase/flows/diff/drag-selected/80x24/none
+shots/audit-flows/diff_drag_80x24_truecolor	MAP showcase/flows/diff/drag-selected/80x24/truecolor
+shots/audit-flows/diff_empty_120x40_no_color	MAP showcase/flows/diff/empty/120x40/nocolor
+shots/audit-flows/diff_empty_120x40_none	MAP showcase/flows/diff/empty/120x40/none
+shots/audit-flows/diff_empty_120x40_truecolor	MAP showcase/flows/diff/empty/120x40/truecolor
+shots/audit-flows/diff_empty_160x50_no_color	MAP showcase/flows/diff/empty/160x50/nocolor
+shots/audit-flows/diff_empty_160x50_none	MAP showcase/flows/diff/empty/160x50/none
+shots/audit-flows/diff_empty_160x50_truecolor	MAP showcase/flows/diff/empty/160x50/truecolor
+shots/audit-flows/diff_empty_80x24_no_color	MAP showcase/flows/diff/empty/80x24/nocolor
+shots/audit-flows/diff_empty_80x24_none	MAP showcase/flows/diff/empty/80x24/none
+shots/audit-flows/diff_empty_80x24_truecolor	MAP showcase/flows/diff/empty/80x24/truecolor
+shots/audit-flows/diff_review_120x40_no_color	MAP showcase/flows/diff/review/120x40/nocolor
+shots/audit-flows/diff_review_120x40_none	MAP showcase/flows/diff/review/120x40/none
+shots/audit-flows/diff_review_120x40_truecolor	MAP showcase/flows/diff/review/120x40/truecolor
+shots/audit-flows/diff_review_160x50_no_color	MAP showcase/flows/diff/review/160x50/nocolor
+shots/audit-flows/diff_review_160x50_none	MAP showcase/flows/diff/review/160x50/none
+shots/audit-flows/diff_review_160x50_truecolor	MAP showcase/flows/diff/review/160x50/truecolor
+shots/audit-flows/diff_review_80x24_no_color	MAP showcase/flows/diff/review/80x24/nocolor
+shots/audit-flows/diff_review_80x24_none	MAP showcase/flows/diff/review/80x24/none
+shots/audit-flows/diff_review_80x24_truecolor	MAP showcase/flows/diff/review/80x24/truecolor
+shots/audit-flows/forms_invalid_120x40_no_color	MAP showcase/flows/forms/invalid/120x40/nocolor
+shots/audit-flows/forms_invalid_120x40_none	MAP showcase/flows/forms/invalid/120x40/none
+shots/audit-flows/forms_invalid_120x40_truecolor	MAP showcase/flows/forms/invalid/120x40/truecolor
+shots/audit-flows/forms_invalid_160x50_no_color	MAP showcase/flows/forms/invalid/160x50/nocolor
+shots/audit-flows/forms_invalid_160x50_none	MAP showcase/flows/forms/invalid/160x50/none
+shots/audit-flows/forms_invalid_160x50_truecolor	MAP showcase/flows/forms/invalid/160x50/truecolor
+shots/audit-flows/forms_invalid_80x24_no_color	MAP showcase/flows/forms/invalid/80x24/nocolor
+shots/audit-flows/forms_invalid_80x24_none	MAP showcase/flows/forms/invalid/80x24/none
+shots/audit-flows/forms_invalid_80x24_truecolor	MAP showcase/flows/forms/invalid/80x24/truecolor
+shots/audit-flows/inputs_selected_120x40_no_color	MAP showcase/flows/inputs/selected/120x40/nocolor
+shots/audit-flows/inputs_selected_120x40_none	MAP showcase/flows/inputs/selected/120x40/none
+shots/audit-flows/inputs_selected_120x40_truecolor	MAP showcase/flows/inputs/selected/120x40/truecolor
+shots/audit-flows/inputs_selected_160x50_no_color	MAP showcase/flows/inputs/selected/160x50/nocolor
+shots/audit-flows/inputs_selected_160x50_none	MAP showcase/flows/inputs/selected/160x50/none
+shots/audit-flows/inputs_selected_160x50_truecolor	MAP showcase/flows/inputs/selected/160x50/truecolor
+shots/audit-flows/inputs_selected_80x24_no_color	MAP showcase/flows/inputs/selected/80x24/nocolor
+shots/audit-flows/inputs_selected_80x24_none	MAP showcase/flows/inputs/selected/80x24/none
+shots/audit-flows/inputs_selected_80x24_truecolor	MAP showcase/flows/inputs/selected/80x24/truecolor
+shots/audit-flows/stderr.log	DROP harness sidecar
+shots/audit-flows/tablepro_ack_armed_120x40_no_color	MAP tablepro/ack/armed/120x40/nocolor
+shots/audit-flows/tablepro_ack_armed_120x40_truecolor	MAP tablepro/ack/armed/120x40/truecolor
+shots/audit-flows/tablepro_ack_executed_120x40_no_color	MAP tablepro/ack/executed/120x40/nocolor
+shots/audit-flows/tablepro_ack_executed_120x40_truecolor	MAP tablepro/ack/executed/120x40/truecolor
+shots/audit-flows/tablepro_ack_gate_120x40_no_color	MAP tablepro/ack/gate/120x40/nocolor
+shots/audit-flows/tablepro_ack_gate_120x40_truecolor	MAP tablepro/ack/gate/120x40/truecolor
+shots/audit/holla-rust_100x30_16	MAP holla/audit/rust/100x30/16
+shots/audit/holla-rust_100x30_256	MAP holla/audit/rust/100x30/256
+shots/audit/holla-rust_100x30_no_color	MAP holla/audit/rust/100x30/nocolor
+shots/audit/holla-rust_100x30_none	MAP holla/audit/rust/100x30/none
+shots/audit/holla-rust_100x30_truecolor	MAP holla/audit/rust/100x30/truecolor
+shots/audit/holla-rust_120x40_16	MAP holla/audit/rust/120x40/16
+shots/audit/holla-rust_120x40_256	MAP holla/audit/rust/120x40/256
+shots/audit/holla-rust_120x40_no_color	MAP holla/audit/rust/120x40/nocolor
+shots/audit/holla-rust_120x40_none	MAP holla/audit/rust/120x40/none
+shots/audit/holla-rust_120x40_truecolor	MAP holla/audit/rust/120x40/truecolor
+shots/audit/holla-rust_160x50_16	MAP holla/audit/rust/160x50/16
+shots/audit/holla-rust_160x50_256	MAP holla/audit/rust/160x50/256
+shots/audit/holla-rust_160x50_no_color	MAP holla/audit/rust/160x50/nocolor
+shots/audit/holla-rust_160x50_none	MAP holla/audit/rust/160x50/none
+shots/audit/holla-rust_160x50_truecolor	MAP holla/audit/rust/160x50/truecolor
+shots/audit/holla-rust_72x20_16	MAP holla/audit/rust/72x20/16
+shots/audit/holla-rust_72x20_256	MAP holla/audit/rust/72x20/256
+shots/audit/holla-rust_72x20_no_color	MAP holla/audit/rust/72x20/nocolor
+shots/audit/holla-rust_72x20_none	MAP holla/audit/rust/72x20/none
+shots/audit/holla-rust_72x20_truecolor	MAP holla/audit/rust/72x20/truecolor
+shots/audit/holla-rust_80x24_16	MAP holla/audit/rust/80x24/16
+shots/audit/holla-rust_80x24_256	MAP holla/audit/rust/80x24/256
+shots/audit/holla-rust_80x24_no_color	MAP holla/audit/rust/80x24/nocolor
+shots/audit/holla-rust_80x24_none	MAP holla/audit/rust/80x24/none
+shots/audit/holla-rust_80x24_truecolor	MAP holla/audit/rust/80x24/truecolor
+shots/audit/holla-upgrade_100x30_16	MAP holla/audit/upgrade/100x30/16
+shots/audit/holla-upgrade_100x30_256	MAP holla/audit/upgrade/100x30/256
+shots/audit/holla-upgrade_100x30_no_color	MAP holla/audit/upgrade/100x30/nocolor
+shots/audit/holla-upgrade_100x30_none	MAP holla/audit/upgrade/100x30/none
+shots/audit/holla-upgrade_100x30_truecolor	MAP holla/audit/upgrade/100x30/truecolor
+shots/audit/holla-upgrade_120x40_16	MAP holla/audit/upgrade/120x40/16
+shots/audit/holla-upgrade_120x40_256	MAP holla/audit/upgrade/120x40/256
+shots/audit/holla-upgrade_120x40_no_color	MAP holla/audit/upgrade/120x40/nocolor
+shots/audit/holla-upgrade_120x40_none	MAP holla/audit/upgrade/120x40/none
+shots/audit/holla-upgrade_120x40_truecolor	MAP holla/audit/upgrade/120x40/truecolor
+shots/audit/holla-upgrade_160x50_16	MAP holla/audit/upgrade/160x50/16
+shots/audit/holla-upgrade_160x50_256	MAP holla/audit/upgrade/160x50/256
+shots/audit/holla-upgrade_160x50_no_color	MAP holla/audit/upgrade/160x50/nocolor
+shots/audit/holla-upgrade_160x50_none	MAP holla/audit/upgrade/160x50/none
+shots/audit/holla-upgrade_160x50_truecolor	MAP holla/audit/upgrade/160x50/truecolor
+shots/audit/holla-upgrade_72x20_16	MAP holla/audit/upgrade/72x20/16
+shots/audit/holla-upgrade_72x20_256	MAP holla/audit/upgrade/72x20/256
+shots/audit/holla-upgrade_72x20_no_color	MAP holla/audit/upgrade/72x20/nocolor
+shots/audit/holla-upgrade_72x20_none	MAP holla/audit/upgrade/72x20/none
+shots/audit/holla-upgrade_72x20_truecolor	MAP holla/audit/upgrade/72x20/truecolor
+shots/audit/holla-upgrade_80x24_16	MAP holla/audit/upgrade/80x24/16
+shots/audit/holla-upgrade_80x24_256	MAP holla/audit/upgrade/80x24/256
+shots/audit/holla-upgrade_80x24_no_color	MAP holla/audit/upgrade/80x24/nocolor
+shots/audit/holla-upgrade_80x24_none	MAP holla/audit/upgrade/80x24/none
+shots/audit/holla-upgrade_80x24_truecolor	MAP holla/audit/upgrade/80x24/truecolor
+shots/audit/jackin-accounts_100x30_16	MAP jackin/audit/accounts/100x30/16
+shots/audit/jackin-accounts_100x30_256	MAP jackin/audit/accounts/100x30/256
+shots/audit/jackin-accounts_100x30_no_color	MAP jackin/audit/accounts/100x30/nocolor
+shots/audit/jackin-accounts_100x30_none	MAP jackin/audit/accounts/100x30/none
+shots/audit/jackin-accounts_100x30_truecolor	MAP jackin/audit/accounts/100x30/truecolor
+shots/audit/jackin-accounts_120x40_16	MAP jackin/audit/accounts/120x40/16
+shots/audit/jackin-accounts_120x40_256	MAP jackin/audit/accounts/120x40/256
+shots/audit/jackin-accounts_120x40_no_color	MAP jackin/audit/accounts/120x40/nocolor
+shots/audit/jackin-accounts_120x40_none	MAP jackin/audit/accounts/120x40/none
+shots/audit/jackin-accounts_120x40_truecolor	MAP jackin/audit/accounts/120x40/truecolor
+shots/audit/jackin-accounts_160x50_16	MAP jackin/audit/accounts/160x50/16
+shots/audit/jackin-accounts_160x50_256	MAP jackin/audit/accounts/160x50/256
+shots/audit/jackin-accounts_160x50_no_color	MAP jackin/audit/accounts/160x50/nocolor
+shots/audit/jackin-accounts_160x50_none	MAP jackin/audit/accounts/160x50/none
+shots/audit/jackin-accounts_160x50_truecolor	MAP jackin/audit/accounts/160x50/truecolor
+shots/audit/jackin-accounts_72x20_16	MAP jackin/audit/accounts/72x20/16
+shots/audit/jackin-accounts_72x20_256	MAP jackin/audit/accounts/72x20/256
+shots/audit/jackin-accounts_72x20_no_color	MAP jackin/audit/accounts/72x20/nocolor
+shots/audit/jackin-accounts_72x20_none	MAP jackin/audit/accounts/72x20/none
+shots/audit/jackin-accounts_72x20_truecolor	MAP jackin/audit/accounts/72x20/truecolor
+shots/audit/jackin-accounts_80x24_16	MAP jackin/audit/accounts/80x24/16
+shots/audit/jackin-accounts_80x24_256	MAP jackin/audit/accounts/80x24/256
+shots/audit/jackin-accounts_80x24_no_color	MAP jackin/audit/accounts/80x24/nocolor
+shots/audit/jackin-accounts_80x24_none	MAP jackin/audit/accounts/80x24/none
+shots/audit/jackin-accounts_80x24_truecolor	MAP jackin/audit/accounts/80x24/truecolor
+shots/audit/jackin-capsule_100x30_16	MAP jackin/audit/capsule/100x30/16
+shots/audit/jackin-capsule_100x30_256	MAP jackin/audit/capsule/100x30/256
+shots/audit/jackin-capsule_100x30_no_color	MAP jackin/audit/capsule/100x30/nocolor
+shots/audit/jackin-capsule_100x30_none	MAP jackin/audit/capsule/100x30/none
+shots/audit/jackin-capsule_100x30_truecolor	MAP jackin/audit/capsule/100x30/truecolor
+shots/audit/jackin-capsule_120x40_16	MAP jackin/audit/capsule/120x40/16
+shots/audit/jackin-capsule_120x40_256	MAP jackin/audit/capsule/120x40/256
+shots/audit/jackin-capsule_120x40_no_color	MAP jackin/audit/capsule/120x40/nocolor
+shots/audit/jackin-capsule_120x40_none	MAP jackin/audit/capsule/120x40/none
+shots/audit/jackin-capsule_120x40_truecolor	MAP jackin/audit/capsule/120x40/truecolor
+shots/audit/jackin-capsule_160x50_16	MAP jackin/audit/capsule/160x50/16
+shots/audit/jackin-capsule_160x50_256	MAP jackin/audit/capsule/160x50/256
+shots/audit/jackin-capsule_160x50_no_color	MAP jackin/audit/capsule/160x50/nocolor
+shots/audit/jackin-capsule_160x50_none	MAP jackin/audit/capsule/160x50/none
+shots/audit/jackin-capsule_160x50_truecolor	MAP jackin/audit/capsule/160x50/truecolor
+shots/audit/jackin-capsule_72x20_16	MAP jackin/audit/capsule/72x20/16
+shots/audit/jackin-capsule_72x20_256	MAP jackin/audit/capsule/72x20/256
+shots/audit/jackin-capsule_72x20_no_color	MAP jackin/audit/capsule/72x20/nocolor
+shots/audit/jackin-capsule_72x20_none	MAP jackin/audit/capsule/72x20/none
+shots/audit/jackin-capsule_72x20_truecolor	MAP jackin/audit/capsule/72x20/truecolor
+shots/audit/jackin-capsule_80x24_16	MAP jackin/audit/capsule/80x24/16
+shots/audit/jackin-capsule_80x24_256	MAP jackin/audit/capsule/80x24/256
+shots/audit/jackin-capsule_80x24_no_color	MAP jackin/audit/capsule/80x24/nocolor
+shots/audit/jackin-capsule_80x24_none	MAP jackin/audit/capsule/80x24/none
+shots/audit/jackin-capsule_80x24_truecolor	MAP jackin/audit/capsule/80x24/truecolor
+shots/audit/showcase-buttons_100x30_16	MAP showcase/audit/buttons/100x30/16
+shots/audit/showcase-buttons_100x30_256	MAP showcase/audit/buttons/100x30/256
+shots/audit/showcase-buttons_100x30_no_color	MAP showcase/audit/buttons/100x30/nocolor
+shots/audit/showcase-buttons_100x30_none	MAP showcase/audit/buttons/100x30/none
+shots/audit/showcase-buttons_100x30_truecolor	MAP showcase/audit/buttons/100x30/truecolor
+shots/audit/showcase-buttons_120x40_16	MAP showcase/audit/buttons/120x40/16
+shots/audit/showcase-buttons_120x40_256	MAP showcase/audit/buttons/120x40/256
+shots/audit/showcase-buttons_120x40_no_color	MAP showcase/audit/buttons/120x40/nocolor
+shots/audit/showcase-buttons_120x40_none	MAP showcase/audit/buttons/120x40/none
+shots/audit/showcase-buttons_120x40_truecolor	MAP showcase/audit/buttons/120x40/truecolor
+shots/audit/showcase-buttons_160x50_16	MAP showcase/audit/buttons/160x50/16
+shots/audit/showcase-buttons_160x50_256	MAP showcase/audit/buttons/160x50/256
+shots/audit/showcase-buttons_160x50_no_color	MAP showcase/audit/buttons/160x50/nocolor
+shots/audit/showcase-buttons_160x50_none	MAP showcase/audit/buttons/160x50/none
+shots/audit/showcase-buttons_160x50_truecolor	MAP showcase/audit/buttons/160x50/truecolor
+shots/audit/showcase-buttons_72x20_16	MAP showcase/audit/buttons/72x20/16
+shots/audit/showcase-buttons_72x20_256	MAP showcase/audit/buttons/72x20/256
+shots/audit/showcase-buttons_72x20_no_color	MAP showcase/audit/buttons/72x20/nocolor
+shots/audit/showcase-buttons_72x20_none	MAP showcase/audit/buttons/72x20/none
+shots/audit/showcase-buttons_72x20_truecolor	MAP showcase/audit/buttons/72x20/truecolor
+shots/audit/showcase-buttons_80x24_16	MAP showcase/audit/buttons/80x24/16
+shots/audit/showcase-buttons_80x24_256	MAP showcase/audit/buttons/80x24/256
+shots/audit/showcase-buttons_80x24_no_color	MAP showcase/audit/buttons/80x24/nocolor
+shots/audit/showcase-buttons_80x24_none	MAP showcase/audit/buttons/80x24/none
+shots/audit/showcase-buttons_80x24_truecolor	MAP showcase/audit/buttons/80x24/truecolor
+shots/audit/showcase-diff_100x30_16	MAP showcase/audit/diff/100x30/16
+shots/audit/showcase-diff_100x30_256	MAP showcase/audit/diff/100x30/256
+shots/audit/showcase-diff_100x30_no_color	MAP showcase/audit/diff/100x30/nocolor
+shots/audit/showcase-diff_100x30_none	MAP showcase/audit/diff/100x30/none
+shots/audit/showcase-diff_100x30_truecolor	MAP showcase/audit/diff/100x30/truecolor
+shots/audit/showcase-diff_120x40_16	MAP showcase/audit/diff/120x40/16
+shots/audit/showcase-diff_120x40_256	MAP showcase/audit/diff/120x40/256
+shots/audit/showcase-diff_120x40_no_color	MAP showcase/audit/diff/120x40/nocolor
+shots/audit/showcase-diff_120x40_none	MAP showcase/audit/diff/120x40/none
+shots/audit/showcase-diff_120x40_truecolor	MAP showcase/audit/diff/120x40/truecolor
+shots/audit/showcase-diff_160x50_16	MAP showcase/audit/diff/160x50/16
+shots/audit/showcase-diff_160x50_256	MAP showcase/audit/diff/160x50/256
+shots/audit/showcase-diff_160x50_no_color	MAP showcase/audit/diff/160x50/nocolor
+shots/audit/showcase-diff_160x50_none	MAP showcase/audit/diff/160x50/none
+shots/audit/showcase-diff_160x50_truecolor	MAP showcase/audit/diff/160x50/truecolor
+shots/audit/showcase-diff_72x20_16	MAP showcase/audit/diff/72x20/16
+shots/audit/showcase-diff_72x20_256	MAP showcase/audit/diff/72x20/256
+shots/audit/showcase-diff_72x20_no_color	MAP showcase/audit/diff/72x20/nocolor
+shots/audit/showcase-diff_72x20_none	MAP showcase/audit/diff/72x20/none
+shots/audit/showcase-diff_72x20_truecolor	MAP showcase/audit/diff/72x20/truecolor
+shots/audit/showcase-diff_80x24_16	MAP showcase/audit/diff/80x24/16
+shots/audit/showcase-diff_80x24_256	MAP showcase/audit/diff/80x24/256
+shots/audit/showcase-diff_80x24_no_color	MAP showcase/audit/diff/80x24/nocolor
+shots/audit/showcase-diff_80x24_none	MAP showcase/audit/diff/80x24/none
+shots/audit/showcase-diff_80x24_truecolor	MAP showcase/audit/diff/80x24/truecolor
+shots/audit/showcase-forms_100x30_16	MAP showcase/audit/forms/100x30/16
+shots/audit/showcase-forms_100x30_256	MAP showcase/audit/forms/100x30/256
+shots/audit/showcase-forms_100x30_no_color	MAP showcase/audit/forms/100x30/nocolor
+shots/audit/showcase-forms_100x30_none	MAP showcase/audit/forms/100x30/none
+shots/audit/showcase-forms_100x30_truecolor	MAP showcase/audit/forms/100x30/truecolor
+shots/audit/showcase-forms_120x40_16	MAP showcase/audit/forms/120x40/16
+shots/audit/showcase-forms_120x40_256	MAP showcase/audit/forms/120x40/256
+shots/audit/showcase-forms_120x40_no_color	MAP showcase/audit/forms/120x40/nocolor
+shots/audit/showcase-forms_120x40_none	MAP showcase/audit/forms/120x40/none
+shots/audit/showcase-forms_120x40_truecolor	MAP showcase/audit/forms/120x40/truecolor
+shots/audit/showcase-forms_160x50_16	MAP showcase/audit/forms/160x50/16
+shots/audit/showcase-forms_160x50_256	MAP showcase/audit/forms/160x50/256
+shots/audit/showcase-forms_160x50_no_color	MAP showcase/audit/forms/160x50/nocolor
+shots/audit/showcase-forms_160x50_none	MAP showcase/audit/forms/160x50/none
+shots/audit/showcase-forms_160x50_truecolor	MAP showcase/audit/forms/160x50/truecolor
+shots/audit/showcase-forms_72x20_16	MAP showcase/audit/forms/72x20/16
+shots/audit/showcase-forms_72x20_256	MAP showcase/audit/forms/72x20/256
+shots/audit/showcase-forms_72x20_no_color	MAP showcase/audit/forms/72x20/nocolor
+shots/audit/showcase-forms_72x20_none	MAP showcase/audit/forms/72x20/none
+shots/audit/showcase-forms_72x20_truecolor	MAP showcase/audit/forms/72x20/truecolor
+shots/audit/showcase-forms_80x24_16	MAP showcase/audit/forms/80x24/16
+shots/audit/showcase-forms_80x24_256	MAP showcase/audit/forms/80x24/256
+shots/audit/showcase-forms_80x24_no_color	MAP showcase/audit/forms/80x24/nocolor
+shots/audit/showcase-forms_80x24_none	MAP showcase/audit/forms/80x24/none
+shots/audit/showcase-forms_80x24_truecolor	MAP showcase/audit/forms/80x24/truecolor
+shots/audit/showcase-inputs_100x30_16	MAP showcase/audit/inputs/100x30/16
+shots/audit/showcase-inputs_100x30_256	MAP showcase/audit/inputs/100x30/256
+shots/audit/showcase-inputs_100x30_no_color	MAP showcase/audit/inputs/100x30/nocolor
+shots/audit/showcase-inputs_100x30_none	MAP showcase/audit/inputs/100x30/none
+shots/audit/showcase-inputs_100x30_truecolor	MAP showcase/audit/inputs/100x30/truecolor
+shots/audit/showcase-inputs_120x40_16	MAP showcase/audit/inputs/120x40/16
+shots/audit/showcase-inputs_120x40_256	MAP showcase/audit/inputs/120x40/256
+shots/audit/showcase-inputs_120x40_no_color	MAP showcase/audit/inputs/120x40/nocolor
+shots/audit/showcase-inputs_120x40_none	MAP showcase/audit/inputs/120x40/none
+shots/audit/showcase-inputs_120x40_truecolor	MAP showcase/audit/inputs/120x40/truecolor
+shots/audit/showcase-inputs_160x50_16	MAP showcase/audit/inputs/160x50/16
+shots/audit/showcase-inputs_160x50_256	MAP showcase/audit/inputs/160x50/256
+shots/audit/showcase-inputs_160x50_no_color	MAP showcase/audit/inputs/160x50/nocolor
+shots/audit/showcase-inputs_160x50_none	MAP showcase/audit/inputs/160x50/none
+shots/audit/showcase-inputs_160x50_truecolor	MAP showcase/audit/inputs/160x50/truecolor
+shots/audit/showcase-inputs_72x20_16	MAP showcase/audit/inputs/72x20/16
+shots/audit/showcase-inputs_72x20_256	MAP showcase/audit/inputs/72x20/256
+shots/audit/showcase-inputs_72x20_no_color	MAP showcase/audit/inputs/72x20/nocolor
+shots/audit/showcase-inputs_72x20_none	MAP showcase/audit/inputs/72x20/none
+shots/audit/showcase-inputs_72x20_truecolor	MAP showcase/audit/inputs/72x20/truecolor
+shots/audit/showcase-inputs_80x24_16	MAP showcase/audit/inputs/80x24/16
+shots/audit/showcase-inputs_80x24_256	MAP showcase/audit/inputs/80x24/256
+shots/audit/showcase-inputs_80x24_no_color	MAP showcase/audit/inputs/80x24/nocolor
+shots/audit/showcase-inputs_80x24_none	MAP showcase/audit/inputs/80x24/none
+shots/audit/showcase-inputs_80x24_truecolor	MAP showcase/audit/inputs/80x24/truecolor
+shots/audit/showcase-textareas_100x30_16	MAP showcase/audit/textareas/100x30/16
+shots/audit/showcase-textareas_100x30_256	MAP showcase/audit/textareas/100x30/256
+shots/audit/showcase-textareas_100x30_no_color	MAP showcase/audit/textareas/100x30/nocolor
+shots/audit/showcase-textareas_100x30_none	MAP showcase/audit/textareas/100x30/none
+shots/audit/showcase-textareas_100x30_truecolor	MAP showcase/audit/textareas/100x30/truecolor
+shots/audit/showcase-textareas_120x40_16	MAP showcase/audit/textareas/120x40/16
+shots/audit/showcase-textareas_120x40_256	MAP showcase/audit/textareas/120x40/256
+shots/audit/showcase-textareas_120x40_no_color	MAP showcase/audit/textareas/120x40/nocolor
+shots/audit/showcase-textareas_120x40_none	MAP showcase/audit/textareas/120x40/none
+shots/audit/showcase-textareas_120x40_truecolor	MAP showcase/audit/textareas/120x40/truecolor
+shots/audit/showcase-textareas_160x50_16	MAP showcase/audit/textareas/160x50/16
+shots/audit/showcase-textareas_160x50_256	MAP showcase/audit/textareas/160x50/256
+shots/audit/showcase-textareas_160x50_no_color	MAP showcase/audit/textareas/160x50/nocolor
+shots/audit/showcase-textareas_160x50_none	MAP showcase/audit/textareas/160x50/none
+shots/audit/showcase-textareas_160x50_truecolor	MAP showcase/audit/textareas/160x50/truecolor
+shots/audit/showcase-textareas_72x20_16	MAP showcase/audit/textareas/72x20/16
+shots/audit/showcase-textareas_72x20_256	MAP showcase/audit/textareas/72x20/256
+shots/audit/showcase-textareas_72x20_no_color	MAP showcase/audit/textareas/72x20/nocolor
+shots/audit/showcase-textareas_72x20_none	MAP showcase/audit/textareas/72x20/none
+shots/audit/showcase-textareas_72x20_truecolor	MAP showcase/audit/textareas/72x20/truecolor
+shots/audit/showcase-textareas_80x24_16	MAP showcase/audit/textareas/80x24/16
+shots/audit/showcase-textareas_80x24_256	MAP showcase/audit/textareas/80x24/256
+shots/audit/showcase-textareas_80x24_no_color	MAP showcase/audit/textareas/80x24/nocolor
+shots/audit/showcase-textareas_80x24_none	MAP showcase/audit/textareas/80x24/none
+shots/audit/showcase-textareas_80x24_truecolor	MAP showcase/audit/textareas/80x24/truecolor
+shots/audit/stderr.log	DROP harness sidecar
+shots/audit/tablepro-production_100x30_16	MAP tablepro/audit/production/100x30/16
+shots/audit/tablepro-production_100x30_256	MAP tablepro/audit/production/100x30/256
+shots/audit/tablepro-production_100x30_no_color	MAP tablepro/audit/production/100x30/nocolor
+shots/audit/tablepro-production_100x30_none	MAP tablepro/audit/production/100x30/none
+shots/audit/tablepro-production_100x30_truecolor	MAP tablepro/audit/production/100x30/truecolor
+shots/audit/tablepro-production_120x40_16	MAP tablepro/audit/production/120x40/16
+shots/audit/tablepro-production_120x40_256	MAP tablepro/audit/production/120x40/256
+shots/audit/tablepro-production_120x40_no_color	MAP tablepro/audit/production/120x40/nocolor
+shots/audit/tablepro-production_120x40_none	MAP tablepro/audit/production/120x40/none
+shots/audit/tablepro-production_120x40_truecolor	MAP tablepro/audit/production/120x40/truecolor
+shots/audit/tablepro-production_160x50_16	MAP tablepro/audit/production/160x50/16
+shots/audit/tablepro-production_160x50_256	MAP tablepro/audit/production/160x50/256
+shots/audit/tablepro-production_160x50_no_color	MAP tablepro/audit/production/160x50/nocolor
+shots/audit/tablepro-production_160x50_none	MAP tablepro/audit/production/160x50/none
+shots/audit/tablepro-production_160x50_truecolor	MAP tablepro/audit/production/160x50/truecolor
+shots/audit/tablepro-production_72x20_16	MAP tablepro/audit/production/72x20/16
+shots/audit/tablepro-production_72x20_256	MAP tablepro/audit/production/72x20/256
+shots/audit/tablepro-production_72x20_no_color	MAP tablepro/audit/production/72x20/nocolor
+shots/audit/tablepro-production_72x20_none	MAP tablepro/audit/production/72x20/none
+shots/audit/tablepro-production_72x20_truecolor	MAP tablepro/audit/production/72x20/truecolor
+shots/audit/tablepro-production_80x24_16	MAP tablepro/audit/production/80x24/16
+shots/audit/tablepro-production_80x24_256	MAP tablepro/audit/production/80x24/256
+shots/audit/tablepro-production_80x24_no_color	MAP tablepro/audit/production/80x24/nocolor
+shots/audit/tablepro-production_80x24_none	MAP tablepro/audit/production/80x24/none
+shots/audit/tablepro-production_80x24_truecolor	MAP tablepro/audit/production/80x24/truecolor
+shots/f_80x24_taskrunner	MAP showcase/pages/taskrunner/120x40/truecolor
+shots/f_buttons_hover	MAP showcase/hover/buttons/120x40/truecolor
+shots/f_dialog_delete	MAP showcase/flows/dialogs/destructive/120x40/truecolor
+shots/f_forms	MAP showcase/pages/overview/120x40/truecolor
+shots/f_inputs_edit	MAP showcase/flows/inputs/editing/120x40/truecolor
+shots/f_lists_hover	MAP showcase/hover/lists/120x40/truecolor
+shots/f_overview	MAP showcase/pages/overview/120x40/truecolor
+shots/f_panels	MAP showcase/pages/panels/120x40/truecolor
+shots/f_progress	MAP showcase/pages/progress
+shots/f_scrolling	MAP showcase/pages/scrolling/120x40/truecolor
+shots/f_settings_members	MAP showcase/flows/settings/members/120x40/truecolor
+shots/f_sidebars	MAP showcase/pages/sidebars/120x40/truecolor
+shots/f_tables_hover	MAP showcase/hover/tables/120x40/truecolor
+shots/f_taskrunner_running	MAP showcase/flows/taskrunner/running/120x40/truecolor
+shots/fade/.args.fade_a	DROP harness sidecar
+shots/fade/.args.fade_b	DROP harness sidecar
+shots/fade/.args.fade_c	DROP harness sidecar
+shots/fade/.args.fade_d	DROP harness sidecar
+shots/fade/.args.fade_e	DROP harness sidecar
+shots/fade/.args.scroll	DROP harness sidecar
+shots/fade/h_fade_burst	DROP wall-clock fade burst
+shots/fade/h_fade_burst_mid	DROP wall-clock fade mid-burst
+shots/fade/h_fade_cleanup	DROP fade sidecar or superseded wheel frame
+shots/fade/h_fade_trust	DROP fade sidecar or superseded wheel frame
+shots/fade/s_fade_diff	DROP fade sidecar or superseded wheel frame
+shots/fade/s_fade_editor	DROP fade sidecar or superseded wheel frame
+shots/fade/s_fade_grid	MAP showcase/fade/datagrid/wheel/120x40/truecolor
+shots/fade/s_fade_lists	MAP showcase/fade/lists/wheel-fade/120x40/truecolor
+shots/fade/s_fade_scrolling	DROP fade sidecar or superseded wheel frame
+shots/fade/s_fade_scrolling_mono	DROP fade sidecar or superseded wheel frame
+shots/fade/s_fade_textarea	DROP fade sidecar or superseded wheel frame
+shots/fade/s_fade_trees	MAP showcase/fade/trees/wheel-fade/120x40/truecolor
+shots/fade/s_scroll_page	DROP fade sidecar or superseded wheel frame
+shots/fade/s_scroll_page_80	DROP fade sidecar or superseded wheel frame
+shots/fade/s_scroll_sidebars_72	DROP fade sidecar or superseded wheel frame
+shots/fade/s_scroll_terminal_80	DROP fade sidecar or superseded wheel frame
+shots/fade/stderr.log	DROP harness sidecar
+shots/h_activities_multi_100x30	MAP holla/concept/activities-multi/100x30/truecolor
+shots/h_activities_multi_120x40	MAP holla/concept/activities-multi/120x40/truecolor
+shots/h_activities_multi_160x50	MAP holla/concept/activities-multi/160x50/truecolor
+shots/h_activities_multi_80x24	MAP holla/concept/activities-multi/80x24/truecolor
+shots/h_activities_multi_mono	MAP holla/concept/activities-multi/120x40/truecolor
+shots/h_disk_cleanup_100x30	MAP holla/concept/disk-cleanup/100x30/truecolor
+shots/h_disk_cleanup_120x40	MAP holla/concept/disk-cleanup/120x40/truecolor
+shots/h_disk_cleanup_16	MAP holla/concept/disk-cleanup/120x40/truecolor
+shots/h_disk_cleanup_160x50	MAP holla/concept/disk-cleanup/160x50/truecolor
+shots/h_disk_cleanup_80x24	MAP holla/concept/disk-cleanup/80x24/truecolor
+shots/h_disk_cleanup_mono	MAP holla/concept/disk-cleanup/120x40/truecolor
+shots/h_docker_cleanup_100x30	MAP holla/concept/docker-cleanup/100x30/truecolor
+shots/h_docker_cleanup_120x40	MAP holla/concept/docker-cleanup/120x40/truecolor
+shots/h_docker_cleanup_160x50	MAP holla/concept/docker-cleanup/160x50/truecolor
+shots/h_docker_cleanup_80x24	MAP holla/concept/docker-cleanup/80x24/truecolor
+shots/h_docker_cleanup_mono	MAP holla/concept/docker-cleanup/120x40/truecolor
+shots/h_first_use_100x30	MAP holla/concept/first-use/100x30/truecolor
+shots/h_first_use_120x40	MAP holla/concept/first-use/120x40/truecolor
+shots/h_first_use_160x50	MAP holla/concept/first-use/160x50/truecolor
+shots/h_first_use_80x24	MAP holla/concept/first-use/80x24/truecolor
+shots/h_first_use_mono	MAP holla/concept/first-use/120x40/truecolor
+shots/h_flow_activities_empty	MAP holla/flows/activities/empty/120x40/truecolor
+shots/h_flow_alternatives	MAP holla/flows/alternatives/120x40/truecolor
+shots/h_flow_args	MAP holla/flows/args/clone/120x40/truecolor
+shots/h_flow_args_port	MAP holla/flows/args/page/120x40/truecolor
+shots/h_flow_btm	DROP attached/streaming TTY never settles
+shots/h_flow_btm_attached	DROP attached/streaming TTY never settles
+shots/h_flow_child_query	MAP holla/flows/child/query/120x40/truecolor
+shots/h_flow_cleanup_gate1	MAP holla/flows/cleanup
+shots/h_flow_cleanup_plan	MAP holla/flows/cleanup
+shots/h_flow_discovering	DROP wall-clock discovering spinner
+shots/h_flow_disk_80	MAP holla/flows/disk/scan_complete/120x40/truecolor
+shots/h_flow_frontend	MAP holla/flows/child/query/120x40/truecolor
+shots/h_flow_help	MAP holla/flows/help/overlay/120x40/truecolor
+shots/h_flow_logs	DROP attached/streaming TTY never settles
+shots/h_flow_logs_80	DROP attached/streaming TTY never settles
+shots/h_flow_logs_chips	DROP attached/streaming TTY never settles
+shots/h_flow_logs_hidden	DROP attached/streaming TTY never settles
+shots/h_flow_pg_blocking	DROP attached/streaming TTY never settles
+shots/h_flow_picker	MAP holla/flows/files/actions/120x40/truecolor
+shots/h_flow_port_snapshot	MAP holla/flows/args/page/120x40/truecolor
+shots/h_flow_remote_gate1	MAP holla/flows/remote
+shots/h_flow_remote_gate2	MAP holla/flows/remote
+shots/h_flow_remote_query	MAP holla/flows/remote/query/120x40/truecolor
+shots/h_flow_scope_children	MAP holla/flows/scope/children/120x40/truecolor
+shots/h_flow_scope_parent	MAP holla/flows/scope/parent/120x40/truecolor
+shots/h_flow_scope_system	MAP holla/flows/scope/system/120x40/truecolor
+shots/h_flow_system	MAP holla/flows/query/empty_preview/120x40/truecolor
+shots/h_flow_trust	MAP holla/flows/trust/prompt/120x40/truecolor
+shots/h_flow_trusted_running	DROP wall-clock trusted running
+shots/h_flow_upgrade_80	MAP holla/flows/upgrade
+shots/h_flow_upgrade_80_facts	MAP holla/flows/upgrade
+shots/h_flow_upgrade_cleanup_excluded	MAP holla/flows/upgrade
+shots/h_flow_upgrade_confirm	MAP holla/flows/upgrade
+shots/h_flow_upgrade_excluded	MAP holla/flows/upgrade
+shots/h_flow_upgrade_failed	DROP wall-clock upgrade failure phase
+shots/h_flow_upgrade_failed_step	DROP wall-clock upgrade failure step
+shots/h_flow_upgrade_running	DROP wall-clock upgrade run
+shots/h_hard_cases_100x30	MAP holla/concept/hard-cases/100x30/truecolor
+shots/h_hard_cases_120x40	MAP holla/concept/hard-cases/120x40/truecolor
+shots/h_hard_cases_160x50	MAP holla/concept/hard-cases/160x50/truecolor
+shots/h_hard_cases_80x24	MAP holla/concept/hard-cases/80x24/truecolor
+shots/h_hard_cases_mono	MAP holla/concept/hard-cases/120x40/truecolor
+shots/h_hp01_config_page	MAP holla/flows/config/page/120x40/truecolor
+shots/h_hp01_discovered	MAP holla/flows/config/page/120x40/truecolor
+shots/h_hp01_discovering	DROP wall-clock discovering
+shots/h_hp02_query	MAP holla/flows/finder/query/120x40/truecolor
+shots/h_hp02_query_selected	MAP holla/flows/finder/query-selected/120x40/truecolor
+shots/h_hp02_query_undone	MAP holla/flows/finder/query/120x40/truecolor
+shots/h_hp02_recent	DROP HOLLA_NO_HISTORY=1 makes Recent unused
+shots/h_hp03_actions	MAP holla/flows/files/actions/120x40/truecolor
+shots/h_hp03_find	MAP holla/flows/files/results/120x40/truecolor
+shots/h_hp03_find_unicode	MAP holla/flows/files/unicode/120x40/truecolor
+shots/h_hp04_browse	MAP holla/flows/browser/preview/120x40/truecolor
+shots/h_hp04_hidden	MAP holla/flows/browser/hidden/120x40/truecolor
+shots/h_hp04_jump	MAP holla/flows/files/jump/120x40/truecolor
+shots/h_hp04_jump_error	MAP holla/flows/files/jump_error/120x40/truecolor
+shots/h_hp04_jumped	MAP holla/flows/files/jump/120x40/truecolor
+shots/h_hp04_preview_big	MAP holla/flows/browser/preview/120x40/truecolor
+shots/h_hp04_preview_control	MAP holla/flows/files/preview_control/120x40/truecolor
+shots/h_hp05_merge	MAP holla/flows/git/merge/120x40/truecolor
+shots/h_hp05_pull_blocked	MAP holla/flows/git/pull_blocked/120x40/truecolor
+shots/h_hp05_push_rejected	MAP holla/flows/git/push_rejected/120x40/truecolor
+shots/h_hp06_batch	MAP holla/flows/git/batch/120x40/truecolor
+shots/h_hp06_batch_picker	MAP holla/flows/git/batch_picker/120x40/truecolor
+shots/h_hp07_diagnostic	MAP holla/flows/cargo/clean/120x40/truecolor
+shots/h_hp07_scripts	MAP holla/flows/task/sources/120x40/truecolor
+shots/h_hp08_clean	MAP holla/flows/cargo/clean/120x40/truecolor
+shots/h_hp08_clean_confirm	MAP holla/flows/cargo/clean_confirm/120x40/truecolor
+shots/h_hp09_remove_gate1	MAP holla/flows/docker/remove_gate1/120x40/truecolor
+shots/h_hp09_remove_gate2	MAP holla/flows/docker/remove_gate2/120x40/truecolor
+shots/h_hp09_stop_all_failed	MAP holla/flows/docker/remove_failed/120x40/truecolor
+shots/h_hp10_services	MAP holla/flows/brew/services/120x40/truecolor
+shots/h_hp10_stop_failed	MAP holla/flows/brew/services_stop_failed/120x40/truecolor
+shots/h_hp11_cleanup	MAP holla/flows/cleanup/plan/120x40/truecolor
+shots/h_hp11_gate1	MAP holla/flows/cleanup/gate1/120x40/truecolor
+shots/h_hp12_cleanup	MAP holla/flows/cleanup/plan/120x40/truecolor
+shots/h_hp12_gate2	MAP holla/flows/cleanup/gate2/120x40/truecolor
+shots/h_hp13_brew_batch	MAP holla/flows/brew/upgrade_batch/120x40/truecolor
+shots/h_hp13_plan	MAP holla/flows/brew/upgrade_plan/120x40/truecolor
+shots/h_hp14_burst	DROP wall-clock executor burst
+shots/h_hp14_find	MAP holla/parity/executor/120x40/truecolor
+shots/h_hp14_stream	DROP wall-clock executor stream
+shots/h_hp15_answered	DROP wall-clock spinner
+shots/h_hp15_cancelled	MAP holla/flows/task/input_cancelled/120x40/truecolor
+shots/h_hp15_input_mode	DROP wall-clock spinner
+shots/h_hp15_killed	MAP holla/flows/task/input_killed/120x40/truecolor
+shots/h_hp15_prompt	DROP wall-clock spinner; animating() never settles
+shots/h_hp15_stopping	DROP wall-clock spinner
+shots/h_hp17_config	MAP holla/flows/config/page/120x40/truecolor
+shots/h_hp17_trust	MAP holla/flows/trust/prompt/120x40/truecolor
+shots/h_hp17_trusted_running	DROP wall-clock trusted running
+shots/h_hp18_cancelled	DROP mid-scan cancel phase
+shots/h_hp18_complete	MAP holla/flows/disk/scan_complete/120x40/truecolor
+shots/h_hp18_scanning	DROP mid-scan percentage tick-count
+shots/h_hp19_apparent	MAP holla/flows/disk/tree_apparent/120x40/truecolor
+shots/h_hp19_selected	MAP holla/flows/disk/tree_selected/120x40/truecolor
+shots/h_hp19_top_files	MAP holla/flows/disk/top_files/120x40/truecolor
+shots/h_hp19_tree	MAP holla/flows/disk/tree/120x40/truecolor
+shots/h_hp19_unfolded	MAP holla/flows/disk/tree_unfolded/120x40/truecolor
+shots/h_hp20_artifacts	MAP holla/flows/cleanup/artifacts/120x40/truecolor
+shots/h_hp20_categories	MAP holla/flows/cleanup/categories/120x40/truecolor
+shots/h_hp20_derived_data	MAP holla/flows/cleanup/derived_data/120x40/truecolor
+shots/h_hp21_gate1	MAP holla/flows/cleanup/gate1/120x40/truecolor
+shots/h_hp21_gate2	MAP holla/flows/cleanup/gate2/120x40/truecolor
+shots/h_hp21_gate2_typed	MAP holla/flows/cleanup/gate2_typed/120x40/truecolor
+shots/h_hp21_report	MAP holla/flows/cleanup/report/120x40/truecolor
+shots/h_hp22_history	MAP holla/flows/cleanup/history/120x40/truecolor
+shots/h_hp23_linux_gate	MAP holla/flows/cleanup/linux_report/120x40/truecolor
+shots/h_hp23_linux_gate2	MAP holla/flows/cleanup/linux_report/120x40/truecolor
+shots/h_hp23_linux_report	MAP holla/flows/cleanup/linux_report/120x40/truecolor
+shots/h_hp23_mac_top_files	MAP holla/flows/disk/top_files/120x40/truecolor
+shots/h_launch_failure_100x30	MAP holla/concept/launch-failure/100x30/truecolor
+shots/h_launch_failure_120x40	MAP holla/concept/launch-failure/120x40/truecolor
+shots/h_launch_failure_160x50	MAP holla/concept/launch-failure/160x50/truecolor
+shots/h_launch_failure_80x24	MAP holla/concept/launch-failure/80x24/truecolor
+shots/h_launch_failure_mono	MAP holla/concept/launch-failure/120x40/truecolor
+shots/h_monorepo_child_100x30	MAP holla/concept/monorepo-child/100x30/truecolor
+shots/h_monorepo_child_120x40	MAP holla/concept/monorepo-child/120x40/truecolor
+shots/h_monorepo_child_160x50	MAP holla/concept/monorepo-child/160x50/truecolor
+shots/h_monorepo_child_80x24	MAP holla/concept/monorepo-child/80x24/truecolor
+shots/h_monorepo_child_mono	MAP holla/concept/monorepo-child/120x40/truecolor
+shots/h_monorepo_root_100x30	MAP holla/concept/monorepo-root/100x30/truecolor
+shots/h_monorepo_root_120x40	MAP holla/concept/monorepo-root/120x40/truecolor
+shots/h_monorepo_root_160x50	MAP holla/concept/monorepo-root/160x50/truecolor
+shots/h_monorepo_root_80x24	MAP holla/concept/monorepo-root/80x24/truecolor
+shots/h_monorepo_root_mono	MAP holla/concept/monorepo-root/120x40/truecolor
+shots/h_p3_docker_done	MAP holla/flows/docker + audit
+shots/h_p3_docker_drift	MAP holla/flows/docker + audit
+shots/h_p3_docker_gate1	MAP holla/flows/docker + audit
+shots/h_p3_docker_gate2	MAP holla/flows/docker + audit
+shots/h_p3_docker_gate2_typed	MAP holla/flows/docker + audit
+shots/h_p3_docker_plan	MAP holla/flows/docker + audit
+shots/h_p3_docker_root	MAP holla/flows/docker + audit
+shots/h_p3_docker_running	DROP wall-clock docker run
+shots/h_parity_brew_services_100x30	MAP holla/parity/brew-services/100x30/truecolor
+shots/h_parity_brew_services_120x40	MAP holla/parity/brew-services/120x40/truecolor
+shots/h_parity_brew_services_160x50	MAP holla/parity/brew-services/160x50/truecolor
+shots/h_parity_brew_services_80x24	MAP holla/parity/brew-services/80x24/truecolor
+shots/h_parity_brew_services_mono	MAP holla/parity/brew-services/120x40/truecolor
+shots/h_parity_browser_100x30	MAP holla/parity/browser/100x30/truecolor
+shots/h_parity_browser_120x40	MAP holla/parity/browser/120x40/truecolor
+shots/h_parity_browser_160x50	MAP holla/parity/browser/160x50/truecolor
+shots/h_parity_browser_80x24	MAP holla/parity/browser/80x24/truecolor
+shots/h_parity_browser_mono	MAP holla/parity/browser/120x40/truecolor
+shots/h_parity_cargo_100x30	MAP holla/parity/cargo/100x30/truecolor
+shots/h_parity_cargo_120x40	MAP holla/parity/cargo/120x40/truecolor
+shots/h_parity_cargo_160x50	MAP holla/parity/cargo/160x50/truecolor
+shots/h_parity_cargo_80x24	MAP holla/parity/cargo/80x24/truecolor
+shots/h_parity_cargo_mono	MAP holla/parity/cargo/120x40/truecolor
+shots/h_parity_cleanup_results_100x30	MAP holla/parity/cleanup-results/100x30/truecolor
+shots/h_parity_cleanup_results_120x40	MAP holla/parity/cleanup-results/120x40/truecolor
+shots/h_parity_cleanup_results_160x50	MAP holla/parity/cleanup-results/160x50/truecolor
+shots/h_parity_cleanup_results_80x24	MAP holla/parity/cleanup-results/80x24/truecolor
+shots/h_parity_cleanup_results_mono	MAP holla/parity/cleanup-results/120x40/truecolor
+shots/h_parity_custom_actions_100x30	MAP holla/parity/custom-actions/100x30/truecolor
+shots/h_parity_custom_actions_120x40	MAP holla/parity/custom-actions/120x40/truecolor
+shots/h_parity_custom_actions_160x50	MAP holla/parity/custom-actions/160x50/truecolor
+shots/h_parity_custom_actions_80x24	MAP holla/parity/custom-actions/80x24/truecolor
+shots/h_parity_custom_actions_mono	MAP holla/parity/custom-actions/120x40/truecolor
+shots/h_parity_delete_safety_100x30	MAP holla/parity/delete-safety/100x30/truecolor
+shots/h_parity_delete_safety_120x40	MAP holla/parity/delete-safety/120x40/truecolor
+shots/h_parity_delete_safety_160x50	MAP holla/parity/delete-safety/160x50/truecolor
+shots/h_parity_delete_safety_80x24	MAP holla/parity/delete-safety/80x24/truecolor
+shots/h_parity_delete_safety_mono	MAP holla/parity/delete-safety/120x40/truecolor
+shots/h_parity_discovery_100x30	MAP holla/parity/discovery/100x30/truecolor
+shots/h_parity_discovery_120x40	MAP holla/parity/discovery/120x40/truecolor
+shots/h_parity_discovery_160x50	MAP holla/parity/discovery/160x50/truecolor
+shots/h_parity_discovery_80x24	MAP holla/parity/discovery/80x24/truecolor
+shots/h_parity_discovery_mono	MAP holla/parity/discovery/120x40/truecolor
+shots/h_parity_disk_navigation_100x30	MAP holla/parity/disk-navigation/100x30/truecolor
+shots/h_parity_disk_navigation_120x40	MAP holla/parity/disk-navigation/120x40/truecolor
+shots/h_parity_disk_navigation_160x50	MAP holla/parity/disk-navigation/160x50/truecolor
+shots/h_parity_disk_navigation_80x24	MAP holla/parity/disk-navigation/80x24/truecolor
+shots/h_parity_disk_navigation_mono	MAP holla/parity/disk-navigation/120x40/truecolor
+shots/h_parity_disk_scan_100x30	MAP holla/parity/disk-scan/100x30/truecolor
+shots/h_parity_disk_scan_120x40	MAP holla/parity/disk-scan/120x40/truecolor
+shots/h_parity_disk_scan_160x50	MAP holla/parity/disk-scan/160x50/truecolor
+shots/h_parity_disk_scan_80x24	MAP holla/parity/disk-scan/80x24/truecolor
+shots/h_parity_disk_scan_mono	MAP holla/parity/disk-scan/120x40/truecolor
+shots/h_parity_docker_100x30	MAP holla/parity/docker/100x30/truecolor
+shots/h_parity_docker_120x40	MAP holla/parity/docker/120x40/truecolor
+shots/h_parity_docker_160x50	MAP holla/parity/docker/160x50/truecolor
+shots/h_parity_docker_80x24	MAP holla/parity/docker/80x24/truecolor
+shots/h_parity_docker_mono	MAP holla/parity/docker/120x40/truecolor
+shots/h_parity_executor_100x30	MAP holla/parity/executor/100x30/truecolor
+shots/h_parity_executor_120x40	MAP holla/parity/executor/120x40/truecolor
+shots/h_parity_executor_160x50	MAP holla/parity/executor/160x50/truecolor
+shots/h_parity_executor_80x24	MAP holla/parity/executor/80x24/truecolor
+shots/h_parity_executor_mono	MAP holla/parity/executor/120x40/truecolor
+shots/h_parity_files_100x30	MAP holla/parity/files/100x30/truecolor
+shots/h_parity_files_120x40	MAP holla/parity/files/120x40/truecolor
+shots/h_parity_files_160x50	MAP holla/parity/files/160x50/truecolor
+shots/h_parity_files_80x24	MAP holla/parity/files/80x24/truecolor
+shots/h_parity_files_mono	MAP holla/parity/files/120x40/truecolor
+shots/h_parity_git_batch_100x30	MAP holla/parity/git-batch/100x30/truecolor
+shots/h_parity_git_batch_120x40	MAP holla/parity/git-batch/120x40/truecolor
+shots/h_parity_git_batch_160x50	MAP holla/parity/git-batch/160x50/truecolor
+shots/h_parity_git_batch_80x24	MAP holla/parity/git-batch/80x24/truecolor
+shots/h_parity_git_batch_mono	MAP holla/parity/git-batch/120x40/truecolor
+shots/h_parity_git_current_100x30	MAP holla/parity/git-current/100x30/truecolor
+shots/h_parity_git_current_120x40	MAP holla/parity/git-current/120x40/truecolor
+shots/h_parity_git_current_160x50	MAP holla/parity/git-current/160x50/truecolor
+shots/h_parity_git_current_80x24	MAP holla/parity/git-current/80x24/truecolor
+shots/h_parity_git_current_mono	MAP holla/parity/git-current/120x40/truecolor
+shots/h_parity_gradle_100x30	MAP holla/parity/gradle/100x30/truecolor
+shots/h_parity_gradle_120x40	MAP holla/parity/gradle/120x40/truecolor
+shots/h_parity_gradle_160x50	MAP holla/parity/gradle/160x50/truecolor
+shots/h_parity_gradle_80x24	MAP holla/parity/gradle/80x24/truecolor
+shots/h_parity_gradle_mono	MAP holla/parity/gradle/120x40/truecolor
+shots/h_parity_history_100x30	MAP holla/parity/history/100x30/truecolor
+shots/h_parity_history_120x40	MAP holla/parity/history/120x40/truecolor
+shots/h_parity_history_160x50	MAP holla/parity/history/160x50/truecolor
+shots/h_parity_history_80x24	MAP holla/parity/history/80x24/truecolor
+shots/h_parity_history_mono	MAP holla/parity/history/120x40/truecolor
+shots/h_parity_idea_100x30	MAP holla/parity/idea/100x30/truecolor
+shots/h_parity_idea_120x40	MAP holla/parity/idea/120x40/truecolor
+shots/h_parity_idea_160x50	MAP holla/parity/idea/160x50/truecolor
+shots/h_parity_idea_80x24	MAP holla/parity/idea/80x24/truecolor
+shots/h_parity_idea_mono	MAP holla/parity/idea/120x40/truecolor
+shots/h_parity_insights_100x30	MAP holla/parity/insights/100x30/truecolor
+shots/h_parity_insights_120x40	MAP holla/parity/insights/120x40/truecolor
+shots/h_parity_insights_160x50	MAP holla/parity/insights/160x50/truecolor
+shots/h_parity_insights_80x24	MAP holla/parity/insights/80x24/truecolor
+shots/h_parity_insights_mono	MAP holla/parity/insights/120x40/truecolor
+shots/h_parity_platforms_100x30	MAP holla/parity/platforms/100x30/truecolor
+shots/h_parity_platforms_120x40	MAP holla/parity/platforms/120x40/truecolor
+shots/h_parity_platforms_160x50	MAP holla/parity/platforms/160x50/truecolor
+shots/h_parity_platforms_80x24	MAP holla/parity/platforms/80x24/truecolor
+shots/h_parity_platforms_linux_100x30	MAP holla/parity/platforms-linux/100x30/truecolor
+shots/h_parity_platforms_linux_120x40	MAP holla/parity/platforms-linux/120x40/truecolor
+shots/h_parity_platforms_linux_160x50	MAP holla/parity/platforms-linux/160x50/truecolor
+shots/h_parity_platforms_linux_80x24	MAP holla/parity/platforms-linux/80x24/truecolor
+shots/h_parity_platforms_linux_mono	MAP holla/parity/platforms-linux/120x40/truecolor
+shots/h_parity_platforms_mono	MAP holla/parity/platforms/120x40/truecolor
+shots/h_parity_task_input_100x30	MAP holla/parity/task-input/100x30/truecolor
+shots/h_parity_task_input_120x40	MAP holla/parity/task-input/120x40/truecolor
+shots/h_parity_task_input_160x50	MAP holla/parity/task-input/160x50/truecolor
+shots/h_parity_task_input_80x24	MAP holla/parity/task-input/80x24/truecolor
+shots/h_parity_task_input_mono	MAP holla/parity/task-input/120x40/truecolor
+shots/h_parity_task_sources_100x30	MAP holla/parity/task-sources/100x30/truecolor
+shots/h_parity_task_sources_120x40	MAP holla/parity/task-sources/120x40/truecolor
+shots/h_parity_task_sources_160x50	MAP holla/parity/task-sources/160x50/truecolor
+shots/h_parity_task_sources_80x24	MAP holla/parity/task-sources/80x24/truecolor
+shots/h_parity_task_sources_mono	MAP holla/parity/task-sources/120x40/truecolor
+shots/h_parity_upgrade_managers_100x30	MAP holla/parity/upgrade-managers/100x30/truecolor
+shots/h_parity_upgrade_managers_120x40	MAP holla/parity/upgrade-managers/120x40/truecolor
+shots/h_parity_upgrade_managers_160x50	MAP holla/parity/upgrade-managers/160x50/truecolor
+shots/h_parity_upgrade_managers_80x24	MAP holla/parity/upgrade-managers/80x24/truecolor
+shots/h_parity_upgrade_managers_mono	MAP holla/parity/upgrade-managers/120x40/truecolor
+shots/h_remote_host_100x30	MAP holla/concept/remote-host/100x30/truecolor
+shots/h_remote_host_120x40	MAP holla/concept/remote-host/120x40/truecolor
+shots/h_remote_host_160x50	MAP holla/concept/remote-host/160x50/truecolor
+shots/h_remote_host_80x24	MAP holla/concept/remote-host/80x24/truecolor
+shots/h_remote_host_mono	MAP holla/concept/remote-host/120x40/truecolor
+shots/h_rust_dirty_100x30	MAP holla/audit/rust/100x30/truecolor
+shots/h_rust_dirty_120x40	MAP holla/audit/rust/120x40/truecolor
+shots/h_rust_dirty_160x50	MAP holla/audit/rust/160x50/truecolor
+shots/h_rust_dirty_80x24	MAP holla/audit/rust/80x24/truecolor
+shots/h_rust_dirty_mono	MAP holla/audit/rust/120x40/nocolor
+shots/h_upgrade_plan_100x30	MAP holla/audit/upgrade/100x30/truecolor
+shots/h_upgrade_plan_120x40	MAP holla/audit/upgrade/120x40/truecolor
+shots/h_upgrade_plan_16	MAP holla/audit/upgrade/120x40/truecolor
+shots/h_upgrade_plan_160x50	MAP holla/audit/upgrade/160x50/truecolor
+shots/h_upgrade_plan_80x24	MAP holla/audit/upgrade/80x24/truecolor
+shots/h_upgrade_plan_mono	MAP holla/audit/upgrade/120x40/nocolor
+shots/j2_cockpit_creds	DROP generational jackin j2
+shots/j2_editor_accounts	DROP generational jackin j2
+shots/j2_editor_env_roles	DROP generational jackin j2
+shots/j2_editor_role_picker	DROP generational jackin j2
+shots/j2_editor_role_picker_filtered	DROP generational jackin j2
+shots/j2_manager_launch	DROP generational jackin j2
+shots/j2_settings_agents	DROP generational jackin j2
+shots/j3_capsule	DROP generational jackin j3
+shots/j3_capsule_160	DROP generational jackin j3
+shots/j3_capsule_80	DROP generational jackin j3
+shots/j3_capsule_80_menu	DROP generational jackin j3
+shots/j3_capsule_account_pick	DROP generational jackin j3
+shots/j3_capsule_menu	DROP generational jackin j3
+shots/j3_capsule_menu_view	DROP generational jackin j3
+shots/j3_capsule_newtab	DROP generational jackin j3
+shots/j3_capsule_tabmenu	DROP generational jackin j3
+shots/j3_capsule_usage	DROP generational jackin j3
+shots/j3_dialog_hints	DROP generational jackin j3
+shots/j3_editor_accounts	DROP generational jackin j3
+shots/j3_editor_env	DROP generational jackin j3
+shots/j3_editor_env_hard	DROP generational jackin j3
+shots/j3_editor_role_picker	DROP generational jackin j3
+shots/j3_hard_start	DROP generational jackin j3
+shots/j3_inspect_80_advanced	DROP generational jackin j3
+shots/j3_inspect_advanced	DROP generational jackin j3
+shots/j3_inspect_compact	DROP generational jackin j3
+shots/j3_inspect_file	DROP generational jackin j3
+shots/j3_inspect_review	DROP generational jackin j3
+shots/j3_palette	DROP generational jackin j3
+shots/j3_palette_scrolled	DROP generational jackin j3
+shots/j3_usage	DROP generational jackin j3
+shots/j3_usage_account	DROP generational jackin j3
+shots/j4_intro_110	DROP generational jackin j4
+shots/j4_intro_190	DROP generational jackin j4
+shots/j4_intro_240	DROP generational jackin j4
+shots/j4_intro_270	DROP generational jackin j4
+shots/j4_intro_30	DROP generational jackin j4
+shots/j4_intro_300	DROP generational jackin j4
+shots/j4_intro_312	DROP generational jackin j4
+shots/j4_outro_10	DROP generational jackin j4
+shots/j4_outro_105	DROP generational jackin j4
+shots/j4_outro_50	DROP generational jackin j4
+shots/j4_outro_80	DROP generational jackin j4
+shots/j4_outro_88	DROP generational jackin j4
+shots/j5_accounts	DROP generational jackin j5
+shots/j5_accounts_go	DROP generational jackin j5
+shots/j5_capsule	DROP generational jackin j5
+shots/j5_capsule_menu	DROP generational jackin j5
+shots/j5_capsule_session_menu	DROP generational jackin j5
+shots/j5_capsule_session_menu_danger	DROP generational jackin j5
+shots/j5_capsule_tabmenu	DROP generational jackin j5
+shots/j5_capsule_tabs	DROP generational jackin j5
+shots/j5_editor	DROP generational jackin j5
+shots/j5_editor_tabs	DROP generational jackin j5
+shots/j5_manager	DROP generational jackin j5
+shots/j5_manager_file	DROP generational jackin j5
+shots/j5_manager_go	DROP generational jackin j5
+shots/j5_settings	DROP generational jackin j5
+shots/j5_settings_file	DROP generational jackin j5
+shots/j5_usage	DROP generational jackin j5
+shots/j5_usage_help	DROP generational jackin j5
+shots/j5_usage_via_menu	DROP generational jackin j5
+shots/j6_capsule	DROP generational jackin j6
+shots/j6_capsule_160	DROP generational jackin j6
+shots/j6_capsule_80	DROP generational jackin j6
+shots/j6_manager	DROP generational jackin j6
+shots/j_accounts_160	MAP jackin/audit/accounts/160x50/truecolor
+shots/j_accounts_80	MAP jackin/audit/accounts/80x24/truecolor
+shots/j_accounts_80_drawer	MAP jackin/accounts/drawer/120x40/truecolor
+shots/j_accounts_account	MAP jackin/accounts/detail/120x40/truecolor
+shots/j_accounts_drawer	MAP jackin/accounts/drawer/120x40/truecolor
+shots/j_accounts_form	MAP jackin/accounts/add_form/120x40/truecolor
+shots/j_accounts_form_focus	MAP jackin/accounts/add_form/120x40/truecolor
+shots/j_accounts_form_plain	MAP jackin/accounts/add_form/120x40/truecolor
+shots/j_accounts_form_ref	MAP jackin/accounts/add_form_required/120x40/truecolor
+shots/j_accounts_op1	DROP mid-operation Modal::Op animation; end state only
+shots/j_accounts_op2	DROP mid-operation Modal::Op animation; end state only
+shots/j_accounts_op3	DROP mid-operation Modal::Op animation; end state only
+shots/j_accounts_op4	DROP mid-operation Modal::Op animation; end state only
+shots/j_accounts_overview	MAP jackin/audit/accounts/120x40/truecolor
+shots/j_accounts_work	MAP jackin/accounts/detail/120x40/truecolor
+shots/j_capsule_multi	MAP jackin/audit/capsule/120x40/truecolor
+shots/j_cockpit_running	MAP jackin/scenarios/launch-running/120x40/truecolor
+shots/j_editor_160_auth	MAP jackin/editor/auth/120x40/truecolor
+shots/j_editor_80_env	MAP jackin/editor/env/120x40/truecolor
+shots/j_editor_80_general	MAP jackin/editor/general/120x40/truecolor
+shots/j_editor_80_mounts	MAP jackin/editor/mounts/120x40/truecolor
+shots/j_editor_auth	MAP jackin/editor/auth/120x40/truecolor
+shots/j_editor_auth_form	MAP jackin/editor/auth/120x40/truecolor
+shots/j_editor_env	MAP jackin/editor/env/120x40/truecolor
+shots/j_editor_general	MAP jackin/editor/general/120x40/truecolor
+shots/j_editor_mounts	MAP jackin/editor/mounts/120x40/truecolor
+shots/j_editor_mounts_dirty	MAP jackin/editor/mounts_dirty/120x40/truecolor
+shots/j_editor_mounts_row	MAP jackin/editor/mounts/120x40/truecolor
+shots/j_editor_preview	MAP jackin/editor/save_preview/120x40/truecolor
+shots/j_editor_roles	MAP jackin/editor/roles/120x40/truecolor
+shots/j_hard_launch_locked	MAP jackin/manager/hard_launch_locked/120x40/truecolor
+shots/j_hard_launch_picker	MAP jackin/manager/hard_launch_picker/120x40/truecolor
+shots/j_hard_manager	MAP jackin/scenarios/hard-cases/120x40/truecolor
+shots/j_intro_mark	MAP jackin/intro/f300/120x40/truecolor
+shots/j_intro_phrase	DROP seed-glitched intro phrase
+shots/j_intro_reduced	MAP jackin/intro/skipped/120x40/truecolor
+shots/j_intro_warp_early	DROP wall-clock rain phase; boundary jackin/intro/f300
+shots/j_intro_warp_late	DROP wall-clock rain phase; boundary jackin/intro/f300
+shots/j_intro_warp_reveal	DROP wall-clock rain phase; boundary jackin/intro/f400
+shots/j_manager_empty	MAP jackin/scenarios/first-use/120x40/truecolor
+shots/j_manager_tree	MAP jackin/manager/tree_expanded/120x40/truecolor
+shots/j_outro_caption	DROP wall-clock outro caption; boundary jackin/scenarios/outro-last
+shots/j_outro_warp	DROP wall-clock outro warp; boundary jackin/scenarios/outro-last
+shots/j_prelude_1	DROP tick-driven prelude stages; boundary launch_prelude
+shots/j_prelude_2	DROP tick-driven prelude stages; boundary launch_prelude
+shots/j_prelude_3	DROP tick-driven prelude stages; boundary launch_prelude
+shots/j_prelude_4	DROP tick-driven prelude stages; boundary launch_prelude
+shots/j_prelude_5	DROP tick-driven prelude stages; boundary launch_prelude
+shots/j_prelude_5_error	DROP tick-driven prelude stages; boundary launch_prelude
+shots/j_prelude_80	DROP tick-driven prelude stages; boundary launch_prelude
+shots/j_settings_80_auth	MAP jackin/settings/trust/120x40/truecolor
+shots/j_settings_80_trust	MAP jackin/settings/trust/120x40/truecolor
+shots/j_settings_auth	MAP jackin/settings/trust/120x40/truecolor
+shots/j_settings_env	MAP jackin/settings/env/120x40/truecolor
+shots/j_settings_general	MAP jackin/settings/route/120x40/truecolor
+shots/j_settings_mounts	MAP jackin/settings/mounts/120x40/truecolor
+shots/j_settings_preview	MAP jackin/settings/save_preview/120x40/truecolor
+shots/j_settings_trust	MAP jackin/settings/trust/120x40/truecolor
+shots/j_usage_80	MAP jackin/usage/overview/120x40/truecolor
+shots/j_usage_80_detail	MAP jackin/usage/detail/120x40/truecolor
+shots/j_usage_account	MAP jackin/usage/detail/120x40/truecolor
+shots/j_usage_account5	MAP jackin/usage/detail/120x40/truecolor
+shots/j_usage_overview	MAP jackin/usage/overview/120x40/truecolor
+shots/s2_chrome	MAP showcase/pages/chrome/120x40/truecolor
+shots/s2_chrome_80	MAP showcase/pages/chrome/80x24/truecolor
+shots/s2_chrome_context	MAP showcase/flows/chrome/context/120x40/truecolor
+shots/s2_chrome_focus	MAP showcase/flows/chrome/focus/120x40/truecolor
+shots/s2_chrome_menu_open	MAP showcase/flows/chrome/menu/120x40/truecolor
+shots/s2_chrome_menu_view	MAP showcase/flows/chrome/menu_view/120x40/truecolor
+shots/s2_pickers	DROP duplicate of pickers page
+shots/s2_progress	MAP showcase/pages/progress
+shots/s2_tabs	DROP duplicate of chrome page
+shots/s_chips	MAP showcase/pages/chips/120x40/truecolor
+shots/s_chips_80	MAP showcase/pages/chips/80x24/truecolor
+shots/s_chips_select	MAP showcase/flows/chips/select_open/120x40/truecolor
+shots/s_editor	MAP showcase/pages/codeeditor/120x40/truecolor
+shots/s_editor_80	MAP showcase/pages/codeeditor/80x24/truecolor
+shots/s_editor_complete	MAP showcase/flows/editor/completion/120x40/truecolor
+shots/s_editor_diag	MAP showcase/flows/editor/diag/120x40/truecolor
+shots/s_editor_running	MAP showcase/flows/editor/running/120x40/truecolor
+shots/s_grid	MAP showcase/pages/datagrid/120x40/truecolor
+shots/s_grid_80	MAP showcase/pages/datagrid/80x24/truecolor
+shots/s_grid_failed	MAP showcase/flows/datagrid/failed/120x40/truecolor
+shots/s_grid_pending	MAP showcase/flows/datagrid/pending/120x40/truecolor
+shots/s_grid_preview	MAP showcase/flows/datagrid/preview/120x40/truecolor
+shots/s_pickers	MAP showcase/pages/pickers/120x40/truecolor
+shots/s_pickers_80	MAP showcase/pages/pickers/80x24/truecolor
+shots/s_pickers_level	MAP showcase/flows/pickers/level/120x40/truecolor
+shots/s_pickers_tabs	MAP showcase/flows/pickers/tabs/120x40/truecolor
+shots/s_terminal	MAP showcase/pages/terminal/120x40/truecolor
+shots/s_terminal_scrollback	MAP showcase/fade/terminal/scrollback/80x24/truecolor
+shots/shot	DROP debug orphan
+shots/source_f_lists_move	DROP debug orphan; covered by showcase/flows/lists/moved
+shots/source_f_lists_tab	DROP debug orphan; covered by showcase/flows/lists/moved
+shots/stderr.log	DROP harness sidecar
+shots/t1	DROP debug orphan
+shots/t2	DROP debug orphan
+shots/t_100	DROP superseded size variant; tablepro/audit matrix
+shots/t_100_table	DROP superseded size variant; tablepro/audit matrix
+shots/t_160	DROP superseded size variant; tablepro/audit matrix
+shots/t_160_table	DROP superseded size variant; tablepro/audit matrix
+shots/t_80	DROP superseded size variant; tablepro/audit matrix
+shots/t_80_drawer	DROP superseded size variant; tablepro/audit matrix
+shots/t_80_query	DROP superseded size variant; tablepro/audit matrix
+shots/t_complete	MAP tablepro/query/completion/120x40/truecolor
+shots/t_complete2	MAP tablepro/query/completion_columns/120x40/truecolor
+shots/t_conn_dup	DROP superseded; connections duplicate flow
+shots/t_conn_form	MAP tablepro/connections/form_new/120x40/truecolor
+shots/t_conn_form_adv	DROP superseded; connections advanced form
+shots/t_conn_prod	MAP tablepro/connections/production_detail/120x40/truecolor
+shots/t_connections	MAP tablepro/connections/default/120x40/truecolor
+shots/t_danger	MAP tablepro/ack/gate/120x40/truecolor
+shots/t_dirty	MAP tablepro/table/dirty/120x40/truecolor
+shots/t_editing_cell	MAP tablepro/table/cell_editing/120x40/truecolor
+shots/t_error	MAP tablepro/query/error/120x40/truecolor
+shots/t_explain	MAP tablepro/query/explain/120x40/truecolor
+shots/t_history	MAP tablepro/overlays/history_tab/120x40/truecolor
+shots/t_orders	MAP tablepro/table/data/120x40/truecolor
+shots/t_orders_wide	MAP tablepro/table/scrolled_right/120x40/truecolor
+shots/t_result	MAP tablepro/query/results/120x40/truecolor
+shots/t_running	DROP live query animation; end states tablepro/query/{results,error}
+shots/t_safemode	MAP tablepro/overlays/safemode_picker/120x40/truecolor
+shots/t_sorted_filtered	MAP tablepro/table/sorted-filtered/120x40/truecolor
+shots/t_structure	MAP tablepro/table/structure/120x40/truecolor
+shots/t_structure_fk	MAP tablepro/table/structure/120x40/truecolor
+shots/t_switcher	MAP tablepro/overlays/picker_open/120x40/truecolor
+shots/t_tablist	MAP tablepro/overlays/tablist_open/120x40/truecolor
+shots/t_workbench	MAP tablepro/audit/production/120x40/truecolor
+shots/t_write	MAP tablepro/ack/gate/120x40/truecolor
+shots/tuisnap/holla_activities-multi_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_activities-multi_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_activities-multi_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_activities-multi_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_activities-multi_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_activities_overlay_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_browser_hidden_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_browser_preview_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_browser_wheel_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_cleanup_gate-1_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_cleanup_plan_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_disk-cleanup_default_100x30_16	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_disk-cleanup_default_100x30_256	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_disk-cleanup_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_disk-cleanup_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_disk-cleanup_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_disk-cleanup_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_disk-cleanup_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_docker-cleanup_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_docker-cleanup_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_docker-cleanup_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_docker-cleanup_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_docker-cleanup_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_files_results_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_files_unicode_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_finder_query-selected_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_finder_query_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_first-use_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_first-use_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_first-use_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_first-use_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_first-use_default_72x20_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_first-use_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_hard-cases_default_100x30_256	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_hard-cases_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_hard-cases_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_hard-cases_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_hard-cases_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_hard-cases_default_72x20_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_hard-cases_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_help_overlay_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_launch-failure_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_launch-failure_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_launch-failure_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_launch-failure_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_launch-failure_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_monorepo-child_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_monorepo-child_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_monorepo-child_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_monorepo-child_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_monorepo-child_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_monorepo-root_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_monorepo-root_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_monorepo-root_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_monorepo-root_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_monorepo-root_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-brew-services_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-brew-services_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-brew-services_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-brew-services_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-brew-services_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-browser_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-browser_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-browser_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-browser_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-browser_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-cargo_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-cargo_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-cargo_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-cargo_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-cargo_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-cleanup-results_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-cleanup-results_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-cleanup-results_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-cleanup-results_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-cleanup-results_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-custom-actions_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-custom-actions_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-custom-actions_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-custom-actions_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-custom-actions_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-delete-safety_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-delete-safety_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-delete-safety_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-delete-safety_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-delete-safety_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-discovery_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-discovery_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-discovery_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-discovery_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-discovery_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-disk-navigation_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-disk-navigation_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-disk-navigation_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-disk-navigation_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-disk-navigation_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-disk-scan_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-disk-scan_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-disk-scan_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-disk-scan_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-disk-scan_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-docker_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-docker_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-docker_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-docker_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-docker_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-executor_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-executor_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-executor_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-executor_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-executor_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-files_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-files_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-files_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-files_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-files_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-git-batch_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-git-batch_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-git-batch_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-git-batch_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-git-batch_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-git-current_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-git-current_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-git-current_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-git-current_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-git-current_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-gradle_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-gradle_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-gradle_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-gradle_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-gradle_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-history_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-history_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-history_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-history_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-history_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-idea_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-idea_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-idea_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-idea_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-idea_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-insights_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-insights_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-insights_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-insights_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-insights_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-platforms-linux_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-platforms-linux_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-platforms-linux_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-platforms-linux_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-platforms-linux_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-platforms_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-platforms_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-platforms_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-platforms_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-platforms_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-task-input_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-task-input_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-task-input_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-task-input_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-task-input_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-task-sources_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-task-sources_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-task-sources_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-task-sources_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-task-sources_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-upgrade-managers_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-upgrade-managers_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-upgrade-managers_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-upgrade-managers_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_parity-upgrade-managers_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_remote-host_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_remote-host_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_remote-host_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_remote-host_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_remote-host_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_remote_gate-1_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_rust-dirty_default_100x30_256	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_rust-dirty_default_100x30_nocolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_rust-dirty_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_rust-dirty_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_rust-dirty_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_rust-dirty_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_rust-dirty_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_rust-dirty_grown_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_rust-dirty_shrunk_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_trust_prompt_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_upgrade-plan_default_100x30_16	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_upgrade-plan_default_100x30_256	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_upgrade-plan_default_100x30_nocolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_upgrade-plan_default_100x30_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_upgrade-plan_default_100x30_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_upgrade-plan_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_upgrade-plan_default_160x50_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_upgrade-plan_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_upgrade_confirm_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/holla_upgrade_excluded_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_accounts-mixed_default_120x40_16	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_accounts-mixed_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_accounts-mixed_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_accounts-mixed_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_capsule-multi_default_120x40_256	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_capsule-multi_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_capsule-multi_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_capsule-multi_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_first-use_default_120x40_nocolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_first-use_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_first-use_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_first-use_default_72x20_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_first-use_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_first-use_f300_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_first-use_f400_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_hard-cases_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_hard-cases_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_hard-cases_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_launch-failure_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_launch-failure_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_launch-running_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_launch-running_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_outro-last_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_outro-last_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_returning_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/jackin_returning_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_buttons_default_120x40_16	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_buttons_default_120x40_256	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_buttons_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_buttons_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_buttons_default_72x20_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_buttons_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_buttons_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_buttons_focus_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_buttons_hover_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_chips_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_chips_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_chips_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_chips_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_chips_toggled_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_chrome_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_chrome_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_chrome_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_chrome_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_codeeditor_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_codeeditor_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_codeeditor_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_codeeditor_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_datagrid_default_120x40_16	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_datagrid_default_120x40_256	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_datagrid_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_datagrid_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_datagrid_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_datagrid_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_datagrid_selected_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_datagrid_wheel_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_dialogs_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_dialogs_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_dialogs_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_dialogs_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_dialogs_open_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_diff_default_120x40_16	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_diff_default_120x40_256	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_diff_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_diff_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_diff_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_diff_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_diff_drag-selected_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_diff_empty_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_diff_review_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_editable_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_editable_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_editable_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_editable_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_editable_editing_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_forms_default_120x40_16	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_forms_default_120x40_256	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_forms_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_forms_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_forms_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_forms_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_forms_invalid_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_help_overlay_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_inputs_default_120x40_nocolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_inputs_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_inputs_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_inputs_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_inputs_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_inputs_editing_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_inputs_selected_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_inspector_open_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_lists_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_lists_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_lists_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_lists_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_lists_hover_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_lists_moved_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_lists_wheel-fade_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_overview_default_120x40_nocolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_overview_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_overview_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_overview_default_72x20_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_overview_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_overview_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_overview_grown_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_overview_shrunk_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_panels_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_panels_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_panels_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_panels_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_pickers_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_pickers_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_pickers_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_pickers_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_pickers_open_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_scrolling_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_scrolling_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_scrolling_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_scrolling_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_scrolling_scrolled_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_settings_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_settings_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_settings_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_settings_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_settings_toggled_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_sidebars_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_sidebars_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_sidebars_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_sidebars_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_tables_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_tables_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_tables_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_tables_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_tables_hover_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_tables_selected_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_taskrunner_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_taskrunner_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_taskrunner_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_taskrunner_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_terminal_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_terminal_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_terminal_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_terminal_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_textareas_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_textareas_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_textareas_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_textareas_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_trees_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_trees_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_trees_default_80x24_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_trees_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_trees_expanded_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/showcase_trees_wheel-fade_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_ack_armed_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_ack_executed_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_ack_gate_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_cell_editing_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_connections_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_connections_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_connections_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_form_new-filled_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_form_new_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_help_overlay_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_history_tab_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_picker_open_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_query_completion_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_query_error_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_query_explain_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_query_results_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_row_duplicated_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_safemode_picker_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_table_data_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_table_filtered_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_table_sorted_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_table_structure_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_table_wheel_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_tablist_open_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_workbench_default_120x40_16	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_workbench_default_120x40_256	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_workbench_default_120x40_nocolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_workbench_default_120x40_none	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_workbench_default_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_workbench_default_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_workbench_grown_120x40_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/tablepro_workbench_shrunk_80x24_truecolor	DROP v1 classic store; replaced by snapshots/ grouped store
+shots/tuisnap/last-run.summary	DROP v1 classic store; replaced by snapshots/ grouped store

@@ -127,6 +127,10 @@ actuals on every run).
 
 ## Intentional drops (v1 → v2)
 
+Stem-by-stem map: [shots-coverage-map.tsv](shots-coverage-map.tsv)
+(1205 unique `shots/` stems → `MAP <snapshots path>` or `DROP <reason>`;
+0 MISSING, 0 UNMAPPED).
+
 Every legacy scenario has a v2 counterpart or a documented drop. The drops,
 with reasons (from the v2 coverage plan §4):
 
