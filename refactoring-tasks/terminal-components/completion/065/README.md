@@ -13,6 +13,8 @@ Close application ownership and configured-props enforcement: every reusable con
 
 ## Context
 
+Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo test --test visual_baseline -- --ignored --skip rebuild_review_html` must match. Never write `snapshots/` or run `tuisnap accept`.
+
 Generic visible pixels and interaction have the same reusable production owner; forbidden legacy imports/copies/paint-over and method-based props-helper loopholes rejected with negative fixtures. This is a bounded closure of already restored production work, not permission to reopen unrelated design choices. ARCH:A23; DEC:ADJ-02; HIST:A108; HIST:A110; accepted architecture §§16,47,48,73; main xtask/src/main.rs:3443,3596,3613,3666,3768,4464.
 
 Read before editing:

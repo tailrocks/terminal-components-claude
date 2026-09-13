@@ -13,6 +13,8 @@ Restore all five enabled Inputs fields and the disabled token, required/invalid 
 
 ## Context
 
+Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo test --test visual_baseline -- --ignored --skip rebuild_review_html` must match. Never write `snapshots/` or run `tuisnap accept`.
+
 All enabled Inputs fields, complete Forms reviewer/reset/submit, TextAreas and Buttons matrix are live; expired Buttons example packaging resolved. The application report shows that a migrated file, a green self-baseline or a generic component call can coexist with wrong live behavior. This task proves actual public-component state transitions and oracle output, not nominal API use.
 
 Read before editing:

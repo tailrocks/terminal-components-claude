@@ -13,6 +13,8 @@ Produce an independently verified merge-readiness receipt for one exact integrat
 
 ## Context
 
+Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo test --test visual_baseline -- --ignored --skip rebuild_review_html` must match. Never write `snapshots/` or run `tuisnap accept`.
+
 Tested integration head passes whole required oracle direct/PTY set, authoritative stable/MSRV/build/lint/docs/API/performance gates, trust immutability and ancestry/merge-readiness checks. This is a bounded closure of already restored production work, not permission to reopen unrelated design choices. HIST:A130; HIST:RG49; HIST:RG51; HIST:RG52; HIST:RG56; ARCH:A28–A32; every HIST/ARCH/COMP/APP/DEC source in traceability.tsv; PLANNING_GOAL.md §§16–18; proof-contract.md.
 
 Read before editing:

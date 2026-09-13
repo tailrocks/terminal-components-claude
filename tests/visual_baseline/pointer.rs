@@ -101,7 +101,7 @@ fn resize_case(case: &Case, cols: u16, rows: u16) {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_hover_buttons_120x40_truecolor() {
     let case = Case::new(
-        "showcase/hover/buttons_120x40_truecolor",
+        "showcase/hover/buttons/120x40/truecolor",
         SHOWCASE,
         &["--page", "buttons"],
         120,
@@ -118,7 +118,7 @@ fn showcase_hover_buttons_120x40_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_hover_lists_120x40_truecolor() {
     let case = Case::new(
-        "showcase/hover/lists_120x40_truecolor",
+        "showcase/hover/lists/120x40/truecolor",
         SHOWCASE,
         &["--page", "lists"],
         120,
@@ -135,7 +135,7 @@ fn showcase_hover_lists_120x40_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_hover_tables_120x40_truecolor() {
     let case = Case::new(
-        "showcase/hover/tables_120x40_truecolor",
+        "showcase/hover/tables/120x40/truecolor",
         SHOWCASE,
         &["--page", "tables"],
         120,
@@ -154,7 +154,7 @@ fn showcase_hover_tables_120x40_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_flows_diff_drag_selected_120x40_truecolor() {
     let case = Case::new(
-        "showcase/flows/diff_drag-selected_120x40_truecolor",
+        "showcase/flows/diff/drag-selected/120x40/truecolor",
         SHOWCASE,
         &["--page", "diff"],
         120,
@@ -209,7 +209,7 @@ fn showcase_flows_diff_drag_selected_variants() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_flows_chrome_context_120x40_truecolor() {
     let case = Case::new(
-        "showcase/flows/chrome_context_120x40_truecolor",
+        "showcase/flows/chrome/context/120x40/truecolor",
         SHOWCASE,
         &["--page", "chrome"],
         120,
@@ -237,7 +237,7 @@ fn showcase_flows_chrome_context_120x40_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_flows_inspector_scrolled_120x40_truecolor() {
     let case = Case::new(
-        "showcase/flows/inspector_scrolled_120x40_truecolor",
+        "showcase/flows/inspector/scrolled/120x40/truecolor",
         SHOWCASE,
         &["--page", "lists"],
         120,
@@ -257,7 +257,7 @@ fn showcase_flows_inspector_scrolled_120x40_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_fade_lists_wheel_fade_120x40_truecolor() {
     let case = Case::new(
-        "showcase/fade/lists_wheel-fade_120x40_truecolor",
+        "showcase/fade/lists/wheel-fade/120x40/truecolor",
         SHOWCASE,
         &["--page", "lists"],
         120,
@@ -274,7 +274,7 @@ fn showcase_fade_lists_wheel_fade_120x40_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_fade_trees_wheel_fade_120x40_truecolor() {
     let case = Case::new(
-        "showcase/fade/trees_wheel-fade_120x40_truecolor",
+        "showcase/fade/trees/wheel-fade/120x40/truecolor",
         SHOWCASE,
         &["--page", "trees"],
         120,
@@ -291,7 +291,7 @@ fn showcase_fade_trees_wheel_fade_120x40_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_fade_datagrid_wheel_120x40_truecolor() {
     let case = Case::new(
-        "showcase/fade/datagrid_wheel_120x40_truecolor",
+        "showcase/fade/datagrid/wheel/120x40/truecolor",
         SHOWCASE,
         &["--page", "datagrid"],
         120,
@@ -310,7 +310,7 @@ fn holla_fade_browser_wheel_120x40_truecolor() {
     // The big.log preview pane (2000 lines, scrollbared) under the wheel;
     // reduced motion, like the proven browser journeys.
     let case = Case::new(
-        "holla/fade/browser_wheel_120x40_truecolor",
+        "holla/fade/browser_wheel/120x40/truecolor",
         HOLLA,
         &["--scenario", "parity-browser", "--motion", "reduced"],
         120,
@@ -336,7 +336,7 @@ fn holla_fade_browser_wheel_120x40_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn tablepro_fade_table_wheel_120x40_truecolor() {
     let case = Case::new(
-        "tablepro/fade/table_wheel_120x40_truecolor",
+        "tablepro/fade/table_wheel/120x40/truecolor",
         TABLEPRO,
         &["--connect", "Production"],
         120,
@@ -364,7 +364,7 @@ fn tablepro_fade_table_wheel_120x40_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_fade_lists_wheel_fade_100x30_truecolor() {
     let case = Case::new(
-        "showcase/fade/lists_wheel-fade_100x30_truecolor",
+        "showcase/fade/lists/wheel-fade/100x30/truecolor",
         SHOWCASE,
         &["--page", "lists"],
         100,
@@ -383,7 +383,7 @@ fn showcase_fade_lists_wheel_fade_100x30_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_fade_editor_wheel_120x40_truecolor() {
     let case = Case::new(
-        "showcase/fade/editor_wheel_120x40_truecolor",
+        "showcase/fade/editor/wheel/120x40/truecolor",
         SHOWCASE,
         &["--page", "codeeditor"],
         120,
@@ -401,7 +401,7 @@ fn showcase_fade_editor_wheel_120x40_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_fade_textarea_wheel_120x40_truecolor() {
     let case = Case::new(
-        "showcase/fade/textarea_wheel_120x40_truecolor",
+        "showcase/fade/textarea/wheel/120x40/truecolor",
         SHOWCASE,
         &["--page", "textareas"],
         120,
@@ -420,7 +420,7 @@ fn showcase_fade_textarea_wheel_120x40_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_fade_diff_wheel_120x40_truecolor() {
     let case = Case::new(
-        "showcase/fade/diff_wheel_120x40_truecolor",
+        "showcase/fade/diff/wheel/120x40/truecolor",
         SHOWCASE,
         &["--page", "diff"],
         120,
@@ -441,7 +441,7 @@ fn showcase_fade_diff_wheel_120x40_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_fade_scrolling_wheel_fade_120x40_truecolor() {
     let case = Case::new(
-        "showcase/fade/scrolling_wheel-fade_120x40_truecolor",
+        "showcase/fade/scrolling/wheel-fade/120x40/truecolor",
         SHOWCASE,
         &[
             "--page",
@@ -466,7 +466,7 @@ fn showcase_fade_scrolling_wheel_fade_120x40_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_fade_scrolling_wheel_fade_120x40_none() {
     let case = Case::new(
-        "showcase/fade/scrolling_wheel-fade_120x40_none",
+        "showcase/fade/scrolling/wheel-fade/120x40/none",
         SHOWCASE,
         &[
             "--page",
@@ -492,7 +492,7 @@ fn showcase_fade_scrolling_wheel_fade_120x40_none() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_fade_scroll_page_120x40_truecolor() {
     let case = Case::new(
-        "showcase/fade/scroll_page_120x40_truecolor",
+        "showcase/fade/scroll/page/120x40/truecolor",
         SHOWCASE,
         &[
             "--page",
@@ -516,7 +516,7 @@ fn showcase_fade_scroll_page_120x40_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_fade_scroll_page_80x24_truecolor() {
     let case = Case::new(
-        "showcase/fade/scroll_page_80x24_truecolor",
+        "showcase/fade/scroll/page/80x24/truecolor",
         SHOWCASE,
         &[
             "--page",
@@ -542,7 +542,7 @@ fn showcase_fade_scroll_page_80x24_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_fade_sidebars_wheel_72x20_truecolor() {
     let case = Case::new(
-        "showcase/fade/sidebars_wheel_72x20_truecolor",
+        "showcase/fade/sidebars/wheel/72x20/truecolor",
         SHOWCASE,
         &["--page", "sidebars"],
         72,
@@ -561,7 +561,7 @@ fn showcase_fade_sidebars_wheel_72x20_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_fade_terminal_scrollback_80x24_truecolor() {
     let case = Case::new(
-        "showcase/fade/terminal_scrollback_80x24_truecolor",
+        "showcase/fade/terminal/scrollback/80x24/truecolor",
         SHOWCASE,
         &["--page", "terminal", "--motion", "paused", "--frame", "60"],
         80,
@@ -580,7 +580,7 @@ fn showcase_fade_terminal_scrollback_80x24_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_resize_overview_shrunk_80x24_truecolor() {
     let case = Case::new(
-        "showcase/resize/overview_shrunk_80x24_truecolor",
+        "showcase/resize/overview_shrunk/80x24/truecolor",
         SHOWCASE,
         &["--page", "overview"],
         120,
@@ -606,7 +606,7 @@ fn showcase_resize_overview_shrunk_80x24_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn showcase_resize_overview_grown_120x40_truecolor() {
     let case = Case::new(
-        "showcase/resize/overview_grown_120x40_truecolor",
+        "showcase/resize/overview_grown/120x40/truecolor",
         SHOWCASE,
         &["--page", "overview"],
         80,
@@ -632,7 +632,7 @@ fn showcase_resize_overview_grown_120x40_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn holla_resize_rust_dirty_shrunk_80x24_truecolor() {
     let case = Case::new(
-        "holla/resize/rust-dirty_shrunk_80x24_truecolor",
+        "holla/resize/rust-dirty_shrunk/80x24/truecolor",
         HOLLA,
         &[
             "--scenario",
@@ -655,7 +655,7 @@ fn holla_resize_rust_dirty_shrunk_80x24_truecolor() {
 #[ignore = "visual baseline capture; run with --ignored"]
 fn holla_resize_rust_dirty_grown_120x40_truecolor() {
     let case = Case::new(
-        "holla/resize/rust-dirty_grown_120x40_truecolor",
+        "holla/resize/rust-dirty_grown/120x40/truecolor",
         HOLLA,
         &[
             "--scenario",
@@ -688,7 +688,7 @@ fn tablepro_resize_workbench_shrunk_80x24_truecolor() {
     // deterministic side of that coin (the previous approval had the
     // status baked in and was load-sensitive in both directions).
     let case = Case::new(
-        "tablepro/resize/workbench_shrunk_80x24_truecolor",
+        "tablepro/resize/workbench_shrunk/80x24/truecolor",
         TABLEPRO,
         &["--connect", "Production"],
         120,
@@ -724,7 +724,7 @@ fn tablepro_resize_workbench_grown_120x40_truecolor() {
     // state (it was baked into the previous approval, which made the case
     // load-sensitive in both directions).
     let case = Case::new(
-        "tablepro/resize/workbench_grown_120x40_truecolor",
+        "tablepro/resize/workbench_grown/120x40/truecolor",
         TABLEPRO,
         &["--connect", "Production"],
         80,

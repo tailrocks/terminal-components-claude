@@ -1,7 +1,7 @@
 schema = "verify/v2"
 task_id = "TASK-070"
 writable_paths = ["tools/refactor-proof/runner","tools/refactor-proof/bin/tc-proof"]
-forbidden_paths = ["refactoring-tasks", "docs/refactoring-plan", "shots", "baseline", "tools/refactor-proof/core", "tools/refactor-proof/bin/tc-proof-host"]
+forbidden_paths = ["refactoring-tasks", "docs/refactoring-plan", "shots", "snapshots", "baseline", "tools/refactor-proof/core", "tools/refactor-proof/bin/tc-proof-host"]
 
 [[checks]]
 id = "CHK-001"

@@ -91,9 +91,26 @@ fn store_integrity() {
     for name in &store_names {
         grouped::validate_name(name).unwrap_or_else(|e| panic!("{e}"));
         let slashes = name.bytes().filter(|&b| b == b'/').count();
-        assert_eq!(
-            slashes, 2,
-            "scenario `{name}` must be group/sub_group/leaf (exactly two `/`)"
+        assert!(
+            slashes >= 2,
+            "scenario `{name}` must be nested under group/sub_group/… (at least two `/`)"
+        );
+        let mut parts = name.rsplit('/');
+        let color = parts.next().expect("color leaf");
+        let size = parts.next().expect("size folder");
+        assert!(
+            matches!(color, "truecolor" | "256" | "16" | "none" | "nocolor"),
+            "scenario `{name}` last component must be a color suffix"
+        );
+        let size_ok = size.split_once('x').is_some_and(|(cols, rows)| {
+            !cols.is_empty()
+                && !rows.is_empty()
+                && cols.chars().all(|ch| ch.is_ascii_digit())
+                && rows.chars().all(|ch| ch.is_ascii_digit())
+        });
+        assert!(
+            size_ok,
+            "scenario `{name}` must put terminal size in its own <cols>x<rows> folder"
         );
     }
 

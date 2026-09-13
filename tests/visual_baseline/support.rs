@@ -10,7 +10,7 @@
 //! frames live at `snapshots/<group>/<sub_group>/<name>.{ansi,txt,png,html}`
 //! (committed, exactly four artifacts per scenario); actuals, diffs and the
 //! HTML report are scratch under `target/tuisnap/` (gitignored). The capture
-//! name is the grouped path, e.g. `holla/parity/discovery_default_120x40_truecolor`.
+//! name is the grouped path, e.g. `holla/parity/discovery/120x40/truecolor`.
 //!
 //! Colour hygiene per capture: ambient `NO_COLOR` is stripped (crossterm
 //! honours it by *presence* and would silently flatten every colour frame —
@@ -54,7 +54,7 @@ pub const AUDIT_COLORS: [Color; 5] = [
     Color::NoColorEnv,
 ];
 
-/// Prefixes for the 9 `audit_matrix` fixtures (`{prefix}_default_<size>_<color>`).
+/// Prefixes for the 9 `audit_matrix` fixtures (`{prefix}/{cols}x{rows}/{color}`).
 /// Accounts is a custom loop with the same name shape ([`AUDIT_PREFIX_JACKIN_ACCOUNTS`]).
 pub const AUDIT_PREFIX_HOLLA_RUST: &str = "holla/audit/rust";
 pub const AUDIT_PREFIX_HOLLA_UPGRADE: &str = "holla/audit/upgrade";
@@ -92,11 +92,11 @@ pub const FLOW_VARIANTS: [(u16, u16, Color); 8] = [
     (160, 50, Color::NoColorEnv),
 ];
 
-pub const FLOW_LEAF_DIFF_REVIEW: &str = "diff_review";
-pub const FLOW_LEAF_DIFF_EMPTY: &str = "diff_empty";
-pub const FLOW_LEAF_FORMS_INVALID: &str = "forms_invalid";
-pub const FLOW_LEAF_INPUTS_SELECTED: &str = "inputs_selected";
-pub const FLOW_LEAF_DIFF_DRAG_SELECTED: &str = "diff_drag-selected";
+pub const FLOW_LEAF_DIFF_REVIEW: &str = "diff/review";
+pub const FLOW_LEAF_DIFF_EMPTY: &str = "diff/empty";
+pub const FLOW_LEAF_FORMS_INVALID: &str = "forms/invalid";
+pub const FLOW_LEAF_INPUTS_SELECTED: &str = "inputs/selected";
+pub const FLOW_LEAF_DIFF_DRAG_SELECTED: &str = "diff/drag-selected";
 
 pub const FLOW_VARIANT_LEAVES: [&str; 4] = [
     FLOW_LEAF_DIFF_REVIEW,
@@ -106,11 +106,11 @@ pub const FLOW_VARIANT_LEAVES: [&str; 4] = [
 ];
 
 pub fn audit_default_name(prefix: &str, cols: u16, rows: u16, color: Color) -> String {
-    format!("{prefix}_default_{cols}x{rows}_{}", color.suffix())
+    format!("{prefix}/{cols}x{rows}/{}", color.suffix())
 }
 
 pub fn showcase_flow_name(leaf: &str, cols: u16, rows: u16, color: Color) -> String {
-    format!("showcase/flows/{leaf}_{cols}x{rows}_{}", color.suffix())
+    format!("showcase/flows/{leaf}/{cols}x{rows}/{}", color.suffix())
 }
 
 /// Every capture name the suite produces: Case::new first-arg literals plus

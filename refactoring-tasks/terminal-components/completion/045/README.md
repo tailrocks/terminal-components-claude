@@ -13,6 +13,8 @@ Restore streaming disk scans, allocated/apparent bytes, partial errors/cancel/ca
 
 ## Context
 
+Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo test --test visual_baseline -- --ignored --skip rebuild_review_html` must match. Never write `snapshots/` or run `tuisnap accept`.
+
 Disk scan/tree/Spotlight/insight categories preserve stable identity, facts, progress and platform guards. The application report shows that a migrated file, a green self-baseline or a generic component call can coexist with wrong live behavior. This task proves actual public-component state transitions and oracle output, not nominal API use.
 
 Read before editing:

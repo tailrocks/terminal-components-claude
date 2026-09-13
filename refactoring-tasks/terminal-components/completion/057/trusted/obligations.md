@@ -627,7 +627,7 @@ This task requires JA-022, JA-028, JA-011, JA-040, JA-043, JA-044, JA-045, JA-05
 - actions: for each color truecolor,256,16,none and NO_COLOR without explicit color: fresh(world,Paused,0); rerun JA-016,JA-030,JA-046 representative interactions
 - checkpoints: Color conversion, mono modifiers, selected/focused/disabled differentiation; exact glyphs and cursor
 - components: theme,style resolver,all reused components
-- source: main.rs:34;shots/audit/jackin-*
+- source: main.rs:34;snapshots/jackin/audit/
 
 ### JA-068
 

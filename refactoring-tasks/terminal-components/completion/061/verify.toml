@@ -1,7 +1,7 @@
 schema = "verify/v2"
 task_id = "TASK-061"
 writable_paths = ["apps/tablepro/src","apps/tablepro/tests"]
-forbidden_paths = ["baseline", "shots", "parity", "refactoring-tasks", "docs/refactoring-plan", "tools/refactor-proof", "tools/refactor-proof-adapters", "tools/test-inventory", "tools/test-disposition", "Cargo.toml", "Cargo.lock", ".github"]
+forbidden_paths = ["baseline", "shots", "snapshots", "parity", "refactoring-tasks", "docs/refactoring-plan", "tools/refactor-proof", "tools/refactor-proof-adapters", "tools/test-inventory", "tools/test-disposition", "Cargo.toml", "Cargo.lock", ".github"]
 
 [[checks]]
 id = "CHK-001"

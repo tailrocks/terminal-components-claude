@@ -1,7 +1,7 @@
 schema = "verify/v2"
 task_id = "TASK-041"
 writable_paths = ["apps/holla/src/app.rs","apps/holla/src/dispatch.rs","apps/holla/src/scenario.rs","apps/holla/src/screens/home.rs","apps/holla/src/screens/finder.rs","apps/holla/src/screens/actions.rs","apps/holla/src/domain/action.rs","apps/holla/src/domain/ranking.rs","apps/holla/src/domain/usage.rs","apps/holla/src/domain/discovery.rs","apps/holla/src/domain/mod.rs","apps/holla/src/sim/catalogue.rs","apps/holla/src/sim/world.rs","apps/holla/src/sim/mod.rs","apps/holla/tests/completion_041.rs","apps/holla/src/domain/config.rs","apps/holla/src/domain/fixtures.rs"]
-forbidden_paths = ["docs/refactoring-plan","refactoring-tasks","tools/refactor-proof","tools/refactor-proof-adapters","tools/test-inventory","tools/test-disposition","baseline","shots","parity","Cargo.lock",".openai","AGENTS.md","CLAUDE.md"]
+forbidden_paths = ["docs/refactoring-plan","refactoring-tasks","tools/refactor-proof","tools/refactor-proof-adapters","tools/test-inventory","tools/test-disposition","baseline","shots", "snapshots","parity","Cargo.lock",".openai","AGENTS.md","CLAUDE.md"]
 
 [[checks]]
 id = "CHK-001"

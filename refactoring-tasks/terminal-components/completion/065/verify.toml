@@ -1,7 +1,7 @@
 schema = "verify/v2"
 task_id = "TASK-065"
 writable_paths = ["xtask/src/main.rs","xtask/fixtures","xtask/tests/completion_065.rs"]
-forbidden_paths = ["docs/refactoring-plan","refactoring-tasks","tools/refactor-proof","tools/refactor-proof-adapters","tools/test-disposition","baseline","shots","parity","Cargo.lock","AGENTS.md","CLAUDE.md"]
+forbidden_paths = ["docs/refactoring-plan","refactoring-tasks","tools/refactor-proof","tools/refactor-proof-adapters","tools/test-disposition","baseline","shots", "snapshots","parity","Cargo.lock","AGENTS.md","CLAUDE.md"]
 
 [[checks]]
 id = "CHK-001"

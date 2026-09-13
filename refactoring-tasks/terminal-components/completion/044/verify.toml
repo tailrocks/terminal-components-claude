@@ -1,7 +1,7 @@
 schema = "verify/v2"
 task_id = "TASK-044"
 writable_paths = ["apps/holla/src/app.rs","apps/holla/src/dispatch.rs","apps/holla/src/scenario.rs","apps/holla/src/screens/activity.rs","apps/holla/src/screens/plan.rs","apps/holla/src/screens/dialogs.rs","apps/holla/src/domain/activity.rs","apps/holla/src/domain/plan.rs","apps/holla/src/domain/effect.rs","apps/holla/src/sim/world.rs","apps/holla/src/sim/plans.rs","apps/holla/src/sim/catalogue.rs","apps/holla/tests/completion_044.rs","apps/holla/src/domain/fixtures.rs"]
-forbidden_paths = ["docs/refactoring-plan","refactoring-tasks","tools/refactor-proof","tools/refactor-proof-adapters","tools/test-inventory","tools/test-disposition","baseline","shots","parity","Cargo.lock",".openai","AGENTS.md","CLAUDE.md"]
+forbidden_paths = ["docs/refactoring-plan","refactoring-tasks","tools/refactor-proof","tools/refactor-proof-adapters","tools/test-inventory","tools/test-disposition","baseline","shots", "snapshots","parity","Cargo.lock",".openai","AGENTS.md","CLAUDE.md"]
 
 [[checks]]
 id = "CHK-001"
