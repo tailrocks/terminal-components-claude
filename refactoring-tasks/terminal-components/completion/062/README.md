@@ -13,6 +13,8 @@ Restore mounted safety/save/discard/dirty-state overlays, six safety modes and e
 
 ## Context
 
+Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo test --test visual_baseline -- --ignored --skip rebuild_review_html` must match. Never write `snapshots/` or run `tuisnap accept`.
+
 The immutable UX oracle is holla-fable-2026-09-10, commit 02f5294bfdbf38004cc49130d0aff1d01f31434c; accepted architecture starts at main 7b27732a8c3c131760ec3438f641cb3c11343a42. This package owns T-SAFETY, not an application rewrite. The architectural enabling condition is that copied painting, surface labels and real input/model ownership can diverge. Restore the production owner instead of adding another visual facade.
 
 Read before editing: /task/trusted/app-flow-contribution-contract.md, /task/trusted/app-flow-contributions.tsv, /task/trusted/app-flow-frame-contributions.tsv, /task/trusted/app-flow-stage-audit.tsv, /task/trusted/obligations.md, /task/trusted/source-obligations.tsv, /task/verify.toml, docs/refactoring-plan/tablepro.md, docs/refactoring-plan/tablepro-scenarios.tsv, docs/refactoring-plan/architecture.md, docs/refactoring-plan/architecture-adjudication.md, docs/refactoring-plan/proof-contract.md, and the source-qualified files/tests listed in the trusted obligations. The host-provided immutable catalog and sealed inputs govern acceptance; mutable repository copies are reference material only.

@@ -9,17 +9,21 @@ honest-gaps list stay in `docs/baseline/tuisnap-coverage.md`.
 
 ## Taxonomy
 
-Capture name = `<app>/<sub_group>/<leaf>`; `group` = app, `sub_group` =
-scenario family. The leaf drops the app prefix and keeps
-`<surface>_<state>_<cols>x<rows>_<color>`; the v1 `no_color` spelling is
-`nocolor` everywhere.
+Capture name is a nested path; `group` = app. Fat families nest further so a
+leaf directory holds at most ~12 unique scenarios (≤48 files):
 
-| group | sub_groups |
+`<app>/<family>/<surface>/[<state>/]<cols>x<rows>/<color>`
+
+Examples: `holla/flows/cleanup/gate2/120x40/truecolor`,
+`holla/audit/rust/72x20/truecolor`, `showcase/pages/overview/80x24/truecolor`.
+The v1 `no_color` spelling is `nocolor` everywhere.
+
+| group | families |
 |---|---|
-| `showcase/` | `pages/` (18 non-audit pages, static defaults; progress via `--motion paused`), `audit/` (5 audit pages × 5×5 matrix), `flows/` (keyboard/mouse states), `hover/`, `fade/` (wheel scroll-fade), `resize/` |
-| `holla/` | `concept/` (9 non-audit concept scenarios static), `parity/` (23 parity scenarios static), `audit/` (rust + upgrade fixtures × 5×5), `flows/` (journeys, chords, gates, menus), `fade/`, `resize/` |
-| `jackin/` | `scenarios/` (6 non-audit scenarios static), `audit/` (accounts + capsule × 5×5), `intro/` (phase frames), `manager/`, `cockpit/`, `capsule/`, `editor/`, `accounts/`, `usage/`, `settings/` (route sub_groups for interactive) |
-| `tablepro/` | `audit/` (production workbench × 5×5), `connections/`, `workbench/`, `query/`, `table/`, `ack/`, `overlays/`, `fade/`, `resize/` |
+| `showcase/` | `pages/<page>/`, `audit/<fixture>/<size>/`, `flows/<page>/<state>/`, `hover/`, `fade/<widget>/`, `resize/` |
+| `holla/` | `concept/<scenario>/`, `parity/<scenario>/`, `audit/<fixture>/<size>/`, `flows/<surface>/<state>/`, `fade/`, `resize/` |
+| `jackin/` | `scenarios/<scenario>/`, `audit/<fixture>/<size>/`, `intro/`, `manager/`, `cockpit/`, `capsule/`, `editor/`, `accounts/`, `usage/`, `settings/` |
+| `tablepro/` | `audit/production/<size>/`, `connections/`, `workbench/`, `query/`, `table/`, `ack/`, `overlays/`, `fade/`, `resize/` |
 
 **Dedupe rule:** if a surface is one of the 10 audit fixtures, ALL its
 static-default captures live only in `<app>/audit/` (full 5×5 matrix);
@@ -70,7 +74,7 @@ drag technique).
 ## Store layout
 
 ```text
-snapshots/<group>/<sub_group>/<name>.ansi   colored terminal text (cell-exact gate)
+snapshots/<app>/<family>/…/<name>.ansi     colored terminal text (cell-exact gate)
 snapshots/<group>/<sub_group>/<name>.txt    plain text (content gate)
 snapshots/<group>/<sub_group>/<name>.png    colored image (pixel gate, threshold 1.0)
 snapshots/<group>/<sub_group>/<name>.html   standalone HTML render (render-level gate)
@@ -176,14 +180,14 @@ in the tuisnap `.frame.json` metadata (scratch sidecar).
 **Superseded duplicates:** `t_80*/t_100*/t_160*` (the tablepro/audit matrix
 covers all five sizes), `t_conn_dup`/`t_conn_form_adv` (superseded by the
 connections duplicate/advanced-form flows), `h_flow_help` (covered:
-`holla/flows/help_overlay`), `h_flow_trust` (covered:
-`holla/flows/trust_prompt`), `h_flow_cleanup_{plan,gate1}`,
+`holla/flows/help/overlay/120x40/truecolor`), `h_flow_trust` (covered:
+`holla/flows/trust/prompt/120x40/truecolor`), `h_flow_cleanup_{plan,gate1}`,
 `h_flow_remote_gate1`, `h_flow_upgrade_{excluded,confirm}`,
 `h_flow_upgrade_cleanup_excluded` (covered by existing journeys),
 `s2_progress`/`f_progress` (showcase `--motion paused` landed; progress
-statics live under `showcase/pages/progress_default_*`, mid/done under
-`showcase/flows/progress_{mid,done}_*`), `f_taskrunner_running` (now
-`showcase/flows/taskrunner_running_120x40_truecolor`), `s2_pickers`/`s2_tabs`
+statics live under `showcase/pages/progress/<size>/<color>`, mid/done under
+`showcase/flows/progress/{mid,done}/<size>/<color>`), `f_taskrunner_running` (now
+`showcase/flows/taskrunner/running/120x40/truecolor`), `s2_pickers`/`s2_tabs`
 (duplicates of pickers/chrome pages coverage),
 `h_p3_docker_{root,plan,gate1}` (covered by docker-cleanup static + the
 docker gate chain).
@@ -195,9 +199,9 @@ mono/256/16 variants — the audit matrices are strictly wider.
 
 | v1 | v2 |
 |---|---|
-| `h_flow_args` | `holla/flows/args_clone_120x40_truecolor` |
-| `h_hp04_preview_control` | `holla/flows/files_preview_control_120x40_truecolor` |
-| `h_hp23_linux_report` | `holla/flows/cleanup_linux_report_120x40_truecolor` |
-| `j_accounts_form_ref` | `jackin/accounts/add_form_required_120x40_truecolor` |
-| `t_dirty` | `tablepro/table/dirty_120x40_truecolor` |
-| `t_sorted_filtered` | `tablepro/table/sorted-filtered_120x40_truecolor` |
+| `h_flow_args` | `holla/flows/args/clone/120x40/truecolor` |
+| `h_hp04_preview_control` | `holla/flows/files/preview_control/120x40/truecolor` |
+| `h_hp23_linux_report` | `holla/flows/cleanup/linux_report/120x40/truecolor` |
+| `j_accounts_form_ref` | `jackin/accounts/add_form_required/120x40/truecolor` |
+| `t_dirty` | `tablepro/table/dirty/120x40/truecolor` |
+| `t_sorted_filtered` | `tablepro/table/sorted-filtered/120x40/truecolor` |

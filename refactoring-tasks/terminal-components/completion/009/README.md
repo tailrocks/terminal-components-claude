@@ -13,6 +13,8 @@ Terminal session cleanup, normalized input, bootstrap and monotonic deadlines ma
 
 ## Context
 
+Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo test --test visual_baseline -- --ignored --skip rebuild_review_html` must match. Never write `snapshots/` or run `tuisnap accept`.
+
 ADJ-13 fixes the sole private Unix backend signal-broker exception and exact AST enforcement under R-002/AC-002/CHK-006. Preserve enter/run signatures; implement stable fallible-registration retry with the same broker flags, not a new per-session registration. Bounded xtask/src/main.rs authority covers rule18 integration only; TASK-072 supplies its independent positive/negative qualification. No global UI state or backend-free dependency leak is allowed.
 
 This package describes future implementation, not work authorized by the current planning goal. UI authority is immutable oracle `02f5294bfdbf38004cc49130d0aff1d01f31434c`; architectural starting source is `7b27732a8c3c131760ec3438f641cb3c11343a42`. Existing source/tests establish preservation obligations, not oracle parity. Required predecessors: `TASK-006`, `TASK-008`, `TASK-073`. Receipt acceptance and integrated source ancestry are both mandatory.

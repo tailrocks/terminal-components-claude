@@ -13,6 +13,8 @@ Restore current-root Git status/fetch/prune/gc and sibling push/status batches w
 
 ## Context
 
+Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo test --test visual_baseline -- --ignored --skip rebuild_review_html` must match. Never write `snapshots/` or run `tuisnap accept`.
+
 Git current/batch, native task adapters, Cargo, Gradle and IDEA fixture actions preserve exact membership/argv/cwd/outcome/error worlds. The application report shows that a migrated file, a green self-baseline or a generic component call can coexist with wrong live behavior. This task proves actual public-component state transitions and oracle output, not nominal API use.
 
 Read before editing:

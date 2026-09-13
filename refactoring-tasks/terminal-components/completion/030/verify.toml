@@ -1,7 +1,7 @@
 schema = "verify/v2"
 task_id = "TASK-030"
 writable_paths = ["crates/tui/src/components/help.rs","crates/tui/src/components/wizard.rs","crates/tui/tests/completion_030.rs"]
-forbidden_paths = ["refactoring-tasks","docs/refactoring-plan","shots","baseline","parity","tools/refactor-proof","tools/refactor-proof-adapters","tools/test-inventory","tools/test-disposition","archives"]
+forbidden_paths = ["refactoring-tasks","docs/refactoring-plan","shots", "snapshots","baseline","parity","tools/refactor-proof","tools/refactor-proof-adapters","tools/test-inventory","tools/test-disposition","archives"]
 
 [[checks]]
 id = "CHK-001"

@@ -13,6 +13,8 @@ Prove all135 HO rows and every sealed route/SCAN/SWEEP expansion across all34 wo
 
 ## Context
 
+Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo test --test visual_baseline -- --ignored --skip rebuild_review_html` must match. Never write `snapshots/` or run `tuisnap accept`.
+
 All HO expansions, 34 worlds, lifecycle/resize/color and previously existing useful main safety tests pass together; validation-only scope. The application report shows that a migrated file, a green self-baseline or a generic component call can coexist with wrong live behavior. This task proves actual public-component state transitions and oracle output, not nominal API use.
 
 Read before editing:

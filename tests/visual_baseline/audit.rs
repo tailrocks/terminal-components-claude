@@ -11,7 +11,7 @@ const SHOWCASE_BOOT: &str = "Junie Design system";
 const HOLLA_BOOT: &str = "holla❯";
 const JACKIN_BOOT: &str = "jackin❯";
 
-/// One fixture's full 5×5 sweep as `<group>/<sub_group>/<leaf>_default_<cols>x<rows>_<color>`.
+/// One fixture's full 5×5 sweep as `<group>/<sub_group>/<leaf>/<cols>x<rows>/<color>`.
 fn audit_matrix(
     prefix: &str,
     bin: &'static str,

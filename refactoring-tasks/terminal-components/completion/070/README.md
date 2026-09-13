@@ -13,6 +13,8 @@ The source/scenario runner executes preflight, required, oracle, capture and clo
 
 ## Context
 
+Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo test --test visual_baseline -- --ignored --skip rebuild_review_html` must match. Never write `snapshots/` or run `tuisnap accept`.
+
 TASK-001 qualifies comparison and the thin host core only. This package owns the distinct `source-runner` operation implementation. Its independently frozen group70 fixture contract establishes acceptance; the implementation cannot judge itself. This package is a later execution contract, not authorization to implement terminal-components during the planning goal.
 
 Read before editing:

@@ -76,8 +76,8 @@ lists activities, `Alt+0–9` switch tabs, `Esc` climbs clear query › scope
 back to here › back a page › quit. Exact aliases never drift: `gp` pull, `du`
 disk usage, `test` the test task here, `dc` the Docker cleanup, `d` then `u`.
 The gated baseline lives in
-`snapshots/<group>/<sub_group>/<name>.{ansi,txt,png,html}` (see
-`docs/baseline/tuisnap-coverage.md`).
+`snapshots/<app>/…/<cols>x<rows>/<color>.{ansi,txt,png,html}` (see
+`docs/baseline/snapshots-v2.md`).
 
 **Previewing holla.** Three routes, fastest first: open the approved frames
 under `snapshots/holla/<sub_group>/`; run one scenario at a time with

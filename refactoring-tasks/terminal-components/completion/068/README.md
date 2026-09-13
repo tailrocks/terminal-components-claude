@@ -13,6 +13,8 @@ Close the public application/author facade, executable documentation and obsolet
 
 ## Context
 
+Visual regression gate: committed `snapshots/` grouped store (`docs/baseline/snapshots-v2.md`, `refactoring-tasks/visual-validation.md`). After product edits, `cargo test --test visual_baseline -- --ignored --skip rebuild_review_html` must match. Never write `snapshots/` or run `tuisnap accept`.
+
 Public facade/author keyed example/docs/registry/examples/backend-free boundaries complete; doc-check covers §§18–20 and real signatures; obsolete deferrals and clone name reconciled; future semver baseline prepared. This is a bounded closure of already restored production work, not permission to reopen unrelated design choices. ARCH:A01; ARCH:A02; ARCH:A25; ARCH:A29; ARCH:A30; ARCH:A32; HIST:A108; HIST:A109; accepted architecture §§16,18–20,37,42,48,73,74; architecture.md and architecture-adjudication.md.
 
 Read before editing:

@@ -9,3 +9,5 @@ Source contracts are frozen now. Numeric oracle event traces, output hashes and 
 Each package includes canonical README, execution protocol, verify.toml, dependency metadata and protected detailed obligations. The trusted source-obligations.tsv joins exact historical clauses to requirement, acceptance and check IDs. These source clauses supplement the task's detailed component/application/closure contract; a generic check name alone is not evidence that a clause passed.
 
 The host implements source freezing, independent isolated verification and compare-and-swap local integration. It invokes supported standalone taskfmt verification, never the main-targeting run/promote lifecycle. A final passing task establishes readiness only; pushing or merging remains a separately authorized action.
+
+Product edits also prove visual non-regression against the committed `snapshots/` grouped store (`../../visual-validation.md`). `cargo test --test visual_baseline -- --ignored --skip rebuild_review_html` must match. Candidates never write `snapshots/` or run `tuisnap accept`.
