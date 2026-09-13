@@ -106,7 +106,7 @@ supersession table.
 
 The suite `tests/visual_baseline/` is the executable source of truth; every
 entry below appears there verbatim (one `#[test]` per capture, generated from
-static case tables, all `#[ignore]`d so default `cargo test` compiles but does
+static case tables, all `#[ignore]`d so default `cargo nextest run` compiles but does
 not run captures). The suite drives `tuisnap::pty::run_once` — the same
 runner the CLI wrapped — with per-capture env hygiene (`NO_COLOR` stripped,
 `HOLLA_NO_HISTORY=1`) replacing the bash script's process-level contract, and
@@ -411,7 +411,7 @@ showcase `--motion` flag for the progress page.
 ## Regeneration procedure
 
 The runner is the Rust suite (it replaced `tools/tuisnap_baseline.sh`
-2026-09-12). Every capture test is `#[ignore]`d: default `cargo test`
+2026-09-12). Every capture test is `#[ignore]`d: default `cargo nextest run`
 compiles the suite but runs no PTY captures. The v2 (grouped-store) workflow
 in full detail is in [snapshots-v2.md](snapshots-v2.md#regenerate--bless-workflow);
 the short form:
