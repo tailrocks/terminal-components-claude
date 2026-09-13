@@ -132,11 +132,11 @@ fresh-process test in `tests/holla_pty.rs`, not a capture.
 **3. Baseline matrix — the full visual pass:**
 
 ```sh
-cargo test --test visual_baseline -- --ignored --skip rebuild_review_html   # captures the matrix; actuals in target/tuisnap/
+cargo nextest run --run-ignored only -E 'binary(visual_baseline)'   # captures the matrix; actuals in target/tuisnap/
 ln -sfn target/tuisnap/actual snapshots.actual                 # CLI actuals sibling of --store snapshots
 open target/tuisnap/report.html                                # review every actual
 tuisnap accept --grouped --store snapshots --all               # approve after review
-cargo test --test visual_baseline report -- --ignored          # re-verify: every approved frame must report matched
+cargo nextest run --run-ignored only --ignore-default-filter -E 'test(rebuild_review_html)'
 ```
 
 The holla slice is 194 captures: all 34 scenarios at four sizes plus mono,
@@ -149,7 +149,7 @@ the executable source of truth.
 After changing one surface, rerun only what moved and look at the report:
 
 ```sh
-cargo test --test visual_baseline holla_hard_cases -- --ignored
+cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(holla_hard_cases)'
 ```
 
 **Simulation guarantee (adversarial):** walk every plan and gate while

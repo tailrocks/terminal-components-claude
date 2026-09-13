@@ -18,8 +18,8 @@ what `main` actually completed, without breaking UI/UX or visual output. Reading
 ## Visual baseline (regression guard)
 
 - [baseline/tuisnap-coverage.md](baseline/tuisnap-coverage.md) — the full capturable-surface inventory, the baseline matrix, legacy supersession map, and regeneration procedure.
-- `tests/visual_baseline/` — the Rust suite that regenerates the whole baseline into `snapshots/<group>/<sub_group>/<name>.{ansi,txt,png,html}` (scratch actuals/diffs/report under `target/tuisnap/`). Run: `cargo test --test visual_baseline -- --ignored --skip rebuild_review_html`.
-- Re-verify after changes: `cargo test --test visual_baseline report -- --ignored` (or `ln -sfn target/tuisnap/actual snapshots.actual` then `tuisnap report --grouped --store snapshots --report-path target/tuisnap/report.html`; bless with `tuisnap accept --grouped --store snapshots --all`).
+- `tests/visual_baseline/` — the Rust suite that regenerates the whole baseline into `snapshots/<group>/<sub_group>/<name>.{ansi,txt,png,html}` (scratch actuals/diffs/report under `target/tuisnap/`). Run: `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'`.
+- Re-verify after changes: `cargo nextest run --run-ignored only --ignore-default-filter -E 'test(rebuild_review_html)'` (or `ln -sfn target/tuisnap/actual snapshots.actual` then `tuisnap report --grouped --store snapshots --report-path target/tuisnap/report.html`; bless with `tuisnap accept --grouped --store snapshots --all`).
 
 ## Directories
 
