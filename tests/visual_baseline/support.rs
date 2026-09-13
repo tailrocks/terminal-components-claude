@@ -475,7 +475,7 @@ pub fn settle_and_gate(session: &mut Session, name: &str) {
 }
 
 /// One `#[test]` per capture, generated from the static case tables so cargo
-/// name filters work (`cargo test --test visual_baseline holla_ -- --ignored`).
+/// name filters work (`cargo nextest run --run-ignored only -E 'test(holla_)'`).
 /// The test fn name is the capture name with `-` and `/` mapped to `_` (fn
 /// names can't contain either); `Case.name` carries the full grouped name.
 #[macro_export]

@@ -16,15 +16,14 @@
 //! matrix data-drivenly; the audit-flow variant matrices live in
 //! `showcase.rs` (keyboard) and `pointer.rs` (drag-select).
 //!
-//! Every capture test is `#[ignore]`d: default `cargo test` compiles the
-//! suite and runs only the cheap non-PTY [`store_integrity`] check. Run
+//! Every capture test is `#[ignore]`d: default `cargo nextest run` compiles
+//! the suite and runs only the cheap non-PTY [`store_integrity`] check. Run
 //! the PTY baseline explicitly:
 //!
 //! ```sh
-//! cargo test --test visual_baseline -- --ignored --test-threads=4       # whole matrix
-//! cargo test --test visual_baseline holla_ -- --ignored                 # one app
-//! cargo nextest run --run-ignored only -E 'binary(visual_baseline)'     # PTY gates (the real suite)
-//! cargo nextest run --run-ignored only --ignore-default-filter -E 'test(rebuild_review_html)'  # fast file-link index
+//! cargo nextest run --run-ignored only -E 'binary(visual_baseline)'
+//! cargo nextest run --run-ignored only -E 'binary(visual_baseline) & test(holla_)'
+//! cargo nextest run --run-ignored only --ignore-default-filter -E 'test(rebuild_review_html)'
 //! ```
 //!
 //! Gate policy (fail-closed, unchanged from the CLI): `matched` passes,
