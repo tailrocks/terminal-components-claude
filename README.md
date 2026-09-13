@@ -83,8 +83,7 @@ The gated baseline lives in
 under `snapshots/holla/<sub_group>/`; run one scenario at a time with
 `cargo run --release --bin holla -- --scenario <name>` (the table in
 `src/bin/holla/README.md` says what each scenario shows and which keys to
-press); or regenerate the gated matrix with `cargo test --test
-visual_baseline -- --ignored --skip rebuild_review_html` and review it via `tuisnap
+press); or regenerate the gated matrix with `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` and review it via `tuisnap
 report` / `tuisnap accept` after `ln -sfn target/tuisnap/actual snapshots.actual`
 (see `docs/baseline/tuisnap-coverage.md`).
 `holla --help` prints the flags and scenarios.
