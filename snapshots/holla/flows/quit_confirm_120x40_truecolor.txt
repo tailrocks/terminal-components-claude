@@ -1,0 +1,40 @@
+  holla❯    File   Go   Help                                                          acme · mise monorepo  mbp · local
+
+  Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×    logs · api worker sched… ⠋ ×    btm ○ ×
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   Search actions and resources…                                                                        scope ‹ here ›
+
+    Suggested here                                                               Deploy preview         custom · here
+    Follow acme-api-1 logs     docker    here   service is unhealthy
+    Inspect 10 GB of generat…  disk      here   10 GB generated artifacts        Does       push the current branch
+    Install missing tools · …  task      here   1 tool missing                              to the preview stack
+    Review cleanup candidates  cleanup   host   10.6 GiB across 4 categories     Runs       tools/deploy-pre…preview
+  › Deploy preview             custom    here   Current folder…                  In         ~/work/acme
+                                                                                 Host       mbp · local
+    Recent here                                                                  Scope      here
+    nothing used here yet                                                        Why        Current folder · ⚠
+                                 ╭────────────────────────────────────────────────────╮     unreviewed
+    Running                      │                                                    │s    see the command
+    logs · api worker schedu…  ac│  Quit holla❯?                                      │     mutating
+    api dev                    ac│                                                    │     live · 0 s ago
+    btm                        ac│  4 activities are still running. Quitting stops    │     trust required ·
+    frontend dev               ac│  what holla started; detached monitors keep        │     ~/work/acme/.holla.toml
+                                 │  running.                                          │ter  Set an alias… · Show
+    Explore                      │                                                    │     configuration
+     Tasks   Git   Files   Disk  │                          ▎Cancel   Stop and quit   │     diagnostics · Pin ·
+    Children · 3 projects      ex│                                                    │     Alias · Why here?
+    System · mbp               ex╰────────────────────────────────────────────────────╯
+
+
+
+
+
+
+
+
+
+
+
+
+ ~/work/acme   main   ↑1                                                              ⠋ 4 running    truecolor · 120×40
+                              ← → Choose  Enter Confirm  Esc Cancel  y / n Quick answer     api tests finished · exit 0

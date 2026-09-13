@@ -1,0 +1,40 @@
+ ▪ Junie Design system / Components / Scrolling                              truecolor · 120×40   i Inspector   ? Help
+
+   Foundations            Scrolling  Wheel under the pointer, keys on the focused container, thumb shows where you are…
+   Overview
+                           ▎Wrapped text  32–62 of 120      Long list      1–31 of 120      Log 1970–2000 of 2000 · f…
+   Components
+   Buttons                  Scroll with the mouse    │         Row 001               ┃       728.53s  info   Fetchi… │
+   Inputs                   wheel, PageUp/PageDown,  │         Row 002               ┃       728.90s  info   Compil… │
+   Text areas               or the arrow keys while  │         Row 003               ┃       729.27s  info   Compil… │
+   Forms                    this panel has focus.    │         Row 004               ┃       729.64s  warn   unused… │
+   Lists                    The scrollbar on the     │         Row 005               ┃       730.01s  info   Compil… │
+   Trees                    right shows where you    │         Row 006               ┃       730.38s  info   Runnin… │
+   Tables                   are and how much         │         Row 007       flagged ┃       730.75s  info   test a… │
+   Editable tables          remains.                 │         Row 008               ┃       731.12s  info   test d… │
+   Panels                                            ┃         Row 009               │       731.49s  error  test c… │
+   Sidebars                 Junie works through a    ┃         Row 010               │       731.86s  info   test w… │
+   Dialogs                  task the way a careful   ┃         Row 011               │       732.23s  info   Linkin… │
+   Progress                 engineer would: it reads ┃         Row 012               │       732.60s  info   Resolv… │
+ › Scrolling                the relevant code, forms ┃         Row 013               │       732.97s  info   Fetchi… │
+   Terminal                 a plan, makes focused    ┃         Row 014       flagged │       733.34s  info   Compil… │
+   Code editor              changes, runs the tests, ┃         Row 015               │       733.71s  info   Compil… │
+   Diff                     and reports back with a  ┃         Row 016               │       734.08s  warn   unused… │
+   Data grid                summary you can review   │         Row 017               │       734.45s  info   Compil… │
+   Chips & selects          before anything is       │         Row 018               │       734.82s  info   Runnin… │
+   Pickers                  merged.                  │         Row 019               │       735.19s  info   test a… │
+   Chrome                                            │         Row 020               │       735.56s  info   test d… │
+                            Each step is visible.    │         Row 021       flagged │       735.93s  error  test c… │
+   Screens                  You can pause, redirect, │         Row 022               │       736.30s  info   test w… │
+   Settings                 or take over at any      │         Row 023               │       736.67s  info   Linkin… │
+   Task runner              point, and every change  │         Row 024               │       737.04s  info   Resolv… │
+                            lands as an ordinary     │         Row 025               │       737.41s  info   Fetchi… │
+                            diff in your working     │         Row 026               │       737.78s  info   Compil… │
+                            tree.                    │         Row 027               │       738.15s  info   Compil… │
+                                                     │         Row 028       flagged │       738.52s  warn   unused… │
+                            The design system in     │         Row 029               │       738.89s  info   Compil… │
+                            this prototype exists so │         Row 030               │       739.26s  info   Runnin… │
+                            that the terminal        │         Row 031               │       739.63s  info   test a… ┃
+
+
+ ↑ ↓ Scroll  PgUp PgDn Page  g G Ends  Tab Next
