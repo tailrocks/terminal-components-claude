@@ -37,7 +37,7 @@ jobs:
             printf '\n=== Interaction, rendering and test entry points ===\n'
             grep -RnE 'fn (on_|handle|render|test_)|#\[test\]|enum (Page|Scenario|VisualState)|struct VisualState' src tests --include='*.rs' || true
             printf '\n=== Existing visual evidence ===\n'
-            find shots tests -type f | LC_ALL=C sort
+            find shots snapshots tests -type f | LC_ALL=C sort
           } > audit-evidence/source-index.txt
       - uses: actions/upload-artifact@v4
         with:

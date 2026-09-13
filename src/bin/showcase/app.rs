@@ -27,6 +27,15 @@ const HEADER_HELP: WidgetId = WidgetId::of("app.header.help");
 const HEADER_INSPECT: WidgetId = WidgetId::of("app.header.inspect");
 const HELP_DIALOG: WidgetId = WidgetId::of("app.help");
 
+/// Tick delivery mode: `Paused` pins every tick-derived glyph at
+/// `--frame N` (the pages are fast-forwarded synchronously at startup) so
+/// animated surfaces are capturable; the default is unchanged live ticks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Motion {
+    Full,
+    Paused,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PageId {
     Overview,
@@ -222,6 +231,7 @@ pub struct App {
     pub status: Option<(String, Instant)>,
     pub flash: Option<(WidgetId, Instant)>,
     pub quit: bool,
+    pub motion: Motion,
     nav_areas: Vec<Rect>,
     nav_scroll: ScrollState,
     nav_reveal: bool,
@@ -248,7 +258,14 @@ impl App {
         self.layout.sidebar
     }
 
+    /// Default live-tick construction (`with_motion` with `Full`, frame 0);
+    /// the binary goes through `with_motion`, the in-process tests use this.
+    #[allow(dead_code)]
     pub fn new(theme: Theme) -> Self {
+        Self::with_motion(theme, Motion::Full, 0)
+    }
+
+    pub fn with_motion(theme: Theme, motion: Motion, frame: u64) -> Self {
         use crate::pages::*;
         let pages: Vec<Box<dyn Page>> = NAV_ENTRIES
             .iter()
@@ -282,7 +299,7 @@ impl App {
             .collect();
         let mut focus = Focus::default();
         focus.focus(NAV);
-        Self {
+        let mut app = Self {
             theme,
             pages,
             page: PageId::Overview,
@@ -298,17 +315,40 @@ impl App {
             dialog: None,
             inspector: false,
             size: (0, 0),
-            tick: 0,
+            tick: frame,
             last_key: None,
             status: None,
             flash: None,
             quit: false,
+            motion,
             nav_areas: vec![],
             nav_scroll: ScrollState::default(),
             nav_reveal: true,
             layout: ShellLayout::default(),
             saved_focus: None,
+        };
+        // Paused fast-forward: page Tick handlers are pure functions of the
+        // tick count, so N synchronous dispatches reproduce the exact
+        // post-N-ticks state. Every page is advanced (not only the current
+        // one) because `goto` runs after construction; unvisited pages stay
+        // idle anyway, and `on_tick` never fires again while paused.
+        // Requests are dropped: a Status raised by a construction-time tick
+        // (the progress bar crossing 100 %) is a wall-clock artifact that
+        // paused motion can never age out, so it would leak a stale footer
+        // message into unrelated pages' pinned frames.
+        if motion == Motion::Paused {
+            for _ in 0..frame {
+                for i in 0..app.pages.len() {
+                    let mut cx = PageCtx {
+                        focus: &mut app.focus,
+                        ring: &app.ring,
+                        requests: Vec::new(),
+                    };
+                    app.pages[i].handle(&PageEvent::Tick, &mut cx);
+                }
+            }
         }
+        app
     }
 
     pub fn goto(&mut self, page: PageId) {
@@ -324,6 +364,9 @@ impl App {
     }
 
     pub fn animating(&self) -> bool {
+        if self.motion == Motion::Paused {
+            return false;
+        }
         let page = &self.pages[self.page.index()];
         page.animating()
             || self.flash.is_some()
@@ -390,6 +433,9 @@ impl App {
     }
 
     fn on_tick(&mut self) -> Outcome {
+        if self.motion == Motion::Paused {
+            return Outcome::Ignored;
+        }
         let mut out = Outcome::Ignored;
         if self.animating() {
             self.tick = self.tick.wrapping_add(1);

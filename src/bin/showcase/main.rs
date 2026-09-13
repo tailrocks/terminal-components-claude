@@ -6,18 +6,22 @@ mod app_tests;
 mod data;
 mod pages;
 
-use crate::app::{App, PageId};
+use crate::app::{App, Motion, PageId};
 use junie_tui::core::event::{Input, Outcome};
 use junie_tui::theme::{ColorLevel, Theme};
 
 struct Options {
     level: ColorLevel,
     page: Option<PageId>,
+    motion: Motion,
+    frame: u64,
 }
 
 fn parse_args() -> Options {
     let mut level = ColorLevel::detect();
     let mut page = None;
+    let mut motion = Motion::Full;
+    let mut frame = 0;
     let mut args = std::env::args().skip(1);
     while let Some(a) = args.next() {
         match a.as_str() {
@@ -41,10 +45,31 @@ fn parse_args() -> Options {
                     std::process::exit(2);
                 }
             }
+            "--motion" | "-m" => {
+                motion = match args.next().as_deref() {
+                    // `reduced` is accepted as an alias of `full` for tooling
+                    // symmetry with the other demo apps; showcase has no
+                    // discovery-motion class.
+                    Some("full") | Some("reduced") => Motion::Full,
+                    Some("paused") => Motion::Paused,
+                    other => {
+                        eprintln!("unknown --motion value {other:?}; use full|paused");
+                        std::process::exit(2);
+                    }
+                };
+            }
+            "--frame" | "-f" => {
+                let value = args.next().unwrap_or_default();
+                frame = value.parse().unwrap_or_else(|_| {
+                    eprintln!("bad --frame value {value:?}; expected a non-negative integer");
+                    std::process::exit(2);
+                });
+            }
             "-h" | "--help" => {
                 println!(
                     "junie-tui — Junie-inspired Ratatui design system laboratory\n\n\
-                     USAGE: junie-tui [--color truecolor|256|16|none] [--page NAME]\n\n\
+                     USAGE: junie-tui [--color truecolor|256|16|none] [--page NAME]\n\
+                     \x20               [--motion full|paused] [--frame N]\n\n\
                      Keys: Tab/Shift+Tab focus · arrows move · Enter/Space activate · Esc back · [ ] pages · ? help · q quit"
                 );
                 std::process::exit(0);
@@ -52,13 +77,18 @@ fn parse_args() -> Options {
             _ => {}
         }
     }
-    Options { level, page }
+    Options {
+        level,
+        page,
+        motion,
+        frame,
+    }
 }
 
 fn main() -> std::io::Result<()> {
     let opts = parse_args();
     let theme = Theme::for_level(opts.level);
-    let mut app = App::new(theme);
+    let mut app = App::with_motion(theme, opts.motion, opts.frame);
     if let Some(p) = opts.page {
         app.goto(p);
     }

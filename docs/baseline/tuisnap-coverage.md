@@ -1,5 +1,17 @@
 # tuisnap snapshot baseline — coverage design
 
+> **v2 migration (2026-09-13):** the suite now uses the grouped
+> multi-artifact store — approved frames at `snapshots/<group>/<sub_group>/<name>.{ansi,txt,png,html}`
+> (committed, four artifacts per scenario), scratch (actuals/diffs/report)
+> under `target/tuisnap/`, grouped capture names (`<app>/<sub_group>/<leaf>`,
+> `no_color` → `nocolor`), and the 10-fixture × 5×5 audit matrix plus
+> audit-flow variants added data-drivenly. See
+> **[docs/baseline/snapshots-v2.md](snapshots-v2.md)** for the taxonomy,
+> layout, bless workflow and the intentional-drops list. The v1 store paths
+> (`shots/tuisnap/…`) quoted below describe the retired classic-store flow
+> and the frozen legacy corpus; where they conflict with snapshots-v2.md,
+> snapshots-v2.md wins.
+
 Provenance: designed 2026-09-12 from the completed capturable-surface inventory
 (apps/CLI, existing `shots/` corpus, known gaps) and the tui-snap 0.2.0
 documentation (`~/Projects/tui-snap/docs/USAGE.md`). CLI behavior quoted below
@@ -13,7 +25,8 @@ mouse/resize captures the CLI could not express.
 
 The baseline is the artifact that later proves the refactoring did not change
 UI/UX: every capture is a real binary running in a PTY, gated cell-exact and
-pixel-exact against an approved snapshot in the store at `shots/tuisnap/`. The
+pixel-exact against an approved snapshot in the store at `snapshots/` (v2;
+the v1 classic store at `shots/tuisnap/` is retired). The
 whole matrix runs through PTYs on purpose: showcase's in-process test path
 (the `tests/showcase_baseline.txt` digest harness) renders pages without the
 application shell — no nav sidebar — so it cannot reproduce the approved
@@ -399,74 +412,69 @@ showcase `--motion` flag for the progress page.
 
 The runner is the Rust suite (it replaced `tools/tuisnap_baseline.sh`
 2026-09-12). Every capture test is `#[ignore]`d: default `cargo test`
-compiles the suite but runs no PTY captures.
+compiles the suite but runs no PTY captures. The v2 (grouped-store) workflow
+in full detail is in [snapshots-v2.md](snapshots-v2.md#regenerate--bless-workflow);
+the short form:
 
 ```bash
 # 1. full rebuild from scratch (store is disposable until accepted)
-rm -rf shots/tuisnap
-cargo test --test visual_baseline -- --ignored --skip report
-#    - builds the bins as part of the test build; ~382 PTY captures
+rm -rf snapshots/ target/tuisnap/
+cargo test --test visual_baseline -- --ignored --skip rebuild_review_html
+#    - builds the bins as part of the test build; ~618 PTY captures
 #    - note: the 5 scrolling captures take ~2.5 min each (boot stream)
-#    - first run: every entry lands in actual/ and is logged PENDING
-#      (missing-approval) — expected, not a failure; drift after approval
-#      or a capture error fails the test
-# 2. review every actual
-open shots/tuisnap/report.html   # after step 4's report, or the CLI's
+#    - first run: every entry lands in target/tuisnap/actual/ and is logged
+#      PENDING (missing-approval) — expected, not a failure; drift after
+#      approval or a capture error fails the test
+# 2. bridge the suite's actual root to the CLI's default sibling roots
+ln -sfn target/tuisnap/actual snapshots.actual
 # 3. approve after review (explicit; no env var approves anything)
-tuisnap accept --store shots/tuisnap --all
-# 4. re-verify + rebuild report.html: every approved frame must report matched
+tuisnap accept --grouped --store snapshots --all
+# 4. re-run until every capture reports matched, then rebuild report.html
+cargo test --test visual_baseline -- --ignored --skip rebuild_review_html
 cargo test --test visual_baseline report -- --ignored   # asserts 0 failed
-#    (or: tuisnap report --store shots/tuisnap; either way ~10–15 min:
-#     382 re-gates + a ~1.9 GB report.html write)
+open target/tuisnap/report.html
 ```
 
 Subset re-runs (after touching one surface) use cargo's name filter:
 
 ```bash
 cargo test --test visual_baseline tablepro_ -- --ignored
-cargo test --test visual_baseline -- --ignored holla_rust_dirty
+cargo test --test visual_baseline -- --ignored holla_concept_rust
 cargo test --test visual_baseline showcase_ -- --ignored --test-threads 8
 ```
 
 ## How the baseline is used later (refactoring gate)
 
 - After any refactoring change: `cargo test --test visual_baseline --
-  --ignored --skip report` (rebuilds, then re-runs the PTY for every approved
+  --ignored --skip rebuild_review_html` (rebuilds, then re-runs the PTY for every approved
   name). `matched` = no UI/UX drift. `cells-differ`/`pixels-differ` = drift:
-  inspect `shots/tuisnap/diff/<name>.png` (red overlay) + the first-100 cell
-  diagnostics, fix the regression or — only for an intended visual change —
-  re-accept that name explicitly.
+  inspect `target/tuisnap/diff/<name>.png` (red overlay) + the
+  first-difference diagnostics, fix the regression or — only for an intended
+  visual change — re-accept that name explicitly.
 - `cargo test --test visual_baseline report -- --ignored` (or `tuisnap report
-  --store shots/tuisnap`) re-verifies every `actual/*.frame.json` against
-  `approved/` and rewrites `report.html` (publishable CI artifact).
-- Single capture check without a PTY:
-  `tuisnap check --store shots/tuisnap --name N --input shots/tuisnap/actual/N.frame.json`.
-- Store layout: `shots/tuisnap/actual/` (latest frames + PNGs),
-  `shots/tuisnap/approved/` (approved PNG baselines), `shots/tuisnap/diff/`
-  (mismatch overlays), `shots/tuisnap/report.html`,
-  `shots/tuisnap/frames/` (loose ansi/txt/png/html review aids — derived,
-  never gated; rendered by `tuisnap render --input
-  shots/tuisnap/approved/<name>.frame.json --format ansi --format txt
-  --format png --format html --out shots/tuisnap/frames/<name>`, not by the
-  suite).
+  --grouped --store snapshots --report-path target/tuisnap/report.html`)
+  re-verifies every `actual/*.frame.json` against the approved artifacts and
+  rewrites the report (publishable CI artifact).
+- Store layout (v2): `snapshots/<group>/<sub_group>/` (approved
+  `.ansi`/`.txt`/`.png`/`.html` per scenario — committed),
+  `target/tuisnap/actual/` (latest frames + artifacts + sidecars),
+  `target/tuisnap/diff/` (mismatch overlays), `target/tuisnap/report.html`.
+  The v1 classic-store layout (`shots/tuisnap/{actual,approved,diff,frames}`)
+  is retired with the frozen corpus.
 
 ## Git tracking policy
 
-The store is ~3.2 GB on disk; only the canonical, non-regenerable baseline is
-tracked in git (~490 MB):
+v2 (grouped store): the approved tree `snapshots/` is tracked in full —
+exactly four artifacts per scenario (`.ansi`/`.txt`/`.png`/`.html`, the gate
+authorities). All scratch is regenerable and lives under `target/`
+(gitignored): `target/tuisnap/actual/` (incl. `.frame.json` /
+`.png.fidelity.json` sidecars), `target/tuisnap/diff/`,
+`target/tuisnap/report.html`. The suite's `report` test (or `tuisnap report
+--grouped --store snapshots --report-path target/tuisnap/report.html`)
+rebuilds the report after any run. (v1 policy, retired with the classic
+store: `shots/tuisnap/approved/` + `frames/*.ansi|txt` tracked, the rest
+ignored.)
 
-- **Tracked:** `shots/tuisnap/approved/` (382 × frame.json + approved PNG +
-  `.png.fidelity.json` — the gate authority), `shots/tuisnap/frames/*.ansi`
-  and `frames/*.txt` (small, and `ansi` is an explicitly required persisted
-  format).
-- **Ignored (`.gitignore`):** `actual/`, `diff/`, `report.html` (~1.4 GB —
-  embeds every frame), `frames/*.html`, `frames/*.png`. All ignored artifacts
-  are deterministic re-renders of the tracked approved frames: `tuisnap
-  render --input shots/tuisnap/approved/<name>.frame.json --format png
-  --format html --out <prefix>`, and the suite's `report` test (or `tuisnap
-  report --store shots/tuisnap`) rebuilds the report after any run.
-  (`.baseline-run/` was the bash runner's log dir; the suite keeps per-test
-  output in cargo's own log.)
 - The legacy `shots/` corpus outside `shots/tuisnap/` is left in place as
   frozen historical evidence; the tmux/Python harness that produced it was
   removed 2026-09-12. Supersession per category is mapped above. Physical
@@ -478,11 +486,13 @@ tracked in git (~490 MB):
 - Renderer pin: approved PNGs were rendered by tuisnap built from
   tui-snap@263eeeb (JetBrainsMono Nerd Font Mono faces, HiDPI rasterization,
   10×21 cells at 16px). A different tuisnap build pixel-drifts by design;
-  after an intentional renderer upgrade: `tuisnap report --store
-  shots/tuisnap`, review, `tuisnap accept --store shots/tuisnap --all`.
+  after an intentional renderer upgrade: re-run the suite, review,
+  `tuisnap accept --grouped --store snapshots --all`.
 - Capture environment: every spawn strips `NO_COLOR` from the inherited
   environment (`PtyOptions::without_env`). An exported NO_COLOR (agent and CI
   shells set it) silently poisons every colour capture — crossterm suppresses
   colour SGR by *presence*, even under `--color truecolor`: frames claim
   truecolor in their header yet record all-Default cells. The 2026-09-12
-  first baseline was re-captured for exactly this reason.
+  first baseline was re-captured for exactly this reason. v2 strips the same
+  class of ambient leaks: `HOLLA_NO_MOTION`, `JACKIN_NO_MOTION`,
+  `CLICOLOR_FORCE`, `FORCE_COLOR`.

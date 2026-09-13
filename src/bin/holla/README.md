@@ -132,9 +132,10 @@ fresh-process test in `tests/holla_pty.rs`, not a capture.
 **3. Baseline matrix — the full visual pass:**
 
 ```sh
-cargo test --test visual_baseline -- --ignored --skip report   # captures the matrix into shots/tuisnap/
-open shots/tuisnap/report.html                                 # review every actual
-tuisnap accept --store shots/tuisnap --all                     # approve after review
+cargo test --test visual_baseline -- --ignored --skip rebuild_review_html   # captures the matrix; actuals in target/tuisnap/
+ln -sfn target/tuisnap/actual snapshots.actual                 # CLI actuals sibling of --store snapshots
+open target/tuisnap/report.html                                # review every actual
+tuisnap accept --grouped --store snapshots --all               # approve after review
 cargo test --test visual_baseline report -- --ignored          # re-verify: every approved frame must report matched
 ```
 
