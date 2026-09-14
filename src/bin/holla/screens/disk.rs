@@ -29,7 +29,9 @@ use ratatui::style::{Modifier, Style};
 
 use crate::domain::cleanup::{DeleteItem, DeletePlan, Mode, NOISE_NAMES};
 use crate::domain::stack::Spotlight;
-use crate::screens::{Cx, Go, Page, Screen, StatusBits, heading, plural};
+use crate::screens::{
+    Cx, Go, Page, Screen, StatusBits, heading, plural, scroll_drag, scroll_press,
+};
 use crate::sim::fs::{ScanNode, human};
 use crate::sim::world::World;
 
@@ -81,6 +83,8 @@ pub struct DiskPage {
     pub selected: BTreeSet<String>,
     detail_scroll: ScrollState,
     list_scroll: ScrollState,
+    detail_area: Rect,
+    list_area: Rect,
     pub cursor: usize,
     overview: Vec<OverviewRow>,
     top: Vec<TopRow>,
@@ -111,6 +115,8 @@ impl DiskPage {
             selected: BTreeSet::new(),
             detail_scroll: ScrollState::default(),
             list_scroll: ScrollState::default(),
+            detail_area: Rect::ZERO,
+            list_area: Rect::ZERO,
             cursor: 0,
             overview: vec![],
             top: vec![],
@@ -736,6 +742,7 @@ impl DiskPage {
         let panel = Panel::card(Some(&title)).focused(focused).meta(&meta);
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
+        self.detail_area = inner;
         ctx.control(DETAIL, area, false);
         ctx.scrollable(DETAIL, inner);
         let label_w = props.iter().map(|p| width(&p.label)).max().unwrap_or(4) as u16 + 2;
@@ -794,6 +801,7 @@ impl DiskPage {
         let t = ctx.theme;
         let bg = t.canvas;
         let focused = ctx.interaction.focused(LIST);
+        self.list_area = area;
         ctx.control(LIST, area, false);
         ctx.scrollable(LIST, area);
         let rows: Vec<(String, String, String, bool)> = match self.view {
@@ -845,8 +853,6 @@ impl DiskPage {
         }
         self.list_scroll.set_content(rows.len());
         self.list_scroll.set_viewport(area.height as usize);
-        self.list_scroll
-            .ensure_visible(self.cursor.min(rows.len() - 1));
         let has_sb = self.list_scroll.overflows();
         let row_w = area.width.saturating_sub(u16::from(has_sb));
         let label_w = (row_w * 50 / 100).clamp(16, 56);
@@ -1153,19 +1159,23 @@ impl Screen for DiskPage {
                     KeyCode::Up | KeyCode::Char('k') => {
                         self.cursor = self.cursor.saturating_sub(1);
                         self.detail_scroll.jump_start();
+                        self.list_scroll.ensure_visible(self.cursor);
                         Outcome::Changed
                     }
                     KeyCode::Down | KeyCode::Char('j') => {
                         self.cursor = (self.cursor + 1).min(n.saturating_sub(1));
                         self.detail_scroll.jump_start();
+                        self.list_scroll.ensure_visible(self.cursor);
                         Outcome::Changed
                     }
                     KeyCode::Home | KeyCode::Char('g') => {
                         self.cursor = 0;
+                        self.list_scroll.jump_start();
                         Outcome::Changed
                     }
                     KeyCode::End | KeyCode::Char('G') => {
                         self.cursor = n.saturating_sub(1);
+                        self.list_scroll.ensure_visible(self.cursor);
                         Outcome::Changed
                     }
                     KeyCode::Enter => self.open_row(w, cx),
@@ -1180,7 +1190,19 @@ impl Screen for DiskPage {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, _pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+    fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        if id == scrollbar::id_for(TREE) {
+            cx.focus.focus(TREE);
+            return self.tree.on_scrollbar(pos);
+        }
+        if id == scrollbar::id_for(DETAIL) {
+            cx.focus.focus(DETAIL);
+            return scroll_press(self.detail_area, pos, &mut self.detail_scroll);
+        }
+        if id == scrollbar::id_for(LIST) {
+            cx.focus.focus(LIST);
+            return scroll_press(self.list_area, pos, &mut self.list_scroll);
+        }
         if id == DETAIL {
             cx.focus.focus(DETAIL);
             return Outcome::Changed;
@@ -1223,6 +1245,32 @@ impl Screen for DiskPage {
         if id == LIST {
             cx.focus.focus(LIST);
             return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+
+    fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
+        if id == scrollbar::id_for(TREE) {
+            return self.tree.on_scrollbar(pos);
+        }
+        if id == scrollbar::id_for(DETAIL) {
+            return scroll_press(self.detail_area, pos, &mut self.detail_scroll);
+        }
+        if id == scrollbar::id_for(LIST) {
+            return scroll_press(self.list_area, pos, &mut self.list_scroll);
+        }
+        Outcome::Ignored
+    }
+
+    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
+        if pressed == scrollbar::id_for(TREE) {
+            return self.tree.on_scrollbar_drag(pos);
+        }
+        if pressed == scrollbar::id_for(DETAIL) {
+            return scroll_drag(self.detail_area, pos, &mut self.detail_scroll);
+        }
+        if pressed == scrollbar::id_for(LIST) {
+            return scroll_drag(self.list_area, pos, &mut self.list_scroll);
         }
         Outcome::Ignored
     }

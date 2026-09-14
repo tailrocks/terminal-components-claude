@@ -10,12 +10,13 @@ use junie_tui::widgets::button::{Button, row_layout};
 use junie_tui::widgets::panel::Panel;
 
 const ID: WidgetId = WidgetId::of("buttons");
+const LONG_JOB_TICKS: u8 = 28;
 
 pub struct ButtonsPage {
     buttons: Vec<Button>,
     clicks: u32,
     last: Option<String>,
-    busy_until: Option<std::time::Instant>,
+    busy_ticks: Option<u8>,
 }
 
 impl ButtonsPage {
@@ -35,7 +36,7 @@ impl ButtonsPage {
             buttons,
             clicks: 0,
             last: None,
-            busy_until: None,
+            busy_ticks: None,
         }
     }
 
@@ -49,8 +50,7 @@ impl ButtonsPage {
         };
         if i == 8 {
             self.buttons[8].busy = true;
-            self.busy_until =
-                Some(std::time::Instant::now() + std::time::Duration::from_millis(2200));
+            self.busy_ticks = Some(LONG_JOB_TICKS);
             cx.status("Working…".to_owned());
         } else {
             cx.status(msg.clone());
@@ -186,10 +186,12 @@ impl Page for ButtonsPage {
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
         match ev {
             PageEvent::Tick => {
-                if let Some(until) = self.busy_until
-                    && std::time::Instant::now() >= until
-                {
-                    self.busy_until = None;
+                if let Some(ticks) = self.busy_ticks {
+                    if ticks > 1 {
+                        self.busy_ticks = Some(ticks - 1);
+                        return Outcome::Changed;
+                    }
+                    self.busy_ticks = None;
                     self.buttons[8].busy = false;
                     cx.status("Long job finished ✓");
                     return Outcome::Changed;
@@ -227,6 +229,6 @@ impl Page for ButtonsPage {
     }
 
     fn animating(&self) -> bool {
-        self.busy_until.is_some()
+        self.busy_ticks.is_some()
     }
 }

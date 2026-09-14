@@ -16,12 +16,14 @@ pub mod snapshot;
 use junie_tui::core::event::{Key, Outcome};
 use junie_tui::core::focus::{Focus, FocusRing};
 use junie_tui::core::id::WidgetId;
+use junie_tui::core::scroll::ScrollState;
 use junie_tui::theme::Tone;
 use junie_tui::ui::ctx::RenderCtx;
 use junie_tui::widgets::dialog::Dialog;
 use junie_tui::widgets::keyhint::Hint;
 use junie_tui::widgets::menu::ContextMenu;
 use junie_tui::widgets::picker::Picker;
+use junie_tui::widgets::scrollbar;
 use junie_tui::widgets::statusbar::StatusItem;
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
@@ -393,5 +395,27 @@ pub fn truncate_sep(s: &str, max: usize) -> String {
     match best {
         Some(at) => format!("{}…", &s[..at]),
         None => truncate(s, max),
+    }
+}
+
+/// Route a pointer press to a raw `ScrollState` scrollbar. Widget-owned
+/// scroll models expose this directly; Holla's simple screens keep the model
+/// inline, so they share the exact same track mapping here.
+pub(crate) fn scroll_press(area: Rect, pos: Position, scroll: &mut ScrollState) -> Outcome {
+    let track = Rect::new(area.right().saturating_sub(1), area.y, 1, area.height);
+    if scrollbar::press(track, pos, scroll) {
+        Outcome::Changed
+    } else {
+        Outcome::Consumed
+    }
+}
+
+/// Route a pointer drag to a raw `ScrollState` scrollbar.
+pub(crate) fn scroll_drag(area: Rect, pos: Position, scroll: &mut ScrollState) -> Outcome {
+    let track = Rect::new(area.right().saturating_sub(1), area.y, 1, area.height);
+    if scrollbar::drag(track, pos, scroll) {
+        Outcome::Changed
+    } else {
+        Outcome::Consumed
     }
 }

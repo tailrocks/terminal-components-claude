@@ -22,7 +22,9 @@ use ratatui::layout::{Position, Rect};
 
 use crate::domain::action::{ArgSpec, Item, Risk};
 use crate::screens::finder::item_facts;
-use crate::screens::{Cx, GateTarget, Go, Screen, StatusBits, heading, plural, risk_tone};
+use crate::screens::{
+    Cx, GateTarget, Go, Screen, StatusBits, heading, plural, risk_tone, scroll_drag, scroll_press,
+};
 use crate::sim::world::World;
 
 pub const SEQUENCE: WidgetId = WidgetId::of("gate.sequence");
@@ -37,6 +39,7 @@ pub struct GatePage {
     facts: Vec<Prop>,
     sequence: Vec<String>,
     scroll: ScrollState,
+    sequence_area: Rect,
     cancel: Button,
     cont: Button,
 }
@@ -49,6 +52,7 @@ impl GatePage {
             facts: vec![],
             sequence: vec![],
             scroll: ScrollState::default(),
+            sequence_area: Rect::ZERO,
             cancel: Button::secondary(GATE_CANCEL, "Cancel"),
             cont: Button::danger(GATE_CONTINUE, "Continue…"),
         };
@@ -376,7 +380,7 @@ impl Screen for GatePage {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, _pos: Position, _w: &mut World, cx: &mut Cx) -> Outcome {
+    fn on_click(&mut self, id: WidgetId, pos: Position, _w: &mut World, cx: &mut Cx) -> Outcome {
         if id == GATE_CANCEL {
             cx.go(Go::Pop);
             cx.status("Cancelled · nothing was executed");
@@ -386,9 +390,27 @@ impl Screen for GatePage {
             cx.go(Go::Gate1Accepted(self.target.clone()));
             return Outcome::Changed;
         }
+        if id == scrollbar::id_for(SEQUENCE) {
+            cx.focus.focus(SEQUENCE);
+            return scroll_press(self.sequence_area, pos, &mut self.scroll);
+        }
         if id == SEQUENCE {
             cx.focus.focus(SEQUENCE);
             return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+
+    fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
+        if id == scrollbar::id_for(SEQUENCE) {
+            return scroll_press(self.sequence_area, pos, &mut self.scroll);
+        }
+        Outcome::Ignored
+    }
+
+    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
+        if pressed == scrollbar::id_for(SEQUENCE) {
+            return scroll_drag(self.sequence_area, pos, &mut self.scroll);
         }
         Outcome::Ignored
     }
@@ -445,6 +467,7 @@ impl Screen for GatePage {
             .focused(focused)
             .meta("y copies");
         let inner = panel.render(seq_area, buf, t);
+        self.sequence_area = inner;
         self.scroll.set_content(self.sequence.len());
         self.scroll.set_viewport(inner.height as usize);
         ctx.control(SEQUENCE, seq_area, false);
@@ -548,6 +571,7 @@ pub struct TrustPage {
     cancel: Button,
     ok: Button,
     scroll: ScrollState,
+    body_area: Rect,
 }
 
 impl TrustPage {
@@ -558,6 +582,7 @@ impl TrustPage {
             cancel: Button::secondary(TRUST_CANCEL, "Cancel"),
             ok: Button::primary(TRUST_OK, "Trust this file"),
             scroll: ScrollState::default(),
+            body_area: Rect::ZERO,
         }
     }
 
@@ -758,7 +783,7 @@ impl Screen for TrustPage {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, _pos: Position, _w: &mut World, cx: &mut Cx) -> Outcome {
+    fn on_click(&mut self, id: WidgetId, pos: Position, _w: &mut World, cx: &mut Cx) -> Outcome {
         if id == TRUST_CANCEL {
             cx.go(Go::Pop);
             return Outcome::Changed;
@@ -770,9 +795,27 @@ impl Screen for TrustPage {
             });
             return Outcome::Changed;
         }
+        if id == scrollbar::id_for(TRUST_BODY) {
+            cx.focus.focus(TRUST_BODY);
+            return scroll_press(self.body_area, pos, &mut self.scroll);
+        }
         if id == TRUST_BODY {
             cx.focus.focus(TRUST_BODY);
             return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+
+    fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
+        if id == scrollbar::id_for(TRUST_BODY) {
+            return scroll_press(self.body_area, pos, &mut self.scroll);
+        }
+        Outcome::Ignored
+    }
+
+    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
+        if pressed == scrollbar::id_for(TRUST_BODY) {
+            return scroll_drag(self.body_area, pos, &mut self.scroll);
         }
         Outcome::Ignored
     }
@@ -815,6 +858,7 @@ impl Screen for TrustPage {
             .focused(focused)
             .meta("exact content");
         let inner = panel.render(body_area, buf, t);
+        self.body_area = inner;
         self.scroll.set_content(body.len());
         self.scroll.set_viewport(inner.height as usize);
         ctx.control(TRUST_BODY, body_area, false);

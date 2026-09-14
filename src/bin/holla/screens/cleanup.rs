@@ -24,7 +24,9 @@ use ratatui::style::{Modifier, Style};
 
 use crate::domain::catalog::{InsightCategory, insight_candidates, observe_process};
 use crate::domain::cleanup::{self, DeleteItem, DeletePlan, Eligibility, Mode, ProcessObservation};
-use crate::screens::{Cx, Go, Page, Screen, StatusBits, heading, plural};
+use crate::screens::{
+    Cx, Go, Page, Screen, StatusBits, heading, plural, scroll_drag, scroll_press,
+};
 use crate::sim::fs::human;
 use crate::sim::world::World;
 
@@ -59,6 +61,8 @@ pub struct CleanupPage {
     pub cursor: usize,
     scroll: ScrollState,
     detail_scroll: ScrollState,
+    list_area: Rect,
+    detail_area: Rect,
     /// Checked candidate paths.
     pub checked: BTreeSet<String>,
     /// Categories drilled open.
@@ -82,6 +86,8 @@ impl CleanupPage {
             cursor: 0,
             scroll: ScrollState::default(),
             detail_scroll: ScrollState::default(),
+            list_area: Rect::ZERO,
+            detail_area: Rect::ZERO,
             checked: BTreeSet::new(),
             open: BTreeSet::new(),
             mode: Mode::Trash,
@@ -575,6 +581,7 @@ impl CleanupPage {
         let t = ctx.theme;
         let bg = t.canvas;
         let focused = ctx.interaction.focused(LIST);
+        self.list_area = area;
         self.scroll.set_content(self.rows.len());
         self.scroll.set_viewport(area.height as usize);
         ctx.control(LIST, area, false);
@@ -792,6 +799,7 @@ impl CleanupPage {
         let panel = Panel::card(Some(&title)).focused(focused).meta(&meta);
         let bg = panel.bg(t);
         let inner = panel.render(area, buf, t);
+        self.detail_area = inner;
         ctx.control(DETAIL, area, false);
         ctx.scrollable(DETAIL, inner);
         let label_w = props.iter().map(|p| width(&p.label)).max().unwrap_or(4) as u16 + 2;
@@ -1021,7 +1029,15 @@ impl Screen for CleanupPage {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, _pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+    fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+        if id == scrollbar::id_for(LIST) {
+            cx.focus.focus(LIST);
+            return scroll_press(self.list_area, pos, &mut self.scroll);
+        }
+        if id == scrollbar::id_for(DETAIL) {
+            cx.focus.focus(DETAIL);
+            return scroll_press(self.detail_area, pos, &mut self.detail_scroll);
+        }
         if id == DETAIL {
             cx.focus.focus(DETAIL);
             return Outcome::Changed;
@@ -1047,6 +1063,26 @@ impl Screen for CleanupPage {
         if id == LIST {
             cx.focus.focus(LIST);
             return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+
+    fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
+        if id == scrollbar::id_for(LIST) {
+            return scroll_press(self.list_area, pos, &mut self.scroll);
+        }
+        if id == scrollbar::id_for(DETAIL) {
+            return scroll_press(self.detail_area, pos, &mut self.detail_scroll);
+        }
+        Outcome::Ignored
+    }
+
+    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
+        if pressed == scrollbar::id_for(LIST) {
+            return scroll_drag(self.list_area, pos, &mut self.scroll);
+        }
+        if pressed == scrollbar::id_for(DETAIL) {
+            return scroll_drag(self.detail_area, pos, &mut self.detail_scroll);
         }
         Outcome::Ignored
     }

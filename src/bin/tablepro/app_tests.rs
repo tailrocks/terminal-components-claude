@@ -88,6 +88,20 @@ impl H {
         self.mouse(MouseKind::Down, x, y);
         self.mouse(MouseKind::Up, x, y);
     }
+    pub fn resize(&mut self, w: u16, h: u16) {
+        self.term.backend_mut().resize(w, h);
+        self.app.handle(Input::Resize(w, h));
+        self.draw();
+    }
+    pub fn tab_to(&mut self, id: WidgetId) {
+        for _ in 0..32 {
+            if self.focus() == Some(id) {
+                return;
+            }
+            self.key(KeyCode::Tab);
+        }
+        panic!("focus never reached {id:?}, current={:?}", self.focus());
+    }
     pub fn text(&self) -> String {
         let buf = self.term.backend().buffer();
         let mut s = String::new();
@@ -908,6 +922,11 @@ fn cli_parser_accepts_color_connection_and_help_contracts() {
     assert!(matches!(cli.color, Some(crate::ColorArg::Mono)));
     assert_eq!(cli.connect.as_deref(), Some("Production"));
 
+    let defaults = crate::Cli::try_parse_from(["tablepro"]).expect("default CLI options");
+    assert!(defaults.color.is_none());
+    assert!(defaults.connect.is_none());
+    assert!(crate::Cli::try_parse_from(["tablepro", "--color"]).is_err());
+
     for color in ["truecolor", "24bit", "256", "16", "none", "mono"] {
         assert!(
             crate::Cli::try_parse_from(["tablepro", "--color", color]).is_ok(),
@@ -933,4 +952,11 @@ fn cli_parser_accepts_color_connection_and_help_contracts() {
         crate::Cli::try_parse_from(["tablepro", "--help"]),
         Err(error) if error.kind() == ErrorKind::DisplayHelp
     ));
+
+    let connections = crate::db::connections();
+    let production = crate::connection_index(&connections, "production").unwrap();
+    assert_eq!(connections[production].name, "Production");
+    let error = crate::connection_index(&connections, "not-configured").unwrap_err();
+    assert_eq!(error.kind(), ErrorKind::ValueValidation);
+    assert!(error.to_string().contains("no connection named"));
 }

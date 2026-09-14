@@ -2,6 +2,7 @@
 //! status bar), the shell hint bar, the inspector and palette scrolling.
 
 use ratatui::crossterm::event::KeyCode;
+use ratatui::layout::Position;
 
 use junie_tui::core::event::MouseKind;
 
@@ -37,6 +38,26 @@ fn capsule_has_a_menu_bar_and_a_status_bar_instead_of_the_identity_line() {
         "usage meter missing: {status}"
     );
     assert!(last_row(&h).contains("Ctrl+B"), "{}", last_row(&h));
+}
+
+#[test]
+fn hover_hit_testing_and_reverse_focus_navigation_are_deterministic() {
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    let (x, y) = h.find("Shell").unwrap();
+    let id = h
+        .app
+        .hits
+        .hit(Position::new(x, y))
+        .expect("rendered shell must be clickable");
+    h.mouse(MouseKind::Move, x, y);
+    assert_eq!(h.app.hover, Some(id));
+
+    let mut manager = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    let start = manager.app.focus.current();
+    manager.key(KeyCode::Tab);
+    assert_ne!(manager.app.focus.current(), start);
+    manager.key(KeyCode::BackTab);
+    assert_eq!(manager.app.focus.current(), start);
 }
 
 #[test]
@@ -83,8 +104,7 @@ fn tab_context_menu_renames_and_closes_by_mouse_and_keyboard() {
     assert!(last_row(&h).contains("Choose"), "{}", last_row(&h));
     h.key(KeyCode::Enter);
     assert!(h.text().contains("Change tab title"), "{}", h.text());
-    h.key(KeyCode::Enter);
-    h.type_str("ops");
+    h.paste("ops");
     assert!(h.text().contains("ops"), "{}", h.text());
     h.key(KeyCode::Enter);
     if h.text().contains("Change tab title") {
