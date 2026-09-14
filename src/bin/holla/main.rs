@@ -23,7 +23,7 @@ mod scenario;
 mod screens;
 mod sim;
 
-use clap::{Parser, ValueEnum};
+use clap::{CommandFactory, FromArgMatches, Parser, ValueEnum};
 use junie_tui::core::event::{Input, Outcome};
 use junie_tui::theme::{ColorLevel, Theme};
 
@@ -78,7 +78,11 @@ impl From<MotionArg> for Motion {
 }
 
 #[derive(Debug, Parser)]
-#[command(name = "holla", about = "Context-adaptive action launcher")]
+#[command(
+    name = "holla",
+    about = "Context-adaptive action launcher",
+    long_about = "Holla — this folder, this host, right now (deterministic preview on the Junie design system)"
+)]
 struct Cli {
     #[arg(short = 'c', long, value_enum, value_name = "LEVEL")]
     color: Option<ColorArg>,
@@ -103,8 +107,31 @@ fn parse_scenario(value: &str) -> Result<Scenario, String> {
     })
 }
 
+fn scenario_names(scenarios: &[Scenario]) -> String {
+    scenarios
+        .iter()
+        .map(|s| s.name())
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn cli_after_help() -> String {
+    format!(
+        "Scenarios: {concept}\n\
+         Parity:    {parity}\n\
+         Motion:    explicit --motion wins; otherwise HOLLA_NO_MOTION=1 selects reduced motion\n\
+         Frame:     with --motion paused, the exact fixture tick to render\n\n\
+         Keys: type to search · ↑↓ move · Enter run · Alt+Enter alternatives · Tab preview · Ctrl+↑↓ scope · Ctrl+G activities · F1 key reference · Ctrl+Q quit\n\
+         Preview: every scenario is captured under snapshots/holla/; src/bin/holla/README.md lists what each scenario shows.\n\
+         Everything is simulated in memory; no stack command is ever executed.",
+        concept = scenario_names(&Scenario::CONCEPT),
+        parity = scenario_names(&Scenario::PARITY),
+    )
+}
+
 fn parse_args() -> Options {
-    let cli = Cli::parse();
+    let cli = Cli::command().after_help(cli_after_help()).get_matches();
+    let cli = Cli::from_arg_matches(&cli).unwrap_or_else(|error| error.exit());
     let no_motion = std::env::var_os("HOLLA_NO_MOTION").is_some_and(|v| !v.is_empty() && v != "0");
     Options {
         level: cli

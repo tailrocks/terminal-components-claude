@@ -58,7 +58,22 @@ pub enum Scenario {
 }
 
 impl Scenario {
-    #[cfg(test)]
+    /// Concept scenarios exercised in product docs and capture matrices.
+    pub const CONCEPT: [Scenario; 11] = [
+        Scenario::FirstUse,
+        Scenario::RustDirty,
+        Scenario::MonorepoRoot,
+        Scenario::MonorepoChild,
+        Scenario::DockerCleanup,
+        Scenario::DiskCleanup,
+        Scenario::UpgradePlan,
+        Scenario::ActivitiesMulti,
+        Scenario::RemoteHost,
+        Scenario::LaunchFailure,
+        Scenario::HardCases,
+    ];
+
+    /// HP01–HP23 parity fixtures: one world per legacy capability family.
     pub const PARITY: [Scenario; 23] = [
         Scenario::ParityDiscovery,
         Scenario::ParityHistory,

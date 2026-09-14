@@ -9,7 +9,7 @@ mod data;
 mod pages;
 
 use crate::app::{App, Motion, PageId};
-use clap::{Parser, ValueEnum};
+use clap::{CommandFactory, FromArgMatches, Parser, ValueEnum};
 use junie_tui::core::event::{Input, Outcome};
 use junie_tui::theme::{ColorLevel, Theme};
 
@@ -53,7 +53,8 @@ enum MotionArg {
 #[derive(Debug, Parser)]
 #[command(
     name = "junie-tui",
-    about = "Junie-inspired Ratatui design system laboratory"
+    about = "Junie-inspired Ratatui design system laboratory",
+    long_about = "Junie-tui — Junie-inspired Ratatui design system laboratory"
 )]
 struct Cli {
     #[arg(short = 'c', long, value_enum, value_name = "LEVEL")]
@@ -70,8 +71,15 @@ fn parse_page(value: &str) -> Result<PageId, String> {
     PageId::from_name(value).ok_or_else(|| format!("unknown page {value:?}"))
 }
 
+fn cli_after_help() -> String {
+    "Motion:    --motion paused pins tick-derived surfaces at --frame N for capture\n\n\
+     Keys: Tab/Shift+Tab focus · arrows move · Enter/Space activate · Esc back · [ ] pages · ? help · q quit"
+        .to_string()
+}
+
 fn parse_args() -> Options {
-    let cli = Cli::parse();
+    let cli = Cli::command().after_help(cli_after_help()).get_matches();
+    let cli = Cli::from_arg_matches(&cli).unwrap_or_else(|error| error.exit());
     Options {
         level: cli
             .color
