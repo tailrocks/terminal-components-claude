@@ -1,24 +1,24 @@
  ▪  TablePro  Connections  6 saved                   256 colors · 80×24  ? help
 
- ╭─ Connections ────────────────────────────────────────────────────────── 6 ─╮
- │                                                                            │
- │   Filter connections                                                       │
- │  ▾ Personal                                                                │
- │      · Local PostgreSQL                                                pg  │
- │      · Scratch                                                     sqlite  │
- │  ▾ Acme                                                                    │
- │      · Development                                                     pg  │
- │      ◇ Staging                                                         pg  │
- │      ◆ Analytics                                                    mysql  │
- │      ◆ Production                                                      pg  │
- │                                                                            │
- │                                                                            │
- │                                                                            │
- │                                                                            │
- │                                                                            │
- │                                                                            │
- │                                                                            │
- │                                                                            │
- ╰────────────────────────────────────────────────────────────────────────────╯
+   Edit connection                                                Ctrl+S Save
 
- Enter Edit  ← → Basic / Advanced  Ctrl+S Save  Tab Next
+    Basic    Advanced
+   ━━━━━━━━──────────────────────────────────────────────────────────────────
+
+     Name *                                      Environment
+   ▎ Local PostgreSQL                           (●) local
+                                                ( ) development
+     Engine                                     ( ) staging
+     PostgreSQL                          ▾      ( ) production
+
+     Host  optional              Port            Group
+     localhost                   5432            Personal                  ▾
+     Blank: driver default
+     Database  optional                          Safe Mode
+     acme_dev                                   (●) Silent
+     Required for PostgreSQL                    ( ) Alert
+     Username  optional                         ( ) Alert (Full)
+    Test connection    Cancel    Save    Save & connect  Mode
+                                                ( ) Safe Mode (Full)
+     Password  optional                         ( ) Read-Only
+ EntertEdit i← →hBasic / Advanced  Ctrl+S Save  Tab Next
