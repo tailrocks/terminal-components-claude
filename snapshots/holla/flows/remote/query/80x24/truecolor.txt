@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help      payments · s…eckout  ◆ prod-eu-1 · production
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────
+ ▎ restart payments                                             scope ‹ here ›
+
+    Results · 2
+  › Restart payments         system  on prod-eu-1  production hos…  privileged
+    Restart payments-worker  system  on prod-eu-1  production hos…  privileged
+
+
+
+
+
+
+
+
+
+
+
+    → sudo systemctl restart payments · on prod-eu-1 · privileged
+
+ /srv/payments   detached @ v2.14.3                           truecolor · 80×24
+      Type Search  ↑↓ Move  Enter Review…  Alt+Enter More  Tab Preview  …

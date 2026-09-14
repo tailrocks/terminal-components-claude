@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help                   ◆ prod-eu-1 · production
+
+  Here › Review
+ ━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────
+  Review · Restart payments · gate 1 of 2 · review the resolved facts…
+
+  Action       systemctl restart payments on prod-eu-1 · production ·
+               in-flight requests are dropped
+  Host         prod-eu-1 · production
+  In           prod-eu-1 · host-wide
+  Scope        on prod-eu-1
+  Changes      payments restarts · brief outage on prod-eu-1
+
+ ╭─ Sequence · 2 commands ───────────────────────────────── y copies ─╮
+ ╰────────────────────────────────────────────────────────────────────╯
+
+                                                 ▎Cancel    Continue…
+
+ /srv/payments   detached @ v2.14.3        review · gate 1 of 2
+  ← → Choose  Enter Activate  Tab Next  y Copy sequence  Esc Cancel

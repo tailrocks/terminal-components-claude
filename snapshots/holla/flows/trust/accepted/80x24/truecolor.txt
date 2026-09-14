@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help      acme › frontend · Nod…ect · pnpm  mbp · local
+
+  Here › Arguments
+ ━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────
+  Run tests · arguments
+  field name, expected value, default and validation · secrets stay masked
+
+   filter  optional
+ ▎ test name substring
+   passes through to nextest
+
+   profile
+   default                                             ▾
+
+
+   Command
+
+   mise run //apps/frontend:test --profile default
+
+                                                                Cancel    Run
+
+
+ ~/work/acme/apps/frontend   main   ↑1 • 2                    truecolor · 80×24
+        …   Trusted ~/work/acme/apps/frontend/mise.toml · re-resolving the task

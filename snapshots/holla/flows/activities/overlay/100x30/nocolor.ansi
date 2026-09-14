@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                      acme · mise monorepo  mbp · local [0m
+                                                                                                    [0m
+      Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×                                   2› [0m
+ ────━━━━━━━─────────────────────────────────────────────────────────────────────────────────────── [0m
+   Search actions and resources…                                                    scope ‹ here ›  [0m
+                                                                                                    [0m
+    Suggested h╭────────────────────────────────────────────────────────────────────╮             ┃ [0m
+    Follow acme│ [0m[1mActivities[0m                                                  4 live │             ┃ [0m
+    Inspect 10 │ [0m[1m▎[0m⠋[0m[1m frontend dev                 [0mrunning · child · 3 s[0m[1m  [0mactivities[0m[1m [0m │             ┃ [0m
+    Install mis│  ⠋ api dev                      running · child · 3 s              │             ┃ [0m
+    Review clea│  ✓ api tests                    succeeded · project ·…             │             ┃ [0m
+  › Deploy prev│  ⠋ logs · api worker scheduler  running · here · 3 s               │             ┃ [0m
+               │  ○ btm                          detached · host · 3 s              │             ┃ [0m
+    Recent here│                                                                    │             ┃ [0m
+    nothing use│                                                                    │             ┃ [0m
+               ╰────────────────────────────────────────────────────────────────────╯             ┃ [0m
+    Running                                                                                       ┃ [0m
+    logs · api worker scheduler        activity  here   ⠋ running · 3 s                           ┃ [0m
+    api dev                            activity  child  ⠋ running · 3 s                           ┃ [0m
+    btm                                activity  host   ⠋ detached · 3 s                          ┃ [0m
+    frontend dev                       activity  child  ⠋ running · 3 s                           ┃ [0m
+                                                                                                  ┃ [0m
+    Explore                                                                                       ┃ [0m
+     Tasks   Git   Files   Disk   Services   System                                               ┃ [0m
+    Children · 3 projects              explore   child  3 child projects discovered               │ [0m
+                                                                                                    [0m
+    → tools/deploy-preview.sh --env preview · here · mutating                                       [0m
+                                                                                                    [0m
+ ~/work/acme   main   ↑1                                           ⠋ 4 running    no color · 100×30 [0m
+   [0m[1m    [0m         [0m[1m  [0m       [0m[1m     [0m  [0m[1m↑↓[0m Move[0m[1m  Enter S[0mwitch  [0m[1mEsc[0m Cancel       api tests finished · exit 0 [0m

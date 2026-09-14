@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                         no project  devbox · local [0m
+  ╭──────────────────────────────────────────────────────────────────────────╮  [0m
+  │                                                                          │  [0m
+ ━│  [0m[1mTrash 1 items · gate 2 of 2[0m                                             │─ [0m
+  │                                                                          │  [0m
+  │  Action        move to Trash 1 item under ~                              │  [0m
+  │  Host          devbox · local                                            │  [0m
+  │  Mode          Trash · no Trash backend · every item will fail, never    │  [0m
+  │                fall back · space returns after the Trash is emptied      │  [0m
+  │  Estimate      124.0 KiB allocated · APFS clones may overcount ·         │  [0m
+  │                purgeable space excluded · not a free-space guarantee     │  [0m
+  │  Denied        none · every path passed the lexical, protected-root,     │  [0m
+  │                user-data and symlink rules                               │  [0m
+  │                                                                          │  [0m
+  │  /home/alex/Projects/app/node_modules                                    │  [0m
+ ╭│                                                                          │╮ [0m
+ ││   [0m[1mType TRASH 1 UNDER /home/alex ON devbox to confirm                   [0m  ││ [0m
+ ││ ▎                                                                        ││ [0m
+ ╰│                                                                          │╯ [0m
+  │                                                                          │  [0m
+  │                                                       Cancel   [0m[2mExecute [0m  │  [0m
+  │                                                                          │  [0m
+ ~╰──────────────────────────────────────────────────────────────────────────╯4 [0m
+          [0m[1m ← →[0m Choose [0m[1m Enter[0m Confirm  [0m[1mEsc[0m Cancel    1 item selected · 124.0 KiB [0m

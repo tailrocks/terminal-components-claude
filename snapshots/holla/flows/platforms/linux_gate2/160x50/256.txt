@@ -1,0 +1,50 @@
+  holla❯    File   Go   Help                                                                                                         no project  devbox · local
+
+  Here › Cleanup › Review
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Review · trash 1 item · gate 1 of 2 · review the resolved facts, then continue deliberately
+
+  Action        move to Trash 1 item under ~
+  Host          devbox · local
+  Mode          Trash · no Trash backend · every item will fail, never fall back · space returns after the Trash is emptied
+  Estimate      124.0 KiB allocated · APFS clones may overcount · purgeable space excluded · not a free-space guarantee
+  Denied        none · every path passed the lexical, protected-root, user-data and symlink rules
+  Revision      c4d729e20ca0805b · any change to paths, mode or dry run voids this review
+  Threat model  an unprivileged user · an╭────────────────────────────────────────────────────────────────────────────╮ot be excluded
+  Paths         ~/Projects/app/node_modul│                                                                            │
+  Recoverable   yes · until the Trash is │  Trash 1 items · gate 2 of 2                                               │
+  Provenance    holla cleanup · paths val│                                                                            │
+  Gate          second gate types the tar│  Action        move to Trash 1 item under ~                                │
+                                         │  Host          devbox · local                                              │
+ ╭─ Sequence · 1 command ────────────────│  Mode          Trash · no Trash backend · every item will fail, never      │──────────────────────────── y copies ─╮
+ │  01  trash /home/alex/Projects/app/nod│                fall back · space returns after the Trash is emptied        │                                       │
+ │                                       │  Estimate      124.0 KiB allocated · APFS clones may overcount ·           │                                       │
+ │                                       │                purgeable space excluded · not a free-space guarantee       │                                       │
+ │                                       │  Denied        none · every path passed the lexical, protected-root,       │                                       │
+ │                                       │                user-data and symlink rules                                 │                                       │
+ │                                       │  Revision      c4d729e20ca0805b · any change to paths, mode or dry run     │                                       │
+ │                                       │                voids this review                                           │                                       │
+ │                                       │  Threat model  an unprivileged user · ancestors are re-resolved at commit  │                                       │
+ │                                       │                · a concurrent rename of the final path cannot be excluded  │                                       │
+ │                                       │  Paths         ~/Projects/app/node_modules                                 │                                       │
+ │                                       │                                                                            │                                       │
+ │                                       │  /home/alex/Projects/app/node_modules                                      │                                       │
+ │                                       │                                                                            │                                       │
+ │                                       │   Type TRASH 1 UNDER /home/alex ON devbox to confirm                       │                                       │
+ │                                       │ ▎                                                                          │                                       │
+ │                                       │                                                                            │                                       │
+ │                                       │                                                                            │                                       │
+ │                                       │                                                         Cancel   Execute   │                                       │
+ │                                       │                                                                            │                                       │
+ │                                       ╰────────────────────────────────────────────────────────────────────────────╯                                       │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ │                                                                                                                                                            │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+                                                                                                                                          Cancel    Continue…
+
+ ~/work/box                                                      review · gate 1 of 2                                                       256 colors · 160×50
+                                                            ← → Choose  Enter Confirm  Esc Cancel                                   1 item selected · 124.0 KiB

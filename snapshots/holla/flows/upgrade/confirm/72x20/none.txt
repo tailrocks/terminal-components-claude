@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help           no project  devbox · development
+  ╭──────────────────────────────────────────────────────────────────╮
+  │                                                                  │
+ ━│  Start upgrade everything?                                       │─
+  │                                                                  │
+  │  Plan       Upgrade everything · upgrade Debian packages and     │
+  │             global mise tools on devbox                          │
+  │  Host       devbox                                               │
+  │                                                                  ││
+  │  cat /etc/os-release                                             │┃
+  │  sudo -n true                                                    │┃
+  │  fuser /var/lib/dpkg/lock-frontend                               │┃
+  │  df -h /                                                         ││
+  │  test -f /var/run/reboot-required                                │
+  │  sudo apt-get update … 8 more                                    │
+  │                                                                  │
+  │                                           ▎Cancel   Start plan   │
+  │                                                                  │
+ ~╰──────────────────────────────────────────────────────────────────╯0
+  ← → Choose  Enter Confirm  Esc Cancel    06 excluded · 08 now blocked
