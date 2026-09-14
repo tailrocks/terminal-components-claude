@@ -1,0 +1,20 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe
+
+  ≡ Query 1 ×    H History ×                                        +
+ ───────────────━━━━━━━━━━━━━━─────────────────────────────────────────
+ ╭─ Query history ─────────────────────────────────────── 15 entries ─╮
+ │                                                                    │
+ │    Search history · terms are…   scope: Production  ·  status: any │
+ │                                                                    │
+ │  ▎› SELECT plan, count(*) FROM…┃    Query       Editor · 3 d ago   │
+ │     SELECT * FROM payments WHE…┃                                   │
+ │     SELECT day, revenue, refun…┃    ›  1 SELECT plan,          ┃   │
+ │   ! SELECT * FROM… 1 h ago · – ┃       2 count(*) FROM         │   │
+ │     SELECT o.id, o.total_amoun…┃                       1–2 of 4    │
+ │     UPDATE orders SET status =…┃                                   │
+ │     SELECT * FROM customers OR…┃                                   │
+ │     EXPLAIN ANALYZE SELECT * F…┃     Open in new tab    Run in…    │
+ │     SELECT count(*) FROM order…│                                   │
+ ╰────────────────────────────────────────────────────────────────────╯
+
+ Enter Open in new tab  r Rerun  y Copy  …      Connected to Production

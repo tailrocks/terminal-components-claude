@@ -37,4 +37,4 @@
  │                                     │
  ╰─────────────────────────────────────╯
 
- ↑ ↓ Move  Enter Connect  / Filter  Ctrl+N New  Tab Next
+ ↑ ↓ Move  Enter Connect  E Edit  D Delete  Ctrl+D Duplicate  / Filter  Ctrl+N New  Tab Next

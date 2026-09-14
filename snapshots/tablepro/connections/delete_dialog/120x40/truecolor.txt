@@ -1,23 +1,23 @@
  ▪  TablePro  Connections  6 saved                                                           truecolor · 120×40  ? help
 
- ╭─ Connections ─────────────────── 6 ─╮    Local PostgreSQL
+ ╭─ Connections ─────────────────── 6 ─╮    Production
  │                                     │
  │   Filter connections                │    Engine       PostgreSQL
- │  ▾ Personal                         │    Host         localhost:5432
- │      · Local PostgreSQL         pg  │    Database     acme_dev
- │      · Scratch              sqlite  │    User         postgres
- │  ▾ Acme                             │    Environment  local
- │      · Development              pg  │    Safe Mode    Silent · Writes run without asking. Destructive
- │      ◇ Staging                  pg  │                 statements still confirm.
- │      ◆ Analytics             mysql  │    SSL / SSH    off / off
- │      ◆ Production               pg  │    Last used    2 minutes ago
+ │  ▾ Personal                         │    Host         prod-db-1.acme.io:5432
+ │      · Local PostgreSQL         pg  │    Database     acme_prod
+ │      · Scratch              sqlite  │    User         acme_ops
+ │  ▾ Acme                             │    Environment  production
+ │      · Development              pg  │    Safe Mode    Safe Mode · Writes ask for confirmation and a
+ │      ◇ Staging                  pg  │                 deliberate acknowledgement.
+ │      ◆ Analytics             mysql  │    SSL / SSH    on / bastion.acme.io
+ │      ◆ Production               pg  │    Last used    1 hour ago
  │                                     │
  │                                     │
  │                               ╭────────────────────────────────────────────────────╮
  │                               │                                                    │
  │                               │  Delete connection?                                │
  │                               │                                                    │
- │                               │  Local PostgreSQL (postgres@localhost) will be     │
+ │                               │  Production (acme_ops@prod-db-1.acme.io) will be   │
  │                               │  removed from connections.json. Its password       │
  │                               │  stays in the keychain until you remove it there.  │
  │                               │                                                    │

@@ -1,0 +1,24 @@
+ ▪  TablePro  Connections  6 saved                     no color · 80×24  ? help
+
+   Edit connection                                                Ctrl+S Save
+
+    Basic    Advanced
+   ─────────━━━━━━━━━━━──────────────────────────────────────────────────────
+
+    ──● Use SSL / TLS on                         Startup commands
+                                                 SET statement_timeout = '…
+    ──● SSH tunnel on
+     SSH host  optional
+     bastion.acme.io                             Run after every connect, on…
+
+     SSH user  optional                          External clients: read only
+     deploy
+
+    ○── Local only (no iCloud sync) off
+
+
+
+    Test connection    Cancel    Save    Save & connect
+
+
+ Enter Edit  ← → Basic / Advanced  Ctrl+S Save  Tab Next
