@@ -155,6 +155,12 @@ impl Page for DialogsPage {
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
         match ev {
             PageEvent::Key(key) => {
+                // Direct access keeps the destructive flow reachable even when
+                // the four action buttons cannot share one visible row.
+                if key.is_char('d') {
+                    self.open(3, cx);
+                    return Outcome::Changed;
+                }
                 let Some(f) = cx.focus.current() else {
                     return Outcome::Ignored;
                 };

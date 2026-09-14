@@ -1,0 +1,1 @@
+- All Rust test and validation commands must use `cargo nextest`; never use `cargo test`.
