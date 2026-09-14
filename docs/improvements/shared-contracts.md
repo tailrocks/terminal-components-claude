@@ -208,7 +208,7 @@ one active focus owner; query input never interpreted as page hotkeys; modal
 paste/keys/wheel cannot reach the background; cancel restores a still-valid
 opener; resize/provider arrival cannot retarget selected or confirmed resources.
 Use Here pages for decisions, previews and alternatives for resource operations,
-activities for running work and plans for compound intent. Preserve DESIGN.md's
+activities for running work and plans for compound intent. Preserve `docs/design/DESIGN.md`'s
 focus gutter, muted metadata, semantic danger, Cancel-default destructive gates,
 contextual hints and monochrome legibility. Do not restore the old launcher layout.
 

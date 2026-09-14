@@ -2,12 +2,12 @@
 
 Holla is a NEW application in this repository, built exactly the way `tablepro`
 and `jackin-preview` were built: a binary in `src/bin/`, on the Junie TUI design
-system (`DESIGN.md`), with deterministic fixtures, capture-harness evidence, and
+system (`docs/design/DESIGN.md`), with deterministic fixtures, capture-harness evidence, and
 an iterative visual review loop.
 
 Everything about what Holla IS lives in `docs/product/CONCEPT.md` and
 `docs/product/references/`. Everything about how it must LOOK and FEEL lives in
-`DESIGN.md`. Everything about HOW to run this work lives in this file and in the
+`docs/design/DESIGN.md`. Everything about HOW to run this work lives in this file and in the
 original design-system goal this repo descends from
 (https://raw.githubusercontent.com/donbeave/terminal-components-claude/e43cf670d6cb793e5761819e8778600797bbf1aa/GOAL.md).
 
@@ -45,7 +45,7 @@ Authoritative, in priority order:
    - `mole-disk-cleanup-patterns.md` — progressive analysis, cleanup families,
      candidate facts, freshness-aware defaults, dry-run parity, recovery
      modes, audit history, editable cleanup plan.
-3. `DESIGN.md` — the Junie TUI design system. Tokens, text ladder, glyph table,
+3. `docs/design/DESIGN.md` — the Junie TUI design system. Tokens, text ladder, glyph table,
    interaction grammar, focus model, state grammar, component catalogue,
    composed patterns, agent guardrails. This constrains every pixel.
 4. Recipe precedents in code:
@@ -73,7 +73,7 @@ original synthesis between them. Consequences for you:
   notations are product ideas and decisions, never wireframes, layouts,
   components, or display order (CONCEPT.md "How to interpret", §19 handoff,
   final interpretation rule).
-- DESIGN.md supplies the visual language only. It does not tell you what
+- `docs/design/DESIGN.md` supplies the visual language only. It does not tell you what
   screens Holla has or how the launcher is arranged.
 - Nothing in this goal file is a wireframe either. Phase names describe what
   must be TRUE at each gate, not what must be drawn. Brainstorm at least three
@@ -117,7 +117,7 @@ Product truth to preserve while simulating (from CONCEPT.md):
   Rust/nextest, SSH, stack cleanup) dominates discovery and journeys (§8.0,
   technology-stack-workflows.md §12).
 
-## 2. DESIGN SYSTEM NON-NEGOTIABLES (from DESIGN.md)
+## 2. DESIGN SYSTEM NON-NEGOTIABLES (from `docs/design/DESIGN.md`)
 
 - All color through `junie_tui::theme` state resolvers. Never an RGB literal in
   app code. Green only: focus `▎`, primary action, chosen marker on the focused
@@ -226,7 +226,7 @@ recommendations.
   data, discovery failure, narrow width). Gate: hard-cases captures legible.
 - P6 Full pass — all scenarios × 4 sizes × color levels (truecolor/256/mono),
   independent visual critique, fixes, README + design notes documenting the
-  chosen interaction model and any new reusable patterns added to DESIGN.md.
+  chosen interaction model and any new reusable patterns added to `docs/design/DESIGN.md`.
 
 Scenarios at minimum (naming convention like jackin): `first-use` (empty dir),
 `rust-dirty`, `monorepo-root`, `monorepo-child`, `docker-cleanup`,
@@ -242,7 +242,7 @@ with a visible reason; scope is unmistakable on every result; a destructive
 action is reachable by search and still deliberate to execute; plans read as
 graphs, not scripts; activities survive navigation. Same family feel as
 tablepro and jackin-preview: a reader finds the keyboard destination in under
-a second, the only green is where DESIGN.md allows, nothing framed that a
+  a second, the only green is where `docs/design/DESIGN.md` allows, nothing framed that a
 blank row could separate.
 
 ## 6. VERIFICATION
@@ -251,10 +251,10 @@ blank row could separate.
   `cargo test` (app tests + scenario/motion determinism tests + plan-graph
   logic tests).
 - tuisnap baseline frames for every scenario at 80×24, 100×30, 120×40,
-  160×50, plus mono (`tools/tuisnap_baseline.sh` → `shots/tuisnap/`;
-  `holla_<scenario>_default_<size>_<color>` captures). Review
-  `shots/tuisnap/report.html`, then `tuisnap accept --store shots/tuisnap
-  --all`. A change is not done until the frame has been looked at.
+  160×50, plus mono (`tests/visual_baseline/` → `snapshots/`; see
+  `docs/baseline/snapshots-v2.md`). Review `target/tuisnap/report.html`, then
+  bless via the grouped-store workflow in that doc. A change is not done until
+  the frame has been looked at.
 - Journeys demonstrable: CONCEPT.md §12 Rust project, monorepo root/child,
   mise trust, git across children, docker cleanup, disk cleanup, upgrade
   plan, activities, remote host.
@@ -268,12 +268,12 @@ autonomous cleanup daemon, a command encyclopedia, a real executor of any
 stack command, a macOS-only mental model, or a product needing configuration
 before usefulness. AI assistance only with provenance/preview/scope intact;
 deterministic local behavior is the default. Do not research or imitate a
-named launcher product; derive the design from CONCEPT.md and DESIGN.md only.
+named launcher product; derive the design from CONCEPT.md and `docs/design/DESIGN.md` only.
 
 ## 8. DELIVERABLE
 
 A runnable `holla` binary indistinguishable in craft from tablepro and
-jackin-preview; deterministic scenarios with tests and captures; DESIGN.md
+jackin-preview; deterministic scenarios with tests and captures; `docs/design/DESIGN.md`
 updated for any convention added on purpose; a short design note recording the
 chosen interaction model, rejected alternatives, and how each CONCEPT.md
 product principle is satisfied.

@@ -1,15 +1,15 @@
-# Component Architecture — Current Holla Tree vs. Target
+# Component Architecture — Current visual-baseline Tree vs. Target
 
-**Provenance.** Compiled 2026-09-12 on branch `holla` from three sources:
-(1) `COMPONENT_ARCHITECTURE.md` at `main` (the adjudicated target, accepted
-through §74), (2) `DESIGN.md` in this working tree (the approved
-visual/behavioral contract), (3) the `holla` branch source tree (`src/`) and
+**Provenance.** Compiled 2026-09-12 on branch `holla` (now `visual-baseline`) from three sources:
+(1) `docs/sources/main/COMPONENT_ARCHITECTURE.md` at `main` (the adjudicated target, accepted
+through §74), (2) [`DESIGN.md`](../design/DESIGN.md) in this working tree (the approved
+visual/behavioral contract), (3) the `visual-baseline` branch source tree (`src/`) and
 the `main` branch tree (`crates/`, `apps/`, `xtask/`) read via `git ls-tree` /
-`git show`. Section references `§n` are to `COMPONENT_ARCHITECTURE.md`.
+`git show`. Section references `§n` are to `docs/sources/main/COMPONENT_ARCHITECTURE.md`.
 
 ---
 
-## 1. Current holla architecture (this branch)
+## 1. Current visual-baseline architecture (this branch)
 
 A single Cargo package `junie-tui` (lib `junie_tui`) with `default-run =
 "showcase"` and four binaries under `src/bin/`: `showcase`, `tablepro`,
@@ -97,9 +97,9 @@ package, they can and do reach `pub(crate)` machinery (`HitRegistry`,
 `FocusRing`) — the boundary a workspace makes compiler-enforced
 (Appendix B.1).
 
-### 1.7 `DESIGN.md` — the behavioral contract this tree implements
+### 1.7 [`DESIGN.md`](../design/DESIGN.md) — the behavioral contract this tree implements
 
-`DESIGN.md` (1405 lines) fixes the approved design language: colour planes
+`docs/design/DESIGN.md` (1405 lines) fixes the approved design language: colour planes
 and the text/border/accent ladders, typography, layout rhythm, the
 interaction grammar (Tab order = reading order, the `Esc` ladder, 140 ms
 press flash, hover suppression after any key press, click-outside
@@ -112,10 +112,10 @@ behaviour and the mono fallback manifest (§8.6, §11.4).
 
 ---
 
-## 2. Target component architecture (`COMPONENT_ARCHITECTURE.md` at `main`)
+## 2. Target component architecture (`docs/sources/main/COMPONENT_ARCHITECTURE.md` at `main`)
 
 The document is the single source of truth for the refactor, accepted
-through §74, with authority order `REFACTORING_GOAL.md` › `DESIGN.md` ›
+through §74, with authority order `docs/sources/main/REFACTORING_GOAL.md` › [`DESIGN.md`](../design/DESIGN.md) ›
 rendered output/tests › current source. Its §1 diagnoses the tree described
 in §1 above (nine structural defects + latent defects); the rest is the
 binding design.
@@ -262,7 +262,7 @@ gates.
 
 ### 3.1 What the refactoring must achieve structurally
 
-| # | From (holla branch) | To (target) |
+| # | From (visual-baseline branch) | To (target) |
 |---|---|---|
 | 1 | One package: `junie-tui` lib + 4 in-package bins (`src/bin/*`), `default-run` | Virtual workspace: `crates/tui`, `crates/tui-testing`, `apps/*` (lib + thin bin), `xtask`; binary names preserved; `default-run` dropped (B.1) |
 | 2 | Flat `pub mod` facade (`src/lib.rs`); apps reach `pub(crate)` internals | Curated facade, `pub(crate)` modules, two layers (`junie_tui::*`, `author::*`); cross-crate boundary makes internals unnameable (B.1, B.3) |
@@ -312,7 +312,7 @@ Reading the `main` tree against Appendix B, the structural target is
 
 ### 3.3 What exists only on paper (relative to this branch)
 
-From the `holla` branch's vantage point, *all* of §2 is unrealized: this
+From the `visual-baseline` branch's vantage point, *all* of §2 is unrealized: this
 tree is exactly the pre-refactor monolith that §1 of the target document
 diagnoses (same file paths and line-level defects), plus the fourth binary
 `src/bin/holla`. Nothing of the workspace, the two-phase component model,

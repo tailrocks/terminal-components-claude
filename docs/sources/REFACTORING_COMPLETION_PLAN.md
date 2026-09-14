@@ -6,13 +6,13 @@ The additional whole-branch review is summarized in [the main continuation propo
 
 ## 1. Executive goal
 
-Complete main's accepted reusable component architecture and APIs while reproducing the exact user-visible experience of `holla-fable-2026-09-10` in Showcase, Holla, Jackin and TablePro. Architecture changes; product experience does not. This planning deliverable must remove the need for the next executor to reconstruct architectural intent or guess the correct UI.
+Complete main's accepted reusable component architecture and APIs while reproducing the exact user-visible experience of `visual-baseline` in Showcase, Holla, Jackin and TablePro. Architecture changes; product experience does not. This planning deliverable must remove the need for the next executor to reconstruct architectural intent or guess the correct UI.
 
 The dominant regression mechanism is independent ownership of visible content and interactive state. Main sometimes calls a reusable component, then paints another model over its output. Other screens display controls without live state or handlers. The execution graph must eliminate that condition through real reusable component composition, rather than preserve it with more application-local painting.
 
 ## 2. Source-of-truth hierarchy
 
-User-visible behavior comes from the immutable tag, then deterministic evidence captured from that tag. Moving Holla is supporting context only. Accepted, non-superseded architectural decisions reconstructed from history govern APIs and ownership, followed by current authoritative checkpoints and their commits. Actual main code is evidence of implementation, not proof that an architectural exception was accepted.
+User-visible behavior comes from the immutable tag, then deterministic evidence captured from that tag. Moving `visual-baseline` is supporting context only. Accepted, non-superseded architectural decisions reconstructed from history govern APIs and ownership, followed by current authoritative checkpoints and their commits. Actual main code is evidence of implementation, not proof that an architectural exception was accepted.
 
 The current planning goal supersedes older visual oracle pins, discretionary visual-polish permissions, baseline blessing permissions, implementation mandates, stale stop/restart orders and historical model-routing instructions. Rejected patches must not be confused with rejected requirements. Keep historical evidence and its provenance; never relabel an older capture as a September 10 oracle capture.
 
@@ -27,8 +27,8 @@ Measured locally and against remote references on 2026-09-11:
 | Immutable UI oracle | `02f5294bfdbf38004cc49130d0aff1d01f31434c` |
 | Annotated tag object | `a643909d9a782adaf0aa1e3357710a5ed3f24443` |
 | Architectural main | `7b27732a8c3c131760ec3438f641cb3c11343a42` |
-| Planning checkout Holla | `2e2401393c47360741ebd321679de08982dca50a` |
-| Main/Holla merge base | `cc14dd6beae526884aabdf897e309be837b4f504` |
+| Planning checkout `visual-baseline` | `2e2401393c47360741ebd321679de08982dca50a` |
+| Main/`visual-baseline` merge base | `cc14dd6beae526884aabdf897e309be837b4f504` |
 | Current task-format main and installed CLI | `52d9f1eb7721f409bc47beb9fced7997b5c13ede` |
 | Tui-snap upstream main before required repairs | `5036cf87e621e6beb66deffe3224abdbefc955cb` |
 | Reviewed tui-snap PR #1 head | `883d03f19d890bbbf27468798db78b04e85297ac` |
@@ -38,9 +38,9 @@ Measured locally and against remote references on 2026-09-11:
 
 ## 4. Repository and branch topology
 
-Main and Holla have 774 and 38 commits respectively outside their merge base, including merges. Main already contains a substantial prior integration, merged as PR #1 at `7b27732a`. Repeating those ports would duplicate or overwrite later work.
+Main and `visual-baseline` have 774 and 38 commits respectively outside their merge base, including merges. Main already contains a substantial prior integration, merged as PR #1 at `7b27732a`. Repeating those ports would duplicate or overwrite later work.
 
-Main is now a virtual workspace with `junie-tui`, `junie-tui-testing`, `xtask` and four application packages. Oracle retains the old root library and `src/bin` applications. Deleted old paths often indicate relocation, not feature deletion. Current Holla differs from the immutable oracle only in `PLANNING_GOAL.md`; that measured equality does not grant permission to follow future Holla changes.
+Main is now a virtual workspace with `junie-tui`, `junie-tui-testing`, `xtask` and four application packages. Oracle retains the old root library and `src/bin` applications. Deleted old paths often indicate relocation, not feature deletion. Current `visual-baseline` differs from the immutable oracle only in `docs/sources/PLANNING_GOAL.md`; that measured equality does not grant permission to follow future `visual-baseline` changes.
 
 See [history and topology](../refactoring-plan/history.md) for parent identities, changed-path counts, chronological commits and PR evidence. Source moves make exact-path overlap an inadequate estimate of integration risk.
 

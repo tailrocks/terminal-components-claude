@@ -1,6 +1,6 @@
 # Documentation traceability
 
-Date: 2026-09-12 (docs consolidation on branch `holla`).
+Date: 2026-09-12 (docs consolidation on branch `holla`, now `visual-baseline`).
 
 This table records where every retired or moved documentation source landed
 when the repository documentation was consolidated under `docs/`. Content was

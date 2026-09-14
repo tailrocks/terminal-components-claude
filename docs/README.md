@@ -5,7 +5,7 @@ For where every retired file landed, see [traceability.md](traceability.md).
 
 ## Start here: the refactoring
 
-The current mission is to finish the refactoring on top of the `holla` branch, porting
+The current mission is to finish the refactoring on top of the `visual-baseline` branch, porting
 what `main` actually completed, without breaking UI/UX or visual output. Reading order:
 
 1. [refactoring/goal.md](refactoring/goal.md) — the consolidated current goal, with per-section provenance.
@@ -26,7 +26,7 @@ what `main` actually completed, without breaking UI/UX or visual output. Reading
 | Path | Contents |
 | --- | --- |
 | [architecture/](architecture/) | Component architecture: current holla layout, target model, structural delta. |
-| [design/](design/) | The living behavioral/visual contract (DESIGN.md). |
+| [design/](design/) | The living behavioral/visual contract ([DESIGN.md](design/DESIGN.md)). |
 | [refactoring/](refactoring/) | Goal, plan, state, audits and analyses for the current refactoring (see above). |
 | [refactoring-plan/](refactoring-plan/) | Planning machinery: proof contract, task index, traceability TSVs, wave breakdowns. |
 | [baseline/](baseline/) | Snapshot baseline coverage and procedures. |
@@ -41,4 +41,4 @@ what `main` actually completed, without breaking UI/UX or visual output. Reading
 
 - `refactoring-tasks/` — the sealed execution catalog (73 task-format packages 001–073 + catalog READMEs). Read-only task contracts; execution order comes from each `task.toml`.
 - `snapshots/` — approved grouped baseline (`<group>/<sub_group>/<name>.{ansi,txt,png,html}`); scratch under `target/tuisnap/`. Taxonomy and bless workflow: [baseline/snapshots-v2.md](baseline/snapshots-v2.md).
-- `tests/visual_baseline/` — the baseline suite (it replaced `tools/tuisnap_baseline.sh`, removed 2026-09-12; the legacy tmux capture harness was removed the same day — see [baseline/tuisnap-coverage.md](baseline/tuisnap-coverage.md)).
+- `tests/visual_baseline/` — the baseline suite (it replaced `tools/tuisnap_baseline.sh`, removed 2026-09-12; the legacy tmux capture harness was removed the same day — see [baseline/snapshots-v2.md](baseline/snapshots-v2.md) and [baseline/tuisnap-coverage.md](baseline/tuisnap-coverage.md)).
