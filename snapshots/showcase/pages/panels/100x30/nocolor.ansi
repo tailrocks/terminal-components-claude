@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Panels              no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mPanels[0m  Cards group; a frame only where a pane needs an edge; nothing boxed t… [0m
+   Buttons                                                                                          [0m
+   Inputs              Titled card                surface    ╭─ Framed · split pane    1–10 of 29 ─╮[0m
+   Text areas                                                │  Junie works through a task the   ┃ │[0m
+   Forms               A card is a filled surface. Its       │  way a careful engineer would: it ┃ │[0m
+   Lists               title sits in the top-left and        │  reads the relevant code, forms a ┃ │[0m
+   Trees               metadata on the right. It never       │  plan, makes focused changes,     │ │[0m
+   Tables              has a border.                         │  runs the tests, and reports back │ │[0m
+   Editable tables                                           │  with a summary you can review    │ │[0m
+[0m[1m▎› Panels          [0m                                          │  before anything is merged.       │ │[0m
+   Sidebars                                                  │                                   │ │[0m
+   Dialogs             Untitled card. Same surface,          │  Each step is visible. You can    │ │[0m
+   Progress            content starts at the padding         │  [0m[2mpause, redirect, or take over at [0m│ │[0m
+   Scrolling           edge.                                 ╰─────────────────────────────────────╯[0m
+   Terminal                                                                                         [0m
+   Code editor                                                 Card · scrollable         1–8 of 60  [0m
+   Diff                                                                                             [0m
+   Data grid           Nested                                     0.00s  info   Resolving works… ┃  [0m
+   Chips & selects                                                0.37s  info   Fetching crates… │  [0m
+   Pickers             Target                                     0.74s  info   Compiling proc-… │  [0m
+   Chrome                 Local                                   1.11s  info   Compiling serde… │  [0m
+   Settings               CLI                                     1.48s  warn   unused import: … │  [0m
+   Task runner         [0m[2m   Cloud                      [0m             1.85s  info   Compiling tokio… │  [0m
+                                                                  2.22s  info   Running unittes… │  [0m
+                                                               [0m[2m   2.59s  info   test api::auth:… [0m│  [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                        [0m
