@@ -22,7 +22,10 @@ use ratatui::style::{Modifier, Style};
 use crate::domain::action::{Confirmation, Item, Kind, Launch, Risk};
 use crate::domain::context::Scope;
 use crate::domain::ranking::{Ranked, search};
-use crate::screens::{Cx, Go, Page, Screen, StatusBits, heading, plural, risk_tone, truncate_sep};
+use crate::screens::{
+    Cx, Go, Page, Screen, StatusBits, heading, plural, risk_tone, scroll_drag, scroll_press,
+    truncate_sep,
+};
 use crate::sim::world::World;
 
 pub const FINDER: WidgetId = WidgetId::of("here.finder");
@@ -689,8 +692,8 @@ impl FinderPage {
         let card_h = (flat.len() as u16 + 3).min(area.height);
         let area = Rect::new(area.x, area.y, area.width, card_h);
         let inner = panel.render(area, buf, t);
-        self.preview_area = area;
         ctx.control(PREVIEW, area, false);
+        self.preview_area = inner;
         ctx.scrollable(PREVIEW, inner);
         if inner.is_empty() {
             return;
@@ -1327,7 +1330,7 @@ impl Screen for FinderPage {
         Outcome::Changed
     }
 
-    fn on_click(&mut self, id: WidgetId, _pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+    fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
         if self.dirty {
             self.rebuild(w);
         }
@@ -1339,7 +1342,15 @@ impl Screen for FinderPage {
             cx.go(Go::Scope(next));
             return Outcome::Changed;
         }
-        if id == PREVIEW || id == scrollbar::id_for(PREVIEW) {
+        if id == scrollbar::id_for(FINDER) {
+            cx.focus.focus(FINDER);
+            return scroll_press(self.list_area, pos, &mut self.scroll);
+        }
+        if id == scrollbar::id_for(PREVIEW) {
+            cx.focus.focus(PREVIEW);
+            return scroll_press(self.preview_area, pos, &mut self.preview_scroll);
+        }
+        if id == PREVIEW {
             cx.focus.focus(PREVIEW);
             return Outcome::Changed;
         }
@@ -1362,6 +1373,26 @@ impl Screen for FinderPage {
         if id == FINDER {
             cx.focus.focus(FINDER);
             return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+
+    fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
+        if id == scrollbar::id_for(FINDER) {
+            return scroll_press(self.list_area, pos, &mut self.scroll);
+        }
+        if id == scrollbar::id_for(PREVIEW) {
+            return scroll_press(self.preview_area, pos, &mut self.preview_scroll);
+        }
+        Outcome::Ignored
+    }
+
+    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
+        if pressed == scrollbar::id_for(FINDER) {
+            return scroll_drag(self.list_area, pos, &mut self.scroll);
+        }
+        if pressed == scrollbar::id_for(PREVIEW) {
+            return scroll_drag(self.preview_area, pos, &mut self.preview_scroll);
         }
         Outcome::Ignored
     }

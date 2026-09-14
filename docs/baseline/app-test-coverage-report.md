@@ -1,6 +1,6 @@
 # Application test coverage parity
 
-Status: implemented. Audit scope: `showcase`, `holla`, `tablepro`, and
+Status: verified. Scope: `showcase`, `holla`, `tablepro`, and
 `jackin-preview`.
 
 The four applications now use the same behavioral coverage contract. Test
@@ -21,14 +21,14 @@ exceptions for unstable or unreachable states.
   unknown arguments now use Clap's error model.
 - TablePro semantic `--connect` failures also go through a Clap-formatted
   `ValueValidation` error.
-- Current app test counts: Showcase `53`, Holla `76`, TablePro `32`, Jackin
-  Preview `44`.
+- Current app test counts: Showcase `62`, Holla `77`, TablePro `39`, Jackin
+  Preview `51`.
 
 Verification:
 
 - `rtk cargo fmt --all` — passed.
 - `rtk cargo clippy --workspace --all-targets -- -D warnings` — passed.
-- `rtk cargo nextest run --workspace --no-fail-fast` — `521 passed`, `303
+- `rtk cargo nextest run --workspace --no-fail-fast` — `545 passed`, `303
   skipped`.
 - The skipped tests are intentionally ignored PTY capture tests. The normal
   run includes the non-PTY snapshot-store integrity check.
@@ -58,8 +58,10 @@ and substitute are recorded below.
 - [x] Model/state integrity: rendered confirmations agree with stored state.
 - [x] Secret masking and destructive-action confirmation checks.
 - [x] Static visual baseline matrix and snapshot-store integrity.
-- [~] New interactive PTY visual captures: capture tests remain ignored until a
-  human reviews actual/diff artifacts and explicitly accepts them.
+- [~] New interactive PTY visual captures: the ignored capture functions in
+  `tests/visual_baseline/{audit,showcase,holla,tablepro,jackin,pointer}.rs`
+  remain manual-gated until a human reviews actual/diff artifacts and accepts
+  them; deterministic substitutes are covered below.
 - [x] Each remaining unstable, fixture-unreachable, or production-follow-up
   branch is documented below.
 
@@ -97,11 +99,20 @@ static rendering.
   failure state.
 - [x] Terminal selection/copy/follow/pause and Editor completion/paste/
   diagnostic paths.
-- [~] TaskRunner all-success branch: the fixture intentionally makes the
-  `integration` task fail, so the success-only branch is unreachable without a
-  new fixture. The failure completion branch is covered.
-- [~] New PTY interactive captures: existing tuisnap pointer/static roots remain
-  the visual substitute; no new snapshot approval was performed.
+- [~] Grid `FollowReference` is fixture-unreachable because Showcase's grid
+  columns have no reference metadata (`src/bin/showcase/pages/grid.rs:112`);
+  reachable grid interaction is covered by the `grid_*` tests in
+  `app_tests_coverage.rs`.
+- [~] TaskRunner all-success branch: `TaskRunnerPage::new` hard-codes the
+  `integration` task to fail (`src/bin/showcase/pages/taskrunner.rs`,
+  `TaskRunnerPage::new`/`Page::tick`), so the success-only branch is
+  unreachable without a new fixture. The failure completion branch is covered
+  by `app_tests_coverage::taskrunner_reaches_failure_completion_and_reports_it`.
+- [~] New PTY interactive captures: `tests/visual_baseline/pointer.rs` capture
+  functions (`showcase_hover_*`, `showcase_flows_*`, `showcase_fade_*`, and
+  `showcase_resize_*`) plus the static/flow cases in
+  `tests/visual_baseline/showcase.rs` remain the visual substitute; no new
+  snapshot approval was performed.
 
 Evidence: [`app_tests.rs`](../../src/bin/showcase/app_tests.rs),
 [`app_tests_coverage.rs`](../../src/bin/showcase/app_tests_coverage.rs),
@@ -128,13 +139,21 @@ pointer behavior were not explicit in one parity layer.
 - [x] History enabled/disabled behavior has a deterministic TestBackend
   substitute.
 - [x] Paused/reduced motion tests cover stable substitutes for live progress.
-- [~] Populated-history PTY visuals: the PTY hygiene path sets
-  `HOLLA_NO_HISTORY=1`; enabled and disabled history are covered in-process.
+- [~] Populated-history PTY visuals: `tests/visual_baseline/support.rs::opts_for`
+  sets `HOLLA_NO_HISTORY=1`; enabled and disabled history are covered by
+  `app_tests_coverage::history_enabled_and_disabled_states_are_deterministic`.
 - [~] Live spinner/streaming/percentage PTY frames: these remain excluded from
-  approved deterministic snapshots; paused/reduced and state assertions cover
-  their contracts.
-- [~] New PTY pointer visual captures: TestBackend pointer assertions cover the
-  event contract; capture approval remains a separate explicit operation.
+  approved deterministic snapshots; `app_tests::paused_frames_are_deterministic`
+  and `app_tests_flows::every_scenario_is_deterministic_at_a_frame`, plus the
+  paused/reduced state assertions, cover their contracts.
+- [~] New PTY pointer visual captures: `tests/visual_baseline/pointer.rs::holla_fade_browser_wheel_matrix`,
+  `holla_resize_rust_dirty_shrunk_80x24_truecolor`, and
+  `holla_resize_rust_dirty_grown_120x40_truecolor` remain ignored/manual-gated;
+  TestBackend pointer assertions cover the event contract.
+- [~] Plan/trust/snapshot gate scrollbar paths are routed in
+  `screens/{review,plan,snapshot}.rs`, but current minimum-size fixtures do not
+  overflow those panes; the raw scrollbar contract is covered by
+  `app_tests_coverage::raw_scrollbars_route_pointer_press_and_drag`.
 
 Evidence: [`app_tests.rs`](../../src/bin/holla/app_tests.rs),
 [`app_tests_flows.rs`](../../src/bin/holla/app_tests_flows.rs),
@@ -166,9 +185,16 @@ routes.
   dialog routes.
 - [x] Keyboard, mouse, horizontal scrolling, narrow drawer, resize, and static
   visual coverage remain covered by the original suite and visual inventory.
-- [~] New PTY click/drag/scrollbar visual captures: behavior is covered by
-  TestBackend/widget tests and existing visual roots; no new approved captures
-  were created.
+- [~] New PTY click/drag/scrollbar visual captures:
+  `tests/visual_baseline/pointer.rs::tablepro_fade_table_wheel_matrix`,
+  `tablepro_resize_workbench_shrunk_80x24_truecolor`, and
+  `tablepro_resize_workbench_grown_120x40_truecolor` remain ignored/manual-gated;
+  behavior is covered by TestBackend/widget tests and existing visual roots.
+  No new approved captures were created.
+- [~] TablePro has no distinct double-click event in the shared `MouseKind`,
+  and its secondary-click path intentionally has no context menu
+  (`src/bin/tablepro/app.rs:2029`). Real keychain, database, and PTY behavior
+  remains outside deterministic TestBackend coverage.
 
 Evidence: [`app_tests.rs`](../../src/bin/tablepro/app_tests.rs),
 [`app_tests_coverage.rs`](../../src/bin/tablepro/app_tests_coverage.rs), and
@@ -196,8 +222,17 @@ editor validation, account/usage/settings branches, or Prelude errors.
 - [x] Attach-with-pane restores the daemon's requested focused pane.
 - [x] Existing Chrome tests plus added interaction tests cover menu, context
   menu, inspector, palette scrolling, mouse, wheel, and resize contracts.
-- [~] Jackin-specific new PTY pointer visual matrix: TestBackend and existing
-  Chrome/flow tests cover behavior; no new snapshot approval was performed.
+- [~] Locked-credential spinner and asynchronous post-save PTY frames remain
+  unstable/manual-gated (`tests/visual_baseline/jackin.rs:255`); deterministic
+  manager/editor state transitions cover the corresponding contracts.
+- [~] Jackin-specific new PTY pointer visual matrix: the static/flow cases in
+  `tests/visual_baseline/jackin.rs` remain ignored/manual-gated; TestBackend
+  coverage is in `app_tests_chrome::{menu_bar_opens_switches_and_runs_an_action,
+  tab_context_menu_renames_and_closes_by_mouse_and_keyboard,
+  command_palette_scrolls_with_the_wheel_and_keeps_the_selection}` and
+  `app_tests_coverage::{usage_refresh_detail_and_scroll_are_read_only,
+  attach_restores_the_requested_pane_focus}`. No new snapshot approval was
+  performed.
 
 Evidence: [`app_tests.rs`](../../src/bin/jackin_preview/app_tests.rs),
 [`app_tests_chrome.rs`](../../src/bin/jackin_preview/app_tests_chrome.rs),

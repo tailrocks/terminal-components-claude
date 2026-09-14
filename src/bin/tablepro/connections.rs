@@ -154,6 +154,7 @@ impl ConnForm {
                 .value(c.map(|c| c.user.as_str()).unwrap_or("")),
             password: TextInput::new(f.sub("pw"), "Password")
                 .placeholder("stored in the keychain")
+                .masked()
                 .help("Never written to connections.json"),
             prompt_pw: Checkbox::new(f.sub("promptpw"), "Prompt for password on connect", false),
             env: RadioGroup::new(

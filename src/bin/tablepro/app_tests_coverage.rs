@@ -1,6 +1,8 @@
-use junie_tui::core::event::Input;
+use junie_tui::core::event::{Input, MouseKind};
+use junie_tui::widgets::scrollbar;
 use ratatui::crossterm::event::KeyCode;
 
+use crate::app::Modal;
 use crate::app_tests::H;
 use crate::connections::ConnState;
 use crate::db::SafeMode;
@@ -204,6 +206,7 @@ fn structure_sections_and_workbench_grid_routes() {
     }
     h.key(KeyCode::Enter);
     assert!(h.app.modal.is_some());
+    assert!(h.text().contains("shipping_address"), "{}", h.text());
     h.key(KeyCode::Esc);
 }
 
@@ -411,4 +414,227 @@ fn history_picker_and_filter_routes() {
     assert!(h.text().contains("A value is required"));
     h.key(KeyCode::Esc);
     assert!(h.app.modal.is_none());
+}
+
+#[test]
+fn connection_password_is_masked_in_rendered_form() {
+    let mut h = H::new(120, 40);
+    h.ctrl('n');
+    let (x, y) = h.find("Password").expect("password field label");
+    h.click(x + 1, y + 1);
+    h.type_str("s3cret");
+    let text = h.text();
+    assert!(
+        !text.contains("s3cret"),
+        "secret leaked into the buffer: {text}"
+    );
+    assert!(
+        text.contains("••••••"),
+        "masked value was not rendered: {text}"
+    );
+    h.key(KeyCode::Esc);
+}
+
+#[test]
+fn resize_ladder_recovers_drawer_focus_and_hit_regions() {
+    let mut h = H::connected(120, 40);
+    let explorer = h.wb().explorer.id;
+    assert_eq!(h.focus(), Some(explorer));
+
+    h.resize(60, 15);
+    assert!(h.text().contains("Terminal too small"));
+    h.resize(120, 40);
+    assert!(h.text().contains("Filter objects"));
+    assert!(h.app.hits.area_of(explorer).is_some());
+
+    h.resize(80, 24);
+    assert!(h.text().contains("Filter objects"));
+    assert!(!h.text().contains("Type SQL"));
+    let editor = h.wb_query().editor.id;
+    h.key(KeyCode::Tab);
+    assert_eq!(h.focus(), Some(editor));
+    assert!(!h.text().contains("Filter objects"));
+
+    h.resize(160, 50);
+    assert!(h.text().contains("Type SQL"));
+    assert!(h.app.hits.area_of(editor).is_some());
+}
+
+#[test]
+fn overlays_trap_focus_and_restore_after_outside_dismissal() {
+    let mut h = H::connected(120, 40);
+    open_orders(&mut h);
+    let origin = h.focus();
+
+    h.ctrl('o');
+    assert!(matches!(h.app.modal, Some(Modal::Picker(..))));
+    assert_ne!(h.focus(), origin);
+    h.key(KeyCode::Tab);
+    assert!(h.app.modal.is_some());
+    assert_ne!(h.focus(), origin);
+    h.click(0, 0);
+    assert!(h.app.modal.is_none());
+    assert_eq!(h.focus(), origin);
+
+    h.ctrl('f');
+    assert!(matches!(h.app.modal, Some(Modal::Filter(_))));
+    h.click(0, 0);
+    assert!(h.app.modal.is_none());
+    assert_eq!(h.focus(), origin);
+}
+
+#[test]
+fn structure_sections_render_catalog_evidence() {
+    let mut h = H::connected(120, 40);
+    open_orders(&mut h);
+    h.ctrl('d');
+    let structure_id = match h.wb().active_tab() {
+        Some(WorkTab::Table(table)) => table.structure_tabs.id,
+        _ => panic!("expected table tab"),
+    };
+    h.app.focus.focus(structure_id);
+    h.draw();
+
+    let sections = [
+        ('1', 0, "Columns", "order_number"),
+        ('2', 1, "Indexes", "orders_status_created_idx"),
+        ('3', 2, "Foreign keys", "customers"),
+        ('4', 3, "Constraints", "orders_status_check"),
+        ('5', 4, "Triggers", "orders_audit"),
+        ('6', 5, "DDL", "CREATE TABLE public.orders"),
+    ];
+    for (digit, index, label, evidence) in sections {
+        h.key(KeyCode::Char(digit));
+        match h.wb().active_tab() {
+            Some(WorkTab::Table(table)) => assert_eq!(table.structure_tabs.active, index),
+            _ => panic!("expected table tab"),
+        }
+        let text = h.text();
+        assert!(text.contains(label), "section label missing: {text}");
+        assert!(text.contains(evidence), "section evidence missing: {text}");
+    }
+}
+
+#[test]
+fn grid_pointer_drag_scrollbar_and_horizontal_wheel_update_state() {
+    let mut h = H::connected(120, 40);
+    open_orders(&mut h);
+    let grid_id = h.wb_table().grid.id;
+    let first = h
+        .app
+        .hits
+        .area_of(h.wb_table().grid.cell_id(0, 0))
+        .expect("first grid cell hit");
+    let second = h
+        .app
+        .hits
+        .area_of(h.wb_table().grid.cell_id(1, 1))
+        .expect("second grid cell hit");
+    h.mouse(MouseKind::Down, first.x + 1, first.y);
+    h.mouse(MouseKind::Drag, second.x + 1, second.y);
+    h.mouse(MouseKind::Up, second.x + 1, second.y);
+    assert_eq!(h.wb_table().grid.cursor, (1, 1));
+
+    let grid_area = h.app.hits.area_of(grid_id).expect("grid hit");
+    let before = h.wb_table().grid.scroll.offset;
+    h.mouse(MouseKind::WheelDown, grid_area.x + 8, grid_area.y + 3);
+    assert!(h.wb_table().grid.scroll.offset > before);
+
+    if let Some(WorkTab::Table(table)) = h.app.workbench.as_mut().unwrap().active_tab_mut() {
+        table.grid.scroll.offset = 0;
+        table.grid.hscroll.offset = 0;
+    }
+    h.draw();
+    let scrollbar_area = h
+        .app
+        .hits
+        .area_of(scrollbar::id_for(grid_id))
+        .expect("grid scrollbar hit");
+    let before = h.wb_table().grid.scroll.offset;
+    h.mouse(MouseKind::Down, scrollbar_area.x, scrollbar_area.y);
+    h.mouse(
+        MouseKind::Drag,
+        scrollbar_area.x,
+        scrollbar_area.bottom().saturating_sub(1),
+    );
+    h.mouse(
+        MouseKind::Up,
+        scrollbar_area.x,
+        scrollbar_area.bottom().saturating_sub(1),
+    );
+    assert!(h.wb_table().grid.scroll.offset > before);
+
+    let grid_area = h.app.hits.area_of(grid_id).expect("grid hit");
+    let before = h.wb_table().grid.hscroll.offset;
+    h.mouse(MouseKind::WheelRight, grid_area.x + 8, grid_area.y + 3);
+    assert!(h.wb_table().grid.hscroll.offset > before);
+}
+
+#[test]
+fn grid_edit_paste_validation_and_read_only_columns_preserve_state() {
+    let mut h = H::connected(120, 40);
+    open_orders(&mut h);
+
+    h.key(KeyCode::Home);
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    assert!(
+        !h.wb_table().grid.is_editing(),
+        "generated column became editable"
+    );
+
+    h.key(KeyCode::Home);
+    for _ in 0..4 {
+        h.key(KeyCode::Right);
+    }
+    h.key(KeyCode::Enter);
+    h.ctrl('l');
+    h.type_str("bogus");
+    h.key(KeyCode::Enter);
+    assert!(h.wb_table().grid.is_editing());
+    assert!(
+        h.wb_table()
+            .grid
+            .edit_error()
+            .is_some_and(|error| error.contains("one of"))
+    );
+    assert!(
+        h.find("!").is_some(),
+        "validation marker was not rendered: {}",
+        h.text()
+    );
+    h.key(KeyCode::Esc);
+
+    h.key(KeyCode::Enter);
+    h.ctrl('l');
+    h.app.handle(Input::Paste("paid".into()));
+    h.draw();
+    h.key(KeyCode::Enter);
+    assert!(!h.wb_table().grid.is_editing());
+    assert_eq!(h.wb_table().grid.pending.total(), 1);
+    assert_eq!(h.wb_table().grid.value(0, 4).text(), "paid");
+    assert!(h.text().contains("paid"));
+}
+
+#[test]
+fn result_tabs_route_back_to_statement_anchor() {
+    let mut h = H::connected(120, 40);
+    set_safe_mode(&mut h, SafeMode::Silent);
+    let sql = "SELECT * FROM orders LIMIT 1; SELECT * FROM customers LIMIT 1";
+    set_query(&mut h, sql);
+    h.alt('r');
+    h.ticks(16);
+    assert_eq!(active_query(&h).results.len(), 2);
+    let second_anchor = active_query(&h).results[1].anchor.start;
+    let result_tabs = active_query(&h).result_tabs.id;
+    h.tab_to(result_tabs);
+    h.key(KeyCode::Left);
+    h.key(KeyCode::Enter);
+    assert_eq!(active_query(&h).active_result, 0);
+    assert_eq!(
+        active_query(&h).editor.cursor_offset(),
+        active_query(&h).results[0].anchor.start
+    );
+    assert_ne!(active_query(&h).editor.cursor_offset(), second_anchor);
+    assert!(h.text().contains("SELECT orders (1)"));
 }

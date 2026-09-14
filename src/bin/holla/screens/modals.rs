@@ -62,6 +62,7 @@ pub struct TextModal {
     pub width: u16,
     pub closed: bool,
     pub area: Rect,
+    scroll_area: Rect,
     wrapped: Vec<(String, String, Tone, bool)>,
     wrapped_for: u16,
 }
@@ -77,6 +78,7 @@ impl TextModal {
             width: 72,
             closed: false,
             area: Rect::ZERO,
+            scroll_area: Rect::ZERO,
             wrapped: vec![],
             wrapped_for: 0,
         }
@@ -171,6 +173,22 @@ impl TextModal {
         Outcome::Changed
     }
 
+    pub fn on_scrollbar(&mut self, pos: ratatui::layout::Position) -> Outcome {
+        if scrollbar::press(self.scroll_area, pos, &mut self.scroll) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
+    }
+
+    pub fn on_scrollbar_drag(&mut self, pos: ratatui::layout::Position) -> Outcome {
+        if scrollbar::drag(self.scroll_area, pos, &mut self.scroll) {
+            Outcome::Changed
+        } else {
+            Outcome::Consumed
+        }
+    }
+
     pub fn render(&mut self, screen: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
         let t = ctx.theme;
         let dim = Rect::new(
@@ -231,6 +249,7 @@ impl TextModal {
             inner.width,
             inner.height.saturating_sub(2),
         );
+        self.scroll_area = body;
         self.scroll.set_viewport(body.height as usize);
         ctx.scrollable(self.id, body);
         let kc = self.key_col() as u16;

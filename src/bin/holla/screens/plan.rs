@@ -25,8 +25,8 @@ use ratatui::style::{Modifier, Style};
 
 use crate::domain::plan::{Plan, PlanPhase, StepState};
 use crate::screens::{
-    Cx, Go, Modal, ModalResult, ModalTag, Screen, StatusBits, heading, plural, ticks_label,
-    truncate_sep,
+    Cx, Go, Modal, ModalResult, ModalTag, Screen, StatusBits, heading, plural, scroll_drag,
+    scroll_press, ticks_label, truncate_sep,
 };
 use crate::sim::world::World;
 
@@ -227,7 +227,6 @@ fn render_outline(
     let focused = ctx.interaction.focused(id);
     scroll.set_content(p.steps.len());
     scroll.set_viewport(area.height as usize);
-    scroll.ensure_visible(cursor);
     ctx.control(id, area, false);
     ctx.scrollable(id, area);
     let has_sb = scroll.overflows();
@@ -441,6 +440,8 @@ pub struct PlanReviewPage {
     pub cursor: usize,
     scroll: ScrollState,
     detail_scroll: ScrollState,
+    outline_area: Rect,
+    detail_area: Rect,
     undo: Vec<usize>,
     cancel: Button,
     confirm: Button,
@@ -454,6 +455,8 @@ impl PlanReviewPage {
             cursor: 0,
             scroll: ScrollState::default(),
             detail_scroll: ScrollState::default(),
+            outline_area: Rect::ZERO,
+            detail_area: Rect::ZERO,
             undo: vec![],
             cancel: Button::subtle(CANCEL, "Cancel"),
             confirm: Button::primary(CONFIRM, "Confirm plan"),
@@ -502,6 +505,7 @@ impl PlanReviewPage {
             (flat.len() as u16 + 3).min(area.height),
         );
         let inner = panel.render(area, buf, t);
+        self.detail_area = inner;
         ctx.control(DETAIL, area, false);
         ctx.scrollable(DETAIL, inner);
         self.detail_scroll.set_content(flat.len());
@@ -590,19 +594,23 @@ impl Screen for PlanReviewPage {
             KeyCode::Up | KeyCode::Char('k') if cx.focus.is(OUTLINE) => {
                 self.cursor = self.cursor.saturating_sub(1);
                 self.detail_scroll.jump_start();
+                self.scroll.ensure_visible(self.cursor);
                 Outcome::Changed
             }
             KeyCode::Down | KeyCode::Char('j') if cx.focus.is(OUTLINE) => {
                 self.cursor = (self.cursor + 1).min(n.saturating_sub(1));
                 self.detail_scroll.jump_start();
+                self.scroll.ensure_visible(self.cursor);
                 Outcome::Changed
             }
             KeyCode::Home | KeyCode::Char('g') => {
                 self.cursor = 0;
+                self.scroll.jump_start();
                 Outcome::Changed
             }
             KeyCode::End | KeyCode::Char('G') => {
                 self.cursor = n.saturating_sub(1);
+                self.scroll.ensure_visible(self.cursor);
                 Outcome::Changed
             }
             KeyCode::Char(' ') => {
@@ -665,7 +673,7 @@ impl Screen for PlanReviewPage {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, _pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
+    fn on_click(&mut self, id: WidgetId, pos: Position, w: &mut World, cx: &mut Cx) -> Outcome {
         if id == CANCEL {
             cx.go(Go::Pop);
             return Outcome::Changed;
@@ -673,6 +681,14 @@ impl Screen for PlanReviewPage {
         if id == CONFIRM {
             cx.go(Go::ConfirmPlan(self.plan.clone()));
             return Outcome::Changed;
+        }
+        if id == scrollbar::id_for(OUTLINE) {
+            cx.focus.focus(OUTLINE);
+            return scroll_press(self.outline_area, pos, &mut self.scroll);
+        }
+        if id == scrollbar::id_for(DETAIL) {
+            cx.focus.focus(DETAIL);
+            return scroll_press(self.detail_area, pos, &mut self.detail_scroll);
         }
         if id == DETAIL {
             cx.focus.focus(DETAIL);
@@ -683,6 +699,26 @@ impl Screen for PlanReviewPage {
             self.cursor = i;
             cx.focus.focus(OUTLINE);
             return Outcome::Changed;
+        }
+        Outcome::Ignored
+    }
+
+    fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
+        if id == scrollbar::id_for(OUTLINE) {
+            return scroll_press(self.outline_area, pos, &mut self.scroll);
+        }
+        if id == scrollbar::id_for(DETAIL) {
+            return scroll_press(self.detail_area, pos, &mut self.detail_scroll);
+        }
+        Outcome::Ignored
+    }
+
+    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
+        if pressed == scrollbar::id_for(OUTLINE) {
+            return scroll_drag(self.outline_area, pos, &mut self.scroll);
+        }
+        if pressed == scrollbar::id_for(DETAIL) {
+            return scroll_drag(self.detail_area, pos, &mut self.detail_scroll);
         }
         Outcome::Ignored
     }
@@ -834,6 +870,8 @@ impl Screen for PlanReviewPage {
             outline_area.width,
             outline_area.height.saturating_sub(1),
         );
+        self.outline_area = Rect::ZERO;
+        self.detail_area = Rect::ZERO;
         if let Some(d) = detail_area {
             if self.drawer && !split {
                 self.render_detail(&p, body, buf, ctx, w);
@@ -848,6 +886,7 @@ impl Screen for PlanReviewPage {
                     &mut self.scroll,
                     true,
                 );
+                self.outline_area = rows;
                 self.render_detail(&p, d, buf, ctx, w);
             }
         } else if self.drawer {
@@ -864,6 +903,7 @@ impl Screen for PlanReviewPage {
                 &mut self.scroll,
                 true,
             );
+            self.outline_area = rows;
             ctx.control(DETAIL, Rect::ZERO, false);
         }
         // consequence lines: one blank row under the outline, never lower
@@ -960,6 +1000,7 @@ pub struct PlanTab {
     pub cursor: usize,
     scroll: ScrollState,
     view: TextViewport,
+    outline_area: Rect,
     rendered: (usize, usize),
     pub maximized: bool,
     follow_ups: Vec<Button>,
@@ -974,6 +1015,7 @@ impl PlanTab {
             cursor: 0,
             scroll: ScrollState::default(),
             view: TextViewport::new(OUTPUT).max_lines(2000).wrap(true),
+            outline_area: Rect::ZERO,
             rendered: (usize::MAX, usize::MAX),
             maximized: false,
             follow_ups: vec![],
@@ -1090,10 +1132,12 @@ impl Screen for PlanTab {
         match key.code {
             KeyCode::Up | KeyCode::Char('k') if cx.focus.is(OUTLINE) => {
                 self.cursor = self.cursor.saturating_sub(1);
+                self.scroll.ensure_visible(self.cursor);
                 Outcome::Changed
             }
             KeyCode::Down | KeyCode::Char('j') if cx.focus.is(OUTLINE) => {
                 self.cursor = (self.cursor + 1).min(n.saturating_sub(1));
+                self.scroll.ensure_visible(self.cursor);
                 Outcome::Changed
             }
             KeyCode::Enter | KeyCode::Char('z') => {
@@ -1200,6 +1244,9 @@ impl Screen for PlanTab {
         if id == scrollbar::id_for(OUTPUT) {
             return self.view.on_scrollbar(pos);
         }
+        if id == scrollbar::id_for(OUTLINE) {
+            return scroll_press(self.outline_area, pos, &mut self.scroll);
+        }
         Outcome::Ignored
     }
 
@@ -1207,12 +1254,24 @@ impl Screen for PlanTab {
         if id == OUTPUT {
             return self.view.on_click(pos);
         }
+        if id == scrollbar::id_for(OUTPUT) {
+            return self.view.on_scrollbar(pos);
+        }
+        if id == scrollbar::id_for(OUTLINE) {
+            return scroll_press(self.outline_area, pos, &mut self.scroll);
+        }
         Outcome::Ignored
     }
 
     fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
         if pressed == OUTPUT {
             return self.view.on_drag(pos);
+        }
+        if pressed == scrollbar::id_for(OUTPUT) {
+            return self.view.on_scrollbar_drag(pos);
+        }
+        if pressed == scrollbar::id_for(OUTLINE) {
+            return scroll_drag(self.outline_area, pos, &mut self.scroll);
         }
         Outcome::Ignored
     }
@@ -1395,6 +1454,7 @@ impl Screen for PlanTab {
             s.state.label().to_owned()
         };
         if self.maximized {
+            self.outline_area = Rect::ZERO;
             ctx.control(OUTLINE, Rect::ZERO, false);
             let panel = Panel::framed(Some(&out_title))
                 .focused(ctx.interaction.focused(OUTPUT))
@@ -1417,6 +1477,7 @@ impl Screen for PlanTab {
                 rail_area.width,
                 rail_area.height.saturating_sub(1),
             );
+            self.outline_area = rows;
             render_outline(
                 &p,
                 rows,
@@ -1433,6 +1494,7 @@ impl Screen for PlanTab {
             let inner = panel.render(out_area, buf, t);
             self.view.render(inner, buf, ctx, t.canvas);
         } else {
+            self.outline_area = rail_area;
             render_outline(
                 &p,
                 rail_area,

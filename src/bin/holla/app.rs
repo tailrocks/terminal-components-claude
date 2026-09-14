@@ -1393,7 +1393,12 @@ impl App {
                 }
                 None => Outcome::Changed,
             },
-            Modal::Text(_) => Outcome::Changed,
+            Modal::Text(t) => {
+                if id == junie_tui::widgets::scrollbar::id_for(t.id) {
+                    return t.on_scrollbar(pos);
+                }
+                Outcome::Changed
+            }
         }
     }
 
@@ -1448,6 +1453,11 @@ impl App {
                     return Outcome::Ignored;
                 };
                 if !self.modals.is_empty() {
+                    if let Some(Modal::Text(t)) = self.modals.last_mut().map(|m| &mut m.modal)
+                        && pressed == junie_tui::widgets::scrollbar::id_for(t.id)
+                    {
+                        return t.on_scrollbar_drag(m.pos);
+                    }
                     return Outcome::Consumed;
                 }
                 self.with_top(|s, w, _| s.on_drag(pressed, m.pos, w))
