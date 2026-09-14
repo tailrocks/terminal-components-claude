@@ -1,0 +1,24 @@
+  jackin❯    File   Edit   View   Session   Help
+
+  1 Mix (3) ●    2 Shell    3 docs ●
+ ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────
+╭─ C╭──────────────────────────────────────────────────────────────────────╮───╮
+│  +│ New tab                                                              │49││
+│  +│ ▎ Type to search…                                                    │n ││
+│  -│                                                                      │  ││
+│  +│ ▎▪ Claude Code  2 accounts · choose at start                 agents  │  ││
+│   │  ▪ Codex        Primary                                              │  ┃│
+│● B│  ▪ OpenCode     Go subscription                                      │  ┃│
+│  r│  ▪ Grok Build   Team                                                 │───╯
+│   │  $ Shell        zsh                                          shells  │────
+│● E│                                                                      │───╮
+│  +│                                                                      │te││
+│   ╰──────────────────────────────────────────────────────────────────────╯et││
+│● Retries now back off 250 ms → 4 s,┃│││payments-platform ❯ ls docs/adr      ││
+│  One more edit: expose the policy i┃│││0001-record-architecture.md  0004-led││
+│                                    ┃│││0002-settlement-batches.md   0005-fx-││
+│▶ Allow edit to src/settlement/confi┃│││0003-retry-policy.md         0007-ret││
+│❯                                   ┃│││payments-platform ❯                  ┃│
+╰─────────────────────────────────────╯│╰──────────────────────────────────────╯
+ PR #482 · Settlement retry backoff                   Session ━━━━━━━━─── 76%
+       Type Filter  …   Attached to payments-platform · tabs and panes restored
