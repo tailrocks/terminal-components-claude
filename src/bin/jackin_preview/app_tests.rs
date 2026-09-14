@@ -1236,3 +1236,87 @@ fn cockpit_resolves_every_effective_account_for_the_container() {
     let i = h.app.world.instance(&inst).unwrap();
     assert!(i.accounts.len() >= 2, "{:?}", i.accounts);
 }
+
+#[test]
+fn cli_parser_accepts_scenario_motion_color_and_frame_contracts() {
+    use clap::{Parser, error::ErrorKind};
+
+    let cli = crate::Cli::try_parse_from([
+        "jackin-preview",
+        "--scenario",
+        "capsule-multi",
+        "--motion",
+        "paused",
+        "--color",
+        "256",
+        "--frame",
+        "12",
+    ])
+    .expect("valid CLI options");
+    assert_eq!(cli.scenario, Scenario::CapsuleMulti);
+    assert!(matches!(cli.motion, Some(crate::MotionArg::Paused)));
+    assert!(matches!(cli.color, Some(crate::ColorArg::Ansi256)));
+    assert_eq!(cli.frame, 12);
+
+    for color in ["truecolor", "24bit", "256", "16", "none", "mono"] {
+        assert!(
+            crate::Cli::try_parse_from(["jackin-preview", "--color", color]).is_ok(),
+            "color value {color:?}"
+        );
+    }
+    for motion in ["full", "reduced", "paused"] {
+        assert!(
+            crate::Cli::try_parse_from(["jackin-preview", "--motion", motion]).is_ok(),
+            "motion value {motion:?}"
+        );
+    }
+    let short = crate::Cli::try_parse_from([
+        "jackin-preview",
+        "-c",
+        "none",
+        "-s",
+        "capsule-multi",
+        "-m",
+        "full",
+        "-f",
+        "3",
+    ])
+    .unwrap();
+    assert_eq!(short.scenario, Scenario::CapsuleMulti);
+    assert_eq!(short.frame, 3);
+
+    let default = crate::Cli::try_parse_from(["jackin-preview"]).unwrap();
+    assert_eq!(default.scenario, Scenario::FirstUse);
+    assert!(default.motion.is_none());
+    let full = crate::Cli::try_parse_from(["jackin-preview", "--motion", "full"]).unwrap();
+    assert!(matches!(full.motion, Some(crate::MotionArg::Full)));
+
+    assert!(matches!(
+        crate::Cli::try_parse_from(["jackin-preview", "--color", "invalid"]),
+        Err(error) if error.kind() == ErrorKind::InvalidValue
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["jackin-preview", "--scenario", "invalid"]),
+        Err(error) if error.kind() == ErrorKind::ValueValidation
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["jackin-preview", "--motion", "invalid"]),
+        Err(error) if error.kind() == ErrorKind::InvalidValue
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["jackin-preview", "--frame", "invalid"]),
+        Err(error) if error.kind() == ErrorKind::ValueValidation
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["jackin-preview", "--frame"]),
+        Err(error) if error.kind() == ErrorKind::InvalidValue
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["jackin-preview", "--ignored"]),
+        Err(error) if error.kind() == ErrorKind::UnknownArgument
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["jackin-preview", "--help"]),
+        Err(error) if error.kind() == ErrorKind::DisplayHelp
+    ));
+}

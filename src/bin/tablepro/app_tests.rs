@@ -897,3 +897,40 @@ fn acceptance_flow_mouse() {
         "wheel does not move focus"
     );
 }
+
+#[test]
+fn cli_parser_accepts_color_connection_and_help_contracts() {
+    use clap::{Parser, error::ErrorKind};
+
+    let cli =
+        crate::Cli::try_parse_from(["tablepro", "--color", "mono", "--connect", "Production"])
+            .expect("valid CLI options");
+    assert!(matches!(cli.color, Some(crate::ColorArg::Mono)));
+    assert_eq!(cli.connect.as_deref(), Some("Production"));
+
+    for color in ["truecolor", "24bit", "256", "16", "none", "mono"] {
+        assert!(
+            crate::Cli::try_parse_from(["tablepro", "--color", color]).is_ok(),
+            "color value {color:?}"
+        );
+    }
+    let short = crate::Cli::try_parse_from(["tablepro", "-c", "24bit"]).unwrap();
+    assert!(matches!(short.color, Some(crate::ColorArg::TrueColor)));
+
+    assert!(matches!(
+        crate::Cli::try_parse_from(["tablepro", "--color", "invalid"]),
+        Err(error) if error.kind() == ErrorKind::InvalidValue
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["tablepro", "--connect"]),
+        Err(error) if error.kind() == ErrorKind::InvalidValue
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["tablepro", "--ignored"]),
+        Err(error) if error.kind() == ErrorKind::UnknownArgument
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["tablepro", "--help"]),
+        Err(error) if error.kind() == ErrorKind::DisplayHelp
+    ));
+}

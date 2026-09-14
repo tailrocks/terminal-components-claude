@@ -2055,7 +2055,7 @@ impl App {
                 if let Some(d) = self.world.daemons.get_mut(&instance) {
                     d.attached_by = Some("this terminal".into());
                 }
-                self.screens.capsule = Some(CapsuleScreen::new(&instance, &self.world, pane));
+                self.screens.capsule = Some(CapsuleScreen::new(&instance, &mut self.world, pane));
                 if self.route == Route::Cockpit {
                     self.handoff = Some(0);
                     self.route = Route::Handoff;

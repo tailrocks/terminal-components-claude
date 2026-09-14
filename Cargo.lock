@@ -1129,6 +1129,7 @@ dependencies = [
 name = "junie-tui"
 version = "0.1.0"
 dependencies = [
+ "clap",
  "ratatui",
  "tuisnap",
  "unicode-segmentation",

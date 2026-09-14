@@ -599,7 +599,7 @@ fn holla_resize_rust_dirty_shrunk_80x24_truecolor() {
         HOLLA_BOOT,
     )
     .timeout(30000);
-    run_resize_matrix(&case, |case, cols, rows| resize_case(case, cols, rows));
+    run_resize_matrix(&case, resize_case);
 }
 
 #[test]
@@ -622,7 +622,7 @@ fn holla_resize_rust_dirty_grown_120x40_truecolor() {
         HOLLA_BOOT,
     )
     .timeout(30000);
-    run_resize_matrix(&case, |case, cols, rows| resize_case(case, cols, rows));
+    run_resize_matrix(&case, resize_case);
 }
 
 #[test]

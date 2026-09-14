@@ -123,8 +123,15 @@ const PALETTE: [&str; 20] = [
 ];
 
 impl CapsuleScreen {
-    pub fn new(instance: &str, w: &World, pane: Option<u64>) -> Self {
-        let mut s = Self {
+    pub fn new(instance: &str, w: &mut World, pane: Option<u64>) -> Self {
+        if let Some(p) = pane
+            && let Some(d) = w.daemons.get_mut(instance)
+            && let Some(tab) = d.active_tab_mut()
+            && tab.leaves().contains(&p)
+        {
+            tab.focused = p;
+        }
+        Self {
             instance: instance.to_owned(),
             prefix_until: None,
             drag: None,
@@ -145,15 +152,8 @@ impl CapsuleScreen {
             export_kind: None,
             redraw_flash: 0,
             pending_spawn: None,
-        };
-        let _ = w;
-        if let Some(p) = pane {
-            s.focus_pane_by_id(p);
         }
-        s
     }
-
-    fn focus_pane_by_id(&mut self, _p: u64) {}
 
     pub fn mode(&self) -> Mode {
         if self.dialog_open {

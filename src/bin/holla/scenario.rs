@@ -58,20 +58,7 @@ pub enum Scenario {
 }
 
 impl Scenario {
-    pub const CONCEPT: [Scenario; 11] = [
-        Scenario::FirstUse,
-        Scenario::RustDirty,
-        Scenario::MonorepoRoot,
-        Scenario::MonorepoChild,
-        Scenario::DockerCleanup,
-        Scenario::DiskCleanup,
-        Scenario::UpgradePlan,
-        Scenario::ActivitiesMulti,
-        Scenario::RemoteHost,
-        Scenario::LaunchFailure,
-        Scenario::HardCases,
-    ];
-
+    #[cfg(test)]
     pub const PARITY: [Scenario; 23] = [
         Scenario::ParityDiscovery,
         Scenario::ParityHistory,
@@ -191,15 +178,6 @@ pub enum Motion {
 }
 
 impl Motion {
-    pub fn from_name(s: &str) -> Option<Self> {
-        match s {
-            "full" => Some(Motion::Full),
-            "reduced" => Some(Motion::Reduced),
-            "paused" => Some(Motion::Paused),
-            _ => None,
-        }
-    }
-
     /// Explicit CLI motion wins; otherwise `HOLLA_NO_MOTION` selects the
     /// reduced path.
     pub fn resolve(cli: Option<Motion>, no_motion_env: bool) -> Motion {
