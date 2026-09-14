@@ -1,0 +1,50 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                                                  acme · mise monorepo  [0m[1mmbp · local[0m [0m
+                                                                                                                                                                [0m
+ [0m[1m Here  [0m                                                                                                                                                        [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ▎ Search actions and resources…                                                                                                              scope ‹ system ›  [0m
+                                                                                                                                                                [0m
+    System · mbp · 45 entries                                                                               ┃    Review cleanup candidates     cleanup · host   [0m
+ [0m[1m › Review cleanup candidates          [0mcleanup[0m[1m  [0mhost[0m[1m  [0m10.6 GiB across 4 categories[0m[1m                          [0m┃                                                   [0m
+    Clean Docker completely            plan     host  7.1 GB reclaimable on mbp                 destructive ┃    Does       4 detected categories · 10.6 GiB    [0m
+    List containers                    docker   host  5 running                                             ┃               · rebuilt-on-demand and             [0m
+    Prune builder cache                docker   host  2.9 GB of build cache                     destructive ┃               safe-if-old candidates start        [0m
+    Show Docker disk usage             docker   host  7.1 GB reclaimable                                    ┃               selected, review-first never        [0m
+    Show system resources              system   host  CPU 12% · memory 61%                                  ┃               does, too-recent ones stay          [0m
+    Stop all containers                docker   host  5 running on mbp                                      ┃               visible but ineligible              [0m
+    Upgrade 8 outdated mise tools      task     host  8 tools have newer versions                           ┃    Runs       'holla cleanup review'              [0m
+    Upgrade everything                 plan     host  1 managers detected                                   ┃    In         mbp · host-wide                     [0m
+    Upgrade mise-managed tools         upgrade  host  8 outdated tools                                      ┃    Host       mbp · local                         [0m
+    Analyze a custom path…             disk     host  available                                             ┃    Scope      host                                [0m
+    Clean Cargo registry cache · 0 B   cleanup  host  safe if old · all platforms                           ┃    Why        10.6 GiB across 4 categories        [0m
+    Clean Project artifacts · 9.7 GiB  cleanup  host  review first · all platforms                          ┃    Changes    none · read-only                    [0m
+    Clean User caches · 900.0 MiB      cleanup  host  review first · macOS                                  ┃    Risk       read-only                           [0m
+    Clean User logs · 44.0 KiB         cleanup  host  rebuilt on demand · macOS                             ┃    Data       live · 0 s ago                      [0m
+    Connect to bastion                 ssh      host  from ~/.ssh/config.d/work                             ┃    Gate       opens a review · the deletion is    [0m
+    Connect to devbox                  ssh      host  from ~/.ssh/config.d/work                             ┃               gated there (typed phrase)          [0m
+    Connect to prod-eu-1               ssh      host  from ~/.ssh/config.d/work                  privileged ┃    Alt+Enter  Pin · Alias · Why here?             [0m
+    Connect to production-db           ssh      host  from ~/.ssh/config                         privileged ┃                                                   [0m
+    Disk overview                      disk     host  available                                             ┃                                                   [0m
+    Find files under home…             file     host  always available                                      ┃                                                   [0m
+    Find the process on a port…        system   host  available on this host                                ┃                                                   [0m
+    Follow pgadmin logs                docker   host  exited                                                ┃                                                   [0m
+    Open btm                           system   host  installed on this host                                ┃                                                   [0m
+    Prune buildx caches                docker   host  expansion beyond the legacy builder pru…  destructive ┃                                                   [0m
+    Prune unused networks              docker   host  available on this host                                ┃                                                   [0m
+    Prune unused volumes               docker   host  3 volumes                                 destructive ┃                                                   [0m
+    Remove all unused images           docker   host  5 dangling                                destructive ┃                                                   [0m
+    Restart acme-api-1                 docker   host  container action                                      ┃                                                   [0m
+    Restart acme-db-1                  docker   host  container action                                      ┃                                                   [0m
+    Restart acme-redis-1               docker   host  container action                                      ┃                                                   [0m
+    Restart acme-scheduler-1           docker   host  container action                                      ┃                                                   [0m
+    Restart acme-worker-1              docker   host  container action                                      ┃                                                   [0m
+    Restart pgadmin                    docker   host  container action                                      ┃                                                   [0m
+    Show process tree                  system   host  3 noted processes                                     ┃                                                   [0m
+    Stop a process…                    system   host  reviewed before sending                   destructive ┃                                                   [0m
+    Stop acme-api-1                    docker   host  container action                                      │                                                   [0m
+    Stop acme-db-1                     docker   host  container action                                      │                                                   [0m
+    Stop acme-redis-1                  docker   host  container action                                      │                                                   [0m
+ [0m[2m   Stop acme-scheduler-1              docker   host  container action                                      [0m│                                                   [0m
+                                                                                                                                                                [0m
+ [0m[1m~/work/acme[0m   main   ↑1                                                  scope system · mbp                                                  no color · 160×50 [0m
+                                    [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Run  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  [0m[1mCtrl+↑↓[0m Scope  [0m[1mEsc[0m Here                    Scope system · mbp [0m
