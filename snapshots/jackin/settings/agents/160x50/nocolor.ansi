@@ -1,0 +1,50 @@
+ [0m[1m jackin❯ [0m   File   Go   Help                                                                       Settings › global › Agents  inside the Construct  2 running [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+   General    Mounts    Environments   [0m[1m Agents  [0m  Trust                                                                                                         [0m
+  ─────────────────────────────────────━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────────────  [0m
+                                                                                                                                                                [0m
+    [0m[1mAgent runtime mode[0m                                                                                               accounts are registered in Accounts (c)    [0m
+       Agent         Mode         Registry default                                                                                                              [0m
+  [0m[1m▎›   Claude Code   sync         ★ Claude · Personal                                                                                                         [0m  [0m
+       Codex         api key      ★ Codex · Primary                                                                                                             [0m
+       Amp           sync         discovered · ~/.config/amp/secrets.json                                                                                       [0m
+       Kimi Code     ignore       no credentials handed to the container                                                                                        [0m
+       OpenCode      sync         ★ OpenCode · Go subscription                                                                                                  [0m
+       Grok Build    api key      ★ Grok · Team                                                                                                                 [0m
+                                                                                                                                                                [0m
+    sync mirrors the host login · api key and oauth token take material from the registry account                                                               [0m
+    ignore starts the agent without credentials and removes it from session pickers                                                                             [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                          Cancel     [0m[2mSave… [0m     [0m
+                                                                                                                                                                [0m
+                                 [0m[1mSpace[0m Cycle mode  [0m[1md[0m Reset to sync  [0m[1mc[0m Manage accounts  [0m[1m[ ][0m Switch tab  [0m[1mCtrl+S[0m Save  [0m[1mEsc[0m Back                                    [0m

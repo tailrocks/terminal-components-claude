@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                    Workspaces › payments-platform › 7f3a  inside the Construct  2 running
+
+ ╭─ Workspaces ────────── 2 running ─╮ │  7f3a · payments-platform                                 instance · running
+ │     Current directory             │ │
+ │   ▾ payments-platform             │ │  Workspace     payments-platform › role the-architect
+ │     ◉ 7f3a  the-archite…ude Code  │ │  Agent         Claude Code · account Claude · Personal (provider default)
+ │     ◌ c41e  reviewer · Codex   •  │ │  Container     jackin-payments-platform-7f3a
+ │   ▸ infra-control-plane           │ │  Started       2 h ago · last seen 3 s ago
+ │   ▸ release-automation            │ │  Lifecycle     running · Container and Capsule daemon are live.
+ │   ▸ customer-portal               │ │  Working tree  2 uncommitted · 1 unpushed
+ │     + New workspace               │ │  Branch        feature/settlement-backoff · PR #482 · Settlement retry back…
+ │                                   │ │
+ │                                   │ │  Live topology                                              daemon · 3 s ago
+ │                         ╭─ Container 7f3a ─────────────────────────────────── read-only ─╮
+ │                         │ ▎ Container  jackin-payments-platform-7f3a            y copy   │
+ │                         │   Image      jackin/derived:payments-platform-7f3a             │
+ │                         │   Workspace  payments-platform › role the-architect            │
+ │                         │   Agent      Claude Code · account Claude · Personal           │
+ │                         │   Target     /workspace/payments-platform · 2 mounts           │
+ │                         │   Run id     run-7f3a                                          │
+ │                         │   Lifecycle  running                                           │
+ │                         │   Daemon     attached · 3 tabs · 3 s ago                       │   manifest · 2 recorded
+ │                         │                                                                │
+ │                         │                                                                │
+ │                         │                                                                │
+ │                         │                                                        Close   │
+ │                         ╰────────────────────────────────────────────────────────────────╯
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │
+ │                                   │ │  Reconnect    New session    Shell    Inspect    Stop    Purge…
+ ╰───────────────────────────────────╯ │
+
+                                              ↑↓ Move  y Copy  Esc Close

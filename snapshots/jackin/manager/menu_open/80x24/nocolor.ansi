@@ -1,0 +1,24 @@
+ [0m[1m jackin❯ [0m  [0m[1m File [0m  Go   Help       Workspaces  inside the Construct  2 running [0m
+            ╭─────────────────────────╮                                         [0m
+ ╭─[0m[1m Workspac│  New workspace…       [0mn[0m[1m [0m│─────────────────────────── 2 running ─╮ [0m
+ │ [0m[1m▎   Curre│  Edit workspace…      [0me[0m[1m │           [0msaved as payments-platform[0m[1m [0m │ [0m
+ │   ▸ payme│  Launch…          Enter │                            1 running  │ [0m
+ │   ▸ infra│  Prewarm              w │                            1 running  │ [0m
+ │   ▸ relea│  Delete workspace…    d │                             ! failed  │ [0m
+ │   ▸ custo│ ─────────────────────── │                             ! failed  │ [0m
+ │     + New│  Refresh             F5 │                                       │ [0m
+ │          │ ─────────────────────── │                                       │ [0m
+ │          │  Quit            Ctrl+Q │                                       │ [0m
+ │          ╰─────────────────────────╯                                       │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+   Current directory                                              Tab details   [0m
+                                                                                [0m
+   /workspace/payments-platform · 2 mounts · 5 vars                             [0m
+   Roles the-architect ★ · 3 allowed · Auth Claude · Personal                   [0m
+   ◉ 7f3a  the-architect · Claude Code · running                                [0m
+                                                                                [0m
+                                                                                [0m
+                  [0m[1m← →[0m Menu  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Choose  [0m[1mEsc[0m Close                    [0m

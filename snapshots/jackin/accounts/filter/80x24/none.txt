@@ -1,0 +1,24 @@
+  jackin❯    File   Go   Help               Accounts › Overview  ⠋ refreshing 1
+
+ ╭─ Accounts · filter work ────────────────────────────────── 12 · 4 ▲ · 4 ! ─╮
+ │ ▎   Overview                                                               │
+ │   ▾ Claude                                                          !   1  │
+ │       Work                                               !   stale 47 min  │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+   Overview                           12 accounts · 8 providers · Tab details
+
+   Health  degraded · 4 warnings · 1 exhausted · 2 stale · 1 refreshing · 3 …
+   Registry  12 accounts · 11 enabled · 1 disabled · 8 providers
+   Sources  7 registered · 5 discovered · 1Password available
+
+
+      Enter Details  r Refresh all  a Add…  / Filter  m Usage  Esc Back

@@ -1,0 +1,20 @@
+  jackin❯    File   Go   Help                                • 1 change
+
+
+   General •    Mounts    Roles    Environments    Accounts
+  ━╭────────────────────────────────────────────────────────────────╮─
+   │                                                                │
+   │  Save workspace                                                │
+   │                                                                │
+   │  Workspace  payments-platform                                  │
+   │  Scope      workspace config · ~/.jackin/workspaces/payments…  │
+   │  Changes    1 change                                           │
+   │                                                                │
+   │  ~ keep_awake true → false                                     │
+   │                                                                │
+   │                                               ▎Cancel   Save   │
+   │                                                                │
+   ╰────────────────────────────────────────────────────────────────╯
+      On dirty exit                               Cancel     Save…
+      ask · show the exit dialog                  ▾
+                ← → Choose  Enter Confirm  Esc Cancel

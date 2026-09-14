@@ -1,0 +1,24 @@
+  jackin❯    File   Go   Help                                        • 1 change
+
+
+   General •    Mounts    Roles    Environments    Accounts
+  ━━━━━━━━━━━━────────────────────────────────────────────────────────────────
+
+      N╭────────────────────────────────────────────────────────────────╮
+      p│                                                                │
+      D│  Save workspace                                                │
+       │                                                                │
+    Wor│  Workspace  payments-platform                                  │
+    /wo│  Scope      workspace config · ~/.jackin/workspaces/payments…  │
+    Ins│  Changes    1 change                                           │
+       │                                                                │
+     [ │  ~ keep_awake true → false                                     │
+     [✓│                                                                │
+       │                                               ▎Cancel   Save   │
+      O│                                                                │
+      a╰────────────────────────────────────────────────────────────────╯
+
+
+                                                          Cancel     Save…
+
+                    ← → Choose  Enter Confirm  Esc Cancel

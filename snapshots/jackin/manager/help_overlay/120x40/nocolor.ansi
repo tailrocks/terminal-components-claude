@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                                               Workspaces  inside the Construct  2 running [0m
+  ╭─[0m[1m Keyboard shortcuts [0m──────────────────────────────────────────────────────────────────────────────── Workspaces ─╮  [0m
+ ╭│  [0m[1mWorkspaces[0m                          [0m[1mInstances[0m                           [0m[1mEverywhere[0m                              │  [0m
+ ││  [0m[1m↑↓ j k[0m       move                   [0m[1mEnter r[0m      reconnect / restore    [0m[1mTab Shift+T…[0m next / previous            │  [0m
+ ││  [0m[1m←→ h l[0m       collapse / expand      [0m[1ma[0m            new session            [0m[1mEsc[0m          back one level             │  [0m
+ ││  [0m[1mSpace[0m        fold workspace         [0m[1mx[0m            open shell             [0m[1mu[0m            Usage overlay              │  [0m
+ ││  [0m[1mEnter[0m        launch                 [0m[1mi[0m            inspect container      [0m[1mc[0m            Accounts & Usage           │  [0m
+ ││  [0m[1me[0m            edit workspace         [0m[1mt[0m            stop                   [0m[1ms[0m            Settings                   │  [0m
+ ││  [0m[1mn[0m            new workspace          [0m[1mp[0m            purge…                 [0m[1mF5[0m           refresh now                │  [0m
+ ││  [0m[1md[0m            delete…                                                    [0m[1m?[0m            this help                  │  [0m
+ ││  [0m[1mw[0m            prewarm                [0m[1mMouse[0m                               [0m[1mq[0m            back / quit                │  [0m
+ ││  [0m[1mo[0m            open in GitHub         [0m[1mclick[0m        select · 2× activates  [0m[1mCtrl+Q[0m       quit with confirmati…      │  [0m
+ ││  [0m[1m* -[0m          expand / collapse all  [0m[1mwheel[0m        scroll under pointer   [0m[1mCtrl+C[0m       quit immediately           │  [0m
+ ││  [0m[1mTab[0m          details                [0m[1mdrag[0m         seam · scrollbar thu…                                          │  [0m
+ ││                                                                                                                  │  [0m
+ ││  [0m[1mEditor and Settings[0m                                                                                             │  [0m
+ ││  [0m[1m←→ 1–5 [ ][0m   switch tab                                                                                         │  [0m
+ ││  [0m[1mCtrl+S[0m       save (preview first)                                                                               │  [0m
+ ││  [0m[1mSpace[0m        toggle / cycle                                                                                     │  [0m
+ ││  [0m[1ma e d[0m        add / edit / remove                                                                                │  [0m
+ ││  [0m[1mm p s[0m        mask · 1Password · s…                                                                              │  [0m
+ ││                                                                                                                  │  [0m
+ ││                                                                                                                  │  [0m
+ ││                                                                                                                  │  [0m
+ ││                                                                                                                  │  [0m
+ ││                                                                                                                  │  [0m
+ ││                                                                                                                  │  [0m
+ ││                                                                                                                  │  [0m
+ ││                                                                                                                  │  [0m
+ ││                                                                                                                  │  [0m
+ ││                                                                                                                  │  [0m
+ ││                                                                                                                  │  [0m
+ ││                                                                                                                  │  [0m
+ ││                                                                                                                  │  [0m
+ ││                                                                                                                  │  [0m
+ ││                                                                                                                  │  [0m
+ ││  ↑↓ Scroll · Esc Close                                                                                           │  [0m
+ ╰╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯  [0m
+                                                                                                                        [0m
+              [0m[1m     [0m         [0m[1m [0m      [0m[1m [0m       [0m[1m   [0m   [0m[1m↑↓[0m Scro[0m[1ml[0ml  [0m[1mEsc[0m Clos[0m[1me[0m        [0m[1m [0m           [0m[1m [0m       [0m[1m [0m                      [0m

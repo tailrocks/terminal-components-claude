@@ -1,0 +1,24 @@
+  jackin❯    File   Go   Help       Workspaces  inside the Construct  2 running [0m
+  ╭─[0m[1m Keyboard shortcuts [0m──────────────────────────────────────── 1–18 of 45 ─╮  [0m
+ ╭│  [0m[1mWorkspaces[0m                                                             ┃│╮ [0m
+ ││  [0m[1m↑↓ j k[0m       move                                                      ┃││ [0m
+ ││  [0m[1m←→ h l[0m       collapse / expand                                         ┃││ [0m
+ ││  [0m[1mSpace[0m        fold workspace                                            ┃││ [0m
+ ││  [0m[1mEnter[0m        launch                                                    ┃││ [0m
+ ││  [0m[1me[0m            edit workspace                                            ┃││ [0m
+ ││  [0m[1mn[0m            new workspace                                             ┃││ [0m
+ ││  [0m[1md[0m            delete…                                                   │││ [0m
+ ││  [0m[1mw[0m            prewarm                                                   │││ [0m
+ ││  [0m[1mo[0m            open in GitHub                                            │││ [0m
+ ││  [0m[1m* -[0m          expand / collapse all                                     │││ [0m
+ ││  [0m[1mTab[0m          details                                                   │││ [0m
+ ╰│                                                                         ││╯ [0m
+  │  [0m[1mInstances[0m                                                              ││  [0m
+  │  [0m[1mEnter r[0m      reconnect / restore                                       ││  [0m
+  │  [0m[1ma[0m            new session                                               ││  [0m
+  │  [0m[1mx[0m            open shell                                                ││  [0m
+  [0m[2m│  [0m[1;2mi[0m[2m            inspect container                                         [0m││  [0m
+  │  ↑↓ Scroll · Esc Close                                                   │  [0m
+  ╰──────────────────────────────────────────────────────────────────────────╯  [0m
+                                                                                [0m
+ [0m[1m     [0m         [0m[1m [0m      [0m[1m [0m      [0m[1m↑↓ S[0mcroll  [0m[1mEsc [0mClose      [0m[1m [0m        [0m[1m [0m               [0m

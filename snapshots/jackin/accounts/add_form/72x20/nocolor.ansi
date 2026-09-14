@@ -1,0 +1,20 @@
+  jackin❯    File   Go   Help       Accounts › Overview  ⠋ refreshing 1 [0m
+  ╭─[0m[1m New account [0m─────────────────────────────────── form · unsaved ─╮  [0m
+ ╭│   [0m[1mDisplay name *                                               [0m ┃│╮ [0m
+ ││ ▎ Personal, Work, Team…                                         ┃││ [0m
+ ││                                                                 ┃││ [0m
+ ││                                                                 ┃││ [0m
+ ││   Purpose label  optional                                       ┃││ [0m
+ ││   personal · work · experiments                                 ┃││ [0m
+ ││                                                                 ┃││ [0m
+ ││                                                                 │││ [0m
+ ││   Provider                                                      │││ [0m
+ ╰│   Claude Code · Anthropic / Claude                           ▾  ││╯ [0m
+  │                                                                 ││  [0m
+  │                                                                 ││  [0m
+  [0m[2m│   Agent runtime Claude Code · provider Anthropic / Claude · u…  [0m││  [0m
+  │                                                                  │  [0m
+  │                                                                  │  [0m
+  │            Enter plain text instead   Validate   Cancel   [0m[1mSave [0m  │  [0m
+  ╰──────────────────────────────────────────────────────────────────╯  [0m
+  [0m[1m     [0m     [0m[1mTab[0m N[0m[1me[0mxt field  [0m[1mEnter[0m Edit /[0m[1m [0mSave  [0m[1mEsc [0mCancel  [0m[1m   [0m          [0m

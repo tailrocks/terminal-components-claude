@@ -1,0 +1,40 @@
+  jackin❯    File   Go   Help                   Settings › global › Trust  • 2 changes  inside the Construct  2 running [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+   General    Mounts    Environments    Agents    Trust •                                                               [0m
+  ───────────────────────────────────────────────━━━━━━━━━━───────────────────────────────────────────────────────────  [0m
+                                                                                                                        [0m
+    Role sources                                                                             3 trusted · 1 untrusted    [0m
+     • github.com/chainargos/roles               git   [ ] untrusted  4 roles                                           [0m
+   › • github.com/acme-labs/roles-experimental   git   [✓] trusted    1 role                                            [0m
+       ~/roles                                   path  [✓] trusted    1 role                                            [0m
+       git@corp:infra/roles                      git   [✓] trusted    2 roles                                           [0m
+                                                                                                                        [0m
+    An untrusted source blocks + Load role until it is trusted here or                                                  [0m
+    in the trust dialog tha╭────────────────────────────────────────────────────────────────╮                           [0m
+                           │                                                                │                           [0m
+                           │  [0m[1mSave settings[0m                                                 │                           [0m
+                           │                                                                │                           [0m
+                           │  Scope    global config · ~/.jackin/config.toml                │                           [0m
+                           │  Changes  2 changes                                            │                           [0m
+                           │  Trust    github.com/chainargos/roles → untrusted · github.c…  │                           [0m
+                           │                                                                │                           [0m
+                           │  ~ trust github.com/chainargos/roles true → false              │                           [0m
+                           │  ~ trust github.com/acme-labs/roles-experimental false → true  │                           [0m
+                           │                                                                │                           [0m
+                           │                                               ▎[0m[1mCancel [0m  [0m[1mSave [0m  │                           [0m
+                           │                                                                │                           [0m
+                           ╰────────────────────────────────────────────────────────────────╯                           [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                                        [0m
+                                                                                                  Cancel     Save…      [0m
+                                                                                                                        [0m
+             [0m[1m← → Cho[0mose  [0m[1mEnter[0m Conf[0m[1mi[0mrm  [0m[1mEsc[0m Cancel    github.com/acme-labs/roles-experimental · trusted · save to apply [0m

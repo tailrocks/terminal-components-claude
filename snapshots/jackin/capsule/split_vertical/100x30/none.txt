@@ -1,0 +1,30 @@
+  jackin❯    File   Edit   View   Session   Help                  payments-platform › the-architect
+
+  1 Mix (3) ●    2 Shell    3 docs ●
+ ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────
+╭─ Claude Code (Work) ●─────────────────────────╮│╭─ Codex (Primary) ○─────────────────────────────╮
+│● Read src/settlement/mod.rs (88 lines)       ││││  22 passed · 1 failed · 1 ignored (6.8 s)     ││
+│             ╭──────────────────────────────────────────────────────────────────────╮            ││
+│● The loop re│ Split ↓ Below                                                        │ncy         ││
+│  exponential│ ▎ Type to search…                                                    │49 EUR      ││
+│             │                                                                      │n ledger/fx.││
+│● Edit src/se│ ▎▪ Claude Code  2 accounts · choose at start                 agents  │            ┃│
+│  +  const MA│  ▪ Codex        Primary                                              │            ┃│
+│  +  let dela│  ▪ OpenCode     Go subscription                                      │            ┃│
+│  -  for atte│  ▪ Grok Build   Team                                                 │            ┃│
+│  +  for atte│  $ Shell        zsh                                          shells  │─────────────╯
+│             │                                                                      │──────────────
+│● Bash cargo │                                                                      │─────────────╮
+│  running 6 t╰──────────────────────────────────────────────────────────────────────╯            ││
+│                                              ┃│││?? docs/adr/0007-retry-backoff.md              ││
+│● Edit src/settlement/mod.rs                  ┃│││payments-platform ❯ cargo clippy -p settlement ││
+│  +  pub use retry::{MAX_ATTEMPTS, RetryPolicy┃│││    Checking settlement v0.9.2 (crates/settleme││
+│                                              ┃│││    Finished dev [unoptimized] target(s) in 3.1││
+│● Retries now back off 250 ms → 4 s, capped at┃│││payments-platform ❯ ls docs/adr                ││
+│  One more edit: expose the policy in settleme┃│││0001-record-architecture.md  0004-ledger-precis││
+│                                              ┃│││0002-settlement-batches.md   0005-fx-rounding.m││
+│▶ Allow edit to src/settlement/config.rs? (y/n┃│││0003-retry-policy.md         0007-retry-backoff││
+│❯                                             ┃│││payments-platform ❯                            ┃│
+╰───────────────────────────────────────────────╯│╰────────────────────────────────────────────────╯
+ PR #482 · Settlement retry backoff   Claude Code · Work · needs input    Session ━━━━━━━━─── 76%
+    Type Filter  ↑↓ Move  Enter Choose  …   Attached to payments-platform · tabs and panes restored

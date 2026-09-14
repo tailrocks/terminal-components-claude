@@ -1,0 +1,30 @@
+  jackin❯    File   Go   Help                           Workspaces  inside the Construct  2 running [0m
+                                                                                                    [0m
+ ╭─ Workspaces ─────────────────────────────────────────────────────────────────────── 2 running ─╮ [0m
+ │     Current directory                                              saved as payments-platform  │ [0m
+ │   ▸ payments-platform                                                               1 running  │ [0m
+ │   ▸ infra-control-plane                                                             1 running  │ [0m
+ │   ▸ release-automation                                                               ! failed  │ [0m
+ │   ▸ c╭──────────────────────────────────────────────────────────────────────────────────╮iled  │ [0m
+ │     +│ [0m[1mLaunch · choose Agent[0m                          payments-platform › the-architect │      │ [0m
+ │      │ [0m[1m▎[0m▪[0m[1m Claude Code  [0maccount Claude · Personal · provider d…[0m[1m [0mchoose at start[0m[1m  [0magents[0m[1m [0m │      │ [0m
+ │      │  ▪ Codex        account Codex · Primary · provider def… ready                    │      │ [0m
+ │      │  ▪ OpenCode     account OpenCode · Go subscription · p… ready                    │      │ [0m
+ │      │  ▪ Grok Build   account Grok · Team · provider default  ready                    │      │ [0m
+ │      │                                                                                  │      │ [0m
+ │      │                                                                                  │      │ [0m
+ │      ╰──────────────────────────────────────────────────────────────────────────────────╯      │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ │                                                                                                │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                    [0m
+   Current directory                                                                  Tab details   [0m
+                                                                                                    [0m
+   /workspace/payments-platform · 2 mounts · 5 vars                                                 [0m
+   Roles the-architect ★ · 3 allowed · Auth Claude · Personal                                       [0m
+   ◉ 7f3a  the-architect · Claude Code · running                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+    [0m[1m     [0m         [0m[1m [0m      [0m[1m [0m      [0m[1m↑↓ M[0move  [0m[1mEnter [0mChoose  [0m[1mEsc [0mCancel  [0m[1m [0m           [0m[1m [0m       [0m[1m [0m            [0m

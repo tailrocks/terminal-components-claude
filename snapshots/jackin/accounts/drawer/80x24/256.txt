@@ -1,0 +1,24 @@
+  jackin❯    File   Go   Help          Accounts › Claude › Work  ⠋ refreshing 1
+
+ ╭─ Claude · Work ────────────────────────────────────── account · exhausted ─╮
+ │  Provider            Anthropic / Claude                                  ┃ │
+ │  Agent runtime       Claude Code                                         ┃ │
+ │  Usage surface       Claude                                              ┃ │
+ │  Identity            alexey@chainargos.com                               ┃ │
+ │  Plan                Team                                                ┃ │
+ │  Credential          1Password · Engineering › Anthropic · Work ›        ┃ │
+ │                      credential                                          ┃ │
+ │                      chainargos.1password.com ·                          ┃ │
+ │                      op://v_eng01/it_ant01/credential · ••••••••…3c9e    ┃ │
+ │  Provenance          configured source · confidence authoritative ·      │ │
+ │                      registered                                          │ │
+ │  Lifecycle           available                                           │ │
+ │  Default             no                                                  │ │
+ │  Enabled             yes                                                 │ │
+ │  Purpose             work                                                │ │
+ │  Used by             Workspace choice in payments-platform               │ │
+ │                                                                            │
+ │  Refresh    Validate    Edit…    Set default    Disable    Remove…         │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+                       ↑↓ Scroll  Tab Actions  Esc Back

@@ -1,0 +1,50 @@
+  jackin❯    File   Go   Help                                                     Workspaces  inside the Construct  ! instance index unreadable  ▲ daemon stale
+
+ ╭─ Workspaces ────────────────────── 3 running ─╮ │  Current directory · payments-platform saved workspace      Running                          3 instances
+ │     Current …ory  saved as payments-platform  │ │
+ │   ▸ payments-platform              1 running  │ │  Working dir   /workspace/payments-platform                 ◉ 7f3a  payments-platform · the-architect ·…
+ │   ▸ infra-control-plane            1 running  │ │  Mounts        ~/src/payments-platform · rw worktree           running 2 h 14 min · 3 tabs · 5 panes
+ │   ▸ release-automation              ! failed  │ │                ~/src/shared-libs · ro shared                   account Claude · Personal
+ │   ▸ customer-portal                 ! failed  │ │  Roles         the-architect ★ · allowed 3 of 126
+ │   ▸ data-pipeline                  1 running  │ │  Environments  5 vars · 2 [op]                              ◉ 9b02  infra-control-plane · sre · Codex
+ │   ▸ docs-site                       1 record  │ │  Accounts      Claude · Personal ★ · Claude · Work ·           running 40 min · 1 tab · 1 pane
+ │     auth-service                        idle  │ │                Codex · Primary ★ · Grok · Team ★ ·             account Codex · Experiments
+ │     gateway                             idle  │ │                OpenCode · Go subscription ★
+ │     mobile-app                          idle  │ │  Policies      git pull enabled · keep awake on · dir…      ◉ e0e0  data-pipeline · backend · Claude Co…
+ │     ml-notebooks                   ╭──────────────────────────────────────────────────────────────────────────────────╮g 10 min · daemon unavailable
+ │     search-indexer                 │ Launch · choose Agent                          payments-platform › the-architect │t Claude · Personal
+ │     staging-env                    │ ▎▪ Claude Code  account Claude · Personal · provider d… choose at start  agents  │
+ │     billing-reconciliation…-truncat│  ▪ Codex        account Codex · Primary · provider def… ready                    │
+ │     legacy-monolith                │  ▪ OpenCode     account OpenCode · Go subscription · p… ready                    │                          6 records
+ │     + New workspace                │  ▪ Grok Build   account Grok · Team · provider default  ready                    │ayments-platform · reviewer · pres…
+ │                                    │                                                                                  │elease-automation · backend · rest…
+ │                                    │                                                                                  │nfra-control-plane · sre · preserv…
+ │                                    ╰──────────────────────────────────────────────────────────────────────────────────╯ayments-platform · reviewer · rest…
+ │                                               │ │  ◌ b555  reviewer · Codex · restore available               ◌ b333  payments-platform · reviewer · rest…
+ │                                               │ │                                                             ◌ b555  payments-platform · reviewer · rest…
+ │                                               │ │
+ │                                               │ │                                                             Daemon                     ▲ stale · 3 s ago
+ │                                               │ │                                                             Refresh      throttled · every 5 s
+ │                                               │ │                                                             Usage        degraded · 4 warnings · 1 exha…
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │
+ │                                               │ │  Launch    Edit
+ ╰───────────────────────────────────────────────╯ │
+
+                             ↑↓ Move  Enter Choose  Esc Cancel    ▲ Could not confirm running instances: instance index unreadable · entered without the ritual

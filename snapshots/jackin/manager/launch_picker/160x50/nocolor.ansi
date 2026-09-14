@@ -1,0 +1,50 @@
+  jackin❯    File   Go   Help                                                                                       Workspaces  inside the Construct  2 running [0m
+                                                                                                                                                                [0m
+ ╭─ Workspaces ────────────────────── 2 running ─╮ │  Current directory · payments-platform saved workspace      Running                          2 instances   [0m
+ │     Current …ory  saved as payments-platform  │ │                                                                                                            [0m
+ │   ▸ payments-platform              1 running  │ │  Working dir   /workspace/payments-platform                 ◉ 7f3a  payments-platform · the-architect ·…   [0m
+ │   ▸ infra-control-plane            1 running  │ │  Mounts        ~/src/payments-platform · rw worktree           running 2 h 14 min · 3 tabs · 5 panes       [0m
+ │   ▸ release-automation              ! failed  │ │                ~/src/shared-libs · ro shared                   account Claude · Personal                   [0m
+ │   ▸ customer-portal                 ! failed  │ │  Roles         the-architect ★ · allowed 3 of 46                                                           [0m
+ │     + New workspace                           │ │  Environments  5 vars · 2 [op]                              ◉ 9b02  infra-control-plane · sre · Codex      [0m
+ │                                               │ │  Accounts      Claude · Personal ★ · Claude · Work ·           running 40 min · 1 tab · 1 pane             [0m
+ │                                               │ │                Codex · Primary ★ · Grok · Team ★ ·             account Codex · Experiments                 [0m
+ │                                               │ │                OpenCode · Go subscription ★                                                                [0m
+ │                                               │ │  Policies      git pull enabled · keep awake on · dir…                                                     [0m
+ │                                    ╭──────────────────────────────────────────────────────────────────────────────────╮                          3 records   [0m
+ │                                    │ [0m[1mLaunch · choose Agent[0m                          payments-platform › the-architect │ayments-platform · reviewer · pres…   [0m
+ │                                    │ [0m[1m▎[0m▪[0m[1m Claude Code  [0maccount Claude · Personal · provider d…[0m[1m [0mchoose at start[0m[1m  [0magents[0m[1m [0m │elease-automation · backend · rest…   [0m
+ │                                    │  ▪ Codex        account Codex · Primary · provider def… ready                    │nfra-control-plane · sre · preserv…   [0m
+ │                                    │  ▪ OpenCode     account OpenCode · Go subscription · p… ready                    │                                      [0m
+ │                                    │  ▪ Grok Build   account Grok · Team · provider default  ready                    │                  healthy · 3 s ago   [0m
+ │                                    │                                                                                  │    throttled · every 5 s             [0m
+ │                                    │                                                                                  │    degraded · 4 warnings · 1 exha…   [0m
+ │                                    ╰──────────────────────────────────────────────────────────────────────────────────╯                                      [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │                                                                                                            [0m
+ │                                               │ │  Launch    Edit                                                                                            [0m
+ ╰───────────────────────────────────────────────╯ │                                                                                                            [0m
+                                                                                                                                                                [0m
+                                  [0m[1m     [0m         [0m[1m [0m      [0m[1m [0m      [0m[1m↑↓ M[0move  [0m[1mEnter [0mChoose  [0m[1mEsc [0mCancel  [0m[1m [0m           [0m[1m [0m       [0m[1m [0m                                          [0m
