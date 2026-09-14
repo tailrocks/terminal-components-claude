@@ -1000,7 +1000,7 @@ fn the_terminal_viewport_survives_narrow_widths_and_completion_keeps_a_wheel_scr
 
 #[test]
 fn cli_parser_accepts_aliases_and_rejects_invalid_values() {
-    use clap::{Parser, error::ErrorKind};
+    use clap::{CommandFactory, Parser, error::ErrorKind};
 
     let cli = crate::Cli::try_parse_from([
         "showcase",
@@ -1062,6 +1062,12 @@ fn cli_parser_accepts_aliases_and_rejects_invalid_values() {
         crate::Cli::try_parse_from(["showcase", "--unknown"]),
         Err(error) if error.kind() == ErrorKind::UnknownArgument
     ));
+    let help = crate::Cli::command()
+        .after_help(crate::cli_after_help())
+        .render_help()
+        .to_string();
+    assert!(help.contains("--motion paused"));
+    assert!(help.contains("Tab/Shift+Tab focus"));
     assert!(matches!(
         crate::Cli::try_parse_from(["showcase", "--help"]),
         Err(error) if error.kind() == ErrorKind::DisplayHelp

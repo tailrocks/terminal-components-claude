@@ -1244,7 +1244,7 @@ fn cockpit_resolves_every_effective_account_for_the_container() {
 
 #[test]
 fn cli_parser_accepts_scenario_motion_color_and_frame_contracts() {
-    use clap::{Parser, error::ErrorKind};
+    use clap::{CommandFactory, Parser, error::ErrorKind};
 
     let cli = crate::Cli::try_parse_from([
         "jackin-preview",
@@ -1320,6 +1320,13 @@ fn cli_parser_accepts_scenario_motion_color_and_frame_contracts() {
         crate::Cli::try_parse_from(["jackin-preview", "--ignored"]),
         Err(error) if error.kind() == ErrorKind::UnknownArgument
     ));
+    let help = crate::Cli::command()
+        .after_help(crate::cli_after_help())
+        .render_help()
+        .to_string();
+    assert!(help.contains("capsule-multi"));
+    assert!(help.contains("JACKIN_NO_MOTION"));
+    assert!(help.contains("Accounts & Usage"));
     assert!(matches!(
         crate::Cli::try_parse_from(["jackin-preview", "--help"]),
         Err(error) if error.kind() == ErrorKind::DisplayHelp

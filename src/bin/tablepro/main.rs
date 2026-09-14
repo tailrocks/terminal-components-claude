@@ -13,7 +13,7 @@ mod sql;
 mod tabs;
 mod workbench;
 
-use clap::{CommandFactory, Parser, ValueEnum, error::ErrorKind};
+use clap::{CommandFactory, FromArgMatches, Parser, ValueEnum, error::ErrorKind};
 use junie_tui::core::event::{Input, Outcome};
 use junie_tui::theme::{ColorLevel, Theme};
 
@@ -49,7 +49,11 @@ impl From<ColorArg> for ColorLevel {
 }
 
 #[derive(Debug, Parser)]
-#[command(name = "tablepro", about = "TablePro terminal database workbench")]
+#[command(
+    name = "tablepro",
+    about = "TablePro terminal database workbench",
+    long_about = "TablePro — terminal database workbench on the Junie design system"
+)]
 struct Cli {
     #[arg(short = 'c', long, value_enum, value_name = "LEVEL")]
     color: Option<ColorArg>,
@@ -57,8 +61,14 @@ struct Cli {
     connect: Option<String>,
 }
 
+fn cli_after_help() -> String {
+    "Keys: Ctrl+O open quickly · Ctrl+T new query · Ctrl+R run · Ctrl+Y history · ? help · q quit"
+        .to_string()
+}
+
 fn parse_args() -> Options {
-    let cli = Cli::parse();
+    let cli = Cli::command().after_help(cli_after_help()).get_matches();
+    let cli = Cli::from_arg_matches(&cli).unwrap_or_else(|error| error.exit());
     Options {
         level: cli
             .color

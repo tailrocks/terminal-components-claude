@@ -170,7 +170,7 @@ fn too_small_notice_and_recovery() {
 
 #[test]
 fn cli_parser_accepts_scenario_motion_color_and_frame_contracts() {
-    use clap::{Parser, error::ErrorKind};
+    use clap::{CommandFactory, Parser, error::ErrorKind};
 
     let cli = crate::Cli::try_parse_from([
         "holla",
@@ -242,6 +242,14 @@ fn cli_parser_accepts_scenario_motion_color_and_frame_contracts() {
         crate::Cli::try_parse_from(["holla", "--ignored"]),
         Err(error) if error.kind() == ErrorKind::UnknownArgument
     ));
+    let help = crate::Cli::command()
+        .after_help(crate::cli_after_help())
+        .render_help()
+        .to_string();
+    assert!(help.contains("first-use"));
+    assert!(help.contains("parity-discovery"));
+    assert!(help.contains("Alt+Enter alternatives"));
+    assert!(help.contains("HOLLA_NO_MOTION"));
     assert!(matches!(
         crate::Cli::try_parse_from(["holla", "--help"]),
         Err(error) if error.kind() == ErrorKind::DisplayHelp

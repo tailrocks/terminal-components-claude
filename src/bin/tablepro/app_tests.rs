@@ -914,7 +914,7 @@ fn acceptance_flow_mouse() {
 
 #[test]
 fn cli_parser_accepts_color_connection_and_help_contracts() {
-    use clap::{Parser, error::ErrorKind};
+    use clap::{CommandFactory, Parser, error::ErrorKind};
 
     let cli =
         crate::Cli::try_parse_from(["tablepro", "--color", "mono", "--connect", "Production"])
@@ -948,6 +948,12 @@ fn cli_parser_accepts_color_connection_and_help_contracts() {
         crate::Cli::try_parse_from(["tablepro", "--ignored"]),
         Err(error) if error.kind() == ErrorKind::UnknownArgument
     ));
+    let help = crate::Cli::command()
+        .after_help(crate::cli_after_help())
+        .render_help()
+        .to_string();
+    assert!(help.contains("Ctrl+O open quickly"));
+    assert!(help.contains("Ctrl+Y history"));
     assert!(matches!(
         crate::Cli::try_parse_from(["tablepro", "--help"]),
         Err(error) if error.kind() == ErrorKind::DisplayHelp
