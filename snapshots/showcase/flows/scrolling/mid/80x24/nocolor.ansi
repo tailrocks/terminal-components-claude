@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Scrolling           i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused c… [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃    Wra… 1–15 of …      Lon… 1–15 of …      Log 1186–1200 …  [0m
+   Text areas     ┃                                                             [0m
+   Forms          ┃    Junie works  ┃         Row 001   ┃      [0m[2m 438.45s  er… [0m│  [0m
+   Lists          ┃    through a    │         Row 002   │       438.82s  in… │  [0m
+   Trees          ┃    task the way │         Row 003   │       439.19s  in… │  [0m
+   Tables         ┃    a careful    │         Row 004   │       439.56s  in… │  [0m
+   Editable tabl… ┃    engineer     │         Row 005   │       439.93s  in… │  [0m
+   Panels         ┃    would: it    │         Row 006   │       440.30s  in… │  [0m
+   Sidebars       ┃    reads the    │         Row 007   │       440.67s  in… │  [0m
+   Dialogs        ┃    relevant     │         Row 008   │       441.04s  wa… │  [0m
+   Progress       ┃    code, forms  │         Row 009   │       441.41s  in… │  [0m
+[0m[1m▎› Scrolling      [0m┃    a plan,      │         Row 010   │       441.78s  in… │  [0m
+   Terminal       ┃    makes        │         Row 011   │       442.15s  in… │  [0m
+   Code editor    ┃    focused      │         Row 012   │       442.52s  in… │  [0m
+   Diff           ┃    changes,     │         Row 013   │       442.89s  er… │  [0m
+   Data grid      │    runs the     │         Row 014   │       443.26s  in… │  [0m
+   Chips & selec… │    [0m[2mtests, and   [0m│      [0m[2m   Row 015   [0m│       443.63s  in… ┃  [0m
+[0m[2m   Pickers        [0m│                                                             [0m
+                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                    [0m
