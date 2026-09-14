@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                   no project  devbox · development [0m
+  ╭──────────────────────────────────────────────────────────────────────────╮  [0m
+  │                                                                          │  [0m
+ ━│  [0m[1mClean Docker completely · gate 2 of 2[0m                                   │─ [0m
+  │                                                                          │  [0m
+  │  Action             remove all user-removable Docker state on devbox     │  [0m
+  │  Host               devbox                                               │  [0m
+  │  Steps              7 included                                           │  [0m
+  │                                                                          │  [0m
+  │  docker stop acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-…  │  [0m
+  │  docker rm acme-api-1 acme-worker-1 acme-scheduler-1 acme-db-1 acme-re…  │  [0m
+  │  docker image prune -a --force                                           │  [0m
+  │  docker network prune --force                                            │  [0m
+  │  docker volume prune -a --force                                          │  [0m
+  │  docker builder prune -a --force … 2 more                                │  [0m
+ ╭│                                                                          │╮ [0m
+ ││   [0m[1mType I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox to confirm       [0m  ││ [0m
+ ││ ▎ [0m[4mI UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox[0m                         ││ [0m
+ ╰│                                                                          │╯ [0m
+  │                                                                          │  [0m
+  │                                                       Cancel   Execute   │  [0m
+  │                                                                          │  [0m
+ /╰──────────────────────────────────────────────────────────────────────────╯4 [0m
+ [0m[1m EDIT [0m  [0m[1m   [0m         [0m[1mType [0mPhrase  [0m[1mEnter [0mNext  [0m[1mEsc[0m Cancel        [0m[1m   [0m             [0m
