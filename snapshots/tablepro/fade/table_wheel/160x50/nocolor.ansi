@@ -1,0 +1,50 @@
+ ▪  [0m[1mTablePro[0m [0m[1m Production [0m [0m[1m◆ production[0m  acme_prod › public [0m[1m safe [0m                                                                     no color · 160×50  ? help [0m
+                                                                                                                                                                [0m
+  ≡ Query 1 ×   [0m[1m [0mT[0m[1m orders ×  [0m                                                                                                                               +   [0m
+ ───────────────━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+ ╭─ Explorer ───────────────── public ─╮ ╭─[0m[1m public › orders [0m──────────────────────────────────────────────────────────────────────────────────────── 14 cols ─╮ [0m
+ │                                     │ │  [0m[1m Data  [0m  Structure                                                                                                │ [0m
+ │   Filter objects                    │ │  ━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────── │ [0m
+ │  ▾ D acme_prod                      │ │                                                                                                                    │ [0m
+ │    ▾ S public                       │ │         ⚷ id                                    order_number  customer_id                           organiza… 11›  │ [0m
+ │      ▾ Tables                    7  │ │  [0m[2m    10 3a51e6b3-97f9-429c-b204-1d21d17d6a7f           10009  dd2c444c-7d3a-4a51-94f3-9e11c0218d6→  cbc419…7→    [0m│ │ [0m
+ │        ▸ T organizations     1.2 k  │ │      11 1df94d71-f415-4c62-a174-35b8102d68ce           10010  d8755486-2a99-4a4c-8da3-be8cf504ad9→  2beeba…9→    ┃ │ [0m
+ │        ▸ T customers        48.9 k  │ │      12 272ceb33-e750-4f60-a033-8fe3ac0de925           10011  7557d493-6762-4302-a066-ca3ecf86937→  26e612…a→    ┃ │ [0m
+ │        ▸ T products            312  │ │      13 e420b1cb-f102-48d9-9449-cc74d87ca6b7           10012  03ec066a-66ba-4257-bf24-c7f3450f7c2→  c04a0d…f→    │ │ [0m
+ │        ▸ T orders            1.2 M  │ │      14 cbc419eb-5897-4d5d-84be-5b4e319a287a           10013  1fd69c1a-6c1d-4004-a21b-529d250e5b5→  5e0813…a→    │ │ [0m
+ │        ▸ T order_items       3.8 M  │ │      15 319a287a-5b4e-44be-9004-6c1d1fd69c1a           10014  250e5b5e-529d-421b-9d88-c5725e08138→  9ab0da…2→    │ │ [0m
+ │        ▸ T payments          1.2 M  │ │      16 497e7f9f-f117-4939-8b04-13524c81d354           10015  44842f3f-c910-4cc2-86b5-7bdcbfbaee9→  c7c845…8→    │ │ [0m
+ │        ▸ T subscriptions     1.1 k  │ │      17 2e505aaa-ff7a-41b9-b1ff-0b8121ee3631           10016  e0ada9f0-d147-4112-8007-32d482f763e→  856eb1…8→    │ │ [0m
+ │      ▸ Views                     2  │ │      18 5ae74dff-257a-43b9-ba1e-e787efcf86e3           10017  b6d7e92a-e7c9-49f9-9025-5c684f35e13→  c180d9…e→    │ │ [0m
+ │      ▸ Functions                 1  │ │      19 9ab0daa2-e8e4-474c-946d-2286d04a5c2b           10018  6dd6c286-1380-4f45-9c47-a150e6054ee→  71ff0e…e→    │ │ [0m
+ │      ▸ Sequences                 1  │ │      20 c7c8457e-da6b-40e9-b90c-2cbbfeb56e8b           10019  33ba912f-50d1-46c2-8879-fed0e88c032→  e20af4…1→    │ │ [0m
+ │    ▸ S analytics                    │ │      21 856eb1ff-ef23-4b8b-b3e6-18c43bcce08f           10020  454b51cc-dd84-4ffc-b6ea-eae7c3a06f9→  312668…1→    │ │ [0m
+ │    ▸ S audit                        │ │      22 3bcce08f-18c4-43e6-8ffc-dd84454b51cc           10021  c3a06f9f-eae7-46ea-b13d-fa5f3126689→  e612ed…5→    │ │ [0m
+ │                                     │ │      23 9d6c73ea-6077-4a45-9079-fdddbd7fcf34           10022  1fefdf3e-34b8-452d-8079-013c9d71d63→  10fd6c…4→    │ │ [0m
+ │                                     │ │      24 78d5ece4-8aae-4df2-b1e2-6ced46ac407d           10023  9d628e15-01b2-4964-bbe7-9dc4e3c55c7→  91a5a9…7→    │ │ [0m
+ │                                     │ │      25 0b0d0c1c-86fa-4c5b-8b40-1644804f2b3e           10024  24272296-50a8-4f23-9e72-7c9b49c3cc2→  dee472…b→    │ │ [0m
+ │                                     │ │      26 e612ed16-fccc-4359-9e84-386a95bd1a52           10025  2a817425-9c74-4067-ab9e-90fbe5c51c0→  d996d5…f→    │ │ [0m
+ │                                     │ │      27 10fd6c6e-7543-41f7-89f7-51e420c21a44           10026  c893cab9-945c-41dc-8d92-b3307b22ab9→  7258ca…7→    │ │ [0m
+ │                                     │ │      28 91a5a928-35bc-4764-826d-c96dc9078779           10027  7665634f-12f1-4cf4-b7a4-4cfdc372ce2→  7a82cd…1→    │ │ [0m
+ │                                     │ │      29 dee472bd-2c4c-4496-a2f8-f9c1e26a9aba           10028  f1e838f5-f4cf-446e-9781-d1899678805→  36d1bc…e→    │ │ [0m
+ │                                     │ │      30 e26a9aba-f9c1-42f8-a46e-f4cff1e838f5           10029  96788054-d189-4781-bf02-c11236d1bc3→  96d494…a→    │ │ [0m
+ │                                     │ │      31 666fd5f3-0c45-4097-bedf-616866818392           10030  af5bcdb0-3264-4b3c-91cf-9841dcdbe12→  8cfdc5…f→    │ │ [0m
+ │                                     │ │      32 60378d74-6f01-46f7-ae88-8f2eea08cd3f           10031  29133d87-5162-4dbe-a534-5f8a93fd6f8→  b5ef3c…0→    │ │ [0m
+ │                                     │ │      33 50400819-7127-4639-8f10-67b727af549c           10032  6e37043f-66ce-4cdc-b8ca-9284635784f→  747dde…b→    │ │ [0m
+ │                                     │ │      34 96d494e2-5a1f-40bc-9417-d0b50fa931a8           10033  f936ac92-9fc2-4e6b-9a33-aac1b78bc2b→  9ba3e6…e→    │ │ [0m
+ │                                     │ │      35 8cfdc5a2-1467-458c-8fd5-4dff567144f9           10034  1a520bd3-fa9c-442c-95da-b20a89f59ed→  3c565a…7→    │ │ [0m
+ │                                     │ │      36 b5ef3cdf-d4e1-4a95-bbd6-db1708c5160b           10035  c3781648-7078-4f5e-afef-dddb4866f00→  76bcdd…f→    │ │ [0m
+ │                                     │ │      37 08c5160b-db17-4bd6-9f5e-7078c3781648           10036  4866f00d-dddb-4fef-818c-37a076bcdd6→  202aa3…e→    │ │ [0m
+ │                                     │ │      38 5acedfb6-d72e-4e72-af4f-e7762284d8eb           10037  8ef9852b-6c59-4f73-add6-ca2abdd6eee→  88b114…6→    │ │ [0m
+ │                                     │ │      39 2c00d1ea-5e69-4a70-aac1-62e30eb3023a           10038  5f057419-beb1-4b8a-bc29-cc2e9b1dea5→  bfaf27…4→    │ │ [0m
+ │                                     │ │      40 b48eab70-bbee-43a9-b517-4d18dbbc55a2           10039  27827e7a-926b-4451-b532-9311d28b332→  6ec789…8→    │ │ [0m
+ │                                     │ │      41 202aa3f4-15d2-4141-84b6-92229037eeec           10040  14075dfb-fe9d-49c8-9223-a642b580a24→  ca9a3a…b→    │ │ [0m
+ │                                     │ │      42 88b114bd-04ad-479d-be5c-be980f185067           10041  c2244d61-d50f-4efe-bb03-bfc5a011cee→  dc0b4d…e→    │ │ [0m
+ │                                     │ │      43 bfaf27ec-ff7e-440b-b7a8-0479a1406c4f           10042  aadffcd7-b527-485f-99c4-0486b007a01→  778238…3→    │ │ [0m
+ │                                     │ │      44 a1406c4f-0479-47a8-885f-b527aadffcd7           10043  b007a016-0486-49c4-9c37-2a2c778238b→  a7a51b…e→    │ │ [0m
+ │                                     │ │      45 9d622a88-2e48-4fee-b1ce-58c7afba649b           10044  9520a2e3-583d-4c02-bba6-e1fa03bf6ff→  bae8f9…e→    │ │ [0m
+ │                                     │ │  [0m[2m    46 d1a04dbb-29c6-4de8-a7fc-b3112d6bd62a           10045  22da2e57-702a-4a8b-ab23-617514f9a03→  8152ac…f→    [0m│ │ [0m
+ │                                     │ │   rows 10–46 of 500 loaded · 1,203,338 total · cols 1–3 of 14                                                      │ [0m
+ ╰─────────────────────────────────────╯ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                                                                                                [0m
+ [0m[1m↑↓←→[0m Cell  [0m[1mEnter[0m Edit  [0m[1mAlt+D[0m Duplicate row  [0m[1ms[0m Sort  [0m[1mf[0m Filter  [0m[1mSpace[0m Select row  [0m[1mTab[0m Next                                               Connected to Production [0m
