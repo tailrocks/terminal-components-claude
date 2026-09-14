@@ -1,6 +1,6 @@
 # Historical execution goals, handoff and improvements: direct-source review
 
-This report complements the early/middle/late architecture histories and input review. It records direct Git source reads, not inherited report certification. Pins and topology are in `history.md`; exact parent/blob identities are in `history-revision-index.tsv`. Historical execution instructions have no present mutation authority. `PLANNING_GOAL.md` remains the current boundary.
+This report complements the early/middle/late architecture histories and input review. It records direct Git source reads, not inherited report certification. Pins and topology are in `history.md`; exact parent/blob identities are in `history-revision-index.tsv`. Historical execution instructions have no present mutation authority. `docs/sources/PLANNING_GOAL.md` remains the current boundary.
 
 ## Coverage method
 

@@ -6,7 +6,7 @@ Reviewer scope: planning only; branch topology, protected catalog/source separat
 
 Status: accepted by coordinator; repair pending independent reread.
 
-Sources: `REFACTORING_COMPLETION_PLAN.md` §13 originally says create the integration branch from pinned main **after** the complete oracle contract is frozen; `history.md` recommended integration repeats that order. TASK-070 README P-001 requires TASK-001's actual integrated source ancestry; TASK-002 P-002 and the baseline DAG require the integrated 001→070→071→072 chain. `proof-contract.md:125–148` prepares and advances the campaign integration parent/ref for those tasks.
+Sources: `docs/sources/REFACTORING_COMPLETION_PLAN.md` §13 originally says create the integration branch from pinned main **after** the complete oracle contract is frozen; `history.md` recommended integration repeats that order. TASK-070 README P-001 requires TASK-001's actual integrated source ancestry; TASK-002 P-002 and the baseline DAG require the integrated 001→070→071→072 chain. `proof-contract.md:125–148` prepares and advances the campaign integration parent/ref for those tasks.
 
 Reproduction: start future execution at pinned main with no integration branch. Obey §13 by withholding branch creation until TASK-006 seals all oracle namespaces. TASK-070 cannot start without integrated TASK-001, and baseline tasks cannot start without integrated proof predecessors. No separate preparation branch/handoff is defined. Creating a fresh pinned-main branch after completing those source producers would also omit their required ancestry.
 

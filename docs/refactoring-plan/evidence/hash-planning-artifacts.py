@@ -18,7 +18,7 @@ def main():
     args = parser.parse_args()
     root = args.root.resolve()
     manifest = root / "docs/refactoring-plan/planning-artifacts.tsv"
-    paths = [root / "REFACTORING_COMPLETION_PLAN.md"]
+    paths = [root / "docs/sources/REFACTORING_COMPLETION_PLAN.md"]
     for directory in (root / "docs/refactoring-plan", root / "refactoring-tasks"):
         for path in directory.rglob("*"):
             if path.is_symlink():

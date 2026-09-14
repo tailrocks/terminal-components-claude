@@ -1,6 +1,6 @@
 # Editor and Unicode search audit
 
-Scope: current `holla-fable` worktree only. Existing `CodeEditor`, `TextBuffer`, and `ui::text::fuzzy` cover the capability; no new widget or public dependency required. Contract: `DESIGN.md` shared editing rules and Code editor section; existing showcase Editor page, TablePro queries, Holla completion ranking.
+Scope: current `holla-fable` worktree only. Existing `CodeEditor`, `TextBuffer`, and `ui::text::fuzzy` cover the capability; no new widget or public dependency required. Contract: `docs/design/DESIGN.md` shared editing rules and Code editor section; existing showcase Editor page, TablePro queries, Holla completion ranking.
 
 ## Confirmed defects and changes
 

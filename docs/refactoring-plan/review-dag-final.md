@@ -50,7 +50,7 @@ Repair: align the top-level command contract with the tested bootstrap command: 
 
 ## DAG-FINAL-05 — P2: authoritative synthesis still describes a superseded graph and clause count
 
-Affected references: REFACTORING_COMPLETION_PLAN.md:156,160; TASK-007 README R-001 and trusted/obligations.md.
+Affected references: docs/sources/REFACTORING_COMPLETION_PLAN.md:156,160; TASK-007 README R-001 and trusted/obligations.md.
 
 Independent graph calculation from current task.toml/verify.toml yields 73 tasks, maximum depth 33, 24 longest paths, and zero incomparable writable-path overlaps. TASK-066 has a hard dependency on TASK-065. The top-level plan still states depth 32, 72 deepest paths and a separate TASK-065/TASK-066 soft lock. TASK-007 also requires a `complete621-row historical union`, while the current canonical historical table and validator have 620 rows.
 
@@ -72,8 +72,8 @@ Recorded SHA-256 boundaries (file bytes unless otherwise stated):
 
 | Input | SHA-256 |
 | --- | --- |
-| PLANNING_GOAL.md | `728c65a7a771ed2cd8ba15c78e685e889244a9fa339a18dc2dc2cde0f3d4cbe5` |
-| REFACTORING_COMPLETION_PLAN.md | `91e0aa45b6ca74fd6fdaf9776776709dd5c9dde263894956c509b731cddc17ef` |
+| docs/sources/PLANNING_GOAL.md | `728c65a7a771ed2cd8ba15c78e685e889244a9fa339a18dc2dc2cde0f3d4cbe5` |
+| docs/sources/REFACTORING_COMPLETION_PLAN.md | `91e0aa45b6ca74fd6fdaf9776776709dd5c9dde263894956c509b731cddc17ef` |
 | task-index.tsv | `7efa40b0b5a2e0e6649b07d1f4a00939fb2cfc877e529b966c75f250218f7eb2` |
 | task-graph.json | `49eaf7475fde8a87e2ab71f1d8945f45829baa580e6160ced79e0c339e02a802` |
 | proof-contract.md | `451e6fb017f868198552a2abe49839272fb7cf4a5edd1ab8eea2ede63018ae74` |

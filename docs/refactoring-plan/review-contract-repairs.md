@@ -63,8 +63,8 @@ Pinned-source blob SHA-256 values:
 <summary>Exact reviewed-file SHA-256 manifest</summary>
 
 ```text
-728c65a7a771ed2cd8ba15c78e685e889244a9fa339a18dc2dc2cde0f3d4cbe5  PLANNING_GOAL.md
-95adbf476d7c6aa3b65e3a6f23405af3c219bc053dc4781c1f798090c2b7d62d  REFACTORING_COMPLETION_PLAN.md
+728c65a7a771ed2cd8ba15c78e685e889244a9fa339a18dc2dc2cde0f3d4cbe5  docs/sources/PLANNING_GOAL.md
+95adbf476d7c6aa3b65e3a6f23405af3c219bc053dc4781c1f798090c2b7d62d  docs/sources/REFACTORING_COMPLETION_PLAN.md
 a8cf605e3fd58fe152b1e1f6db6b363fdb52923538aae6bd0f9cb73a5e0adf61  docs/refactoring-plan/campaign-executor-protocol.md
 50d82610d20ee7f0c30bd712333b2685f1561614326d71124e531a7524b4c7eb  docs/refactoring-plan/component-parity.tsv
 714493c78e2be578fdef1248329b75268da07e746179bd27cf2381fc0f92847a  docs/refactoring-plan/dag-final-repairs.md

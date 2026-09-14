@@ -4,7 +4,7 @@ Audit date: 2026-09-11. Planning only. Oracle `02f5294bfdbf38004cc49130d0aff1d01
 
 ## Method and coverage
 
-Read PLANNING_GOAL.md; canonical task/v5 README, verify/v2, task-meta/v1 implementation and AGENTS instructions; every task032–039 file in full. Verified source with immutable `git show`, not current candidate behavior. Read all23 oracle page implementations and shell/main/page dispatch; investigated shared input/dialog/table/scrollbar handlers behind each disputed transition. Compared task scopes/dependencies with main's controlled-component migration and remaining app-local compatibility paths. The verification skill keeps work planning-only; Rust testing policy applies only to disposable oracle diagnostics.
+Read `docs/sources/PLANNING_GOAL.md`; canonical task/v5 README, verify/v2, task-meta/v1 implementation and AGENTS instructions; every task032–039 file in full. Verified source with immutable `git show`, not current candidate behavior. Read all23 oracle page implementations and shell/main/page dispatch; investigated shared input/dialog/table/scrollbar handlers behind each disputed transition. Compared task scopes/dependencies with main's controlled-component migration and remaining app-local compatibility paths. The verification skill keeps work planning-only; Rust testing policy applies only to disposable oracle diagnostics.
 
 Default coverage remains all23 routes × four sizes × four palettes =368 complete initial frames, plus every stateful checkpoint and crosscut expansion. Initial frame matching alone cannot establish edit commits, valid retries, selected identity, overlay ownership, or absent geometry.
 

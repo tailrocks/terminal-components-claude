@@ -179,7 +179,7 @@ This is a byte inventory at review time, not a semantic-read claim for every sur
 
 | Path | Lines | SHA-256 |
 | --- | --- | --- |
-| PLANNING_GOAL.md | 1069 | 728c65a7a771ed2cd8ba15c78e685e889244a9fa339a18dc2dc2cde0f3d4cbe5 |
+| docs/sources/PLANNING_GOAL.md | 1069 | 728c65a7a771ed2cd8ba15c78e685e889244a9fa339a18dc2dc2cde0f3d4cbe5 |
 | docs/refactoring-plan/history-inputs-obligations.tsv | 67 | 6b345f25b9d5d94cd2c168cefd667e1a46a0bc74634c7025742199b45fded700 |
 | docs/refactoring-plan/history-inputs-api-app-research-obligations.tsv | 45 | 82228e48f65b7bfc1dd5f8b2968bd7580333a39ebe74736fba60b2779b5fb144 |
 | docs/refactoring-plan/history-inputs-api-app-research.md | 96 | 3fc1e0bd4a0878d0e6504a78d5decffdc934c95687a1fb8d110c4c43d706d283 |

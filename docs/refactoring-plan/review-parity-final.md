@@ -6,9 +6,9 @@ Review date: 2026-09-11. Verdict: **changes required**. This is a planning revie
 
 Independently resolved Git objects:
 
-- Oracle: `02f5294bfdbf38004cc49130d0aff1d01f31434c` (`holla-fable-2026-09-10^{commit}`).
+- Oracle: `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze, formerly tagged `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`).
 - Architectural main: `7b27732a8c3c131760ec3438f641cb3c11343a42`.
-- Planning checkout HEAD: `2e2401393c47360741ebd321679de08982dca50a`.
+- Investigation checkout HEAD: `2e2401393c47360741ebd321679de08982dca50a`.
 
 Read the complete planning goal and 24-section root plan; reviewed application reports/scenario contracts, component inventory/common contracts, parity synthesis, shell contributions, proof contract, task index/dependencies, and canonical task requirements/obligations with particular attention to 032–064. Direct source checks used `rtk git show`/`git grep` at the exact oracle/main objects. The 1,075-source/2,703-edge structural traceability result is not semantic proof of ordering or scenario executability.
 

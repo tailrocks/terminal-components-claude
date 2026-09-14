@@ -2,7 +2,7 @@
 
 ## Authority and measured tool state
 
-The user-visible oracle is exactly `02f5294bfdbf38004cc49130d0aff1d01f31434c`, the peeled `holla-fable-2026-09-10` tag. `git rev-parse 'holla-fable-2026-09-10^{}'` reproduced that SHA on 2026-09-11. The architectural candidate inspected here is `7b27732a`; the coordinator's topology evidence supplies its complete SHA. The working `holla` checkout is not the oracle.
+The user-visible oracle used here is exactly `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze, formerly tagged `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`). That SHA was recorded on 2026-09-11. The architectural candidate inspected here is `7b27732a`; the coordinator's topology evidence supplies its complete SHA. The working `visual-baseline` checkout is not the oracle.
 
 `git ls-remote https://github.com/donbeave/tui-snap.git refs/heads/main` returned `5036cf87e621e6beb66deffe3224abdbefc955cb`. README, USAGE, CI, MIGRATION, Cargo manifest, frame adapters, PTY wrapper, store implementation and tests were inspected at that revision. The crate name is `tuisnap`, version 0.2.0. Its Ratatui dependency is 0.30, matching the oracle's Ratatui generation. Main uses `ratatui-core` 0.1.2; the external verification harness may depend on Ratatui 0.30 but must not reintroduce that facade into the backend-free production crate.
 

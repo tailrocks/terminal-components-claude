@@ -102,7 +102,7 @@ def main() -> int:
             raise ValueError("Stored machine graph is stale; regenerate from canonical metadata")
         if (docs / "task-graph.md").read_text() != "\n".join(lines):
             raise ValueError("Stored readable graph is stale; regenerate from canonical metadata")
-    plan = (root / "REFACTORING_COMPLETION_PLAN.md").read_text()
+    plan = (root / "docs/sources/REFACTORING_COMPLETION_PLAN.md").read_text()
     stated = re.findall(r"maximum dependency depth (\d+) and (\d+) equally deepest paths", plan)
     if stated != [(str(maximum), str(graph["longest_path_count"]))]:
         raise ValueError("Authoritative plan depth/path count differs from canonical DAG")

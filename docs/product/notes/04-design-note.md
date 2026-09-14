@@ -137,7 +137,7 @@ already owns: `s` stop, `f` follow, `p` facts drawer, `x` close, `u` undo,
 16. Local-first and privacy-conscious. Memory is per path and host in the
     fixture; secrets never reach a command line (`password never shown`).
 
-## Conventions added to DESIGN.md on purpose
+## Conventions added to [DESIGN.md](../../design/DESIGN.md) on purpose
 
 Finder rows, the query row with a scope readout, the stage outline, and
 the two-gate pages are recorded under Composed patterns. No glyph gained a

@@ -18,7 +18,7 @@ Current-phase completion does not imply deferred clauses have passed.
 
 **P2 · design inconsistency.** `pages/textareas.rs:37` labels `.disabled(true)`
 as “Read-only transcript”; disabled TextArea refuses focus/keys, unlike
-`DESIGN.md`'s readable/navigable read-only contract. Design and ecosystem audits
+`docs/design/DESIGN.md`'s readable/navigable read-only contract. Design and ecosystem audits
 independently verify it.
 
 Label the existing disabled fixture accurately. Demonstrate a read-only transcript

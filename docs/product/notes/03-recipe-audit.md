@@ -428,34 +428,32 @@ Baselines: only the showcase has `tests/showcase_baseline.txt` (FNV digest of ev
 
 ---
 
-## 9. Visual baseline (`tools/tuisnap_baseline.sh`)
+## 9. Visual baseline (`tests/visual_baseline/`)
 
 The tmux/Python capture harness this note originally documented (capture.sh +
 ansi2png.py + env.sh) was removed 2026-09-12; the `shots/` corpus it produced
 (`f_*` showcase, `s_*` component pages, `t_*` tablepro, `j_*` jackin, `h_*`
-holla) is frozen historical evidence. The current recipe is the tuisnap
-snapshot store at `shots/tuisnap/`:
+holla) is frozen historical evidence. The current recipe is the grouped
+snapshot store at `snapshots/` (`tests/visual_baseline/`; see
+`docs/baseline/snapshots-v2.md` and `docs/baseline/tuisnap-coverage.md`):
 
 ```sh
-tools/tuisnap_baseline.sh                      # build + capture the 367-capture matrix
-open shots/tuisnap/report.html                 # review every actual
-tuisnap accept --store shots/tuisnap --all     # approve after review
-tuisnap report --store shots/tuisnap           # re-verify: approved frames must report matched
-APPS=holla ONLY='holla_rust-dirty' SKIP_BUILD=1 tools/tuisnap_baseline.sh   # subset re-run
+cargo nextest run --run-ignored only -E 'binary(visual_baseline)'   # capture the matrix
+open target/tuisnap/report.html                                    # review every actual
+# bless and re-verify: see docs/baseline/snapshots-v2.md
 ```
 
-- Naming: `<app>_<surface>_<state>_<cols>x<rows>_<color>`; the matrix and its
-  rationale live in `docs/baseline/tuisnap-coverage.md`; the runner is the
-  executable source of truth. Sizes used: 120×40 (primary review), 80×24
-  (canonical default), 100×30 (holla mono + tablepro drawer breakpoint),
-  160×50 (wide holla), 72×20 (documented minimum, spot only).
+- Naming and taxonomy: see `docs/baseline/snapshots-v2.md`; the matrix and its
+  rationale live in `docs/baseline/tuisnap-coverage.md`; the runner
+  `tests/visual_baseline/` is the executable source of truth. Sizes used: 120×40
+  (primary review), 80×24 (canonical default), 100×30 (holla mono + tablepro
+  drawer breakpoint), 160×50 (wide holla), 72×20 (documented minimum, spot only).
 - Paused-frame determinism: captures pass `--scenario … --motion paused
   --frame N`; holla/jackin frames are exact under the seeded sim, and
   `HOLLA_NO_HISTORY=1` (exported by the runner) suppresses history side
   effects.
-- Git tracking: `approved/` and `frames/*.{ansi,txt}` are tracked; `actual/`,
-  `diff/`, `report.html` and `frames/*.{png,html}` are ignored deterministic
-  re-renders (`tuisnap render`, `tuisnap report`).
+- Git tracking: approved frames live under `snapshots/`; scratch actuals,
+  diffs, and the HTML report live under `target/tuisnap/`.
 - The runner strips `NO_COLOR` from its environment (`PRESERVE_NO_COLOR=1`
   opts out) — an exported NO_COLOR silently poisons every colour capture.
 - Lanes tuisnap CLI cannot drive (mouse hover/drag, mid-session resize,

@@ -1,6 +1,6 @@
 # Holla staged route ownership
 
-This contract resolves PARITY-FINAL-01 across every Holla primary scenario, not only the examples in the review. [holla-stage-audit.tsv](holla-stage-audit.tsv) lists all135 rows, their prior and corrected complete primary owners, source evidence and complete-route rationale. [holla-stage-contributions.tsv](holla-stage-contributions.tsv) fixes nonempty passing work for early slices whose complete journeys cross later producers.
+This contract resolves PARITY-FINAL-01 across every Holla primary scenario, not only the examples in the review. [docs/refactoring-plan/holla-stage-audit.tsv](../../../../../docs/refactoring-plan/holla-stage-audit.tsv) lists all135 rows, their prior and corrected complete primary owners, source evidence and complete-route rationale. [stage-contributions.tsv](stage-contributions.tsv) fixes nonempty passing work for early slices whose complete journeys cross later producers.
 
 The audit follows the actual pinned test/helper bodies, `App::start` fixture routes and input handlers, including action activation by SWEEP. A title such as Finder, Gates, Files or Output is not a scope boundary. In particular, Finder double-click invokes its action; a file-menu Analyze command opens Disk; HP01 ends on Config; HP14 constructs a second Git-batch world; and the purported Finder fade seed actually opens Cleanup categories.
 
