@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Screens / Settings             256 colors · 100×30   i Inspector   ? Help
+
+   Overview          Project settings  Composed: tabs, form, editable table, list, dialogs
+   Buttons
+   Inputs             General    Members    Environment
+   Text areas        ───────────━━━━━━━━━━──────────────────────────────────────────────────────────
+   Forms
+   Lists              ▎Members                                                           6 members
+   Trees
+   Tables                 Name                         Email               Role      Last active
+   Editable tables        Mira Okafor                  mira@acme.dev       Owner           today
+   Panels              ▎  Jonas Weber                  jonas@acme.dev      Admin         2 h ago
+   Sidebars               Ana Costa                    ana@acme.dev        Member      yesterday
+   Dialogs                Kai Tanaka                   kai@acme.dev        Member        3 d ago
+   Progress               Sofia Rossi                  sofia@acme.dev      Viewer          never
+   Scrolling              deploy-bot                   bot@acme.dev        Member        1 m ago
+   Terminal
+   Code editor          Invite    Remove…   cursor: Jonas Weber
+   Diff
+   Data grid
+   Chips & selects
+   Pickers
+   Chrome
+ › Settings
+   Task runner
+
+
+
+
+ ↑ ↓ ← → Cell  Enter Edit  s Sort  Tab Next

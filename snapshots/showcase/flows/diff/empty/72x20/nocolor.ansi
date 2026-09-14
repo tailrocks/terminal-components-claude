@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Diff        i Inspector   ? Help  [0m
+                                                                        [0m
+[0m[2m   Buttons        [0m│  [0m[1mDiff viewer[0m  Unified or old / new review · narrow… [0m
+   Inputs         ┃                                                     [0m
+   Text areas     ┃   ● Review   ▎[0m[1m● Empty [0m                              [0m
+   Forms          ┃                                                     [0m
+   Lists          ┃  ╭─ Diff ──────────────────────────────────────────╮[0m
+   Trees          ┃  │  No file selected                               │[0m
+   Tables         ┃  │                                                 │[0m
+   Editable tabl… ┃  │                                                 │[0m
+   Panels         ┃  │                                                 │[0m
+   Sidebars       ┃  │                                                 │[0m
+   Dialogs        ┃  │                                                 │[0m
+   Progress       ┃  │                                                 │[0m
+   Scrolling      │  │                                                 │[0m
+   Terminal       │  │                                                 │[0m
+   Code editor    │  │                                                 │[0m
+[0m[2m › Diff           [0m│  ╰─────────────────────────────────────────────────╯[0m
+                                                                        [0m
+ [0m[1mEnter[0m Toggle  [0m[1mTab[0m Next control                                         [0m

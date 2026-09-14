@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Chrome      i Inspector   ? Help
+
+   Lists          │  Chrome  Brand lockup · menu bar with anchored men…
+   Trees          │
+   Tables         │    app❯  ▎ File   View   Help
+   Editable tabl… │
+   Panels         ┃    Sessions      right-click or m for the tab menu
+   Sidebars       ┃
+   Dialogs        ┃       1 Claude Code (Work)                working
+   Progress       ┃       2 Codex (Primary)                      idle
+   Scrolling      ┃       3 Shell
+   Terminal       ┃       4 docs                              blocked
+   Code editor    ┃
+   Diff           ┃
+   Data grid      ┃
+   Chips & selec… ┃   payments-platform   PR #482 · settlement backoff
+   Pickers        ┃   hint bar · topmost layer wins:
+ › Chrome         │   ← → Menu  Enter Open  Tab Next
+
+ ← → Menu  Enter Open  Tab Next

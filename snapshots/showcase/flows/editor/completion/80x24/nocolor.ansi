@@ -1,0 +1,24 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Code editor         i Inspector   ? Help  [0m
+                                                                                [0m
+   Overview       ┃  [0m[1mCode editor[0m  Blocks, tones, diagnostics and completion; t… [0m
+   Buttons        ┃                                                             [0m
+   Inputs         ┃   ▎[0m[1mretry.rs[0m                                       3 blocks  [0m
+   Text areas     ┃                                                             [0m
+   Forms          ┃    ▎› [0m[1m 1[0m [0m[4mcl[0m[3;4m// Retry a request with exponential backoff.[0m[4m  [0m┃  [0m
+   Lists          ┃        2 [0m[1m╭──[0m─[0m[1m─────[0m─[0m[1m──[0m──────────────────────────────────╮…│  [0m
+   Trees          ┃        3 │[0m[1m▎[0mT[0m[1m Client                             [0mstruct[0m[1m [0m│ │  [0m
+   Tables         ┃        4 │ ƒ [0m[1mcl[0mient(     [0m[1m  [0m            fn () -> Client │ │  [0m
+   Editable tabl… ┃    [0m[2m    5 │ ƒ s[0m[1;2mc[0m[2mhedu[0m[1;2ml[0m[2me(  fn (attempts: u32) -> Vec<u64> │ [0m│  [0m
+   Panels         ┃          ╰─────────────────────────────────────────────╯3   [0m
+   Sidebars       ┃                                                             [0m
+   Dialogs        ┃    State                                                    [0m
+   Progress       ┃                                                             [0m
+   Scrolling      ┃    Mode         editing                                     [0m
+   Terminal       ┃    Cursor       ln 1 · col 3                                [0m
+ › Code editor    ┃    Block        1 of 3                                      [0m
+   Diff           ┃    Runs         0                                           [0m
+   Data grid      │    Last run     —                                           [0m
+   Chips & selec… │    Diagnostics  0                                           [0m
+[0m[2m   Pickers        [0m│                                                             [0m
+                                                                                [0m
+ [0m[1m EDIT [0m  [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Accept  [0m[1mEsc[0m Close                                      [0m

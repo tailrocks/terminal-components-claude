@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Dialogs     i Inspector   ? Help
+
+   Overview       ┃  Dialogs  Focus is trapped, the page dims, Esc alw…
+   Buttons        ┃
+   Inputs         ┃    Open a dialog
+   Text a╭────────────────────────────────────────────────────╮
+   Forms │                                                    │oices…
+   Lists │  Delete branch?                                    │
+   Trees │                                                    │y / n …
+   Tables│  feat/rate-limit has 14 commits that are not on    │bmits,…
+   Editab│  main. This cannot be undone.                      │n in d…
+   Panels│                                                    │
+   Sideba│                          ▎Cancel   Delete branch   │
+ › Dialog│                                                    │
+   Progre╰────────────────────────────────────────────────────╯
+   Scrolling      │
+   Terminal       │    Nothing yet
+   Code editor    │
+
+ ← → Choose  Enter Confirm  Esc Cancel  y / n Quick answer

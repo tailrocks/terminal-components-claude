@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Scrolling                                                                      truecolor · 160×50   i Inspector   ? Help
+
+   Foundations            Scrolling  Wheel under the pointer, keys on the focused container, thumb shows where you are, edges fade toward hidden rows
+   Overview
+                            Wrapped text                 1–41 of 78      Long list                   1–41 of 120      Log        1160–1200 of 1200 · following
+   Components
+   Buttons                  Junie works through a task the way a  ┃         Row 001                            ┃       428.83s  info   test api::auth::test… │
+   Inputs                   careful engineer would: it reads the  ┃         Row 002                            ┃       429.20s  info   test db::pool::tests… │
+   Text areas               relevant code, forms a plan, makes    ┃         Row 003                            ┃       429.57s  error  test checkout::place… │
+   Forms                    focused changes, runs the tests, and  ┃         Row 004                            ┃       429.94s  info   test workers::schedu… │
+   Lists                    reports back with a summary you can   ┃         Row 005                            ┃       430.31s  info   Linking target/debug… │
+   Trees                    review before anything is merged.     ┃         Row 006                            ┃       430.68s  info   Resolving workspace … │
+   Tables                                                         ┃         Row 007                    flagged ┃       431.05s  info   Fetching crates.io i… │
+   Editable tables          Each step is visible. You can pause,  ┃         Row 008                            ┃       431.42s  info   Compiling proc-macro… │
+   Panels                   redirect, or take over at any point,  ┃         Row 009                            ┃       431.79s  info   Compiling serde v1.0… │
+   Sidebars                 and every change lands as an ordinary ┃         Row 010                            ┃       432.16s  warn   unused import: `std:… │
+   Dialogs                  diff in your working tree.            ┃         Row 011                            ┃       432.53s  info   Compiling tokio v1.4… │
+   Progress                                                       ┃         Row 012                            ┃       432.90s  info   Running unittests sr… │
+▎› Scrolling                The design system in this prototype   ┃         Row 013                            ┃       433.27s  info   test api::auth::test… │
+   Terminal                 exists so that the terminal version   ┃         Row 014                    flagged ┃       433.64s  info   test db::pool::tests… │
+   Code editor              of that experience feels as           ┃         Row 015                            │       434.01s  error  test checkout::place… │
+   Diff                     deliberate as the web version: quiet  ┃         Row 016                            │       434.38s  info   test workers::schedu… │
+   Data grid                surfaces, one accent, clear focus,    ┃         Row 017                            │       434.75s  info   Linking target/debug… │
+   Chips & selects          and no decoration that does not carry ┃         Row 018                            │       435.12s  info   Resolving workspace … │
+   Pickers                  information.                          ┃         Row 019                            │       435.49s  info   Fetching crates.io i… │
+   Chrome                                                         ┃         Row 020                            │       435.86s  info   Compiling proc-macro… │
+                            Scroll with the mouse wheel,          ┃         Row 021                    flagged │       436.23s  info   Compiling serde v1.0… │
+   Screens                  PageUp/PageDown, or the arrow keys    │         Row 022                            │       436.60s  warn   unused import: `std:… │
+   Settings                 while this panel has focus. The       │         Row 023                            │       436.97s  info   Compiling tokio v1.4… │
+   Task runner              scrollbar on the right shows where    │         Row 024                            │       437.34s  info   Running unittests sr… │
+                            you are and how much remains.         │         Row 025                            │       437.71s  info   test api::auth::test… │
+                                                                  │         Row 026                            │       438.08s  info   test db::pool::tests… │
+                            Junie works through a task the way a  │         Row 027                            │       438.45s  error  test checkout::place… │
+                            careful engineer would: it reads the  │         Row 028                    flagged │       438.82s  info   test workers::schedu… │
+                            relevant code, forms a plan, makes    │         Row 029                            │       439.19s  info   Linking target/debug… │
+                            focused changes, runs the tests, and  │         Row 030                            │       439.56s  info   Resolving workspace … │
+                            reports back with a summary you can   │         Row 031                            │       439.93s  info   Fetching crates.io i… │
+                            review before anything is merged.     │         Row 032                            │       440.30s  info   Compiling proc-macro… │
+                                                                  │         Row 033                            │       440.67s  info   Compiling serde v1.0… │
+                            Each step is visible. You can pause,  │         Row 034                            │       441.04s  warn   unused import: `std:… │
+                            redirect, or take over at any point,  │         Row 035                    flagged │       441.41s  info   Compiling tokio v1.4… │
+                            and every change lands as an ordinary │         Row 036                            │       441.78s  info   Running unittests sr… │
+                            diff in your working tree.            │         Row 037                            │       442.15s  info   test api::auth::test… │
+                                                                  │         Row 038                            │       442.52s  info   test db::pool::tests… │
+                            The design system in this prototype   │         Row 039                            │       442.89s  error  test checkout::place… │
+                            exists so that the terminal version   │         Row 040                            │       443.26s  info   test workers::schedu… │
+                            of that experience feels as           │         Row 041                            │       443.63s  info   Linking target/debug… ┃
+
+
+ ↑ ↓ Move  Enter Open  Tab Into page  q Quit

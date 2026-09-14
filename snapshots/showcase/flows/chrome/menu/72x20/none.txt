@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Chrome      i Inspector   ? Help
+
+   Lists          │  Chrome  Brand lockup · menu bar with anchored men…
+   Trees          │
+   Tables         │    app❯    File   View   Help
+   Editable tabl… │           ╭───────────────────╮
+   Panels         ┃    Session│  New tab        c │ m for the tab menu
+   Sidebars       ┃           │  Split right    % │
+   Dialogs        ┃       1 Cl│  Export…          │           working
+   Progress       ┃       2 Co│ ───────────────── │              idle
+   Scrolling      ┃       3 Sh│  Close tab      & │
+   Terminal       ┃       4 do╰───────────────────╯           blocked
+   Code editor    ┃
+   Diff           ┃
+   Data grid      ┃
+   Chips & selec… ┃   payments-platform   PR #482 · settlement backoff
+   Pickers        ┃   hint bar · topmost layer wins:
+ › Chrome         │   ↑↓ Move  ← → Switch menu  Enter Choose  …
+
+ ↑↓ Move  ← → Switch menu  Enter Choose  Esc Close  Tab Next

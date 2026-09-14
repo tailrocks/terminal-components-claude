@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Scrolling          16 colors · 100×30   i Inspector   ? Help
+
+   Overview          Scrolling  Wheel under the pointer, keys on the focused container, thumb show…
+   Buttons
+   Inputs             ▎Wrapped … 4–24 of 141      Long list 1–21 of 120      Log 1980–2000 of 200…
+   Text areas
+   Forms               would: it reads the ┃         Row 001          ┃       732.23s  info   L… │
+   Lists               relevant code,      ┃         Row 002          ┃       732.60s  info   R… │
+   Trees               forms a plan, makes ┃         Row 003          ┃       732.97s  info   F… │
+   Tables              focused changes,    │         Row 004          │       733.34s  info   C… │
+   Editable tables     runs the tests, and │         Row 005          │       733.71s  info   C… │
+   Panels              reports back with a │         Row 006          │       734.08s  warn   u… │
+   Sidebars            summary you can     │         Row 007          │       734.45s  info   C… │
+   Dialogs             review before       │         Row 008          │       734.82s  info   R… │
+   Progress            anything is merged. │         Row 009          │       735.19s  info   t… │
+ › Scrolling                               │         Row 010          │       735.56s  info   t… │
+   Terminal            Each step is        │         Row 011          │       735.93s  error  t… │
+   Code editor         visible. You can    │         Row 012          │       736.30s  info   t… │
+   Diff                pause, redirect, or │         Row 013          │       736.67s  info   L… │
+   Data grid           take over at any    │         Row 014          │       737.04s  info   R… │
+   Chips & selects     point, and every    │         Row 015          │       737.41s  info   F… │
+   Pickers             change lands as an  │         Row 016          │       737.78s  info   C… │
+   Chrome              ordinary diff in    │         Row 017          │       738.15s  info   C… │
+   Settings            your working tree.  │         Row 018          │       738.52s  warn   u… │
+   Task runner                             │         Row 019          │       738.89s  info   C… │
+                       The design system   │         Row 020          │       739.26s  info   R… │
+                       in this prototype   │         Row 021          │       739.63s  info   t… ┃
+
+
+ ↑ ↓ Scroll  PgUp PgDn Page  g G Ends  Tab Next

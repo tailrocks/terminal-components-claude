@@ -1,0 +1,30 @@
+ ▪ Junie Design system / Components / Chrome            256 colors · 100×30   i Inspector   ? Help
+
+   Overview          Chrome  Brand lockup · menu bar with anchored menus · status bar planes and p…
+   Buttons
+   Inputs              app❯    File   View   Help
+   Text areas
+   Forms              ▎Sessions                                  right-click or m for the tab menu
+   Lists
+   Trees                  1 Claude Code (Work)                 working     The status bar below s…
+   Tables              ▎  2 Codex (Primary)                       idle     separator glyphs, and …
+   Editable tables        3 ╭─────────────────────╮                        narrow — resize the te…
+   Panels                 4 │  2 Codex (Primary)  │            blocked
+   Sidebars                 │  Change title…    r │                        Brand: one lockup, acc…
+   Dialogs                  │  Move left          │
+   Progress                 │  Move right         │
+   Scrolling                │ ─────────────────── │
+   Terminal                 │  Close            x │
+   Code editor              ╰─────────────────────╯
+   Diff
+   Data grid
+   Chips & selects
+   Pickers
+ › Chrome
+   Settings
+   Task runner
+                      payments-platform   PR #482 · settlement backoff                  Weekly 59%
+                      hint bar · topmost layer wins:
+                      ↑↓ Move  Enter Choose  Esc Close
+
+ ↑↓ Move  Enter Choose  Esc Close  Tab Next
