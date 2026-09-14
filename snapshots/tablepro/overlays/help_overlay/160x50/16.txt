@@ -1,0 +1,50 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                                                                     16 colors · 160×50  ? help
+
+  ≡ Query 1 ×                                                                                                                                               +
+ ━━━━━━━━━━━━━━────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ ╭─ Explorer ───────────────── public ─╮ ╭─ Query 1 ───────────────────────────────────────────────────────────────────────────────────────────────────────  ─╮
+ │                                     │ │      1 Type SQL. Ctrl+R runs the statement under the cursor.                                                       │
+ │   Filter objects                    │ │                                                                                                                    │
+ │  ▾ D acme_prod                      │ │                                                                                                                    │
+ │    ▾ S public                       │ │                                                                                                                    │
+ │      ▾ Tables                    7  │ │                                                                                                                    │
+ │        ▸ T organizations     1.2 k  │ │                                                                                                                    │
+ │        ▸ T customers        48.9 k  │ │                                                                                                                    │
+ │        ▸ T products            312  │ │                                                                                                                    │
+ │        ▸ T orders            1.2 M  │ │                                                                                                                    │
+ │        ▸ T order_items       3.8 M  │ │                                                                                                                    │
+ │        ▸ T payments          1.2 M  │ ╭────────────────────────────────────────────────────────────────────────────╮                                       │
+ │        ▸ T subscriptions     1.1 k  │ │                                                                            │                                       │
+ │      ▸ Views                     2  │ │  Keyboard                                                                  │                                       │
+ │      ▸ Functions                 1  │ │                                                                            │                                       │
+ │      ▸ Sequences                 1  │ │  Tab / Shift+Tab   move focus · 0 explorer · Esc back                      │                                       │
+ │    ▸ S analytics                    │ │  Ctrl+O            Open Quickly (tables, schemas, tabs, queries)           │                                       │
+ │    ▸ S audit                        │ │  Ctrl+T / Ctrl+W   new / close tab · [ ] switch · Ctrl+G tab list          │                                       │
+ │                                     │ │  Ctrl+R / F5       run statement at cursor · Alt+R run all                 │                                       │
+ │                                     │ │  Ctrl+X / Alt+X    EXPLAIN / EXPLAIN ANALYZE                               │                                       │
+ │                                     │ │  Esc / Ctrl+C      cancel a running query                                  │                                       │
+ │                                     │ │  Ctrl+D            Data / Structure · Ctrl+F filter (grid) or find         │                                       │
+ │                                     │ │  (editor)                                                                  │                                       │
+ │                                     │ │  Alt+D             duplicate the current grid row                          │                                       │
+ │                                     │ │  Ctrl+S            save pending row changes · p preview SQL                │                                       │
+ │                                     │ │  Ctrl+Y            query history · Ctrl+L Safe Mode · Ctrl+B explorer · z  │                                       │
+ │                                     │ │  zoom                                                                      │                                       │
+ │                                     │ │  q                 quit                                                    │                                       │
+ │                                     │ │                                                                            │                                       │
+ │                                     │ │                                                                   ▎Close   │                                       │
+ │                                     │ │                                                                            │+R runs all                            │
+ │                                     │ ╰────────────────────────────────────────────────────────────────────────────╯                                       │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ │                                     │ │                                                                                                                    │
+ ╰─────────────────────────────────────╯ ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ← → Choose  Enter Confirm  Esc Cancel  y / n Quick answer                                                                              Connected to Production

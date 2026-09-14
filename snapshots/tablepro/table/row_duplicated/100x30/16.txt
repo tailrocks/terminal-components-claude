@@ -1,0 +1,30 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe                • 1 pending  ? help
+
+  ≡ Query 1 ×    T orders ×                                                                     +
+ ───────────────━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────
+ ╭─ public › orders ──────────────────────────────────────────────────────────────────── 14 cols ─╮
+ │   Data    Structure                                                                            │
+ │  ━━━━━━━────────────────────────────────────────────────────────────────────────────────────── │
+ │                                                                                                │
+ │         ⚷ id                                    order_number  customer_id                 12›  │
+ │     485 d5c0b11b-3833-40de-a64d-a7b65c91c707           10484  2313b76a-a087-4da3…2b7e1c4→    │ │
+ │     486 ad8045e9-fecb-49ab-bdc5-77c375e7e122           10485  fc493fac-90e7-4167…031c7dc→    │ │
+ │     487 75e7e122-77c3-4dc5-8167-90e7fc493fac           10486  031c7dcf-04a3-4f08…5d1a5a3→    │ │
+ │     488 ed273d96-a94e-4c54-ad3c-368302de0fa6           10487  14f1927e-2c27-4914…b5a913c→    │ │
+ │     489 58a291e1-49d7-4f60-b246-cd7df9dc71b5           10488  4b3a182e-8c36-4b3b…93d0680→    │ │
+ │     490 19e3a260-57b7-406a-a0e3-07c13c95bcf1           10489  53ace96a-67e9-481d…12dd25b→    │ │
+ │     491 63803b5f-29a5-4c74-a8ff-e559c0edb695           10490  8f308a1a-c7e0-4bdc…edc5b30→    │ │
+ │     492 5d9a96aa-bac3-4075-9060-e3d81c23cc44           10491  53446c08-f408-4b27…7a84915→    │ │
+ │     493 dcb6db82-d77a-4181-b9c0-3dbbb55eca8c           10492  363b8257-a389-406f…6bef3b4→    │ │
+ │     494 b55eca8c-3dbb-49c0-b06f-a389363b8257           10493  6bef3b46-34ca-45c7…de9ebf4→    │ │
+ │     495 fa70b703-caef-4854-9997-6a5ffc4309f9           10494  3c01cd97-1b0b-43b3…568bc69→    │ │
+ │     496 12afd08f-4342-47c5-a0b6-ad06a18e0c1c           10495  18f879fd-4662-4146…56eaf3d→    │ │
+ │     497 dce6f3f6-ff9d-4d2e-8c35-bfb812cc2d50           10496  3ec43e01-54b0-4780…cea4707→    │ │
+ │     498 c3ad24b1-ad5f-419d-8a25-cf181b6f0a7a           10497  ac4db596-66ae-4cc8…599520d→    │ │
+ │     499 ea3426ef-d76a-47d4-9acf-2f938e2a6096           10498  8cd34c0f-f2d9-445e…c59442d→    ┃ │
+ │                                                                                                │
+ │   • 1 pending · 1 insert                                        Preview SQL   Discard   Save   │
+ │   rows 485–499 of 501 loaded · 1,203,338 total · cols 1–2 of 14                                │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓←→ Cell  Enter Edit  Alt+D Duplicate row  s Sort  f Filter  …            Connected to Production

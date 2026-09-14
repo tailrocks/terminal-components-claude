@@ -1,0 +1,24 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         ? help [0m
+                                                                                [0m
+  ≡ Query 1 ×                                                               +   [0m
+ ━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────── [0m
+ ╭╭──────────────────────────────────────────────────────────────────────────╮╮ [0m
+ ││ [0m[1mSafe Mode · this connection[0m                                              ││ [0m
+ ││    Silent            Writes run without asking. Destructive s…           ││ [0m
+ ││    Alert             Every write asks for confirmation before…           ││ [0m
+ ││    Alert (Full)      Every statement, reads included, asks fo…           ││ [0m
+ ││ [0m[1m▎[0m›[0m[1m Safe Mode         [0mWrites ask for confirmation and a delibe…[0m[1m [0mcurrent[0m[1m  [0m ││ [0m
+ ││    Safe Mode (Full)  Every statement asks for confirmation an…           ││ [0m
+ ││    Read-Only         Writes are refused. Reads and exports st…           ││ [0m
+ ││                                                                          ││ [0m
+ ││ ↑↓ Move · Enter Set level · Esc Keep · levels are saved to the connecti… ││ [0m
+ │╰──────────────────────────────────────────────────────────────────────────╯│ [0m
+ │        ▸ T payments                                                1.2 M ┃ │ [0m
+ │        ▸ T subscriptions                                           1.1 k ┃ │ [0m
+ │      ▸ Views                                                           2 ┃ │ [0m
+ │      ▸ Functions                                                       1 ┃ │ [0m
+ │      ▸ Sequences                                                       1 ┃ │ [0m
+ │    ▸ S analytics                                                         │ │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+                                                        Connected to Production [0m

@@ -1,0 +1,24 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         ? help [0m
+  ╭──────────────────────────────────────────────────────────────────────────╮  [0m
+  │ [0m[1mOpen Quickly[0m                                             All · Tab scope │  [0m
+ ━│ ▎ Search tables, views, schemas, tabs, queries…                          │─ [0m
+ ╭│                                                                          │╮ [0m
+ ││ [0m[1m▎[0mT[0m[1m change_log                       [0maudit · Prod…[0m[1m       [0mTables[0m[1m         [0m┃ ││ [0m
+ ││  T customers                        public · Pro…                      ┃ ││ [0m
+ ││  T daily_revenue                    analytics · …                      ┃ ││ [0m
+ ││  T events                           analytics · …                      ┃ ││ [0m
+ ││  T login_attempts                   audit · Prod…                      ┃ ││ [0m
+ ││  T order_items                      public · Pro…                      ┃ ││ [0m
+ ││  T orders                           public · Pro…                      ┃ ││ [0m
+ ││  T organizations                    public · Pro…                      │ ││ [0m
+ ││  T payments                         public · Pro…                      │ ││ [0m
+ ││  T products                         public · Pro…                      │ ││ [0m
+ ││  T subscriptions                    public · Pro…                      │ ││ [0m
+ ││  V active_customers                 public · Pro…       Views          │ ││ [0m
+ ││ [0m[2m V cohort_retention                 analytics · …                      [0m│ ││ [0m
+ ││ ↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close ││ [0m
+ │╰──────────────────────────────────────────────────────────────────────────╯│ [0m
+ │    ▸ S analytics                                                         │ │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+                                                        Connected to Production [0m

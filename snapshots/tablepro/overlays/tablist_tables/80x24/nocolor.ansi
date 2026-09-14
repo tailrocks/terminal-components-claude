@@ -1,0 +1,24 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         ? help [0m
+                                                                                [0m
+  ≡ Query 1 ×    T orders ×    T order_items ×                              +   [0m
+ ─────────────────────────────━━━━━━━━━━━━━━━━━━─────────────────────────────── [0m
+ ╭─ publ╭──────────────────────────────────────────────────────────────╮cols ─╮ [0m
+ │   Dat│ [0m[1mOpen tabs[0m                                                    │      │ [0m
+ │  ━━━━│ ▎ Filter tabs…                                               │───── │ [0m
+ │      │                                                              │      │ [0m
+ │      │  ≡ Query 1      query                                        │ 6›   │ [0m
+ │      │  T orders       public.orders · data                         │    ┃ │ [0m
+ │      │ [0m[1m▎[0mT[0m[1m order_items  [0mpublic.order_items · data[0m[1m           [0mactive[0m[1m  [0m │    │ │ [0m
+ │      │                                                              │    │ │ [0m
+ │      │ ↑↓ Move · Enter Switch · Delete Close tab · Esc Close        │    │ │ [0m
+ │      ╰──────────────────────────────────────────────────────────────╯    │ │ [0m
+ │       6 9e3d2906-68f5-4661-9c1c-e263532d8d84  da8dba6a-5f40-4…cfcc81→    │ │ [0m
+ │       7 2f8b3fcc-f12a-461e-b3a5-11a3b6b4a528  6332dc8a-b47c-4…9ebec4→    │ │ [0m
+ │       8 565027aa-4602-4c61-8e39-7c9b550a59e8  c4fa815e-55e6-4…7128b9→    │ │ [0m
+ │       9 a6e8201a-9141-415b-bb7c-e1bad8d8a107  d29ed03c-d228-4…e232b5→    │ │ [0m
+ │      10 64901374-8774-4e0f-b0f9-a38a5cab1846  0ff64453-8fae-4…5b4b1b→    │ │ [0m
+ │      11 a6baba91-8907-410f-b710-da5ce56d56c3  c79767d6-3420-4…1348c9→    │ │ [0m
+ │   rows 1–11 of 500 loaded · 3,811,020 total · cols 1–1 of 7                │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+                                                        Connected to Production [0m

@@ -1,0 +1,24 @@
+ ▪  [0m[1mTablePro[0m  Connections  6 saved                     no color · 80×24  ? help [0m
+                                                                                [0m
+ ╭─ Connections ────────────────────────────────────────────────────────── 6 ─╮ [0m
+ │                                                                            │ [0m
+ │   Filter connections                                                       │ [0m
+ │  ▾ Personal                                                                │ [0m
+ │      · Local PostgreSQL                                                pg  │ [0m
+ │      · Scratch                                                     sqlite  │ [0m
+ │  ▾ Acme                                                                    │ [0m
+ │      · Development                                                     pg  │ [0m
+ │      ◇ Staging                                                         pg  │ [0m
+ │      ◆ Analytics                                                    mysql  │ [0m
+ │      ◆ Production                                                      pg  │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+ [0m[1mEnter[0m Edit  [0m[1m← →[0m Basic / Advanced  [0m[1mCtrl+S[0m Save  [0m[1mTab[0m Next                        [0m

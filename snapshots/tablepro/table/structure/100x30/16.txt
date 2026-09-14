@@ -1,0 +1,30 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         16 colors · 100×30  ? help
+
+  ≡ Query 1 ×    T orders ×                                                                     +
+ ───────────────━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────
+ ╭─ public › orders ──────────────────────────────────────────────────────────────────── 14 cols ─╮
+ │   Data    Structure                                                                            │
+ │  ────────━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────── │
+ │                                                                                                │
+ │   Columns    Indexes    Foreign keys    Constraints    Triggers    DDL                         │
+ │  ━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────── │
+ │                                                                                                │
+ │     Name                            Type            Nullable  Default                 Key      │
+ │  ▎  id                              uuid            no        gen_random_uuid()       PK       │
+ │     order_number                    integer         no        nextval('orders_numbe…           │
+ │     customer_id                     uuid            no        —                       FK       │
+ │     organization_id                 uuid            no        —                       FK       │
+ │     status                          text            no        'pending'                        │
+ │     total_amount                    numeric(12,2)   no        —                                │
+ │     currency                        text            no        'USD'                            │
+ │     shipping_address                jsonb           yes       —                                │
+ │     notes                           text            yes       —                                │
+ │     shipped_at                      timestamptz     yes       —                                │
+ │     delivered_at                    date            yes       —                                │
+ │     is_gift                         boolean         no        false                            │
+ │     created_at                      timestamptz     no        now()                            │
+ │     updated_at                      timestamptz     yes       —                                │
+ │   14 columns · read from the catalog · changes are queued until Save                           │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑ ↓ Move  Ctrl+D Structure  Tab Next                                       Connected to Production

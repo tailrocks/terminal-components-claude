@@ -1,0 +1,24 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         ? help [0m
+                                                                                [0m
+  ≡ Query 1 ×    ≡ Query 2 ×                                                +   [0m
+ ───────────────━━━━━━━━━━━━━━───────────────────────────────────────────────── [0m
+ ╭─ Query 2 ───────────────────────────────────────────────────────────────  ─╮ [0m
+ │   ›  1 x                                                                   │ [0m
+ │                                                                            │ [0m
+ │           ╭────────────────────────────────────────────────────╮           │ [0m
+ │           │                                                    │           │ [0m
+ │           │  [0m[1mClose tab with unsaved work?[0m                      │           │ [0m
+ │           │                                                    │           │ [0m
+ │           │  Pending row edits and unsaved query text in this  │           │ [0m
+ │           │  tab will be lost.                                 │           │ [0m
+ │           │                                                    │           │ [0m
+ │           │                           ▎[0m[1mCancel [0m  Close anyway   │           │ [0m
+ │           │                                                    │           │ [0m
+ │         Ct╰────────────────────────────────────────────────────╯all        │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ │                                                                            │ [0m
+ ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+                                                                                [0m
+ [0m[1m← →[0m Choose  [0m[1mEnter[0m Confirm  [0m[1mEsc[0m Cancel  …               Connected to Production [0m

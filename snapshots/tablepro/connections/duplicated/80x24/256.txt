@@ -1,0 +1,24 @@
+ ▪  TablePro  Connections  7 saved                   256 colors · 80×24  ? help
+
+ ╭─ Connections ────────────────────────────────────────────────────────── 7 ─╮
+ │                                                                            │
+ │   Filter connections                                                       │
+ │  ▾ Personal                                                                │
+ │      · Local PostgreSQL                                                pg  │
+ │      · Scratch                                                     sqlite  │
+ │  ▾ Acme                                                                    │
+ │      · Development                                                     pg  │
+ │      ◇ Staging                                                         pg  │
+ │      ◆ Analytics                                                    mysql  │
+ │ ▎    ◆ Production                                                      pg  │
+ │      ◆ Production (Copy)                                               pg  │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ │                                                                            │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+ ↑ ↓ Move  Enter Connect  E Edit  D Delete  Ctrl+D Duplicate  …      Duplicated

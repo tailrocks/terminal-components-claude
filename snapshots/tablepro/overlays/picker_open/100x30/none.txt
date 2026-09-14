@@ -1,0 +1,30 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe          no color · 100×30  ? help
+
+  ≡ Query 1 ×                                                                                   +
+ ━━━━━╭──────────────────────────────────────────────────────────────────────────────────────╮─────
+ ╭─ Ex│ Open Quickly                                                         All · Tab scope │ic ─╮
+ │    │ ▎ Search tables, views, schemas, tabs, queries…                                      │    │
+ │   F│                                                                                      │    │
+ │  ▾ │ ▎T change_log                             audit · Production        Tables         ┃ │    │
+ │ ▎  │  T customers                              public · Production                      ┃ │    │
+ │    │  T daily_revenue                          analytics · Produc…                      ┃ │ 7  │
+ │    │  T events                                 analytics · Produc…                      ┃ │ k  │
+ │    │  T login_attempts                         audit · Production                       ┃ │ k  │
+ │    │  T order_items                            public · Production                      ┃ │12  │
+ │    │  T orders                                 public · Production                      ┃ │ M  │
+ │    │  T organizations                          public · Production                      │ │ M  │
+ │    │  T payments                               public · Production                      │ │ M  │
+ │    │  T products                               public · Production                      │ │ k  │
+ │    │  T subscriptions                          public · Production                      │ │ 2  │
+ │    │  V active_customers                       public · Production       Views          │ │ 1  │
+ │    │  V cohort_retention                       analytics · Produc…                      │ │ 1  │
+ │    │ ↑↓ Move · Enter Open · Alt+Enter New tab · Tab Scope · Esc Clear / Close             │    │
+ │    ╰──────────────────────────────────────────────────────────────────────────────────────╯    │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ │                                                                                                │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+                                                                            Connected to Production

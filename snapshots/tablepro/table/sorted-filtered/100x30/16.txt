@@ -1,0 +1,30 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         16 colors · 100×30  ? help
+
+  ≡ Query 1 ×    T orders ×                                                                     +
+ ───────────────━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────
+ ╭─ public › orders ──────────────────────────────────────────────────────────────────── 14 cols ─╮
+ │   Data    Structure                                                                            │
+ │  ━━━━━━━────────────────────────────────────────────────────────────────────────────────────── │
+ │                                                                                                │
+ │   match all ▾   status = 'pending' ×    + Add filter                                           │
+ │                                                                                                │
+ │   ‹3    organization_id                       status ∇ ▴     total_amount  currency       7›   │
+ │  ▎    1 a1cc5725-426b-4be8-b1d5-b4c2d5a36aa→  pending             1617.64  USD               ┃ │
+ │       2 45e4f51f-21b8-4d1a-bf0a-f43208da892→  pending             2236.65  EUR               │ │
+ │       3 216371dc-bcdb-491e-8162-5d0cc6d4df3→  pending             2376.57  EUR               │ │
+ │       4 e420b1cb-f102-48d9-9449-cc74d87ca6b→  pending              550.69  USD               │ │
+ │       5 cbc419eb-5897-4d5d-84be-5b4e319a287→  pending              290.26  EUR               │ │
+ │       6 856eb1ff-ef23-4b8b-b3e6-18c43bcce08→  pending             2326.75  USD               │ │
+ │       7 c180d977-7033-43c3-9a45-60779d6c73e→  pending             2392.98  USD               │ │
+ │       8 e20af405-1eec-458e-bc5b-86fa0b0d0c1→  pending              497.22  EUR               │ │
+ │       9 d996d5c1-c0bd-4756-b097-0c45666fd5f→  pending             1326.92  USD               │ │
+ │      10 96d494e2-5a1f-40bc-9417-d0b50fa931a→  pending             1960.35  EUR               │ │
+ │      11 b5ef3cdf-d4e1-4a95-bbd6-db1708c5160→  pending             1301.77  USD               │ │
+ │      12 9ba3e636-bf30-41c0-8a70-5e692c00d1e→  pending             1237.89  GBP               │ │
+ │      13 ca9a3ac6-98b7-4e4a-8de8-29c6d1a04db→  pending              801.07  GBP               │ │
+ │      14 dc0b4dcd-7bbb-4a73-9800-294e6ec156e→  pending               78.01  EUR               │ │
+ │      15 778238b8-2a2c-4c37-b0a3-b6e2a7a51b3→  pending             1063.27  USD               │ │
+ │   sort status ▴ · filtered (1) · rows 1–15 of 335 loaded · ~201,559 total · cols 4–7 of 14     │
+ ╰────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ ↑↓←→ Cell  Enter Edit  Alt+D Duplicate row  s Sort  f Filter  …         Sorted by status ascending

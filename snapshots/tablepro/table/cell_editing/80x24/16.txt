@@ -1,0 +1,24 @@
+ ▪  TablePro  Production  ◆ production  acme_prod › public  safe         ? help
+
+  ≡ Query 1 ×    T orders ×                                                 +
+ ───────────────━━━━━━━━━━━━━──────────────────────────────────────────────────
+ ╭─ public › orders ──────────────────────────────────────────────── 14 cols ─╮
+ │   Data    Structure                                                        │
+ │  ━━━━━━━────────────────────────────────────────────────────────────────── │
+ │                                                                            │
+ │   ‹4    status       total_amount  currency    shipping_address       7›   │
+ │  ▎    1 …ivered             25.90  USD         {"line1": "104 Calle …    ┃ │
+ │       2 pending           1617.64  USD         {"line1": "87 Nevsky …    │ │
+ │       3 pending           2236.65  EUR         {"line1": "78 Via Rom…    │ │
+ │       4 pending           2376.57  EUR         {"line1": "152 Market…    │ │
+ │       5 refunded          2067.52  USD         {"line1": "179 Market…    │ │
+ │       6 shipped            675.78  GBP         {"line1": "152 Calle …    │ │
+ │       7 delivered         2397.83  GBP         {"line1": "3 Rue de R…    │ │
+ │       8 refunded          1677.55  EUR         NULL                      │ │
+ │       9 pending            550.69  USD         {"line1": "196 Market…    │ │
+ │      10 pending            290.26  EUR         {"line1": "164 Nevsky…    │ │
+ │      11 cancelled         1050.75  USD         {"line1": "100 Queen …    │ │
+ │   rows 1–11 of 500 loaded · 1,203,338 total · cols 5–7 of 14               │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+  EDIT   Enter Commit  Esc Cancel  Tab Next cell        Connected to Production
