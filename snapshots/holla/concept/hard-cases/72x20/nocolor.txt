@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help      northwind-trader…on-core  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                        scope ‹ here ›
+
+    Suggested here                                                    ┃
+  › Analyze disk usage       disk     here    / is 91% full           ┃
+    Resolve the rebase in …  git      here    rebase in progress…     ┃
+    Review 7 modified files  git      here    7 modified…             ┃
+    Open btm                 system   host    sustained pressure…     ┃
+    Review cleanup candida…  cleanup  host    8.0 GiB across 4 categ… │
+                                                                      │
+    Recent here                                                       │
+    nothing used here yet                                             │
+
+    → 'holla disk analyze' · here · read-only
+
+ ~/work/clients/northwind-trad…iation-service
+   Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  …

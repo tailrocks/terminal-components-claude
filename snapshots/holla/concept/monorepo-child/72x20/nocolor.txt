@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help      acme › frontend … · pnpm  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────
+ ▎ Search actions and resources…                        scope ‹ here ›
+
+    Suggested here                                                    ┃
+  › Inspect 3 GB of genera…  disk     here    3 GB generated artifac… ┃
+    Install missing tools …  task     here    1 tool missing          ┃
+    Run tests                task     here    2 files changed since … ┃
+    Follow acme-api-1 logs   docker   parent  service is unhealthy    │
+    Review 2 modified files  git      parent  2 modified…             │
+                                                                      │
+    Recent here                                                       │
+    nothing used here yet                                             │
+
+    → 'holla disk analyze --artifacts' · here · read-only
+
+ ~/work/acme/apps/frontend   main   ↑1 • 2             no color · 72×20
+   Type Search  ↑↓ Move  Enter Open  Alt+Enter More  Tab Preview  …
