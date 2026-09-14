@@ -962,12 +962,6 @@ impl ConnectionsScreen {
         } else {
             (area, Rect::ZERO)
         };
-        // The form is the focused surface, so it owns the full pane whenever
-        // the responsive two-pane layout has no detail column.
-        if self.form.is_some() {
-            self.render_form(if r.is_empty() { area } else { r }, buf, ctx);
-            return;
-        }
         // list pane
         let lf = ctx.interaction.focused(self.tree.id) || ctx.interaction.focused(self.filter.id);
         let count = format!("{}", self.connections.len());
@@ -999,6 +993,13 @@ impl ConnectionsScreen {
             self.tree.render(tree_area, buf, ctx, bg);
         }
         if r.is_empty() {
+            if self.form.is_some() {
+                self.render_form(area, buf, ctx);
+            }
+            return;
+        }
+        if self.form.is_some() {
+            self.render_form(r, buf, ctx);
             return;
         }
         // detail card

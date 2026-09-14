@@ -33,10 +33,9 @@ crate::baseline_case!(showcase_pages_pickers_default_120x40_truecolor => Case::n
 crate::baseline_case!(showcase_pages_chrome_default_120x40_truecolor => Case::new("showcase/pages/chrome/120x40/truecolor", SHOWCASE, &["--page", "chrome"], 120, 40, Color::Truecolor, BOOT));
 crate::baseline_case!(showcase_pages_settings_default_120x40_truecolor => Case::new("showcase/pages/settings/120x40/truecolor", SHOWCASE, &["--page", "settings"], 120, 40, Color::Truecolor, BOOT));
 crate::baseline_case!(showcase_pages_taskrunner_default_120x40_truecolor => Case::new("showcase/pages/taskrunner/120x40/truecolor", SHOWCASE, &["--page", "taskrunner"], 120, 40, Color::Truecolor, BOOT));
-// `wait:739.63s` is the boot stream's end-state marker (the 2000th log
-// line's timestamp). Without it wait_idle can fire mid-stream and the gated
-// frame depends on flush timing.
-crate::baseline_case!(showcase_pages_scrolling_default_120x40_truecolor => Case::new("showcase/pages/scrolling/120x40/truecolor", SHOWCASE, &["--page", "scrolling"], 120, 40, Color::Truecolor, BOOT).sends(&["wait:739.63s"]).timeout(180000));
+// Paused frame 1600 fast-forwards the 400-line log to its deterministic
+// 2000-line endpoint; `wait:739.63s` proves that endpoint on every axis.
+crate::baseline_case!(showcase_pages_scrolling_default_120x40_truecolor => Case::new("showcase/pages/scrolling/120x40/truecolor", SHOWCASE, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], 120, 40, Color::Truecolor, BOOT).sends(&["wait:739.63s"]));
 // `wait:7 of 7` is the step-rail end-state; 30s is tight under load.
 crate::baseline_case!(showcase_pages_terminal_default_120x40_truecolor => Case::new("showcase/pages/terminal/120x40/truecolor", SHOWCASE, &["--page", "terminal"], 120, 40, Color::Truecolor, BOOT).sends(&["wait:7 of 7"]).timeout(60000));
 
@@ -56,12 +55,8 @@ crate::baseline_case!(showcase_flows_datagrid_selected_120x40_truecolor => Case:
 crate::baseline_case!(showcase_flows_dialogs_open_120x40_truecolor => Case::new("showcase/flows/dialogs/open/120x40/truecolor", SHOWCASE, &["--page", "dialogs"], 120, 40, Color::Truecolor, BOOT).sends(&["tab", "enter"]));
 crate::baseline_case!(showcase_flows_pickers_open_120x40_truecolor => Case::new("showcase/flows/pickers/open/120x40/truecolor", SHOWCASE, &["--page", "pickers"], 120, 40, Color::Truecolor, BOOT).sends(&["tab", "enter"]));
 crate::baseline_case!(showcase_flows_chips_toggled_120x40_truecolor => Case::new("showcase/flows/chips/toggled/120x40/truecolor", SHOWCASE, &["--page", "chipsselects"], 120, 40, Color::Truecolor, BOOT).sends(&["tab", "space"]));
-// `wait:739.63s` is the boot stream's end-state marker (the 2000th log
-// line's timestamp, unique on screen): without it the sends can begin during
-// a >200 ms stall mid-stream (wait_idle fires early under load) and race the
-// stream tail, leaving the frame's final cursor position — embedded in the
-// gated HTML — dependent on flush timing.
-crate::baseline_case!(showcase_flows_scrolling_scrolled_120x40_truecolor => Case::new("showcase/flows/scrolling/scrolled/120x40/truecolor", SHOWCASE, &["--page", "scrolling"], 120, 40, Color::Truecolor, BOOT).sends(&["wait:739.63s", "tab", "down", "down", "down"]).timeout(180000));
+// The same paused endpoint keeps the subsequent scroll actions deterministic.
+crate::baseline_case!(showcase_flows_scrolling_scrolled_120x40_truecolor => Case::new("showcase/flows/scrolling/scrolled/120x40/truecolor", SHOWCASE, &["--page", "scrolling", "--motion", "paused", "--frame", "1600"], 120, 40, Color::Truecolor, BOOT).sends(&["wait:739.63s", "tab", "down", "down", "down"]));
 crate::baseline_case!(showcase_flows_settings_toggled_120x40_truecolor => Case::new("showcase/flows/settings/toggled/120x40/truecolor", SHOWCASE, &["--page", "settings"], 120, 40, Color::Truecolor, BOOT).sends(&["tab", "space"]));
 crate::baseline_case!(showcase_flows_help_overlay_120x40_truecolor => Case::new("showcase/flows/help/overlay/120x40/truecolor", SHOWCASE, &["--page", "overview"], 120, 40, Color::Truecolor, BOOT).sends(&["?"]));
 crate::baseline_case!(showcase_flows_inspector_open_120x40_truecolor => Case::new("showcase/flows/inspector/open/120x40/truecolor", SHOWCASE, &["--page", "overview"], 120, 40, Color::Truecolor, BOOT).sends(&["i"]));

@@ -1,24 +1,24 @@
  ▪  [0m[1mTablePro[0m  Connections  6 saved                     no color · 80×24  ? help [0m
                                                                                 [0m
- ╭─ Connections ────────────────────────────────────────────────────────── 6 ─╮ [0m
- │                                                                            │ [0m
- │   Filter connections                                                       │ [0m
- │  ▾ Personal                                                                │ [0m
- │      · Local PostgreSQL                                                pg  │ [0m
- │      · Scratch                                                     sqlite  │ [0m
- │  ▾ Acme                                                                    │ [0m
- │      · Development                                                     pg  │ [0m
- │      ◇ Staging                                                         pg  │ [0m
- │      ◆ Analytics                                                    mysql  │ [0m
- │      ◆ Production                                                      pg  │ [0m
- │                                                                            │ [0m
- │                                                                            │ [0m
- │                                                                            │ [0m
- │                                                                            │ [0m
- │                                                                            │ [0m
- │                                                                            │ [0m
- │                                                                            │ [0m
- │                                                                            │ [0m
- ╰────────────────────────────────────────────────────────────────────────────╯ [0m
+   New connection                                                 Ctrl+S Save   [0m
                                                                                 [0m
- [0m[1mEnter[0m Edit  [0m[1m← →[0m Basic / Advanced  [0m[1mCtrl+S[0m Save  [0m[1mTab[0m Next                        [0m
+   [0m[1m Basic  [0m  Advanced                                                           [0m
+   ━━━━━━━━──────────────────────────────────────────────────────────────────   [0m
+                                                                                [0m
+     [0m[1mName *                                [0m      Environment                    [0m
+   ▎                                            (●) local                       [0m
+                                                ( ) development                 [0m
+     Engine                                     ( ) staging                     [0m
+     PostgreSQL                          ▾      ( ) production                  [0m
+                                                                                [0m
+     Host  optional              Port            Group                          [0m
+     localhost                   5432            Personal                  ▾    [0m
+     Blank: driver default                                                      [0m
+     Database  optional                          Safe Mode                      [0m
+                                                (●) Silent                      [0m
+     Required for PostgreSQL                    ( ) Alert                       [0m
+     Username  optional                         ( ) Alert (Full)                [0m
+    Test connection    Cancel    Save    [0m[1mSave & connect [0m Mode                   [0m
+                                                ( ) Safe Mode (Full)            [0m
+     Password  optional                         ( ) Read-Only                   [0m
+ [0m[1mEnter[0mtEdit i[0m[1m← →[0mhBasic / Advanced  [0m[1mCtrl+S[0m Save  [0m[1mTab[0m Next                        [0m
