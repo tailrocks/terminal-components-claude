@@ -24,7 +24,10 @@ use ratatui::layout::{Position, Rect};
 use ratatui::style::{Modifier, Style};
 
 use crate::domain::exec::Command;
-use crate::screens::{Cx, Go, Modal, ModalResult, ModalTag, Screen, StatusBits, heading, plural};
+use crate::screens::{
+    Cx, Go, Modal, ModalResult, ModalTag, Screen, StatusBits, heading, plural, scroll_drag,
+    scroll_press,
+};
 use crate::sim::fs::{FindHit, Fs, NodeKind, Preview, human};
 use crate::sim::world::{SourceState, World};
 
@@ -696,8 +699,6 @@ impl FilesPage {
         }
         self.scroll.set_content(visible.len());
         self.scroll.set_viewport(area.height as usize);
-        self.scroll
-            .ensure_visible(self.cursor.min(visible.len() - 1));
         let has_sb = self.scroll.overflows();
         let row_w = area.width.saturating_sub(u16::from(has_sb));
         let name_w = (row_w * 45 / 100).clamp(14, 48);
@@ -1450,6 +1451,10 @@ impl Screen for FilesPage {
     }
 
     fn on_click(&mut self, id: WidgetId, pos: Position, _w: &mut World, cx: &mut Cx) -> Outcome {
+        if id == scrollbar::id_for(LIST) {
+            cx.focus.focus(LIST);
+            return scroll_press(self.list_area, pos, &mut self.scroll);
+        }
         if id == PREVIEW || id == scrollbar::id_for(PREVIEW) {
             cx.focus.focus(PREVIEW);
             if id == PREVIEW {
@@ -1505,6 +1510,12 @@ impl Screen for FilesPage {
         if id == PREVIEW {
             return self.preview.on_click(pos);
         }
+        if id == scrollbar::id_for(PREVIEW) {
+            return self.preview.on_scrollbar(pos);
+        }
+        if id == scrollbar::id_for(LIST) {
+            return scroll_press(self.list_area, pos, &mut self.scroll);
+        }
         Outcome::Ignored
     }
 
@@ -1514,6 +1525,9 @@ impl Screen for FilesPage {
         }
         if pressed == scrollbar::id_for(PREVIEW) {
             return self.preview.on_scrollbar_drag(pos);
+        }
+        if pressed == scrollbar::id_for(LIST) {
+            return scroll_drag(self.list_area, pos, &mut self.scroll);
         }
         Outcome::Ignored
     }

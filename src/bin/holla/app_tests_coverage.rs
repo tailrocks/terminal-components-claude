@@ -9,6 +9,7 @@ use ratatui::layout::Position;
 
 use junie_tui::core::event::{MouseKind, Outcome};
 use junie_tui::core::id::WidgetId;
+use junie_tui::widgets::scrollbar;
 
 use crate::app_tests::H;
 use crate::app_tests_parity::open;
@@ -359,18 +360,16 @@ fn assert_modal(h: &H, name: &str, marker: &str, expected_focus: Option<WidgetId
     );
 }
 
-fn dismiss_modal(h: &mut H, name: &str) {
+fn dismiss_modal(h: &mut H, name: &str, owner: Option<WidgetId>) {
     h.key(KeyCode::Esc);
     assert!(h.app.modals.is_empty(), "{name}: Esc did not dismiss");
-    assert!(
-        h.app.focus.current().is_some(),
-        "{name}: focus not restored"
-    );
+    assert_eq!(h.app.focus.current(), owner, "{name}: focus not restored");
 }
 
 #[test]
 fn modal_inventory_has_marker_focus_hits_and_escape_contract() {
     let mut help = build_first();
+    let help_owner = help.app.focus.current();
     help.key(KeyCode::F(1));
     assert_modal(
         &help,
@@ -378,9 +377,10 @@ fn modal_inventory_has_marker_focus_hits_and_escape_contract() {
         "Key reference",
         Some(WidgetId::of("help")),
     );
-    dismiss_modal(&mut help, "Text/help");
+    dismiss_modal(&mut help, "Text/help", help_owner);
 
     let mut about = build_rust();
+    let about_owner = about.app.focus.current();
     about.key(KeyCode::F(10));
     about.key(KeyCode::Right);
     about.key(KeyCode::Right);
@@ -392,28 +392,32 @@ fn modal_inventory_has_marker_focus_hits_and_escape_contract() {
         "About holla❯",
         Some(WidgetId::of("about")),
     );
-    dismiss_modal(&mut about, "Text/about");
+    dismiss_modal(&mut about, "Text/about", about_owner);
 
     let mut why = build_rust();
+    let why_owner = why.app.focus.current();
     why.alt(KeyCode::Enter);
     why.key(KeyCode::End);
     why.key(KeyCode::Enter);
     assert_modal(&why, "Text/why", "Why is", Some(WidgetId::of("why")));
-    dismiss_modal(&mut why, "Text/why");
+    dismiss_modal(&mut why, "Text/why", why_owner);
 
     let mut activities = H::new(Scenario::ActivitiesMulti, Motion::Paused, 40, 120, 40);
+    let activities_owner = activities.app.focus.current();
     activities.ctrl(KeyCode::Char('g'));
     assert_modal(&activities, "Picker/activities", "Activities", None);
-    dismiss_modal(&mut activities, "Picker/activities");
+    dismiss_modal(&mut activities, "Picker/activities", activities_owner);
 
     let mut jump = build_browser();
     open(&mut jump, "Browse ~/work/site");
     jump.ticks(8);
+    let jump_owner = jump.app.focus.current();
     jump.key(KeyCode::Char('g'));
     assert_modal(&jump, "Picker/files-jump", "Go to path", None);
-    dismiss_modal(&mut jump, "Picker/files-jump");
+    dismiss_modal(&mut jump, "Picker/files-jump", jump_owner);
 
     let mut alternatives = build_rust();
+    let alternatives_owner = alternatives.app.focus.current();
     alternatives.alt(KeyCode::Enter);
     assert_modal(
         &alternatives,
@@ -421,15 +425,16 @@ fn modal_inventory_has_marker_focus_hits_and_escape_contract() {
         "Set alias",
         Some(WidgetId::of("alternatives")),
     );
-    dismiss_modal(&mut alternatives, "Menu/alternatives");
+    dismiss_modal(&mut alternatives, "Menu/alternatives", alternatives_owner);
 
     let mut dialog = build_docker();
     dialog.key(KeyCode::Enter);
     dialog.key(KeyCode::Char('c'));
     dialog.key(KeyCode::Right);
+    let dialog_owner = dialog.app.focus.current();
     dialog.key(KeyCode::Enter);
     assert_modal(&dialog, "Dialog/gate2", "gate 2 of 2", None);
-    dismiss_modal(&mut dialog, "Dialog/gate2");
+    dismiss_modal(&mut dialog, "Dialog/gate2", dialog_owner);
 }
 
 fn outside(h: &H) -> Position {
@@ -445,6 +450,51 @@ fn outside(h: &H) -> Position {
         "no outside hit position in {}x{}",
         h.app.size.0, h.app.size.1
     );
+}
+
+fn drag_scrollbar(h: &mut H, container: WidgetId, name: &str) {
+    let id = scrollbar::id_for(container);
+    let track = h
+        .app
+        .hits
+        .area_of(id)
+        .unwrap_or_else(|| panic!("{name}: missing scrollbar hit\n{}", h.text()));
+    let before = h.text();
+    let start = track.y + track.height.min(3).saturating_sub(1);
+    let bottom = track.bottom().saturating_sub(1);
+    h.mouse(MouseKind::Down, track.x, start);
+    assert_eq!(
+        h.mouse(MouseKind::Drag, track.x, bottom),
+        Outcome::Changed,
+        "{name}: scrollbar drag did not change the model"
+    );
+    h.mouse(MouseKind::Up, track.x, bottom);
+    assert_ne!(h.text(), before, "{name}: scrollbar drag did not redraw");
+    assert_eq!(
+        h.app.focus.current(),
+        Some(container),
+        "{name}: scrollbar did not restore container focus"
+    );
+}
+
+#[test]
+fn raw_scrollbars_route_pointer_press_and_drag() {
+    let mut finder = H::new(Scenario::ParityDiscovery, Motion::Reduced, 0, 72, 20);
+    finder.ticks(60);
+    drag_scrollbar(&mut finder, finder::FINDER, "finder list");
+
+    let mut files = H::new(Scenario::ParityBrowser, Motion::Reduced, 40, 72, 20);
+    open(&mut files, "Browse ~/work/site");
+    files.ticks(8);
+    drag_scrollbar(&mut files, files::LIST, "files list");
+
+    let mut cleanup = H::new(Scenario::ParityInsights, Motion::Paused, 40, 72, 20);
+    page_cleanup(&mut cleanup);
+    drag_scrollbar(&mut cleanup, cleanup::LIST, "cleanup list");
+
+    let mut modal = H::new(Scenario::RustDirty, Motion::Paused, 40, 72, 20);
+    modal.key(KeyCode::F(1));
+    drag_scrollbar(&mut modal, WidgetId::of("help"), "help modal");
 }
 
 #[test]

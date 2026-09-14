@@ -20,7 +20,7 @@ use ratatui::buffer::Buffer;
 use ratatui::crossterm::event::KeyCode;
 use ratatui::layout::{Position, Rect};
 
-use crate::screens::{Cx, Go, Screen, StatusBits, plural};
+use crate::screens::{Cx, Go, Screen, StatusBits, plural, scroll_drag, scroll_press};
 use crate::sim::world::World;
 
 pub const BODY: WidgetId = WidgetId::of("snapshot.body");
@@ -43,6 +43,7 @@ pub struct SnapshotPage {
     detail_title: String,
     /// The report shown here was still being written on the last tick.
     report_running: bool,
+    body_area: Rect,
 }
 
 fn t(s: &str) -> (String, Tone) {
@@ -72,6 +73,7 @@ impl SnapshotPage {
             meters: vec![],
             detail_title: "Detail".into(),
             report_running: false,
+            body_area: Rect::ZERO,
         };
         page.build(w);
         page.detail_title = match kind {
@@ -1314,7 +1316,7 @@ impl Screen for SnapshotPage {
         }
     }
 
-    fn on_click(&mut self, id: WidgetId, _pos: Position, _w: &mut World, cx: &mut Cx) -> Outcome {
+    fn on_click(&mut self, id: WidgetId, pos: Position, _w: &mut World, cx: &mut Cx) -> Outcome {
         for i in 0..self.buttons.len() {
             if self.buttons[i].id == id {
                 cx.focus.focus(id);
@@ -1328,6 +1330,24 @@ impl Screen for SnapshotPage {
         if id == BODY {
             cx.focus.focus(BODY);
             return Outcome::Changed;
+        }
+        if id == scrollbar::id_for(BODY) {
+            cx.focus.focus(BODY);
+            return scroll_press(self.body_area, pos, &mut self.scroll);
+        }
+        Outcome::Ignored
+    }
+
+    fn on_press(&mut self, id: WidgetId, pos: Position, _w: &mut World) -> Outcome {
+        if id == scrollbar::id_for(BODY) {
+            return scroll_press(self.body_area, pos, &mut self.scroll);
+        }
+        Outcome::Ignored
+    }
+
+    fn on_drag(&mut self, pressed: WidgetId, pos: Position, _w: &mut World) -> Outcome {
+        if pressed == scrollbar::id_for(BODY) {
+            return scroll_drag(self.body_area, pos, &mut self.scroll);
         }
         Outcome::Ignored
     }
@@ -1394,6 +1414,7 @@ impl Screen for SnapshotPage {
             .focused(focused)
             .meta(&meta);
         let inner = panel.render(body, buf, t);
+        self.body_area = inner;
         self.scroll.set_content(self.lines.len());
         self.scroll.set_viewport(inner.height as usize);
         ctx.control(BODY, body, false);

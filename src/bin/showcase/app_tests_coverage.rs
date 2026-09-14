@@ -244,7 +244,13 @@ fn buttons_activate_actions_and_toggles() {
 
     h.click_label("Start long job");
     h.assert_status("Working…");
-    assert!(h.app.animating());
+    assert!(h.app.pages[PageId::Buttons.index()].animating());
+    for _ in 0..28 {
+        h.tick();
+    }
+    assert!(!h.app.pages[PageId::Buttons.index()].animating());
+    h.assert_status("Long job finished ✓");
+    assert!(h.text().contains("Long job finished ✓"));
 }
 
 #[test]
@@ -378,13 +384,27 @@ fn forms_reset_controls_and_reviewer_paste_validation() {
     h.key(KeyCode::Enter);
 
     let reviewer = forms.sub("reviewer");
-    h.click_label("name@company.com");
+    h.click_id(reviewer);
     h.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
     h.paste("bad");
     h.key(KeyCode::Enter);
     h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
     assert!(h.text().contains("Enter a valid email address"));
     assert_eq!(h.app.focus.current(), Some(reviewer));
+
+    h.click_id(reviewer);
+    h.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
+    h.paste("reviewer@example.com");
+    h.key(KeyCode::Enter);
+    h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
+    h.assert_status("Creating task…");
+    assert!(h.app.pages[PageId::Forms.index()].animating());
+    for _ in 0..23 {
+        h.tick();
+    }
+    assert!(!h.app.pages[PageId::Forms.index()].animating());
+    h.assert_status("Task created ✓");
+    assert!(h.text().contains("Task created ✓"));
 }
 
 #[test]
@@ -625,4 +645,249 @@ fn editor_completion_paste_and_diagnostic_paths() {
     }
     diagnostic.assert_status("Block ran in 77 ms");
     assert!(diagnostic.text().contains("unwrap() panics on Err"));
+}
+
+#[test]
+fn chrome_secondary_click_opens_and_selects_context_action() {
+    let mut h = Harness::new(140, 45, PageId::Chrome);
+    let sessions = WidgetId::of("chrome.sessions");
+    let (x, y) = h.find("2 Codex (Primary)").expect("session row");
+
+    assert_eq!(
+        h.mouse(MouseKind::Secondary, x, y),
+        Outcome::Changed,
+        "secondary click is routed to the session row"
+    );
+    assert_eq!(h.app.focus.current(), Some(sessions));
+    assert!(h.text().contains("Change title"));
+
+    h.key(KeyCode::Enter);
+    h.assert_status("Change title…");
+    assert!(h.app.hits.area_of(WidgetId::of("chrome.context")).is_none());
+}
+
+#[test]
+fn panels_route_wheel_and_nested_list_clicks() {
+    let mut h = Harness::new(140, 45, PageId::Panels);
+    let prose = WidgetId::of("panels").sub("prose");
+    let before = h.text();
+    let area = h.area(prose);
+    assert_eq!(
+        h.mouse(MouseKind::WheelDown, area.x + 2, area.y + 1),
+        Outcome::Changed
+    );
+    assert_ne!(h.text(), before, "prose content moved under the wheel");
+
+    let nested = WidgetId::of("panels").sub("nested");
+    h.click_label("CLI");
+    assert_eq!(h.app.focus.current(), Some(nested));
+    assert!(h.text().contains("CLI"));
+
+    let log = WidgetId::of("panels").sub("log");
+    let log_area = h.area(log);
+    let before = h.text();
+    h.mouse(MouseKind::WheelDown, log_area.x + 2, log_area.y + 1);
+    assert_ne!(h.text(), before, "log content moved under the wheel");
+}
+
+#[test]
+fn sidebars_collapse_round_trips_and_disabled_rows_do_nothing() {
+    let mut h = Harness::new(120, 40, PageId::Sidebars);
+    let collapse = WidgetId::of("sidebars").sub("collapse");
+    let button_y = h.area(collapse).y;
+    let expanded = h.row(button_y);
+
+    h.click_id(collapse);
+    let collapsed = h.row(button_y);
+    assert_ne!(collapsed, expanded);
+    assert!(collapsed.contains("›"), "collapsed control is rendered");
+
+    h.key(KeyCode::Enter);
+    assert!(h.row(button_y).contains("Collapse"));
+    assert!(!h.row(button_y).contains("›"));
+
+    let mut disabled = Harness::new(120, 40, PageId::Sidebars);
+    disabled.key(KeyCode::Tab);
+    let nav = WidgetId::of("sidebars").sub("nav");
+    let (x, y) = disabled.find("Billing").expect("disabled row");
+    disabled.click(x, y);
+    assert_eq!(disabled.app.focus.current(), Some(nav));
+    assert!(
+        disabled.text().contains("Tasks"),
+        "current item stayed stable"
+    );
+}
+
+#[test]
+fn textareas_paste_and_disabled_state_are_routed() {
+    let mut h = Harness::new(120, 40, PageId::TextAreas);
+    let first = WidgetId::of("textareas").child(0);
+    h.focus(first);
+    h.key(KeyCode::Enter);
+    assert!(h.app.pages[PageId::TextAreas.index()].editing());
+    h.paste("pasted");
+    assert!(h.text().contains("pasted"));
+    h.key(KeyCode::Esc);
+    assert!(!h.app.pages[PageId::TextAreas.index()].editing());
+
+    let mut disabled = Harness::new(120, 40, PageId::TextAreas);
+    let transcript = WidgetId::of("textareas").child(2);
+    disabled.focus(transcript);
+    disabled.key(KeyCode::Enter);
+    assert!(!disabled.app.pages[PageId::TextAreas.index()].editing());
+    assert!(disabled.text().contains("Read-only transcript"));
+}
+
+#[test]
+fn lists_and_trees_accept_mouse_selection() {
+    let mut lists = Harness::new(120, 40, PageId::Lists);
+    let (x, y) = lists.find("TypeScript").expect("language row");
+    lists.click(x, y);
+    assert_eq!(
+        lists.app.focus.current(),
+        Some(WidgetId::of("lists").sub("single"))
+    );
+    assert!(lists.text().contains("Chosen: TypeScript"));
+
+    let mut trees = Harness::new(120, 40, PageId::Trees);
+    trees.key(KeyCode::Tab);
+    trees.key(KeyCode::Left);
+    trees.key(KeyCode::Right);
+    trees.key(KeyCode::Down);
+    trees.key(KeyCode::Right);
+    let (x, y) = trees.find("auth.rs").expect("tree leaf");
+    trees.click(x, y);
+    assert_eq!(
+        trees.app.focus.current(),
+        Some(WidgetId::of("trees").sub("tree"))
+    );
+    assert!(trees.text().contains("src/api/auth.rs"));
+}
+
+#[test]
+fn diff_router_covers_review_empty_and_copy_states() {
+    let mut h = Harness::new(140, 45, PageId::Diff);
+    let diff = WidgetId::of("diff");
+    h.focus(diff.sub("review"));
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("● Review"));
+
+    h.focus(diff.sub("empty"));
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("No file selected"));
+
+    let mut selected = Harness::new(140, 45, PageId::Diff);
+    selected.focus(diff.sub("view"));
+    let (x, y) = selected.find("attempts = 3").expect("diff line");
+    selected.mouse(MouseKind::Down, x, y);
+    selected.mouse(MouseKind::Drag, x + 10, y);
+    selected.mouse(MouseKind::Up, x + 10, y);
+    selected.key(KeyCode::Char('y'));
+    selected.assert_status("Selection copied in demo");
+}
+
+#[test]
+fn picker_level_selection_updates_result_state() {
+    let mut h = Harness::new(140, 45, PageId::Pickers);
+    let pickers = WidgetId::of("pickers");
+    let level = pickers.sub("level");
+    h.focus(level);
+    h.key(KeyCode::Enter);
+    assert!(h.app.hits.area_of(pickers.sub("picker.level")).is_some());
+    h.key(KeyCode::Down);
+    h.key(KeyCode::Enter);
+    h.assert_status("Chose Safe Mode (Full)");
+    assert!(h.text().contains("Safe Mode (Full)"));
+    assert!(h.app.hits.area_of(pickers.sub("picker.level")).is_none());
+}
+
+#[test]
+fn grid_validates_copies_filters_previews_and_reports_server_errors() {
+    let mut h = Harness::new(160, 50, PageId::Grid);
+    let grid = WidgetId::of("grid").sub("grid");
+    h.focus(grid);
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Right);
+
+    h.key(KeyCode::Enter);
+    h.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
+    h.type_str("not-a-number");
+    h.key(KeyCode::Enter);
+    assert!(h.text().contains("EDIT"));
+    assert!(
+        h.text().contains("!"),
+        "the invalid cell renders an error marker"
+    );
+    assert!(h.app.pages[PageId::Grid.index()].editing());
+    h.key(KeyCode::Esc);
+
+    h.key(KeyCode::Char('y'));
+    h.assert_status_prefix("Copied ");
+    h.key(KeyCode::Char('f'));
+    h.assert_status_prefix("Would filter seats = ");
+    h.key(KeyCode::Char('/'));
+    h.assert_status("The filter editor belongs to the app");
+    h.key(KeyCode::Char('F'));
+    h.assert_status("No filters to clear");
+
+    h.key(KeyCode::Enter);
+    h.key_mod(KeyCode::Char('l'), KeyModifiers::CONTROL);
+    h.type_str("600");
+    h.key(KeyCode::Enter);
+    h.key_mod(KeyCode::Char('s'), KeyModifiers::CONTROL);
+    for _ in 0..4 {
+        h.tick();
+    }
+    assert!(h.text().contains("Save failed"));
+    assert!(
+        h.text().contains("!"),
+        "the rejected row renders an error marker"
+    );
+
+    h.key(KeyCode::Char('p'));
+    assert!(h.text().contains("Pending changes"));
+    h.click_label("Copy SQL");
+    h.assert_status_prefix("Copied ");
+}
+
+#[test]
+fn terminal_reaches_success_failure_and_splitter_states() {
+    let mut success = Harness::new(140, 45, PageId::Terminal);
+    assert!(success.app.animating());
+    for _ in 0..130 {
+        success.tick();
+    }
+    assert!(!success.app.animating());
+    assert!(success.text().contains("7 of 7"));
+    assert!(success.text().contains("Ready"));
+
+    let mut failure = Harness::new(140, 45, PageId::Terminal);
+    let term = WidgetId::of("terminal").sub("term");
+    let before = failure.area(term).width;
+    let seam = failure.area(WidgetId::of("terminal.seam"));
+    failure.mouse(MouseKind::Down, seam.x, seam.y + 2);
+    failure.mouse(MouseKind::Drag, seam.x + 8, seam.y + 2);
+    failure.mouse(MouseKind::Up, seam.x + 8, seam.y + 2);
+    assert_ne!(
+        failure.area(term).width,
+        before,
+        "splitter drag resizes viewport"
+    );
+
+    let fail = WidgetId::of("terminal").sub("fail");
+    failure.focus(fail);
+    failure.key(KeyCode::Enter);
+    for _ in 0..50 {
+        failure.tick();
+    }
+    assert!(
+        failure.text().contains("failed: network unreachable"),
+        "animating={} focus={:?}\n{}",
+        failure.app.animating(),
+        failure.app.focus.current(),
+        failure.text()
+    );
+    assert!(!failure.app.pages[PageId::Terminal.index()].animating());
+    assert!(failure.text().contains("failed"));
 }

@@ -18,6 +18,7 @@ use junie_tui::core::event::{Input, Outcome};
 use junie_tui::theme::{ColorLevel, Theme};
 
 use crate::app::App;
+use crate::db::Connection;
 
 struct Options {
     level: ColorLevel,
@@ -67,26 +68,26 @@ fn parse_args() -> Options {
     }
 }
 
+fn connection_index(connections: &[Connection], name: &str) -> Result<usize, clap::Error> {
+    connections
+        .iter()
+        .position(|c| c.name.eq_ignore_ascii_case(name))
+        .ok_or_else(|| {
+            Cli::command().error(
+                ErrorKind::ValueValidation,
+                format!("no connection named {name:?}"),
+            )
+        })
+}
+
 fn main() -> std::io::Result<()> {
     let opts = parse_args();
     let theme = Theme::for_level(opts.level);
     let mut app = App::new(theme);
     if let Some(name) = opts.connect {
-        if let Some(i) = app
-            .connections
-            .connections
-            .iter()
-            .position(|c| c.name.eq_ignore_ascii_case(&name))
-        {
-            app.connect(i);
-        } else {
-            Cli::command()
-                .error(
-                    ErrorKind::ValueValidation,
-                    format!("no connection named {name:?}"),
-                )
-                .exit();
-        }
+        let i = connection_index(&app.connections.connections, &name)
+            .unwrap_or_else(|error| error.exit());
+        app.connect(i);
     }
     junie_tui::runtime::run(&mut app)
 }

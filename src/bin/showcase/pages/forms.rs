@@ -12,6 +12,7 @@ use junie_tui::widgets::panel::Panel;
 use junie_tui::widgets::textarea::TextArea;
 
 const ID: WidgetId = WidgetId::of("forms");
+const SUBMIT_TICKS: u8 = 23;
 
 fn email(s: &str) -> Option<String> {
     if s.is_empty() {
@@ -36,7 +37,7 @@ fn name(s: &str) -> Option<String> {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Submit {
     Idle,
-    Busy(std::time::Instant),
+    Busy(u8),
     Done,
 }
 
@@ -105,7 +106,7 @@ impl FormsPage {
             return;
         }
         self.submit.busy = true;
-        self.state = Submit::Busy(std::time::Instant::now());
+        self.state = Submit::Busy(SUBMIT_TICKS);
         cx.status("Creating task…");
     }
 
@@ -227,12 +228,14 @@ impl Page for FormsPage {
     fn handle(&mut self, ev: &PageEvent, cx: &mut PageCtx) -> Outcome {
         match ev {
             PageEvent::Tick => {
-                if let Submit::Busy(at) = self.state
-                    && at.elapsed() > std::time::Duration::from_millis(1800)
-                {
-                    self.state = Submit::Done;
-                    self.submit.busy = false;
-                    cx.status("Task created ✓");
+                if let Submit::Busy(ticks) = self.state {
+                    if ticks > 1 {
+                        self.state = Submit::Busy(ticks - 1);
+                    } else {
+                        self.state = Submit::Done;
+                        self.submit.busy = false;
+                        cx.status("Task created ✓");
+                    }
                     return Outcome::Changed;
                 }
                 Outcome::Ignored

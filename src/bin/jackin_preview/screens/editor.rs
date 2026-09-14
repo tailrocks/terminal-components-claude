@@ -1885,7 +1885,11 @@ impl Screen for EditorScreen {
 
     fn on_paste(&mut self, text: &str, _w: &mut World) -> Outcome {
         if self.name.editing {
-            self.name.on_paste(text)
+            let out = self.name.on_paste(text);
+            if out.consumed() {
+                self.sync_pending();
+            }
+            out
         } else {
             Outcome::Ignored
         }

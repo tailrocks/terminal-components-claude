@@ -5,6 +5,7 @@
 //! the state transitions that can be made stable without a terminal process.
 
 use ratatui::crossterm::event::KeyCode;
+use ratatui::layout::Position;
 
 use junie_tui::core::event::MouseKind;
 use junie_tui::core::id::WidgetId;
@@ -25,6 +26,22 @@ fn status(h: &H) -> &str {
         .as_ref()
         .map(|(s, _, _)| s.as_str())
         .unwrap_or("")
+}
+
+fn outside(h: &H) -> Position {
+    let area = h.term.backend().buffer().area;
+    for y in area.top()..area.bottom() {
+        for x in area.left()..area.right() {
+            let pos = Position::new(x, y);
+            if h.app.hits.hit(pos).is_none() {
+                return pos;
+            }
+        }
+    }
+    panic!(
+        "no outside hit-test coordinate in {}x{}",
+        area.width, area.height
+    );
 }
 
 fn hard_manager() -> H {
@@ -76,6 +93,169 @@ fn launch(h: &mut H, plan: LaunchPlan) {
     });
     h.draw();
     assert_eq!(h.app.route, Route::Cockpit, "{}", h.text());
+}
+
+#[test]
+fn startup_inventory_focus_and_resize_recovery_are_deterministic() {
+    let cases = [
+        (Scenario::FirstUse, Route::Intro, "jackin❯"),
+        (Scenario::Returning, Route::Manager, "Current directory"),
+        (Scenario::AccountsMixed, Route::Accounts, "Accounts"),
+        (Scenario::LaunchRunning, Route::Cockpit, "Launch"),
+        (Scenario::LaunchFailure, Route::Cockpit, "Launch"),
+        (Scenario::CapsuleMulti, Route::Capsule, "File"),
+        (Scenario::OutroLast, Route::Capsule, "File"),
+        (Scenario::HardCases, Route::Manager, "Current directory"),
+    ];
+
+    for (scenario, route, marker) in cases {
+        let h = if scenario == Scenario::HardCases {
+            hard_manager()
+        } else {
+            H::new(scenario, Motion::Paused, 0, 120, 40)
+        };
+        assert_eq!(h.app.route, route, "{scenario:?}: {}", h.text());
+        assert!(h.text().contains(marker), "{scenario:?}: {}", h.text());
+        match route {
+            Route::Manager => assert_eq!(
+                h.app.focus.current(),
+                Some(crate::screens::manager::TREE),
+                "{scenario:?}"
+            ),
+            Route::Accounts => assert_eq!(
+                h.app.focus.current(),
+                Some(crate::screens::accounts::TREE),
+                "{scenario:?}"
+            ),
+            Route::Cockpit => assert_eq!(
+                h.app.focus.current(),
+                Some(crate::screens::cockpit::RAIL),
+                "{scenario:?}"
+            ),
+            Route::Capsule => assert_eq!(
+                h.app.focus.current(),
+                Some(crate::screens::capsule::PANES),
+                "{scenario:?}"
+            ),
+            Route::Intro | Route::Outro | Route::Handoff => {}
+            _ => panic!("unexpected startup route {route:?}"),
+        }
+    }
+
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    for (width, height, marker) in [
+        (71, 19, "Terminal too small"),
+        (72, 20, "Current directory"),
+        (80, 24, "Current directory"),
+        (160, 50, "Current directory"),
+        (60, 18, "Terminal too small"),
+        (80, 24, "Current directory"),
+    ] {
+        h.resize(width, height);
+        assert_eq!(h.app.size, (width, height));
+        assert!(h.text().contains(marker), "{width}x{height}: {}", h.text());
+    }
+    assert_eq!(h.app.focus.current(), Some(crate::screens::manager::TREE));
+}
+
+#[test]
+fn manager_scrollbar_click_and_drag_change_the_rendered_tree() {
+    let mut h = hard_manager();
+    h.key(KeyCode::Char('*'));
+    h.resize(72, 20);
+    let scrollbar = junie_tui::widgets::scrollbar::id_for(crate::screens::manager::TREE);
+    let area = h
+        .app
+        .hits
+        .area_of(scrollbar)
+        .expect("hard manager tree must render a scrollbar");
+    let bottom = Position::new(area.x, area.bottom().saturating_sub(1));
+    assert_eq!(h.app.hits.hit(bottom), Some(scrollbar));
+    let before_click = h.text();
+    h.click(bottom.x, bottom.y);
+    assert_ne!(
+        h.text(),
+        before_click,
+        "scrollbar click did not repaint the tree"
+    );
+
+    let mut drag = hard_manager();
+    drag.key(KeyCode::Char('*'));
+    drag.resize(72, 20);
+    let drag_area = drag
+        .app
+        .hits
+        .area_of(scrollbar)
+        .expect("hard manager drag tree must render a scrollbar");
+    let start_y = (drag_area.top()..drag_area.bottom())
+        .find(|y| drag.app.hits.hit(Position::new(drag_area.x, *y)) == Some(scrollbar))
+        .expect("scrollbar thumb must be hittable");
+    let end_y = (drag_area.top()..drag_area.bottom())
+        .rev()
+        .find(|y| drag.app.hits.hit(Position::new(drag_area.x, *y)) == Some(scrollbar))
+        .expect("scrollbar track must be hittable");
+    assert!(start_y < end_y);
+    let before_drag = drag.text();
+    drag.mouse(MouseKind::Down, drag_area.x, start_y);
+    drag.mouse(MouseKind::Drag, drag_area.x, end_y);
+    drag.mouse(MouseKind::Up, drag_area.x, end_y);
+    assert_ne!(
+        drag.text(),
+        before_drag,
+        "scrollbar drag did not repaint the tree"
+    );
+}
+
+#[test]
+fn modal_outside_click_traps_focus_and_restores_the_owner() {
+    let mut h = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    let owner = h.app.focus.current();
+    h.key(KeyCode::Char('?'));
+    assert!(h.text().contains("Keyboard shortcuts"), "{}", h.text());
+    assert_ne!(h.app.focus.current(), owner);
+    h.key(KeyCode::Tab);
+    assert_ne!(h.app.focus.current(), owner);
+    let p = outside(&h);
+    h.mouse(MouseKind::Down, p.x, p.y);
+    h.mouse(MouseKind::Up, p.x, p.y);
+    assert!(
+        !h.text().contains("Keyboard shortcuts"),
+        "help survived outside click"
+    );
+    assert_eq!(h.app.focus.current(), owner);
+    assert!(h.text().contains("Current directory"), "{}", h.text());
+
+    let mut c = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    let owner = c.app.focus.current();
+    c.ctrl('\\');
+    assert!(c.text().contains("Command palette"), "{}", c.text());
+    assert_ne!(c.app.focus.current(), owner);
+    let p = outside(&c);
+    c.mouse(MouseKind::Down, p.x, p.y);
+    c.mouse(MouseKind::Up, p.x, p.y);
+    assert!(
+        !c.text().contains("Command palette"),
+        "picker survived outside click"
+    );
+    assert_eq!(c.app.focus.current(), owner);
+    assert_eq!(c.app.route, Route::Capsule);
+
+    c.ctrl('q');
+    let choice = c.text();
+    assert!(
+        choice.contains("Unsaved work") || choice.contains("Exit"),
+        "{choice}"
+    );
+    let p = outside(&c);
+    c.mouse(MouseKind::Down, p.x, p.y);
+    c.mouse(MouseKind::Up, p.x, p.y);
+    assert!(
+        c.text().contains("Unsaved work") || c.text().contains("Exit"),
+        "destructive choice dismissed outside: {}",
+        c.text()
+    );
+    c.key(KeyCode::Esc);
+    assert_eq!(c.app.focus.current(), owner);
 }
 
 #[test]
@@ -365,6 +545,173 @@ fn capsule_palette_prefix_usage_and_close_commands_mutate_the_daemon() {
     h.key(KeyCode::Esc);
     h.key(KeyCode::Esc);
     assert_eq!(h.app.route, Route::Capsule);
+}
+
+#[test]
+fn capsule_prefix_tabs_splits_clear_and_close_keep_rendered_state_in_sync() {
+    let mut h = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    let instance = h.app.screens.capsule.as_ref().unwrap().instance.clone();
+    let initial_tabs = h.app.world.daemons[&instance].tabs.len();
+    let initial_panes = h.app.world.daemons[&instance].panes.len();
+    let initial_text = h.text();
+
+    h.ctrl('b');
+    h.key(KeyCode::Char('n'));
+    assert_eq!(h.app.world.daemons[&instance].active, 1);
+    assert_ne!(h.text(), initial_text);
+    h.ctrl('b');
+    h.key(KeyCode::Char('p'));
+    assert_eq!(h.app.world.daemons[&instance].active, 0);
+
+    h.ctrl('b');
+    h.key(KeyCode::Char('%'));
+    assert!(h.text().contains("Split → Right"), "{}", h.text());
+    h.key(KeyCode::Enter);
+    if h.text().contains("Account for") {
+        h.key(KeyCode::Down);
+        h.key(KeyCode::Enter);
+    }
+    assert_eq!(
+        h.app.world.daemons[&instance].panes.len(),
+        initial_panes + 1
+    );
+
+    h.ctrl('b');
+    h.key(KeyCode::Char('"'));
+    assert!(h.text().contains("Split ↓ Below"), "{}", h.text());
+    h.key(KeyCode::Enter);
+    if h.text().contains("Account for") {
+        h.key(KeyCode::Down);
+        h.key(KeyCode::Enter);
+    }
+    assert_eq!(
+        h.app.world.daemons[&instance].panes.len(),
+        initial_panes + 2
+    );
+
+    {
+        let daemon = h.app.world.daemons.get_mut(&instance).unwrap();
+        daemon.active = 0;
+        daemon.active_tab_mut().unwrap().focused = 3;
+    }
+    h.draw();
+    let before_clear = h.app.world.daemons[&instance].pane(3).unwrap().term.len();
+    assert!(
+        before_clear > 100,
+        "fixture lost scrollback: {before_clear}"
+    );
+    h.ctrl('b');
+    h.ctrl('l');
+    let after_clear = h.app.world.daemons[&instance].pane(3).unwrap().term.len();
+    assert!(
+        after_clear < before_clear,
+        "clear pane did not change model"
+    );
+    assert!(h.text().contains("Shell"), "{}", h.text());
+
+    h.ctrl('b');
+    h.key(KeyCode::Char('x'));
+    assert!(h.text().contains("Close pane?"), "{}", h.text());
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    assert_eq!(
+        h.app.world.daemons[&instance].panes.len(),
+        initial_panes + 1
+    );
+
+    h.ctrl('b');
+    h.key(KeyCode::Char('&'));
+    assert!(h.text().contains("Close tab?"), "{}", h.text());
+    h.key(KeyCode::Right);
+    h.key(KeyCode::Enter);
+    assert_eq!(h.app.world.daemons[&instance].tabs.len(), initial_tabs - 1);
+    assert!(!h.text().contains("Close tab?"), "{}", h.text());
+}
+
+#[test]
+fn paste_updates_editor_model_and_filters_newlines_in_capsule_input() {
+    let mut ed = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    editor(&mut ed, 1);
+    ed.key(KeyCode::Enter);
+    ed.key(KeyCode::Enter);
+    ed.ctrl('l');
+    assert_eq!(
+        ed.paste("workspace-paste"),
+        junie_tui::core::event::Outcome::Changed
+    );
+    assert!(ed.text().contains("workspace-paste"), "{}", ed.text());
+    assert_eq!(
+        ed.app.screens.editor.as_ref().unwrap().pending.name,
+        "workspace-paste"
+    );
+    ed.key(KeyCode::Enter);
+    assert_eq!(
+        ed.app.screens.editor.as_ref().unwrap().pending.name,
+        "workspace-paste"
+    );
+
+    let mut capsule = H::new(Scenario::CapsuleMulti, Motion::Reduced, 0, 120, 40);
+    let instance = capsule
+        .app
+        .screens
+        .capsule
+        .as_ref()
+        .unwrap()
+        .instance
+        .clone();
+    let pane = capsule.app.world.daemons[&instance].focused_pane().unwrap();
+    assert_eq!(
+        capsule.paste("paste-one\npaste-two\r"),
+        junie_tui::core::event::Outcome::Changed
+    );
+    assert_eq!(
+        capsule.app.world.daemons[&instance]
+            .pane(pane)
+            .unwrap()
+            .input,
+        "paste-onepaste-two"
+    );
+    assert!(
+        capsule.text().contains("paste-onepaste-two"),
+        "{}",
+        capsule.text()
+    );
+    assert!(!capsule.text().contains("paste-one\npaste-two"));
+}
+
+#[test]
+fn paste_reaches_form_and_file_browser_modal_fields() {
+    let mut accounts = H::new(Scenario::AccountsMixed, Motion::Reduced, 0, 120, 40);
+    accounts.key(KeyCode::Char('a'));
+    assert!(
+        accounts.text().contains("New account"),
+        "{}",
+        accounts.text()
+    );
+    accounts.key(KeyCode::Enter);
+    accounts.paste("Pasted account");
+    assert!(
+        accounts.text().contains("Pasted account"),
+        "{}",
+        accounts.text()
+    );
+
+    let mut prelude = H::new(Scenario::Returning, Motion::Reduced, 0, 120, 40);
+    prelude.app.go(Go::Prelude);
+    prelude.draw();
+    prelude.key(KeyCode::Char('g'));
+    prelude.paste("github.com/chainargos/payments-platform");
+    assert!(
+        prelude.text().contains("chainargos/payments-platform"),
+        "{}",
+        prelude.text()
+    );
+    prelude.key(KeyCode::Enter);
+    assert!(
+        prelude.text().contains("Mount destination"),
+        "{}",
+        prelude.text()
+    );
 }
 
 #[test]

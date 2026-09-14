@@ -43,6 +43,11 @@ impl H {
         self.draw();
         o
     }
+    pub fn paste(&mut self, text: &str) -> Outcome {
+        let o = self.app.handle(Input::Paste(text.to_owned()));
+        self.draw();
+        o
+    }
     pub fn type_str(&mut self, s: &str) {
         for c in s.chars() {
             self.key(KeyCode::Char(c));
