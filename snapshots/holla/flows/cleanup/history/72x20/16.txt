@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help           safe · Rust project  mbp · local
+
+  Here › Cleanup history
+ ━━━━━━━━━━━━━━━━━━━━━━━━━─────────────────────────────────────────────
+  Cleanup history                                 mbp · live · 1 s ago
+
+  Entries  1 · 1 operation log records
+  Log      ~/.cache/holla/ops.log · JSONL v1 · append only
+  Audit    targets, method, reclaimed space, skips and failures · res…
+
+ ╭─ History ───────────────────────────────────── 5 lines · y copies ─╮
+ │  operation log · newest last                                       │
+ │  {"v":1,"timestamp_ms":1787967660000,"mode":"trash","dry_run":fal… │
+ │                                                                    │
+ │  when              target                                      me… │
+ │  2026-08-29 08:41  ~/work/legacy/node_modules                  tr… │
+ ╰────────────────────────────────────────────────────────────────────╯
+
+ ~/Projects/safe         snapshot · read-only         16 colors · 72×20
+                     ↑↓ Scroll  y Copy  Esc Back

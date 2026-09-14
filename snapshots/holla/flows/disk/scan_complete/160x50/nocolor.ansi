@@ -1,0 +1,50 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                                                                                            no project  [0m[1mmbp · local[0m [0m
+                                                                                                                                                                [0m
+ [0m[1m Here › Disk › Usage  [0m                                                                                                                                         [0m
+ ━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mDisk usage · ~/work/data[0m                                                                                                                                      [0m
+  ▲ 2 unreadable · grant Full Disk Access to include them · scan complete · 852.0 KiB allocated · 66 entries · 0 selected (0 B)                                 [0m
+                                                                                                                                                                [0m
+    Filesystems                                                                                                                                                 [0m
+    /                       ━━━━━━━━━━━━────── 66%    611 of 926 GB                                                                                             [0m
+                                                                                                                                                                [0m
+    largest first · allocated · noise folded                                                                   data                                 directory   [0m
+ [0m[1m▎▾ [0m [0m[1m data                                                                                852.0 KiB · 100% [0m                                                     [0m
+    ▸   many                                                                              724.0 KiB ·  85%     Path       ~/work/data                           [0m
+    ▸   media                                                                              52.0 KiB ·   6%     Allocated  852.0 KiB                             [0m
+    ▸   skip-me                                                                            32.0 KiB ·   4%     Apparent   1012.0 KiB · sparse                   [0m
+    ▸   .hidden                                                                            20.0 KiB ·   2%     Entries    66 · hardlinks counted once           [0m
+        sparse.img                                                                         12.0 KiB ·   1%     Modified   2026-08-11 08:41                      [0m
+    ▸   cloud                                                                    4.0 KiB ·   0% · dataless     Freshness  live · complete                       [0m
+    ▸   locked                                                          4.0 KiB ·   0% · permission denied     Selection  not selected · Space selects          [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+                                                                                                                                                                [0m
+ [0m[1m~/work/data[0m                                                         0 selected · 0 B                                                         no color · 160×50 [0m
+      [0m[1m↑↓[0m Move  [0m[1m← →[0m Fold / open  [0m[1mSpace[0m Select  [0m[1ms[0m Sort  [0m[1mf[0m Fold noise  [0m[1md[0m Delete…  [0m[1mc[0m Artifact plan  [0m[1mr[0m Rescan  [0m[1mx[0m Cancel scan  [0m[1mt[0m Top files  [0m[1mp[0m Facts  [0m[1mEsc[0m Back         [0m

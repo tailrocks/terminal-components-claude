@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                 web · Node project · pnpm  mbp · local
+
+  Here › Cleanup
+ ━━━━━━━━━━━━━━━━━─────────────────────────────────────────────────────────────────────────────────
+  Cleanup review
+  18 categories · 18.8 GiB · 19 selected (12.4 GiB) · Trash
+
+                                                                                                  │
+  [✓] ▸ Bun cache                          60.0 MiB  rebuilt on demand · 1 candidate · any age    │
+                                                                                                  │
+  [✓] ▸ Cargo registry cache                4.8 GiB  safe if old · 2 candidates · ≥ 30 d          │
+                                                                                                  │
+  [✓] ▸ Gradle caches                       1.5 GiB  safe if old · 2 candidates · ≥ 30 d          │
+                                                                                                  │
+  [ ] ▸ Maven repository                  700.0 MiB  review first · 1 candidate · any age         │
+                                                                                                  │
+  [✓] ▸ pip cache                         150.0 MiB  rebuilt on demand · 1 candidate · any age    ┃
+                                                                                                  ┃
+  [✓] ▸ uv cache                          300.0 MiB  rebuilt on demand · 1 candidate · any age    ┃
+                                                                                                  ┃
+  [~] ▸ User caches                         1.9 GiB  review first · 5 candidates · ≥ 30 d         ┃
+                                                                                                  ┃
+  [✓] ▸ User logs                          30.0 MiB  rebuilt on demand · 2 candidates · ≥ 7 d     ┃
+                                                                                                  ┃
+  [✓] ▸ JetBrains logs                     30.0 MiB  rebuilt on demand · 1 candidate · ≥ 7 d      ┃
+                                                                                                  ┃
+ ▎[ ] ▸ Project artifacts                   2.5 GiB  review first · 14 candidates · ≥ 7 d         │
+
+ ~/Projects/web                     19 selected · 12.4 GiB                      256 colors · 100×30
+  ↑↓ Move  Space Select  Enter Open  a All  m Permanent  n Dry run  d Review deletion  p Facts  …

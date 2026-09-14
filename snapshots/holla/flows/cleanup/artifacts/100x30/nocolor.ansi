@@ -1,0 +1,30 @@
+ [0m[1m holla❯ [0m   File   Go   Help                                 web · Node project · pnpm  [0m[1mmbp · local[0m [0m
+                                                                                                    [0m
+ [0m[1m Here › Cleanup  [0m                                                                                  [0m
+ ━━━━━━━━━━━━━━━━━───────────────────────────────────────────────────────────────────────────────── [0m
+  [0m[1mCleanup review[0m                                                                                    [0m
+  18 categories · 18.8 GiB · 19 selected (12.4 GiB) · Trash                                         [0m
+                                                                                                    [0m
+ [0m[2m                                                                                                 [0m│ [0m
+  [✓] ▸ Bun cache                          60.0 MiB  rebuilt on demand · 1 candidate · any age    │ [0m
+                                                                                                  │ [0m
+  [✓] ▸ Cargo registry cache                4.8 GiB  safe if old · 2 candidates · ≥ 30 d          │ [0m
+                                                                                                  │ [0m
+  [✓] ▸ Gradle caches                       1.5 GiB  safe if old · 2 candidates · ≥ 30 d          │ [0m
+                                                                                                  │ [0m
+  [ ] ▸ Maven repository                  700.0 MiB  review first · 1 candidate · any age         │ [0m
+                                                                                                  │ [0m
+  [✓] ▸ pip cache                         150.0 MiB  rebuilt on demand · 1 candidate · any age    ┃ [0m
+                                                                                                  ┃ [0m
+  [✓] ▸ uv cache                          300.0 MiB  rebuilt on demand · 1 candidate · any age    ┃ [0m
+                                                                                                  ┃ [0m
+  [~] ▸ User caches                         1.9 GiB  review first · 5 candidates · ≥ 30 d         ┃ [0m
+                                                                                                  ┃ [0m
+  [✓] ▸ User logs                          30.0 MiB  rebuilt on demand · 2 candidates · ≥ 7 d     ┃ [0m
+                                                                                                  ┃ [0m
+  [✓] ▸ JetBrains logs                     30.0 MiB  rebuilt on demand · 1 candidate · ≥ 7 d      ┃ [0m
+                                                                                                  ┃ [0m
+ [0m[1;2m▎[0m[2m[ ][0m[1;2m [0m[2m▸[0m[1;2m Project artifacts                 [0m[2m  2.5 GiB[0m[1;2m  [0m[2mreview first · 14 candidates · ≥ 7 d[0m[1;2m         [0m│ [0m
+                                                                                                    [0m
+ [0m[1m~/Projects/web[0m                      19 selected · 12.4 GiB                       no color · 100×30 [0m
+  [0m[1m↑↓[0m Move  [0m[1mSpace[0m Select  [0m[1mEnter[0m Open  [0m[1ma[0m All  [0m[1mm[0m Permanent  [0m[1mn[0m Dry run  [0m[1md[0m Review deletion  [0m[1mp[0m Facts  …   [0m

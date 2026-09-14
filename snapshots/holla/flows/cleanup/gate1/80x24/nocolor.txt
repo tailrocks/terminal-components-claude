@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                   safe · Rust project  mbp · local
+
+  Here › Disk › Usage › Review
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────────
+  Review · trash 1 item · gate 1 of 2 · review the resolved facts, then conti…
+
+  Action        move to Trash 1 item under ~/Projects/safe
+  Host          mbp · local
+  Mode          Trash · native macOS Trash · space returns after the Trash is
+                emptied
+  Estimate      1000.0 MiB allocated · APFS clones may overcount · purgeable
+                space excluded · not a free-space guarantee
+  Denied        none · every path passed the lexical, protected-root,
+                user-data and symlink rules
+
+ ╭─ Sequence · 1 command ────────────────────────────────────────── y copies ─╮
+ │  01  trash /Users/alex/Projects/safe/target  # 1000.0 MiB · disk.tree      │
+ │                                                                            │
+ ╰────────────────────────────────────────────────────────────────────────────╯
+
+                                                         ▎Cancel    Continue…
+
+ ~/Projects/safe             review · gate 1 of 2              no color · 80×24
+         ← → Choose  Enter Activate  …   1 item selected · 1000.0 MiB estimated

@@ -1,0 +1,24 @@
+ [0m[1m holla❯ [0m   File   Go   Help                   no project  [0m[1mdevbox · development[0m [0m
+                                                                                [0m
+  Here   [0m[1m Clean Docker completely [0m✓[0m[1m ×  [0m                                         [0m
+ ────────━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────── [0m
+  [0m[1mClean Docker completely[0m · 7 of 7 done               finished · 14 s · devbox  [0m
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% ✓                  [0m
+                                                                                [0m
+   ✓ 01 Stop running containers          –            ·     3 s                 [0m
+   ✓ 02 Remove containers                01           ·     2 s                 [0m
+   ✓ 03 Remove unused images             02           a     5 s                 [0m
+   ✓ 04 Prune networks                   02           b     1 s                 [0m
+   ✓ 05 Prune volumes                    02           c     2 s                 [0m
+   ✓ 06 Prune builder and Buildx caches  02           d     3 s                 [0m
+ [0m[1m▎ [0m✓[0m[1m [0m07[0m[1m Rescan and report                [0m03 04 05 06[0m[1m  [0mjoin[0m[1m  [0m1 s[0m[1m                [0m [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+                                                                                [0m
+  7 succeeded                                                                   [0m
+  Next   Docker disk usage                                                      [0m
+                                                                                [0m
+ [0m[1m/work/scratch[0m                 finished · 7 ok                 no color · 80×24 [0m
+  [0m[1m↑↓[0m Step  [0m[1mEnter[0m Maximise output  [0m[1mx[0m Close  …   Clean Docker completely finished [0m

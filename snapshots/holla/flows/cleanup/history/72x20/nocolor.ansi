@@ -1,0 +1,20 @@
+ [0m[1m holla❯ [0m   File   Go   Help           safe · Rust project  [0m[1mmbp · local[0m [0m
+                                                                        [0m
+ [0m[1m Here › Cleanup history  [0m                                              [0m
+ ━━━━━━━━━━━━━━━━━━━━━━━━━───────────────────────────────────────────── [0m
+  [0m[1mCleanup history[0m                                 mbp · live · 1 s ago  [0m
+                                                                        [0m
+  Entries  1 · 1 operation log records                                  [0m
+  Log      ~/.cache/holla/ops.log · JSONL v1 · append only              [0m
+  Audit    targets, method, reclaimed space, skips and failures · res…  [0m
+                                                                        [0m
+ ╭─[0m[1m History [0m───────────────────────────────────── 5 lines · y copies ─╮ [0m
+ │  operation log · newest last                                       │ [0m
+ │  {"v":1,"timestamp_ms":1787967660000,"mode":"trash","dry_run":fal… │ [0m
+ │                                                                    │ [0m
+ │  when              target                                      me… │ [0m
+ │  2026-08-29 08:41  ~/work/legacy/node_modules                  tr… │ [0m
+ ╰────────────────────────────────────────────────────────────────────╯ [0m
+                                                                        [0m
+ [0m[1m~/Projects/safe[0m         snapshot · read-only          no color · 72×20 [0m
+                     [0m[1m↑↓[0m Scroll  [0m[1my[0m Copy  [0m[1mEsc[0m Back                        [0m
