@@ -1,0 +1,20 @@
+ ▪ Junie Design system / Components / Editable ta i Inspector   ? Help
+
+   Overview       ┃  Editable tables  Navigation is reversed cell; edi…
+   Buttons        ┃
+   Inputs         ┃   ▎Tasks                       1 edits · 1–6 of 14
+   Text areas     ┃
+   Forms          ┃       ID     Task                      Owner    …
+   Lists          ┃    ▎  #1040  Add rate limiting to au…  mira      ┃
+   Trees          ┃       #1041  Migrate sessions table …  jonas     ┃
+   Tables         ┃       #1042  Fix flaky checkout inte…  ana       │
+ › Editable tabl… ┃       #1043  Write release notes for…  mira      │
+   Panels         ┃       #1044  Replace deprecated Vue …  kai       │
+   Sidebars       ┃       #1045  Upgrade Postgres driver…  jonas     │
+   Dialogs        │
+   Progress       │
+   Scrolling      │  reversed  cell cursor (navigation)
+   Terminal       │  ▁         editing cursor + accent underline
+   Code editor    │  !         validation error
+
+ ↑ ↓ ← → Cell  Enter Edit  s Sort  click twice Edit  …       Cell saved

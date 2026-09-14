@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help                    no project  mbp · local
+
+  Here › Upgrade everything    brew update ✓ ×
+ ━━━━━━━━━━━━━━━━━━━━━━━━━━━━──────────────────────────────────────────
+  Upgrade everything · mbp    9 steps · 9 included · 0 excluded · ~9 s
+  upgrade every detected manager on mbp: Homebrew, mise, amp, Oh My Z…
+
+         step                 needs           lane  note
+ ▎[✓] 01 brew update          –               a                       ┃
+  [✓] 02 brew upgrade         01              a                       ┃
+  [✓] 03 brew cleanup         02              a     optional          │
+  [✓] 04 brew doctor          03              a     optional          │
+  [✓] 05 brew upgrade --cask  01              b                       │
+
+    7 required · 2 optional · 4 branches run in parallel where indepe…
+
+                                               Cancel    Confirm plan
+
+ ~       review · 9 steps · 4 branches parallel       16 colors · 72×20
+        …   ! Upgrade Homebrew packages · 4 ok · 1 failed · 0 cancelled
