@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Scrolling   i Inspector   ? Help  [0m
+                                                                        [0m
+   Overview       ┃  [0m[1mScrolling[0m  Wheel under the pointer, keys on the f… [0m
+   Buttons        ┃                                                     [0m
+   Inputs         ┃   ▎[0m[1mWra… 12–22 …[0m      Lon… 1–11 o…      Log 1990–2…  [0m
+   Text areas     ┃                                                     [0m
+   Forms          ┃    [0m[2mforms a    [0m┃         Row 001 ┃      [0m[2m 735.93s… [0m│  [0m
+   Lists          ┃    plan,      │         Row 002 │       736.30s… │  [0m
+   Trees          ┃    makes      │         Row 003 │       736.67s… │  [0m
+   Tables         ┃    focused    │         Row 004 │       737.04s… │  [0m
+   Editable tabl… ┃    changes,   │         Row 005 │       737.41s… │  [0m
+   Panels         ┃    runs the   │         Row 006 │       737.78s… │  [0m
+   Sidebars       ┃    tests, and │         Row 007 │       738.15s… │  [0m
+   Dialogs        │    reports    │         Row 008 │       738.52s… │  [0m
+   Progress       │    back with  │         Row 009 │       738.89s… │  [0m
+ › Scrolling      │    a summary  │         Row 010 │       739.26s… │  [0m
+   Terminal       │    [0m[2myou can    [0m│      [0m[2m   Row 011 [0m│       739.63s… ┃  [0m
+[0m[2m   Code editor    [0m│                                                     [0m
+                                                                        [0m
+ [0m[1m↑ ↓[0m Scroll  [0m[1mPgUp PgDn[0m Page  [0m[1mg G[0m Ends  [0m[1mTab[0m Next                         [0m

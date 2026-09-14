@@ -1,0 +1,20 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Chips & sel i Inspector   ? Help  [0m
+                                                                        [0m
+[0m[2m   Text areas     [0m│  [0m[1mChips & selects[0m  Removable chips, a popup select,… [0m
+   Forms          │                                                     [0m
+   Lists          ┃    Filters                                2 active  [0m
+   Trees          ┃                                                     [0m
+   Tables         ┃     match all ▾   status = 'pending' ×   …          [0m
+   Editable tabl… ┃                                                     [0m
+   Panels         ┃    last action: nothing yet                         [0m
+   Sidebars       ┃                                                     [0m
+   Dialogs        ┃                                                     [0m
+   Progress       ┃    Selects                                          [0m
+   Scrolling      ┃                                                     [0m
+   Terminal       ┃      Sort by        Page size      Engine           [0m
+   Code editor    ┃      created… ▾     50       ▾   [0m[2m  PostgreSQL   ▾ [0m  [0m
+   Diff           │      Applies to…                   Fixed by the c…  [0m
+   Data grid      │                                                     [0m
+[0m[1;2m▎› Chips & selec… [0m│                                                     [0m
+                      ▪  [0m[1mAcme[0m  [0m[1m◆ production[0m  acme_prod › public  [0m[1msafe[0m   [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                            [0m

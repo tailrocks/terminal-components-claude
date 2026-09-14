@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Code editor         no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mCode editor[0m  Blocks, tones, diagnostics and completion; the gutter says where… [0m
+   Buttons                                                                                          [0m
+   Inputs              retry.rs                            3 blocks      State                      [0m
+   Text areas                                                                                       [0m
+   Forms               [0m[2m    7             Err(e) [0m[1;2mif[0m[2m e.is_transient…[0m│      Mode         navigating    [0m
+   Lists                   8                 log::warn!("attempt …│      Cursor       ln 1 · col 1  [0m
+   Trees                   9                 sleep(delay).[0m[1mawait[0m;  │      Block        1 of 3        [0m
+   Tables                 10                 delay *= 2;          │      Runs         0             [0m
+   Editable tables        11             }                        │      Last run     —             [0m
+   Panels                 12             Err(e) => [0m[1mreturn[0m Err(e), ┃      Diagnostics  0             [0m
+   Sidebars               13         }                            ┃      Completion   closed        [0m
+   Dialogs                14     }                                ┃                                 [0m
+   Progress               15     Err(Error::Exhausted)            ┃                                 [0m
+   Scrolling              16 }                                    ┃                                 [0m
+   Terminal               17                                      ┃      Diagnostics                [0m
+[0m[1m▎› Code editor     [0m       18 [0m[1mfn[0m client() -> Client {              ┃                                 [0m
+   Diff                   19     Client::builder().timeout(10).bu…┃           Nothing flagged       [0m
+   Data grid              20 }                                    ┃                                 [0m
+   Chips & selects        21                                      ┃        Run the second block:    [0m
+   Pickers                22 [0m[3m#[test][0m                              ┃         its unwrap() gets a     [0m
+   Chrome                 23 [0m[1mfn[0m backoff_doubles() {               ┃               warning           [0m
+   Settings               24     assert_eq!(schedule(3), vec![200…┃                                 [0m
+   Task runner            25 }                                    ┃                                 [0m
+                          26                                      ┃                                 [0m
+                                                        7–26 of 26                                  [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                        [0m

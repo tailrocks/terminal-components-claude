@@ -1,0 +1,50 @@
+ ▪ Junie Design system / Components / Diff                                                                            no color · 160×50   i Inspector   ? Help
+
+   Foundations            Diff viewer  Unified or old / new review · narrow panes use unified · select and copy text
+   Overview
+                          ▎● Review    ○ Empty
+   Components
+   Buttons                ╭─ Diff ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+   Inputs                 │    3 region = "東京"                                            │   4 region = "東京"                                            │ │
+   Text areas             │    4 label = "café ☕"                                          │   5 label = "café ☕"                                          │ │
+   Forms                  │    5 endpoint = "https://api.example.test/workers/health"       │   6 endpoint = "https://api.example.test/workers/health"       │ │
+   Lists                  │    6 enabled = true                                             │   7 enabled = true                                             │ │
+   Trees                  │  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────│ │
+   Tables                 │  @@ -9,6 +10,7 @@                                                                                                                │ │
+   Editable tables        │    9 [service.worker_1]                                         │  10 [service.worker_1]                                         ┃ │
+   Panels                 │   10 attempts = 3                                               │  11 attempts = 5                                               ┃ │
+   Sidebars               │                                                                 │  12 backoff = "exponential"                                    ┃ │
+   Dialogs                │   11 region = "東京"                                            │  13 region = "東京"                                            ┃ │
+   Progress               │   12 label = "café ☕"                                          │  14 label = "café ☕"                                          ┃ │
+   Scrolling              │   13 endpoint = "https://api.example.test/workers/health"       │  15 endpoint = "https://api.example.test/workers/health"       ┃ │
+   Terminal               │   14 enabled = true                                             │  16 enabled = true                                             ┃ │
+   Code editor            │  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┃ │
+ › Diff                   │  @@ -17,6 +19,7 @@                                                                                                               ┃ │
+   Data grid              │   17 [service.worker_2]                                         │  19 [service.worker_2]                                         ┃ │
+   Chips & selects        │   18 attempts = 3                                               │  20 attempts = 5                                               ┃ │
+   Pickers                │                                                                 │  21 backoff = "exponential"                                    ┃ │
+   Chrome                 │   19 region = "東京"                                            │  22 region = "東京"                                            ┃ │
+                          │   20 label = "café ☕"                                          │  23 label = "café ☕"                                          ┃ │
+   Screens                │   21 endpoint = "https://api.example.test/workers/health"       │  24 endpoint = "https://api.example.test/workers/health"       ┃ │
+   Settings               │   22 enabled = true                                             │  25 enabled = true                                             ┃ │
+   Task runner            │  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┃ │
+                          │  @@ -25,6 +28,7 @@                                                                                                               ┃ │
+                          │   25 [service.worker_3]                                         │  28 [service.worker_3]                                         ┃ │
+                          │   26 attempts = 3                                               │  29 attempts = 5                                               ┃ │
+                          │                                                                 │  30 backoff = "exponential"                                    ┃ │
+                          │   27 region = "東京"                                            │  31 region = "東京"                                            ┃ │
+                          │   28 label = "café ☕"                                          │  32 label = "café ☕"                                          ┃ │
+                          │   29 endpoint = "https://api.example.test/workers/health"       │  33 endpoint = "https://api.example.test/workers/health"       ┃ │
+                          │   30 enabled = true                                             │  34 enabled = true                                             ┃ │
+                          │  ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┃ │
+                          │  @@ -33,6 +37,7 @@                                                                                                               ┃ │
+                          │   33 [service.worker_4]                                         │  37 [service.worker_4]                                         ┃ │
+                          │   34 attempts = 3                                               │  38 attempts = 5                                               ┃ │
+                          │                                                                 │  39 backoff = "exponential"                                    ┃ │
+                          │   35 region = "東京"                                            │  40 region = "東京"                                            ┃ │
+                          │   36 label = "café ☕"                                          │  41 label = "café ☕"                                          ┃ │
+                          │   37 endpoint = "https://api.example.test/workers/health"       │  42 endpoint = "https://api.example.test/workers/health"       ┃ │
+                          │   38 enabled = true                                             │  43 enabled = true                                             ┃ │
+                          ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+ Enter Toggle  Tab Next control

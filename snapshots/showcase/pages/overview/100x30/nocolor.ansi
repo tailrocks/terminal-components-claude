@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Foundations / Overview           no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+[0m[1m▎› Overview        [0m  [0m[1mOverview[0m  Tokens and principles behind every component                         [0m
+   Buttons                                                                                          [0m
+   Inputs              Tokens                                          Principles                   [0m
+   Text areas                                                                                       [0m
+   Forms                   ▏ canvas                      #000000       [0m[1mOne hue[0m                      [0m
+   Lists                   ▏ surface                     #111111       Green means focus, primary   [0m
+   Trees                   ▏ surface.elevated            #18181b       action or selection.         [0m
+   Tables                  ▏ surface.overlay             #27272a       Everything else is           [0m
+   Editable tables         ▏ field                       #1e1e22       achromatic.                  [0m
+   Panels                  ▏ popover                     #3f3f46                                    [0m
+   Sidebars                ▏ border.subtle             white 15%       [0m[1mAlpha ladder[0m                 [0m
+   Dialogs                 ▏ border.strong             white 30%       Text and borders step down   [0m
+   Progress                ▏ text.primary                #ffffff       in white opacity, never in   [0m
+   Scrolling               ▏ text.secondary            white 70%       arbitrary grays.             [0m
+   Terminal                ▏ text.muted                white 50%                                    [0m
+   Code editor             ▏ text.faint                white 30%                                    [0m
+   Diff                    ▏ accent                      #48e054                                    [0m
+   Data grid               ▏ accent.hover                #3ab343       State language               [0m
+   Chips & selects         ▏ accent.pressed              #2b8632                                    [0m
+   Pickers                 ▏ accent.bg                 green 20%       ▎  focus                     [0m
+   Chrome                  ▏ error                       #e44545       ░  hover lifts the surface   [0m
+   Settings                ▏ warning                     #f59e09       ›  current / chosen          [0m
+   Task runner             ▏ info                        #8787ff       ✓  checked                   [0m
+                                                                       !  error                     [0m
+                                                                       ▁  editing: cursor + underlin[0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                        [0m

@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Tables              no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mTables[0m  Sort by header, hover rows, select with Enter, overflow scrolls        [0m
+   Buttons                                                                                          [0m
+   Inputs              Tasks                                                 unsorted · 1–11 of 24  [0m
+   Text areas                                                                                       [0m
+   Forms                  ID     Task                                        Owner    Status    …   [0m
+   Lists                  #1040  Add rate limiting to auth endpoints         mira     Done       ┃  [0m
+   Trees                  #1041  Migrate sessions table to UUID keys         jonas    ▸ Running  ┃  [0m
+[0m[1m▎› Tables          [0m       #1042  Fix flaky checkout integration test         ana      Failed     ┃  [0m
+   Editable tables        #1043  Write release notes for 3.2                 mira     Queued     ┃  [0m
+   Panels                 #1044  Replace deprecated Vue mixins               kai      Done       ┃  [0m
+   Sidebars               #1045  Upgrade Postgres driver to 0.9              jonas    Paused     │  [0m
+   Dialogs                #1046  Extract billing service module              sofia    Done       │  [0m
+   Progress               #1047  Add OpenTelemetry tracing spans             kai      ▸ Running  │  [0m
+   Scrolling              #1048  Remove legacy feature flags                 ana      Queued     │  [0m
+   Terminal               #1049  Generate API client from OpenAPI            sofia    Done       │  [0m
+   Code editor         [0m[2m   #1050  Harden CSP headers                          mira     Done       [0m│  [0m
+   Diff                                                                                             [0m
+   Data grid                                                                                        [0m
+   Chips & selects     Checks                                                                       [0m
+   Pickers                                                                                          [0m
+   Chrome                 Check                                                         Result      [0m
+   Settings                                                                                         [0m
+   Task runner                                                                                      [0m
+                                                 No checks have run yet                             [0m
+                                                                                                    [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                        [0m

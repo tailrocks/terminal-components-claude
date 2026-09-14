@@ -1,0 +1,50 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Terminal                                                                        no color · 160×50   i Inspector   ? Help  [0m
+                                                                                                                                                                [0m
+   Foundations            [0m[1mTerminal[0m  Viewport with scrollback, selection and copy · drag the seam · step rail reports a job                                      [0m
+   Overview                                                                                                                                                     [0m
+                          ╭─ Viewport ───────────────────────────────────────────── 37 lines · following ─╮ │  Step rail                                7 of 7  [0m
+   Components             │  [0m[1mpayments-platform ❯ [0mjackin launch                                            │ │                                                   [0m
+   Buttons                │  [0m[1m▶ Resolve workspace[0m                                                          │ │   ✓ 01 Resolve workspace                  0.8 s   [0m
+   Inputs                 │  ✓ Resolve workspace                                                          │ │   ✓ 02 Pull base image                    2.1 s   [0m
+   Text areas             │  [0m[1m▶ Pull base image[0m                                                            │ │   ✓ 03 Build container                    3.2 s   [0m
+   Forms                  │    layer 01/12    3%                                                          │ │     04 Mount sources                     cached   [0m
+   Lists                  │    layer 02/12   19%                                                          │ │   ✓ 05 Resolve credentials                1.4 s   [0m
+   Trees                  │    layer 03/12   34%                                                          │ │   ✓ 06 Start agent                        1.1 s   [0m
+   Tables                 │    layer 04/12   50%                                                          │ │   ✓ 07 Ready                              0.1 s   [0m
+   Editable tables        │    layer 05/12   65%                                                          │ │                                                   [0m
+   Panels                 │    layer 06/12   80%                                                          │ │                                                   [0m
+   Sidebars               │    layer 07/12   96%                                                          │ │                                                   [0m
+   Dialogs                │  ✓ Pull base image                                                            │ │                                                   [0m
+   Progress               │  [0m[1m▶ Build container[0m                                                            │ │                                                   [0m
+   Scrolling              │    #1 RUN apt-get install -y build-essential                                  │ │                                                   [0m
+[0m[1m▎› Terminal             [0m  │    #2 COPY rust-toolchain.toml ./                                             │ │                                                   [0m
+   Code editor            │    #3 RUN cargo fetch --locked                                                │ │                                                   [0m
+   Diff                   │    #4 RUN cargo build --release                                               │ │                                                   [0m
+   Data grid              │    #5 RUN apt-get install -y build-essential                                  │ │                                                   [0m
+   Chips & selects        │    #6 COPY rust-toolchain.toml ./                                             │ │                                                   [0m
+   Pickers                │    #7 RUN cargo fetch --locked                                                │ │                                                   [0m
+   Chrome                 │    #8 RUN cargo build --release                                               │ │                                                   [0m
+                          │    #9 RUN apt-get install -y build-essential                                  │ │                                                   [0m
+   Screens                │    #10 COPY rust-toolchain.toml ./                                            │ │                                                   [0m
+   Settings               │    #11 RUN cargo fetch --locked                                               │ │                                                   [0m
+   Task runner            │    #12 RUN cargo build --release                                              │ │                                                   [0m
+                          │    #13 RUN apt-get install -y build-essential                                 │ │                                                   [0m
+                          │    #14 COPY rust-toolchain.toml ./                                            │ │                                                   [0m
+                          │  ✓ Build container                                                            │ │                                                   [0m
+                          │  [0m[1m▶ Resolve credentials[0m                                                        │ │                                                   [0m
+                          │    1Password  Engineering › Anthropic · Work › credential  ok                 │ │                                                   [0m
+                          │  ✓ Resolve credentials                                                        │ │                                                   [0m
+                          │  [0m[1m▶ Start agent[0m                                                                │ │                                                   [0m
+                          │    claude --resume  pid 4188                                                  │ │                                                   [0m
+                          │  ✓ Start agent                                                                │ │                                                   [0m
+                          │  [0m[1m▶ Ready[0m                                                                      │ │                                                   [0m
+                          │  ✓ Ready                                                                      │ │                                                   [0m
+                          │  [0m[1mpayments-platform ❯ [0m                                                         │ │                                                   [0m
+                          │                                                                               │ │                                                   [0m
+                          │                                                                               │ │                                                   [0m
+                          │                                                                               │ │                                                   [0m
+                          │                                                                               │ │                                                   [0m
+                          │                                                                               │ │   [0m[1mRun [0m   Run with a failure                       [0m
+                          ╰───────────────────────────────────────────────────────────────────────────────╯ │                                                   [0m
+                                                                                                                                                                [0m
+ [0m[1m↑ ↓[0m Move  [0m[1mEnter[0m Open  [0m[1mTab[0m Into page  [0m[1mq[0m Quit                                                                                                                    [0m

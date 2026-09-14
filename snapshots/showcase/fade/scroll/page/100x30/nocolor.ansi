@@ -1,0 +1,30 @@
+ ▪ [0m[1mJunie[0m Design system / Components / Scrolling           no color · 100×30   i Inspector   ? Help  [0m
+                                                                                                    [0m
+   Overview          [0m[1mScrolling[0m  Wheel under the pointer, keys on the focused container, thumb show… [0m
+   Buttons                                                                                          [0m
+   Inputs             ▎[0m[1mWrapped… 22–[0m42 of 141      Long list 1–21 of 120      Log 1980–2000 of 200…  [0m
+   Text areas                                                                                       [0m
+   Forms               [0m[2m                    [0m│         Row 001          ┃      [0m[2m 732.23s  info   L… [0m│  [0m
+   Lists               The design system   │         Row 002          ┃       732.60s  info   R… │  [0m
+   Trees               in this prototype   │         Row 003          ┃       732.97s  info   F… │  [0m
+   Tables              exists so that the  ┃         Row 004          │       733.34s  info   C… │  [0m
+   Editable tables     terminal version of ┃         Row 005          │       733.71s  info   C… │  [0m
+   Panels              that experience     ┃         Row 006          │       734.08s  warn   u… │  [0m
+   Sidebars            feels as deliberate │         Row 007          │       734.45s  info   C… │  [0m
+   Dialogs             as the web version: │         Row 008          │       734.82s  info   R… │  [0m
+   Progress            quiet surfaces, one │         Row 009          │       735.19s  info   t… │  [0m
+ › Scrolling           accent, clear       │         Row 010          │       735.56s  info   t… │  [0m
+   Terminal            focus, and no       │         Row 011          │       735.93s  error  t… │  [0m
+   Code editor         decoration that     │         Row 012          │       736.30s  info   t… │  [0m
+   Diff                does not carry      │         Row 013          │       736.67s  info   L… │  [0m
+   Data grid           information.        │         Row 014          │       737.04s  info   R… │  [0m
+   Chips & selects                         │         Row 015          │       737.41s  info   F… │  [0m
+   Pickers             Scroll with the     │         Row 016          │       737.78s  info   C… │  [0m
+   Chrome              mouse wheel,        │         Row 017          │       738.15s  info   C… │  [0m
+   Settings            PageUp/PageDown, or │         Row 018          │       738.52s  warn   u… │  [0m
+   Task runner         the arrow keys      │         Row 019          │       738.89s  info   C… │  [0m
+                       while this panel    │         Row 020          │       739.26s  info   R… │  [0m
+                       [0m[2mhas focus. The      [0m│      [0m[2m   Row 021          [0m│       739.63s  info   t… ┃  [0m
+                                                                                                    [0m
+                                                                                                    [0m
+ [0m[1m↑ ↓[0m Scroll  [0m[1mPgUp PgDn[0m Page  [0m[1mg G[0m Ends  [0m[1mTab[0m Next                                                     [0m
