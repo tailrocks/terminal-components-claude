@@ -1,0 +1,20 @@
+ [0m[1m holla❯ [0m   File   Go   Help           no project  [0m[1mdevbox · development[0m [0m
+                                                                        [0m
+ [0m[1m Here  [0m                                                                [0m
+ ━━━━━━━─────────────────────────────────────────────────────────────── [0m
+ ▎ [0m[4mdocker clean[0m                                         scope ‹ here ›  [0m
+                                                                        [0m
+    Results · 7                                                         [0m
+ [0m[1m › Clean Docker completely  [0mplan  [0m[1m  [0mon devbox[0m[1m             [0mdestructive[0m[1m [0m [0m
+    Prune builder cache      docker  on devbox             destructive  [0m
+    Stop all containers      docker  on devbox                          [0m
+    Prune unused networks    docker  on devbox                          [0m
+    Prune unused volumes     docker  on devbox             destructive  [0m
+    Remove all unused imag…  docker  on devbox             destructive  [0m
+    Stop and remove all co…  docker  on devbox             destructive  [0m
+                                                                        [0m
+                                                                        [0m
+    → docker stop acme-api-1 acm…acme-redis-1 · on devbox · destructive [0m
+                                                                        [0m
+ [0m[1m/work/scratch[0m                                         no color · 72×20 [0m
+  [0m[1mType[0m Search  [0m[1m↑↓[0m Move  [0m[1mEnter[0m Review…  [0m[1mAlt+Enter[0m More  [0m[1mTab[0m Preview  …   [0m
