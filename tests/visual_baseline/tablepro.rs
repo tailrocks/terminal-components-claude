@@ -15,22 +15,34 @@ use crate::support::{Case, Color, TABLEPRO};
 
 // ------------------------------------------------------------- connections --
 
-crate::baseline_case!(tablepro_connections_default_80x24_truecolor => Case::new("tablepro/connections/default/80x24/truecolor", TABLEPRO, &[], 80, 24, Color::Truecolor, "Production"));
 crate::baseline_case!(tablepro_connections_default_120x40_truecolor => Case::new("tablepro/connections/default/120x40/truecolor", TABLEPRO, &[], 120, 40, Color::Truecolor, "Production"));
-crate::baseline_case!(tablepro_connections_default_120x40_none => Case::new("tablepro/connections/default/120x40/none", TABLEPRO, &[], 120, 40, Color::None, "Production"));
 crate::baseline_case!(tablepro_connections_form_new_120x40_truecolor => Case::new("tablepro/connections/form_new/120x40/truecolor", TABLEPRO, &[], 120, 40, Color::Truecolor, "Production").sends(&["ctrl-n"]));
 crate::baseline_case!(tablepro_connections_form_new_filled_120x40_truecolor => Case::new("tablepro/connections/form_new-filled/120x40/truecolor", TABLEPRO, &[], 120, 40, Color::Truecolor, "Production").sends(&["ctrl-n", "type:Staging replica"]));
 // Boot focus is the tree (app.rs:147); ring order is render order:
 // filter → tree → Connect → Edit → Duplicate → Delete (connections.rs:940-1114).
 crate::baseline_case!(tablepro_connections_filter_120x40_truecolor => Case::new("tablepro/connections/filter/120x40/truecolor", TABLEPRO, &[], 120, 40, Color::Truecolor, "Production").sends(&["/", "type:stag"]));
-crate::baseline_case!(tablepro_connections_delete_dialog_120x40_truecolor => Case::new("tablepro/connections/delete_dialog/120x40/truecolor", TABLEPRO, &[], 120, 40, Color::Truecolor, "Production").sends(&["tab", "tab", "tab", "tab", "enter", "wait:Delete connection?"]));
-crate::baseline_case!(tablepro_connections_duplicated_120x40_truecolor => Case::new("tablepro/connections/duplicated/120x40/truecolor", TABLEPRO, &[], 120, 40, Color::Truecolor, "Production").sends(&["tab", "tab", "tab", "enter", "wait:(Copy)"]));
+crate::baseline_case!(tablepro_connections_delete_dialog_120x40_truecolor => Case::new("tablepro/connections/delete_dialog/120x40/truecolor", TABLEPRO, &[], 120, 40, Color::Truecolor, "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "d", "wait:Delete connection?"]));
+crate::baseline_case!(tablepro_connections_duplicated_120x40_truecolor => Case::new("tablepro/connections/duplicated/120x40/truecolor", TABLEPRO, &[], 120, 40, Color::Truecolor, "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "ctrl-d", "wait:(Copy)"]));
 // ctrl-n lands on the Name input; one BackTab wraps to the form tabs
 // (ring: … → tabs → name → …), Right switches Basic → Advanced.
-crate::baseline_case!(tablepro_connections_form_advanced_120x40_truecolor => Case::new("tablepro/connections/form_advanced/120x40/truecolor", TABLEPRO, &[], 120, 40, Color::Truecolor, "Production").sends(&["ctrl-n", "backtab", "right", "wait:Use SSL / TLS"]));
+crate::baseline_case_with_variants!(
+    tablepro_connections_form_advanced_120x40_truecolor => Case::new("tablepro/connections/form_advanced/120x40/truecolor", TABLEPRO, &[], 120, 40, Color::Truecolor, "Production").sends(&["ctrl-n", "wait:Name", "backtab", "right", "sleep:300"]),
+    [
+        Case::new("tablepro/connections/form_advanced/72x20/truecolor", TABLEPRO, &[], 72, 20, Color::Truecolor, "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "e", "wait:Name", "backtab", "right", "sleep:300"]),
+        Case::new("tablepro/connections/form_advanced/72x20/256", TABLEPRO, &[], 72, 20, Color::Ansi256, "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "e", "wait:Name", "backtab", "right", "sleep:300"]),
+        Case::new("tablepro/connections/form_advanced/72x20/16", TABLEPRO, &[], 72, 20, Color::Ansi16, "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "e", "wait:Name", "backtab", "right", "sleep:300"]),
+        Case::new("tablepro/connections/form_advanced/72x20/none", TABLEPRO, &[], 72, 20, Color::None, "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "e", "wait:Name", "backtab", "right", "sleep:300"]),
+        Case::new("tablepro/connections/form_advanced/72x20/nocolor", TABLEPRO, &[], 72, 20, Color::NoColorEnv, "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "e", "wait:Name", "backtab", "right", "sleep:300"]),
+        Case::new("tablepro/connections/form_advanced/80x24/truecolor", TABLEPRO, &[], 80, 24, Color::Truecolor, "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "e", "wait:Name", "backtab", "right", "sleep:300"]),
+        Case::new("tablepro/connections/form_advanced/80x24/256", TABLEPRO, &[], 80, 24, Color::Ansi256, "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "e", "wait:Name", "backtab", "right", "sleep:300"]),
+        Case::new("tablepro/connections/form_advanced/80x24/16", TABLEPRO, &[], 80, 24, Color::Ansi16, "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "e", "wait:Name", "backtab", "right", "sleep:300"]),
+        Case::new("tablepro/connections/form_advanced/80x24/none", TABLEPRO, &[], 80, 24, Color::None, "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "e", "wait:Name", "backtab", "right", "sleep:300"]),
+        Case::new("tablepro/connections/form_advanced/80x24/nocolor", TABLEPRO, &[], 80, 24, Color::NoColorEnv, "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "e", "wait:Name", "backtab", "right", "sleep:300"]),
+    ],
+);
 // Tree rows: 0 Personal, 1 Local PostgreSQL, 2 Scratch, 3 Acme, 4 Development,
 // 5 Staging, 6 Analytics, 7 Production — detail card follows the cursor.
-crate::baseline_case!(tablepro_connections_production_detail_120x40_truecolor => Case::new("tablepro/connections/production_detail/120x40/truecolor", TABLEPRO, &[], 120, 40, Color::Truecolor, "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "wait:bastion.acme.io"]));
+crate::baseline_case!(tablepro_connections_production_detail_120x40_truecolor => Case::new("tablepro/connections/production_detail/120x40/truecolor", TABLEPRO, &[], 120, 40, Color::Truecolor, "Production").sends(&["down", "down", "down", "down", "down", "down", "down", "sleep:300"]));
 
 // ------------------------------------------------------------------ table --
 
@@ -39,7 +51,7 @@ crate::baseline_case!(tablepro_table_structure_120x40_truecolor => Case::new("ta
 crate::baseline_case!(tablepro_table_sorted_120x40_truecolor => Case::new("tablepro/table/sorted/120x40/truecolor", TABLEPRO, &["--connect", "Production"], 120, 40, Color::Truecolor, "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders", "right", "right", "right", "right", "right", "right", "right", "right", "right", "right", "right", "right", "s", "wait:sort created_at ▴"]));
 crate::baseline_case!(tablepro_table_filtered_120x40_truecolor => Case::new("tablepro/table/filtered/120x40/truecolor", TABLEPRO, &["--connect", "Production"], 120, 40, Color::Truecolor, "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders", "home", "right", "right", "right", "right", "f", "backtab", "backtab", "enter", "ctrl-l", "type:pending", "enter", "wait:filtered (1)"]));
 // t_sorted_filtered: filter status='pending' then sort the same column.
-crate::baseline_case!(tablepro_table_sorted_filtered_120x40_truecolor => Case::new("tablepro/table/sorted-filtered/120x40/truecolor", TABLEPRO, &["--connect", "Production"], 120, 40, Color::Truecolor, "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders", "home", "right", "right", "right", "right", "f", "backtab", "backtab", "enter", "ctrl-l", "type:pending", "enter", "wait:filtered (1)", "s", "wait:sort status ▴ · filtered (1)"]));
+crate::baseline_case!(tablepro_table_sorted_filtered_120x40_truecolor => Case::new("tablepro/table/sorted-filtered/120x40/truecolor", TABLEPRO, &["--connect", "Production"], 120, 40, Color::Truecolor, "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders", "home", "right", "right", "right", "right", "f", "backtab", "backtab", "enter", "ctrl-l", "type:pending", "enter", "wait:filtered (1)", "s", "sleep:300"]));
 crate::baseline_case!(tablepro_table_cell_editing_120x40_truecolor => Case::new("tablepro/table/cell_editing/120x40/truecolor", TABLEPRO, &["--connect", "Production"], 120, 40, Color::Truecolor, "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders", "home", "right", "right", "right", "right", "enter"]));
 // t_dirty: 2 pending cell edits, committed (not in-edit, not Save dialog).
 crate::baseline_case!(tablepro_table_dirty_120x40_truecolor => Case::new("tablepro/table/dirty/120x40/truecolor", TABLEPRO, &["--connect", "Production"], 120, 40, Color::Truecolor, "Query 1").sends(&["down", "down", "down", "down", "down", "enter", "wait:public › orders", "home", "right", "right", "right", "right", "enter", "ctrl-l", "type:paid", "enter", "down", "enter", "ctrl-l", "type:shipped", "enter", "wait:2 pending"]));
@@ -72,9 +84,6 @@ crate::baseline_case!(tablepro_query_completion_columns_120x40_truecolor => Case
 crate::baseline_case!(tablepro_ack_gate_120x40_truecolor => Case::new("tablepro/ack/gate/120x40/truecolor", TABLEPRO, &["--connect", "Production"], 120, 40, Color::Truecolor, "Query 1").sends(&["tab", "i", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm"]));
 crate::baseline_case!(tablepro_ack_armed_120x40_truecolor => Case::new("tablepro/ack/armed/120x40/truecolor", TABLEPRO, &["--connect", "Production"], 120, 40, Color::Truecolor, "Query 1").sends(&["tab", "i", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm", "enter", "type:orders", "enter", "right", "wait:Execute"]));
 crate::baseline_case!(tablepro_ack_executed_120x40_truecolor => Case::new("tablepro/ack/executed/120x40/truecolor", TABLEPRO, &["--connect", "Production"], 120, 40, Color::Truecolor, "Query 1").sends(&["tab", "i", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm", "enter", "type:orders", "enter", "right", "enter", "wait:rows affected"]));
-crate::baseline_case!(tablepro_ack_gate_120x40_nocolor => Case::new("tablepro/ack/gate/120x40/nocolor", TABLEPRO, &["--connect", "Production"], 120, 40, Color::NoColorEnv, "Query 1").sends(&["tab", "i", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm"]));
-crate::baseline_case!(tablepro_ack_armed_120x40_nocolor => Case::new("tablepro/ack/armed/120x40/nocolor", TABLEPRO, &["--connect", "Production"], 120, 40, Color::NoColorEnv, "Query 1").sends(&["tab", "i", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm", "enter", "type:orders", "enter", "right", "wait:Execute"]));
-crate::baseline_case!(tablepro_ack_executed_120x40_nocolor => Case::new("tablepro/ack/executed/120x40/nocolor", TABLEPRO, &["--connect", "Production"], 120, 40, Color::NoColorEnv, "Query 1").sends(&["tab", "i", "type:UPDATE orders SET status = 'paid' WHERE id = 'x'", "escape", "ctrl-r", "wait:Type orders to confirm", "enter", "type:orders", "enter", "right", "enter", "wait:rows affected"]));
 // DELETE without WHERE is dangerous (sql.rs:799-802): the gate carries the
 // ON DELETE CASCADE risk line and the not-reversible copy the UPDATE gate
 // lacks.

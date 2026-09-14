@@ -26,11 +26,10 @@
 //! cargo nextest run --run-ignored only --ignore-default-filter -E 'test(rebuild_review_html)'
 //! ```
 //!
-//! Gate policy (fail-closed, unchanged from the CLI): `matched` passes,
-//! `missing-approval` passes but is logged as pending (expected for new
-//! names on a first run — `tuisnap accept --grouped --store snapshots --all`
-//! is the only bless), drift after approval or a capture error fails the
-//! test.
+//! Gate policy (fail-closed): only `matched` passes. Pending and
+//! missing-approval captures fail until the whole suite is generated and
+//! explicitly blessed with `tuisnap accept --grouped --store snapshots
+//! --all`; drift after approval or a capture error also fails.
 
 #![cfg(any(target_os = "macos", target_os = "linux"))]
 
@@ -115,15 +114,25 @@ fn store_integrity() {
     }
 
     let suite = support::suite_capture_names();
-    let missing: Vec<_> = suite.difference(&store_names).cloned().collect();
+    let pending: Vec<_> = suite.difference(&store_names).cloned().collect();
     let orphans: Vec<_> = store_names.difference(&suite).cloned().collect();
     assert!(
-        missing.is_empty() && orphans.is_empty(),
-        "store names != suite capture names; missing in store ({}): {:?}; orphans in store ({}): {:?}",
-        missing.len(),
-        missing,
+        orphans.is_empty(),
+        "store contains stale names not in suite inventory ({}): {:?}",
         orphans.len(),
         orphans
+    );
+    eprintln!(
+        "store inventory: {} approved, {} suite captures, {} pending first approval",
+        store_names.len(),
+        suite.len(),
+        pending.len()
+    );
+    assert!(
+        pending.is_empty(),
+        "store is missing approved snapshots ({}): {:?}",
+        pending.len(),
+        pending
     );
 
     assert!(
@@ -152,6 +161,9 @@ fn walk_store_dir(
             .path();
         if path.is_dir() {
             walk_store_dir(root, &path, by_name, extra);
+            continue;
+        }
+        if support::is_macos_platform_metadata(&path) {
             continue;
         }
         let rel = posix_rel(root, &path);

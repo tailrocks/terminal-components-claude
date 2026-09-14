@@ -91,18 +91,20 @@ full-shell frames; only a PTY boot of the real binary produces them.
 - `72x20` — documented minimum; holla renders "Terminal too small / Need
   72×20" below it, so exactly-72×20 is the boundary worth gating (spot only).
 - `truecolor` is the primary palette; `none` (mono) proves structure survives
-  hue loss; `256`/`16` are spot-checked on the most palette-sensitive surfaces
-  (the retired 5×5 audit sweep covered every combo — its frames are now
-  frozen historical evidence, see the supersession table);
-  `nocolor` proves real backend suppression, which `--color none` cannot
-  (backend rule vs app rule).
+  hue loss; `256`/`16` exercise palette conversion; `nocolor` proves real
+  backend suppression, which `--color none` cannot (backend rule vs app rule).
 
-Two sizes × two colours for every static surface keeps the matrix tractable
-while touching each page/scenario; the wider size×colour net lives on as the
-showcase hash baseline plus the frozen legacy frames listed in the
-supersession table.
+The current canonical matrix applies all 5 sizes × 5 colours to every canonical
+capture root. The original two-size × two-colour subset, showcase hash
+baseline, and frozen legacy frames remain historical evidence.
 
-## The baseline matrix (367 captures + 15 pointer captures)
+## Current canonical corpus
+
+The grouped store contains **7,550 scenarios**, each with four approved
+artifacts (`.ansi`, `.txt`, `.png`, `.html`). Pointer resize coverage adds 6
+logical roots × 5 sizes × 5 colours = **150 resize scenarios/artifact sets**.
+
+## The baseline matrix (367 logical captures + 15 pointer logical captures)
 
 The suite `tests/visual_baseline/` is the executable source of truth; every
 entry below appears there verbatim (one `#[test]` per capture, generated from
@@ -113,6 +115,9 @@ runner the CLI wrapped — with per-capture env hygiene (`NO_COLOR` stripped,
 gates through `Store::check_with` on a per-test-thread cached `Renderer`.
 Every spawn is a fresh PTY (no session reuse): the matrix cells differ in
 argv, and per-case isolation keeps flakes attributable.
+
+The counts in this historical inventory are logical roots. Each canonical root
+now expands across the current 5×5 matrix described above.
 
 ### showcase — 118 captures
 
@@ -285,7 +290,7 @@ Palette spots: capsule-multi 256 + accounts-mixed 16, 120x40 = **2**
 NO_COLOR: first-use 120x40 nocolor = **1**
 Minimum-size: first-use 72x20 truecolor = **1**
 
-### pointer group (mouse + resize) — 15 captures
+### pointer group (mouse + resize) — 15 logical roots
 
 Added with the Rust suite (the CLI had no click/drag/scroll/resize), closing
 honest gaps 1–2 below. All in `tests/visual_baseline/pointer.rs`, driven by
@@ -293,6 +298,9 @@ honest gaps 1–2 below. All in `tests/visual_baseline/pointer.rs`, driven by
 (the apps enable `?1003h`/`?1006h`, so a move is written verbatim — termlens
 models clicks/drags/wheel but no button-less move). States are deterministic:
 seeded fixtures, paused motion or content/settle waits.
+
+The table preserves the original logical pointer roots. Its six resize roots
+expand to 5 sizes × 5 colours = **150 resize scenarios/artifact sets**.
 
 | Capture name | Driven state | Reference evidence |
 |---|---|---|
@@ -377,7 +385,8 @@ showcase `--motion` flag for the progress page.
    diff_drag_*`, `shots/fade/*`) remain as provenance; the gated baseline now
    regenerates those states.
 2. ~~**Mid-session resize sequences**~~ — **COVERED by the pointer group.**
-   6 captures: spawn 120x40 → resize 80x24 and the reverse, for
+   6 logical roots × 5 sizes × 5 colours = **150 resize
+   scenarios/artifact sets**: spawn 120x40 → resize 80x24 and the reverse, for
    showcase/holla/tablepro, via `Session::resize` (incl. the live <100-col
    tablepro drawer reflow).
 3. **Wall-clock motion phases** (holla hp01 discovery progression, upgrade

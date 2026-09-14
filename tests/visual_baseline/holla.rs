@@ -19,184 +19,347 @@ use std::time::Duration;
 
 use tuisnap::pty::{Scroll, Session};
 
+use crate::pointer::wheel_below;
 use crate::support::{self, Case, Color, HOLLA};
 
 // ---------------------------------------------------------------- concept --
 
-crate::baseline_case!(holla_concept_first_use_default_80x24_truecolor => Case::new("holla/concept/first-use/80x24/truecolor", HOLLA, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_first_use_default_100x30_truecolor => Case::new("holla/concept/first-use/100x30/truecolor", HOLLA, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_first_use_default_120x40_truecolor => Case::new("holla/concept/first-use/120x40/truecolor", HOLLA, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_first_use_default_160x50_truecolor => Case::new("holla/concept/first-use/160x50/truecolor", HOLLA, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_first_use_default_100x30_none => Case::new("holla/concept/first-use/100x30/none", HOLLA, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_concept_monorepo_root_default_80x24_truecolor => Case::new("holla/concept/monorepo-root/80x24/truecolor", HOLLA, &["--scenario", "monorepo-root", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_monorepo_root_default_100x30_truecolor => Case::new("holla/concept/monorepo-root/100x30/truecolor", HOLLA, &["--scenario", "monorepo-root", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_monorepo_root_default_120x40_truecolor => Case::new("holla/concept/monorepo-root/120x40/truecolor", HOLLA, &["--scenario", "monorepo-root", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_monorepo_root_default_160x50_truecolor => Case::new("holla/concept/monorepo-root/160x50/truecolor", HOLLA, &["--scenario", "monorepo-root", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_monorepo_root_default_100x30_none => Case::new("holla/concept/monorepo-root/100x30/none", HOLLA, &["--scenario", "monorepo-root", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_concept_monorepo_child_default_80x24_truecolor => Case::new("holla/concept/monorepo-child/80x24/truecolor", HOLLA, &["--scenario", "monorepo-child", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_monorepo_child_default_100x30_truecolor => Case::new("holla/concept/monorepo-child/100x30/truecolor", HOLLA, &["--scenario", "monorepo-child", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_monorepo_child_default_120x40_truecolor => Case::new("holla/concept/monorepo-child/120x40/truecolor", HOLLA, &["--scenario", "monorepo-child", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_monorepo_child_default_160x50_truecolor => Case::new("holla/concept/monorepo-child/160x50/truecolor", HOLLA, &["--scenario", "monorepo-child", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_monorepo_child_default_100x30_none => Case::new("holla/concept/monorepo-child/100x30/none", HOLLA, &["--scenario", "monorepo-child", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_concept_docker_cleanup_default_80x24_truecolor => Case::new("holla/concept/docker-cleanup/80x24/truecolor", HOLLA, &["--scenario", "docker-cleanup", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_docker_cleanup_default_100x30_truecolor => Case::new("holla/concept/docker-cleanup/100x30/truecolor", HOLLA, &["--scenario", "docker-cleanup", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_docker_cleanup_default_120x40_truecolor => Case::new("holla/concept/docker-cleanup/120x40/truecolor", HOLLA, &["--scenario", "docker-cleanup", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_docker_cleanup_default_160x50_truecolor => Case::new("holla/concept/docker-cleanup/160x50/truecolor", HOLLA, &["--scenario", "docker-cleanup", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_docker_cleanup_default_100x30_none => Case::new("holla/concept/docker-cleanup/100x30/none", HOLLA, &["--scenario", "docker-cleanup", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_concept_disk_cleanup_default_80x24_truecolor => Case::new("holla/concept/disk-cleanup/80x24/truecolor", HOLLA, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_disk_cleanup_default_100x30_truecolor => Case::new("holla/concept/disk-cleanup/100x30/truecolor", HOLLA, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_disk_cleanup_default_120x40_truecolor => Case::new("holla/concept/disk-cleanup/120x40/truecolor", HOLLA, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_disk_cleanup_default_160x50_truecolor => Case::new("holla/concept/disk-cleanup/160x50/truecolor", HOLLA, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_disk_cleanup_default_100x30_none => Case::new("holla/concept/disk-cleanup/100x30/none", HOLLA, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
+crate::baseline_case_with_variants!(
+    holla_concept_first_use_default_120x40_truecolor => Case::new("holla/concept/first-use/120x40/truecolor", HOLLA, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/concept/first-use/80x24/truecolor", HOLLA, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/first-use/100x30/truecolor", HOLLA, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/first-use/120x40/truecolor", HOLLA, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/first-use/160x50/truecolor", HOLLA, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/first-use/100x30/none", HOLLA, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+        Case::new("holla/concept/first-use/72x20/truecolor", HOLLA, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], 72, 20, Color::Truecolor, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_concept_monorepo_root_default_120x40_truecolor => Case::new("holla/concept/monorepo-root/120x40/truecolor", HOLLA, &["--scenario", "monorepo-root", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/concept/monorepo-root/80x24/truecolor", HOLLA, &["--scenario", "monorepo-root", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/monorepo-root/100x30/truecolor", HOLLA, &["--scenario", "monorepo-root", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/monorepo-root/120x40/truecolor", HOLLA, &["--scenario", "monorepo-root", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/monorepo-root/160x50/truecolor", HOLLA, &["--scenario", "monorepo-root", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/monorepo-root/100x30/none", HOLLA, &["--scenario", "monorepo-root", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_concept_monorepo_child_default_120x40_truecolor => Case::new("holla/concept/monorepo-child/120x40/truecolor", HOLLA, &["--scenario", "monorepo-child", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/concept/monorepo-child/80x24/truecolor", HOLLA, &["--scenario", "monorepo-child", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/monorepo-child/100x30/truecolor", HOLLA, &["--scenario", "monorepo-child", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/monorepo-child/120x40/truecolor", HOLLA, &["--scenario", "monorepo-child", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/monorepo-child/160x50/truecolor", HOLLA, &["--scenario", "monorepo-child", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/monorepo-child/100x30/none", HOLLA, &["--scenario", "monorepo-child", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_concept_docker_cleanup_default_120x40_truecolor => Case::new("holla/concept/docker-cleanup/120x40/truecolor", HOLLA, &["--scenario", "docker-cleanup", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/concept/docker-cleanup/80x24/truecolor", HOLLA, &["--scenario", "docker-cleanup", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/docker-cleanup/100x30/truecolor", HOLLA, &["--scenario", "docker-cleanup", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/docker-cleanup/120x40/truecolor", HOLLA, &["--scenario", "docker-cleanup", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/docker-cleanup/160x50/truecolor", HOLLA, &["--scenario", "docker-cleanup", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/docker-cleanup/100x30/none", HOLLA, &["--scenario", "docker-cleanup", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+// The 16-colour probe proved this boot stream can outlive the default at
+// exactly 100x30/16; retain that timeout only for that exact combo.
+crate::baseline_case_with_variants!(
+    holla_concept_disk_cleanup_default_120x40_truecolor => Case::new("holla/concept/disk-cleanup/120x40/truecolor", HOLLA, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/concept/disk-cleanup/80x24/truecolor", HOLLA, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/disk-cleanup/100x30/truecolor", HOLLA, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/disk-cleanup/120x40/truecolor", HOLLA, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/disk-cleanup/160x50/truecolor", HOLLA, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/disk-cleanup/100x30/none", HOLLA, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+        Case::new("holla/concept/disk-cleanup/100x30/256", HOLLA, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "40"], 100, 30, Color::Ansi256, "holla❯"),
+        Case::new("holla/concept/disk-cleanup/100x30/16", HOLLA, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "80"], 100, 30, Color::Ansi16, "holla❯").timeout(20_000),
+    ],
+);
 // activities-multi's fast-forward (5 live activities × 40 ticks) is the
 // slowest boot in the suite; under the full-suite 8-thread load the default
 // 8 s boot budget can expire before the first frame (empty-screen timeouts).
 // A 20 s boot budget — the pixel gate is untouched.
-crate::baseline_case!(holla_concept_activities_multi_default_80x24_truecolor => Case::new("holla/concept/activities-multi/80x24/truecolor", HOLLA, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯").timeout(20_000));
-crate::baseline_case!(holla_concept_activities_multi_default_100x30_truecolor => Case::new("holla/concept/activities-multi/100x30/truecolor", HOLLA, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯").timeout(20_000));
-crate::baseline_case!(holla_concept_activities_multi_default_120x40_truecolor => Case::new("holla/concept/activities-multi/120x40/truecolor", HOLLA, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").timeout(20_000));
-crate::baseline_case!(holla_concept_activities_multi_default_160x50_truecolor => Case::new("holla/concept/activities-multi/160x50/truecolor", HOLLA, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯").timeout(20_000));
-crate::baseline_case!(holla_concept_activities_multi_default_100x30_none => Case::new("holla/concept/activities-multi/100x30/none", HOLLA, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯").timeout(20_000));
-crate::baseline_case!(holla_concept_remote_host_default_80x24_truecolor => Case::new("holla/concept/remote-host/80x24/truecolor", HOLLA, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_remote_host_default_100x30_truecolor => Case::new("holla/concept/remote-host/100x30/truecolor", HOLLA, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_remote_host_default_120x40_truecolor => Case::new("holla/concept/remote-host/120x40/truecolor", HOLLA, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_remote_host_default_160x50_truecolor => Case::new("holla/concept/remote-host/160x50/truecolor", HOLLA, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_remote_host_default_100x30_none => Case::new("holla/concept/remote-host/100x30/none", HOLLA, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_concept_launch_failure_default_80x24_truecolor => Case::new("holla/concept/launch-failure/80x24/truecolor", HOLLA, &["--scenario", "launch-failure", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_launch_failure_default_100x30_truecolor => Case::new("holla/concept/launch-failure/100x30/truecolor", HOLLA, &["--scenario", "launch-failure", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_launch_failure_default_120x40_truecolor => Case::new("holla/concept/launch-failure/120x40/truecolor", HOLLA, &["--scenario", "launch-failure", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_launch_failure_default_160x50_truecolor => Case::new("holla/concept/launch-failure/160x50/truecolor", HOLLA, &["--scenario", "launch-failure", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_launch_failure_default_100x30_none => Case::new("holla/concept/launch-failure/100x30/none", HOLLA, &["--scenario", "launch-failure", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_concept_hard_cases_default_80x24_truecolor => Case::new("holla/concept/hard-cases/80x24/truecolor", HOLLA, &["--scenario", "hard-cases", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_hard_cases_default_100x30_truecolor => Case::new("holla/concept/hard-cases/100x30/truecolor", HOLLA, &["--scenario", "hard-cases", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_hard_cases_default_120x40_truecolor => Case::new("holla/concept/hard-cases/120x40/truecolor", HOLLA, &["--scenario", "hard-cases", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_hard_cases_default_160x50_truecolor => Case::new("holla/concept/hard-cases/160x50/truecolor", HOLLA, &["--scenario", "hard-cases", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_hard_cases_default_100x30_none => Case::new("holla/concept/hard-cases/100x30/none", HOLLA, &["--scenario", "hard-cases", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
+crate::baseline_case_with_variants!(
+    holla_concept_activities_multi_default_120x40_truecolor => Case::new("holla/concept/activities-multi/120x40/truecolor", HOLLA, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").timeout(20_000),
+    [
+        Case::new("holla/concept/activities-multi/80x24/truecolor", HOLLA, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯").timeout(20_000),
+        Case::new("holla/concept/activities-multi/100x30/truecolor", HOLLA, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯").timeout(20_000),
+        Case::new("holla/concept/activities-multi/120x40/truecolor", HOLLA, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").timeout(20_000),
+        Case::new("holla/concept/activities-multi/160x50/truecolor", HOLLA, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯").timeout(20_000),
+        Case::new("holla/concept/activities-multi/100x30/none", HOLLA, &["--scenario", "activities-multi", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯").timeout(20_000),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_concept_remote_host_default_120x40_truecolor => Case::new("holla/concept/remote-host/120x40/truecolor", HOLLA, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/concept/remote-host/80x24/truecolor", HOLLA, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/remote-host/100x30/truecolor", HOLLA, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/remote-host/120x40/truecolor", HOLLA, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/remote-host/160x50/truecolor", HOLLA, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/remote-host/100x30/none", HOLLA, &["--scenario", "remote-host", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_concept_launch_failure_default_120x40_truecolor => Case::new("holla/concept/launch-failure/120x40/truecolor", HOLLA, &["--scenario", "launch-failure", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/concept/launch-failure/80x24/truecolor", HOLLA, &["--scenario", "launch-failure", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/launch-failure/100x30/truecolor", HOLLA, &["--scenario", "launch-failure", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/launch-failure/120x40/truecolor", HOLLA, &["--scenario", "launch-failure", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/launch-failure/160x50/truecolor", HOLLA, &["--scenario", "launch-failure", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/launch-failure/100x30/none", HOLLA, &["--scenario", "launch-failure", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_concept_hard_cases_default_120x40_truecolor => Case::new("holla/concept/hard-cases/120x40/truecolor", HOLLA, &["--scenario", "hard-cases", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/concept/hard-cases/80x24/truecolor", HOLLA, &["--scenario", "hard-cases", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/hard-cases/100x30/truecolor", HOLLA, &["--scenario", "hard-cases", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/hard-cases/120x40/truecolor", HOLLA, &["--scenario", "hard-cases", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/hard-cases/160x50/truecolor", HOLLA, &["--scenario", "hard-cases", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/concept/hard-cases/100x30/none", HOLLA, &["--scenario", "hard-cases", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+        Case::new("holla/concept/hard-cases/100x30/256", HOLLA, &["--scenario", "hard-cases", "--motion", "paused", "--frame", "40"], 100, 30, Color::Ansi256, "holla❯"),
+        Case::new("holla/concept/hard-cases/72x20/truecolor", HOLLA, &["--scenario", "hard-cases", "--motion", "paused", "--frame", "40"], 72, 20, Color::Truecolor, "holla❯"),
+    ],
+);
 
 // concept extras (verbatim remap of the ad-hoc legacy combos)
-crate::baseline_case!(holla_concept_hard_cases_default_100x30_256 => Case::new("holla/concept/hard-cases/100x30/256", HOLLA, &["--scenario", "hard-cases", "--motion", "paused", "--frame", "40"], 100, 30, Color::Ansi256, "holla❯"));
-crate::baseline_case!(holla_concept_disk_cleanup_default_100x30_256 => Case::new("holla/concept/disk-cleanup/100x30/256", HOLLA, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "40"], 100, 30, Color::Ansi256, "holla❯"));
-crate::baseline_case!(holla_concept_disk_cleanup_default_100x30_16 => Case::new("holla/concept/disk-cleanup/100x30/16", HOLLA, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "80"], 100, 30, Color::Ansi16, "holla❯").timeout(20_000));
-crate::baseline_case!(holla_concept_first_use_default_72x20_truecolor => Case::new("holla/concept/first-use/72x20/truecolor", HOLLA, &["--scenario", "first-use", "--motion", "paused", "--frame", "40"], 72, 20, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_concept_hard_cases_default_72x20_truecolor => Case::new("holla/concept/hard-cases/72x20/truecolor", HOLLA, &["--scenario", "hard-cases", "--motion", "paused", "--frame", "40"], 72, 20, Color::Truecolor, "holla❯"));
 
 // ----------------------------------------------------------------- parity --
 
-crate::baseline_case!(holla_parity_discovery_default_80x24_truecolor => Case::new("holla/parity/discovery/80x24/truecolor", HOLLA, &["--scenario", "parity-discovery", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_discovery_default_100x30_truecolor => Case::new("holla/parity/discovery/100x30/truecolor", HOLLA, &["--scenario", "parity-discovery", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_discovery_default_120x40_truecolor => Case::new("holla/parity/discovery/120x40/truecolor", HOLLA, &["--scenario", "parity-discovery", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_discovery_default_160x50_truecolor => Case::new("holla/parity/discovery/160x50/truecolor", HOLLA, &["--scenario", "parity-discovery", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_discovery_default_100x30_none => Case::new("holla/parity/discovery/100x30/none", HOLLA, &["--scenario", "parity-discovery", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_history_default_80x24_truecolor => Case::new("holla/parity/history/80x24/truecolor", HOLLA, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_history_default_100x30_truecolor => Case::new("holla/parity/history/100x30/truecolor", HOLLA, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_history_default_120x40_truecolor => Case::new("holla/parity/history/120x40/truecolor", HOLLA, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_history_default_160x50_truecolor => Case::new("holla/parity/history/160x50/truecolor", HOLLA, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_history_default_100x30_none => Case::new("holla/parity/history/100x30/none", HOLLA, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_files_default_80x24_truecolor => Case::new("holla/parity/files/80x24/truecolor", HOLLA, &["--scenario", "parity-files", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_files_default_100x30_truecolor => Case::new("holla/parity/files/100x30/truecolor", HOLLA, &["--scenario", "parity-files", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_files_default_120x40_truecolor => Case::new("holla/parity/files/120x40/truecolor", HOLLA, &["--scenario", "parity-files", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_files_default_160x50_truecolor => Case::new("holla/parity/files/160x50/truecolor", HOLLA, &["--scenario", "parity-files", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_files_default_100x30_none => Case::new("holla/parity/files/100x30/none", HOLLA, &["--scenario", "parity-files", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_browser_default_80x24_truecolor => Case::new("holla/parity/browser/80x24/truecolor", HOLLA, &["--scenario", "parity-browser", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_browser_default_100x30_truecolor => Case::new("holla/parity/browser/100x30/truecolor", HOLLA, &["--scenario", "parity-browser", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_browser_default_120x40_truecolor => Case::new("holla/parity/browser/120x40/truecolor", HOLLA, &["--scenario", "parity-browser", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_browser_default_160x50_truecolor => Case::new("holla/parity/browser/160x50/truecolor", HOLLA, &["--scenario", "parity-browser", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_browser_default_100x30_none => Case::new("holla/parity/browser/100x30/none", HOLLA, &["--scenario", "parity-browser", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_git_current_default_80x24_truecolor => Case::new("holla/parity/git-current/80x24/truecolor", HOLLA, &["--scenario", "parity-git-current", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_git_current_default_100x30_truecolor => Case::new("holla/parity/git-current/100x30/truecolor", HOLLA, &["--scenario", "parity-git-current", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_git_current_default_120x40_truecolor => Case::new("holla/parity/git-current/120x40/truecolor", HOLLA, &["--scenario", "parity-git-current", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_git_current_default_160x50_truecolor => Case::new("holla/parity/git-current/160x50/truecolor", HOLLA, &["--scenario", "parity-git-current", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_git_current_default_100x30_none => Case::new("holla/parity/git-current/100x30/none", HOLLA, &["--scenario", "parity-git-current", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_git_batch_default_80x24_truecolor => Case::new("holla/parity/git-batch/80x24/truecolor", HOLLA, &["--scenario", "parity-git-batch", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_git_batch_default_100x30_truecolor => Case::new("holla/parity/git-batch/100x30/truecolor", HOLLA, &["--scenario", "parity-git-batch", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_git_batch_default_120x40_truecolor => Case::new("holla/parity/git-batch/120x40/truecolor", HOLLA, &["--scenario", "parity-git-batch", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_git_batch_default_160x50_truecolor => Case::new("holla/parity/git-batch/160x50/truecolor", HOLLA, &["--scenario", "parity-git-batch", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_git_batch_default_100x30_none => Case::new("holla/parity/git-batch/100x30/none", HOLLA, &["--scenario", "parity-git-batch", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_task_sources_default_80x24_truecolor => Case::new("holla/parity/task-sources/80x24/truecolor", HOLLA, &["--scenario", "parity-task-sources", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_task_sources_default_100x30_truecolor => Case::new("holla/parity/task-sources/100x30/truecolor", HOLLA, &["--scenario", "parity-task-sources", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_task_sources_default_120x40_truecolor => Case::new("holla/parity/task-sources/120x40/truecolor", HOLLA, &["--scenario", "parity-task-sources", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_task_sources_default_160x50_truecolor => Case::new("holla/parity/task-sources/160x50/truecolor", HOLLA, &["--scenario", "parity-task-sources", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_task_sources_default_100x30_none => Case::new("holla/parity/task-sources/100x30/none", HOLLA, &["--scenario", "parity-task-sources", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_cargo_default_80x24_truecolor => Case::new("holla/parity/cargo/80x24/truecolor", HOLLA, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_cargo_default_100x30_truecolor => Case::new("holla/parity/cargo/100x30/truecolor", HOLLA, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_cargo_default_120x40_truecolor => Case::new("holla/parity/cargo/120x40/truecolor", HOLLA, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_cargo_default_160x50_truecolor => Case::new("holla/parity/cargo/160x50/truecolor", HOLLA, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_cargo_default_100x30_none => Case::new("holla/parity/cargo/100x30/none", HOLLA, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_docker_default_80x24_truecolor => Case::new("holla/parity/docker/80x24/truecolor", HOLLA, &["--scenario", "parity-docker", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_docker_default_100x30_truecolor => Case::new("holla/parity/docker/100x30/truecolor", HOLLA, &["--scenario", "parity-docker", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_docker_default_120x40_truecolor => Case::new("holla/parity/docker/120x40/truecolor", HOLLA, &["--scenario", "parity-docker", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_docker_default_160x50_truecolor => Case::new("holla/parity/docker/160x50/truecolor", HOLLA, &["--scenario", "parity-docker", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_docker_default_100x30_none => Case::new("holla/parity/docker/100x30/none", HOLLA, &["--scenario", "parity-docker", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_brew_services_default_80x24_truecolor => Case::new("holla/parity/brew-services/80x24/truecolor", HOLLA, &["--scenario", "parity-brew-services", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_brew_services_default_100x30_truecolor => Case::new("holla/parity/brew-services/100x30/truecolor", HOLLA, &["--scenario", "parity-brew-services", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_brew_services_default_120x40_truecolor => Case::new("holla/parity/brew-services/120x40/truecolor", HOLLA, &["--scenario", "parity-brew-services", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_brew_services_default_160x50_truecolor => Case::new("holla/parity/brew-services/160x50/truecolor", HOLLA, &["--scenario", "parity-brew-services", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_brew_services_default_100x30_none => Case::new("holla/parity/brew-services/100x30/none", HOLLA, &["--scenario", "parity-brew-services", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_gradle_default_80x24_truecolor => Case::new("holla/parity/gradle/80x24/truecolor", HOLLA, &["--scenario", "parity-gradle", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_gradle_default_100x30_truecolor => Case::new("holla/parity/gradle/100x30/truecolor", HOLLA, &["--scenario", "parity-gradle", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_gradle_default_120x40_truecolor => Case::new("holla/parity/gradle/120x40/truecolor", HOLLA, &["--scenario", "parity-gradle", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_gradle_default_160x50_truecolor => Case::new("holla/parity/gradle/160x50/truecolor", HOLLA, &["--scenario", "parity-gradle", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_gradle_default_100x30_none => Case::new("holla/parity/gradle/100x30/none", HOLLA, &["--scenario", "parity-gradle", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_idea_default_80x24_truecolor => Case::new("holla/parity/idea/80x24/truecolor", HOLLA, &["--scenario", "parity-idea", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_idea_default_100x30_truecolor => Case::new("holla/parity/idea/100x30/truecolor", HOLLA, &["--scenario", "parity-idea", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_idea_default_120x40_truecolor => Case::new("holla/parity/idea/120x40/truecolor", HOLLA, &["--scenario", "parity-idea", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_idea_default_160x50_truecolor => Case::new("holla/parity/idea/160x50/truecolor", HOLLA, &["--scenario", "parity-idea", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_idea_default_100x30_none => Case::new("holla/parity/idea/100x30/none", HOLLA, &["--scenario", "parity-idea", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_upgrade_managers_default_80x24_truecolor => Case::new("holla/parity/upgrade-managers/80x24/truecolor", HOLLA, &["--scenario", "parity-upgrade-managers", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_upgrade_managers_default_100x30_truecolor => Case::new("holla/parity/upgrade-managers/100x30/truecolor", HOLLA, &["--scenario", "parity-upgrade-managers", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_upgrade_managers_default_120x40_truecolor => Case::new("holla/parity/upgrade-managers/120x40/truecolor", HOLLA, &["--scenario", "parity-upgrade-managers", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_upgrade_managers_default_160x50_truecolor => Case::new("holla/parity/upgrade-managers/160x50/truecolor", HOLLA, &["--scenario", "parity-upgrade-managers", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_upgrade_managers_default_100x30_none => Case::new("holla/parity/upgrade-managers/100x30/none", HOLLA, &["--scenario", "parity-upgrade-managers", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_executor_default_80x24_truecolor => Case::new("holla/parity/executor/80x24/truecolor", HOLLA, &["--scenario", "parity-executor", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_executor_default_100x30_truecolor => Case::new("holla/parity/executor/100x30/truecolor", HOLLA, &["--scenario", "parity-executor", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_executor_default_120x40_truecolor => Case::new("holla/parity/executor/120x40/truecolor", HOLLA, &["--scenario", "parity-executor", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_executor_default_160x50_truecolor => Case::new("holla/parity/executor/160x50/truecolor", HOLLA, &["--scenario", "parity-executor", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_executor_default_100x30_none => Case::new("holla/parity/executor/100x30/none", HOLLA, &["--scenario", "parity-executor", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_task_input_default_80x24_truecolor => Case::new("holla/parity/task-input/80x24/truecolor", HOLLA, &["--scenario", "parity-task-input", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_task_input_default_100x30_truecolor => Case::new("holla/parity/task-input/100x30/truecolor", HOLLA, &["--scenario", "parity-task-input", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_task_input_default_120x40_truecolor => Case::new("holla/parity/task-input/120x40/truecolor", HOLLA, &["--scenario", "parity-task-input", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_task_input_default_160x50_truecolor => Case::new("holla/parity/task-input/160x50/truecolor", HOLLA, &["--scenario", "parity-task-input", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_task_input_default_100x30_none => Case::new("holla/parity/task-input/100x30/none", HOLLA, &["--scenario", "parity-task-input", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_custom_actions_default_80x24_truecolor => Case::new("holla/parity/custom-actions/80x24/truecolor", HOLLA, &["--scenario", "parity-custom-actions", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_custom_actions_default_100x30_truecolor => Case::new("holla/parity/custom-actions/100x30/truecolor", HOLLA, &["--scenario", "parity-custom-actions", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_custom_actions_default_120x40_truecolor => Case::new("holla/parity/custom-actions/120x40/truecolor", HOLLA, &["--scenario", "parity-custom-actions", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_custom_actions_default_160x50_truecolor => Case::new("holla/parity/custom-actions/160x50/truecolor", HOLLA, &["--scenario", "parity-custom-actions", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_custom_actions_default_100x30_none => Case::new("holla/parity/custom-actions/100x30/none", HOLLA, &["--scenario", "parity-custom-actions", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_disk_scan_default_80x24_truecolor => Case::new("holla/parity/disk-scan/80x24/truecolor", HOLLA, &["--scenario", "parity-disk-scan", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_disk_scan_default_100x30_truecolor => Case::new("holla/parity/disk-scan/100x30/truecolor", HOLLA, &["--scenario", "parity-disk-scan", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_disk_scan_default_120x40_truecolor => Case::new("holla/parity/disk-scan/120x40/truecolor", HOLLA, &["--scenario", "parity-disk-scan", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_disk_scan_default_160x50_truecolor => Case::new("holla/parity/disk-scan/160x50/truecolor", HOLLA, &["--scenario", "parity-disk-scan", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_disk_scan_default_100x30_none => Case::new("holla/parity/disk-scan/100x30/none", HOLLA, &["--scenario", "parity-disk-scan", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_disk_navigation_default_80x24_truecolor => Case::new("holla/parity/disk-navigation/80x24/truecolor", HOLLA, &["--scenario", "parity-disk-navigation", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_disk_navigation_default_100x30_truecolor => Case::new("holla/parity/disk-navigation/100x30/truecolor", HOLLA, &["--scenario", "parity-disk-navigation", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_disk_navigation_default_120x40_truecolor => Case::new("holla/parity/disk-navigation/120x40/truecolor", HOLLA, &["--scenario", "parity-disk-navigation", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_disk_navigation_default_160x50_truecolor => Case::new("holla/parity/disk-navigation/160x50/truecolor", HOLLA, &["--scenario", "parity-disk-navigation", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_disk_navigation_default_100x30_none => Case::new("holla/parity/disk-navigation/100x30/none", HOLLA, &["--scenario", "parity-disk-navigation", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_insights_default_80x24_truecolor => Case::new("holla/parity/insights/80x24/truecolor", HOLLA, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_insights_default_100x30_truecolor => Case::new("holla/parity/insights/100x30/truecolor", HOLLA, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_insights_default_120x40_truecolor => Case::new("holla/parity/insights/120x40/truecolor", HOLLA, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_insights_default_160x50_truecolor => Case::new("holla/parity/insights/160x50/truecolor", HOLLA, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_insights_default_100x30_none => Case::new("holla/parity/insights/100x30/none", HOLLA, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_delete_safety_default_80x24_truecolor => Case::new("holla/parity/delete-safety/80x24/truecolor", HOLLA, &["--scenario", "parity-delete-safety", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_delete_safety_default_100x30_truecolor => Case::new("holla/parity/delete-safety/100x30/truecolor", HOLLA, &["--scenario", "parity-delete-safety", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_delete_safety_default_120x40_truecolor => Case::new("holla/parity/delete-safety/120x40/truecolor", HOLLA, &["--scenario", "parity-delete-safety", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_delete_safety_default_160x50_truecolor => Case::new("holla/parity/delete-safety/160x50/truecolor", HOLLA, &["--scenario", "parity-delete-safety", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_delete_safety_default_100x30_none => Case::new("holla/parity/delete-safety/100x30/none", HOLLA, &["--scenario", "parity-delete-safety", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_cleanup_results_default_80x24_truecolor => Case::new("holla/parity/cleanup-results/80x24/truecolor", HOLLA, &["--scenario", "parity-cleanup-results", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_cleanup_results_default_100x30_truecolor => Case::new("holla/parity/cleanup-results/100x30/truecolor", HOLLA, &["--scenario", "parity-cleanup-results", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_cleanup_results_default_120x40_truecolor => Case::new("holla/parity/cleanup-results/120x40/truecolor", HOLLA, &["--scenario", "parity-cleanup-results", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_cleanup_results_default_160x50_truecolor => Case::new("holla/parity/cleanup-results/160x50/truecolor", HOLLA, &["--scenario", "parity-cleanup-results", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_cleanup_results_default_100x30_none => Case::new("holla/parity/cleanup-results/100x30/none", HOLLA, &["--scenario", "parity-cleanup-results", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_platforms_default_80x24_truecolor => Case::new("holla/parity/platforms/80x24/truecolor", HOLLA, &["--scenario", "parity-platforms", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_platforms_default_100x30_truecolor => Case::new("holla/parity/platforms/100x30/truecolor", HOLLA, &["--scenario", "parity-platforms", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_platforms_default_120x40_truecolor => Case::new("holla/parity/platforms/120x40/truecolor", HOLLA, &["--scenario", "parity-platforms", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_platforms_default_160x50_truecolor => Case::new("holla/parity/platforms/160x50/truecolor", HOLLA, &["--scenario", "parity-platforms", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_platforms_default_100x30_none => Case::new("holla/parity/platforms/100x30/none", HOLLA, &["--scenario", "parity-platforms", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
-crate::baseline_case!(holla_parity_platforms_linux_default_80x24_truecolor => Case::new("holla/parity/platforms-linux/80x24/truecolor", HOLLA, &["--scenario", "parity-platforms-linux", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_platforms_linux_default_100x30_truecolor => Case::new("holla/parity/platforms-linux/100x30/truecolor", HOLLA, &["--scenario", "parity-platforms-linux", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_platforms_linux_default_120x40_truecolor => Case::new("holla/parity/platforms-linux/120x40/truecolor", HOLLA, &["--scenario", "parity-platforms-linux", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_platforms_linux_default_160x50_truecolor => Case::new("holla/parity/platforms-linux/160x50/truecolor", HOLLA, &["--scenario", "parity-platforms-linux", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"));
-crate::baseline_case!(holla_parity_platforms_linux_default_100x30_none => Case::new("holla/parity/platforms-linux/100x30/none", HOLLA, &["--scenario", "parity-platforms-linux", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"));
+crate::baseline_case_with_variants!(
+    holla_parity_discovery_default_120x40_truecolor => Case::new("holla/parity/discovery/120x40/truecolor", HOLLA, &["--scenario", "parity-discovery", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/discovery/80x24/truecolor", HOLLA, &["--scenario", "parity-discovery", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/discovery/100x30/truecolor", HOLLA, &["--scenario", "parity-discovery", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/discovery/120x40/truecolor", HOLLA, &["--scenario", "parity-discovery", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/discovery/160x50/truecolor", HOLLA, &["--scenario", "parity-discovery", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/discovery/100x30/none", HOLLA, &["--scenario", "parity-discovery", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_history_default_120x40_truecolor => Case::new("holla/parity/history/120x40/truecolor", HOLLA, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/history/80x24/truecolor", HOLLA, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/history/100x30/truecolor", HOLLA, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/history/120x40/truecolor", HOLLA, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/history/160x50/truecolor", HOLLA, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/history/100x30/none", HOLLA, &["--scenario", "parity-history", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_files_default_120x40_truecolor => Case::new("holla/parity/files/120x40/truecolor", HOLLA, &["--scenario", "parity-files", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/files/80x24/truecolor", HOLLA, &["--scenario", "parity-files", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/files/100x30/truecolor", HOLLA, &["--scenario", "parity-files", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/files/120x40/truecolor", HOLLA, &["--scenario", "parity-files", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/files/160x50/truecolor", HOLLA, &["--scenario", "parity-files", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/files/100x30/none", HOLLA, &["--scenario", "parity-files", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_browser_default_120x40_truecolor => Case::new("holla/parity/browser/120x40/truecolor", HOLLA, &["--scenario", "parity-browser", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/browser/80x24/truecolor", HOLLA, &["--scenario", "parity-browser", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/browser/100x30/truecolor", HOLLA, &["--scenario", "parity-browser", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/browser/120x40/truecolor", HOLLA, &["--scenario", "parity-browser", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/browser/160x50/truecolor", HOLLA, &["--scenario", "parity-browser", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/browser/100x30/none", HOLLA, &["--scenario", "parity-browser", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_git_current_default_120x40_truecolor => Case::new("holla/parity/git-current/120x40/truecolor", HOLLA, &["--scenario", "parity-git-current", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/git-current/80x24/truecolor", HOLLA, &["--scenario", "parity-git-current", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/git-current/100x30/truecolor", HOLLA, &["--scenario", "parity-git-current", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/git-current/120x40/truecolor", HOLLA, &["--scenario", "parity-git-current", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/git-current/160x50/truecolor", HOLLA, &["--scenario", "parity-git-current", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/git-current/100x30/none", HOLLA, &["--scenario", "parity-git-current", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_git_batch_default_120x40_truecolor => Case::new("holla/parity/git-batch/120x40/truecolor", HOLLA, &["--scenario", "parity-git-batch", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/git-batch/80x24/truecolor", HOLLA, &["--scenario", "parity-git-batch", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/git-batch/100x30/truecolor", HOLLA, &["--scenario", "parity-git-batch", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/git-batch/120x40/truecolor", HOLLA, &["--scenario", "parity-git-batch", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/git-batch/160x50/truecolor", HOLLA, &["--scenario", "parity-git-batch", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/git-batch/100x30/none", HOLLA, &["--scenario", "parity-git-batch", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_task_sources_default_120x40_truecolor => Case::new("holla/parity/task-sources/120x40/truecolor", HOLLA, &["--scenario", "parity-task-sources", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/task-sources/80x24/truecolor", HOLLA, &["--scenario", "parity-task-sources", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/task-sources/100x30/truecolor", HOLLA, &["--scenario", "parity-task-sources", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/task-sources/120x40/truecolor", HOLLA, &["--scenario", "parity-task-sources", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/task-sources/160x50/truecolor", HOLLA, &["--scenario", "parity-task-sources", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/task-sources/100x30/none", HOLLA, &["--scenario", "parity-task-sources", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_cargo_default_120x40_truecolor => Case::new("holla/parity/cargo/120x40/truecolor", HOLLA, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/cargo/80x24/truecolor", HOLLA, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/cargo/100x30/truecolor", HOLLA, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/cargo/120x40/truecolor", HOLLA, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/cargo/160x50/truecolor", HOLLA, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/cargo/100x30/none", HOLLA, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_docker_default_120x40_truecolor => Case::new("holla/parity/docker/120x40/truecolor", HOLLA, &["--scenario", "parity-docker", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/docker/80x24/truecolor", HOLLA, &["--scenario", "parity-docker", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/docker/100x30/truecolor", HOLLA, &["--scenario", "parity-docker", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/docker/120x40/truecolor", HOLLA, &["--scenario", "parity-docker", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/docker/160x50/truecolor", HOLLA, &["--scenario", "parity-docker", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/docker/100x30/none", HOLLA, &["--scenario", "parity-docker", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_brew_services_default_120x40_truecolor => Case::new("holla/parity/brew-services/120x40/truecolor", HOLLA, &["--scenario", "parity-brew-services", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/brew-services/80x24/truecolor", HOLLA, &["--scenario", "parity-brew-services", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/brew-services/100x30/truecolor", HOLLA, &["--scenario", "parity-brew-services", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/brew-services/120x40/truecolor", HOLLA, &["--scenario", "parity-brew-services", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/brew-services/160x50/truecolor", HOLLA, &["--scenario", "parity-brew-services", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/brew-services/100x30/none", HOLLA, &["--scenario", "parity-brew-services", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_gradle_default_120x40_truecolor => Case::new("holla/parity/gradle/120x40/truecolor", HOLLA, &["--scenario", "parity-gradle", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/gradle/80x24/truecolor", HOLLA, &["--scenario", "parity-gradle", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/gradle/100x30/truecolor", HOLLA, &["--scenario", "parity-gradle", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/gradle/120x40/truecolor", HOLLA, &["--scenario", "parity-gradle", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/gradle/160x50/truecolor", HOLLA, &["--scenario", "parity-gradle", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/gradle/100x30/none", HOLLA, &["--scenario", "parity-gradle", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_idea_default_120x40_truecolor => Case::new("holla/parity/idea/120x40/truecolor", HOLLA, &["--scenario", "parity-idea", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/idea/80x24/truecolor", HOLLA, &["--scenario", "parity-idea", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/idea/100x30/truecolor", HOLLA, &["--scenario", "parity-idea", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/idea/120x40/truecolor", HOLLA, &["--scenario", "parity-idea", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/idea/160x50/truecolor", HOLLA, &["--scenario", "parity-idea", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/idea/100x30/none", HOLLA, &["--scenario", "parity-idea", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_upgrade_managers_default_120x40_truecolor => Case::new("holla/parity/upgrade-managers/120x40/truecolor", HOLLA, &["--scenario", "parity-upgrade-managers", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/upgrade-managers/80x24/truecolor", HOLLA, &["--scenario", "parity-upgrade-managers", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/upgrade-managers/100x30/truecolor", HOLLA, &["--scenario", "parity-upgrade-managers", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/upgrade-managers/120x40/truecolor", HOLLA, &["--scenario", "parity-upgrade-managers", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/upgrade-managers/160x50/truecolor", HOLLA, &["--scenario", "parity-upgrade-managers", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/upgrade-managers/100x30/none", HOLLA, &["--scenario", "parity-upgrade-managers", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_executor_default_120x40_truecolor => Case::new("holla/parity/executor/120x40/truecolor", HOLLA, &["--scenario", "parity-executor", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/executor/80x24/truecolor", HOLLA, &["--scenario", "parity-executor", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/executor/100x30/truecolor", HOLLA, &["--scenario", "parity-executor", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/executor/120x40/truecolor", HOLLA, &["--scenario", "parity-executor", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/executor/160x50/truecolor", HOLLA, &["--scenario", "parity-executor", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/executor/100x30/none", HOLLA, &["--scenario", "parity-executor", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_task_input_default_120x40_truecolor => Case::new("holla/parity/task-input/120x40/truecolor", HOLLA, &["--scenario", "parity-task-input", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/task-input/80x24/truecolor", HOLLA, &["--scenario", "parity-task-input", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/task-input/100x30/truecolor", HOLLA, &["--scenario", "parity-task-input", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/task-input/120x40/truecolor", HOLLA, &["--scenario", "parity-task-input", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/task-input/160x50/truecolor", HOLLA, &["--scenario", "parity-task-input", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/task-input/100x30/none", HOLLA, &["--scenario", "parity-task-input", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_custom_actions_default_120x40_truecolor => Case::new("holla/parity/custom-actions/120x40/truecolor", HOLLA, &["--scenario", "parity-custom-actions", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/custom-actions/80x24/truecolor", HOLLA, &["--scenario", "parity-custom-actions", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/custom-actions/100x30/truecolor", HOLLA, &["--scenario", "parity-custom-actions", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/custom-actions/120x40/truecolor", HOLLA, &["--scenario", "parity-custom-actions", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/custom-actions/160x50/truecolor", HOLLA, &["--scenario", "parity-custom-actions", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/custom-actions/100x30/none", HOLLA, &["--scenario", "parity-custom-actions", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_disk_scan_default_120x40_truecolor => Case::new("holla/parity/disk-scan/120x40/truecolor", HOLLA, &["--scenario", "parity-disk-scan", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/disk-scan/80x24/truecolor", HOLLA, &["--scenario", "parity-disk-scan", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/disk-scan/100x30/truecolor", HOLLA, &["--scenario", "parity-disk-scan", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/disk-scan/120x40/truecolor", HOLLA, &["--scenario", "parity-disk-scan", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/disk-scan/160x50/truecolor", HOLLA, &["--scenario", "parity-disk-scan", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/disk-scan/100x30/none", HOLLA, &["--scenario", "parity-disk-scan", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_disk_navigation_default_120x40_truecolor => Case::new("holla/parity/disk-navigation/120x40/truecolor", HOLLA, &["--scenario", "parity-disk-navigation", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/disk-navigation/80x24/truecolor", HOLLA, &["--scenario", "parity-disk-navigation", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/disk-navigation/100x30/truecolor", HOLLA, &["--scenario", "parity-disk-navigation", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/disk-navigation/120x40/truecolor", HOLLA, &["--scenario", "parity-disk-navigation", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/disk-navigation/160x50/truecolor", HOLLA, &["--scenario", "parity-disk-navigation", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/disk-navigation/100x30/none", HOLLA, &["--scenario", "parity-disk-navigation", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_insights_default_120x40_truecolor => Case::new("holla/parity/insights/120x40/truecolor", HOLLA, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/insights/80x24/truecolor", HOLLA, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/insights/100x30/truecolor", HOLLA, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/insights/120x40/truecolor", HOLLA, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/insights/160x50/truecolor", HOLLA, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/insights/100x30/none", HOLLA, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_delete_safety_default_120x40_truecolor => Case::new("holla/parity/delete-safety/120x40/truecolor", HOLLA, &["--scenario", "parity-delete-safety", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/delete-safety/80x24/truecolor", HOLLA, &["--scenario", "parity-delete-safety", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/delete-safety/100x30/truecolor", HOLLA, &["--scenario", "parity-delete-safety", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/delete-safety/120x40/truecolor", HOLLA, &["--scenario", "parity-delete-safety", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/delete-safety/160x50/truecolor", HOLLA, &["--scenario", "parity-delete-safety", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/delete-safety/100x30/none", HOLLA, &["--scenario", "parity-delete-safety", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_cleanup_results_default_120x40_truecolor => Case::new("holla/parity/cleanup-results/120x40/truecolor", HOLLA, &["--scenario", "parity-cleanup-results", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/cleanup-results/80x24/truecolor", HOLLA, &["--scenario", "parity-cleanup-results", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/cleanup-results/100x30/truecolor", HOLLA, &["--scenario", "parity-cleanup-results", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/cleanup-results/120x40/truecolor", HOLLA, &["--scenario", "parity-cleanup-results", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/cleanup-results/160x50/truecolor", HOLLA, &["--scenario", "parity-cleanup-results", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/cleanup-results/100x30/none", HOLLA, &["--scenario", "parity-cleanup-results", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_platforms_default_120x40_truecolor => Case::new("holla/parity/platforms/120x40/truecolor", HOLLA, &["--scenario", "parity-platforms", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/platforms/80x24/truecolor", HOLLA, &["--scenario", "parity-platforms", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/platforms/100x30/truecolor", HOLLA, &["--scenario", "parity-platforms", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/platforms/120x40/truecolor", HOLLA, &["--scenario", "parity-platforms", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/platforms/160x50/truecolor", HOLLA, &["--scenario", "parity-platforms", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/platforms/100x30/none", HOLLA, &["--scenario", "parity-platforms", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
+crate::baseline_case_with_variants!(
+    holla_parity_platforms_linux_default_120x40_truecolor => Case::new("holla/parity/platforms-linux/120x40/truecolor", HOLLA, &["--scenario", "parity-platforms-linux", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+    [
+        Case::new("holla/parity/platforms-linux/80x24/truecolor", HOLLA, &["--scenario", "parity-platforms-linux", "--motion", "paused", "--frame", "40"], 80, 24, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/platforms-linux/100x30/truecolor", HOLLA, &["--scenario", "parity-platforms-linux", "--motion", "paused", "--frame", "40"], 100, 30, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/platforms-linux/120x40/truecolor", HOLLA, &["--scenario", "parity-platforms-linux", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/platforms-linux/160x50/truecolor", HOLLA, &["--scenario", "parity-platforms-linux", "--motion", "paused", "--frame", "40"], 160, 50, Color::Truecolor, "holla❯"),
+        Case::new("holla/parity/platforms-linux/100x30/none", HOLLA, &["--scenario", "parity-platforms-linux", "--motion", "paused", "--frame", "40"], 100, 30, Color::None, "holla❯"),
+    ],
+);
 
 // ------------------------------------------------------------------ flows --
 
@@ -213,7 +376,7 @@ crate::baseline_case!(holla_flows_browser_hidden_120x40_truecolor => Case::new("
 crate::baseline_case!(holla_flows_browser_preview_120x40_truecolor => Case::new("holla/flows/browser/preview/120x40/truecolor", HOLLA, &["--scenario", "parity-browser", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Browse ~/work/site", "enter", "down", "down", "down"]));
 // h_hp04_preview_control: same listing as browser_preview (big.log at 3 downs);
 // control.txt is 7 downs (dirs first). Preview sanitises ESC/BEL to �.
-crate::baseline_case!(holla_flows_files_preview_control_120x40_truecolor => Case::new("holla/flows/files/preview_control/120x40/truecolor", HOLLA, &["--scenario", "parity-browser", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Browse ~/work/site", "enter", "wait:16 entries", "down", "down", "down", "down", "down", "down", "down", "wait:13 B of 13 B"]));
+crate::baseline_case!(holla_flows_files_preview_control_120x40_truecolor => Case::new("holla/flows/files/preview_control/120x40/truecolor", HOLLA, &["--scenario", "parity-browser", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Browse ~/work/site", "enter", "wait:16 entries", "down", "down", "down", "down", "down", "down", "down", "sleep:300"]));
 crate::baseline_case!(holla_flows_cleanup_plan_120x40_truecolor => Case::new("holla/flows/cleanup/plan/120x40/truecolor", HOLLA, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "80"], 120, 40, Color::Truecolor, "holla❯").sends(&["c"]));
 crate::baseline_case!(holla_flows_cleanup_gate_1_120x40_truecolor => Case::new("holla/flows/cleanup/gate-1/120x40/truecolor", HOLLA, &["--scenario", "disk-cleanup", "--motion", "paused", "--frame", "80"], 120, 40, Color::Truecolor, "holla❯").sends(&["c", "c"]));
 crate::baseline_case!(holla_flows_upgrade_excluded_120x40_truecolor => Case::new("holla/flows/upgrade/excluded/120x40/truecolor", HOLLA, &["--scenario", "upgrade-plan", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["down", "down", "down", "down", "down", "space"]));
@@ -297,7 +460,7 @@ crate::baseline_case!(holla_flows_disk_top_files_120x40_truecolor => Case::new("
 // tick-driven; the page's `· live ·` meta is a constant ("1 s ago"), not a
 // tick readout. `space` selects the row first — `d` refuses an empty
 // selection ("Select at least one entry first").
-crate::baseline_case!(holla_flows_cleanup_report_120x40_truecolor => Case::new("holla/flows/cleanup/report/120x40/truecolor", HOLLA, &["--scenario", "parity-cleanup-results", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:scan complete", "down", "space", "d", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2", "enter", "type:TRASH 1 UNDER /Users/alex/Projects/safe ON mbp", "enter", "tab", "enter", "wait:Cleanup report"]).timeout(15_000));
+crate::baseline_case!(holla_flows_cleanup_report_120x40_truecolor => Case::new("holla/flows/cleanup/report/120x40/truecolor", HOLLA, &["--scenario", "parity-cleanup-results", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:1 unreadable", "down", "space", "d", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2", "enter", "type:TRASH 1 UNDER /Users/alex/Projects/safe ON mbp", "enter", "tab", "enter", "wait:Cleanup report"]).timeout(15_000));
 
 // ------------------------------------------- coverage holes (legacy h_flow_*,
 // h_hp*, h_p3 states; keys from the retired tools/holla_flows.sh and
@@ -305,7 +468,7 @@ crate::baseline_case!(holla_flows_cleanup_report_120x40_truecolor => Case::new("
 
 // h_flow_child_query: the `test` query in the monorepo child (the
 // trust_prompt journey's pre-Enter state).
-crate::baseline_case!(holla_flows_child_query_120x40_truecolor => Case::new("holla/flows/child/query/120x40/truecolor", HOLLA, &["--scenario", "monorepo-child", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:test", "wait:alias test"]));
+crate::baseline_case!(holla_flows_child_query_120x40_truecolor => Case::new("holla/flows/child/query/120x40/truecolor", HOLLA, &["--scenario", "monorepo-child", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:test", "wait:Results · 17"]));
 // h_flow_system: a query with no matches leaves an empty preview; the
 // `Cancelled` status comes from leaving gate 1 (the legacy chain typed
 // `blocking`, opened the blocker page, then appended `resources`).
@@ -344,8 +507,8 @@ crate::baseline_case!(holla_flows_git_batch_picker_120x40_truecolor => Case::new
 crate::baseline_case!(holla_flows_task_sources_120x40_truecolor => Case::new("holla/flows/task/sources/120x40/truecolor", HOLLA, &["--scenario", "parity-task-sources", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:yarn", "wait:yarn s00"]));
 crate::baseline_case!(holla_flows_task_sources_diagnostic_120x40_truecolor => Case::new("holla/flows/task/sources_diagnostic/120x40/truecolor", HOLLA, &["--scenario", "parity-task-sources", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Taskfile", "wait:discovery diagnostic"]));
 // h_hp08: the cargo clean row and its one-confirmation dialog.
-crate::baseline_case!(holla_flows_cargo_clean_120x40_truecolor => Case::new("holla/flows/cargo/clean/120x40/truecolor", HOLLA, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:cargo clean", "wait:900.0 MiB of generated"]));
-crate::baseline_case!(holla_flows_cargo_clean_confirm_120x40_truecolor => Case::new("holla/flows/cargo/clean_confirm/120x40/truecolor", HOLLA, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:cargo clean", "enter", "wait:one explicit confirmation"]));
+crate::baseline_case!(holla_flows_cargo_clean_120x40_truecolor => Case::new("holla/flows/cargo/clean/120x40/truecolor", HOLLA, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:cargo clean", "wait:900.0 MiB"]));
+crate::baseline_case!(holla_flows_cargo_clean_confirm_120x40_truecolor => Case::new("holla/flows/cargo/clean_confirm/120x40/truecolor", HOLLA, &["--scenario", "parity-cargo", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:cargo clean", "enter", "wait:Esc Cancel"]));
 // h_hp09: the daemon-stage stop-all failure, then the remove-all gates.
 // The gates are taken from a fresh boot under paused: the legacy chain
 // reached them over the failed tab, but that prefix leaves the gate's
@@ -361,8 +524,8 @@ crate::baseline_case!(holla_flows_brew_services_120x40_truecolor => Case::new("h
 crate::baseline_case!(holla_flows_brew_services_stop_failed_120x40_truecolor => Case::new("holla/flows/brew/services_stop_failed/120x40/truecolor", HOLLA, &["--scenario", "parity-brew-services", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Stop svc02", "enter", "right", "enter", "wait:Bootstrap failed"]));
 // h_hp11/h_hp12: the special-category cleanup reviews (Right opens the
 // category fold) and their trash gates.
-crate::baseline_case!(holla_flows_gradle_cleanup_120x40_truecolor => Case::new("holla/flows/gradle/cleanup/120x40/truecolor", HOLLA, &["--scenario", "parity-gradle", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Clean Gradle outputs", "enter", "right", "wait:gradle --stop runs first"]));
-crate::baseline_case!(holla_flows_gradle_gate1_120x40_truecolor => Case::new("holla/flows/gradle/gate1/120x40/truecolor", HOLLA, &["--scenario", "parity-gradle", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Clean Gradle outputs", "enter", "right", "wait:gradle --stop runs first", "d", "wait:unknown stop cancels"]));
+crate::baseline_case!(holla_flows_gradle_cleanup_120x40_truecolor => Case::new("holla/flows/gradle/cleanup/120x40/truecolor", HOLLA, &["--scenario", "parity-gradle", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Clean Gradle outputs", "enter", "wait:Cleanup · Gradle outputs", "right", "sleep:300"]));
+crate::baseline_case!(holla_flows_gradle_gate1_120x40_truecolor => Case::new("holla/flows/gradle/gate1/120x40/truecolor", HOLLA, &["--scenario", "parity-gradle", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Clean Gradle outputs", "enter", "wait:Cleanup · Gradle outputs", "right", "d", "sleep:300"]));
 crate::baseline_case!(holla_flows_idea_cleanup_120x40_truecolor => Case::new("holla/flows/idea/cleanup/120x40/truecolor", HOLLA, &["--scenario", "parity-idea", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Clean IntelliJ", "enter", "right", "wait:idea.clean"]));
 crate::baseline_case!(holla_flows_idea_gate2_120x40_truecolor => Case::new("holla/flows/idea/gate2/120x40/truecolor", HOLLA, &["--scenario", "parity-idea", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Clean IntelliJ", "enter", "right", "wait:idea.clean", "d", "wait:gate 1 of 2", "right", "enter", "wait:Type TRASH 4 UNDER /Users/alex/work/ide ON mbp"]));
 // h_hp13: the brew upgrade batch run to completion, then the everything
@@ -389,13 +552,13 @@ crate::baseline_case!(holla_flows_trusted_deploy_failed_120x40_truecolor => Case
 // count (scan_ticks=48, parity.rs; the scan starts on Enter). Paused can
 // only pin scan-start (0%), reduced lands on a different phase every run.
 // The completed scan is the stable boundary and is captured.
-crate::baseline_case!(holla_flows_disk_scan_complete_120x40_truecolor => Case::new("holla/flows/disk/scan_complete/120x40/truecolor", HOLLA, &["--scenario", "parity-disk-scan", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:scan complete"]).timeout(15_000));
+crate::baseline_case!(holla_flows_disk_scan_complete_120x40_truecolor => Case::new("holla/flows/disk/scan_complete/120x40/truecolor", HOLLA, &["--scenario", "parity-disk-scan", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:2 unreadable"]).timeout(15_000));
 // h_hp19: the finished tree, apparent sort, noise unfolded, and a
 // selection (top_files is already captured as holla/flows/disk_top_files).
 crate::baseline_case!(holla_flows_disk_tree_120x40_truecolor => Case::new("holla/flows/disk/tree/120x40/truecolor", HOLLA, &["--scenario", "parity-disk-navigation", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:scan complete"]).timeout(15_000));
 crate::baseline_case!(holla_flows_disk_tree_apparent_120x40_truecolor => Case::new("holla/flows/disk/tree_apparent/120x40/truecolor", HOLLA, &["--scenario", "parity-disk-navigation", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:scan complete", "s", "wait:largest first · apparent"]).timeout(15_000));
 crate::baseline_case!(holla_flows_disk_tree_unfolded_120x40_truecolor => Case::new("holla/flows/disk/tree_unfolded/120x40/truecolor", HOLLA, &["--scenario", "parity-disk-navigation", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:scan complete", "s", "s", "down", "down", "f", "wait:allocated · unfolded"]).timeout(15_000));
-crate::baseline_case!(holla_flows_disk_tree_selected_120x40_truecolor => Case::new("holla/flows/disk/tree_selected/120x40/truecolor", HOLLA, &["--scenario", "parity-disk-navigation", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:scan complete", "s", "s", "down", "down", "f", "f", "space", "wait:1 selected (176.0 KiB)"]).timeout(15_000));
+crate::baseline_case!(holla_flows_disk_tree_selected_120x40_truecolor => Case::new("holla/flows/disk/tree_selected/120x40/truecolor", HOLLA, &["--scenario", "parity-disk-navigation", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:scan complete", "s", "s", "down", "down", "f", "f", "space", "wait:1 selected (176.0"]).timeout(15_000));
 // h_hp20: the categories page (the fade twin captures it scrolled),
 // DerivedData opened, and the cursor jumped to the last category.
 crate::baseline_case!(holla_flows_cleanup_categories_120x40_truecolor => Case::new("holla/flows/cleanup/categories/120x40/truecolor", HOLLA, &["--scenario", "parity-insights", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Review cleanup candidates", "enter", "wait:18 categories"]));
@@ -404,9 +567,9 @@ crate::baseline_case!(holla_flows_cleanup_artifacts_120x40_truecolor => Case::ne
 // h_hp21: the delete-safety trash gates (the report is already captured as
 // holla/flows/cleanup_report; the gate facts carry no live-age rows, so
 // reduced is safe once the scan completes).
-crate::baseline_case!(holla_flows_cleanup_gate1_120x40_truecolor => Case::new("holla/flows/cleanup/gate1/120x40/truecolor", HOLLA, &["--scenario", "parity-delete-safety", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:scan complete", "down", "space", "d", "wait:gate 1 of 2"]).timeout(15_000));
-crate::baseline_case!(holla_flows_cleanup_gate2_120x40_truecolor => Case::new("holla/flows/cleanup/gate2/120x40/truecolor", HOLLA, &["--scenario", "parity-delete-safety", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:scan complete", "down", "space", "d", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2"]).timeout(15_000));
-crate::baseline_case!(holla_flows_cleanup_gate2_typed_120x40_truecolor => Case::new("holla/flows/cleanup/gate2_typed/120x40/truecolor", HOLLA, &["--scenario", "parity-delete-safety", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:scan complete", "down", "space", "d", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2", "enter", "type:TRASH 1 UNDER /Users/alex/Projects/safe ON mbp"]).timeout(15_000));
+crate::baseline_case!(holla_flows_cleanup_gate1_120x40_truecolor => Case::new("holla/flows/cleanup/gate1/120x40/truecolor", HOLLA, &["--scenario", "parity-delete-safety", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:1 unreadable", "down", "space", "d", "wait:gate 1 of 2"]).timeout(15_000));
+crate::baseline_case!(holla_flows_cleanup_gate2_120x40_truecolor => Case::new("holla/flows/cleanup/gate2/120x40/truecolor", HOLLA, &["--scenario", "parity-delete-safety", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:1 unreadable", "down", "space", "d", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2"]).timeout(15_000));
+crate::baseline_case!(holla_flows_cleanup_gate2_typed_120x40_truecolor => Case::new("holla/flows/cleanup/gate2_typed/120x40/truecolor", HOLLA, &["--scenario", "parity-delete-safety", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Analyze disk usage", "enter", "wait:1 unreadable", "down", "space", "d", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2", "enter", "type:TRASH 1 UNDER /Users/alex/Projects/safe ON mbp"]).timeout(15_000));
 // h_hp22: the cleanup history page (one prior record at boot).
 crate::baseline_case!(holla_flows_cleanup_history_120x40_truecolor => Case::new("holla/flows/cleanup/history/120x40/truecolor", HOLLA, &["--scenario", "parity-cleanup-results", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Show cleanup history", "enter", "wait:operation log records"]));
 // h_hp23: Linux without a Trash backend (the gate says every item will
@@ -415,7 +578,7 @@ crate::baseline_case!(holla_flows_platforms_linux_gate1_120x40_truecolor => Case
 crate::baseline_case!(holla_flows_platforms_linux_gate2_120x40_truecolor => Case::new("holla/flows/platforms/linux_gate2/120x40/truecolor", HOLLA, &["--scenario", "parity-platforms-linux", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Review cleanup candidates", "enter", "right", "down", "space", "d", "wait:no Trash backend", "right", "enter", "wait:Type TRASH 1 UNDER /home/alex ON devbox"]));
 // h_hp23_linux_report: commit the linux trash (no backend) — every item
 // fails, never falls back. Reduced: the cleanup job is tick-driven.
-crate::baseline_case!(holla_flows_cleanup_linux_report_120x40_truecolor => Case::new("holla/flows/cleanup/linux_report/120x40/truecolor", HOLLA, &["--scenario", "parity-platforms-linux", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Review cleanup candidates", "enter", "right", "down", "space", "d", "wait:no Trash backend", "right", "enter", "wait:Type TRASH 1 UNDER /home/alex ON devbox", "enter", "type:TRASH 1 UNDER /home/alex ON devbox", "enter", "tab", "enter", "wait:Trash unavailable"]).timeout(15_000));
+crate::baseline_case!(holla_flows_cleanup_linux_report_120x40_truecolor => Case::new("holla/flows/cleanup/linux_report/120x40/truecolor", HOLLA, &["--scenario", "parity-platforms-linux", "--motion", "reduced"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Review cleanup candidates", "enter", "right", "down", "space", "d", "wait:no Trash backend", "right", "enter", "wait:Type TRASH 1 UNDER /home/alex ON devbox", "enter", "type:TRASH 1 UNDER /home/alex ON devbox", "enter", "tab", "enter", "wait:Cleanup report"]).timeout(15_000));
 crate::baseline_case!(holla_flows_mac_top_files_120x40_truecolor => Case::new("holla/flows/platforms/files/120x40/truecolor", HOLLA, &["--scenario", "parity-platforms", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["type:Top files on this Mac", "enter", "wait:did not finish within 5 s"]));
 // h_p3_docker_drift: the first Execute meets the drift and bounces back to
 // gate 1 with the Changed row (the docker_done chain passes through this
@@ -423,8 +586,8 @@ crate::baseline_case!(holla_flows_mac_top_files_120x40_truecolor => Case::new("h
 crate::baseline_case!(holla_flows_docker_drift_120x40_truecolor => Case::new("holla/flows/docker/drift/120x40/truecolor", HOLLA, &["--scenario", "docker-cleanup", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["enter", "c", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2", "enter", "type:I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox", "enter", "tab", "enter", "wait:a new container"]));
 
 // --------------------------------------------------------------------- fade --
-// Wheel scroll-fade over live sessions (the pointer.rs technique; the
-// helpers are local because support.rs is shared suite plumbing).
+// Wheel scroll-fade over live sessions, centrally expanded by the shared
+// canonical live matrix.
 
 /// First occurrence of `needle` as `(row, col)`, waiting until it appears.
 fn find(s: &mut Session, needle: &str) -> (u16, u16) {
@@ -446,18 +609,9 @@ fn wheel_down(s: &mut Session, needle: &str, notches: u32) {
     }
 }
 
-fn spawn_boot(case: &Case) -> Session {
-    let mut s = support::spawn(case);
-    support::boot(&mut s, case.needle);
-    if !case.sends.is_empty() {
-        support::drive(&mut s, case.sends);
-    }
-    s
-}
-
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn holla_fade_trust_body_wheel_120x40_truecolor() {
+fn holla_fade_trust_body_wheel_matrix() {
     // The trust definition is the scrollable body (review.rs TRUST_BODY);
     // two notches put the fade at its top edge.
     let case = Case::new(
@@ -474,14 +628,18 @@ fn holla_fade_trust_body_wheel_120x40_truecolor() {
         "enter",
         "wait:Trust ~/work/team/.holla.toml?",
     ]);
-    let mut s = spawn_boot(&case);
-    wheel_down(&mut s, "id = \"deploy.preview\"", 2);
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live(&case, |s, variant| {
+        if variant.rows <= 24 {
+            wheel_down(s, "Trust scope", 2);
+        } else {
+            wheel_down(s, "id = \"deploy.preview\"", 2);
+        }
+    });
 }
 
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn holla_fade_cleanup_list_wheel_120x40_truecolor() {
+fn holla_fade_cleanup_list_wheel_matrix() {
     // The 18 insight categories overflow the list at 120x40; the wheel
     // target is a row that appears only in the list (never in the detail
     // panel, which mirrors the selected category).
@@ -499,21 +657,21 @@ fn holla_fade_cleanup_list_wheel_120x40_truecolor() {
         "enter",
         "wait:18 categories",
     ]);
-    let mut s = spawn_boot(&case);
-    // Rows are clickable children and shadow the list's scroll region in
-    // hit_scroll's topmost-wins lookup, so the wheel lands on the blank
-    // line below the needle (no child region there) instead.
-    let (row, col) = find(&mut s, "Yarn cache");
-    for _ in 0..2 {
-        s.scroll(col, row + 1, Scroll::Down).expect("wheel scroll");
-        std::thread::sleep(Duration::from_millis(120));
-    }
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live(&case, |s, case| {
+        // Rows are clickable children and shadow the list's scroll region in
+        // hit_scroll's topmost-wins lookup, so the wheel lands on the blank
+        // line below the needle (no child region there) instead.
+        if case.rows <= 24 {
+            wheel_below(s, "Xcode DerivedData", 2);
+        } else {
+            wheel_below(s, "Yarn cache", 2);
+        }
+    });
 }
 
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn holla_fade_executor_burst_end_120x40_truecolor() {
+fn holla_fade_executor_burst_end_matrix() {
     // 4500 lines in sixteen ticks: the retention panel states the drop and
     // the tail sits at the bottom; after the burst nothing animates, so the
     // settle captures the exact end frame (h_fade_burst's successor).
@@ -531,6 +689,5 @@ fn holla_fade_executor_burst_end_120x40_truecolor() {
         "enter",
         "wait:500 earlier lines dropped",
     ]);
-    let mut s = spawn_boot(&case);
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live(&case, |_, _| ());
 }
