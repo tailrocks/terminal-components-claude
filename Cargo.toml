@@ -29,6 +29,7 @@ name = "holla"
 path = "src/bin/holla/main.rs"
 
 [dependencies]
+clap = { version = "4.6", features = ["derive"] }
 ratatui = { version = "0.30", features = ["crossterm_0_29"] }
 unicode-width = "0.2"
 unicode-segmentation = "1"

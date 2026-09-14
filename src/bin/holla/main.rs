@@ -8,6 +8,8 @@ mod app;
 #[cfg(test)]
 mod app_tests;
 #[cfg(test)]
+mod app_tests_coverage;
+#[cfg(test)]
 mod app_tests_flows;
 #[cfg(test)]
 mod app_tests_parity;
@@ -21,6 +23,7 @@ mod scenario;
 mod screens;
 mod sim;
 
+use clap::{Parser, ValueEnum};
 use junie_tui::core::event::{Input, Outcome};
 use junie_tui::theme::{ColorLevel, Theme};
 
@@ -34,89 +37,83 @@ struct Options {
     frame: u64,
 }
 
-fn parse_args() -> Options {
-    let mut level = ColorLevel::detect();
-    let mut scenario = Scenario::FirstUse;
-    let mut motion = None;
-    let mut frame = 0;
-    let mut args = std::env::args().skip(1);
-    while let Some(a) = args.next() {
-        match a.as_str() {
-            "--color" | "-c" => {
-                level = match args.next().as_deref() {
-                    Some("truecolor") | Some("24bit") => ColorLevel::TrueColor,
-                    Some("256") => ColorLevel::Ansi256,
-                    Some("16") => ColorLevel::Ansi16,
-                    Some("none") | Some("mono") => ColorLevel::Mono,
-                    other => {
-                        eprintln!("unknown --color value {other:?}; use truecolor|256|16|none");
-                        std::process::exit(2);
-                    }
-                };
-            }
-            "--scenario" | "-s" => {
-                let name = args.next().unwrap_or_default();
-                scenario = match Scenario::from_name(&name) {
-                    Some(s) => s,
-                    None => {
-                        let names: Vec<&str> = Scenario::ALL.iter().map(|s| s.name()).collect();
-                        eprintln!("unknown scenario {name:?}; use one of {}", names.join(", "));
-                        std::process::exit(2);
-                    }
-                };
-            }
-            "--motion" | "-m" => {
-                let name = args.next().unwrap_or_default();
-                motion = match Motion::from_name(&name) {
-                    Some(m) => Some(m),
-                    None => {
-                        eprintln!("unknown motion {name:?}; use full|reduced|paused");
-                        std::process::exit(2);
-                    }
-                };
-            }
-            "--frame" | "-f" => {
-                frame = match args.next().and_then(|v| v.parse().ok()) {
-                    Some(n) => n,
-                    None => {
-                        eprintln!("--frame needs a tick number");
-                        std::process::exit(2);
-                    }
-                };
-            }
-            "-h" | "--help" => {
-                println!(
-                    "holla — this folder, this host, right now (deterministic preview on the Junie design system)\n\n\
-                     USAGE: holla [--scenario NAME] [--motion full|reduced|paused] [--frame N] [--color truecolor|256|16|none]\n\n\
-                     Scenarios: {concept}\n\
-                     Parity:    {parity}\n\
-                     Motion:    explicit --motion wins; otherwise HOLLA_NO_MOTION=1 selects reduced motion\n\
-                     Frame:     with --motion paused, the exact fixture tick to render\n\n\
-                     Keys: type to search · ↑↓ move · Enter run · Alt+Enter alternatives · Tab preview · Ctrl+↑↓ scope · Ctrl+G activities · F1 key reference · Ctrl+Q quit\n\
-                     Preview: every scenario is captured under shots/h_*.png; src/bin/holla/README.md lists what each scenario shows.\n\
-                     Everything is simulated in memory; no stack command is ever executed.",
-                    concept = Scenario::CONCEPT
-                        .iter()
-                        .map(|s| s.name())
-                        .collect::<Vec<_>>()
-                        .join(", "),
-                    parity = Scenario::PARITY
-                        .iter()
-                        .map(|s| s.name())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                );
-                std::process::exit(0);
-            }
-            _ => {}
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum ColorArg {
+    #[value(name = "truecolor", alias = "24bit")]
+    TrueColor,
+    #[value(name = "256")]
+    Ansi256,
+    #[value(name = "16")]
+    Ansi16,
+    #[value(name = "none", alias = "mono")]
+    Mono,
+}
+
+impl From<ColorArg> for ColorLevel {
+    fn from(value: ColorArg) -> Self {
+        match value {
+            ColorArg::TrueColor => Self::TrueColor,
+            ColorArg::Ansi256 => Self::Ansi256,
+            ColorArg::Ansi16 => Self::Ansi16,
+            ColorArg::Mono => Self::Mono,
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum MotionArg {
+    Full,
+    Reduced,
+    Paused,
+}
+
+impl From<MotionArg> for Motion {
+    fn from(value: MotionArg) -> Self {
+        match value {
+            MotionArg::Full => Self::Full,
+            MotionArg::Reduced => Self::Reduced,
+            MotionArg::Paused => Self::Paused,
+        }
+    }
+}
+
+#[derive(Debug, Parser)]
+#[command(name = "holla", about = "Context-adaptive action launcher")]
+struct Cli {
+    #[arg(short = 'c', long, value_enum, value_name = "LEVEL")]
+    color: Option<ColorArg>,
+    #[arg(short = 's', long, value_parser = parse_scenario, default_value = "first-use")]
+    scenario: Scenario,
+    #[arg(short = 'm', long, value_enum)]
+    motion: Option<MotionArg>,
+    #[arg(short = 'f', long, default_value_t = 0)]
+    frame: u64,
+}
+
+fn parse_scenario(value: &str) -> Result<Scenario, String> {
+    Scenario::from_name(value).ok_or_else(|| {
+        format!(
+            "unknown scenario {value:?}; use one of {}",
+            Scenario::ALL
+                .iter()
+                .map(|s| s.name())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    })
+}
+
+fn parse_args() -> Options {
+    let cli = Cli::parse();
     let no_motion = std::env::var_os("HOLLA_NO_MOTION").is_some_and(|v| !v.is_empty() && v != "0");
     Options {
-        level,
-        scenario,
-        motion: Motion::resolve(motion, no_motion),
-        frame,
+        level: cli
+            .color
+            .map(ColorLevel::from)
+            .unwrap_or_else(ColorLevel::detect),
+        scenario: cli.scenario,
+        motion: Motion::resolve(cli.motion.map(Motion::from), no_motion),
+        frame: cli.frame,
     }
 }
 

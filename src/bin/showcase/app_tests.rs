@@ -997,3 +997,73 @@ fn the_terminal_viewport_survives_narrow_widths_and_completion_keeps_a_wheel_scr
             .is_some()
     );
 }
+
+#[test]
+fn cli_parser_accepts_aliases_and_rejects_invalid_values() {
+    use clap::{Parser, error::ErrorKind};
+
+    let cli = crate::Cli::try_parse_from([
+        "showcase",
+        "--color",
+        "mono",
+        "--page",
+        "chipsselects",
+        "--motion",
+        "reduced",
+        "--frame",
+        "7",
+    ])
+    .expect("valid CLI options");
+    assert!(matches!(cli.color, Some(crate::ColorArg::Mono)));
+    assert_eq!(cli.page, Some(PageId::Chips));
+    assert!(matches!(cli.motion, Some(crate::MotionArg::Reduced)));
+    assert_eq!(cli.frame, 7);
+
+    for color in ["truecolor", "24bit", "256", "16", "none", "mono"] {
+        assert!(
+            crate::Cli::try_parse_from(["showcase", "--color", color]).is_ok(),
+            "color value {color:?}"
+        );
+    }
+    for motion in ["full", "reduced", "paused"] {
+        assert!(
+            crate::Cli::try_parse_from(["showcase", "--motion", motion]).is_ok(),
+            "motion value {motion:?}"
+        );
+    }
+    let short = crate::Cli::try_parse_from([
+        "showcase", "-c", "16", "-p", "buttons", "-m", "paused", "-f", "3",
+    ])
+    .unwrap();
+    assert_eq!(short.page, Some(PageId::Buttons));
+    assert_eq!(short.frame, 3);
+
+    assert!(matches!(
+        crate::Cli::try_parse_from(["showcase", "--page", "no-such-page"]),
+        Err(error) if error.kind() == ErrorKind::ValueValidation
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["showcase", "--color", "invalid"]),
+        Err(error) if error.kind() == ErrorKind::InvalidValue
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["showcase", "--motion", "invalid"]),
+        Err(error) if error.kind() == ErrorKind::InvalidValue
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["showcase", "--frame", "negative"]),
+        Err(error) if error.kind() == ErrorKind::ValueValidation
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["showcase", "--frame"]),
+        Err(error) if error.kind() == ErrorKind::InvalidValue
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["showcase", "--unknown"]),
+        Err(error) if error.kind() == ErrorKind::UnknownArgument
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["showcase", "--help"]),
+        Err(error) if error.kind() == ErrorKind::DisplayHelp
+    ));
+}
