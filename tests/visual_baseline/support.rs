@@ -43,17 +43,16 @@ pub const SETTLE: Duration = Duration::from_millis(400);
 /// ([`Case::timeout`], the bash `CAP_TIMEOUT=` prefix).
 pub const TIMEOUT_MS: u64 = 8_000;
 
-/// Audit-matrix axes (docs/baseline/snapshots-v2.md §taxonomy): every audit
-/// fixture is captured at all 5 sizes × 5 colours.
-pub const AUDIT_SIZES: [(u16, u16); 5] = [(72, 20), (80, 24), (100, 30), (120, 40), (160, 50)];
-pub const AUDIT_COLORS: [Color; 5] = [
+/// Canonical matrix axes: every canonical capture root and audit fixture is
+/// captured at all 5 sizes × 5 colours.
+pub const CANONICAL_SIZES: [(u16, u16); 5] = [(72, 20), (80, 24), (100, 30), (120, 40), (160, 50)];
+pub const CANONICAL_COLORS: [Color; 5] = [
     Color::Truecolor,
     Color::Ansi256,
     Color::Ansi16,
     Color::None,
     Color::NoColorEnv,
 ];
-
 /// Prefixes for the 9 `audit_matrix` fixtures (`{prefix}/{cols}x{rows}/{color}`).
 /// Accounts is a custom loop with the same name shape ([`AUDIT_PREFIX_JACKIN_ACCOUNTS`]).
 pub const AUDIT_PREFIX_HOLLA_RUST: &str = "holla/audit/rust";
@@ -79,42 +78,13 @@ pub const AUDIT_MATRIX_PREFIXES: [&str; 9] = [
     AUDIT_PREFIX_TABLEPRO_PRODUCTION,
 ];
 
-/// Remaining 8 size×colour combos of the audit-flow matrix (the proven
-/// 120x40/truecolor leaf is a static Case::new).
-pub const FLOW_VARIANTS: [(u16, u16, Color); 8] = [
-    (80, 24, Color::Truecolor),
-    (80, 24, Color::None),
-    (80, 24, Color::NoColorEnv),
-    (120, 40, Color::None),
-    (120, 40, Color::NoColorEnv),
-    (160, 50, Color::Truecolor),
-    (160, 50, Color::None),
-    (160, 50, Color::NoColorEnv),
-];
-
-pub const FLOW_LEAF_DIFF_REVIEW: &str = "diff/review";
-pub const FLOW_LEAF_DIFF_EMPTY: &str = "diff/empty";
-pub const FLOW_LEAF_FORMS_INVALID: &str = "forms/invalid";
-pub const FLOW_LEAF_INPUTS_SELECTED: &str = "inputs/selected";
-pub const FLOW_LEAF_DIFF_DRAG_SELECTED: &str = "diff/drag-selected";
-
-pub const FLOW_VARIANT_LEAVES: [&str; 4] = [
-    FLOW_LEAF_DIFF_REVIEW,
-    FLOW_LEAF_DIFF_EMPTY,
-    FLOW_LEAF_FORMS_INVALID,
-    FLOW_LEAF_INPUTS_SELECTED,
-];
-
 pub fn audit_default_name(prefix: &str, cols: u16, rows: u16, color: Color) -> String {
     format!("{prefix}/{cols}x{rows}/{}", color.suffix())
 }
 
-pub fn showcase_flow_name(leaf: &str, cols: u16, rows: u16, color: Color) -> String {
-    format!("showcase/flows/{leaf}/{cols}x{rows}/{}", color.suffix())
-}
-
-/// Every capture name the suite produces: Case::new first-arg literals plus
-/// the data-driven audit / flow / drag matrices (same consts the tests use).
+/// Every capture name the suite produces: the canonical 5×5 expansion of each
+/// Case::new root and the data-driven audit matrices. `Case::dynamic` loops are
+/// not parsed; their names come from the audit constants below.
 pub fn suite_capture_names() -> BTreeSet<String> {
     let mut names = parse_case_new_names();
     names.extend(generated_matrix_names());
@@ -124,14 +94,14 @@ pub fn suite_capture_names() -> BTreeSet<String> {
 fn generated_matrix_names() -> BTreeSet<String> {
     let mut names = BTreeSet::new();
     for prefix in AUDIT_MATRIX_PREFIXES {
-        for &(cols, rows) in &AUDIT_SIZES {
-            for color in AUDIT_COLORS {
+        for &(cols, rows) in &CANONICAL_SIZES {
+            for color in CANONICAL_COLORS {
                 names.insert(audit_default_name(prefix, cols, rows, color));
             }
         }
     }
-    for &(cols, rows) in &AUDIT_SIZES {
-        for color in AUDIT_COLORS {
+    for &(cols, rows) in &CANONICAL_SIZES {
+        for color in CANONICAL_COLORS {
             names.insert(audit_default_name(
                 AUDIT_PREFIX_JACKIN_ACCOUNTS,
                 cols,
@@ -140,25 +110,25 @@ fn generated_matrix_names() -> BTreeSet<String> {
             ));
         }
     }
-    for leaf in FLOW_VARIANT_LEAVES {
-        for &(cols, rows, color) in &FLOW_VARIANTS {
-            names.insert(showcase_flow_name(leaf, cols, rows, color));
-        }
-    }
-    for &(cols, rows, color) in &FLOW_VARIANTS {
-        names.insert(showcase_flow_name(
-            FLOW_LEAF_DIFF_DRAG_SELECTED,
-            cols,
-            rows,
-            color,
-        ));
-    }
     names
+}
+
+/// `name` is `<root>/<cols>x<rows>/<color>`; resize roots use the same
+/// canonical matrix as every other capture root.
+fn canonical_root(name: &str) -> Option<&str> {
+    name.rsplit_once('/')
+        .and_then(|(without_color, _)| without_color.rsplit_once('/'))
+        .map(|(root, _)| root)
+}
+
+fn canonical_name(root: &str, cols: u16, rows: u16, color: Color) -> String {
+    format!("{root}/{cols}x{rows}/{}", color.suffix())
 }
 
 fn parse_case_new_names() -> BTreeSet<String> {
     let dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/visual_baseline");
     let mut names = BTreeSet::new();
+    let mut declared_roots = BTreeSet::new();
     let entries = std::fs::read_dir(&dir).unwrap_or_else(|e| panic!("read {}: {e}", dir.display()));
     for entry in entries {
         let path = entry
@@ -173,7 +143,7 @@ fn parse_case_new_names() -> BTreeSet<String> {
         }
         let src = std::fs::read_to_string(&path)
             .unwrap_or_else(|e| panic!("read {}: {e}", path.display()));
-        extract_case_new_names(&src, &mut names);
+        extract_case_new_roots(&src, &mut names, &mut declared_roots);
     }
     assert!(
         !names.is_empty(),
@@ -183,9 +153,93 @@ fn parse_case_new_names() -> BTreeSet<String> {
     names
 }
 
-fn extract_case_new_names(src: &str, names: &mut BTreeSet<String>) {
-    let mut rest = src;
+/// Parse only the representative in each `baseline_case*!` invocation. Variant
+/// arrays can contain additional exact per-combo declarations; they select at
+/// runtime and must not create duplicate canonical roots in the inventory.
+fn extract_case_new_roots(
+    src: &str,
+    names: &mut BTreeSet<String>,
+    declared_roots: &mut BTreeSet<String>,
+) {
+    const MACRO_MARK: &str = "crate::baseline_case";
     const MARK: &str = "Case::new(";
+    let mut rest = src;
+    while let Some(macro_i) = rest.find(MACRO_MARK) {
+        // Flow tests declare representatives outside macros. Parse those raw
+        // declarations before skipping the entire macro invocation.
+        extract_raw_case_new_roots(&rest[..macro_i], names, declared_roots);
+        let invocation_end = baseline_invocation_end(&rest[macro_i..]);
+        let invocation = &rest[macro_i..macro_i + invocation_end];
+        let Some(case_i) = invocation.find(MARK) else {
+            rest = &rest[macro_i + MACRO_MARK.len()..];
+            continue;
+        };
+        let body = invocation[case_i + MARK.len()..].trim_start();
+        let Some(body) = body.strip_prefix('"') else {
+            panic!("baseline_case representative is missing its name literal");
+        };
+        let Some(end) = body.find('"') else {
+            panic!("unterminated Case::new string literal");
+        };
+        let name = &body[..end];
+        if let Some(root) = canonical_root(name) {
+            assert!(
+                declared_roots.insert(root.to_string()),
+                "duplicate representative declaration for canonical root `{root}`"
+            );
+            for &(cols, rows) in &CANONICAL_SIZES {
+                for color in CANONICAL_COLORS {
+                    names.insert(canonical_name(root, cols, rows, color));
+                }
+            }
+        } else {
+            names.insert(name.to_string());
+        }
+        rest = &rest[macro_i + invocation_end..];
+    }
+    extract_raw_case_new_roots(rest, names, declared_roots);
+}
+
+/// Return the offset just past a balanced `baseline_case*!(...)` invocation.
+/// Sends can contain arbitrary text, so `;` is not a safe invocation boundary.
+fn baseline_invocation_end(src: &str) -> usize {
+    let open = src.find('(').expect("baseline_case invocation missing `(`");
+    let mut depth = 1;
+    let mut in_string = false;
+    let mut escaped = false;
+    for (relative, byte) in src[open + 1..].char_indices() {
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if byte == '\\' {
+                escaped = true;
+            } else if byte == '"' {
+                in_string = false;
+            }
+            continue;
+        }
+        match byte {
+            '"' => in_string = true,
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    return open + 1 + relative + byte.len_utf8();
+                }
+            }
+            _ => {}
+        }
+    }
+    panic!("unterminated baseline_case invocation");
+}
+
+fn extract_raw_case_new_roots(
+    src: &str,
+    names: &mut BTreeSet<String>,
+    declared_roots: &mut BTreeSet<String>,
+) {
+    const MARK: &str = "Case::new(";
+    let mut rest = src;
     while let Some(i) = rest.find(MARK) {
         rest = rest[i + MARK.len()..].trim_start();
         let Some(body) = rest.strip_prefix('"') else {
@@ -194,9 +248,28 @@ fn extract_case_new_names(src: &str, names: &mut BTreeSet<String>) {
         let Some(end) = body.find('"') else {
             panic!("unterminated Case::new string literal");
         };
-        names.insert(body[..end].to_string());
+        let name = &body[..end];
+        if let Some(root) = canonical_root(name) {
+            assert!(
+                declared_roots.insert(root.to_string()),
+                "duplicate representative declaration for canonical root `{root}`"
+            );
+            for &(cols, rows) in &CANONICAL_SIZES {
+                for color in CANONICAL_COLORS {
+                    names.insert(canonical_name(root, cols, rows, color));
+                }
+            }
+        } else {
+            names.insert(name.to_string());
+        }
         rest = &body[end + 1..];
     }
+}
+
+/// Exact-name filter for macOS Finder metadata. Not snapshot content; every
+/// other unknown file remains a store-integrity failure.
+pub fn is_macos_platform_metadata(path: &Path) -> bool {
+    path.file_name() == Some(std::ffi::OsStr::new(".DS_Store"))
 }
 
 /// `--color` palette, or real `NO_COLOR=1` (the baseline's `nocolor`).
@@ -301,6 +374,50 @@ impl Case {
             ..self
         }
     }
+
+    /// Re-root a representative declaration at another canonical combo while
+    /// preserving its argv, boot needle, sends, and timeout drift.
+    fn variant(&self, cols: u16, rows: u16, color: Color) -> Self {
+        let root = canonical_root(&self.name).unwrap_or_else(|| {
+            panic!(
+                "`{}` is not a canonical `<root>/<size>/<color>` capture",
+                self.name
+            )
+        });
+        Self {
+            name: Cow::Owned(canonical_name(root, cols, rows, color)),
+            bin: self.bin,
+            args: self.args,
+            cols,
+            rows,
+            color,
+            needle: self.needle,
+            sends: self.sends,
+            timeout_ms: self.timeout_ms,
+        }
+    }
+
+    /// Re-root a resize capture at its target geometry while retaining the
+    /// representative's initial PTY geometry and capture behavior.
+    pub fn resize_variant(&self, cols: u16, rows: u16, color: Color) -> Self {
+        let root = canonical_root(&self.name).unwrap_or_else(|| {
+            panic!(
+                "`{}` is not a canonical `<root>/<size>/<color>` capture",
+                self.name
+            )
+        });
+        Self {
+            name: Cow::Owned(canonical_name(root, cols, rows, color)),
+            bin: self.bin,
+            args: self.args,
+            cols: self.cols,
+            rows: self.rows,
+            color,
+            needle: self.needle,
+            sends: self.sends,
+            timeout_ms: self.timeout_ms,
+        }
+    }
 }
 
 pub fn argv_for(case: &Case) -> Vec<String> {
@@ -379,14 +496,18 @@ pub fn gate(name: &str, frame: &Frame) -> GroupedOutcome {
         .unwrap_or_else(|e| panic!("gate `{name}` failed: {e}"))
 }
 
-/// Fail-closed assertion: `matched` passes; `missing-approval` passes but is
-/// logged as pending (expected for new names on a first run — explicit
-/// `tuisnap accept --grouped` is the only bless, never the test); drift
-/// after approval, dimension mismatch and corrupt approval fail.
+/// Fail-closed assertion: only `matched` passes. Missing approval remains
+/// pending after capture, but the test fails until the full suite is
+/// generated and explicitly blessed (`tuisnap accept --grouped` is the only
+/// bless, never the test); drift, dimension mismatch and corrupt approval
+/// also fail.
 pub fn assert_gated(outcome: &GroupedOutcome) {
     match outcome.status() {
         Status::Matched => eprintln!("baseline matched   {}", outcome.outcome.name),
-        Status::MissingApproval => eprintln!("baseline PENDING   {}", outcome.outcome.name),
+        Status::MissingApproval => panic!(
+            "baseline missing approval: {} (generate, review, then bless explicitly)",
+            outcome.outcome.name
+        ),
         _ => panic!("{}", outcome.ensure_matched().unwrap_err()),
     }
 }
@@ -396,6 +517,137 @@ pub fn run_and_assert(case: &Case) {
     let frame = run_once(&argv_for(case), &opts_for(case), &steps_for(case), SETTLE)
         .unwrap_or_else(|e| panic!("capture `{}` failed: {e:#}", case.name));
     assert_gated(&gate(&case.name, &frame));
+}
+
+/// Expand one representative static Case::new root through the full canonical
+/// matrix. The representative's sends/timeout apply to every combo; choose a
+/// representative whose determinism contract is size-independent.
+pub fn run_canonical(representative: &Case) {
+    let mut failures = Vec::new();
+    for &(cols, rows) in &CANONICAL_SIZES {
+        for color in CANONICAL_COLORS {
+            let case = representative.variant(cols, rows, color);
+            let name = case.name.to_string();
+            if !collect_matrix(&name, || run_and_assert(&case)) {
+                failures.push(name);
+            }
+        }
+    }
+    finish_matrix(&failures);
+}
+
+/// Expand one representative while preserving exact legacy declarations.
+///
+/// A root may have had distinct settings at specific old size/color combos
+/// (for example, a larger boot frame or an extra readiness wait). Those full
+/// declarations are passed explicitly and win for their exact combo; every
+/// combo without an old declaration inherits the representative. Duplicate
+/// declarations for one combo are a configuration conflict, not a precedence
+/// rule.
+pub fn run_canonical_with_variants(representative: &Case, variants: &[Case]) {
+    let root = canonical_root(&representative.name).unwrap_or_else(|| {
+        panic!(
+            "`{}` is not a canonical `<root>/<size>/<color>` capture",
+            representative.name
+        )
+    });
+    let mut selected = std::collections::BTreeMap::new();
+    for variant in variants {
+        let variant_root = canonical_root(&variant.name).unwrap_or_else(|| {
+            panic!(
+                "variant `{}` is not a canonical `<root>/<size>/<color>` capture",
+                variant.name
+            )
+        });
+        assert!(
+            variant_root == root,
+            "variant `{variant_root}` does not belong to representative root `{root}`"
+        );
+        let expected_name = canonical_name(variant_root, variant.cols, variant.rows, variant.color);
+        assert!(
+            variant.name.as_ref() == expected_name,
+            "variant `{}` conflicts with its declared {}/{}/{} combo",
+            variant.name,
+            variant.cols,
+            variant.rows,
+            variant.color.suffix()
+        );
+        let key = (variant.cols, variant.rows, variant.color.suffix());
+        assert!(
+            selected.insert(key, variant).is_none(),
+            "conflicting legacy declarations for `{root}` at {}/{}/{}",
+            variant.cols,
+            variant.rows,
+            variant.color.suffix()
+        );
+    }
+
+    let mut failures = Vec::new();
+    for &(cols, rows) in &CANONICAL_SIZES {
+        for color in CANONICAL_COLORS {
+            let case = selected
+                .get(&(cols, rows, color.suffix()))
+                .copied()
+                .unwrap_or(representative)
+                .variant(cols, rows, color);
+            let name = case.name.to_string();
+            if !collect_matrix(&name, || run_and_assert(&case)) {
+                failures.push(name);
+            }
+        }
+    }
+    finish_matrix(&failures);
+}
+
+/// Expand a live pointer/keyboard/manual-flow root through the same matrix.
+/// `interact` runs after the centrally driven boot + case sends and before the
+/// centrally settled/gated capture.
+pub fn run_canonical_live(representative: &Case, mut interact: impl FnMut(&mut Session, &Case)) {
+    let mut failures = Vec::new();
+    for &(cols, rows) in &CANONICAL_SIZES {
+        for color in CANONICAL_COLORS {
+            let case = representative.variant(cols, rows, color);
+            let name = case.name.to_string();
+            if !collect_matrix(&name, || {
+                let mut session = spawn_boot(&case);
+                interact(&mut session, &case);
+                settle_and_gate(&mut session, &case.name);
+            }) {
+                failures.push(name);
+            }
+        }
+    }
+    finish_matrix(&failures);
+}
+
+/// Expand a representative live root, substituting a compact send chain for
+/// terminal widths at or below `max_cols`. This is for responsive layouts
+/// that need an explicit drawer/detail step which the wide representative's
+/// sends cannot express; coverage remains the full canonical 5×5 matrix.
+pub fn run_canonical_live_with_compact_sends(
+    representative: &Case,
+    max_cols: u16,
+    compact_sends: &'static [&'static str],
+    mut interact: impl FnMut(&mut Session, &Case),
+) {
+    let mut failures = Vec::new();
+    for &(cols, rows) in &CANONICAL_SIZES {
+        for color in CANONICAL_COLORS {
+            let mut case = representative.variant(cols, rows, color);
+            if cols <= max_cols {
+                case.sends = compact_sends;
+            }
+            let name = case.name.to_string();
+            if !collect_matrix(&name, || {
+                let mut session = spawn_boot(&case);
+                interact(&mut session, &case);
+                settle_and_gate(&mut session, &case.name);
+            }) {
+                failures.push(name);
+            }
+        }
+    }
+    finish_matrix(&failures);
 }
 
 /// Run `body` for each combo of a data-driven matrix without stopping at the
@@ -432,6 +684,18 @@ pub fn finish_matrix(failures: &[String]) {
 pub fn spawn(case: &Case) -> Session {
     Session::spawn(&argv_for(case), &opts_for(case))
         .unwrap_or_else(|e| panic!("spawn `{}` failed: {e:#}", case.name))
+}
+
+/// Central live-session setup: boot needle first, then all case sends. This
+/// mirrors [`run_once`] while handing the connected session back for pointer
+/// or manual-flow assertions.
+pub fn spawn_boot(case: &Case) -> Session {
+    let mut session = spawn(case);
+    boot(&mut session, case.needle);
+    if !case.sends.is_empty() {
+        drive(&mut session, case.sends);
+    }
+    session
 }
 
 /// Boot: needle first. Live clocks starve a quiet-window wait_idle.
@@ -474,17 +738,30 @@ pub fn settle_and_gate(session: &mut Session, name: &str) {
     assert_gated(&gate(name, &frame));
 }
 
-/// One `#[test]` per capture, generated from the static case tables so cargo
-/// name filters work (`cargo nextest run --run-ignored only -E 'test(holla_)'`).
-/// The test fn name is the capture name with `-` and `/` mapped to `_` (fn
-/// names can't contain either); `Case.name` carries the full grouped name.
+/// One `#[test]` per canonical root, generated from the representative static
+/// case tables so cargo name filters work. The test fn name comes from the
+/// representative capture; `run_canonical` expands `Case.name`'s root to all
+/// 5 sizes × 5 colours.
 #[macro_export]
 macro_rules! baseline_case {
     ($fn_name:ident => $case:expr) => {
         #[test]
         #[ignore = "visual baseline capture; run with --ignored"]
         fn $fn_name() {
-            $crate::support::run_and_assert(&$case);
+            $crate::support::run_canonical(&$case);
+        }
+    };
+}
+
+/// One test per canonical root, with exact declarations for legacy combos.
+#[macro_export]
+macro_rules! baseline_case_with_variants {
+    ($fn_name:ident => $case:expr, [$($variant:expr),* $(,)?] $(,)?) => {
+        #[test]
+        #[ignore = "visual baseline capture; run with --ignored"]
+        fn $fn_name() {
+            let variants = [$($variant),*];
+            $crate::support::run_canonical_with_variants(&$case, &variants);
         }
     };
 }

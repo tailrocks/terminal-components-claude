@@ -438,6 +438,20 @@ impl ConnectionsScreen {
     // ---- input ---------------------------------------------------------
 
     pub fn on_key(&mut self, key: &Key, cx: &mut crate::app::Cx) -> (Outcome, Option<ConnEvent>) {
+        // E edits the current selection from any non-editing focus; this keeps
+        // the form reachable where the action row is responsively hidden.
+        if key.is_char('e')
+            && !self.is_editing()
+            && let Some(i) = self
+                .selected
+                .or_else(|| self.connections.iter().position(|c| c.name == "Production"))
+        {
+            self.open_form(Some(i));
+            if let Some(form) = self.form.as_mut() {
+                cx.focus.focus(form.name.id);
+            }
+            return (Outcome::Changed, None);
+        }
         let Some(f) = cx.focus.current() else {
             return (Outcome::Ignored, None);
         };
@@ -468,6 +482,20 @@ impl ConnectionsScreen {
             return (o, None);
         }
         if f == self.tree.id {
+            // Keyboard equivalents keep connection maintenance usable when the
+            // detail card and its action row are responsively hidden.
+            if key.is_char('e') {
+                let event = self.action(1, cx);
+                return (Outcome::Changed, event);
+            }
+            if key.is_char('d') {
+                let event = self.action(3, cx);
+                return (Outcome::Changed, event);
+            }
+            if key.ctrl_char('d') {
+                let event = self.action(2, cx);
+                return (Outcome::Changed, event);
+            }
             if key.is_char('/') {
                 cx.focus.focus(self.filter.id);
                 self.filter.begin_edit();
@@ -908,6 +936,9 @@ impl ConnectionsScreen {
         vec![
             hint("↑ ↓", "Move"),
             hint("Enter", "Connect"),
+            hint("E", "Edit"),
+            hint("D", "Delete"),
+            hint("Ctrl+D", "Duplicate"),
             hint("/", "Filter"),
             hint("Ctrl+N", "New"),
         ]
@@ -931,6 +962,12 @@ impl ConnectionsScreen {
         } else {
             (area, Rect::ZERO)
         };
+        // The form is the focused surface, so it owns the full pane whenever
+        // the responsive two-pane layout has no detail column.
+        if self.form.is_some() {
+            self.render_form(if r.is_empty() { area } else { r }, buf, ctx);
+            return;
+        }
         // list pane
         let lf = ctx.interaction.focused(self.tree.id) || ctx.interaction.focused(self.filter.id);
         let count = format!("{}", self.connections.len());
@@ -962,10 +999,6 @@ impl ConnectionsScreen {
             self.tree.render(tree_area, buf, ctx, bg);
         }
         if r.is_empty() {
-            return;
-        }
-        if self.form.is_some() {
-            self.render_form(r, buf, ctx);
             return;
         }
         // detail card

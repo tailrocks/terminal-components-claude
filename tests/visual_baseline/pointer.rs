@@ -1,6 +1,6 @@
 //! Pointer & geometry group: the captures the `tuisnap run` CLI could not
 //! express — hover states (`showcase/hover/`), diff drag-select
-//! (`showcase/flows/`, including the 8-combo audit-flow variant matrix),
+//! (`showcase/flows/`, including canonical drag-select expansion),
 //! the right-click context menu and the inspector-under-scroll rows
 //! (§3.7 S9/S12), wheel scrolling with scroll-fade evidence (`<app>/fade/`,
 //! including the §3.3 rows, several frame-seeked with `--motion paused
@@ -60,6 +60,14 @@ fn wheel_down(s: &mut Session, needle: &str, notches: u32) {
     }
 }
 
+pub(crate) fn wheel_below(s: &mut Session, needle: &str, notches: u32) {
+    let (row, col) = find(s, needle);
+    for _ in 0..notches {
+        s.scroll(col, row + 1, Scroll::Down).expect("wheel scroll");
+        std::thread::sleep(Duration::from_millis(120));
+    }
+}
+
 /// `notches` wheel-up steps over `needle`'s cell — the tail-following
 /// surfaces (log, terminal viewport) move off the tail and reveal the
 /// bottom fade.
@@ -71,35 +79,48 @@ fn wheel_up(s: &mut Session, needle: &str, notches: u32) {
     }
 }
 
-fn spawn_boot(case: &Case) -> Session {
-    let mut s = support::spawn(case);
-    support::boot(&mut s, case.needle);
-    if !case.sends.is_empty() {
-        support::drive(&mut s, case.sends);
-    }
-    s
-}
-
 /// Resize `from` → `to`, waiting until the emulator reports the new geometry
 /// before settling (the reflowed frame is the gated state).
 fn resize_case(case: &Case, cols: u16, rows: u16) {
-    let mut s = spawn_boot(case);
-    s.resize(cols, rows).expect("resize");
-    s.wait_until(|screen| screen.size() == (cols, rows))
-        .unwrap_or_else(|e| panic!("never reached {cols}x{rows}: {e:#}"));
+    let mut s = support::spawn_boot(case);
+    resize_to(&mut s, cols, rows);
+    find(&mut s, case.needle);
+    support::settle_and_gate(&mut s, &case.name);
+}
+
+fn resize_to(s: &mut Session, cols: u16, rows: u16) {
+    resize_geometry(s, cols, rows);
     // emulator blanks/scrolls the alt-screen on resize and reports the new
     // geometry before the app redraws (~300 ms): without this pause settle
     // can gate the blank post-resize frame
     std::thread::sleep(Duration::from_millis(700));
-    find(&mut s, case.needle);
-    support::settle_and_gate(&mut s, &case.name);
+}
+
+fn resize_geometry(s: &mut Session, cols: u16, rows: u16) {
+    s.resize(cols, rows).expect("resize");
+    s.wait_until(|screen| screen.size() == (cols, rows))
+        .unwrap_or_else(|e| panic!("never reached {cols}x{rows}: {e:#}"));
+}
+
+fn run_resize_matrix(representative: &Case, mut capture: impl FnMut(&Case, u16, u16)) {
+    let mut failures = Vec::new();
+    for &(cols, rows) in &support::CANONICAL_SIZES {
+        for color in support::CANONICAL_COLORS {
+            let case = representative.resize_variant(cols, rows, color);
+            let name = case.name.to_string();
+            if !support::collect_matrix(&name, || capture(&case, cols, rows)) {
+                failures.push(name);
+            }
+        }
+    }
+    support::finish_matrix(&failures);
 }
 
 // ------------------------------------------------------------------ hover --
 
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_hover_buttons_120x40_truecolor() {
+fn showcase_hover_buttons_matrix() {
     let case = Case::new(
         "showcase/hover/buttons/120x40/truecolor",
         SHOWCASE,
@@ -109,14 +130,14 @@ fn showcase_hover_buttons_120x40_truecolor() {
         Color::Truecolor,
         SHOWCASE_BOOT,
     );
-    let mut s = spawn_boot(&case);
-    hover_over(&mut s, "Preview");
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live(&case, |s, _| {
+        hover_over(s, "Preview");
+    });
 }
 
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_hover_lists_120x40_truecolor() {
+fn showcase_hover_lists_matrix() {
     let case = Case::new(
         "showcase/hover/lists/120x40/truecolor",
         SHOWCASE,
@@ -126,14 +147,14 @@ fn showcase_hover_lists_120x40_truecolor() {
         Color::Truecolor,
         SHOWCASE_BOOT,
     );
-    let mut s = spawn_boot(&case);
-    hover_over(&mut s, "Python");
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live(&case, |s, _| {
+        hover_over(s, "Python");
+    });
 }
 
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_hover_tables_120x40_truecolor() {
+fn showcase_hover_tables_matrix() {
     let case = Case::new(
         "showcase/hover/tables/120x40/truecolor",
         SHOWCASE,
@@ -143,16 +164,20 @@ fn showcase_hover_tables_120x40_truecolor() {
         Color::Truecolor,
         SHOWCASE_BOOT,
     );
-    let mut s = spawn_boot(&case);
-    hover_over(&mut s, "#1042");
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live(&case, |s, variant| {
+        if variant.cols == 72 {
+            hover_over(s, "#1040");
+        } else {
+            hover_over(s, "#1042");
+        }
+    });
 }
 
 // ------------------------------------------------------------ drag-select --
 
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_flows_diff_drag_selected_120x40_truecolor() {
+fn showcase_flows_diff_drag_selected_matrix() {
     let case = Case::new(
         "showcase/flows/diff/drag-selected/120x40/truecolor",
         SHOWCASE,
@@ -163,42 +188,10 @@ fn showcase_flows_diff_drag_selected_120x40_truecolor() {
         SHOWCASE_BOOT,
     )
     .sends(&["tab", "enter", "wait:● Review"]);
-    let mut s = spawn_boot(&case);
-    let (row, col) = find(&mut s, "attempts = 3");
-    s.drag(col, row, col + 11, row).expect("drag select");
-    support::settle_and_gate(&mut s, &case.name);
-}
-
-/// The remaining 8 size×colour combos of the drag audit-flow matrix
-/// ({80x24,160x50} × {truecolor,none,nocolor} + 120x40 × {none,nocolor}) —
-/// same sends and drag as the proven 120x40/truecolor capture; the target
-/// cell is located dynamically, so any size works.
-#[test]
-#[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_flows_diff_drag_selected_variants() {
-    let mut failures = Vec::new();
-    for (cols, rows, color) in support::FLOW_VARIANTS {
-        let case = Case::dynamic(
-            support::showcase_flow_name(support::FLOW_LEAF_DIFF_DRAG_SELECTED, cols, rows, color),
-            SHOWCASE,
-            &["--page", "diff"],
-            cols,
-            rows,
-            color,
-            SHOWCASE_BOOT,
-        )
-        .sends(&["tab", "enter", "wait:● Review"]);
-        let name = case.name.to_string();
-        if !support::collect_matrix(&name, || {
-            let mut s = spawn_boot(&case);
-            let (row, col) = find(&mut s, "attempts = 3");
-            s.drag(col, row, col + 11, row).expect("drag select");
-            support::settle_and_gate(&mut s, &case.name);
-        }) {
-            failures.push(name);
-        }
-    }
-    support::finish_matrix(&failures);
+    support::run_canonical_live(&case, |s, _| {
+        let (row, col) = find(s, "attempts = 3");
+        s.drag(col, row, col + 11, row).expect("drag select");
+    });
 }
 
 // ------------------------------------------------------ S9 context menu --
@@ -207,7 +200,7 @@ fn showcase_flows_diff_drag_selected_variants() {
 /// with the row label (chrome.rs `PageEvent::Secondary`).
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_flows_chrome_context_120x40_truecolor() {
+fn showcase_flows_chrome_context_matrix() {
     let case = Case::new(
         "showcase/flows/chrome/context/120x40/truecolor",
         SHOWCASE,
@@ -217,11 +210,11 @@ fn showcase_flows_chrome_context_120x40_truecolor() {
         Color::Truecolor,
         SHOWCASE_BOOT,
     );
-    let mut s = spawn_boot(&case);
-    let (row, col) = find(&mut s, "Codex (Primary)");
-    s.click_with(MouseButton::Right, col, row)
-        .expect("right click");
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live(&case, |s, _| {
+        let (row, col) = find(s, "Codex (Primary)");
+        s.click_with(MouseButton::Right, col, row)
+            .expect("right click");
+    });
 }
 
 // --------------------------------------------------- S12 inspector scroll --
@@ -235,7 +228,7 @@ fn showcase_flows_chrome_context_120x40_truecolor() {
 /// the pointer's `mouse` row from the same interaction.
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_flows_inspector_scrolled_120x40_truecolor() {
+fn showcase_flows_inspector_scrolled_matrix() {
     let case = Case::new(
         "showcase/flows/inspector/scrolled/120x40/truecolor",
         SHOWCASE,
@@ -246,16 +239,16 @@ fn showcase_flows_inspector_scrolled_120x40_truecolor() {
         SHOWCASE_BOOT,
     )
     .sends(&["i"]);
-    let mut s = spawn_boot(&case);
-    wheel_down(&mut s, "Python", 2);
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live(&case, |s, _| {
+        wheel_down(s, "Python", 2);
+    });
 }
 
 // ------------------------------------------------------ wheel scroll-fade --
 
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_fade_lists_wheel_fade_120x40_truecolor() {
+fn showcase_fade_lists_wheel_fade_matrix() {
     let case = Case::new(
         "showcase/fade/lists/wheel-fade/120x40/truecolor",
         SHOWCASE,
@@ -265,14 +258,14 @@ fn showcase_fade_lists_wheel_fade_120x40_truecolor() {
         Color::Truecolor,
         SHOWCASE_BOOT,
     );
-    let mut s = spawn_boot(&case);
-    wheel_down(&mut s, "Python", 2);
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live(&case, |s, _| {
+        wheel_down(s, "Python", 2);
+    });
 }
 
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_fade_trees_wheel_fade_120x40_truecolor() {
+fn showcase_fade_trees_wheel_fade_matrix() {
     let case = Case::new(
         "showcase/fade/trees/wheel-fade/120x40/truecolor",
         SHOWCASE,
@@ -282,14 +275,18 @@ fn showcase_fade_trees_wheel_fade_120x40_truecolor() {
         Color::Truecolor,
         SHOWCASE_BOOT,
     );
-    let mut s = spawn_boot(&case);
-    wheel_down(&mut s, "config.rs", 1);
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live(&case, |s, variant| {
+        if variant.cols == 72 {
+            wheel_down(s, "src", 1);
+        } else {
+            wheel_down(s, "config.rs", 1);
+        }
+    });
 }
 
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_fade_datagrid_wheel_120x40_truecolor() {
+fn showcase_fade_datagrid_wheel_matrix() {
     let case = Case::new(
         "showcase/fade/datagrid/wheel/120x40/truecolor",
         SHOWCASE,
@@ -299,16 +296,14 @@ fn showcase_fade_datagrid_wheel_120x40_truecolor() {
         Color::Truecolor,
         SHOWCASE_BOOT,
     );
-    let mut s = spawn_boot(&case);
-    wheel_down(&mut s, "Northwind Traders", 2);
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live(&case, |s, _| {
+        wheel_down(s, "Northwind Traders", 2);
+    });
 }
 
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn holla_fade_browser_wheel_120x40_truecolor() {
-    // The big.log preview pane (2000 lines, scrollbared) under the wheel;
-    // reduced motion, like the proven browser journeys.
+fn holla_fade_browser_wheel_matrix() {
     let case = Case::new(
         "holla/fade/browser_wheel/120x40/truecolor",
         HOLLA,
@@ -327,14 +322,31 @@ fn holla_fade_browser_wheel_120x40_truecolor() {
         "down",
         "wait:first 2000 lines",
     ]);
-    let mut s = spawn_boot(&case);
-    wheel_down(&mut s, "line 5", 2);
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live_with_compact_sends(
+        &case,
+        100,
+        &[
+            "type:Browse ~/work/site",
+            "enter",
+            "wait:16 entries",
+            // Home removes width-dependent cursor drift before selecting
+            // big.log. Right opens the compact preview drawer.
+            "home",
+            "down",
+            "down",
+            "down",
+            "right",
+            "wait:first 2000 lines",
+        ],
+        |s, _| {
+            wheel_down(s, "line 5", 2);
+        },
+    );
 }
 
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn tablepro_fade_table_wheel_120x40_truecolor() {
+fn tablepro_fade_table_wheel_matrix() {
     let case = Case::new(
         "tablepro/fade/table_wheel/120x40/truecolor",
         TABLEPRO,
@@ -353,35 +365,16 @@ fn tablepro_fade_table_wheel_120x40_truecolor() {
         "enter",
         "wait:public › orders",
     ]);
-    let mut s = spawn_boot(&case);
-    wheel_down(&mut s, "9157cff3", 3);
-    support::settle_and_gate(&mut s, &case.name);
-}
-
-// The legacy fade corpus was 100x30; the remapped lists case above runs at
-// 120x40. This is the exact-size parity counterpart (§3.3).
-#[test]
-#[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_fade_lists_wheel_fade_100x30_truecolor() {
-    let case = Case::new(
-        "showcase/fade/lists/wheel-fade/100x30/truecolor",
-        SHOWCASE,
-        &["--page", "lists"],
-        100,
-        30,
-        Color::Truecolor,
-        SHOWCASE_BOOT,
-    );
-    let mut s = spawn_boot(&case);
-    wheel_down(&mut s, "Python", 2);
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live(&case, |s, _| {
+        wheel_down(s, "9157cff3", 3);
+    });
 }
 
 /// The code viewport under the wheel: 22 of 26 lines at boot, the gutter
 /// fades once the first lines leave the top.
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_fade_editor_wheel_120x40_truecolor() {
+fn showcase_fade_editor_wheel_matrix() {
     let case = Case::new(
         "showcase/fade/editor/wheel/120x40/truecolor",
         SHOWCASE,
@@ -391,15 +384,19 @@ fn showcase_fade_editor_wheel_120x40_truecolor() {
         Color::Truecolor,
         SHOWCASE_BOOT,
     );
-    let mut s = spawn_boot(&case);
-    wheel_down(&mut s, "sleep(delay).await", 2);
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live(&case, |s, variant| {
+        if variant.rows <= 24 {
+            wheel_down(s, "pub async fn fetch", 2);
+        } else {
+            wheel_down(s, "sleep(delay).await", 2);
+        }
+    });
 }
 
 /// The 28-line task description scrolls inside its 8-row viewport.
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_fade_textarea_wheel_120x40_truecolor() {
+fn showcase_fade_textarea_wheel_matrix() {
     let case = Case::new(
         "showcase/fade/textarea/wheel/120x40/truecolor",
         SHOWCASE,
@@ -409,16 +406,20 @@ fn showcase_fade_textarea_wheel_120x40_truecolor() {
         Color::Truecolor,
         SHOWCASE_BOOT,
     );
-    let mut s = spawn_boot(&case);
-    wheel_down(&mut s, "2. Keep the public API", 2);
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live(&case, |s, variant| {
+        if variant.rows <= 24 {
+            wheel_down(s, "1. Read", 2);
+        } else {
+            wheel_down(s, "2. Keep the public API", 2);
+        }
+    });
 }
 
 /// Review mode (the proven diff_review sends), then the wheel over the Old
 /// pane scrolls the 5-hunk diff.
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_fade_diff_wheel_120x40_truecolor() {
+fn showcase_fade_diff_wheel_matrix() {
     let case = Case::new(
         "showcase/fade/diff/wheel/120x40/truecolor",
         SHOWCASE,
@@ -429,9 +430,9 @@ fn showcase_fade_diff_wheel_120x40_truecolor() {
         SHOWCASE_BOOT,
     )
     .sends(&["tab", "enter", "wait:● Review"]);
-    let mut s = spawn_boot(&case);
-    wheel_down(&mut s, "attempts = 3", 2);
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live(&case, |s, _| {
+        wheel_down(s, "attempts = 3", 2);
+    });
 }
 
 /// `--frame 1600` seeks to the boot stream's end state (400 + 1600 = 2000
@@ -439,7 +440,7 @@ fn showcase_fade_diff_wheel_120x40_truecolor() {
 /// timeout — then the wheel moves the follow-tail log off the tail.
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_fade_scrolling_wheel_fade_120x40_truecolor() {
+fn showcase_fade_scrolling_wheel_fade_matrix() {
     let case = Case::new(
         "showcase/fade/scrolling/wheel-fade/120x40/truecolor",
         SHOWCASE,
@@ -456,41 +457,16 @@ fn showcase_fade_scrolling_wheel_fade_120x40_truecolor() {
         Color::Truecolor,
         SHOWCASE_BOOT,
     );
-    let mut s = spawn_boot(&case);
-    wheel_up(&mut s, "739.63s", 2);
-    support::settle_and_gate(&mut s, &case.name);
-}
-
-/// Mono twin (the legacy `s_fade_scrolling_mono` counterpart).
-#[test]
-#[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_fade_scrolling_wheel_fade_120x40_none() {
-    let case = Case::new(
-        "showcase/fade/scrolling/wheel-fade/120x40/none",
-        SHOWCASE,
-        &[
-            "--page",
-            "scrolling",
-            "--motion",
-            "paused",
-            "--frame",
-            "1600",
-        ],
-        120,
-        40,
-        Color::None,
-        SHOWCASE_BOOT,
-    );
-    let mut s = spawn_boot(&case);
-    wheel_up(&mut s, "739.63s", 2);
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live(&case, |s, _| {
+        wheel_up(s, "739.63s", 2);
+    });
 }
 
 /// Paged scroll through the wrapped prose; the frame seek keeps the boot
 /// instant (the page sends, not the stream, are under test).
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_fade_scroll_page_120x40_truecolor() {
+fn showcase_fade_scroll_page_matrix() {
     let case = Case::new(
         "showcase/fade/scroll/page/120x40/truecolor",
         SHOWCASE,
@@ -508,39 +484,14 @@ fn showcase_fade_scroll_page_120x40_truecolor() {
         SHOWCASE_BOOT,
     )
     .sends(&["tab", "pagedown"]);
-    let mut s = spawn_boot(&case);
-    support::settle_and_gate(&mut s, &case.name);
-}
-
-#[test]
-#[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_fade_scroll_page_80x24_truecolor() {
-    let case = Case::new(
-        "showcase/fade/scroll/page/80x24/truecolor",
-        SHOWCASE,
-        &[
-            "--page",
-            "scrolling",
-            "--motion",
-            "paused",
-            "--frame",
-            "1600",
-        ],
-        80,
-        24,
-        Color::Truecolor,
-        SHOWCASE_BOOT,
-    )
-    .sends(&["tab", "pagedown"]);
-    let mut s = spawn_boot(&case);
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live(&case, |_, _| ());
 }
 
 /// Minimum-size reflow: the page's own nav list overflows its 12-row
 /// viewport, the wheel reveals the last item under the top fade.
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_fade_sidebars_wheel_72x20_truecolor() {
+fn showcase_fade_sidebars_wheel_matrix() {
     let case = Case::new(
         "showcase/fade/sidebars/wheel/72x20/truecolor",
         SHOWCASE,
@@ -550,16 +501,16 @@ fn showcase_fade_sidebars_wheel_72x20_truecolor() {
         Color::Truecolor,
         SHOWCASE_BOOT,
     );
-    let mut s = spawn_boot(&case);
-    wheel_down(&mut s, "Members", 2);
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live(&case, |s, _| {
+        wheel_down(s, "Members", 2);
+    });
 }
 
 /// Frame-seeked mid-run terminal (60 ticks: Build container 24/40), wheel
 /// up twice into the scrollback — replaces the <20 s boot demo wait.
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]
-fn showcase_fade_terminal_scrollback_80x24_truecolor() {
+fn showcase_fade_terminal_scrollback_matrix() {
     let case = Case::new(
         "showcase/fade/terminal/scrollback/80x24/truecolor",
         SHOWCASE,
@@ -569,9 +520,9 @@ fn showcase_fade_terminal_scrollback_80x24_truecolor() {
         Color::Truecolor,
         SHOWCASE_BOOT,
     );
-    let mut s = spawn_boot(&case);
-    wheel_up(&mut s, "#4 RUN cargo build", 2);
-    support::settle_and_gate(&mut s, &case.name);
+    support::run_canonical_live(&case, |s, _| {
+        wheel_up(s, "#4 RUN cargo build", 2);
+    });
 }
 
 // ----------------------------------------------------------------- resize --
@@ -589,17 +540,17 @@ fn showcase_resize_overview_shrunk_80x24_truecolor() {
         SHOWCASE_BOOT,
     )
     .timeout(15_000);
-    let mut s = spawn_boot(&case);
-    s.resize(80, 24).expect("resize");
-    s.wait_until(|screen| screen.size() == (80, 24))
-        .unwrap_or_else(|e| panic!("never reached 80x24: {e:#}"));
-    // Shrinking rows keeps the bottom of the old grid until the app
-    // redraws; a no-op key forces an event-loop tick so the header
-    // (previously above the new viewport) is painted again.
-    s.send_key("ctrl-l").expect("redraw tick");
-    std::thread::sleep(Duration::from_millis(700));
-    find(&mut s, "Foundations / Overview");
-    support::settle_and_gate(&mut s, &case.name);
+    run_resize_matrix(&case, |case, cols, rows| {
+        let mut s = support::spawn_boot(case);
+        resize_geometry(&mut s, cols, rows);
+        // Shrinking rows keeps the bottom of the old grid until the app
+        // redraws; a no-op key forces an event-loop tick so the header
+        // (previously above the new viewport) is painted again.
+        s.send_key("ctrl-l").expect("redraw tick");
+        std::thread::sleep(Duration::from_millis(700));
+        find(&mut s, "Foundations / Overview");
+        support::settle_and_gate(&mut s, &case.name);
+    });
 }
 
 #[test]
@@ -615,17 +566,17 @@ fn showcase_resize_overview_grown_120x40_truecolor() {
         SHOWCASE_BOOT,
     )
     .timeout(15_000);
-    let mut s = spawn_boot(&case);
-    s.resize(120, 40).expect("resize");
-    s.wait_until(|screen| screen.size() == (120, 40))
-        .unwrap_or_else(|e| panic!("never reached 120x40: {e:#}"));
-    // Growing the grid reports the new size before the app paints the
-    // extra cells; a no-op key forces an event-loop tick so the header
-    // is drawn into the grown viewport.
-    s.send_key("ctrl-l").expect("redraw tick");
-    std::thread::sleep(Duration::from_millis(700));
-    find(&mut s, "Foundations / Overview");
-    support::settle_and_gate(&mut s, &case.name);
+    run_resize_matrix(&case, |case, cols, rows| {
+        let mut s = support::spawn_boot(case);
+        resize_geometry(&mut s, cols, rows);
+        // Growing the grid reports the new size before the app paints the
+        // extra cells; a no-op key forces an event-loop tick so the header
+        // is drawn into the grown viewport.
+        s.send_key("ctrl-l").expect("redraw tick");
+        std::thread::sleep(Duration::from_millis(700));
+        find(&mut s, "Foundations / Overview");
+        support::settle_and_gate(&mut s, &case.name);
+    });
 }
 
 #[test]
@@ -648,7 +599,7 @@ fn holla_resize_rust_dirty_shrunk_80x24_truecolor() {
         HOLLA_BOOT,
     )
     .timeout(30000);
-    resize_case(&case, 80, 24);
+    run_resize_matrix(&case, |case, cols, rows| resize_case(case, cols, rows));
 }
 
 #[test]
@@ -671,7 +622,7 @@ fn holla_resize_rust_dirty_grown_120x40_truecolor() {
         HOLLA_BOOT,
     )
     .timeout(30000);
-    resize_case(&case, 120, 40);
+    run_resize_matrix(&case, |case, cols, rows| resize_case(case, cols, rows));
 }
 
 #[test]
@@ -698,19 +649,14 @@ fn tablepro_resize_workbench_shrunk_80x24_truecolor() {
     )
     .sends(&["wait:S audit"])
     .timeout(15000);
-    let mut s = spawn_boot(&case);
-    s.resize(80, 24).expect("resize");
-    s.wait_until(|screen| screen.size() == (80, 24))
-        .unwrap_or_else(|e| panic!("never reached 80x24: {e:#}"));
-    // the emulator blanks/scrolls the alt-screen on resize and reports the
-    // new geometry before the app redraws (~300 ms): without this pause the
-    // status wait can pass vacuously on the blank frame and the capture
-    // lands in the still-live status window
-    std::thread::sleep(Duration::from_millis(700));
-    s.wait_until(|screen| !screen.text().contains("Connected to"))
-        .unwrap_or_else(|e| panic!("`Connected to` status never expired: {e:#}"));
-    find(&mut s, "TablePro");
-    support::settle_and_gate(&mut s, &case.name);
+    run_resize_matrix(&case, |case, cols, rows| {
+        let mut s = support::spawn_boot(case);
+        resize_to(&mut s, cols, rows);
+        s.wait_until(|screen| !screen.text().contains("Connected to"))
+            .unwrap_or_else(|e| panic!("`Connected to` status never expired: {e:#}"));
+        find(&mut s, "TablePro");
+        support::settle_and_gate(&mut s, &case.name);
+    });
 }
 
 #[test]
@@ -733,18 +679,19 @@ fn tablepro_resize_workbench_grown_120x40_truecolor() {
         "Query 1",
     )
     .timeout(15000);
-    let mut s = spawn_boot(&case);
-    s.resize(120, 40).expect("resize");
-    s.wait_until(|screen| screen.size() == (120, 40))
-        .unwrap_or_else(|e| panic!("never reached 120x40: {e:#}"));
-    // the emulator blanks/scrolls the alt-screen on resize and reports the
-    // new geometry before the app redraws (~300 ms): without this pause the
-    // status wait can pass vacuously on the blank frame and the capture
-    // lands in the still-live status window
-    std::thread::sleep(Duration::from_millis(700));
-    find(&mut s, "No results yet");
-    find(&mut s, "S audit");
-    s.wait_until(|screen| !screen.text().contains("Connected to"))
-        .unwrap_or_else(|e| panic!("`Connected to` status never expired: {e:#}"));
-    support::settle_and_gate(&mut s, &case.name);
+    run_resize_matrix(&case, |case, cols, rows| {
+        let mut s = support::spawn_boot(case);
+        resize_to(&mut s, cols, rows);
+        if cols >= 120 {
+            find(&mut s, "No results yet");
+        }
+        if cols >= 100 {
+            find(&mut s, "S audit");
+        } else {
+            find(&mut s, "S public");
+        }
+        s.wait_until(|screen| !screen.text().contains("Connected to"))
+            .unwrap_or_else(|e| panic!("`Connected to` status never expired: {e:#}"));
+        support::settle_and_gate(&mut s, &case.name);
+    });
 }

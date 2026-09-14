@@ -5,7 +5,9 @@
 //! the pre-grouped suite kept in the app modules; static defaults of audit
 //! surfaces live ONLY here (the dedupe rule).
 
-use crate::support::{self, AUDIT_COLORS, AUDIT_SIZES, Case, HOLLA, JACKIN, SHOWCASE, TABLEPRO};
+use crate::support::{
+    self, CANONICAL_COLORS, CANONICAL_SIZES, Case, HOLLA, JACKIN, SHOWCASE, TABLEPRO,
+};
 
 const SHOWCASE_BOOT: &str = "Junie Design system";
 const HOLLA_BOOT: &str = "holla❯";
@@ -19,8 +21,8 @@ fn audit_matrix(
     needle: &'static str,
 ) {
     let mut failures = Vec::new();
-    for (cols, rows) in AUDIT_SIZES {
-        for color in AUDIT_COLORS {
+    for (cols, rows) in CANONICAL_SIZES {
+        for color in CANONICAL_COLORS {
             let name = support::audit_default_name(prefix, cols, rows, color);
             let case = Case::dynamic(name.clone(), bin, args, cols, rows, color, needle);
             if !support::collect_matrix(&name, || support::run_and_assert(&case)) {
@@ -80,8 +82,8 @@ fn jackin_audit_accounts_matrix() {
     // none) wait for the badge text itself; the capture then always lands
     // after the badge repaint, whose damage end is the same every run.
     let mut failures = Vec::new();
-    for (cols, rows) in AUDIT_SIZES {
-        for color in AUDIT_COLORS {
+    for (cols, rows) in CANONICAL_SIZES {
+        for color in CANONICAL_COLORS {
             let case = Case::dynamic(
                 support::audit_default_name(
                     support::AUDIT_PREFIX_JACKIN_ACCOUNTS,
