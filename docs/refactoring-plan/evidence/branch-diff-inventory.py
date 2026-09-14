@@ -11,6 +11,7 @@ import subprocess
 MAIN = "7b27732a8c3c131760ec3438f641cb3c11343a42"
 HOLLA = "2e2401393c47360741ebd321679de08982dca50a"
 ORACLE = "02f5294bfdbf38004cc49130d0aff1d01f31434c"
+VISUAL_BASELINE = "5e53394365e1bb9e58c7e78ccfb6976db8af0c93"
 
 def git(root, *args):
     return subprocess.check_output(["git", *args], cwd=root)
@@ -39,9 +40,12 @@ def main():
     parser.add_argument("--write", action="store_true")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[3]
-    for ref, expected in (("main", MAIN), ("holla", HOLLA), ("holla-fable-2026-09-10^{}", ORACLE)):
+    for ref, expected in (("main", MAIN), ("visual-baseline^{commit}", VISUAL_BASELINE)):
         if git(root, "rev-parse", ref).decode().strip() != expected:
             raise ValueError("Branch identity changed: " + ref)
+    for sha, label in ((HOLLA, "holla-inventory"), (ORACLE, "oracle-inventory")):
+        if git(root, "rev-parse", "--verify", sha).decode().strip() != sha:
+            raise ValueError("Pinned inventory commit missing: " + label)
     raw = git(root, "diff", "--raw", "--no-abbrev", "--no-renames", "-z", HOLLA, MAIN)
     fields = raw.split(b"\0")
     rows = []

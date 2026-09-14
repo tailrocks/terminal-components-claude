@@ -1,7 +1,7 @@
 # Independent final plan review
 
 Scope: current `holla-fable` files only, September 10, 2026. This is a
-read-only product review of `IMPROVEMENTS_PLAN.md` and its supporting reports.
+read-only product review of `docs/improvements/PLAN.md` and its supporting reports.
 No product, test, baseline, or plan edits were made by this reviewer. Findings
 below distinguish completed evidence checks from future implementation proof.
 

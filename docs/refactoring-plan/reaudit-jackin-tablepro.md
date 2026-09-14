@@ -1,6 +1,6 @@
 # Fresh adversarial Jackin/TablePro task audit
 
-Audit authority: PLANNING_GOAL.md read completely. Immutable oracle tag independently resolves `02f5294bfdbf38004cc49130d0aff1d01f31434c`; architectural comparison is `7b27732a8c3c131760ec3438f641cb3c11343a42`. Skill: verify-and-stop, used for bounded validation without product edits. No task execution, product edit, canonical AGENTS edit or commit performed. Disposable Rust diagnostic sources are under `/tmp/jt-reaudit.4mpJ2V`.
+Audit authority: `docs/sources/PLANNING_GOAL.md` read completely. Investigation oracle pin is `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze; live tag `visual-baseline` is `5e533943`); architectural comparison is `7b27732a8c3c131760ec3438f641cb3c11343a42`. Skill: verify-and-stop, used for bounded validation without product edits. No task execution, product edit, canonical AGENTS edit or commit performed. Disposable Rust diagnostic sources are under `/tmp/jt-reaudit.4mpJ2V`.
 
 ## Findings
 

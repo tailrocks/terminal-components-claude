@@ -44,7 +44,7 @@ tail-follow. Git staging behavior itself remains application-specific.
 **Coverage/documentation gap, P1/P2: the diff capability was hidden from the
 catalogue.** `widgets/diff.rs::DiffView` already supported unified and review
 layouts, reused `TextViewport`, and served Jackin's inspect screen. The showcase
-had no diff page, while DESIGN.md incorrectly said no diff viewer or context menu
+had no diff page, while `docs/design/DESIGN.md` incorrectly said no diff viewer or context menu
 existed. Existing `ContextMenu` and `MenuBar` also contradicted that statement.
 The justified addition is documentation and a showcase for an existing component,
 verified at small/normal/wide sizes and monochrome, not a second diff widget.

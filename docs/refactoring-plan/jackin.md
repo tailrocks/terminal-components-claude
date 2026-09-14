@@ -2,7 +2,7 @@
 
 ## Authority and inspected state
 
-The visual and interaction oracle is `holla-fable-2026-09-10^{commit}` = `02f5294bfdbf38004cc49130d0aff1d01f31434c`. Main inspected here is `7b27732a8c3c131760ec3438f641cb3c11343a42`. The planning worktree HEAD was `2e2401393c47360741ebd321679de08982dca50a`; its Jackin sources have no diff from the oracle. All short source references below are relative to `src/bin/jackin_preview/` at the oracle unless prefixed `main:`, which means `apps/jackin-preview/` at the inspected main SHA.
+The visual and interaction oracle used here is `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze, formerly tagged `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`). Main inspected here is `7b27732a8c3c131760ec3438f641cb3c11343a42`. The planning worktree HEAD was `2e2401393c47360741ebd321679de08982dca50a`; its Jackin sources have no diff from the oracle. All short source references below are relative to `src/bin/jackin_preview/` at the oracle unless prefixed `main:`, which means `apps/jackin-preview/` at the inspected main SHA.
 
 Read-only verification: `rtk cargo test --bin jackin-preview` passed **63 tests**, zero failures, on 2026-09-11. This proves the oracle's existing behavior tests still execute, not that main matches it. The scenario contract below is verification design, not a claim that all proposed captures already exist.
 

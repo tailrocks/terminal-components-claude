@@ -2,7 +2,7 @@
 
 ## Provenance and limits
 
-UI oracle **O** is `02f5294bfdbf38004cc49130d0aff1d01f31434c`; `git rev-parse holla-fable-2026-09-10^{}` returned that SHA. Candidate **M** is `7b27732a8c3c131760ec3438f641cb3c11343a42`. `O:pages/foo.rs` means `O:src/bin/showcase/pages/foo.rs`; `M:pages/foo.rs` means `M:apps/showcase/src/pages/foo.rs`. Other references give full repository paths. Findings below are source-proven unless explicitly marked runtime evidence. No candidate visual parity is claimed. The working `holla` checkout is `2e2401393c47360741ebd321679de08982dca50a`; `git diff O HEAD -- src Cargo.toml Cargo.lock` is empty, so its production sources and dependency lock equal O.
+UI oracle **O** is `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze, formerly tagged `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`). Candidate **M** is `7b27732a8c3c131760ec3438f641cb3c11343a42`. `O:pages/foo.rs` means `O:src/bin/showcase/pages/foo.rs`; `M:pages/foo.rs` means `M:apps/showcase/src/pages/foo.rs`. Other references give full repository paths. Findings below are source-proven unless explicitly marked runtime evidence. No candidate visual parity is claimed. The investigation checkout was `2e2401393c47360741ebd321679de08982dca50a`; `git diff O HEAD -- src Cargo.toml Cargo.lock` is empty, so its production sources and dependency lock equal O.
 
 The oracle has **23 pages**, not 22. Its Diff page was added after the older `794b095` oracle used in `M:docs/audit/main-holla/showcase.md`. Main has 22 pages and no Diff module or route. Do not reuse that audit's page count, compact-navigation height threshold, or reference SHA.
 

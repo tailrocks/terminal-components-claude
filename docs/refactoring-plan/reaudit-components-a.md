@@ -4,7 +4,7 @@ Status: **planning repairs applied; independent acceptance pending**. This is an
 
 ## Authority and review coverage
 
-The immutable tag was resolved afresh to `02f5294bfdbf38004cc49130d0aff1d01f31434c`; local main resolves to `7b27732a8c3c131760ec3438f641cb3c11343a42`. PLANNING_GOAL.md was read completely. Architecture-adjudication.md and component-parity.tsv were inspected against the assigned task contracts. Caveman communication instructions were read; persisted findings use normal prose.
+The immutable tag was resolved afresh to `02f5294bfdbf38004cc49130d0aff1d01f31434c`; local main resolves to `7b27732a8c3c131760ec3438f641cb3c11343a42`. `docs/sources/PLANNING_GOAL.md` was read completely. Architecture-adjudication.md and component-parity.tsv were inspected against the assigned task contracts. Caveman communication instructions were read; persisted findings use normal prose.
 
 The inventory below covers all 72 assigned package files, totaling 8,745 lines. README requirements, acceptance blocks, fixed decisions, scopes and checklists were reviewed, with common boilerplate inspected once and task-number-normalized differences inspected for every other package. AGENTS and verify.toml were checked the same way: every AGENTS copy is identical after task-number normalization; every verify difference is its writable-path line. Every task.toml dependency list and every source-obligations requirement/acceptance/check mapping was inspected. Trusted obligation bodies were read in source order and compared with their parent requirements; source TSV metadata was additionally parsed and inspected for joins and disposition drift.
 

@@ -1,6 +1,6 @@
 # Independent rereview: component-B repairs
 
-Date: 2026-09-11. Scope: TASK-021–031/073 repair contracts and shared ADJ-04/09, authored by another agent. TASK-067 consumer changes are excluded because this reviewer authored them. Planning-only review under PLANNING_GOAL.md and verify-and-stop; no production, baseline, task package, shared validator or Git ref was changed by this rereview.
+Date: 2026-09-11. Scope: TASK-021–031/073 repair contracts and shared ADJ-04/09, authored by another agent. TASK-067 consumer changes are excluded because this reviewer authored them. Planning-only review under `docs/sources/PLANNING_GOAL.md` and verify-and-stop; no production, baseline, task package, shared validator or Git ref was changed by this rereview.
 
 ## Result and boundary
 

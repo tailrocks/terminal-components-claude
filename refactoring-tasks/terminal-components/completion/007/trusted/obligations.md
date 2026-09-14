@@ -15,6 +15,6 @@ Source requirements:
 - [docs/refactoring-plan/history.md](/work/docs/refactoring-plan/history.md).
 - [docs/refactoring-plan/historical-obligations-canonical.tsv](/work/docs/refactoring-plan/historical-obligations-canonical.tsv).
 - [docs/refactoring-plan/architecture.md](/work/docs/refactoring-plan/architecture.md).
-- [tools/test-inventory/README.md](/work/tools/test-inventory/README.md).
+- [tools/test-inventory/README.md](/work/tools/test-inventory/README.md) (absent on this tree; archived at `origin/main:tools/test-inventory/README.md`).
 
 The host binds the source documents, canonical historical union and scenario files named above into the immutable campaign input manifest. Their exact scenario expansion algorithms and source-qualified tests are required membership, not a best-effort glob. Rejected/deferred source clauses retain their disposition. A task-local candidate manifest cannot override this document or the protected host context.

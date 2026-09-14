@@ -119,7 +119,7 @@ closed in place when answered.
   is its query row); `Uncertainty` and `Privilege` stay warning-toned on
   gates because they are safety facts; the attached chip is text-secondary.
 
-- D-24 Borrowed from the sibling `holla` branch (a separate Console-model
+- D-24 Borrowed from the sibling `holla` branch (now `visual-baseline`; a separate Console-model
   build) after comparing both: finished runs change the world they claimed
   to (`domain/effect.rs`, `World::apply_effect`, plan effects on
   completion, healed systemd units); warning statuses carry `▲` in the

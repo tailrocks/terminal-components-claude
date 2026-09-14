@@ -2,7 +2,7 @@
 
 ## Authority and inspected state
 
-The UI oracle is `holla-fable-2026-09-10^{commit}` = `02f5294bfdbf38004cc49130d0aff1d01f31434c`; `git rev-parse` verified it. The architecture comparison is main `7b27732a8c3c131760ec3438f641cb3c11343a42`. The working Holla checkout is later, but `git diff 02f5294b HEAD -- src/bin/tablepro` is empty, so the cited application files exactly match the oracle. Widget acceptance still requires reading/capturing the immutable commit, not the moving checkout.
+The UI oracle used here is `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze, formerly tagged `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`). The architecture comparison is main `7b27732a8c3c131760ec3438f641cb3c11343a42`. The investigation checkout was later, but `git diff 02f5294b HEAD -- src/bin/tablepro` is empty, so the cited application files exactly match the oracle. Widget acceptance still requires reading/capturing the immutable commit, not the moving checkout.
 
 This is a planning artifact. It does not implement the migration or bless baselines. Companion [tablepro-scenarios.tsv](tablepro-scenarios.tsv) specifies the execution matrix. All source references below and TSV references prefixed O refer to the oracle; M refers to the main SHA above.
 

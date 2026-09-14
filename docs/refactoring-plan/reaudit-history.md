@@ -2,7 +2,7 @@
 
 ## Scope and method
 
-Planning-only review, 2026-09-11. `PLANNING_GOAL.md` was read completely. Git independently resolved main to `7b27732a8c3c131760ec3438f641cb3c11343a42` and the oracle tag to `02f5294bfdbf38004cc49130d0aff1d01f31434c`. Existing PASS reports and ledger joins were not treated as source coverage proof. The review examined the architecture/component matrices, decision authority, source ledgers and installed task obligations, then checked disputed clauses against Git source. No production source or task payload was changed by this review.
+Planning-only review, 2026-09-11. `docs/sources/PLANNING_GOAL.md` was read completely. Git independently resolved main to `7b27732a8c3c131760ec3438f641cb3c11343a42` and the oracle tag to `02f5294bfdbf38004cc49130d0aff1d01f31434c`. Existing PASS reports and ledger joins were not treated as source coverage proof. The review examined the architecture/component matrices, decision authority, source ledgers and installed task obligations, then checked disputed clauses against Git source. No production source or task payload was changed by this review.
 
 Independent edge enumeration used `git log --all --full-history --format=%H -- <paths>`, actual parents from each commit, and `git diff-tree --no-renames --raw <parent> <commit> -- <paths>`. The comparison key was the complete `(commit,parent,path,before_blob,after_blob)`, including deletion. The nine paths were COMPONENT_ARCHITECTURE, REFACTORING_STATE, REFACTORING_GOAL, IMPROVEMENTS_PLAN, GOAL, GOAL2, JUNIE_PROMPT3, JACKIN_GOAL, and HANDOFF_SLICE4_WAVE1 Markdown files. This is a reproducible source-derived universe, not an enumeration copied from the index.
 

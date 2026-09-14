@@ -1,7 +1,7 @@
 # Improvements plan: audit reference
 
 This document preserves research, evidence inventories and verification narratives
-moved from [IMPROVEMENTS_PLAN.md](PLAN.md). These records describe
+moved from [PLAN.md](PLAN.md) (`docs/improvements/PLAN.md`). These records describe
 the 2026-09-10 audit snapshots; their test results and completion claims are
 historical, not evidence that implementation is complete or current checks pass.
 The active plan owns scope, delivery order and acceptance criteria. The prior-fix

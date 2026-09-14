@@ -5,13 +5,13 @@ Compiled 2026-09-12 from repository history (read-only; nothing here reflects wo
 Sources:
 
 - `REFACTORING_GOAL.md` at commits `e48137f1`, `dce91d51`, `2d81eec4`, `25ea92b0`, `efada044`, `d4715f8e`
-  (chronology established via `git log --all --oneline -- REFACTORING_GOAL.md` and commit dates), plus `main:REFACTORING_GOAL.md`
+  (chronology established via `git log --all --oneline -- REFACTORING_GOAL.md` and commit dates), plus `docs/sources/main/REFACTORING_GOAL.md`
   (`main` tip at time of writing: `7b27732a`, 2026-09-10, "Merge pull request #1 from donbeave/codex/main-holla-integration").
-- `main:GOAL.md` (the successor execution goal referenced by `efada044`).
+- `docs/sources/main/GOAL.md` (the successor execution goal referenced by `efada044`).
 - `REFACTORING_STATE.md` history on `main`: 87 commits (`git log --follow --oneline main -- REFACTORING_STATE.md`),
   sampled at 13 points: `2d81eec4`, `d5e7075f`, `596a4706`, `8ed714ba`, `ad94d12a`, `14bca4a3`, `a1759b2a`, `07bb7193`,
   `2a0cf299`, `761f6d55`, `58a25d7e`, `61b6f8f9` (plus size sweep across all 87).
-- Branch pointers: `holla` tip `b6b0d3c2` (2026-09-11); working tree on branch `holla`.
+- Branch pointers: `holla` tip `b6b0d3c2` (2026-09-11) (now `visual-baseline`); working tree on branch `visual-baseline`.
 
 ---
 
@@ -112,8 +112,8 @@ Terminology scrub only; +14 bytes.
 
 ### Current on `main` (tip `7b27732a`, 2026-09-10)
 
-`main:REFACTORING_GOAL.md` is byte-identical to v6 (`d4715f8e`). It has not been edited since 2026-09-08 and still
-carries the `efada044` demotion header, so on `main` it is a historical architecture contract; `GOAL.md`
+`docs/sources/main/REFACTORING_GOAL.md` is byte-identical to v6 (`d4715f8e`). It has not been edited since 2026-09-08 and still
+carries the `efada044` demotion header, so on `main` it is a historical architecture contract; `docs/sources/main/GOAL.md`
 (restore-parity) is the live execution goal.
 
 ---
@@ -165,28 +165,28 @@ workspace cleanup (09-09).
 
 ## 3. Reading guide
 
-- **Current intent on `main`**: `REFACTORING_GOAL.md` is *not* the active goal — since `efada044` it is a
+- **Current intent on `main`**: `docs/sources/main/REFACTORING_GOAL.md` is *not* the active goal — since `efada044` it is a
   self-declared "Historical architecture contract", valuable for "preserving the accepted `junie-tui` architecture".
-  The active execution goal on `main` is `GOAL.md` ("restore the historical UI/TUI while finishing the refactor"),
+  The active execution goal on `main` is `docs/sources/main/GOAL.md` ("restore the historical UI/TUI while finishing the refactor"),
   with `docs/plans/main-holla-integration-task.md` cited by the ledger as the integration-phase execution authority.
-- **On the `holla` branch** (current working tree): `REFACTORING_GOAL.md`, `REFACTORING_STATE.md`, and `GOAL.md` do
-  not exist at all. The holla line's current plan lives in `REFACTORING_COMPLETION_PLAN.md` (repo root) and
-  `docs/refactoring-plan/` — those documents, not anything above, govern holla work. (Pointers only; their content
+- **On the `visual-baseline` branch** (current working tree): `REFACTORING_GOAL.md`, `REFACTORING_STATE.md`, and `GOAL.md` do
+  not exist at all. The visual-baseline line's current plan lives in `docs/sources/REFACTORING_COMPLETION_PLAN.md` and
+  `docs/refactoring-plan/` — those documents, not anything above, govern visual-baseline work. (Pointers only; their content
   is out of scope here.)
 - **Contradictions and tensions between versions**:
   1. v5's demotion header vs its own body: the file simultaneously says "This is an implementation goal… Deliver the
      finished reusable Rust TUI component system." (body) and "its old slice order and completion prompt do not
      override the parity-first UI/TUI restoration work" (header). Readers must apply the header's precedence rule.
-  2. Goal inversion between v1–v4 and `GOAL.md`: the original goal made the refactored architecture the deliverable
+  2. Goal inversion between v1–v4 and `docs/sources/main/GOAL.md`: the original goal made the refactored architecture the deliverable
      and the historical visuals merely "the polished default theme" with documented intentional changes allowed;
-     `GOAL.md` makes the historical product behavior the contract — "Everything else that differs from the
+     `docs/sources/main/GOAL.md` makes the historical product behavior the contract — "Everything else that differs from the
      historical evidence is a regression until proven otherwise" — while keeping the new architecture.
   3. `REFACTORING_STATE.md` contradicts itself by design: the frozen header still reports "Slice 4 wave 1…
      interrupted… does not compile" (E0502), while the 2026-09-05 READ-FIRST bullet declares earlier content
      "historical evidence, retained unedited; where they conflict, the last checkpoint governs" — including an
      explicit PASS→FAIL supersession of the `a1759b2` visual audit.
   4. Outcome vs goal: the final ledger records `parity_contract` still red ("60 byte-exact matches, 379 mismatches,
-     60 run failures" of 499 recipes), so the restore-parity goal in `GOAL.md` was *not* fully satisfied at the
+     60 run failures" of 499 recipes), so the restore-parity goal in `docs/sources/main/GOAL.md` was *not* fully satisfied at the
      2026-09-09 closeout; the ledger calls this an "honest red" left as a standing open item.
   5. Minor: v3 mandated `claude-fable-5-1` execution and treated substitution as "a blocker"; the 2026-09-08 porting
      session was "executed on Opus 5 per recorded routing deviation (Fable 5.1 capacity exhausted)", recorded as a

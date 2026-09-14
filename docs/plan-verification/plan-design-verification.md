@@ -8,7 +8,7 @@ tmux server. No other branch or history was consulted.
 
 ## Evidence reviewed
 
-The current design contract remains `DESIGN.md`: focus is visible geometry;
+The current design contract remains `docs/design/DESIGN.md`: focus is visible geometry;
 hover does not take focus; green is reserved for focus, primary actions,
 selection and activity; disabled and read-only are distinct; a supported
 terminal size must retain usable interactions.
@@ -220,7 +220,7 @@ Evidence: `src/bin/showcase/pages/textareas.rs:37–39` labels a textarea
 `Read-only transcript` and immediately applies `.disabled(true)`.
 `src/widgets/textarea.rs:100` refuses keyboard events when disabled, and render
 excludes disabled fields from the focus ring. The final 120×40 capture displays
-this content at disabled intensity. `DESIGN.md:700` instead says read-only
+this content at disabled intensity. `docs/design/DESIGN.md:700` instead says read-only
 content remains fully readable, with mutation absent and a reason shown.
 `src/widgets/code.rs:632` already preserves navigation/find for read-only code.
 

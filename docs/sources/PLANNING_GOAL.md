@@ -17,9 +17,9 @@ As a result, `main` is currently in an inconsistent, partially broken state:
 * some previews are substantially different from the intended design;
 * historical refactoring documents contain important decisions and partially completed plans that must be reconstructed rather than ignored.
 
-At the same time, the older `holla` branch represents the known-good application experience before the architectural refactoring:
+At the same time, the older `visual-baseline` branch (formerly named `holla`) represents the known-good application experience before the architectural refactoring:
 
-https://github.com/donbeave/terminal-components-claude/tree/holla
+https://github.com/donbeave/terminal-components-claude/tree/visual-baseline
 
 Its architecture/API is older and must **not** be treated as the desired architecture, but its application previews, flows, visual behavior, and overall user experience are substantially correct.
 
@@ -37,17 +37,17 @@ The final result must be an execution-ready set of detailed tasks with explicit 
 
 # 1. Immutable UI/UX source of truth
 
-For **all user-visible behavior**, the authoritative source of truth is this tag:
+For **all user-visible behavior**, the authoritative live pin is the `visual-baseline` tag:
 
-https://github.com/donbeave/terminal-components-claude/tree/holla-fable-2026-09-10
+https://github.com/donbeave/terminal-components-claude/tree/visual-baseline
 
 Resolve the tag before doing any analysis and record its exact commit SHA.
 
-At the time this goal was written, the annotated tag resolves to:
+The live pin is tag/branch `visual-baseline` @ `5e533943`. Branch and tag currently coincide at that commit; the tag remains the pin if they later diverge.
 
-`02f5294bfdbf38004cc49130d0aff1d01f31434c`
+The 2026-09-10 historical freeze is commit `02f5294bfdbf38004cc49130d0aff1d01f31434c` (formerly tagged `holla-fable-2026-09-10`). That commit still exists; it is not the live `visual-baseline` tag.
 
-Verify that before relying on it.
+Verify the live pin before relying on it.
 
 This immutable tag is the acceptance oracle for:
 
@@ -111,9 +111,7 @@ Do **not** alter colors, spacing, interaction patterns, layouts, flows, hover be
 
 We are changing the **underlying implementation, architecture, APIs, component boundaries, and internal structure — not the product experience**.
 
-If current `holla` and the immutable `holla-fable-2026-09-10` tag disagree on user-visible behavior, the immutable tag wins.
-
-The moving `holla` branch can still be inspected for implementation context, but it is not allowed to silently redefine the visual contract.
+Branch and tag are both named `visual-baseline` and currently coincide at `5e533943`. If they later diverge on user-visible behavior, the immutable tag remains the pin. The moving branch can still be inspected for implementation context, but it is not allowed to silently redefine the visual contract.
 
 ---
 
@@ -127,7 +125,7 @@ Read the current contents **and every materially relevant historical version** o
 
 ### Holla-era planning
 
-https://github.com/donbeave/terminal-components-claude/blob/holla/IMPROVEMENTS_PLAN.md
+https://github.com/donbeave/terminal-components-claude/blob/visual-baseline/docs/improvements/PLAN.md
 
 ### Refactoring architecture/state
 
@@ -189,9 +187,9 @@ Use this hierarchy whenever sources disagree.
 
 ### User-visible behavior
 
-1. `holla-fable-2026-09-10` immutable tag / resolved commit.
+1. `visual-baseline` immutable tag / resolved commit (`5e533943`; currently coincides with the branch).
 2. Deterministic evidence captured from that tag.
-3. `holla` branch as supporting implementation context.
+3. `visual-baseline` branch as supporting implementation context.
 
 ### Architecture/API/refactoring intent
 
@@ -224,7 +222,7 @@ together with normal deterministic Rust tests, architecture checks, API checks, 
 
 # 4. Do not blindly merge branches
 
-Do not begin from the assumption that a normal Git merge of `holla` into `main`, or `main` into `holla`, is the correct solution.
+Do not begin from the assumption that a normal Git merge of `visual-baseline` into `main`, or `main` into `visual-baseline`, is the correct solution.
 
 First reconstruct the branch topology.
 
@@ -233,7 +231,7 @@ Analyze:
 * merge base;
 * commit ranges;
 * refactoring commits on `main`;
-* post-divergence Holla work;
+* post-divergence `visual-baseline` work;
 * overlapping files;
 * deleted/renamed/moved components;
 * architectural changes;
@@ -248,11 +246,11 @@ The intended end state is:
 
 The plan must explicitly explain whether subsequent execution should:
 
-* continue from `holla`;
-* create an integration branch from `holla`;
+* continue from `visual-baseline`;
+* create an integration branch from `visual-baseline`;
 * continue from `main`;
 * create an integration branch from `main`;
-* reconstruct selected main refactoring work on top of Holla;
+* reconstruct selected main refactoring work on top of `visual-baseline`;
 * selectively transplant/reimplement commits;
 * or use another evidence-backed strategy.
 
@@ -321,7 +319,7 @@ Create a component/API migration matrix with states such as:
 
 ## C. UI/UX parity auditor
 
-Treat `holla-fable-2026-09-10` as the oracle.
+Treat `visual-baseline` as the oracle.
 
 Inventory every important:
 
@@ -496,7 +494,7 @@ The later refactor cannot be proven safe without a deterministic before/after co
 
 Design a comprehensive baseline derived from:
 
-`holla-fable-2026-09-10`
+`visual-baseline`
 
 It must cover representative terminal sizes and all meaningful user-visible states.
 
@@ -860,7 +858,7 @@ All four application surfaces work:
 
 For every covered golden state:
 
-`final refactored output == holla-fable-2026-09-10 reference output`
+`final refactored output == visual-baseline reference output`
 
 according to the selected deterministic parity representation.
 
@@ -1025,7 +1023,7 @@ Do not:
 * trust current `main` visually;
 * trust an old "PASS" without rerunning/reconstructing evidence;
 * blindly copy `main`;
-* blindly copy `holla`;
+* blindly copy `visual-baseline`;
 * blindly merge branches;
 * blindly follow stale refactoring prose;
 * resurrect rejected architectural ideas;

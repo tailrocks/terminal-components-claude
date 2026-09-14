@@ -4,7 +4,7 @@ The four applications exist on main, but source evidence demonstrates missing fl
 
 ## Authority, method and evidence boundary
 
-Oracle **O** is `02f5294bfdbf38004cc49130d0aff1d01f31434c`; candidate **M** is `7b27732a8c3c131760ec3438f641cb3c11343a42`. This auditor independently repeated `git rev-parse holla-fable-2026-09-10^{commit} main` and inspected Git objects at both SHAs. A removed old binary directory does not prove a removed application: M uses `apps/showcase`, `apps/holla`, `apps/jackin-preview` and `apps/tablepro`.
+Oracle **O** is `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze, formerly tagged `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`); candidate **M** is `7b27732a8c3c131760ec3438f641cb3c11343a42`. This auditor independently inspected Git objects at both SHAs. A removed old binary directory does not prove a removed application: M uses `apps/showcase`, `apps/holla`, `apps/jackin-preview` and `apps/tablepro`.
 
 Inputs reviewed: [showcase.md](showcase.md), [holla.md](holla.md), [jackin.md](jackin.md), [tablepro.md](tablepro.md), their four scenario registers, [components.md](components.md), [component-parity.tsv](component-parity.tsv), and [verification.md](verification.md). Independent source samples cover the actual field/update split, conditional historical painters, TablePro's content renderer, Holla's scenario enum, application breakpoints, Holla's state inventory, Jackin's large-role fixture, fade arithmetic and grid/field activation. Source citations below use repository paths at O or M, not current-checkout line identity.
 

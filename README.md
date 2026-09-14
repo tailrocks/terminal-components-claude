@@ -347,8 +347,8 @@ state and dialogs.
 
 ## Towards a reusable library
 
-The branch audit and coverage map are in [docs/tui-audit.md](docs/audits/tui-audit.md)
-and [docs/tui-audit-inventory.md](docs/audits/tui-audit-inventory.md). The ideas below
+The branch audit and coverage map are in [docs/audits/tui-audit.md](docs/audits/tui-audit.md)
+and [docs/audits/tui-audit-inventory.md](docs/audits/tui-audit-inventory.md). The ideas below
 are hypotheses, not required additions: existing public theme tokens and
 typed component events already support the four applications.
 

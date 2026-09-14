@@ -14,10 +14,10 @@ Recorded source inspection on 2026-09-11:
 
 | Authority | Commit |
 | --- | --- |
-| Immutable UI/UX oracle, peeled tag | `02f5294bfdbf38004cc49130d0aff1d01f31434c` |
-| Annotated tag object | `a643909d9a782adaf0aa1e3357710a5ed3f24443` |
+| Immutable UI/UX oracle pin (then peeled `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`) | `02f5294bfdbf38004cc49130d0aff1d01f31434c` |
+| Annotated tag object recorded 2026-09-11 | `a643909d9a782adaf0aa1e3357710a5ed3f24443` |
 | Architectural main inspected | `7b27732a8c3c131760ec3438f641cb3c11343a42` |
-| Planning branch starting commit | `2e2401393c47360741ebd321679de08982dca50a` |
+| Investigation checkout (then `holla`; live checkout is `visual-baseline`) | `2e2401393c47360741ebd321679de08982dca50a` |
 | Current-format source and installed CLI inspected | `52d9f1eb7721f409bc47beb9fced7997b5c13ede` |
 
 These are recorded campaign pins, not a claim that mutable remote branches have been freshly rechecked on every status update. The oracle governs behavior; main governs retained architecture. [History](history.md), [authority reconciliation](history-ledger-reconciliation.md) and [task-format inspection](task-format.md) explain their different roles.

@@ -4,7 +4,7 @@ Status: **changes required; not accepted for dispatch**. Review date: 2026-09-11
 
 ## Scope and evidence identity
 
-Read the complete `PLANNING_GOAL.md`, root execution plan, proof contract, verification contract, comparator and runner protocols, runner implementation and worker, comparator fixtures/report validator, bootstrap review, host vectors and selected host implementation, app/component inventories, and protected baseline/accounting/architecture/closure obligations. Parsed all 73 canonical `verify.toml` files: 503 checks, including 479 context-bearing invocations. These are catalog counts, not executed production checks. The catalog and evidence were changing concurrently; findings apply to the exact reviewed bytes below and require re-review after correction.
+Read the complete `docs/sources/PLANNING_GOAL.md`, root execution plan, proof contract, verification contract, comparator and runner protocols, runner implementation and worker, comparator fixtures/report validator, bootstrap review, host vectors and selected host implementation, app/component inventories, and protected baseline/accounting/architecture/closure obligations. Parsed all 73 canonical `verify.toml` files: 503 checks, including 479 context-bearing invocations. These are catalog counts, not executed production checks. The catalog and evidence were changing concurrently; findings apply to the exact reviewed bytes below and require re-review after correction.
 
 The reviewed UI oracle remains `02f5294bfdbf38004cc49130d0aff1d01f31434c`. The existing tui-snap evidence names tested, unmerged PR #1 head `883d03f19d890bbbf27468798db78b04e85297ac`. This review does not repeat that tool's production qualification or infer terminal-components parity from it. TASK-001 and TASK-070–072 remain future implementation tasks. Prepared fixture success does not mean those implementations exist or passed.
 
@@ -12,8 +12,8 @@ Review SHA-256 identities:
 
 | Input | SHA-256 |
 | --- | --- |
-| `PLANNING_GOAL.md` | `728c65a7a771ed2cd8ba15c78e685e889244a9fa339a18dc2dc2cde0f3d4cbe5` |
-| `REFACTORING_COMPLETION_PLAN.md` | `91e0aa45b6ca74fd6fdaf9776776709dd5c9dde263894956c509b731cddc17ef` |
+| `docs/sources/PLANNING_GOAL.md` | `728c65a7a771ed2cd8ba15c78e685e889244a9fa339a18dc2dc2cde0f3d4cbe5` |
+| `docs/sources/REFACTORING_COMPLETION_PLAN.md` | `91e0aa45b6ca74fd6fdaf9776776709dd5c9dde263894956c509b731cddc17ef` |
 | `proof-contract.md` | `451e6fb017f868198552a2abe49839272fb7cf4a5edd1ab8eea2ede63018ae74` |
 | `verification.md` | `fe103ab04f57e78a9f416597fac0d55abead65c5f9bda409f7a3d115e8a61059` |
 | `proof-comparator-bootstrap.py` | `c3a646b1759024521ab650051bc76af37bdf54bc8067d21c157c5465053bfda4` |

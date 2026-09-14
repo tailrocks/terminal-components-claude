@@ -2,7 +2,7 @@
 
 Brainstorm of root interaction models, evaluation, one chosen direction, and
 the screen inventory + key grammar derived from it. Sketches are design
-proposals at 100×30 on the Junie TUI system (DESIGN.md), not CONCEPT examples.
+proposals at 100×30 on the Junie TUI system ([DESIGN.md](../../design/DESIGN.md)), not CONCEPT examples.
 
 Shorthand: *typing-hot* page = letters go to a live query; *letter-hot* page =
 letters are contextual verbs (`s f p x u y`). A page is never both.

@@ -1,6 +1,6 @@
 # Existing Holla capability parity matrix
 
-This is the authoritative classification ledger for [IMPROVEMENTS_PLAN.md](../improvements/PLAN.md#existing-holla-functional-parity-audit). Old source is pinned to `fca7d0cc41e139014900e1876a4ab30f126cddda`; new evidence is only local `holla-fable` at `215990ef2d682151bc0b16bd1697da3cbdbd7d9e`. Full source/test qualifications are retained in [evidence](holla-parity-evidence.md) and [preview inventory](holla-preview-inventory.md).
+This is the authoritative classification ledger for [docs/improvements/PLAN.md](../improvements/PLAN.md#existing-holla-functional-parity-audit). Old source is pinned to `fca7d0cc41e139014900e1876a4ab30f126cddda`; new evidence is only local `holla-fable` at `215990ef2d682151bc0b16bd1697da3cbdbd7d9e`. Full source/test qualifications are retained in [evidence](holla-parity-evidence.md) and [preview inventory](holla-preview-inventory.md).
 
 Each row states its complete old contract, source, new representation, one disposition, semantic gap and owning implementation/verification contract. The linked HP item supplies architecture, reusable components, deterministic scenarios, keyboard/mouse/state and safety acceptance plus automated/capture gates for **every** mapped row. Covered rows retain regression obligations. Excluded rows have no implementation obligation. These are capability contracts, not counts of source functions or tests.
 

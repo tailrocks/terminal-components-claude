@@ -1,6 +1,6 @@
 # Late architecture history: direct source reconstruction
 
-Scope: `COMPONENT_ARCHITECTURE.md` §§56–75, the §54 addendum, and the Meter/ScrollRegion amendments. Analysis reads Git objects; it does not assume that the planning checkout contains production files. Source checkpoint: `7b27732a8c3c131760ec3438f641cb3c11343a42`. Product acceptance belongs to `02f5294bfdbf38004cc49130d0aff1d01f31434c`, as required by `PLANNING_GOAL.md`. Historical visual approvals, including first-generation keys, cannot authorize differences from that oracle.
+Scope: `COMPONENT_ARCHITECTURE.md` §§56–75, the §54 addendum, and the Meter/ScrollRegion amendments. Analysis reads Git objects; it does not assume that the planning checkout contains production files. Source checkpoint: `7b27732a8c3c131760ec3438f641cb3c11343a42`. Product acceptance belongs to `02f5294bfdbf38004cc49130d0aff1d01f31434c`, as required by `docs/sources/PLANNING_GOAL.md`. Historical visual approvals, including first-generation keys, cannot authorize differences from that oracle.
 
 The companion [obligation ledger](history-late-obligations.tsv) separates contracts, rejected alternatives, supersession, evidence debt and present planning decisions. “Implemented” below describes source/history evidence, not a freshly executed test result. No production code, baseline, task graph, branch or checkout was changed for this review.
 
@@ -41,7 +41,7 @@ Direct supporting inputs:
 - `docs/reviews/laneB-grid-contract.md` at main: accepted Q1–Q3; adapter owns sort, exactly five GridState readers, explicit focus-only registration. Later §61 changes schema/ragged representation, not these ownership rules.
 - `docs/reviews/laneC-app-tick.md` at main: proposal permitted temporary status formatting allocation. Accepted `ecc13378` §54.6 deliberately tightens this to app-owned fixed buffers. The proposal's final-crate-name migration prerequisite is superseded by §47 timing; do not revive it. Its total RunId package includes Manager, Capsule and Cockpit and all scenario inputs.
 - `docs/historical-regeneration-approval.md` at main: exact generator/manifest/input/review hashes, 998 absent-only renderings, twelve rejected mutations, explicit unknown original executable hash and glyph/modifier limitations. §75 is archive repair, never current UI acceptance.
-- `efada044` REFACTORING_GOAL change: architecture remains a reference; active parity goal supersedes old slice order. Its historical allowance for small approved additions does not carry into the current task: current `PLANNING_GOAL.md` forbids visible drift from its pinned oracle.
+- `efada044` REFACTORING_GOAL change: architecture remains a reference; active parity goal supersedes old slice order. Its historical allowance for small approved additions does not carry into the current task: current `docs/sources/PLANNING_GOAL.md` forbids visible drift from its pinned oracle.
 
 The review-input history was checked with `git log --all -- <paths>`: both lane adjudication files have only their `3adb6efe` creation; the regeneration approval has only its `2ebe74c5` creation. Thus the directly read main blobs are also their original historical versions, not later summaries.
 

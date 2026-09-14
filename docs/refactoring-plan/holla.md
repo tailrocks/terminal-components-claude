@@ -2,7 +2,7 @@
 
 ## Authority and observed state
 
-The UI/UX oracle is `holla-fable-2026-09-10^{commit}`, verified as `02f5294bfdbf38004cc49130d0aff1d01f31434c`. Every source reference in this document and the scenario register resolves against that commit unless explicitly marked otherwise. The comparison target is main `7b27732a8c3c131760ec3438f641cb3c11343a42`.
+The UI/UX oracle used here is `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze, formerly tagged `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`). Every source reference in this document and the scenario register resolves against that commit unless explicitly marked otherwise. The comparison target is main `7b27732a8c3c131760ec3438f641cb3c11343a42`.
 
 Main has a migrated Holla package at `apps/holla` (`holla_app` library plus `holla` binary). The removal of `src/bin/holla` is a packaging move and does not prove application absence. Main uses the accepted App/Cx/Ui update/draw boundary, shared TextInput/NavList/TextViewport/Dialog controls and persistent interaction state. Its actual UI and simulation represent a substantially smaller, different Holla experience. The comparison matrix below distinguishes migrated behavior from missing oracle flows. Source evidence proves specific differences; complete frame equality remains unmeasured.
 
@@ -73,7 +73,7 @@ Every scrollable surface needs top, middle, bottom, over-boundary wheel/key atte
 
 ## Historical HP decisions, with authority limits
 
-`docs/holla-preview-inventory.md`, `docs/holla-parity-matrix.md` and `docs/holla-parity-evidence.md` reconstruct an earlier preview (`215990ef`) versus external old Holla `fca7d0cc`. Their old Missing/Partial labels are historical evidence, **not current oracle defects**. The oracle later implements browser, stdin, disk tree, Brew/Gradle/IDEA and truthful outcome work those reports said was missing. The source/test below supersedes each corresponding gap.
+`docs/parity/holla-preview-inventory.md`, `docs/parity/holla-parity-matrix.md` and `docs/parity/holla-parity-evidence.md` reconstruct an earlier preview (`215990ef`) versus external old Holla `fca7d0cc`. Their old Missing/Partial labels are historical evidence, **not current oracle defects**. The oracle later implements browser, stdin, disk tree, Brew/Gradle/IDEA and truthful outcome work those reports said was missing. The source/test below supersedes each corresponding gap.
 
 | Historical slice | Oracle-owned behavior to preserve | Decisive oracle proof |
 | --- | --- | --- |

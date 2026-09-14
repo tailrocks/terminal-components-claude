@@ -6,15 +6,15 @@ Investigation date: 2026-09-11. This is planning evidence, not implementation or
 
 | Identity | Commit |
 | --- | --- |
-| UI/UX oracle, `holla-fable-2026-09-10` | `02f5294bfdbf38004cc49130d0aff1d01f31434c` |
+| UI/UX oracle pin (formerly tag `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`) | `02f5294bfdbf38004cc49130d0aff1d01f31434c` |
 | Architectural source, `main` / `origin/main` | `7b27732a8c3c131760ec3438f641cb3c11343a42` |
-| Planning checkout, `holla` / `origin/holla` | `2e240139` |
-| Merge base of main and holla | `cc14dd6beae526884aabdf897e309be837b4f504` |
+| Investigation checkout (then `holla` / `origin/holla`; live checkout is `visual-baseline`) | `2e240139` |
+| Merge base of main and the investigation checkout | `cc14dd6beae526884aabdf897e309be837b4f504` |
 | Previous Holla oracle used by PR #1 | `794b095c196562d38f1b6f7ce379c128af2a023d` |
 
-The coordinator independently verified the annotated oracle tag locally and remotely before analysis. Local graph checks show `main...holla` contains **774 main-only and 38 holla-only commits**. These counts include merges and preserved historical branches; they are not numbers of independent changes.
+The coordinator independently verified the annotated oracle tag locally and remotely before analysis. Local graph checks on the investigation checkout (`2e240139`) show `main...2e240139` contains **774 main-only and 38 investigation-only commits**. These counts include merges and preserved historical branches; they are not numbers of independent changes.
 
-`3dbc73e253a1c4aebbe9cccbfc6d5c5e3ff8d73e` has parents `02f5294b` and `794b095c`: the Holla-Fable implementation supersedes the earlier Holla branch. `git diff 02f5294b holla` contains exactly one changed file, `PLANNING_GOAL.md` (1,069 added lines). Thus current Holla and the oracle currently have identical tracked product code. This equality is observed, not permission to follow future Holla changes.
+`3dbc73e253a1c4aebbe9cccbfc6d5c5e3ff8d73e` has parents `02f5294b` and `794b095c`: the Holla-Fable implementation supersedes the earlier Holla branch. `git diff 02f5294b 2e240139` contains exactly one changed file, `PLANNING_GOAL.md` (1,069 added lines). Thus that investigation checkout and the oracle pin had identical tracked product code. This equality is observed, not permission to follow later checkout movement.
 
 `7b27732a` merges parents `ef405e22` and `321f202e`. Its integration lineage includes `c3b51b96`, a semantic-union merge with parents `0191acbf` and `af1e752e`. Main already contains a substantial previous main/Holla integration. Repeating its cherry-picks would duplicate or overwrite later repairs.
 
@@ -97,9 +97,9 @@ Do not merge candidate into main until full oracle equality, architecture/API ga
 ## Reproducible archaeology commands
 
 ```sh
-rtk proxy git rev-parse 'holla-fable-2026-09-10^{commit}'
-rtk proxy git merge-base main holla
-rtk proxy git rev-list --left-right --count main...holla
+rtk proxy git rev-parse 'visual-baseline^{commit}'
+rtk proxy git merge-base main visual-baseline
+rtk proxy git rev-list --left-right --count main...visual-baseline
 rtk proxy git log --all --follow --name-status -- GOAL.md
 rtk proxy git log --all --follow --name-status -- GOAL2.md
 rtk proxy git log --all --follow --name-status -- HANDOFF_SLICE4_WAVE1.md
@@ -108,6 +108,6 @@ rtk proxy git log --all -p -- REFACTORING_GOAL.md
 rtk proxy git log --all -p -- REFACTORING_STATE.md
 rtk proxy git log --all -p -- IMPROVEMENTS_PLAN.md
 rtk proxy git diff --find-renames=40% cc14dd6 main -- src crates apps Cargo.toml
-rtk proxy git diff --find-renames=40% cc14dd6 holla -- src crates apps Cargo.toml
+rtk proxy git diff --find-renames=40% cc14dd6 visual-baseline -- src crates apps Cargo.toml
 rtk proxy gh pr view 1 --json title,body,comments,reviews,mergedAt,url
 ```

@@ -6,7 +6,7 @@ Scope: 58 captures in `shots/` read as images (all four sizes of
 `h_remote_host_100x30`; 28 `h_flow_*`/`h_p3_*` frames; `t_80`, `t_danger`,
 `t_conn_prod`, `t_switcher`, `j_cockpit_running` for family comparison).
 Colour claims below were checked against the `.html` captures (every span's
-fg/bg), not eyeballed. Rules applied: DESIGN.md (Overview, Colors, Typography,
+fg/bg), not eyeballed. Rules applied: [DESIGN.md](../../design/DESIGN.md) (Overview, Colors, Typography,
 Layout, Shapes, State grammar, Do's and Don'ts), CONCEPT §6/§7/§16,
 02-interaction-models §2 and §4.
 
