@@ -18,7 +18,7 @@ mod scenario;
 mod screens;
 mod sim;
 
-use clap::{Parser, ValueEnum};
+use clap::{CommandFactory, FromArgMatches, Parser, ValueEnum};
 use junie_tui::core::event::{Input, Outcome};
 use junie_tui::theme::{ColorLevel, Theme};
 
@@ -73,7 +73,11 @@ impl From<MotionArg> for Motion {
 }
 
 #[derive(Debug, Parser)]
-#[command(name = "jackin-preview", about = "Jackin terminal preview")]
+#[command(
+    name = "jackin-preview",
+    about = "Jackin terminal preview",
+    long_about = "Jackin-preview — Jackin redesigned on the Junie design system (deterministic preview)"
+)]
 struct Cli {
     #[arg(short = 'c', long, value_enum, value_name = "LEVEL")]
     color: Option<ColorArg>,
@@ -98,8 +102,24 @@ fn parse_scenario(value: &str) -> Result<Scenario, String> {
     })
 }
 
+fn cli_after_help() -> String {
+    let scenarios = Scenario::ALL
+        .iter()
+        .map(|s| s.name())
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!(
+        "Scenarios: {scenarios}\n\
+         Motion:    explicit --motion wins; otherwise JACKIN_NO_MOTION=1 selects reduced motion\n\
+         Frame:     with --motion paused, the exact fixture tick to render (intro, cockpit, outro phases)\n\n\
+         Keys: Tab/Shift+Tab focus · ↑↓ move · Enter launch/activate · Esc back · u Accounts & Usage · s Settings · ? help · q quit\n\
+         Everything is simulated in memory; the real Jackin CLI is never touched."
+    )
+}
+
 fn parse_args() -> Options {
-    let cli = Cli::parse();
+    let cli = Cli::command().after_help(cli_after_help()).get_matches();
+    let cli = Cli::from_arg_matches(&cli).unwrap_or_else(|error| error.exit());
     let no_motion = std::env::var_os("JACKIN_NO_MOTION").is_some_and(|v| !v.is_empty() && v != "0");
     Options {
         level: cli
