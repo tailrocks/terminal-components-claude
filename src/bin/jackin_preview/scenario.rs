@@ -64,15 +64,6 @@ pub enum Motion {
 }
 
 impl Motion {
-    pub fn from_name(s: &str) -> Option<Self> {
-        match s {
-            "full" => Some(Motion::Full),
-            "reduced" => Some(Motion::Reduced),
-            "paused" => Some(Motion::Paused),
-            _ => None,
-        }
-    }
-
     /// Explicit CLI motion wins; otherwise `JACKIN_NO_MOTION` selects the
     /// reduced path.
     pub fn resolve(cli: Option<Motion>, no_motion_env: bool) -> Motion {

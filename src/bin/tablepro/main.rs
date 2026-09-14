@@ -4,6 +4,8 @@
 mod app;
 #[cfg(test)]
 mod app_tests;
+#[cfg(test)]
+mod app_tests_coverage;
 mod connections;
 mod db;
 mod model;
@@ -11,6 +13,7 @@ mod sql;
 mod tabs;
 mod workbench;
 
+use clap::{CommandFactory, Parser, ValueEnum, error::ErrorKind};
 use junie_tui::core::event::{Input, Outcome};
 use junie_tui::theme::{ColorLevel, Theme};
 
@@ -21,37 +24,47 @@ struct Options {
     connect: Option<String>,
 }
 
-fn parse_args() -> Options {
-    let mut level = ColorLevel::detect();
-    let mut connect = None;
-    let mut args = std::env::args().skip(1);
-    while let Some(a) = args.next() {
-        match a.as_str() {
-            "--color" | "-c" => {
-                level = match args.next().as_deref() {
-                    Some("truecolor") | Some("24bit") => ColorLevel::TrueColor,
-                    Some("256") => ColorLevel::Ansi256,
-                    Some("16") => ColorLevel::Ansi16,
-                    Some("none") | Some("mono") => ColorLevel::Mono,
-                    other => {
-                        eprintln!("unknown --color value {other:?}; use truecolor|256|16|none");
-                        std::process::exit(2);
-                    }
-                };
-            }
-            "--connect" => connect = args.next(),
-            "-h" | "--help" => {
-                println!(
-                    "tablepro — TablePro's core workflow as a terminal application\n\n\
-                     USAGE: tablepro [--color truecolor|256|16|none] [--connect NAME]\n\n\
-                     Keys: Ctrl+O open quickly · Ctrl+T new query · Ctrl+R run · Ctrl+Y history · ? help · q quit"
-                );
-                std::process::exit(0);
-            }
-            _ => {}
+#[derive(Clone, Copy, Debug, ValueEnum)]
+enum ColorArg {
+    #[value(name = "truecolor", alias = "24bit")]
+    TrueColor,
+    #[value(name = "256")]
+    Ansi256,
+    #[value(name = "16")]
+    Ansi16,
+    #[value(name = "none", alias = "mono")]
+    Mono,
+}
+
+impl From<ColorArg> for ColorLevel {
+    fn from(value: ColorArg) -> Self {
+        match value {
+            ColorArg::TrueColor => Self::TrueColor,
+            ColorArg::Ansi256 => Self::Ansi256,
+            ColorArg::Ansi16 => Self::Ansi16,
+            ColorArg::Mono => Self::Mono,
         }
     }
-    Options { level, connect }
+}
+
+#[derive(Debug, Parser)]
+#[command(name = "tablepro", about = "TablePro terminal database workbench")]
+struct Cli {
+    #[arg(short = 'c', long, value_enum, value_name = "LEVEL")]
+    color: Option<ColorArg>,
+    #[arg(long, value_name = "NAME")]
+    connect: Option<String>,
+}
+
+fn parse_args() -> Options {
+    let cli = Cli::parse();
+    Options {
+        level: cli
+            .color
+            .map(ColorLevel::from)
+            .unwrap_or_else(ColorLevel::detect),
+        connect: cli.connect,
+    }
 }
 
 fn main() -> std::io::Result<()> {
@@ -67,8 +80,12 @@ fn main() -> std::io::Result<()> {
         {
             app.connect(i);
         } else {
-            eprintln!("no connection named {name:?}");
-            std::process::exit(2);
+            Cli::command()
+                .error(
+                    ErrorKind::ValueValidation,
+                    format!("no connection named {name:?}"),
+                )
+                .exit();
         }
     }
     junie_tui::runtime::run(&mut app)

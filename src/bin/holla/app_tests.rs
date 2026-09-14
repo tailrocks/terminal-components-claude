@@ -167,3 +167,83 @@ fn too_small_notice_and_recovery() {
     assert!(!h.text().contains("Terminal too small"));
     assert!(h.text().contains("Suggested here"));
 }
+
+#[test]
+fn cli_parser_accepts_scenario_motion_color_and_frame_contracts() {
+    use clap::{Parser, error::ErrorKind};
+
+    let cli = crate::Cli::try_parse_from([
+        "holla",
+        "--scenario",
+        "parity-browser",
+        "--motion",
+        "full",
+        "--color",
+        "16",
+        "--frame",
+        "9",
+    ])
+    .expect("valid CLI options");
+    assert_eq!(cli.scenario, Scenario::ParityBrowser);
+    assert!(matches!(cli.motion, Some(crate::MotionArg::Full)));
+    assert!(matches!(cli.color, Some(crate::ColorArg::Ansi16)));
+    assert_eq!(cli.frame, 9);
+
+    for color in ["truecolor", "24bit", "256", "16", "none", "mono"] {
+        assert!(
+            crate::Cli::try_parse_from(["holla", "--color", color]).is_ok(),
+            "color value {color:?}"
+        );
+    }
+    for motion in ["full", "reduced", "paused"] {
+        assert!(
+            crate::Cli::try_parse_from(["holla", "--motion", motion]).is_ok(),
+            "motion value {motion:?}"
+        );
+    }
+    let short = crate::Cli::try_parse_from([
+        "holla",
+        "-c",
+        "24bit",
+        "-s",
+        "parity-browser",
+        "-m",
+        "paused",
+        "-f",
+        "3",
+    ])
+    .unwrap();
+    assert_eq!(short.scenario, Scenario::ParityBrowser);
+    assert_eq!(short.frame, 3);
+
+    let default = crate::Cli::try_parse_from(["holla"]).unwrap();
+    assert_eq!(default.scenario, Scenario::FirstUse);
+    assert!(default.motion.is_none());
+    let paused = crate::Cli::try_parse_from(["holla", "--motion", "paused"]).unwrap();
+    assert!(matches!(paused.motion, Some(crate::MotionArg::Paused)));
+
+    assert!(matches!(
+        crate::Cli::try_parse_from(["holla", "--color", "invalid"]),
+        Err(error) if error.kind() == ErrorKind::InvalidValue
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["holla", "--scenario", "invalid"]),
+        Err(error) if error.kind() == ErrorKind::ValueValidation
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["holla", "--motion", "invalid"]),
+        Err(error) if error.kind() == ErrorKind::InvalidValue
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["holla", "--frame"]),
+        Err(error) if error.kind() == ErrorKind::InvalidValue
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["holla", "--ignored"]),
+        Err(error) if error.kind() == ErrorKind::UnknownArgument
+    ));
+    assert!(matches!(
+        crate::Cli::try_parse_from(["holla", "--help"]),
+        Err(error) if error.kind() == ErrorKind::DisplayHelp
+    ));
+}
