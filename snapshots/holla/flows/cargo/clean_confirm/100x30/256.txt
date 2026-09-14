@@ -1,0 +1,30 @@
+  holla❯    File   Go   Help                                     engine · Rust project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────────────────────────
+   cargo clea╭────────────────────────────────────────────────────────────────────────╮pe ‹ here ›
+             │                                                                        │
+    Results ·│  cargo clean · 900.0 MiB                                               │
+  › cargo cle│                                                                        │destructive
+    cargo cle│  Action        remove the resolved target directory                    │
+    Clean Car│                ~/work/engine/target · 2 files · tool-native permanent  │
+             │                removal, not Trash · rebuilt by the next build          │
+             │  Host          mbp · local                                             │
+             │  In            ~/work/engine                                           │
+             │  Scope         here                                                    │
+             │  Changes       900.0 MiB freed by cargo itself · permanent · next      │
+             │                build recompiles everything · shared target:            │
+             │                /Users/alex/work/engine-wt loses its artifacts too      │
+             │  Risk          destructive                                             │
+             │  Data          live · 2 s ago                                          │
+             │  Confirmation  one explicit confirmation · not remembered              │
+             │                                                                        │
+             │  cargo clean                                                           │
+             │                                                                        │
+             │                                                        ▎Cancel   Run   │
+             │                                                                        │
+             ╰────────────────────────────────────────────────────────────────────────╯
+    → cargo clean · here · destructive
+
+ ~/work/engine   main                                                           256 colors · 100×30
+                              ← → Choose  Enter Confirm  Esc Cancel

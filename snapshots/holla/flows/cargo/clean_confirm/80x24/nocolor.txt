@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                 engine · Rust project  mbp · local
+   ╭────────────────────────────────────────────────────────────────────────╮
+  H│                                                                        │
+ ━━│  cargo clean · 900.0 MiB                                               │──
+   │                                                                        │›
+   │  Action        remove the resolved target directory                    │
+   │                ~/work/engine/target · 2 files · tool-native permanent  │
+  ›│                removal, not Trash · rebuilt by the next build          │e
+   │  Host          mbp · local                                             │
+   │  In            ~/work/engine                                           │
+   │  Scope         here                                                    │
+   │  Changes       900.0 MiB freed by cargo itself · permanent · next      │
+   │                build recompiles everything · shared target:            │
+   │                /Users/alex/work/engine-wt loses its artifacts too      │
+   │  Risk          destructive                                             │
+   │  Data          live · 2 s ago                                          │
+   │  Confirmation  one explicit confirmation · not remembered              │
+   │                                                                        │
+   │  cargo clean                                                           │
+   │                                                                        │
+   │                                                        ▎Cancel   Run   │
+   │                                                                        │
+ ~/╰────────────────────────────────────────────────────────────────────────╯24
+                    ← → Choose  Enter Confirm  Esc Cancel

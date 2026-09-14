@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help         engine · Rust project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────
+ ▎ cargo clean                                          scope ‹ here ›
+
+    Results · 3
+  › cargo clean · 900.0 MiB  cleanup  here  900.0 MiB of…  destructive
+    cargo clean dry run      cargo    here  read-only
+    Clean Cargo registry c…  cleanup  host  safe if old…
+
+
+
+
+
+
+    → cargo clean · here · destructive
+
+ ~/work/engine   main                                256 colors · 72×20
+ Type Search  ↑↓ Move  Enter Confirm…  Alt+Enter More  Tab Preview  …

@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help      acme › frontend … · pnpm  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────
+ ▎ test                                                 scope ‹ here ›
+
+    Results · 17                                                      ┃
+  › Run tests                task      here                           ┃
+    pnpm test                script    here                           ┃
+    Run test                 task      parent                         ┃
+    Run //services/api:test  task      sibling                        │
+    Run //tools/worker:test  task      sibling                        │
+    Show PostgreSQL activi…  postgres  here                           │
+    Rotate local secrets     custom    parent             destructive │
+    Start development ecos…  task      parent                         │
+
+    → mise run //apps/frontend:test · here · mutating
+
+ ~/work/acme/apps/frontend   main   ↑1 • 2            16 colors · 72×20
+  Type Search  ↑↓ Move  Enter Trust…  Alt+Enter More  Tab Preview  …

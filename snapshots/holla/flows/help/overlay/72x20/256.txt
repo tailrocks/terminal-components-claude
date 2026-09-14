@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help          holla · Rust project  mbp · local
+  ╭──────────────────────────────────────────────────────────────────╮
+  │                                                                  │
+ ━│  Key reference                                             Here  │─
+  │                                                                  │
+  │  Finder                                                       ┃  │
+  │  Type             search actions and resources together ·     ┃  │┃
+  │                   @parent @children @system @all narrow the   ┃  │┃
+  │                   scope                                       │  │┃
+  │  ↑↓               move · PgUp PgDn Home End                   │  │┃
+  │  Enter            primary action · destructive rows open a    │  │┃
+  │                   review instead                              │  │┃
+  │  Alt+Enter        alternatives · run, copy, insert, arguments,│  ││
+  │                   pin, alias, hide, why                       │  ││
+  │  Tab              preview › tab strip › finder                │  ││
+  │  Ctrl+↑ / Ctrl+↓  scope outward (parent, system) / inward     │  │
+  │                                                                  │
+  ╰──────────────────────────────────────────────────────────────────╯
+ ~/work/holla   main   ↓3 • 5                        256 colors · 72×20
+                         ↑↓ Scroll  Esc Close

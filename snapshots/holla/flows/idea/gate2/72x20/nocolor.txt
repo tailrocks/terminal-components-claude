@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help                    no project  mbp · local
+  ╭──────────────────────────────────────────────────────────────────╮
+  │                                                                  │
+ ━│  Trash 4 items · gate 2 of 2                                     │─
+  │                                                                  │
+  │  Action        move to Trash 4 items under ~/work/ide            │
+  │                                                                  │
+  │  /Users/alex/work/ide/.idea                                      │
+  │  /Users/alex/work/ide/a/b/c/d/e/deep.iml                         │
+  │  /Users/alex/work/ide/app.iml                                    │
+  │  /Users/alex/work/ide/mod/mod.iml                                │
+  │                                                                  │
+  │   Type TRASH 4 UNDER /Users/alex/work/ide ON mbp to confirm      │
+ ╭│ ▎                                                                │╮
+ ╰│                                                                  │╯
+  │                                                                  │
+  │                                               Cancel   Execute   │
+  │                                                                  │
+ ~╰──────────────────────────────────────────────────────────────────╯0
+                ← → Choose  Enter Confirm  Esc Cancel

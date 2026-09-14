@@ -1,0 +1,20 @@
+  holla❯    File   Go   Help          acme · mise monorepo  mbp · local
+
+      Here    frontend dev ⠋ ×    api dev ⠋ ×    api tests ✓ ×       2›
+ ────━━━━━━━───────────────────────────────────────────────────────────
+   Search actions and resources…                        scope ‹ here ›
+         ╭────────────────────────────────────────────────────╮
+    Sugge│                                                    │       ┃
+    Follo│  Quit holla❯?                                      │thy    ┃
+    Inspe│                                                    │rtifa… ┃
+    Insta│  4 activities are still running. Quitting stops    │       ┃
+    Revie│  what holla started; detached monitors keep        │ cate… │
+  › Deplo│  running.                                          │       │
+         │                                                    │       │
+    Recen│                          ▎Cancel   Stop and quit   │       │
+    nothi│                                                    │       │
+         ╰────────────────────────────────────────────────────╯
+    → tools/deploy-preview.sh --env preview · here · mutating
+
+ ~/work/acme   main   ↑1               ⠋ 4 running    16 colors · 72×20
+ ← → Choose  Enter Confirm  Esc Cancel  …   api tests finished · exit 0

@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help                  holla · Rust project  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────
+   Search actions and resources…                                scope ‹ here ›
+
+    Suggested here
+  › Inspect 12 GB of generate…  disk      here  12 GB generated artifacts
+    Pul╭────────────────────────────────────────╮ranch is 3 commits behind
+    Rev│  Inspect 12 GB of generated artifacts  │ modified · 1 untracked
+    Run│  Open                            Enter │ files changed since the las…
+    Who│  Copy command                        y │ sessions blocked for 4 min
+       │  Insert into shell                     │
+    Rec│ ────────────────────────────────────── │
+    not│  Pin here                              │
+       │  Set alias…                            │
+    Exp│  Hide here                             │
+     Ta│  Reset ranking                         │em
+    Sys│ ────────────────────────────────────── │vailable on this host
+       │  Why is this here?                     │
+    → '╰────────────────────────────────────────╯ead-only
+
+ ~/work/holla   main   ↓3 • 5                                 16 colors · 80×24
+                       ↑↓ Move  Enter Choose  Esc Close

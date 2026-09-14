@@ -1,0 +1,24 @@
+  holla❯    File   Go   Help      acme › frontend · Nod…ect · pnpm  mbp · local
+
+  Here
+ ━━━━━━━───────────────────────────────────────────────────────────────────────
+ ▎ test                                                         scope ‹ here ›
+
+    Results · 17                                                              ┃
+  › Run tests                   task      here     alias test                 ┃
+    pnpm test                   script    here     package.json…              ┃
+    Run test                    task      parent   defined by ~…              ┃
+    Run //services/api:test     task      sibling  defined by ~…              ┃
+    Run //tools/worker:test     task      sibling  defined by ~…              ┃
+    Show PostgreSQL activity    postgres  here     6/100 connec…              ┃
+    Rotate local secrets        custom    parent   Current fold…  destructive ┃
+    Start development ecosyst…  task      parent   defined by ~…              ┃
+    Start development ecosyst…  task      sibling  defined by ~…              │
+    Start development ecosyst…  task      sibling  defined by ~…              │
+    Upgrade 8 outdated mise t…  task      host     8 tools have…              │
+    Clone a GitHub repository…  git       here     logged in as…              │
+
+    → mise run //apps/frontend:test · here · mutating
+
+ ~/work/acme/apps/frontend   main   ↑1 • 2                    truecolor · 80×24
+      Type Search  ↑↓ Move  Enter Trust…  Alt+Enter More  Tab Preview  …
