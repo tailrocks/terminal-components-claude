@@ -9,8 +9,8 @@ Usage: task-001-verify-sandbox.sh <command> [options]
 
 Commands:
   prepare       Create $TC_BIND symlink tree (no sudo)
-  mount         Expose /task, /work, /proof/bootstrap at filesystem root (sudo)
-  unmount       Remove root symlinks or nullfs mounts (sudo)
+  mount         Verify /task, /work, /proof/bootstrap exist (no sudo; never prompts)
+  unmount       No-op for agents (firmlinks are host-provisioned outside agent sessions)
   layout-smoke  Verify container paths resolve expected files
   verify        Run taskfmt verify from /work (requires mount + progress)
   docker-smoke  Optional Linux Docker volume layout check (paths only)
@@ -18,12 +18,12 @@ Commands:
 
 Environment:
   TC_PLANNING_REPO   Git repo root (auto-detected)
-  TC_WORKTREE        Candidate worktree (default: $TC_PLANNING_REPO/.worktrees/main)
+  TC_WORKTREE        Candidate worktree (default: $TC_PLANNING_REPO/.worktrees/campaign)
   TC_CATALOG_ROOT    Task catalog (default: $TC_PLANNING_REPO/refactoring-tasks/terminal-components)
   TC_BIND            Staging dir (default: /private/tmp/tc-task-001-bind)
   TC_TASKFMT         taskfmt binary (default: /tmp/taskfmt-install/bin/taskfmt)
   TC_TASKFMT_SOURCE  task-format checkout (default: /tmp/taskfmt-qualification)
-  TC_MOUNT_MODE      symlink (default) or nullfs
+  TC_MOUNT_MODE      synthetic (default on Darwin), symlink (legacy), or nullfs (deprecated)
   TC_BASE            Git base for verify (default: HEAD of worktree)
   TC_RUN             Run directory for logs (verify creates if unset)
 
@@ -34,7 +34,9 @@ verify options:
 
 Notes:
   - SO-005 requires macOS with sandbox-exec; Linux Docker cannot pass CHK-005/006/007.
-  - mount/unmount require interactive sudo on macOS.
+  - This script never invokes sudo, osascript, or password prompts. `mount` only checks that
+    /task, /work, /proof/bootstrap already resolve (one-time host firmlinks via synthetic.conf).
+  - Fragment for operators: $TC_BIND/synthetic.conf.fragment (apply outside agent sessions).
   - Untracked worktree files outside verify.toml writable_paths fail taskfmt scope.
     Keep scratch under .qual/ (gitignored in task-001-bootstrap) or run
     git -C \$TC_WORKTREE clean -fd before verify.
@@ -60,13 +62,60 @@ repo_root() {
 
 init_paths() {
   TC_PLANNING_REPO="$(repo_root)"
-  TC_WORKTREE="${TC_WORKTREE:-$TC_PLANNING_REPO/.worktrees/main}"
+  TC_WORKTREE="${TC_WORKTREE:-$TC_PLANNING_REPO/.worktrees/campaign}"
   TC_CATALOG_ROOT="${TC_CATALOG_ROOT:-$TC_PLANNING_REPO/refactoring-tasks/terminal-components}"
   TC_BIND="${TC_BIND:-/private/tmp/tc-task-001-bind}"
   TC_TASKFMT="${TC_TASKFMT:-/tmp/taskfmt-install/bin/taskfmt}"
   TC_TASKFMT_SOURCE="${TC_TASKFMT_SOURCE:-/tmp/taskfmt-qualification}"
-  TC_MOUNT_MODE="${TC_MOUNT_MODE:-symlink}"
-  TC_BASE="${TC_BASE:-$(git -C "$TC_WORKTREE" rev-parse HEAD)}"
+  if [[ -z "${TC_MOUNT_MODE:-}" ]]; then
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+      TC_MOUNT_MODE="synthetic"
+    else
+      TC_MOUNT_MODE="symlink"
+    fi
+  fi
+  if [[ -z "${TC_BASE:-}" ]]; then
+    TC_BASE="$(git -C "$TC_WORKTREE" rev-parse HEAD 2>/dev/null || true)"
+  fi
+  TC_BASE="${TC_BASE:-UNKNOWN}"
+}
+
+# Paths in synthetic.conf are root-relative without a leading slash.
+synthetic_target() {
+  local abs
+  abs="$(cd "$(dirname "$1")" 2>/dev/null && pwd)/$(basename "$1")"
+  abs="${abs#/}"
+  echo "$abs"
+}
+
+synthetic_marker() {
+  echo "# tc-task-001-bind $(synthetic_target "$TC_BIND")"
+}
+
+synthetic_fragment_path() {
+  echo "$TC_BIND/synthetic.conf.fragment"
+}
+
+write_synthetic_fragment() {
+  local frag task_rel work_rel proof_rel
+  frag="$(synthetic_fragment_path)"
+  task_rel="$(synthetic_target "$TC_BIND/task")"
+  work_rel="$(synthetic_target "$TC_BIND/work")"
+  proof_rel="$(synthetic_target "$TC_BIND/proof")"
+  {
+    synthetic_marker
+    printf 'task\t%s\n' "$task_rel"
+    printf 'work\t%s\n' "$work_rel"
+    printf 'proof\t%s\n' "$proof_rel"
+  } >"$frag"
+  echo "Wrote synthetic fragment: $frag"
+}
+
+synthetic_entries_present() {
+  local frag
+  frag="$(synthetic_fragment_path)"
+  [[ -f "$frag" ]] || return 1
+  grep -q "^task[[:space:]]" "$frag" && grep -q "^work[[:space:]]" "$frag" && grep -q "^proof[[:space:]]" "$frag"
 }
 
 require_taskfmt() {
@@ -95,6 +144,7 @@ cmd_prepare() {
   ln -sfn "$TC_TASKFMT" "$bootstrap/bin/taskfmt"
   ln -sfn "$TC_TASKFMT_SOURCE" "$bootstrap/task-format"
   cp -f "$TC_TASKFMT_SOURCE/experiment.toml" "$bootstrap/experiment.toml"
+  write_synthetic_fragment
 
   echo "Prepared bind layout at $TC_BIND"
   echo "  task   -> $task_pkg"
@@ -108,7 +158,7 @@ path_mounted() {
   if [[ "$TC_MOUNT_MODE" == "nullfs" ]]; then
     mount | grep -q " on $p "
   else
-    [[ -L "$p" || -d "$p" ]]
+    [[ -e "$p" ]]
   fi
 }
 
@@ -117,40 +167,29 @@ cmd_mount() {
   [[ -d "$TC_BIND/task" ]] || die "run 'prepare' first (missing $TC_BIND/task)"
 
   if path_mounted /task && path_mounted /work && path_mounted /proof/bootstrap; then
-    echo "Container paths already mounted"
+    echo "Container paths available at /task, /work, /proof/bootstrap"
     return 0
   fi
 
-  if [[ "$TC_MOUNT_MODE" == "nullfs" ]]; then
-    echo "Mounting nullfs (sudo required)..."
-    sudo mkdir -p /task /work /proof/bootstrap
-    sudo mount -t nullfs "$TC_BIND/task" /task
-    sudo mount -t nullfs "$TC_BIND/work" /work
-    sudo mount -t nullfs "$TC_BIND/proof/bootstrap" /proof/bootstrap
-  else
-    echo "Creating root symlinks (sudo required)..."
-    sudo mkdir -p /proof
-    sudo ln -sfn "$TC_BIND/task" /task
-    sudo ln -sfn "$TC_BIND/work" /work
-    sudo ln -sfn "$TC_BIND/proof/bootstrap" /proof/bootstrap
-  fi
-  echo "Mounted /task, /work, /proof/bootstrap"
+  cat >&2 <<EOF
+task-001-verify-sandbox: container paths missing.
+
+Autonomous agents do not use sudo or password prompts. Bind layout is at:
+  $TC_BIND
+
+One-time host provisioning (operator, outside agent sessions):
+  1. ./scripts/task-001-verify-sandbox.sh prepare
+  2. Merge $TC_BIND/synthetic.conf.fragment into /etc/synthetic.conf
+  3. sudo /System/Library/Filesystems/apfs.fs/Contents/Resources/apfs.util -t
+  4. ./scripts/task-001-verify-sandbox.sh mount   # verify-only
+
+See docs/refactoring-plan/task-001-verify-container.md
+EOF
+  die "container paths not available (/task, /work, /proof/bootstrap)"
 }
 
 cmd_unmount() {
-  init_paths
-  if [[ "$TC_MOUNT_MODE" == "nullfs" ]]; then
-    echo "Unmounting nullfs (sudo required)..."
-    sudo umount /task 2>/dev/null || true
-    sudo umount /work 2>/dev/null || true
-    sudo umount /proof/bootstrap 2>/dev/null || true
-  else
-    echo "Removing root symlinks (sudo required)..."
-    sudo rm -f /task /work
-    sudo rm -f /proof/bootstrap
-    sudo rmdir /proof 2>/dev/null || true
-  fi
-  echo "Unmounted container paths"
+  echo "unmount: no-op (agent sessions never modify host firmlinks)"
 }
 
 cmd_layout_smoke() {
