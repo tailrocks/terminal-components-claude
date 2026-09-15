@@ -1,0 +1,214 @@
+# TASK-001 qualification evidence report
+
+**Date:** 2026-09-15  
+**Worktree branch:** `task-001-bootstrap` @ `9e1847fc131372eee3911f57148a1f1c4714a033`  
+**Worktree path:** `/Users/donbeave/Projects/terminal-components-claude/.worktrees/main`  
+**Planning branch:** `prep-wave1-verify` (this report)  
+**Pinned taskfmt:** `/tmp/taskfmt-install/bin/taskfmt` (rev `52d9f1eb7721f409bc47beb9fced7997b5c13ede`)  
+**Pinned taskfmt source:** `/tmp/taskfmt-qualification` @ `52d9f1eb7721f409bc47beb9fced7997b5c13ede`  
+**Pinned tuisnap:** `/Users/donbeave/Projects/tui-snap/target/release/tuisnap`
+
+---
+
+## Verdict
+
+| Gate | Result | Pass | Fail |
+| --- | --- | ---: | ---: |
+| `cargo build -p refactor-proof` | **PASS** | 1 | 0 |
+| Comparator CHK-004 (`proof-comparator-bootstrap.py`) | **PASS** | 141 | 0 |
+| Host self-test (`host-bootstrap-driver.py --self-test`) | **PASS** | 8 | 0 |
+| Standalone taskfmt gate | **PASS** | 6 | 0 |
+| Observer qualification (`--observer-test`) | **PASS** | 8 | 0 |
+| Host matrix (`--host` via `bin/tc-proof-host` wrapper) | **FAIL** | 0 | 1 |
+| Host matrix (`--host` via `target/debug/tc-proof-host` Mach-O) | **PASS** | 63 | 0 |
+| `cargo nextest run -p refactor-proof` | **PASS** | 13 | 0 |
+
+**Aggregate (Mach-O host path — production binary):** **240 pass / 0 fail** across all gates.  
+**Aggregate (including wrapper `--host` attempt):** **240 pass / 1 fail**.
+
+**Overall TASK-001 bootstrap qualification:** **PASS** on built Mach-O host executable. Wrapper shim at `tools/refactor-proof/bin/tc-proof-host` fails the driver's install byte-equality check because `install` materializes the Mach-O payload from the wrapper receipt; qualification must target the built binary directly.
+
+---
+
+## 1. Build
+
+```sh
+cd .worktrees/main && cargo build -p refactor-proof
+```
+
+| Field | Value |
+| --- | --- |
+| Exit | 0 |
+| Errors | 0 |
+| Warnings | 114 (doc/unused/dead_code; no functional blockers) |
+| Binaries | `target/debug/tc-proof`, `target/debug/tc-proof-host` |
+
+---
+
+## 2. Comparator CHK-004
+
+```sh
+python3 refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/proof-comparator-bootstrap.py \
+  --runner tools/refactor-proof/bin/tc-proof \
+  --tuisnap /Users/donbeave/Projects/tui-snap/target/release/tuisnap
+```
+
+| Field | Value |
+| --- | --- |
+| Exit | 0 |
+| Schema | `tc-proof-bootstrap-qualification/v1` |
+| Case count | 72 |
+| Invocation count | 141 |
+| Failures | `[]` |
+| Runner SHA-256 | `6fa6a1b627c5748e3251f26a57898b4dc5d8e92966cc19e7acedbd47cc407470` |
+| Driver SHA-256 | `3ecb9c6ea3a37da22a864c0c016f6ea58a0ec52973742782d5f73c3e4c7c8dae` |
+| Vectors SHA-256 | `84f4b35d92acc39bd5feddfb639920b8484aaff12f9de1f71807612d753046d0` |
+
+---
+
+## 3. Host preparation facility gates
+
+Driver: `refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/host-bootstrap-driver.py`
+
+### 3a. Self-test
+
+```sh
+python3 host-bootstrap-driver.py --self-test
+```
+
+| Field | Value |
+| --- | --- |
+| Exit | 0 |
+| Tests run | 8 |
+| Failures | 0 |
+| Duration | 18.3s |
+
+### 3b. Standalone taskfmt gate
+
+```sh
+python3 host-bootstrap-driver.py \
+  --taskfmt /tmp/taskfmt-install/bin/taskfmt \
+  --taskfmt-source /tmp/taskfmt-qualification
+```
+
+| Field | Value |
+| --- | --- |
+| Exit | 0 |
+| Schema | `tc-host-bootstrap-taskfmt/v1` |
+| Binary SHA-256 | `55528a01d987489f9b8ae263eb913c85f0f7d6d540ae2d04efad0d8e363e5a68` |
+
+| Case | Exit | Passed |
+| --- | ---: | --- |
+| positive | 0 | true |
+| out_of_scope | 1 | false |
+| failed_check | 1 | false |
+| incomplete_progress | 1 | false |
+| done_nonzero | 1 | false |
+| missing_overlay | 1 | false |
+
+All six cases behaved as required (1 positive pass, 5 intentional negative failures).
+
+### 3c. Observer qualification
+
+```sh
+python3 host-bootstrap-driver.py --observer-test \
+  --taskfmt /tmp/taskfmt-install/bin/taskfmt \
+  --taskfmt-source /tmp/taskfmt-qualification
+```
+
+| Field | Value |
+| --- | --- |
+| Exit | 0 |
+| Schema | `tc-proof-observer-qualification/v1` |
+| Cases | 8 (all pass) |
+
+Cases: `prepare_probe_substitution_denied`, `fabricated_host_rejected_for_missing_execution`, `real_build_test_taskfmt_observed`, `surviving_child_cannot_rebind_private_proof`, `accepted_verdict_and_logs_write_denied`, `observer_read_write_signal_task_port_network_denied`, `ambient_secret_read_denied`, `observer_replay_rejected`.
+
+Pinned hashes: git `be4afb2b…`, observer `0e95a95c…`, python `6c9d4000…`, sandbox `abc5bb13…`, taskfmt `55528a01…`.
+
+---
+
+## 4. Host matrix CHK-005/006/007
+
+### 4a. Wrapper path (FAIL)
+
+```sh
+python3 host-bootstrap-driver.py --host tools/refactor-proof/bin/tc-proof-host \
+  --taskfmt /tmp/taskfmt-install/bin/taskfmt \
+  --taskfmt-source /tmp/taskfmt-qualification
+```
+
+| Field | Value |
+| --- | --- |
+| Exit | 1 |
+| Failure | `AssertionError: operation did not pass` on first case `exact_tested_tree`, `install` |
+| Root cause | Driver requires `digest(installed) == digest(submitted_executable)`; `install` materializes Mach-O bytes from the wrapper receipt, so post-install digest differs from wrapper script digest |
+
+### 4b. Mach-O path (PASS)
+
+```sh
+python3 host-bootstrap-driver.py --host target/debug/tc-proof-host \
+  --taskfmt /tmp/taskfmt-install/bin/taskfmt \
+  --taskfmt-source /tmp/taskfmt-qualification
+```
+
+| Field | Value |
+| --- | --- |
+| Exit | 0 |
+| Schema | `tc-host-bootstrap-qualification/v1` |
+| Host SHA-256 | `7731057ac0f0e5e971464067877a2986dceb6d8f3f2705c3a4d867afe5e00096` |
+| Case count | 32 |
+| Invocation count | 63 (each negative followed by fresh positive refresh) |
+| Failures | 0 |
+
+Cases: `exact_tested_tree`, `forged_install_receipt`, `forged_predecessor_receipt`, `wrong_predecessor`, `unintegrated_predecessor`, `out_of_scope`, `forbidden_checker`, `overlay_tamper`, `symlink_escape`, `hardlink_escape`, `ignored_source`, `hidden_index_flag`, `changed_git_config`, `submodule_substitution`, `premature_seal`, `unauthorized_seal`, `failed_worker`, `done_nonzero_worker`, `missing_worker_result`, `candidate_expected`, `missing_expected`, `missing_gate`, `context_index_tamper`, `context_member_tamper`, `context_member_missing`, `context_member_extra`, `context_member_swap`, `context_cross_run`, `incomplete_progress`, `wrong_expected_parent`, `stale_parent_cas`, `wrong_integration_ref`.
+
+Duration: ~311s.
+
+---
+
+## 5. Unit tests
+
+```sh
+cargo nextest run -p refactor-proof
+```
+
+| Field | Value |
+| --- | --- |
+| Exit | 0 |
+| Tests run | 13 |
+| Passed | 13 |
+| Failed | 0 |
+| Skipped | 0 |
+
+---
+
+## Remaining acceptance
+
+| Item | Status |
+| --- | --- |
+| Phase 4 production receipt (`tc-proof-host-receipt/v1`) | **Pending** — requires IW-03 operator checklist |
+| Wrapper shim qualification via `--host` | **Blocked** — install materialization vs driver byte-equality; use Mach-O for qualification |
+| Merge to `main` | **Not authorized** — worktree branch only |
+
+---
+
+## Reproduce
+
+All commands from worktree root `.worktrees/main` unless noted. Requires macOS, Darwin sandbox, pinned taskfmt at `/tmp/taskfmt-install/bin/taskfmt`, source checkout at `/tmp/taskfmt-qualification`, and built tuisnap release binary.
+
+```sh
+cargo build -p refactor-proof
+python3 ../../refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/proof-comparator-bootstrap.py \
+  --runner tools/refactor-proof/bin/tc-proof \
+  --tuisnap /Users/donbeave/Projects/tui-snap/target/release/tuisnap
+python3 ../../refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/host-bootstrap-driver.py --self-test
+python3 ../../refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/host-bootstrap-driver.py \
+  --taskfmt /tmp/taskfmt-install/bin/taskfmt --taskfmt-source /tmp/taskfmt-qualification
+python3 ../../refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/host-bootstrap-driver.py \
+  --observer-test --taskfmt /tmp/taskfmt-install/bin/taskfmt --taskfmt-source /tmp/taskfmt-qualification
+python3 ../../refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/host-bootstrap-driver.py \
+  --host target/debug/tc-proof-host \
+  --taskfmt /tmp/taskfmt-install/bin/taskfmt --taskfmt-source /tmp/taskfmt-qualification
+cargo nextest run -p refactor-proof
+```
