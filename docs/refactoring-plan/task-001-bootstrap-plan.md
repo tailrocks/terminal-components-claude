@@ -186,6 +186,8 @@ cargo nextest run -p refactor-proof    # after tests exist; never cargo test
 
 ### TASK-001 package checks (container / operator environment)
 
+Full CI/container layout, build sync, tui-snap mount, taskfmt install, Mach-O vs wrapper, and Darwin sandbox requirements: [`task-001-ci-requirements.md`](task-001-ci-requirements.md).
+
 Paths use `/task/`, `/work/`, `/proof/bootstrap/` as in verify.toml:
 
 ```sh
@@ -310,6 +312,7 @@ Final task gate: `taskfmt verify` from `/work` with nonempty progress (campaign 
 
 ## Related documents
 
+- [`task-001-ci-requirements.md`](task-001-ci-requirements.md) — CI/container qualification requirements
 - [`proof-contract.md`](proof-contract.md) — command interface and ownership
 - [`001/README.md`](../../refactoring-tasks/terminal-components/completion/001/README.md) — task contract
 - [`001/verify.toml`](../../refactoring-tasks/terminal-components/completion/001/verify.toml) — machine checks
