@@ -21,6 +21,19 @@ parity/
 # local taskfmt qualification sandbox (not operator evidence)
 .qual/
 
+# local git worktrees (nested checkouts; not part of the branch tree)
+.worktrees/
+
+# campaign operator runtime (ledger, runs, evidence) — not committed
+.campaign/ledger.json
+.campaign/runs/
+.campaign/evidence/
+.campaign/host/
+
+# local snapshot scratch (committed oracle store lives under shots/)
+snapshots/
+snapshots.actual
+
 # sync-binaries.sh overwrites committed shell wrappers with Mach-O copies for
 # qualification; do not commit those synced artifacts (restore wrappers before push)
 tools/refactor-proof/bin/tc-proof
