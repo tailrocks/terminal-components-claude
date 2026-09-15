@@ -1,9 +1,11 @@
 # TASK-001 qualification evidence report
 
 **Date:** 2026-09-15  
-**Worktree branch:** `task-001-bootstrap` @ `9e1847fc131372eee3911f57148a1f1c4714a033`  
+**Worktree branch:** `task-001-bootstrap` @ `0a31a338e30fd2c8309a5ac1d7b6d8c0dc7ef408`  
 **Worktree path:** `/Users/donbeave/Projects/terminal-components-claude/.worktrees/main`  
+**Remote branch:** [`task-001-bootstrap`](https://github.com/donbeave/terminal-components-claude/tree/task-001-bootstrap) @ `0a31a338…`  
 **Planning branch:** `prep-wave1-verify` (this report)  
+**Context-check dispatch:** `@0a31a338` — non-fixture frozen verify contexts spawn sibling `tc-proof` subprocess (`context_check.rs`); `tc-host-fixture-check-context/v1` retains stub no-op (`388c173d` warning cleanup → 53 warnings).  
 **Pinned taskfmt:** `/tmp/taskfmt-install/bin/taskfmt` (rev `52d9f1eb7721f409bc47beb9fced7997b5c13ede`)  
 **Pinned taskfmt source:** `/tmp/taskfmt-qualification` @ `52d9f1eb7721f409bc47beb9fced7997b5c13ede`  
 **Pinned tuisnap:** `/Users/donbeave/Projects/tui-snap/target/release/tuisnap`
@@ -40,7 +42,7 @@ cd .worktrees/main && cargo build -p refactor-proof
 | --- | --- |
 | Exit | 0 |
 | Errors | 0 |
-| Warnings | 114 (doc/unused/dead_code; no functional blockers) |
+| Warnings | 53 (doc/unused/dead_code; no functional blockers) |
 | Binaries | `target/debug/tc-proof`, `target/debug/tc-proof-host` |
 
 ---
