@@ -2,7 +2,7 @@
 
 **Issued:** 2026-09-15  
 **Branch:** `prep-wave1-verify`  
-**Catalog commit:** `be2a165d` on branch `prep-wave1-verify` (verify with `git rev-parse HEAD`)  
+**Catalog commit:** `c140a40e` on branch `prep-wave1-verify` (verify with `git rev-parse HEAD`)  
 **Parent planning tip:** `1a873cff` → Wave 2 bootstrap work (IW-02/03 + TASK-001 plan) on this branch  
 **Planning branch `visual-baseline`:** `98fdd8d5` — READINESS-08 tip (Wave 2 on `prep-wave1-verify`; verify with `git rev-parse refs/heads/visual-baseline`)  
 **Product oracle:** `02f5294bfdbf38004cc49130d0aff1d01f31434c`  
@@ -67,7 +67,7 @@ Independent planning witnesses, Wave 1 catalog repairs, and mechanical validator
 
 | Prerequisite | Owner |
 | --- | --- |
-| `tc-proof-host` implementation + qualification | TASK-001 worktree @ `1ef1f3f6` — Phase 3a–3d done; CHK-005/006/007 blocked (relocatable install, verify IPC, pinned taskfmt) — see [`task-001-bootstrap-plan.md`](task-001-bootstrap-plan.md) |
+| `tc-proof-host` implementation + qualification | TASK-001 worktree @ `9e1847fc` — Phase 3 substantially complete (CHK-004 141/141, host matrix 63/63, nextest 13/13); IW-03 operator checklist required before production receipt — see [`task-001-bootstrap-plan.md`](task-001-bootstrap-plan.md) |
 | Operator explicit authorization to arm `/goal` | Operator |
 | Record exact catalog SHA at arm time | Coordinator |
 | Wave 2 hardening | **Closed** — IW-02/03 closed; INT-03 deferred to TASK-001+ production host ([`task-001-bootstrap-plan.md`](task-001-bootstrap-plan.md)) |
@@ -89,4 +89,4 @@ Independent planning witnesses, Wave 1 catalog repairs, and mechanical validator
 | --- | --- |
 | Planning witness | [`review-readiness-final.md`](review-readiness-final.md) @ `3213fce2`; Wave 1 spot-check this document |
 | Wave 1 probe | [`prep-wave1-verification-report.md`](prep-wave1-verification-report.md) |
-| Mechanical validator | `validate-plan.py --summary` error_count 0 @ catalog commit `be2a165d` |
+| Mechanical validator | `validate-plan.py --summary` error_count 0 @ catalog commit `c140a40e` |

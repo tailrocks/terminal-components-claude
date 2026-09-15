@@ -4,7 +4,7 @@
 **Task:** TASK-001 — Implement independently qualified comparator and host core  
 **Product:** `qualified-harness`  
 **Architectural base:** `7b27732a8c3c131760ec3438f641cb3c11343a42`  
-**Catalog tip (planning):** `prep-wave1-verify` @ issuance in [`READY-FOR-REFACTORING-EXECUTION.md`](READY-FOR-REFACTORING-EXECUTION.md)  
+**Catalog tip (planning):** `prep-wave1-verify` @ `c140a40e` in [`READY-FOR-REFACTORING-EXECUTION.md`](READY-FOR-REFACTORING-EXECUTION.md)  
 **Worktree branch:** `task-001-bootstrap`  
 **Worktree path:** `.worktrees/main` (repo-relative) → `/Users/donbeave/Projects/terminal-components-claude/.worktrees/main`
 
@@ -21,7 +21,7 @@ TASK-001 is not a scaffold-only task. It requires two independently qualified ex
 | Comparator | `tools/refactor-proof/bin/tc-proof` | CHK-004: 72 vectors + 69 fresh positive recoveries (141 invocations) |
 | Host core | `tools/refactor-proof/bin/tc-proof-host` | CHK-005/006/007: install/prepare/freeze/verify/seal-reject/integrate, hostile workers, observer IPC, standalone taskfmt |
 
-**Current state on worktree `task-001-bootstrap` (`1ef1f3f6`, parent `7b27732a`):**
+**Current state on worktree `task-001-bootstrap` (`9e1847fc`, parent `7b27732a`):**
 
 | Phase | Status | Worktree commit |
 | --- | --- | --- |
@@ -32,22 +32,16 @@ TASK-001 is not a scaffold-only task. It requires two independently qualified ex
 | 3b — freeze | **Done** — 10/10 bootstrap vectors | `7158db56` |
 | 3c — verify skeleton | **Done** (observer IPC transport + verdict writer) | `a17124e2` |
 | 3d — seal/integrate negatives | **Done** (authority/parent reject vectors) | `1ef1f3f6` |
-| 3 — CHK-005/006/007 driver | **Blocked** — see blockers below | — |
+| 3 — host matrix (CHK-005/006/007) | **Substantially complete** — 63/63 driver invocations | `9e1847fc` |
+| 4 — production receipt | **Pending** — IW-03 operator checklist required | — |
 
 - `tools/refactor-proof/` — **present** (Phase 0–3d; comparator + host six-op skeleton)
 - `tools/refactor-proof/bin/tc-proof` — **present** (wrapper → `target/debug/tc-proof`)
 - `tools/refactor-proof/bin/tc-proof-host` — **present** (wrapper → `target/debug/tc-proof-host`; six operations implemented)
 - `cargo check -p refactor-proof` — **passes** (verified 2026-09-15)
+- `cargo nextest run -p refactor-proof` — **passes** — 13/13 (verified 2026-09-15 @ `9e1847fc`)
 
-Comparator qualification (CHK-004) passes locally against pinned tuisnap. Host install/prepare/freeze/verify/seal/integrate are implemented against bootstrap vectors; full `host-bootstrap-driver.py --host` remains blocked locally (see blockers). All qualification drivers and vectors are frozen in the TASK-001 package at `refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/` (planning branch only; not writable during execution).
-
-**Blockers (local / container qualification):**
-
-| Blocker | Detail |
-| --- | --- |
-| Relocatable install binary | `install` must emit a wrapper whose harness path survives receipt relocation; driver expects exact bytes at destination |
-| Verify worker IPC | Phase 3c skeleton wires observer transport; live `build`/`test`/`taskfmt` steps require planner-owned observer in driver environment |
-| Pinned taskfmt path | Bootstrap `taskfmt` fingerprint (`52c960db…`) must match pinned digest; local `taskfmt` mismatch blocks full driver — path documented in worktree `tools/refactor-proof/README.md` |
+Comparator qualification (CHK-004) passes locally against pinned tuisnap — 141/141 driver invocations. Host install/prepare/freeze/verify/seal/integrate pass full `host-bootstrap-driver.py --host` matrix — 63/63 invocations @ `9e1847fc`. Phase 3 is substantially complete; first production `tc-proof-host-receipt/v1` still requires IW-03 operator checklist (Phase 4). All qualification drivers and vectors are frozen in the TASK-001 package at `refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/` (planning branch only; not writable during execution).
 
 ---
 
@@ -278,22 +272,26 @@ Final task gate: `taskfmt verify` from `/work` with nonempty progress (campaign 
 | `seal` empty `seal_products` reject | **Done** — `premature_seal`, `unauthorized_seal` vectors |
 | `integrate` CAS + ref guards | **Done** — `wrong_expected_parent`, `stale_parent_cas`, `wrong_integration_ref` vectors |
 
+### Phase 3 — host matrix @ `9e1847fc` (substantially complete)
+
+| Item | Status |
+| --- | --- |
+| CHK-004 comparator driver | **Pass** — 141/141 |
+| CHK-005/006/007 host driver | **Pass** — 63/63 full matrix |
+| `cargo nextest run -p refactor-proof` | **Pass** — 13/13 |
+
 ## What remains deferred
 
 | Item | Reason |
 | --- | --- |
-| Relocatable install binary | Blocker — driver expects receipt-relocatable harness wrapper |
-| Full verify with live observer IPC | Blocker — container/driver must supply observer FDs + worker attestation |
-| Pinned taskfmt path in container | Blocker — local fingerprint mismatch; bootstrap path documented in worktree README |
-| CHK-005/006/007 full driver | Requires blockers cleared + container bootstrap paths |
-| Operator bootstrap and first receipt | Phase 4 — IW-03 checklist |
+| Operator bootstrap and first production receipt | Phase 4 — IW-03 operator checklist (`tc-proof-operator-bootstrap-checklist/v1`) required before any first receipt claim |
 | Campaign `/goal` arming | Explicitly out of scope per operator authorization rules |
 
 ---
 
 ## Next steps for Alexey
 
-1. **Confirm worktree:** `cd /Users/donbeave/Projects/terminal-components-claude/.worktrees/main` — branch `task-001-bootstrap` @ `1ef1f3f6`.
+1. **Confirm worktree:** `cd /Users/donbeave/Projects/terminal-components-claude/.worktrees/main` — branch `task-001-bootstrap` @ `9e1847fc`.
 2. ~~**Phase 0 scaffold:**~~ **Done** @ `c06e7747`.
 3. ~~**Phase 1 comparator:**~~ **Done** @ `79807bb3` — CHK-004 141/141.
 4. ~~**Phase 2 observer IPC skeleton:**~~ **Done** @ `9cff8e7e`.
@@ -301,11 +299,10 @@ Final task gate: `taskfmt verify` from `/work` with nonempty progress (campaign 
 6. ~~**Phase 3b freeze:**~~ **Done** @ `7158db56` — 10/10 vectors.
 7. ~~**Phase 3c verify skeleton:**~~ **Done** @ `a17124e2`.
 8. ~~**Phase 3d seal/integrate negatives:**~~ **Done** @ `1ef1f3f6`.
-9. **Clear blockers:** relocatable install binary; live verify worker IPC; run driver with pinned bootstrap `taskfmt` path (`/proof/bootstrap/bin/taskfmt`).
-10. **CHK-005/006/007:** Run full `host-bootstrap-driver.py --host …` in container after blockers cleared.
-11. **Operator gate:** Complete IW-03 checklist before any first receipt claim.
-12. **Integration:** Submit to operator for `taskfmt verify` + host freeze/verify; integrate only via `tc-proof-host integrate` to named ref (never `refs/heads/main` in qualification fixtures).
-13. **Planning branch:** Merge task-001 completion evidence back to planning docs only via separate authorized PR — not in `writable_paths`.
+9. ~~**Phase 3 host matrix:**~~ **Substantially complete** @ `9e1847fc` — CHK-004 141/141, host driver 63/63, nextest 13/13.
+10. **Operator gate (Phase 4):** Complete IW-03 checklist before any first production receipt claim.
+11. **Integration:** Submit to operator for `taskfmt verify` + host freeze/verify; integrate only via `tc-proof-host integrate` to named ref (never `refs/heads/main` in qualification fixtures).
+12. **Planning branch:** Merge task-001 completion evidence back to planning docs only via separate authorized PR — not in `writable_paths`.
 
 ---
 
