@@ -22,7 +22,11 @@ Installed entrypoints for qualification:
 - `install --receipt PATH --destination PATH` validates `TC_PROOF_AUTHORITY_FILE`, checks receipt digests against the authority allowlist, verifies harness executable bytes, and writes `bin/tc-proof-host` mode `0755`.
 - `prepare --campaign DIR --task ID --parent COMMIT --run DIR` validates campaign/receipt bindings, dependency producer/product tuples, predecessor ancestry, pinned taskfmt identity, runs `taskfmt progress-init`, and writes `run/preparation.json`.
 
-`verify` runs observer IPC (build/test/taskfmt), validates the frozen context index, materializes worker/taskfmt logs, and writes `run/verdict.json` with five `CHK-*` entries. Observer unavailable → `rejected` / `integrity` (no panic). `seal` and `integrate` still emit `status: "rejected"` / `category: "unsupported"`.
+`verify` runs observer IPC (build/test/taskfmt), validates the frozen context index, materializes worker/taskfmt logs, and writes `run/verdict.json` with five `CHK-*` entries. Observer unavailable → `rejected` / `integrity` (no panic).
+
+`seal --run DIR --product NAME` rejects fixture tasks with empty `seal_products` (`rejected` / `authority`).
+
+`integrate --run DIR --ref REF --expected-parent COMMIT` validates the configured integration ref, compares the expected parent against preparation and the current ref (CAS), and on success appends a `tc-proof-host-acceptance/v1` ledger record. Wrong ref → `authority`; wrong or stale parent → `parent`.
 
 Phase 3b freeze vectors (`tools/refactor-proof/scripts/test_freeze_vectors.py` via `HostFixture`):
 
@@ -38,6 +42,16 @@ Phase 3b freeze vectors (`tools/refactor-proof/scripts/test_freeze_vectors.py` v
 | `hidden_index_flag` | unsafe-git | pass |
 | `changed_git_config` | unsafe-git | pass |
 | `submodule_substitution` | unsafe-git | pass |
+
+Phase 3d integrate/seal vectors (`tools/refactor-proof/scripts/test_integrate_seal_vectors.py` via `HostFixture`):
+
+| Vector | Category | Result |
+| --- | --- | --- |
+| `premature_seal` | authority | pass |
+| `unauthorized_seal` | authority | pass |
+| `wrong_expected_parent` | parent | pass |
+| `stale_parent_cas` | parent | pass |
+| `wrong_integration_ref` | authority | pass |
 
 Full `host-bootstrap-driver.py --host` remains blocked locally when the installed `taskfmt` fingerprint differs from the pinned bootstrap digest (`52c960db…`).
 

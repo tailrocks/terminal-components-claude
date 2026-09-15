@@ -6,9 +6,11 @@ use std::process::ExitCode;
 
 use super::freeze::{run_freeze, FreezeOutcome};
 use super::install::{run_install, InstallOutcome};
+use super::integrate::{run_integrate, IntegrateOutcome};
 use super::operation::HostOperation;
 use super::prepare::{run_prepare, PrepareOutcome};
 use super::result::HostResult;
+use super::seal::{run_seal, SealOutcome};
 use super::verify::{run_verify, VerifyOutcome};
 
 pub fn emit_result(result: &HostResult) -> io::Result<()> {
@@ -91,6 +93,53 @@ pub fn dispatch_verify(args: &[String]) -> ExitCode {
         VerifyOutcome::Failed(error) => {
             eprintln!("tc-proof-host: verify: {error}");
             finish(HostResult::rejected(HostOperation::Verify, "integrity"))
+        }
+    }
+}
+
+pub fn dispatch_seal(args: &[String]) -> ExitCode {
+    let Some(run) = flag_value(args, "--run") else {
+        return usage_exit("seal requires --run and --product");
+    };
+    let Some(product) = flag_string(args, "--product") else {
+        return usage_exit("seal requires --run and --product");
+    };
+    if has_unknown_flags(args, &["--run", "--product"]) {
+        return usage_exit("seal received unknown option");
+    }
+    match run_seal(&run, &product) {
+        SealOutcome::Passed => finish(HostResult::passed(HostOperation::Seal)),
+        SealOutcome::Rejected(category) => {
+            finish(HostResult::rejected(HostOperation::Seal, category))
+        }
+        SealOutcome::Failed(error) => {
+            eprintln!("tc-proof-host: seal: {error}");
+            finish(HostResult::rejected(HostOperation::Seal, "integrity"))
+        }
+    }
+}
+
+pub fn dispatch_integrate(args: &[String]) -> ExitCode {
+    let Some(run) = flag_value(args, "--run") else {
+        return usage_exit("integrate requires --run, --ref, and --expected-parent");
+    };
+    let Some(integration_ref) = flag_string(args, "--ref") else {
+        return usage_exit("integrate requires --run, --ref, and --expected-parent");
+    };
+    let Some(expected_parent) = flag_string(args, "--expected-parent") else {
+        return usage_exit("integrate requires --run, --ref, and --expected-parent");
+    };
+    if has_unknown_flags(args, &["--run", "--ref", "--expected-parent"]) {
+        return usage_exit("integrate received unknown option");
+    }
+    match run_integrate(&run, &integration_ref, &expected_parent) {
+        IntegrateOutcome::Passed => finish(HostResult::passed(HostOperation::Integrate)),
+        IntegrateOutcome::Rejected(category) => {
+            finish(HostResult::rejected(HostOperation::Integrate, category))
+        }
+        IntegrateOutcome::Failed(error) => {
+            eprintln!("tc-proof-host: integrate: {error}");
+            finish(HostResult::rejected(HostOperation::Integrate, "integrity"))
         }
     }
 }

@@ -13,8 +13,8 @@ use std::env;
 use std::process::ExitCode;
 
 use refactor_proof::host::{
-    dispatch_freeze, dispatch_install, dispatch_prepare, dispatch_unimplemented, dispatch_verify,
-    HostOperation,
+    dispatch_freeze, dispatch_install, dispatch_integrate, dispatch_prepare, dispatch_seal,
+    dispatch_verify, HostOperation,
 };
 
 const OPERATIONS: [HostOperation; 6] = [
@@ -69,6 +69,7 @@ fn main() -> ExitCode {
         HostOperation::Prepare => dispatch_prepare(&args),
         HostOperation::Freeze => dispatch_freeze(&args),
         HostOperation::Verify => dispatch_verify(&args),
-        HostOperation::Seal | HostOperation::Integrate => dispatch_unimplemented(host_operation),
+        HostOperation::Seal => dispatch_seal(&args),
+        HostOperation::Integrate => dispatch_integrate(&args),
     }
 }

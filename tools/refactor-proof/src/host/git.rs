@@ -55,6 +55,24 @@ impl GitCommand {
         self.run(&["rev-parse", reference])
     }
 
+    pub fn commit_tree(&self, tree: &str, parent: &str, message: &str) -> Result<String, String> {
+        self.run(&["commit-tree", tree, "-p", parent, "-m", message])
+    }
+
+    pub fn update_ref(&self, reference: &str, new_value: &str, old_value: &str) -> Result<(), String> {
+        let output = self
+            .run_output(&["update-ref", reference, new_value, old_value])
+            .map_err(|error| error.to_string())?;
+        if output.status.success() {
+            Ok(())
+        } else {
+            Err(format!(
+                "git update-ref {reference} failed: {}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            ))
+        }
+    }
+
     pub fn ls_tree(&self, tree: &str) -> Result<HashMap<String, String>, String> {
         let output = self.run(&["ls-tree", "-r", tree])?;
         let mut entries = HashMap::new();

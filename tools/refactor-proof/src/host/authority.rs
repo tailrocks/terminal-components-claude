@@ -25,6 +25,8 @@ pub struct Authority {
 pub struct Campaign {
     pub path: PathBuf,
     pub repository: PathBuf,
+    pub integration_ref: String,
+    pub ledger_root: PathBuf,
     pub catalog_root: PathBuf,
     pub catalog_sha256: String,
     pub harness_receipt_sha256: String,
@@ -65,6 +67,7 @@ pub struct TaskfmtPin {
 #[derive(Debug, Clone)]
 pub struct TaskSpec {
     pub package: String,
+    pub seal_products: Vec<String>,
     pub dependencies: Vec<DependencySpec>,
     pub check_context_templates: Vec<CheckContextTemplate>,
 }
@@ -131,6 +134,8 @@ pub fn load_campaign(campaign_dir: &Path, authority: &Authority) -> Result<Campa
     let value = parse_json_bytes_strict(&bytes)?;
     require_schema(&value, CAMPAIGN_SCHEMA)?;
     let repository = PathBuf::from(require_str(&value, "repository")?);
+    let integration_ref = require_str(&value, "integration_ref")?;
+    let ledger_root = PathBuf::from(require_str(&value, "ledger_root")?);
     let catalog_root = PathBuf::from(require_str(&value, "catalog_root")?);
     let catalog_sha256 = require_str(&value, "catalog_sha256")?;
     let harness_receipt_sha256 = require_str(&value, "harness_receipt_sha256")?;
@@ -158,6 +163,21 @@ pub fn load_campaign(campaign_dir: &Path, authority: &Authority) -> Result<Campa
     let mut tasks = HashMap::new();
     for (task_id, task_value) in tasks_object {
         let package = require_str(task_value, "package")?;
+        let seal_products = task_value
+            .get("seal_products")
+            .and_then(Value::as_array)
+            .map(|items| {
+                items
+                    .iter()
+                    .map(|item| {
+                        item.as_str()
+                            .map(str::to_owned)
+                            .ok_or_else(|| "seal_products entries must be strings".to_string())
+                    })
+                    .collect::<Result<Vec<_>, _>>()
+            })
+            .transpose()?
+            .unwrap_or_default();
         let dependencies = task_value
             .get("dependencies")
             .and_then(Value::as_array)
@@ -176,6 +196,7 @@ pub fn load_campaign(campaign_dir: &Path, authority: &Authority) -> Result<Campa
             task_id.clone(),
             TaskSpec {
                 package,
+                seal_products,
                 dependencies,
                 check_context_templates: templates,
             },
@@ -184,6 +205,8 @@ pub fn load_campaign(campaign_dir: &Path, authority: &Authority) -> Result<Campa
     Ok(Campaign {
         path: campaign_path,
         repository,
+        integration_ref,
+        ledger_root,
         catalog_root,
         catalog_sha256,
         harness_receipt_sha256,
