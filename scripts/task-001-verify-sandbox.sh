@@ -35,6 +35,9 @@ verify options:
 Notes:
   - SO-005 requires macOS with sandbox-exec; Linux Docker cannot pass CHK-005/006/007.
   - mount/unmount require interactive sudo on macOS.
+  - Untracked worktree files outside verify.toml writable_paths fail taskfmt scope.
+    Keep scratch under .qual/ (gitignored in task-001-bootstrap) or run
+    git -C \$TC_WORKTREE clean -fd before verify.
   - Do not merge prep-wave1-verify to main; never move visual-baseline tag.
 EOF
 }
@@ -209,6 +212,11 @@ cmd_verify() {
     log_dir="$TC_RUN/logs"
   fi
   mkdir -p "$log_dir"
+
+  if git -C "$TC_WORKTREE" status --porcelain | grep -q '^??'; then
+    echo "WARNING: worktree has untracked files; taskfmt scope may FAIL outside writable_paths." >&2
+    echo "  git -C $TC_WORKTREE clean -fd   # or keep scratch under .qual/ (gitignored)" >&2
+  fi
 
   local verbose_flag=()
   [[ "$verbose" -eq 1 ]] && verbose_flag=(--verbose)
