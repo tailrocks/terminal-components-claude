@@ -36,13 +36,14 @@ TASK-001 is not a scaffold-only task. It requires two independently qualified ex
 | 4 — production receipt | **Pending** — IW-03 operator checklist required | — |
 
 - `tools/refactor-proof/` — **present** (Phase 0–3d; comparator + host six-op skeleton)
-- `tools/refactor-proof/bin/tc-proof` — **present** (wrapper → `target/debug/tc-proof`)
-- `tools/refactor-proof/bin/tc-proof-host` — **present** (wrapper → `target/debug/tc-proof-host`; six operations implemented)
+- `tools/refactor-proof/bin/tc-proof` — **present** (Mach-O after `sync-binaries.sh`; dev wrapper at `scripts/dev-tc-proof.sh`)
+- `tools/refactor-proof/bin/tc-proof-host` — **present** (Mach-O after `sync-binaries.sh`; six operations implemented; dev wrapper at `scripts/dev-tc-proof-host.sh`)
+- `tools/refactor-proof/README.md` — **operational docs only** (build/sync/run commands); **not** qualification evidence — see [`task-001-qualification-report.md`](task-001-qualification-report.md) and operator evidence draft
 - `cargo check -p refactor-proof` — **passes** (verified 2026-09-15)
-- `cargo nextest run -p refactor-proof` — **passes** — 13/13 (verified 2026-09-15 @ `cf2e79a0`)
+- `cargo nextest run -p refactor-proof` — **passes** — 17/17 (verified 2026-09-15 @ `cf2e79a0`)
 - `architecture-exemption.json` — **present** @ `cf2e79a0` — registers `tc-proof`/`tc-proof-host` for `binary_names_are_preserved`; xtask `capture_matrix_contract` tolerates worktree-local capture provenance
 
-Comparator qualification (CHK-004) passes locally against pinned tuisnap — 141/141 driver invocations. Host install/prepare/freeze/verify/seal/integrate pass full `host-bootstrap-driver.py --host` matrix — 63/63 invocations @ `782adc03`. Phase 3 is **complete** @ `cf2e79a0` (architecture test fix); first production `tc-proof-host-receipt/v1` still requires IW-03 operator checklist (Phase 4). All qualification drivers and vectors are frozen in the TASK-001 package at `refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/` (planning branch only; not writable during execution).
+Comparator qualification (CHK-004) passes locally against pinned tuisnap — 141/141 driver invocations. Host install/prepare/freeze/verify/seal/integrate pass full `host-bootstrap-driver.py --host` matrix — 63/63 invocations via synced `bin/tc-proof-host` @ `782adc03`. Phase 3 is **complete** @ `cf2e79a0` (architecture test fix); first production `tc-proof-host-receipt/v1` still requires IW-03 operator checklist (Phase 4). Qualification evidence lives in planning docs and bootstrap driver output — not in the crate README. All qualification drivers and vectors are frozen in the TASK-001 package at `refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/` (planning branch only; not writable during execution).
 
 ---
 
@@ -67,7 +68,7 @@ Goal: establish compile-time structure without claiming qualification. This is t
 ```text
 tools/refactor-proof/
   Cargo.toml                 # workspace member; bins tc-proof, tc-proof-host
-  README.md                  # scope pointer to proof-contract.md; not qualification evidence
+  README.md                  # operational build/sync/run docs; not qualification evidence (see task-001-qualification-report.md)
   src/
     lib.rs                   # shared JSON schemas, canonical serialization helpers
     bin/
@@ -281,7 +282,7 @@ Final task gate: `taskfmt verify` from `/work` with nonempty progress (campaign 
 | --- | --- |
 | CHK-004 comparator driver | **Pass** — 141/141 |
 | CHK-005/006/007 host driver | **Pass** — 63/63 full matrix |
-| `cargo nextest run -p refactor-proof` | **Pass** — 13/13 |
+| `cargo nextest run -p refactor-proof` | **Pass** — 17/17 |
 | Architecture exemption (`architecture-exemption.json` + xtask capture tolerance) | **Done** @ `cf2e79a0` |
 
 ## What remains deferred
@@ -303,7 +304,7 @@ Final task gate: `taskfmt verify` from `/work` with nonempty progress (campaign 
 6. ~~**Phase 3b freeze:**~~ **Done** @ `7158db56` — 10/10 vectors.
 7. ~~**Phase 3c verify skeleton:**~~ **Done** @ `a17124e2`.
 8. ~~**Phase 3d seal/integrate negatives:**~~ **Done** @ `1ef1f3f6`.
-9. ~~**Phase 3 host matrix:**~~ **Complete** @ `cf2e79a0` — CHK-004 141/141, host driver 63/63, nextest 13/13, architecture exemption.
+9. ~~**Phase 3 host matrix:**~~ **Complete** @ `cf2e79a0` — CHK-004 141/141, host driver 63/63 (synced `bin/tc-proof-host`), nextest 17/17, architecture exemption.
 10. **Operator gate (Phase 4):** Complete IW-03 checklist before any first production receipt claim.
 11. **Integration:** Submit to operator for `taskfmt verify` + host freeze/verify; integrate only via `tc-proof-host integrate` to named ref (never `refs/heads/main` in qualification fixtures).
 12. **Planning branch:** Merge task-001 completion evidence back to planning docs only via separate authorized PR — not in `writable_paths`.
