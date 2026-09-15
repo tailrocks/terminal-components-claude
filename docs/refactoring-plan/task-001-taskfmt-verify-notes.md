@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-15  
 **Branch (planning):** `prep-wave1-verify`  
-**Branch (worktree):** `task-001-bootstrap` @ `cf2e79a068518e229751f82b635832ecaba8ae4d`  
+**Branch (worktree):** `task-001-bootstrap` @ `3ed5157074d5a05f3a78149b17f9ae01d2324c25`  
 **Worktree path:** `/Users/donbeave/Projects/terminal-components-claude/.worktrees/main`  
 **Operator runbook:** [`task-001-phase4-operator-runbook.md`](task-001-phase4-operator-runbook.md) §6  
 **CI layout:** [`task-001-ci-requirements.md`](task-001-ci-requirements.md)  
@@ -23,10 +23,14 @@ This document records a **prep-wave1** attempt at the standalone `taskfmt verify
 **Primary blockers**
 
 1. **Container path layout** — `verify.toml` invokes checks at hardcoded `/task/`, `/work/`, `/proof/bootstrap/` paths. Without root bind mounts or an operator container exposing those paths, CHK-001/004/005/006/007 fail immediately (Python rc 2, file not found).
-2. **Root mount blocked** — `scripts/task-001-verify-sandbox.sh mount` requires interactive `sudo`; non-interactive session cannot supply credentials. Bind layout under `/tmp/tc-task001-verify` is valid (`docker-smoke` → `LAYOUT_OK`) but root paths remain absent.
-3. **Worktree scope pollution** — untracked `.qual/task-001-progress-sandbox/` under the worktree causes `scope` FAIL (paths outside `writable_paths`). Remove before a clean verify attempt.
+2. **Root mount blocked** — `scripts/task-001-verify-sandbox.sh mount` requires interactive `sudo`; non-interactive session cannot supply credentials (`sudo -n` also fails). Bind layout under `/tmp/tc-task001-verify` is valid (`docker-smoke` → `LAYOUT_OK`) but root paths remain absent.
 
-**Resolved in this session (not sufficient for SO-005):** progress through leaf **3.1** with `state=DONE` — the progress check now **PASS** when frozen events are supplied.
+**SO-005 achievable without sudo?** **No.** TASKFMT env overrides (`TASKFMT_ROOT`, `TASKFMT_TASK_DIR`, `TASKFMT_CONFIG`) maximize non-root pass count (`pass=5 fail=5`) but do **not** rewrite `verify.toml` subprocess argv. Full gate requires root `/task`, `/work`, `/proof/bootstrap` mounts on a Darwin host with `sandbox-exec`.
+
+**Resolved in this session (not sufficient for SO-005):**
+
+- Progress through leaf **3.1** with `state=DONE` — progress check **PASS**.
+- Scope **PASS** after removing worktree `.qual/` scratch (taskfmt scope ignores `.gitignore`; untracked files under `.qual/` still fail `writable_paths`).
 
 **Advisory qualification (substituted paths, not via taskfmt verify):** CHK-001, CHK-004, CHK-005 all exit **0** against worktree @ `cf2e79a0` after `sync-binaries.sh`. Implementation appears ready; the standalone gate path is blocked on environment layout and progress completion, not on driver failures.
 
@@ -82,7 +86,7 @@ export TC_TASKFMT=/tmp/taskfmt-install/bin/taskfmt
 export TC_TASKFMT_SOURCE=/tmp/taskfmt-qualification
 export TC_CANDIDATE=$TC_WORKTREE
 export TC_BASE=$(git -C "$TC_CANDIDATE" rev-parse HEAD)
-# TC_BASE=cf2e79a068518e229751f82b635832ecaba8ae4d
+# TC_BASE=3ed5157074d5a05f3a78149b17f9ae01d2324c25
 ```
 
 ---
@@ -144,9 +148,36 @@ Header: `state: DONE`, `current: NONE`, `latest_event: 12`. Written to `$TC_RUN/
 
 ---
 
-## 5. Standalone taskfmt verify — direct flags (no container layout)
+## 5. Standalone taskfmt verify — bind-tree `/work` equivalent (no sudo mount)
 
-From worktree with explicit `--root`, `--task-dir`, `--base`, `--progress`, `--log-dir`:
+When `mount` is blocked, run from the bind-tree work symlink with TASKFMT env overrides (equivalent to `/work` + `/proof/bootstrap` config):
+
+```sh
+export TC_BIND=/tmp/tc-task001-verify
+export TC_RUN=/tmp/tc-task001-verify/run-$(date -u +%Y%m%dT%H%M%SZ)
+mkdir -p "$TC_RUN/logs"
+
+# Progress: reuse .qual sandbox DONE file or regenerate per task-001-progress-completion-guide.md
+cp "$TC_WORKTREE/.qual/task-001-progress-sandbox/progress-done.md" "$TC_RUN/progress.md"
+
+# Scope: remove .qual scratch before verify (taskfmt scope sees untracked files regardless of .gitignore)
+rm -rf "$TC_WORKTREE/.qual"
+
+scripts/task-001-verify-sandbox.sh prepare   # TC_BIND=/tmp/tc-task001-verify
+
+cd "$TC_BIND/work"
+export TASKFMT_ROOT="$TC_BIND/work"
+export TASKFMT_TASK_DIR="$TC_BIND/task"
+export TASKFMT_CONFIG="$TC_BIND/proof/bootstrap/experiment.toml"
+
+"$TC_TASKFMT" verify \
+  --base "$TC_BASE" \
+  --progress "$TC_RUN/progress.md" \
+  --log-dir "$TC_RUN/logs" \
+  --verbose 2>&1 | tee "$TC_RUN/taskfmt-verify.log"
+```
+
+Direct-flag variant (same ceiling — CHK argv still hardcoded):
 
 ```sh
 cd "$TC_CANDIDATE"
@@ -160,15 +191,13 @@ cd "$TC_CANDIDATE"
   --verbose 2>&1 | tee "$TC_RUN/taskfmt-verify.log"
 ```
 
-With completed progress (`state=DONE`, events through **3.1**). Earlier session used `progress-init` only (`IN_PROGRESS` / `1.1`).
-
-### Outcome (latest session @ `20260915T123715Z`)
+### Outcome (latest session @ `20260915T124707Z`)
 
 | Metric | Value |
 | --- | --- |
 | Process exit | **0** |
 | Last stdout line | **`RESULT FAIL`** |
-| SUMMARY | `pass=5 fail=6` |
+| SUMMARY | **`pass=5 fail=5`** (max without sudo mount) |
 
 ### Per-check results (latest session)
 
@@ -176,7 +205,7 @@ With completed progress (`state=DONE`, events through **3.1**). Earlier session 
 | --- | --- | ---: | --- |
 | config | PASS | — | — |
 | task_lint | PASS | — | — |
-| scope | **FAIL** | **1** | untracked `.qual/task-001-progress-sandbox/` outside `writable_paths` |
+| scope | **PASS** | — | `.qual/` removed before verify |
 | forbidden_paths | PASS | — | — |
 | forbidden_patterns | PASS | — | — |
 | CHK-001 | **FAIL** | **2** | `/task/trusted/proof-bootstrap/host-bootstrap-driver.py` not found |
@@ -185,6 +214,8 @@ With completed progress (`state=DONE`, events through **3.1**). Earlier session 
 | CHK-006 | **FAIL** | **2** | same as CHK-001 |
 | CHK-007 | **FAIL** | **2** | same as CHK-001 |
 | progress | **PASS** | — | `state=DONE`, leaf **3.1** complete |
+
+Prior session (`20260915T123715Z`, direct flags, `.qual/` present): `pass=4 fail=6` (scope FAIL).
 
 Example CHK-001 log excerpt (`$TC_RUN/logs/CHK-001.log`):
 
@@ -221,8 +252,9 @@ Prepared bind layout:
 | Step | Exit | Notes |
 | --- | ---: | --- |
 | `prepare` | **0** | Symlinks valid under `$TC_BIND` |
-| `mount` | **blocked** | `sudo: a password is required` (non-interactive) |
+| `mount` | **blocked** | `sudo: a password is required` (non-interactive; `sudo -n` exit 1) |
 | `docker-smoke` | **0** | `LAYOUT_OK` — container volume paths resolve; does not run CHK drivers |
+| `verify` (bind-tree + env) | **0** proc / **FAIL** gate | `pass=5 fail=5`; CHK blocked on missing `/task` root paths |
 
 **Unblock options for operator:** run `scripts/task-001-verify-sandbox.sh mount` with interactive sudo (symlink or `TC_MOUNT_MODE=nullfs`); then `layout-smoke` and `verify` from `/work`. Linux Docker alone is insufficient — CHK host-matrix drivers require Darwin `sandbox-exec`.
 
@@ -287,12 +319,12 @@ cd "$TC_CANDIDATE"
 
 | Path | Purpose |
 | --- | --- |
-| `/tmp/tc-task001-verify/run-20260915T123715Z/progress.md` | frozen progress (`state=DONE`, through **3.1**) |
-| `/tmp/tc-task001-verify/run-20260915T123715Z/logs/` | per-check logs from failed verify |
-| `/tmp/tc-task001-verify/run-20260915T123715Z/taskfmt-verify.log` | full verify transcript (verbose) |
+| `/tmp/tc-task001-verify/run-20260915T124707Z/progress.md` | frozen progress (`state=DONE`, through **3.1**) |
+| `/tmp/tc-task001-verify/run-20260915T124707Z/logs/` | per-check logs (`pass=5 fail=5`) |
+| `/tmp/tc-task001-verify/run-20260915T124707Z/taskfmt-verify.log` | full verify transcript (verbose, bind-tree + env) |
 | `/tmp/tc-task001-verify/` | bind layout (`prepare` output; root mount not applied) |
 
-Prior session artifacts remain at `/tmp/tc-task-001-run-20260915T122252Z/` and `/private/tmp/tc-task-001-bind/`.
+Prior session artifacts: `run-20260915T123715Z/` (scope FAIL), `/tmp/tc-task-001-run-20260915T122252Z/`, `/private/tmp/tc-task-001-bind/`.
 
 ---
 
