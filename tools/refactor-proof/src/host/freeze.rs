@@ -68,7 +68,7 @@ fn freeze_run(
         &verify_scope,
     )?;
     let tree = GitCommand::new(candidate)
-        .write_tree_from_worktree(candidate)
+        .write_tree_from_worktree(candidate, run_dir)
         .map_err(|_| "integrity")?;
     write_freeze_record(
         run_dir,

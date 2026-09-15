@@ -24,17 +24,22 @@ Installed entrypoints for qualification:
 
 `verify` runs observer IPC (build/test/taskfmt), validates the frozen context index, materializes worker/taskfmt logs, and writes `run/verdict.json` with five `CHK-*` entries. Observer unavailable → `rejected` / `integrity` (no panic). `seal` and `integrate` still emit `status: "rejected"` / `category: "unsupported"`.
 
-Qualification driver filtering: `host-bootstrap-driver.py` has no `--cases` filter. Phase 3a vectors exercised directly:
+Phase 3b freeze vectors (`tools/refactor-proof/scripts/test_freeze_vectors.py` via `HostFixture`):
 
-| Vector | Result |
-| --- | --- |
-| `forged_install_receipt` | pass |
-| `forged_predecessor_receipt` | pass |
-| `wrong_predecessor` | pass |
-| `unintegrated_predecessor` | pass |
-| positive install+prepare | blocked locally — installed `taskfmt` fingerprint differs from pinned bootstrap (`52c960db…`) |
+| Vector | Category | Result |
+| --- | --- | --- |
+| `exact_tested_tree` (freeze) | passed | pass |
+| `out_of_scope` | scope | pass |
+| `forbidden_checker` | scope | pass |
+| `overlay_tamper` | scope | pass |
+| `symlink_escape` | unsafe-path | pass |
+| `hardlink_escape` | unsafe-path | pass |
+| `ignored_source` | unsafe-git | pass |
+| `hidden_index_flag` | unsafe-git | pass |
+| `changed_git_config` | unsafe-git | pass |
+| `submodule_substitution` | unsafe-git | pass |
 
-Full driver `--host` invocation additionally requires the pinned taskfmt executable before any host case runs.
+Full `host-bootstrap-driver.py --host` remains blocked locally when the installed `taskfmt` fingerprint differs from the pinned bootstrap digest (`52c960db…`).
 
 ## Observer IPC (Phase 3c transport)
 

@@ -94,7 +94,9 @@ impl GitCommand {
         Ok(output
             .lines()
             .filter_map(|line| {
-                let (flag, path) = line.split_once('\t')?;
+                let mut parts = line.split_whitespace();
+                let flag = parts.next()?;
+                let path = parts.next()?;
                 flag.chars().next().map(|marker| (path.to_owned(), marker))
             })
             .collect())
@@ -137,10 +139,17 @@ impl GitCommand {
         Ok(output.status.success())
     }
 
-    pub fn write_tree_from_worktree(&self, worktree: &Path) -> Result<String, String> {
-        let temp = tempfile::tempdir().map_err(|error| error.to_string())?;
-        copy_worktree(worktree, temp.path()).map_err(|error| error.to_string())?;
-        let git = GitCommand::new(temp.path());
+    pub fn write_tree_from_worktree(
+        &self,
+        worktree: &Path,
+        scratch_root: &Path,
+    ) -> Result<String, String> {
+        let build_dir = scratch_root.join("tree-build");
+        if build_dir.exists() {
+            fs::remove_dir_all(&build_dir).map_err(|error| error.to_string())?;
+        }
+        copy_worktree(worktree, &build_dir).map_err(|error| error.to_string())?;
+        let git = GitCommand::new(&build_dir);
         git.run(&["init", "-q", "--initial-branch=fixture"])?;
         git.run(&["add", "-A"])?;
         git.run(&["write-tree"])
@@ -148,6 +157,7 @@ impl GitCommand {
 }
 
 fn copy_worktree(source: &Path, destination: &Path) -> io::Result<()> {
+    fs::create_dir_all(destination)?;
     for entry in fs::read_dir(source)? {
         let entry = entry?;
         let file_name = entry.file_name();
@@ -160,9 +170,6 @@ fn copy_worktree(source: &Path, destination: &Path) -> io::Result<()> {
         if file_type.is_dir() {
             copy_worktree(&source_path, &target_path)?;
         } else if file_type.is_file() {
-            if let Some(parent) = target_path.parent() {
-                fs::create_dir_all(parent)?;
-            }
             fs::copy(source_path, target_path)?;
         }
     }
@@ -257,13 +264,20 @@ mod tests {
         fs::write(repo.join("src/new.txt"), b"new\n").expect("write");
         let index_tree = git.write_tree().expect("index tree");
         let worktree_tree = git
-            .write_tree_from_worktree(&repo)
+            .write_tree_from_worktree(&repo, temp.path())
             .expect("worktree tree");
         assert_ne!(index_tree, worktree_tree);
-        let entries = git.ls_tree(&worktree_tree).expect("ls-tree");
-        assert!(entries.contains_key("src/payload.txt"));
-        assert!(entries.contains_key("src/new.txt"));
-        assert!(!entries.contains_key("src/obsolete.txt"));
+        let snapshot = tempfile::tempdir().expect("snapshot");
+        copy_worktree(&repo, snapshot.path()).expect("copy");
+        let snapshot_git = GitCommand::new(snapshot.path());
+        snapshot_git
+            .run(&["init", "-q", "--initial-branch=fixture"])
+            .expect("init");
+        snapshot_git.run(&["add", "-A"]).expect("add");
+        assert_eq!(
+            snapshot_git.run(&["write-tree"]).expect("snapshot tree"),
+            worktree_tree
+        );
     }
 }
 

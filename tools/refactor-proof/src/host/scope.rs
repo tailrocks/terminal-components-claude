@@ -77,8 +77,19 @@ pub fn validate_candidate(
 }
 
 fn validate_unsafe_git(git: &GitCommand) -> Result<(), &'static str> {
-    if !git.local_config_entries().map_err(|_| "integrity")?.is_empty() {
-        return Err("unsafe-git");
+    for key in [
+        "user.name",
+        "user.email",
+        "core.excludesfile",
+        "core.worktree",
+        "core.hooksPath",
+    ] {
+        let output = git
+            .run_output(&["config", "--local", "--get", key])
+            .map_err(|_| "integrity")?;
+        if output.status.success() {
+            return Err("unsafe-git");
+        }
     }
     for (_path, marker) in git.ls_files_verbose().map_err(|_| "integrity")? {
         if matches!(marker, 'h' | 'S') {
