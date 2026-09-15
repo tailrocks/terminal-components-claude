@@ -17,3 +17,6 @@ crates/tui/wip/
 
 # untracked parity capture artifacts
 parity/
+
+# local taskfmt qualification sandbox (not operator evidence)
+.qual/
