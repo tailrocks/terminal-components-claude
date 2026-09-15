@@ -4,14 +4,15 @@ TASK-001 deliverable: independently qualified `tc-proof` comparator and `tc-proo
 
 Command interface and ownership boundaries are defined in [`docs/refactoring-plan/proof-contract.md`](../../docs/refactoring-plan/proof-contract.md). This crate does not constitute qualification evidence until CHK-004/005/006/007 pass against the pinned bootstrap drivers.
 
-Build and sync qualification entrypoints:
+Build, sync, and run:
 
 ```sh
 cargo build -p refactor-proof
+# Required before host-bootstrap-driver --host (CHK-005/006/007):
 tools/refactor-proof/scripts/sync-binaries.sh
 ```
 
-`verify.toml` and `host-bootstrap-driver.py --host` use `tools/refactor-proof/bin/tc-proof-host`. The bootstrap driver requires that path to be a regular Mach-O executable so `install` reproduces the accepted harness bytes (Darwin sandbox may allow the submitted argv[0] but deny reads under `target/debug/`). After `sync-binaries.sh`, `bin/tc-proof-host` and `bin/tc-proof` are copies of the workspace-built binaries. Development wrappers that exec `target/debug/` directly live under `scripts/dev-tc-proof-host.sh` and `scripts/dev-tc-proof.sh`.
+Committed `bin/tc-proof` and `bin/tc-proof-host` are shell wrappers that exec `target/debug/*` for local development and comparator runs. **Always run `sync-binaries.sh` before the host bootstrap driver** — `verify.toml` and `host-bootstrap-driver.py --host` expect `tools/refactor-proof/bin/tc-proof-host` to be a regular Mach-O executable so `install` reproduces the accepted harness bytes (Darwin sandbox may allow the submitted argv[0] but deny reads under `target/debug/`). `sync-binaries.sh` copies the workspace-built binaries over the wrappers for qualification; restore the committed wrappers with `git restore tools/refactor-proof/bin/` before pushing if sync left Mach-O copies in the working tree.
 
 ## Host operations (Phase 3a)
 
@@ -54,13 +55,15 @@ Phase 3d integrate/seal vectors (`tools/refactor-proof/scripts/test_integrate_se
 Run the full host matrix with the synced bin path (63 invocations):
 
 ```sh
+cargo build -p refactor-proof
+tools/refactor-proof/scripts/sync-binaries.sh
 python3 refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/host-bootstrap-driver.py \
   --host tools/refactor-proof/bin/tc-proof-host \
   --taskfmt /path/to/pinned/taskfmt \
   --taskfmt-source /path/to/pinned/task-format
 ```
 
-Requires macOS, pinned taskfmt revision `52d9f1eb…` / fingerprint `52c960db…`, and synced Mach-O entrypoints.
+Requires macOS, pinned taskfmt revision `52d9f1eb…` / fingerprint `52c960db…`, and Mach-O entrypoints at `bin/tc-proof-host` after `sync-binaries.sh`.
 
 ## Observer IPC (Phase 3c transport)
 

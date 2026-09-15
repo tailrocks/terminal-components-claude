@@ -20,3 +20,8 @@ parity/
 
 # local taskfmt qualification sandbox (not operator evidence)
 .qual/
+
+# sync-binaries.sh overwrites committed shell wrappers with Mach-O copies for
+# qualification; do not commit those synced artifacts (restore wrappers before push)
+tools/refactor-proof/bin/tc-proof
+tools/refactor-proof/bin/tc-proof-host
