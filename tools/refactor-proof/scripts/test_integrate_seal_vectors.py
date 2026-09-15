@@ -13,7 +13,11 @@ from pathlib import Path
 WORKTREE = Path(__file__).resolve().parents[3]
 REPO = WORKTREE.parents[1] if WORKTREE.name == "main" else WORKTREE
 DRIVER = REPO / "refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/host-bootstrap-driver.py"
-HOST = WORKTREE / "target/debug/tc-proof-host"
+HOST = Path(
+    os.environ["HOST_BIN"]
+    if "HOST_BIN" in os.environ
+    else WORKTREE / "tools/refactor-proof/bin/tc-proof-host"
+)
 TASKFMT = Path(
     os.environ["TASKFMT_BIN"]
     if "TASKFMT_BIN" in os.environ
