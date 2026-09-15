@@ -3,7 +3,7 @@
 mod client;
 mod ipc;
 
-pub use client::ObserverClient;
+pub use client::{ObserverClient, ObserverUnavailable};
 pub use ipc::{
     ObserverEnv, ObserverError, ObserverObservation, ObserverRequest, ObserverRequestSchema,
     ObserverResponse, ObserverStep,

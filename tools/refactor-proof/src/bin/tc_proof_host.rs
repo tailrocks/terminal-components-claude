@@ -1,4 +1,4 @@
-//! tc-proof-host entrypoint (Phase 0 stub).
+//! tc-proof-host entrypoint.
 
 #![expect(
     clippy::print_stdout,
@@ -10,22 +10,21 @@
 )]
 
 use std::env;
-use std::io::{self, Write as _};
 use std::process::ExitCode;
 
-use serde_json::json;
+use refactor_proof::host::{dispatch_install, dispatch_prepare, dispatch_unimplemented, HostOperation};
 
-const OPERATIONS: [&str; 6] = [
-    "install",
-    "prepare",
-    "freeze",
-    "verify",
-    "seal",
-    "integrate",
+const OPERATIONS: [HostOperation; 6] = [
+    HostOperation::Install,
+    HostOperation::Prepare,
+    HostOperation::Freeze,
+    HostOperation::Verify,
+    HostOperation::Seal,
+    HostOperation::Integrate,
 ];
 
 const HOST_HELP: &str = "\
-tc-proof-host — host-only proof operations (Phase 0 stub)
+tc-proof-host — host-only proof operations
 
 operations:
   install    install accepted harness executable from receipt
@@ -43,24 +42,6 @@ fn usage() -> ! {
     std::process::exit(2);
 }
 
-fn emit_result(operation: &str) -> io::Result<()> {
-    let result = json!({
-        "schema": "tc-proof-host-result/v1",
-        "operation": operation,
-        "status": "rejected",
-        "category": "unsupported"
-    });
-    writeln!(io::stdout(), "{result}")
-}
-
-fn dispatch(operation: &str) -> ExitCode {
-    if let Err(error) = emit_result(operation) {
-        eprintln!("tc-proof-host: write result: {error}");
-        return ExitCode::from(2);
-    }
-    ExitCode::from(1)
-}
-
 fn main() -> ExitCode {
     let mut args: Vec<String> = env::args().skip(1).collect();
     if args.is_empty() || args[0] == "--help" || args[0] == "-h" {
@@ -72,9 +53,20 @@ fn main() -> ExitCode {
         usage();
     }
     let operation = args.remove(0);
-    if !OPERATIONS.contains(&operation.as_str()) {
+    let Some(host_operation) = operation.parse().ok() else {
+        eprintln!("tc-proof-host: unknown operation: {operation}");
+        usage();
+    };
+    if !OPERATIONS.contains(&host_operation) {
         eprintln!("tc-proof-host: unknown operation: {operation}");
         usage();
     }
-    dispatch(&operation)
+    match host_operation {
+        HostOperation::Install => dispatch_install(&args),
+        HostOperation::Prepare => dispatch_prepare(&args),
+        HostOperation::Freeze
+        | HostOperation::Verify
+        | HostOperation::Seal
+        | HostOperation::Integrate => dispatch_unimplemented(host_operation),
+    }
 }

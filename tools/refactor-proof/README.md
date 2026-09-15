@@ -15,7 +15,28 @@ Installed entrypoints for qualification:
 - `bin/tc-proof` — wrapper to the workspace-built comparator
 - `bin/tc-proof-host` — wrapper to the workspace-built host
 
-## Observer IPC (Phase 2 skeleton)
+## Host operations (Phase 3a)
+
+`install` and `prepare` are implemented against the host bootstrap protocol:
+
+- `install --receipt PATH --destination PATH` validates `TC_PROOF_AUTHORITY_FILE`, checks receipt digests against the authority allowlist, verifies harness executable bytes, and writes `bin/tc-proof-host` mode `0755`.
+- `prepare --campaign DIR --task ID --parent COMMIT --run DIR` validates campaign/receipt bindings, dependency producer/product tuples, predecessor ancestry, pinned taskfmt identity, runs `taskfmt progress-init`, and writes `run/preparation.json`.
+
+`freeze`, `verify`, `seal`, and `integrate` still emit `tc-proof-host-result/v1` with `status: "rejected"` / `category: "unsupported"`.
+
+Qualification driver filtering: `host-bootstrap-driver.py` has no `--cases` filter. Phase 3a vectors exercised directly:
+
+| Vector | Result |
+| --- | --- |
+| `forged_install_receipt` | pass |
+| `forged_predecessor_receipt` | pass |
+| `wrong_predecessor` | pass |
+| `unintegrated_predecessor` | pass |
+| positive install+prepare | blocked locally — installed `taskfmt` fingerprint differs from pinned bootstrap (`52c960db…`) |
+
+Full driver `--host` invocation additionally requires the pinned taskfmt executable before any host case runs.
+
+## Observer IPC (Phase 2 skeleton; transport Phase 3b)
 
 During `verify`, the host cannot self-attest worker or taskfmt execution. The planner-owned observer (outside the host sandbox) supplies three host-only environment values:
 

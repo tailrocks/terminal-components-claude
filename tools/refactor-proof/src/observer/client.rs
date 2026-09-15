@@ -1,23 +1,48 @@
-//! Observer IPC client stub (Phase 2 compile-only; transport in Phase 3).
+//! Observer IPC client stub (Phase 3b adds transport over inherited FDs).
 
 use std::io;
 
 use super::ipc::{ObserverObservation, ObserverRequest, ObserverStep};
 
+/// Observer transport is not yet wired; callers receive this instead of panicking.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ObserverUnavailable;
+
+impl std::fmt::Display for ObserverUnavailable {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str("observer IPC transport not implemented (Phase 3b)")
+    }
+}
+
+impl std::error::Error for ObserverUnavailable {}
+
+impl From<ObserverUnavailable> for io::Error {
+    fn from(value: ObserverUnavailable) -> Self {
+        Self::new(io::ErrorKind::Unsupported, value)
+    }
+}
+
 /// Host-side observer IPC client bound to inherited pipe descriptors.
-///
-/// Phase 3 will implement newline-framed JSON over `TC_PROOF_OBSERVER_*_FD`.
 pub struct ObserverClient {
     nonce: String,
 }
 
 impl ObserverClient {
-    /// Open a client from observer-supplied environment (Phase 3).
-    pub fn from_env() -> io::Result<Self> {
-        Err(io::Error::new(
-            io::ErrorKind::Unsupported,
-            "observer IPC transport not implemented (Phase 3)",
-        ))
+    /// Open a client from observer-supplied environment.
+    ///
+    /// Returns [`ObserverUnavailable`] until Phase 3b implements FD transport.
+    pub fn from_env() -> Result<Self, ObserverUnavailable> {
+        let _ = (
+            std::env::var(super::ipc::ObserverEnv::REQUEST_FD),
+            std::env::var(super::ipc::ObserverEnv::RESPONSE_FD),
+            std::env::var(super::ipc::ObserverEnv::NONCE),
+        );
+        Err(ObserverUnavailable)
+    }
+
+    /// Fail closed when verify requests observer execution before transport exists.
+    pub fn require_transport() -> Result<(), ObserverUnavailable> {
+        Err(ObserverUnavailable)
     }
 
     /// Nonce copied from `TC_PROOF_OBSERVER_NONCE`.
@@ -42,13 +67,10 @@ impl ObserverClient {
         Ok(format!("{line}\n"))
     }
 
-    /// Issue the fixed verify sequence: build, test, taskfmt (Phase 3).
-    pub fn execute_verify_sequence(&mut self) -> io::Result<Vec<ObserverObservation>> {
-        let _ = self.encode_request(ObserverStep::Build)?;
-        Err(io::Error::new(
-            io::ErrorKind::Unsupported,
-            "observer IPC transport not implemented (Phase 3)",
-        ))
+    /// Issue the fixed verify sequence: build, test, taskfmt.
+    pub fn execute_verify_sequence(&mut self) -> Result<Vec<ObserverObservation>, ObserverUnavailable> {
+        let _ = self.encode_request(ObserverStep::Build).map_err(|_| ObserverUnavailable)?;
+        Err(ObserverUnavailable)
     }
 }
 

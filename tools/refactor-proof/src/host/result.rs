@@ -54,6 +54,15 @@ pub enum HostResultSchema {
 }
 
 impl HostResult {
+    pub fn passed(operation: HostOperation) -> Self {
+        Self {
+            schema: HostResultSchema::V1,
+            operation: operation.into(),
+            status: HostStatus::Passed,
+            category: None,
+        }
+    }
+
     pub fn rejected(operation: HostOperation, category: impl Into<String>) -> Self {
         Self {
             schema: HostResultSchema::V1,
