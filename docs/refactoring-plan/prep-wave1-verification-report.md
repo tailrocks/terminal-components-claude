@@ -16,11 +16,11 @@
 | **Is the catalog fully ready for `READY FOR REFACTORING EXECUTION`?** | **Yes (Wave 1 + Wave 2 complete)** — see [`READY-FOR-REFACTORING-EXECUTION.md`](READY-FOR-REFACTORING-EXECUTION.md) |
 | **Safe to arm campaign `/goal` from this branch?** | **Catalog-ready** — requires operator explicit authorization per READY doc; tag `visual-baseline` unmoved |
 
-**One-line:** Wave 1 **PASS**; Wave 2 hardening **PASS** (IW-02/03 closed, INT-03 deferred); execution readiness **ISSUED** on `prep-wave1-verify` (catalog SHA `d2d09da`).
+**One-line:** Wave 1 **PASS**; Wave 2 hardening **PASS** (IW-02/03 closed, INT-03 deferred); execution readiness **ISSUED** on `prep-wave1-verify` (catalog SHA `b0ee0f23`).
 
 **TASK-001 progress:** Phase 1 CHK-004 141/141 @ `79807bb3`; Phase 3 **complete** @ `cf2e79a0` (architecture exemption).
 
-**TASK-001 planning:** [`task-001-operator-evidence-draft.md`](task-001-operator-evidence-draft.md) @ `8dea381e`; [`task-001-taskfmt-verify-notes.md`](task-001-taskfmt-verify-notes.md); [`task-001-ci-requirements.md`](task-001-ci-requirements.md); PR [#4](https://github.com/donbeave/terminal-components-claude/pull/4).
+**TASK-001 planning:** [`task-001-operator-evidence-draft.md`](task-001-operator-evidence-draft.md) @ `8dea381e`; [`task-001-taskfmt-verify-notes.md`](task-001-taskfmt-verify-notes.md); [`task-001-ci-requirements.md`](task-001-ci-requirements.md); [`task-001-qualification-report.md`](task-001-qualification-report.md) @ `b0ee0f23`; PR [#4](https://github.com/donbeave/terminal-components-claude/pull/4).
 
 ---
 
@@ -114,7 +114,7 @@
 | Branch | Role |
 | --- | --- |
 | `visual-baseline` | Planning oracle branch @ `98fdd8d5` (READINESS-08 tip; Wave 2 on `prep-wave1-verify`) |
-| `prep-wave1-verify` | **Wave 1 + Wave 2 complete** + [`READY-FOR-REFACTORING-EXECUTION.md`](READY-FOR-REFACTORING-EXECUTION.md) issued @ `d2d09da` |
+| `prep-wave1-verify` | **Wave 1 + Wave 2 complete** + [`READY-FOR-REFACTORING-EXECUTION.md`](READY-FOR-REFACTORING-EXECUTION.md) issued @ `b0ee0f23` |
 
 **Tag policy:** Frozen tag `visual-baseline` remains @ `4a79c0a2` (peeled; unmoved). Branch `visual-baseline` tracks catalog tip separately from the frozen tag.
 
@@ -124,4 +124,4 @@
 
 ## Conclusion
 
-Wave 1 is **complete**; Wave 2 hardening **closed** (IW-02, IW-03); INT-03 **deferred** to TASK-001+ production host. Partitions **C, D, and E** spot-check **PASS**. Mechanical gates green @ catalog SHA `d2d09da`. Execution readiness issued — next step is operator authorization, then TASK-001 bootstrap on architectural `main` per [`task-001-bootstrap-plan.md`](task-001-bootstrap-plan.md).
+Wave 1 is **complete**; Wave 2 hardening **closed** (IW-02, IW-03); INT-03 **deferred** to TASK-001+ production host. Partitions **C, D, and E** spot-check **PASS**. Mechanical gates green @ catalog SHA `b0ee0f23`. Execution readiness issued — next step is operator authorization, then TASK-001 bootstrap on architectural `main` per [`task-001-bootstrap-plan.md`](task-001-bootstrap-plan.md).
