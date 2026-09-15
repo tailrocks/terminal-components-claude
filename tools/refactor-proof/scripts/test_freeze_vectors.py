@@ -14,10 +14,44 @@ WORKTREE = Path(__file__).resolve().parents[3]
 REPO = WORKTREE.parents[1] if WORKTREE.name == "main" else WORKTREE
 DRIVER = REPO / "refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/host-bootstrap-driver.py"
 HOST = WORKTREE / "target/debug/tc-proof-host"
-TASKFMT = Path(os.environ.get("TASKFMT_BIN", "/Users/donbeave/.cargo/bin/taskfmt"))
-TASKFMT_SOURCE = Path(
-    os.environ.get("TASKFMT_SOURCE", "/Users/donbeave/Projects/donbeave/task-format")
+TASKFMT = Path(
+    os.environ["TASKFMT_BIN"]
+    if "TASKFMT_BIN" in os.environ
+    else WORKTREE / ".proof/bootstrap/bin/taskfmt"
 )
+TASKFMT_SOURCE = Path(
+    os.environ["TASKFMT_SOURCE"]
+    if "TASKFMT_SOURCE" in os.environ
+    else WORKTREE / ".proof/bootstrap/task-format"
+)
+
+
+def require_taskfmt_paths() -> None:
+    missing: list[str] = []
+    if not TASKFMT.is_file():
+        hint = (
+            "set TASKFMT_BIN"
+            if "TASKFMT_BIN" in os.environ
+            else f"default {WORKTREE / '.proof/bootstrap/bin/taskfmt'}"
+        )
+        missing.append(f"taskfmt binary missing: {TASKFMT} ({hint})")
+    if not TASKFMT_SOURCE.is_dir():
+        hint = (
+            "set TASKFMT_SOURCE"
+            if "TASKFMT_SOURCE" in os.environ
+            else f"default {WORKTREE / '.proof/bootstrap/task-format'}"
+        )
+        missing.append(f"taskfmt source missing: {TASKFMT_SOURCE} ({hint})")
+    if missing:
+        for line in missing:
+            print(line, file=sys.stderr)
+        print(
+            "Set TASKFMT_BIN and TASKFMT_SOURCE or install pinned bootstrap under .proof/bootstrap/",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+
+
 FREEZE_NEGATIVE = {
     "out_of_scope": "scope",
     "forbidden_checker": "scope",
@@ -160,6 +194,7 @@ def main() -> int:
     if not HOST.is_file():
         print(f"host executable missing: {HOST}", file=sys.stderr)
         return 2
+    require_taskfmt_paths()
     driver = load_driver()
     passed = 0
     failed: list[str] = []
