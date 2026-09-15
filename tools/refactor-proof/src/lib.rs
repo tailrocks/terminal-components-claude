@@ -1,5 +1,7 @@
 //! Shared JSON schemas and canonical serialization for tc-proof tools.
 
+#![allow(missing_docs)]
+
 pub mod compare;
 pub mod host;
 pub mod json_util;
