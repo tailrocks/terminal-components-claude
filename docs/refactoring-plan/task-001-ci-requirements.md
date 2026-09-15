@@ -65,31 +65,29 @@ See [`task-001-qualification-report.md`](task-001-qualification-report.md) §4a/
 
 ---
 
-## tui-snap path dependency and container mount
+## tui-snap git dependency and container mount
 
-### Worktree Cargo path dep
+### Worktree Cargo git dep
 
-`tools/refactor-proof/Cargo.toml` declares:
+`tools/refactor-proof/Cargo.toml` declares a pinned git dependency (not a sibling path dep) so `cargo metadata --locked` succeeds on clean checkouts without a local `tui-snap` tree:
 
 ```toml
-tuisnap = { path = "../../../../../tui-snap", default-features = false }
+tuisnap = { git = "https://github.com/donbeave/tui-snap.git", rev = "0a2e490802b7b048cd96349c6af860f8a3a05c3d", default-features = false }
 ```
-
-From the worktree root (`.worktrees/main`), this resolves to a sibling checkout:
 
 | Field | Value |
 | --- | --- |
-| Host path | `/Users/donbeave/Projects/tui-snap` |
+| Repository | `https://github.com/donbeave/tui-snap.git` |
 | Pinned revision | `0a2e490802b7b048cd96349c6af860f8a3a05c3d` |
 | Reviewed merge head (ancestor) | `883d03f19d890bbbf27468798db78b04e85297ac` |
 
-Verify before build: `git -C /Users/donbeave/Projects/tui-snap rev-parse HEAD` must equal the pinned revision.
+Local operators may optionally clone the sibling checkout at `/Users/donbeave/Projects/tui-snap` @ the same pin for `--tuisnap` roundtrip self-tests; it is not required for workspace metadata or `cargo build -p refactor-proof`.
 
 Build the comparator's external frame validator (CHK-004 self-test roundtrip):
 
 ```sh
 cargo build --release -p tuisnap --bin tuisnap
-# executable: /Users/donbeave/Projects/tui-snap/target/release/tuisnap
+# executable: target/release/tuisnap (from workspace git dep)
 ```
 
 ### Container mount
