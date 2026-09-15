@@ -9,7 +9,12 @@
 **Architecture test fix:** `@cf2e79a0` — `tools/refactor-proof/architecture-exemption.json` registers `tc-proof`/`tc-proof-host` for `binary_names_are_preserved`; `capture_matrix_contract` tolerates checkout-local `resolved_path` and absent gitignored `shots/.capture-state/` stderr on worktrees.  
 **Pinned taskfmt:** `/tmp/taskfmt-install/bin/taskfmt` (rev `52d9f1eb7721f409bc47beb9fced7997b5c13ede`)  
 **Pinned taskfmt source:** `/tmp/taskfmt-qualification` @ `52d9f1eb7721f409bc47beb9fced7997b5c13ede`  
-**Pinned tuisnap:** `/Users/donbeave/Projects/tui-snap/target/release/tuisnap`
+**Pinned tuisnap:** `/Users/donbeave/Projects/tui-snap/target/release/tuisnap`  
+**Full workspace nextest:** **3201/3201 pass** @ `cf2e79a0` (worktree `.worktrees/main`; 6 skipped)  
+**Planning PR:** [#4](https://github.com/donbeave/terminal-components-claude/pull/4)  
+**Operator evidence draft:** [`task-001-operator-evidence-draft.md`](task-001-operator-evidence-draft.md) @ `8dea381e`  
+**taskfmt verify prep:** [`task-001-taskfmt-verify-notes.md`](task-001-taskfmt-verify-notes.md) — OB-006 **blocked** (§7)  
+**validate-plan:** `error_count: 0` on `prep-wave1-verify`
 
 ---
 
@@ -25,8 +30,10 @@
 | Host matrix (`--host` via `bin/tc-proof-host` wrapper) | **FAIL** | 0 | 1 |
 | Host matrix (`--host` via `target/debug/tc-proof-host` Mach-O) | **PASS** | 63 | 0 |
 | `cargo nextest run -p refactor-proof` | **PASS** | 13 | 0 |
+| Full workspace `cargo nextest run` | **PASS** | 3201 | 0 |
 
-**Aggregate (Mach-O host path — production binary):** **240 pass / 0 fail** across all gates.  
+**Aggregate (Mach-O host path — production binary):** **240 pass / 0 fail** across refactor-proof gates.  
+**Workspace regression (advisory):** **3201/3201** @ `cf2e79a0` — no worktree fixes required.  
 **Aggregate (including wrapper `--host` attempt):** **240 pass / 1 fail**.
 
 **Overall TASK-001 bootstrap qualification:** **PASS** on built Mach-O host executable. Wrapper shim at `tools/refactor-proof/bin/tc-proof-host` fails the driver's install byte-equality check because `install` materializes the Mach-O payload from the wrapper receipt; qualification must target the built binary directly.
@@ -186,11 +193,54 @@ cargo nextest run -p refactor-proof
 
 ---
 
+## 6. Full workspace nextest
+
+```sh
+cd .worktrees/main && cargo nextest run
+```
+
+| Field | Value |
+| --- | --- |
+| Exit | 0 |
+| Tests run | 3201 |
+| Passed | 3201 |
+| Failed | 0 |
+| Skipped | 6 |
+| Worktree tip | `cf2e79a068518e229751f82b635832ecaba8ae4d` |
+| Duration | ~171s |
+
+Advisory workspace regression only; does not substitute for TASK-001 host receipt or OB-006 `taskfmt verify`.
+
+---
+
+## 7. Standalone `taskfmt verify` blockers (OB-006 prep)
+
+Source: [`task-001-taskfmt-verify-notes.md`](task-001-taskfmt-verify-notes.md). Does **not** authorize SO-005 sign-off.
+
+| Gate criterion | Result |
+| --- | --- |
+| `taskfmt verify` exit code | **0** |
+| Last stdout line | **`RESULT FAIL`** (not `DONE`) |
+| **OB-006 / SO-005 reached?** | **No** |
+
+**Primary blockers**
+
+1. **Container path layout** — `verify.toml` invokes checks at hardcoded `/task/`, `/work/`, `/proof/bootstrap/` paths. Without root bind mounts or an operator container exposing those paths, CHK-001/004/005/006/007 fail immediately (Python rc 2, file not found).
+2. **Incomplete progress** — `progress-init` leaves `state=IN_PROGRESS`, `current=1.1`. Progress check fails until operator completes checklist events through leaf **3.1** per campaign executor protocol.
+3. **Root symlink simulation blocked** — creating `/task`, `/work`, `/proof/bootstrap` at filesystem root requires `sudo`; non-interactive session cannot supply credentials.
+
+**Direct-flag verify summary:** `pass=4 fail=6` — config, task_lint, scope, forbidden_paths, forbidden_patterns pass; CHK-001–007 fail on container paths; progress fails (`state=IN_PROGRESS (want DONE)`).
+
+**Advisory qualification (substituted paths, not via `taskfmt verify`):** CHK-001, CHK-004, CHK-005 all exit **0** against worktree @ `cf2e79a0` after `sync-binaries.sh`. Implementation appears ready; standalone gate blocked on environment layout and progress completion, not driver failures.
+
+---
+
 ## Remaining acceptance
 
 | Item | Status |
 | --- | --- |
-| Phase 4 production receipt (`tc-proof-host-receipt/v1`) | **Pending** — requires IW-03 operator checklist |
+| Phase 4 production receipt (`tc-proof-host-receipt/v1`) | **Pending** — requires IW-03 operator checklist; evidence draft @ `8dea381e` |
+| Standalone `taskfmt verify` (OB-006) | **Blocked** — container paths + progress through 3.1; see §7 |
 | Wrapper shim qualification via `--host` | **Blocked** — install materialization vs driver byte-equality; use Mach-O for qualification |
 | Merge to `main` | **Not authorized** — worktree branch only |
 
@@ -214,4 +264,5 @@ python3 ../../refactoring-tasks/terminal-components/completion/001/trusted/proof
   --host target/debug/tc-proof-host \
   --taskfmt /tmp/taskfmt-install/bin/taskfmt --taskfmt-source /tmp/taskfmt-qualification
 cargo nextest run -p refactor-proof
+cargo nextest run
 ```
