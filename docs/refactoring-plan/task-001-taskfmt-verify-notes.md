@@ -5,7 +5,8 @@
 **Branch (worktree):** `task-001-bootstrap` @ `cf2e79a068518e229751f82b635832ecaba8ae4d`  
 **Worktree path:** `/Users/donbeave/Projects/terminal-components-claude/.worktrees/main`  
 **Operator runbook:** [`task-001-phase4-operator-runbook.md`](task-001-phase4-operator-runbook.md) §6  
-**CI layout:** [`task-001-ci-requirements.md`](task-001-ci-requirements.md)
+**CI layout:** [`task-001-ci-requirements.md`](task-001-ci-requirements.md)  
+**Container simulation:** [`task-001-verify-container.md`](task-001-verify-container.md), [`scripts/task-001-verify-sandbox.sh`](../../scripts/task-001-verify-sandbox.sh)
 
 This document records a **prep-wave1** attempt at the standalone `taskfmt verify` completion gate for TASK-001. It does **not** authorize SO-005 sign-off or receipt issuance.
 
@@ -22,8 +23,10 @@ This document records a **prep-wave1** attempt at the standalone `taskfmt verify
 **Primary blockers**
 
 1. **Container path layout** — `verify.toml` invokes checks at hardcoded `/task/`, `/work/`, `/proof/bootstrap/` paths. Without root bind mounts or an operator container exposing those paths, CHK-001/004/005/006/007 fail immediately (Python rc 2, file not found).
-2. **Incomplete progress** — `progress-init` leaves `state=IN_PROGRESS`, `current=1.1`. Even if CHK commands were reachable, the progress check fails until operator completes checklist events through leaf **3.1** per campaign executor protocol.
-3. **Root symlink simulation blocked** — creating `/task`, `/work`, `/proof/bootstrap` at filesystem root requires `sudo`; non-interactive session cannot supply credentials.
+2. **Root mount blocked** — `scripts/task-001-verify-sandbox.sh mount` requires interactive `sudo`; non-interactive session cannot supply credentials. Bind layout under `/tmp/tc-task001-verify` is valid (`docker-smoke` → `LAYOUT_OK`) but root paths remain absent.
+3. **Worktree scope pollution** — untracked `.qual/task-001-progress-sandbox/` under the worktree causes `scope` FAIL (paths outside `writable_paths`). Remove before a clean verify attempt.
+
+**Resolved in this session (not sufficient for SO-005):** progress through leaf **3.1** with `state=DONE` — the progress check now **PASS** when frozen events are supplied.
 
 **Advisory qualification (substituted paths, not via taskfmt verify):** CHK-001, CHK-004, CHK-005 all exit **0** against worktree @ `cf2e79a0` after `sync-binaries.sh`. Implementation appears ready; the standalone gate path is blocked on environment layout and progress completion, not on driver failures.
 
@@ -101,15 +104,17 @@ Post-sync `host_sha256`: `97137da559217c39b4fce172556df7a6a1ad27e978e018725a9b05
 
 ---
 
-## 4. Progress init (runbook §6a)
+## 4. Progress init and completion (runbook §6a)
+
+Session run directory: `/tmp/tc-task001-verify/run-20260915T123715Z`
 
 ```sh
-export TC_RUN=/tmp/tc-task-001-run-20260915T122252Z
+export TC_RUN=/tmp/tc-task001-verify/run-$(date -u +%Y%m%dT%H%M%SZ)
 mkdir -p "$TC_RUN/logs"
 
 "$TC_TASKFMT" --config "$TC_TASKFMT_SOURCE/experiment.toml" progress-init \
   "$TC_CATALOG_ROOT/completion/001" \
-  --out "$TC_RUN/progress.md"
+  --out "$TC_RUN/progress-init.md"
 ```
 
 | Field | Value |
@@ -117,6 +122,25 @@ mkdir -p "$TC_RUN/logs"
 | Exit | **0** |
 | Output line | `PROGRESS … task=TASK-001 current=1.1` |
 | Initial state | `IN_PROGRESS` / leaf `1.1` |
+
+Operator freeze handling: append checklist events through leaf **3.1** (leaves `1.1`, `2.1`, `2.2`, `2.3`, `2.4`, `3.1`). Minimal terminal event stream for this session:
+
+```text
+- 1 | STARTED | 1.1
+- 2 | DONE | 1.1
+- 3 | STARTED | 2.1
+- 4 | DONE | 2.1
+- 5 | STARTED | 2.2
+- 6 | DONE | 2.2
+- 7 | STARTED | 2.3
+- 8 | DONE | 2.3
+- 9 | STARTED | 2.4
+- 10 | DONE | 2.4
+- 11 | STARTED | 3.1
+- 12 | DONE | 3.1
+```
+
+Header: `state: DONE`, `current: NONE`, `latest_event: 12`. Written to `$TC_RUN/progress.md` for verify.
 
 ---
 
@@ -136,21 +160,23 @@ cd "$TC_CANDIDATE"
   --verbose 2>&1 | tee "$TC_RUN/taskfmt-verify.log"
 ```
 
-### Outcome
+With completed progress (`state=DONE`, events through **3.1**). Earlier session used `progress-init` only (`IN_PROGRESS` / `1.1`).
+
+### Outcome (latest session @ `20260915T123715Z`)
 
 | Metric | Value |
 | --- | --- |
 | Process exit | **0** |
 | Last stdout line | **`RESULT FAIL`** |
-| SUMMARY | `pass=4 fail=6` |
+| SUMMARY | `pass=5 fail=6` |
 
-### Per-check results
+### Per-check results (latest session)
 
 | Check | Result | Exit in log | Blocker |
 | --- | --- | ---: | --- |
 | config | PASS | — | — |
 | task_lint | PASS | — | — |
-| scope | PASS | — | — |
+| scope | **FAIL** | **1** | untracked `.qual/task-001-progress-sandbox/` outside `writable_paths` |
 | forbidden_paths | PASS | — | — |
 | forbidden_patterns | PASS | — | — |
 | CHK-001 | **FAIL** | **2** | `/task/trusted/proof-bootstrap/host-bootstrap-driver.py` not found |
@@ -158,7 +184,7 @@ cd "$TC_CANDIDATE"
 | CHK-005 | **FAIL** | **2** | same as CHK-001 |
 | CHK-006 | **FAIL** | **2** | same as CHK-001 |
 | CHK-007 | **FAIL** | **2** | same as CHK-001 |
-| progress | **FAIL** | **1** | `state=IN_PROGRESS (want DONE)` |
+| progress | **PASS** | — | `state=DONE`, leaf **3.1** complete |
 
 Example CHK-001 log excerpt (`$TC_RUN/logs/CHK-001.log`):
 
@@ -175,32 +201,30 @@ stderr:
 
 ## 6. Container path simulation attempt
 
-Prepared bind layout under `/private/tmp/tc-task-001-bind`:
+Via [`scripts/task-001-verify-sandbox.sh`](../../scripts/task-001-verify-sandbox.sh) with `TC_BIND=/tmp/tc-task001-verify`:
 
 ```sh
-export TC_BIND=/private/tmp/tc-task-001-bind
-mkdir -p "$TC_BIND/proof/bootstrap/bin"
-ln -sf "$TC_CATALOG_ROOT/completion/001" "$TC_BIND/task"
-ln -sf "$TC_WORKTREE" "$TC_BIND/work"
-ln -sf "$TC_TASKFMT" "$TC_BIND/proof/bootstrap/bin/taskfmt"
-ln -sf "$TC_TASKFMT_SOURCE" "$TC_BIND/proof/bootstrap/task-format"
-cp "$TC_TASKFMT_SOURCE/experiment.toml" "$TC_BIND/proof/bootstrap/experiment.toml"
+export TC_BIND=/tmp/tc-task001-verify
+scripts/task-001-verify-sandbox.sh prepare
+scripts/task-001-verify-sandbox.sh mount      # blocked: sudo password required
+scripts/task-001-verify-sandbox.sh docker-smoke   # LAYOUT_OK (paths only)
 ```
 
-Attempted root symlinks (requires interactive sudo — **blocked**):
+Prepared bind layout:
 
-```sh
-sudo ln -sfn "$TC_BIND/task" /task
-sudo ln -sfn "$TC_BIND/work" /work
-sudo ln -sfn "$TC_BIND/proof/bootstrap" /proof/bootstrap
+```text
+/tmp/tc-task001-verify/task              → $TC_CATALOG_ROOT/completion/001
+/tmp/tc-task001-verify/work              → $TC_WORKTREE
+/tmp/tc-task001-verify/proof/bootstrap/  → taskfmt bin, task-format checkout, experiment.toml
 ```
 
 | Step | Exit | Notes |
 | --- | ---: | --- |
-| Layout prep under `$TC_BIND` | **0** | Symlinks valid |
-| Root symlink creation | **blocked** | `sudo` waits for password; non-interactive session |
+| `prepare` | **0** | Symlinks valid under `$TC_BIND` |
+| `mount` | **blocked** | `sudo: a password is required` (non-interactive) |
+| `docker-smoke` | **0** | `LAYOUT_OK` — container volume paths resolve; does not run CHK drivers |
 
-**Unblock options for operator:** macOS bind/nullfs mounts at `/task`, `/work`, `/proof/bootstrap`; or campaign container with those paths per [`task-001-ci-requirements.md`](task-001-ci-requirements.md). Linux Docker alone is insufficient — CHK drivers require Darwin `sandbox-exec`.
+**Unblock options for operator:** run `scripts/task-001-verify-sandbox.sh mount` with interactive sudo (symlink or `TC_MOUNT_MODE=nullfs`); then `layout-smoke` and `verify` from `/work`. Linux Docker alone is insufficient — CHK host-matrix drivers require Darwin `sandbox-exec`.
 
 ---
 
@@ -242,9 +266,9 @@ CHK-006 and CHK-007 use identical argv in `verify.toml`; advisory CHK-005 pass i
 
 ## 8. Remaining steps for SO-005 (operator)
 
-1. Provision container/bind layout so `/task`, `/work`, `/proof/bootstrap` resolve per `verify.toml`.
-2. Complete checklist events in `$TC_RUN/progress.md` through leaf **3.1** (operator freeze handling per [`campaign-executor-protocol.md`](campaign-executor-protocol.md)).
-3. Re-run §6b from [`task-001-phase4-operator-runbook.md`](task-001-phase4-operator-runbook.md):
+1. Run `scripts/task-001-verify-sandbox.sh mount` (interactive sudo) so `/task`, `/work`, `/proof/bootstrap` resolve per `verify.toml`.
+2. Remove worktree pollution outside `writable_paths` (e.g. `rm -rf .qual/task-001-progress-sandbox` in worktree) before verify.
+3. Re-run §6b from [`task-001-phase4-operator-runbook.md`](task-001-phase4-operator-runbook.md) with frozen progress through **3.1**:
 
 ```sh
 cd "$TC_CANDIDATE"
@@ -259,14 +283,16 @@ cd "$TC_CANDIDATE"
 
 ---
 
-## 9. Artifact paths (this session)
+## 9. Artifact paths (latest session)
 
 | Path | Purpose |
 | --- | --- |
-| `/tmp/tc-task-001-run-20260915T122252Z/progress.md` | progress-init output |
-| `/tmp/tc-task-001-run-20260915T122252Z/logs/` | per-check logs from failed verify |
-| `/tmp/tc-task-001-run-20260915T122252Z/taskfmt-verify.log` | full verify transcript |
-| `/private/tmp/tc-task-001-bind/` | prepared (unmounted) simulation layout |
+| `/tmp/tc-task001-verify/run-20260915T123715Z/progress.md` | frozen progress (`state=DONE`, through **3.1**) |
+| `/tmp/tc-task001-verify/run-20260915T123715Z/logs/` | per-check logs from failed verify |
+| `/tmp/tc-task001-verify/run-20260915T123715Z/taskfmt-verify.log` | full verify transcript (verbose) |
+| `/tmp/tc-task001-verify/` | bind layout (`prepare` output; root mount not applied) |
+
+Prior session artifacts remain at `/tmp/tc-task-001-run-20260915T122252Z/` and `/private/tmp/tc-task-001-bind/`.
 
 ---
 
