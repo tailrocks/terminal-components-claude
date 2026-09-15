@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+crate_root="$(cd "$(dirname "$0")/.." && pwd)"
+workspace_root="$(cd "$crate_root/../.." && pwd)"
+exec "$workspace_root/target/debug/tc-proof-host" "$@"
