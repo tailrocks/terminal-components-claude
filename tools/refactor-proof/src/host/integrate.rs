@@ -100,6 +100,11 @@ fn integrate_run(
     let message = format!(
         "Integrate {task_id}\n\nSigned-off-by: tc-proof-host <host@example.invalid>\nCo-authored-by: Codex <codex@openai.com>"
     );
+    let alternate_objects = run_dir.join("tree-build").join(".git").join("objects");
+    if alternate_objects.is_dir() {
+        git.register_alternate_object_directory(&alternate_objects)
+            .map_err(|_| "integrity")?;
+    }
     let commit = git
         .commit_tree(&freeze.tree, &freeze.parent, &message)
         .map_err(|_| "integrity")?;

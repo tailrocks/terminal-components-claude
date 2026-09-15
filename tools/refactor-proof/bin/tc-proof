@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-crate_root="$(cd "$(dirname "$0")/.." && pwd)"
+self="$(realpath "$0")"
+bin_dir="$(cd "$(dirname "$self")" && pwd)"
+crate_root="$(cd "$bin_dir/.." && pwd)"
 workspace_root="$(cd "$crate_root/../.." && pwd)"
 exec "$workspace_root/target/debug/tc-proof" "$@"

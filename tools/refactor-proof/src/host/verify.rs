@@ -8,7 +8,7 @@ use std::process::Command;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::authority::{load_authority, load_campaign, Campaign};
+use super::authority::{load_authority, load_campaign, Campaign, TaskSpec};
 use super::context::{load_bound_context_index, ContextIndex, ContextMember};
 use crate::json_util::{is_safe_relative_path, parse_json_bytes_strict, require_str, sha256_bytes};
 use crate::observer::{
@@ -96,6 +96,13 @@ pub fn run_verify(run_dir: &Path) -> VerifyOutcome {
         Ok(value) => value,
         Err(ObserverUnavailable) => return VerifyOutcome::Rejected("integrity"),
     };
+    let task_spec = match campaign.tasks.get(&index.task_id) {
+        Some(value) => value,
+        None => return VerifyOutcome::Rejected("integrity"),
+    };
+    if let Err(category) = validate_catalog_gate(&campaign, task_spec) {
+        return VerifyOutcome::Rejected(category);
+    }
     let workers = match load_workers(&campaign, &index.task_id) {
         Ok(value) => value,
         Err(category) => return VerifyOutcome::Rejected(category),
@@ -232,10 +239,7 @@ fn materialize_observations(
                 return Err("worker");
             }
             let stdout = decode_file_payload(&observation.stdout).map_err(|_| "integrity")?;
-            let Some(last) = stdout.split(|byte| *byte == b'\n').next_back() else {
-                return Err("integrity");
-            };
-            if last != b"DONE" {
+            if !taskfmt_stdout_done(&stdout) {
                 return Err("worker");
             }
             continue;
@@ -274,6 +278,32 @@ fn materialize_observations(
         }
     }
     Ok(())
+}
+
+fn validate_catalog_gate(campaign: &Campaign, task_spec: &TaskSpec) -> Result<(), &'static str> {
+    let verify_toml = campaign
+        .catalog_root
+        .join(&task_spec.package)
+        .join("verify.toml");
+    let text = fs::read_to_string(&verify_toml).map_err(|_| "integrity")?;
+    for template in &task_spec.check_context_templates {
+        let needle = format!("id = \"{}\"", template.check_id);
+        if !text.contains(&needle) {
+            return Err("integrity");
+        }
+    }
+    if !text.contains("phase = \"gate\"") {
+        return Err("integrity");
+    }
+    Ok(())
+}
+
+fn taskfmt_stdout_done(stdout: &[u8]) -> bool {
+    stdout
+        .split(|byte| *byte == b'\n' || *byte == b'\r')
+        .rev()
+        .find(|line| !line.is_empty())
+        == Some(b"DONE")
 }
 
 fn run_context_checks(run_dir: &Path, index: &ContextIndex) -> Result<(), &'static str> {
@@ -346,6 +376,14 @@ mod tests {
     use base64::Engine as _;
     use crate::observer::ObserverStep;
     use std::collections::BTreeMap;
+
+    #[test]
+    fn taskfmt_stdout_done_accepts_trailing_newline() {
+        assert!(taskfmt_stdout_done(b"DONE\n"));
+        assert!(taskfmt_stdout_done(b"progress\nDONE"));
+        assert!(!taskfmt_stdout_done(b"DONE\nFAIL\n"));
+        assert!(!taskfmt_stdout_done(b""));
+    }
 
     #[test]
     fn build_verdict_checks_writes_five_logs() {

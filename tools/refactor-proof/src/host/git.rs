@@ -34,7 +34,16 @@ impl GitCommand {
     }
 
     pub fn run_output(&self, args: &[&str]) -> Result<Output, String> {
-        Command::new("git")
+        self.run_output_with_alternates(args, &[])
+    }
+
+    fn run_output_with_alternates(
+        &self,
+        args: &[&str],
+        alternate_object_directories: &[PathBuf],
+    ) -> Result<Output, String> {
+        let mut command = Command::new("git");
+        command
             .env("GIT_CONFIG_NOSYSTEM", "1")
             .env("GIT_CONFIG_GLOBAL", "/dev/null")
             .env("GIT_CONFIG_COUNT", "3")
@@ -46,9 +55,16 @@ impl GitCommand {
             .env("GIT_CONFIG_VALUE_2", "host@example.invalid")
             .arg("-C")
             .arg(&self.repository)
-            .args(args)
-            .output()
-            .map_err(|error| error.to_string())
+            .args(args);
+        if !alternate_object_directories.is_empty() {
+            let joined = alternate_object_directories
+                .iter()
+                .map(|path| path.to_string_lossy().into_owned())
+                .collect::<Vec<_>>()
+                .join(":");
+            command.env("GIT_ALTERNATE_OBJECT_DIRECTORIES", joined);
+        }
+        command.output().map_err(|error| error.to_string())
     }
 
     pub fn rev_parse(&self, reference: &str) -> Result<String, String> {
@@ -56,7 +72,28 @@ impl GitCommand {
     }
 
     pub fn commit_tree(&self, tree: &str, parent: &str, message: &str) -> Result<String, String> {
-        self.run(&["commit-tree", tree, "-p", parent, "-m", message])
+        self.commit_tree_with_alternates(tree, parent, message, &[])
+    }
+
+    pub fn commit_tree_with_alternates(
+        &self,
+        tree: &str,
+        parent: &str,
+        message: &str,
+        alternate_object_directories: &[PathBuf],
+    ) -> Result<String, String> {
+        let output = self.run_output_with_alternates(
+            &["commit-tree", tree, "-p", parent, "-m", message],
+            alternate_object_directories,
+        )?;
+        if output.status.success() {
+            Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
+        } else {
+            Err(format!(
+                "git commit-tree failed: {}",
+                String::from_utf8_lossy(&output.stderr).trim()
+            ))
+        }
     }
 
     pub fn update_ref(&self, reference: &str, new_value: &str, old_value: &str) -> Result<(), String> {
@@ -171,6 +208,25 @@ impl GitCommand {
         git.run(&["init", "-q", "--initial-branch=fixture"])?;
         git.run(&["add", "-A"])?;
         git.run(&["write-tree"])
+    }
+
+    pub fn register_alternate_object_directory(&self, alternate_objects: &Path) -> Result<(), String> {
+        let alternates_file = self
+            .repository
+            .join(".git")
+            .join("objects")
+            .join("info")
+            .join("alternates");
+        if let Some(parent) = alternates_file.parent() {
+            fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+        }
+        let line = format!("{}\n", alternate_objects.display());
+        let existing = fs::read_to_string(&alternates_file).unwrap_or_default();
+        if existing.lines().any(|entry| entry == alternate_objects.to_string_lossy()) {
+            return Ok(());
+        }
+        fs::write(&alternates_file, format!("{existing}{line}"))
+            .map_err(|error| error.to_string())
     }
 }
 
