@@ -1,17 +1,18 @@
 # TASK-001 qualification evidence report
 
 **Date:** 2026-09-15  
-**Worktree branch:** `task-001-bootstrap` @ `3ed5157074d5a05f3a78149b17f9ae01d2324c25`  
+**Worktree branch:** `task-001-bootstrap` @ `c9c6a3bab3774fb519a9fe3fdd02370861a8fecc`  
 **Worktree path:** `/Users/donbeave/Projects/terminal-components-claude/.worktrees/main`  
-**Remote branch:** [`task-001-bootstrap`](https://github.com/donbeave/terminal-components-claude/tree/task-001-bootstrap) @ `3ed5157074d5a05f3a78149b17f9ae01d2324c25`  
+**Remote branch:** [`task-001-bootstrap`](https://github.com/donbeave/terminal-components-claude/tree/task-001-bootstrap) @ `c9c6a3bab3774fb519a9fe3fdd02370861a8fecc`  
 **Planning branch:** `prep-wave1-verify` (this report)  
 **Context-check dispatch:** `@0a31a338` — non-fixture frozen verify contexts spawn sibling `tc-proof` subprocess (`context_check.rs`); `tc-host-fixture-check-context/v1` retains stub no-op (`388c173d` warning cleanup → 53 warnings).  
 **Architecture test fix:** `@cf2e79a0` — `tools/refactor-proof/architecture-exemption.json` registers `tc-proof`/`tc-proof-host` for `binary_names_are_preserved`; `capture_matrix_contract` tolerates checkout-local `resolved_path` and absent gitignored `shots/.capture-state/` stderr on worktrees.  
-**Review fixes (since `cf2e79a0`):** `05b20ad4` gitignore `.qual/` sandbox scratch; `cd910c7b` portable `TASKFMT_BIN`/`TASKFMT_SOURCE` in vector scripts; `3ed51570` correct `tui-snap` path (`../../../tui-snap` in `refactor-proof/Cargo.toml`).  
+**Review fixes (since `cf2e79a0`):** `05b20ad4` gitignore `.qual/` sandbox scratch; `cd910c7b` portable `TASKFMT_BIN`/`TASKFMT_SOURCE` in vector scripts; `3ed51570` correct `tui-snap` path (`../../../tui-snap` in `refactor-proof/Cargo.toml`); `c9c6a3ba` replace committed Mach-O harness bins with shell wrappers (`.gitignore` blocks accidental Mach-O re-commit).  
+**Harness bin layout (@ `c9c6a3ba`):** git-tracked `bin/tc-proof` and `bin/tc-proof-host` are shell wrappers that exec `target/debug/*` for local dev/comparator runs. **Always run `tools/refactor-proof/scripts/sync-binaries.sh` before host bootstrap driver `--host`** — CHK-005/006/007 and `install` byte-equality require synced Mach-O at `bin/tc-proof-host`, not the committed wrapper scripts.  
 **Pinned taskfmt:** `/tmp/taskfmt-install/bin/taskfmt` (rev `52d9f1eb7721f409bc47beb9fced7997b5c13ede`)  
 **Pinned taskfmt source:** `/tmp/taskfmt-qualification` @ `52d9f1eb7721f409bc47beb9fced7997b5c13ede`  
 **Pinned tuisnap:** `/Users/donbeave/Projects/tui-snap/target/release/tuisnap`  
-**Full workspace nextest:** **3201/3201 pass** @ `3ed51570` (worktree `.worktrees/main`; 6 skipped)  
+**Full workspace nextest:** **3201/3201 pass** @ `c9c6a3ba` (worktree `.worktrees/main`; 6 skipped)  
 **Planning PR:** [#4](https://github.com/donbeave/terminal-components-claude/pull/4)  
 **Operator evidence draft:** [`task-001-operator-evidence-draft.md`](task-001-operator-evidence-draft.md)  
 **taskfmt verify prep:** [`task-001-verify-container.md`](task-001-verify-container.md), [`task-001-progress-completion-guide.md`](task-001-progress-completion-guide.md), [`task-001-taskfmt-verify-notes.md`](task-001-taskfmt-verify-notes.md) — OB-006 **blocked** (§7)  
@@ -33,9 +34,9 @@
 | Full workspace `cargo nextest run` | **PASS** | 3201 | 0 |
 
 **Aggregate:** **240 pass / 0 fail** across refactor-proof gates.  
-**Workspace regression (advisory):** **3201/3201** @ `3ed51570` — no worktree fixes required.
+**Workspace regression (advisory):** **3201/3201** @ `c9c6a3ba` — no worktree fixes required.
 
-**Overall TASK-001 bootstrap qualification:** **PASS** — host matrix 63/63 via synced Mach-O at `tools/refactor-proof/bin/tc-proof-host` after `sync-binaries.sh`.
+**Overall TASK-001 bootstrap qualification:** **PASS** — host matrix 63/63 via synced Mach-O at `tools/refactor-proof/bin/tc-proof-host` after `sync-binaries.sh` (committed wrappers @ `c9c6a3ba` are not qualification entrypoints).
 
 ---
 
@@ -69,7 +70,7 @@ python3 refactoring-tasks/terminal-components/completion/001/trusted/proof-boots
 | Case count | 72 |
 | Invocation count | 141 |
 | Failures | `[]` |
-| Runner SHA-256 | `6fa6a1b627c5748e3251f26a57898b4dc5d8e92966cc19e7acedbd47cc407470` |
+| Runner SHA-256 | `dfe8ee73b784593d58382721c4eb8d3ca645001e7e935abe52f0ee6f7fd3cc8c` |
 | Driver SHA-256 | `3ecb9c6ea3a37da22a864c0c016f6ea58a0ec52973742782d5f73c3e4c7c8dae` |
 | Vectors SHA-256 | `84f4b35d92acc39bd5feddfb639920b8484aaff12f9de1f71807612d753046d0` |
 
@@ -139,7 +140,7 @@ Pinned hashes: git `be4afb2b…`, observer `0e95a95c…`, python `6c9d4000…`, 
 
 ## 4. Host matrix CHK-005/006/007
 
-Precondition: `tools/refactor-proof/scripts/sync-binaries.sh` (copies built Mach-O to `bin/tc-proof-host` and `bin/tc-proof`).
+Precondition: `tools/refactor-proof/scripts/sync-binaries.sh` (copies built Mach-O over committed shell wrappers at `bin/tc-proof-host` and `bin/tc-proof`; restore wrappers with `git restore tools/refactor-proof/bin/` before push if sync left Mach-O copies in the working tree).
 
 ```sh
 tools/refactor-proof/scripts/sync-binaries.sh
@@ -152,7 +153,7 @@ python3 host-bootstrap-driver.py --host tools/refactor-proof/bin/tc-proof-host \
 | --- | --- |
 | Exit | 0 |
 | Schema | `tc-host-bootstrap-qualification/v1` |
-| Host SHA-256 | `97137da559217c39b4fce172556df7a6a1ad27e978e018725a9b05ee86092481` |
+| Host SHA-256 | `7f6096620690904aa0e6d54f4440de888dfdc3b0cb33c3fd92d3f3e5cd098a8d` |
 | Case count | 32 |
 | Invocation count | 63 (each negative followed by fresh positive refresh) |
 | Failures | 0 |
@@ -192,7 +193,7 @@ cd .worktrees/main && cargo nextest run
 | Passed | 3201 |
 | Failed | 0 |
 | Skipped | 6 |
-| Worktree tip | `3ed5157074d5a05f3a78149b17f9ae01d2324c25` |
+| Worktree tip | `c9c6a3bab3774fb519a9fe3fdd02370861a8fecc` |
 | Duration | ~171s |
 
 Advisory workspace regression only; does not substitute for TASK-001 host receipt or OB-006 `taskfmt verify`.
@@ -217,7 +218,7 @@ Source: [`task-001-taskfmt-verify-notes.md`](task-001-taskfmt-verify-notes.md). 
 
 **Direct-flag verify summary:** `pass=4 fail=6` — config, task_lint, scope, forbidden_paths, forbidden_patterns pass; CHK-001–007 fail on container paths; progress fails (`state=IN_PROGRESS (want DONE)`).
 
-**Advisory qualification (substituted paths, not via `taskfmt verify`):** CHK-001, CHK-004, CHK-005 all exit **0** against worktree @ `3ed51570` after `sync-binaries.sh`. Implementation appears ready; standalone gate blocked on environment layout and progress completion, not driver failures.
+**Advisory qualification (substituted paths, not via `taskfmt verify`):** CHK-001, CHK-004, CHK-005 all exit **0** against worktree @ `c9c6a3ba` after `sync-binaries.sh`. Implementation appears ready; standalone gate blocked on environment layout and progress completion, not driver failures.
 
 ---
 

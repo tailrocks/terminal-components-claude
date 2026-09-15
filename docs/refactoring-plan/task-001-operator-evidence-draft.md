@@ -114,8 +114,8 @@ PY
 | **EV-009** `comparator_driver_exit` | yes | `0` | Echo `$?` after EV-008 → must be `0` |
 | **EV-010** `comparator_vector_pass_count` | yes | `72` | Parse final JSON stdout: `case_count` → must be `72` |
 | **EV-011** `comparator_recovery_pass_count` | yes | `69` | Parse final JSON stdout: `invocation_count - case_count` → must be `69` (141 total invocations) |
-| **EV-012** `submitted_tc_proof_executable_sha256` | yes | `1c107931aebba13c6ae6594c8b9448924f813a2943280b1efe55fcd40c7afc6a` | `shasum -a 256 "$TC_WORKTREE/tools/refactor-proof/bin/tc-proof" \| awk '{print $1}'` (resolve wrapper to tested bytes) |
-| **EV-013** `comparator_rebuild_executable_sha256` | yes | `1c107931aebba13c6ae6594c8b9448924f813a2943280b1efe55fcd40c7afc6a` | Rebuild independently (`cargo build -p refactor-proof` in fresh tree); hash `target/debug/tc-proof` → **must equal EV-012** |
+| **EV-012** `submitted_tc_proof_executable_sha256` | yes | `dfe8ee73b784593d58382721c4eb8d3ca645001e7e935abe52f0ee6f7fd3cc8c` | `shasum -a 256 "$TC_WORKTREE/tools/refactor-proof/bin/tc-proof" \| awk '{print $1}'` (post-`sync-binaries.sh` Mach-O; committed wrapper @ `c9c6a3ba` is not the submitted executable) |
+| **EV-013** `comparator_rebuild_executable_sha256` | yes | `dfe8ee73b784593d58382721c4eb8d3ca645001e7e935abe52f0ee6f7fd3cc8c` | Rebuild independently (`cargo build -p refactor-proof` in fresh tree); hash `target/debug/tc-proof` → **must equal EV-012** |
 
 **Pre-run build (worktree @ `9e1847fc`):**
 
@@ -143,8 +143,8 @@ Cross-check counts in [`task-001-qualification-report.md`](task-001-qualificatio
 | **EV-014** `host_driver_self_test_exit` | yes | `0` | `python3 "$TC_BOOTSTRAP_PKG/host-bootstrap-driver.py" --self-test` → `$?` must be `0` |
 | **EV-015** `host_driver_observer_test_exit` | yes | `0` | `python3 "$TC_BOOTSTRAP_PKG/host-bootstrap-driver.py" --observer-test --taskfmt "$TC_TASKFMT" --taskfmt-source "$TC_TASKFMT_SOURCE"` → `$?` must be `0` |
 | **EV-016** `host_matrix_exit` | yes | `0` | `python3 "$TC_BOOTSTRAP_PKG/host-bootstrap-driver.py" --host "$TC_WORKTREE/tools/refactor-proof/bin/tc-proof-host" --taskfmt "$TC_TASKFMT" --taskfmt-source "$TC_TASKFMT_SOURCE"` → `$?` must be `0` (63/63 invocations) |
-| **EV-017** `submitted_tc_proof_host_executable_sha256` | yes | `97137da559217c39b4fce172556df7a6a1ad27e978e018725a9b05ee86092481` | `shasum -a 256 "$TC_WORKTREE/tools/refactor-proof/bin/tc-proof-host" \| awk '{print $1}'` |
-| **EV-018** `host_rebuild_executable_sha256` | yes | `97137da559217c39b4fce172556df7a6a1ad27e978e018725a9b05ee86092481` | Independent rebuild; hash `target/debug/tc-proof-host` → **must equal EV-017** |
+| **EV-017** `submitted_tc_proof_host_executable_sha256` | yes | `7f6096620690904aa0e6d54f4440de888dfdc3b0cb33c3fd92d3f3e5cd098a8d` | `shasum -a 256 "$TC_WORKTREE/tools/refactor-proof/bin/tc-proof-host" \| awk '{print $1}'` (post-`sync-binaries.sh` Mach-O) |
+| **EV-018** `host_rebuild_executable_sha256` | yes | `7f6096620690904aa0e6d54f4440de888dfdc3b0cb33c3fd92d3f3e5cd098a8d` | Independent rebuild; hash `target/debug/tc-proof-host` → **must equal EV-017** |
 
 **Driver invocations (container paths):**
 
@@ -303,10 +303,10 @@ Confirm **none** of the following occurred during this dispatch session:
 
 ## Machine capture appendix (automated pre-fill)
 
-**Capture session:** `automated-prep-wave1-verify`  
-**Planning commit:** `4094839f0d0150bfbfce8e0bb934dbb1b233868b`  
-**Worktree:** `cf2e79a068518e229751f82b635832ecaba8ae4d` on `task-001-bootstrap`  
-**sync-binaries:** exit `0` — sync-binaries: installed 97137da559217c39b4fce172556df7a6a1ad27e978e018725a9b05ee86092481 -> bin/tc-proof-host
+**Capture session:** `automated-prep-wave1-verify` @ `c9c6a3ba`  
+**Planning commit:** verify `git rev-parse HEAD` on `prep-wave1-verify` at capture time  
+**Worktree:** `c9c6a3bab3774fb519a9fe3fdd02370861a8fecc` on `task-001-bootstrap`  
+**sync-binaries:** exit `0` — sync-binaries: installed 7f6096620690904aa0e6d54f4440de888dfdc3b0cb33c3fd92d3f3e5cd098a8d -> bin/tc-proof-host (over committed shell wrapper @ `c9c6a3ba`)
 
 ### Comparator driver JSON (final stdout line)
 
@@ -316,7 +316,7 @@ Confirm **none** of the following occurred during this dispatch session:
   "driver_sha256": "3ecb9c6ea3a37da22a864c0c016f6ea58a0ec52973742782d5f73c3e4c7c8dae",
   "failures": [],
   "invocation_count": 141,
-  "runner_sha256": "1c107931aebba13c6ae6594c8b9448924f813a2943280b1efe55fcd40c7afc6a",
+  "runner_sha256": "dfe8ee73b784593d58382721c4eb8d3ca645001e7e935abe52f0ee6f7fd3cc8c",
   "schema": "tc-proof-bootstrap-qualification/v1",
   "scope": "comparator-only; host isolation/capture/adapter qualification required separately",
   "vectors_sha256": "84f4b35d92acc39bd5feddfb639920b8484aaff12f9de1f71807612d753046d0"
@@ -384,7 +384,7 @@ Confirm **none** of the following occurred during this dispatch session:
     "stale_parent_cas",
     "wrong_integration_ref"
   ],
-  "host_sha256": "97137da559217c39b4fce172556df7a6a1ad27e978e018725a9b05ee86092481",
+  "host_sha256": "7f6096620690904aa0e6d54f4440de888dfdc3b0cb33c3fd92d3f3e5cd098a8d",
   "schema": "tc-host-bootstrap-qualification/v1"
 }
 ```
@@ -395,10 +395,10 @@ Confirm **none** of the following occurred during this dispatch session:
 
 | Binary | SHA-256 |
 | --- | --- |
-| `bin/tc-proof` (EV-012) | `1c107931aebba13c6ae6594c8b9448924f813a2943280b1efe55fcd40c7afc6a` |
-| `target/debug/tc-proof` (EV-013) | `1c107931aebba13c6ae6594c8b9448924f813a2943280b1efe55fcd40c7afc6a` |
-| `bin/tc-proof-host` (EV-017) | `97137da559217c39b4fce172556df7a6a1ad27e978e018725a9b05ee86092481` |
-| `target/debug/tc-proof-host` (EV-018) | `97137da559217c39b4fce172556df7a6a1ad27e978e018725a9b05ee86092481` |
+| `bin/tc-proof` (EV-012) | `dfe8ee73b784593d58382721c4eb8d3ca645001e7e935abe52f0ee6f7fd3cc8c` |
+| `target/debug/tc-proof` (EV-013) | `dfe8ee73b784593d58382721c4eb8d3ca645001e7e935abe52f0ee6f7fd3cc8c` |
+| `bin/tc-proof-host` (EV-017) | `7f6096620690904aa0e6d54f4440de888dfdc3b0cb33c3fd92d3f3e5cd098a8d` |
+| `target/debug/tc-proof-host` (EV-018) | `7f6096620690904aa0e6d54f4440de888dfdc3b0cb33c3fd92d3f3e5cd098a8d` |
 
 **Rebuild match:** EV-013 = EV-012: `True`; EV-018 = EV-017: `True`
 
