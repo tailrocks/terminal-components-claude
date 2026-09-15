@@ -2,6 +2,7 @@
 
 mod authority;
 mod context;
+mod context_check;
 mod dispatch;
 mod freeze;
 mod git;

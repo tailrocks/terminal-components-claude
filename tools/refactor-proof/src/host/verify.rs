@@ -3,13 +3,12 @@
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
-use std::process::Command;
-
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::authority::{load_authority, load_campaign, Campaign, TaskSpec};
-use super::context::{load_bound_context_index, ContextIndex, ContextMember};
+use super::context::{load_bound_context_index, ContextIndex};
+use super::context_check::spawn_context_check;
 use crate::json_util::{is_safe_relative_path, parse_json_bytes_strict, require_str, sha256_bytes};
 use crate::observer::{
     decode_file_payload, ObserverClient, ObserverObservation, ObserverStep, ObserverUnavailable,
@@ -308,19 +307,7 @@ fn taskfmt_stdout_done(stdout: &[u8]) -> bool {
 
 fn run_context_checks(run_dir: &Path, index: &ContextIndex) -> Result<(), &'static str> {
     for member in &index.members {
-        spawn_context_check_stub(run_dir, member)?;
-    }
-    Ok(())
-}
-
-fn spawn_context_check_stub(run_dir: &Path, member: &ContextMember) -> Result<(), &'static str> {
-    let context_path = run_dir.join(&member.context_path);
-    if !context_path.is_file() {
-        return Err("integrity");
-    }
-    let status = Command::new("true").status().map_err(|_| "integrity")?;
-    if !status.success() {
-        return Err("integrity");
+        spawn_context_check(run_dir, member)?;
     }
     Ok(())
 }
