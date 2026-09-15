@@ -8,13 +8,13 @@ use serde_json::Value;
 
 use crate::json_util::{parse_json_bytes_strict, require_str, sha256_bytes};
 
-pub const CONTEXT_INDEX_PATH_ENV: &str = "TC_PROOF_CONTEXT_INDEX";
-pub const CONTEXT_INDEX_SHA256_ENV: &str = "TC_PROOF_CONTEXT_INDEX_SHA256";
+pub(super) const CONTEXT_INDEX_PATH_ENV: &str = "TC_PROOF_CONTEXT_INDEX";
+pub(super) const CONTEXT_INDEX_SHA256_ENV: &str = "TC_PROOF_CONTEXT_INDEX_SHA256";
 
 const CONTEXT_INDEX_SCHEMA: &str = "tc-proof-context-index/v1";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ContextIndex {
+pub(super) struct ContextIndex {
     pub schema: ContextIndexSchema,
     pub run_id: String,
     pub task_id: String,
@@ -24,13 +24,13 @@ pub struct ContextIndex {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ContextIndexSchema {
+pub(super) enum ContextIndexSchema {
     #[serde(rename = "tc-proof-context-index/v1")]
     V1,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ContextMember {
+pub(super) struct ContextMember {
     pub check_id: String,
     pub context_path: String,
     pub context_sha256: String,
@@ -42,7 +42,7 @@ pub struct ContextMember {
     pub output_id: String,
 }
 
-pub fn load_bound_context_index(run_dir: &Path) -> Result<ContextIndex, &'static str> {
+pub(super) fn load_bound_context_index(run_dir: &Path) -> Result<ContextIndex, &'static str> {
     let index_path = std::env::var(CONTEXT_INDEX_PATH_ENV).map_err(|_| "integrity")?;
     let expected_digest = std::env::var(CONTEXT_INDEX_SHA256_ENV).map_err(|_| "integrity")?;
     let index_path = PathBuf::from(index_path);

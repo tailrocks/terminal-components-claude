@@ -9,18 +9,18 @@ use std::process::{Command, Output};
 
 use crate::json_util::sha256_bytes;
 
-pub struct GitCommand {
+pub(super) struct GitCommand {
     repository: PathBuf,
 }
 
 impl GitCommand {
-    pub fn new(repository: impl Into<PathBuf>) -> Self {
+    pub(super) fn new(repository: impl Into<PathBuf>) -> Self {
         Self {
             repository: repository.into(),
         }
     }
 
-    pub fn run(&self, args: &[&str]) -> Result<String, String> {
+    pub(super) fn run(&self, args: &[&str]) -> Result<String, String> {
         let output = self.run_output(args)?;
         if output.status.success() {
             Ok(String::from_utf8_lossy(&output.stdout).trim().to_owned())
@@ -33,7 +33,7 @@ impl GitCommand {
         }
     }
 
-    pub fn run_output(&self, args: &[&str]) -> Result<Output, String> {
+    pub(super) fn run_output(&self, args: &[&str]) -> Result<Output, String> {
         self.run_output_with_alternates(args, &[])
     }
 
@@ -67,15 +67,15 @@ impl GitCommand {
         command.output().map_err(|error| error.to_string())
     }
 
-    pub fn rev_parse(&self, reference: &str) -> Result<String, String> {
+    pub(super) fn rev_parse(&self, reference: &str) -> Result<String, String> {
         self.run(&["rev-parse", reference])
     }
 
-    pub fn commit_tree(&self, tree: &str, parent: &str, message: &str) -> Result<String, String> {
+    pub(super) fn commit_tree(&self, tree: &str, parent: &str, message: &str) -> Result<String, String> {
         self.commit_tree_with_alternates(tree, parent, message, &[])
     }
 
-    pub fn commit_tree_with_alternates(
+    pub(super) fn commit_tree_with_alternates(
         &self,
         tree: &str,
         parent: &str,
@@ -96,7 +96,7 @@ impl GitCommand {
         }
     }
 
-    pub fn update_ref(&self, reference: &str, new_value: &str, old_value: &str) -> Result<(), String> {
+    pub(super) fn update_ref(&self, reference: &str, new_value: &str, old_value: &str) -> Result<(), String> {
         let output = self
             .run_output(&["update-ref", reference, new_value, old_value])
             .map_err(|error| error.to_string())?;
@@ -110,7 +110,7 @@ impl GitCommand {
         }
     }
 
-    pub fn ls_tree(&self, tree: &str) -> Result<HashMap<String, String>, String> {
+    pub(super) fn ls_tree(&self, tree: &str) -> Result<HashMap<String, String>, String> {
         let output = self.run(&["ls-tree", "-r", tree])?;
         let mut entries = HashMap::new();
         for line in output.lines() {
@@ -126,11 +126,7 @@ impl GitCommand {
         Ok(entries)
     }
 
-    pub fn blob_hash(&self, object: &str) -> Result<String, String> {
-        self.run(&["rev-parse", &format!("{object}^{{blob}}")])
-    }
-
-    pub fn cat_file_blob(&self, object: &str) -> Result<Vec<u8>, String> {
+    pub(super) fn cat_file_blob(&self, object: &str) -> Result<Vec<u8>, String> {
         let output = self
             .run_output(&["cat-file", "blob", object])
             .map_err(|error| error.to_string())?;
@@ -144,7 +140,7 @@ impl GitCommand {
         }
     }
 
-    pub fn ls_files_verbose(&self) -> Result<Vec<(String, char)>, String> {
+    pub(super) fn ls_files_verbose(&self) -> Result<Vec<(String, char)>, String> {
         let output = self.run(&["ls-files", "-v"])?;
         Ok(output
             .lines()
@@ -157,7 +153,7 @@ impl GitCommand {
             .collect())
     }
 
-    pub fn ls_files_stage(&self) -> Result<Vec<(String, String)>, String> {
+    pub(super) fn ls_files_stage(&self) -> Result<Vec<(String, String)>, String> {
         let output = self.run(&["ls-files", "-s"])?;
         Ok(output
             .lines()
@@ -169,32 +165,14 @@ impl GitCommand {
             .collect())
     }
 
-    pub fn local_config_entries(&self) -> Result<Vec<String>, String> {
-        let output = self.run_output(&["config", "--local", "--list"])?;
-        if output.status.success() {
-            Ok(String::from_utf8_lossy(&output.stdout)
-                .lines()
-                .map(str::to_owned)
-                .filter(|line| !line.is_empty())
-                .collect())
-        } else if output.status.code() == Some(128) {
-            Ok(Vec::new())
-        } else {
-            Err(format!(
-                "git config --local --list failed: {}",
-                String::from_utf8_lossy(&output.stderr).trim()
-            ))
-        }
-    }
-
-    pub fn check_ignore(&self, path: &str) -> Result<bool, String> {
+    pub(super) fn check_ignore(&self, path: &str) -> Result<bool, String> {
         let output = self
             .run_output(&["check-ignore", "-q", "--", path])
             .map_err(|error| error.to_string())?;
         Ok(output.status.success())
     }
 
-    pub fn write_tree_from_worktree(
+    pub(super) fn write_tree_from_worktree(
         &self,
         worktree: &Path,
         scratch_root: &Path,
@@ -210,7 +188,7 @@ impl GitCommand {
         git.run(&["write-tree"])
     }
 
-    pub fn register_alternate_object_directory(&self, alternate_objects: &Path) -> Result<(), String> {
+    pub(super) fn register_alternate_object_directory(&self, alternate_objects: &Path) -> Result<(), String> {
         let alternates_file = self
             .repository
             .join(".git")
@@ -250,45 +228,24 @@ fn copy_worktree(source: &Path, destination: &Path) -> io::Result<()> {
     Ok(())
 }
 
-pub fn file_digest(path: &Path) -> Result<String, String> {
+pub(super) fn file_digest(path: &Path) -> Result<String, String> {
     let bytes = fs::read(path).map_err(|error| error.to_string())?;
     Ok(sha256_bytes(&bytes))
 }
 
-pub fn is_symlink(path: &Path) -> bool {
+pub(super) fn is_symlink(path: &Path) -> bool {
     path.symlink_metadata()
         .map(|meta| meta.file_type().is_symlink())
         .unwrap_or(false)
 }
 
-pub fn hardlink_count(path: &Path) -> Result<u64, String> {
+pub(super) fn hardlink_count(path: &Path) -> Result<u64, String> {
     path.metadata()
         .map(|meta| meta.nlink())
         .map_err(|error| error.to_string())
 }
 
-pub fn resolve_within(base: &Path, path: &Path) -> Result<PathBuf, String> {
-    let resolved = path
-        .canonicalize()
-        .or_else(|_| {
-            let mut current = base.to_path_buf();
-            for component in path.components() {
-                current.push(component);
-            }
-            current.canonicalize()
-        })
-        .map_err(|error| error.to_string())?;
-    let base_resolved = base
-        .canonicalize()
-        .map_err(|error| error.to_string())?;
-    if resolved.starts_with(&base_resolved) {
-        Ok(resolved)
-    } else {
-        Err("path escapes candidate root".to_string())
-    }
-}
-
-pub fn walk_worktree(root: &Path) -> Result<Vec<PathBuf>, String> {
+pub(super) fn walk_worktree(root: &Path) -> Result<Vec<PathBuf>, String> {
     let mut paths = Vec::new();
     walk_worktree_inner(root, root, &mut paths)?;
     paths.sort();
@@ -336,7 +293,7 @@ mod tests {
         fs::write(repo.join("src/payload.txt"), b"qualified\n").expect("write");
         fs::remove_file(repo.join("src/obsolete.txt")).expect("remove");
         fs::write(repo.join("src/new.txt"), b"new\n").expect("write");
-        let index_tree = git.write_tree().expect("index tree");
+        let index_tree = git.run(&["write-tree"]).expect("index tree");
         let worktree_tree = git
             .write_tree_from_worktree(&repo, temp.path())
             .expect("worktree tree");
@@ -352,11 +309,5 @@ mod tests {
             snapshot_git.run(&["write-tree"]).expect("snapshot tree"),
             worktree_tree
         );
-    }
-}
-
-impl GitCommand {
-    fn write_tree(&self) -> Result<String, String> {
-        self.run(&["write-tree"])
     }
 }

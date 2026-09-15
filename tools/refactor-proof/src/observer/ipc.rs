@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 /// Fixed verify-phase step order enforced by the planner observer.
-pub const OBSERVER_STEP_ORDER: [ObserverStep; 3] =
+pub(super) const OBSERVER_STEP_ORDER: [ObserverStep; 3] =
     [ObserverStep::Build, ObserverStep::Test, ObserverStep::Taskfmt];
 
 /// Environment keys supplied by the observer to the host process only.

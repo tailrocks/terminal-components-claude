@@ -7,13 +7,13 @@ use std::path::{Path, PathBuf};
 use super::authority::{load_authority, load_receipt, Authority};
 use crate::json_util::sha256_bytes;
 
-pub enum InstallOutcome {
+pub(super) enum InstallOutcome {
     Passed,
     Rejected(&'static str),
     Failed(String),
 }
 
-pub fn run_install(receipt_path: &Path, destination: &Path) -> InstallOutcome {
+pub(super) fn run_install(receipt_path: &Path, destination: &Path) -> InstallOutcome {
     let authority = match load_authority() {
         Ok(value) => value,
         Err(error) => return InstallOutcome::Failed(error),

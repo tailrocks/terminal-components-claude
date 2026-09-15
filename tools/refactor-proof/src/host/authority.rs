@@ -15,14 +15,14 @@ const RECEIPT_SCHEMA: &str = "tc-proof-host-receipt/v1";
 pub const AUTHORITY_ENV: &str = "TC_PROOF_AUTHORITY_FILE";
 
 #[derive(Debug, Clone)]
-pub struct Authority {
+pub(super) struct Authority {
     pub campaign_path: PathBuf,
     pub campaign_sha256: String,
     pub accepted_receipts: HashMap<String, PathBuf>,
 }
 
 #[derive(Debug, Clone)]
-pub struct Campaign {
+pub(super) struct Campaign {
     pub path: PathBuf,
     pub repository: PathBuf,
     pub integration_ref: String,
@@ -37,14 +37,14 @@ pub struct Campaign {
 }
 
 #[derive(Debug, Clone)]
-pub struct TrustedOverlay {
+pub(super) struct TrustedOverlay {
     pub scope_base: String,
     pub parent: String,
     pub paths: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone)]
-pub struct CheckContextTemplate {
+pub(super) struct CheckContextTemplate {
     pub check_id: String,
     pub schema: String,
     pub operation: String,
@@ -55,7 +55,7 @@ pub struct CheckContextTemplate {
 }
 
 #[derive(Debug, Clone)]
-pub struct TaskfmtPin {
+pub(super) struct TaskfmtPin {
     pub executable: PathBuf,
     pub sha256: String,
     pub revision: String,
@@ -65,7 +65,7 @@ pub struct TaskfmtPin {
 }
 
 #[derive(Debug, Clone)]
-pub struct TaskSpec {
+pub(super) struct TaskSpec {
     pub package: String,
     pub seal_products: Vec<String>,
     pub dependencies: Vec<DependencySpec>,
@@ -73,16 +73,14 @@ pub struct TaskSpec {
 }
 
 #[derive(Debug, Clone)]
-pub struct DependencySpec {
+pub(super) struct DependencySpec {
     pub producer: String,
     pub product: String,
     pub receipt_sha256: String,
 }
 
 #[derive(Debug, Clone)]
-pub struct Receipt {
-    pub path: PathBuf,
-    pub digest: String,
+pub(super) struct Receipt {
     pub producer: String,
     pub product: String,
     pub source_commit: String,
@@ -90,7 +88,7 @@ pub struct Receipt {
     pub executable_sha256: Option<String>,
 }
 
-pub fn load_authority() -> Result<Authority, String> {
+pub(super) fn load_authority() -> Result<Authority, String> {
     let path = std::env::var(AUTHORITY_ENV)
         .map_err(|_| format!("missing environment variable: {AUTHORITY_ENV}"))?;
     let bytes = fs::read(&path).map_err(|error| error.to_string())?;
@@ -121,7 +119,7 @@ pub fn load_authority() -> Result<Authority, String> {
     })
 }
 
-pub fn load_campaign(campaign_dir: &Path, authority: &Authority) -> Result<Campaign, String> {
+pub(super) fn load_campaign(campaign_dir: &Path, authority: &Authority) -> Result<Campaign, String> {
     let campaign_path = campaign_dir.join("campaign.json");
     let bytes = fs::read(&campaign_path).map_err(|error| error.to_string())?;
     let digest = sha256_bytes(&bytes);
@@ -273,7 +271,7 @@ fn parse_dependency(value: &Value) -> Result<DependencySpec, String> {
     })
 }
 
-pub fn load_receipt(path: &Path, authority: &Authority) -> Result<Receipt, String> {
+pub(super) fn load_receipt(path: &Path, authority: &Authority) -> Result<Receipt, String> {
     let bytes = fs::read(path).map_err(|error| error.to_string())?;
     let digest = sha256_bytes(&bytes);
     let mapped = authority
@@ -286,8 +284,6 @@ pub fn load_receipt(path: &Path, authority: &Authority) -> Result<Receipt, Strin
     let value = parse_json_bytes_strict(&bytes)?;
     require_schema(&value, RECEIPT_SCHEMA)?;
     Ok(Receipt {
-        path: path.to_path_buf(),
-        digest,
         producer: require_str(&value, "producer")?,
         product: require_str(&value, "product")?,
         source_commit: require_str(&value, "source_commit")?,
@@ -310,7 +306,7 @@ fn require_schema(value: &Value, expected: &str) -> Result<(), String> {
     }
 }
 
-pub fn load_preparation(run_dir: &Path) -> Result<(String, String), String> {
+pub(super) fn load_preparation(run_dir: &Path) -> Result<(String, String), String> {
     let bytes = fs::read(run_dir.join("preparation.json")).map_err(|error| error.to_string())?;
     let value = parse_json_bytes_strict(&bytes)?;
     Ok((
@@ -319,7 +315,7 @@ pub fn load_preparation(run_dir: &Path) -> Result<(String, String), String> {
     ))
 }
 
-pub fn write_preparation(run_dir: &Path, task: &str, parent: &str) -> Result<(), String> {
+pub(super) fn write_preparation(run_dir: &Path, task: &str, parent: &str) -> Result<(), String> {
     fs::create_dir_all(run_dir).map_err(|error| error.to_string())?;
     let document = serde_json::json!({ "task": task, "parent": parent });
     let text = serde_json::to_string(&document).map_err(|error| error.to_string())?;

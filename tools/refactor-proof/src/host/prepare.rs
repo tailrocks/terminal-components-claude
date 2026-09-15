@@ -8,13 +8,13 @@ use super::authority::{
 };
 use crate::json_util::sha256_bytes;
 
-pub enum PrepareOutcome {
+pub(super) enum PrepareOutcome {
     Passed,
     Rejected(&'static str),
     Failed(String),
 }
 
-pub fn run_prepare(campaign_dir: &Path, task: &str, parent: &str, run_dir: &Path) -> PrepareOutcome {
+pub(super) fn run_prepare(campaign_dir: &Path, task: &str, parent: &str, run_dir: &Path) -> PrepareOutcome {
     let authority = match load_authority() {
         Ok(value) => value,
         Err(error) => return PrepareOutcome::Failed(error),

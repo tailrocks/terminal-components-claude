@@ -4,13 +4,13 @@ use std::path::Path;
 
 use super::authority::{load_authority, load_campaign, load_preparation};
 
-pub enum SealOutcome {
+pub(super) enum SealOutcome {
     Passed,
     Rejected(&'static str),
     Failed(String),
 }
 
-pub fn run_seal(run_dir: &Path, product: &str) -> SealOutcome {
+pub(super) fn run_seal(run_dir: &Path, product: &str) -> SealOutcome {
     let authority = match load_authority() {
         Ok(value) => value,
         Err(error) => return SealOutcome::Failed(error),

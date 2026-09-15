@@ -8,12 +8,12 @@ use super::git::{file_digest, hardlink_count, is_symlink, walk_worktree, GitComm
 use crate::json_util::sha256_bytes;
 
 #[derive(Debug, Clone)]
-pub struct VerifyScope {
+pub(super) struct VerifyScope {
     pub writable_paths: Vec<String>,
     pub forbidden_paths: Vec<String>,
 }
 
-pub fn load_verify_scope(verify_toml: &Path) -> Result<VerifyScope, String> {
+pub(super) fn load_verify_scope(verify_toml: &Path) -> Result<VerifyScope, String> {
     let text = std::fs::read_to_string(verify_toml).map_err(|error| error.to_string())?;
     Ok(VerifyScope {
         writable_paths: parse_toml_string_array(&text, "writable_paths")?,
@@ -49,11 +49,11 @@ fn parse_toml_string_array(text: &str, key: &str) -> Result<Vec<String>, String>
         .collect()
 }
 
-pub fn path_matches_any(path: &str, patterns: &[String]) -> bool {
+pub(super) fn path_matches_any(path: &str, patterns: &[String]) -> bool {
     patterns.iter().any(|pattern| path_matches_pattern(path, pattern))
 }
 
-pub fn path_matches_pattern(path: &str, pattern: &str) -> bool {
+pub(super) fn path_matches_pattern(path: &str, pattern: &str) -> bool {
     if let Some(prefix) = pattern.strip_suffix("/**") {
         path == prefix || path.starts_with(&format!("{prefix}/"))
     } else {
@@ -61,7 +61,7 @@ pub fn path_matches_pattern(path: &str, pattern: &str) -> bool {
     }
 }
 
-pub fn validate_candidate(
+pub(super) fn validate_candidate(
     candidate: &Path,
     scope_base: &str,
     overlay: &TrustedOverlay,

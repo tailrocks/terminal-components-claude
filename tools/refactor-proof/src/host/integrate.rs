@@ -9,7 +9,7 @@ use super::authority::{load_authority, load_campaign, load_preparation, Campaign
 use super::git::GitCommand;
 use crate::json_util::{canonical_json_line, parse_json_bytes_strict, require_str, sha256_bytes};
 
-pub enum IntegrateOutcome {
+pub(super) enum IntegrateOutcome {
     Passed,
     Rejected(&'static str),
     Failed(String),
@@ -29,7 +29,7 @@ struct VerdictRecord {
     task_id: String,
 }
 
-pub fn run_integrate(run_dir: &Path, integration_ref: &str, expected_parent: &str) -> IntegrateOutcome {
+pub(super) fn run_integrate(run_dir: &Path, integration_ref: &str, expected_parent: &str) -> IntegrateOutcome {
     let authority = match load_authority() {
         Ok(value) => value,
         Err(error) => return IntegrateOutcome::Failed(error),

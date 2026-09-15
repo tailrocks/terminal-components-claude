@@ -12,13 +12,13 @@ use super::git::GitCommand;
 use super::scope::{load_verify_scope, validate_candidate};
 use crate::json_util::{canonical_json_line, sha256_canonical_line};
 
-pub enum FreezeOutcome {
+pub(super) enum FreezeOutcome {
     Passed,
     Rejected(&'static str),
     Failed(String),
 }
 
-pub fn run_freeze(run_dir: &Path, candidate: &Path) -> FreezeOutcome {
+pub(super) fn run_freeze(run_dir: &Path, candidate: &Path) -> FreezeOutcome {
     let authority = match load_authority() {
         Ok(value) => value,
         Err(error) => return FreezeOutcome::Failed(error),
