@@ -1,11 +1,12 @@
 # TASK-001 qualification evidence report
 
 **Date:** 2026-09-15  
-**Worktree branch:** `task-001-bootstrap` @ `0a31a338e30fd2c8309a5ac1d7b6d8c0dc7ef408`  
+**Worktree branch:** `task-001-bootstrap` @ `cf2e79a068518e229751f82b635832ecaba8ae4d`  
 **Worktree path:** `/Users/donbeave/Projects/terminal-components-claude/.worktrees/main`  
-**Remote branch:** [`task-001-bootstrap`](https://github.com/donbeave/terminal-components-claude/tree/task-001-bootstrap) @ `0a31a338…`  
+**Remote branch:** [`task-001-bootstrap`](https://github.com/donbeave/terminal-components-claude/tree/task-001-bootstrap) @ `cf2e79a0…`  
 **Planning branch:** `prep-wave1-verify` (this report)  
 **Context-check dispatch:** `@0a31a338` — non-fixture frozen verify contexts spawn sibling `tc-proof` subprocess (`context_check.rs`); `tc-host-fixture-check-context/v1` retains stub no-op (`388c173d` warning cleanup → 53 warnings).  
+**Architecture test fix:** `@cf2e79a0` — `tools/refactor-proof/architecture-exemption.json` registers `tc-proof`/`tc-proof-host` for `binary_names_are_preserved`; `capture_matrix_contract` tolerates checkout-local `resolved_path` and absent gitignored `shots/.capture-state/` stderr on worktrees.  
 **Pinned taskfmt:** `/tmp/taskfmt-install/bin/taskfmt` (rev `52d9f1eb7721f409bc47beb9fced7997b5c13ede`)  
 **Pinned taskfmt source:** `/tmp/taskfmt-qualification` @ `52d9f1eb7721f409bc47beb9fced7997b5c13ede`  
 **Pinned tuisnap:** `/Users/donbeave/Projects/tui-snap/target/release/tuisnap`
