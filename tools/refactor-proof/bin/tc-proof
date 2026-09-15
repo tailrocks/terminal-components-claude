@@ -737,16 +737,396 @@ def run_close(context_path: Path) -> int:
     except ObserverError:
         return finish("rejected", "CLOSURE", {}, digests, operation, reported)
 
-# ----- __main__ -----
-#!/usr/bin/env python3
+# ----- accounting/identity.py -----
 
 
 
 
-RUNNER_OPS = {"preflight", "required", "oracle", "capture", "close"}
+def canonical_identity(identity: dict[str, Any]) -> bytes:
+    return json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
 
 
-def parse_args(argv: list[str]) -> argparse.Namespace:
+def resolve_required_names(inventory: dict[str, Any]) -> list[str]:
+    relocations = inventory.get("relocations", {})
+    return sorted(relocations.get(name, name) for name in inventory["required"])
+
+
+def original_name(test_id: str, relocations: dict[str, str]) -> str:
+    for original, replacement in relocations.items():
+        if replacement == test_id:
+            return original
+    return test_id
+
+# ----- accounting/fixture.py -----
+
+
+
+
+
+def validate_inventory_integrity(inventory: dict[str, Any]) -> None:
+    closed = set(inventory.get("closed", []))
+    future = inventory.get("future", {})
+    for name in closed:
+        if name in future:
+            raise Reject("INTEGRITY")
+
+
+def validate_event(event: dict[str, Any], inventory: dict[str, Any], config: dict[str, Any]) -> None:
+    if event.get("exit", 0) != 0:
+        raise Reject("TEST_ACCOUNTING")
+    payload = event.get("payload")
+    if not isinstance(payload, dict):
+        raise Reject("TEST_ACCOUNTING")
+
+    required_ids = resolve_required_names(inventory)
+    discovered = payload.get("discovered")
+    if not isinstance(discovered, list) or sorted(discovered) != required_ids:
+        raise Reject("TEST_ACCOUNTING")
+
+    results = payload.get("results")
+    if not isinstance(results, list):
+        raise Reject("TEST_ACCOUNTING")
+    if sorted(row["id"] for row in results) != required_ids:
+        raise Reject("TEST_ACCOUNTING")
+
+    for key in ("profile", "package", "target"):
+        if payload.get(key) != inventory.get(key):
+            raise Reject("TEST_ACCOUNTING")
+
+    relocations = inventory.get("relocations", {})
+    closed = set(inventory.get("closed", []))
+    future = inventory.get("future", {})
+
+    for row in results:
+        name = original_name(row["id"], relocations)
+        if name in closed and row["status"] != "passed":
+            raise Reject("TEST_ACCOUNTING")
+        if row["status"] != "passed" and name not in future:
+            raise Reject("TEST_ACCOUNTING")
+
+    failures = [row for row in results if row["status"] != "passed"]
+    if failures != [{"id": "test_future", "status": "failed"}]:
+        raise Reject("TEST_ACCOUNTING")
+
+    scenarios = payload.get("scenarios")
+    if not isinstance(scenarios, list) or not scenarios:
+        raise Reject("TEST_ACCOUNTING")
+    scenario = scenarios[0]
+
+    for contrib in inventory.get("contributions", []):
+        state_key = contrib.get("state_key")
+        if not state_key:
+            continue
+        actual = scenario.get("state", {}).get(state_key)
+        expected = contrib.get("expected")
+        if contrib.get("previously_closed") and actual != expected:
+            raise Reject("TEST_ACCOUNTING")
+
+    if inventory.get("claimed_closed_scenarios"):
+        raise Reject("TEST_ACCOUNTING")
+
+    expectations = inventory.get("scenario_expectations", {})
+    frame = scenario.get("frame", {})
+    for expected_frame in expectations.values():
+        for key, value in expected_frame.items():
+            if frame.get(key) == value:
+                raise Reject("TEST_ACCOUNTING")
+
+    _ = config
+
+
+def build_outputs(events: list[dict[str, Any]], inventory: dict[str, Any]) -> dict[str, Any]:
+    future = inventory.get("future", {})
+    contributions = inventory.get("contributions", [])
+    future_scenarios = inventory.get("future_scenarios", {})
+
+    closed_contributions = [
+        contrib["id"]
+        for contrib in contributions
+        if contrib.get("previously_closed") and contrib.get("required_for_closure")
+    ]
+
+    return {
+        "observations": events,
+        "unresolved_tests": sorted(future.keys()),
+        "closed_contributions": closed_contributions,
+        "unresolved_scenarios": sorted(future_scenarios.keys()),
+    }
+
+# ----- accounting/extension.py -----
+
+
+
+
+
+def _canonical(value: Any) -> bytes:
+    import json
+
+    return json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
+
+
+def _expected_owner(identity: dict[str, Any]) -> str:
+    package = identity["package"]
+    if package == "tiny-a":
+        return "terminal-components/completion/991"
+    if package == "tiny-b":
+        return "terminal-components/completion/992"
+    raise Reject("TEST_ACCOUNTING")
+
+
+def _outcomes_from_runs(runs: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    outcomes: list[dict[str, Any]] = []
+    for run in runs:
+        stdout = run.get("stdout") or run.get("result", {})
+        if not isinstance(stdout, dict):
+            raise Reject("TEST_ACCOUNTING")
+        for result in stdout.get("results", []):
+            identity = {key: run[key] for key in ("package", "target", "profile", "source_commit")}
+            identity["name"] = result["name"]
+            owner = _expected_owner(identity) if result["status"] != "passed" else None
+            outcomes.append({"identity": identity, "status": result["status"], "owner": owner})
+    return outcomes
+
+
+def validate_extension_event(
+    event: dict[str, Any],
+    contract: dict[str, Any],
+    *,
+    run_id: str,
+    source_commit: str,
+) -> dict[str, Any]:
+    payload = event.get("payload")
+    if not isinstance(payload, dict):
+        raise Reject("TEST_ACCOUNTING")
+
+    original = contract["original"]
+    actual = payload.get("source")
+    if not isinstance(actual, dict):
+        raise Reject("TEST_ACCOUNTING")
+
+    if payload.get("archive_sha256") != original["source_sha256"]:
+        raise Reject("TEST_ACCOUNTING")
+    if actual.get("non_test_sha256") != original["non_test_sha256"]:
+        raise Reject("TEST_ACCOUNTING")
+    expected_assertions = contract.get("approved_replacements") or original["assertions"]
+    if actual.get("assertions") != expected_assertions:
+        raise Reject("TEST_ACCOUNTING")
+
+    proposals = contract.get("proposals") or {}
+    if proposals and set(proposals) != {"observed_inventory"}:
+        raise Reject("TEST_ACCOUNTING")
+    if "observed_inventory" in proposals:
+        required = contract["required"]
+        if sorted(map(_canonical, proposals["observed_inventory"])) != sorted(map(_canonical, required)):
+            raise Reject("TEST_ACCOUNTING")
+
+    if contract["mode"] == "production":
+        if not contract.get("accepted_inventory") or not contract.get("accepted_disposition"):
+            raise Reject("TEST_ACCOUNTING")
+    else:
+        register = contract.get("preparation_register")
+        expected_future = contract.get("future", [])
+        expected_register = {"required": contract["required"], "future": expected_future}
+        if register != expected_register:
+            raise Reject("TEST_ACCOUNTING")
+
+    required_ids = {_canonical(identity) for identity in contract["required"]}
+    future = {_canonical(row["identity"]): row for row in contract.get("future", [])}
+    closed = {_canonical(identity) for identity in contract.get("closed", [])}
+
+    if len(future) != len(contract.get("future", [])):
+        raise Reject("TEST_ACCOUNTING")
+    if len(closed) != len(contract.get("closed", [])):
+        raise Reject("TEST_ACCOUNTING")
+    if not set(future).issubset(required_ids):
+        raise Reject("TEST_ACCOUNTING")
+    if not closed.issubset(required_ids):
+        raise Reject("TEST_ACCOUNTING")
+    if set(future).intersection(closed):
+        raise Reject("TEST_ACCOUNTING")
+
+    for row in contract.get("future", []):
+        identity = row["identity"]
+        if row.get("owner") != _expected_owner(identity):
+            raise Reject("TEST_ACCOUNTING")
+        if row.get("classification") != "failed":
+            raise Reject("TEST_ACCOUNTING")
+
+    _validate_migration(contract, required_ids, source_commit)
+    _validate_stage_receipts(contract, original, future, closed)
+
+    runs = payload.get("runs")
+    if not isinstance(runs, list):
+        raise Reject("TEST_ACCOUNTING")
+
+    seen: list[dict[str, Any]] = []
+    failures: list[dict[str, Any]] = []
+    for run in runs:
+        if run.get("exit") != 0:
+            raise Reject("TEST_ACCOUNTING")
+        if run.get("run_id") != run_id:
+            raise Reject("TEST_ACCOUNTING")
+        if run.get("source_commit") != source_commit:
+            raise Reject("TEST_ACCOUNTING")
+        stdout = run.get("stdout")
+        if not isinstance(stdout, dict):
+            raise Reject("TEST_ACCOUNTING")
+        for result in stdout.get("results", []):
+            identity = {key: run[key] for key in ("package", "target", "profile", "source_commit")}
+            identity["name"] = result["name"]
+            seen.append(identity)
+            if result["status"] != "passed":
+                key = _canonical(identity)
+                if key not in future:
+                    raise Reject("TEST_ACCOUNTING")
+                if result["status"] != future[key]["classification"]:
+                    raise Reject("TEST_ACCOUNTING")
+                if key in closed:
+                    raise Reject("TEST_ACCOUNTING")
+                failures.append(identity)
+
+    if sorted(map(_canonical, seen)) != sorted(map(_canonical, contract["required"])):
+        raise Reject("TEST_ACCOUNTING")
+
+    actual_outcomes = _outcomes_from_runs(runs)
+    expectations = contract.get("postpatch_expectations")
+    if expectations is not None:
+        if sorted(map(_canonical, actual_outcomes)) != sorted(map(_canonical, expectations)):
+            raise Reject("TEST_ACCOUNTING")
+
+    return {"observations": [event], "unresolved": failures}
+
+
+def _validate_migration(contract: dict[str, Any], required_ids: set[bytes], source_commit: str) -> None:
+    if "approved_patch_parent" not in contract:
+        return
+    if contract["approved_patch_parent"] != source_commit:
+        raise Reject("TEST_ACCOUNTING")
+
+    prepatch = contract.get("prepatch")
+    if not isinstance(prepatch, dict):
+        raise Reject("TEST_ACCOUNTING")
+    prepatch_ids: list[dict[str, Any]] = []
+    for run in prepatch.get("runs", []):
+        stdout = run.get("result", {})
+        for row in stdout.get("results", []):
+            if row.get("status") != "passed":
+                raise Reject("TEST_ACCOUNTING")
+            prepatch_ids.append(
+                {
+                    "package": run["package"],
+                    "target": run["target"],
+                    "profile": run["profile"],
+                    "source_commit": source_commit,
+                    "name": row["name"],
+                }
+            )
+    if sorted(map(_canonical, prepatch_ids)) != sorted(map(_canonical, contract["required"])):
+        raise Reject("TEST_ACCOUNTING")
+
+    postpatch = contract.get("postpatch")
+    if postpatch is None:
+        raise Reject("TEST_ACCOUNTING")
+    manifest = contract.get("approved_patch_manifest")
+    if not isinstance(manifest, dict):
+        raise Reject("TEST_ACCOUNTING")
+    if postpatch.get("tree") != manifest.get("tree"):
+        raise Reject("TEST_ACCOUNTING")
+    if postpatch.get("parent") != source_commit:
+        raise Reject("TEST_ACCOUNTING")
+
+    expectations = contract.get("postpatch_expectations")
+    if expectations is None:
+        raise Reject("TEST_ACCOUNTING")
+    if sorted(_canonical(row["identity"]) for row in expectations) != sorted(required_ids):
+        raise Reject("TEST_ACCOUNTING")
+
+    postpatch_outcomes = _outcomes_from_runs(postpatch.get("runs", []))
+    if sorted(map(_canonical, postpatch_outcomes)) != sorted(map(_canonical, expectations)):
+        raise Reject("TEST_ACCOUNTING")
+
+
+def _validate_stage_receipts(
+    contract: dict[str, Any],
+    original: dict[str, Any],
+    future: dict[bytes, dict[str, Any]],
+    closed: set[bytes],
+) -> None:
+    for receipt in contract.get("accepted_stage_receipts", []):
+        if receipt.get("test_source_sha256") != original["source_sha256"]:
+            raise Reject("TEST_ACCOUNTING")
+        for identity in receipt.get("closed", []):
+            key = _canonical(identity)
+            if key not in closed or key in future:
+                raise Reject("TEST_ACCOUNTING")
+
+# ----- accounting/dispatch.py -----
+
+
+
+
+
+def _reported_hash(context_hash: str) -> str:
+    return os.environ.get("TC_PROOF_CONTEXT_SHA256", context_hash)
+
+
+def run_account_tests(context_path: Path) -> int:
+    try:
+        context, _, context_hash = load_context(context_path)
+    except Reject as error:
+        return finish("rejected", error.category, {}, [], "account-tests", _reported_hash("0" * 64))
+
+    operation = context.get("operation", "account-tests")
+    reported = _reported_hash(context_hash)
+    events: list[dict[str, Any]] = []
+    digests: list[str] = []
+
+    try:
+        bind_context(context, context_hash)
+        validate_schema(context)
+        validate_source_authority(context, operation)
+
+        qualification = context.get("qualification")
+        if qualification and qualification.get("family") == "accounting":
+            client = ObserverClient.from_env()
+            event = client.request(
+                operation,
+                os.environ["TC_PROOF_ORACLE_COMMIT"],
+                os.environ["TC_PROOF_SOURCE_TREE"],
+            )
+            events = [event]
+            digests = [client.digest(event)]
+            outputs = validate_extension_event(
+                event,
+                qualification,
+                run_id=os.environ["TC_PROOF_RUN_ID"],
+                source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
+            )
+            return finish("passed", None, outputs, digests, operation, reported)
+
+        inventory = context.get("inventory")
+        if not isinstance(inventory, dict):
+            raise Reject("TEST_ACCOUNTING")
+        validate_inventory_integrity(inventory)
+
+        client = ObserverClient.from_env()
+        event = client.request(
+            operation,
+            os.environ["TC_PROOF_ORACLE_COMMIT"],
+            os.environ["TC_PROOF_SOURCE_TREE"],
+        )
+        events = [event]
+        digests = [client.digest(event)]
+        validate_event(event, inventory, context.get("configuration", {}))
+        outputs = build_outputs(events, inventory)
+        return finish("passed", None, outputs, digests, operation, reported)
+    except Reject as error:
+        return finish("rejected", error.category, {}, digests, operation, reported)
+    except ObserverError:
+        return finish("rejected", "TEST_ACCOUNTING", {}, digests, operation, reported)
+
+
+def parse_args(argv):
     parser = argparse.ArgumentParser(prog="tc-proof")
     parser.add_argument("operation")
     parser.add_argument("--context", type=Path, required=True)
@@ -755,52 +1135,30 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--approve", action="store_true")
     return parser.parse_args(argv)
 
-
-def main(argv: list[str] | None = None) -> int:
+def main(argv=None):
     args = parse_args(argv or sys.argv[1:])
     if args.approve:
-        import os
-
-        return finish(
-            "rejected",
-            "PROTOCOL",
-            {},
-            [],
-            args.operation,
-            os.environ.get("TC_PROOF_CONTEXT_SHA256", "0" * 64),
-        )
+        return finish("rejected", "PROTOCOL", {}, [], args.operation, os.environ.get("TC_PROOF_CONTEXT_SHA256", "0" * 64))
     if args.operation == "compare":
-        import os
-
-        root = Path(__file__).resolve().parent.parent
-        workspace = root.parent.parent
-        rust = workspace / "target" / "debug" / "tc-proof"
-        os.execv(str(rust), [str(rust), "compare", *[str(a) for a in sys.argv[2:]]])
-    if args.operation not in RUNNER_OPS:
-        print(f"tc-proof: unknown command: {args.operation}", file=sys.stderr)
-        return 2
-    dispatch = {
-        "preflight": lambda: run_preflight(args.context),
-        "required": lambda: run_required(args.context),
-        "oracle": lambda: run_oracle(args.context, args.namespace),
-        "capture": lambda: run_capture(args.context, args.lane),
-        "close": lambda: run_close(args.context),
-    }
-    return dispatch[args.operation]()
-
-
-
-
-
-def _dispatch():
-    import sys
-    op = sys.argv[1] if len(sys.argv) > 1 else ""
-    if op == "compare":
-        import os
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         workspace = os.path.dirname(os.path.dirname(root))
         rust = os.path.join(workspace, "target", "debug", "tc-proof")
         os.execv(rust, [rust, "compare", *sys.argv[2:]])
+    runner_ops = {"preflight", "required", "oracle", "capture", "account-tests", "close"}
+    if args.operation not in runner_ops:
+        print(f"tc-proof: unknown command: {args.operation}", file=sys.stderr)
+        return 2
+    dispatch = {
+                "preflight": lambda: run_preflight(args.context),
+        "required": lambda: run_required(args.context),
+        "oracle": lambda: run_oracle(args.context, args.namespace),
+        "capture": lambda: run_capture(args.context, args.lane),
+        "account-tests": lambda: run_account_tests(args.context),
+        "close": lambda: run_close(args.context),
+    }
+    return dispatch[args.operation]()
+
+def _dispatch():
     return main()
 
 if __name__ == "__main__":
