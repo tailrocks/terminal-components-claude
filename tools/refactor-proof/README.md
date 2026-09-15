@@ -4,16 +4,14 @@ TASK-001 deliverable: independently qualified `tc-proof` comparator and `tc-proo
 
 Command interface and ownership boundaries are defined in [`docs/refactoring-plan/proof-contract.md`](../../docs/refactoring-plan/proof-contract.md). This crate does not constitute qualification evidence until CHK-004/005/006/007 pass against the pinned bootstrap drivers.
 
-Build:
+Build and sync qualification entrypoints:
 
 ```sh
 cargo build -p refactor-proof
+tools/refactor-proof/scripts/sync-binaries.sh
 ```
 
-Installed entrypoints for qualification:
-
-- `bin/tc-proof` — wrapper to the workspace-built comparator
-- `bin/tc-proof-host` — wrapper to the workspace-built host
+`verify.toml` and `host-bootstrap-driver.py --host` use `tools/refactor-proof/bin/tc-proof-host`. The bootstrap driver requires that path to be a regular Mach-O executable so `install` reproduces the accepted harness bytes (Darwin sandbox may allow the submitted argv[0] but deny reads under `target/debug/`). After `sync-binaries.sh`, `bin/tc-proof-host` and `bin/tc-proof` are copies of the workspace-built binaries. Development wrappers that exec `target/debug/` directly live under `scripts/dev-tc-proof-host.sh` and `scripts/dev-tc-proof.sh`.
 
 ## Host operations (Phase 3a)
 
@@ -53,7 +51,16 @@ Phase 3d integrate/seal vectors (`tools/refactor-proof/scripts/test_integrate_se
 | `stale_parent_cas` | parent | pass |
 | `wrong_integration_ref` | authority | pass |
 
-Full `host-bootstrap-driver.py --host` remains blocked locally when the installed `taskfmt` fingerprint differs from the pinned bootstrap digest (`52c960db…`).
+Run the full host matrix with the synced bin path (63 invocations):
+
+```sh
+python3 refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/host-bootstrap-driver.py \
+  --host tools/refactor-proof/bin/tc-proof-host \
+  --taskfmt /path/to/pinned/taskfmt \
+  --taskfmt-source /path/to/pinned/task-format
+```
+
+Requires macOS, pinned taskfmt revision `52d9f1eb…` / fingerprint `52c960db…`, and synced Mach-O entrypoints.
 
 ## Observer IPC (Phase 3c transport)
 
