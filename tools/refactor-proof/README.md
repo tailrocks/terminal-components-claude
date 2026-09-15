@@ -22,7 +22,7 @@ Installed entrypoints for qualification:
 - `install --receipt PATH --destination PATH` validates `TC_PROOF_AUTHORITY_FILE`, checks receipt digests against the authority allowlist, verifies harness executable bytes, and writes `bin/tc-proof-host` mode `0755`.
 - `prepare --campaign DIR --task ID --parent COMMIT --run DIR` validates campaign/receipt bindings, dependency producer/product tuples, predecessor ancestry, pinned taskfmt identity, runs `taskfmt progress-init`, and writes `run/preparation.json`.
 
-`freeze`, `verify`, `seal`, and `integrate` still emit `tc-proof-host-result/v1` with `status: "rejected"` / `category: "unsupported"`.
+`verify` runs observer IPC (build/test/taskfmt), validates the frozen context index, materializes worker/taskfmt logs, and writes `run/verdict.json` with five `CHK-*` entries. Observer unavailable → `rejected` / `integrity` (no panic). `seal` and `integrate` still emit `status: "rejected"` / `category: "unsupported"`.
 
 Qualification driver filtering: `host-bootstrap-driver.py` has no `--cases` filter. Phase 3a vectors exercised directly:
 
@@ -36,7 +36,7 @@ Qualification driver filtering: `host-bootstrap-driver.py` has no `--cases` filt
 
 Full driver `--host` invocation additionally requires the pinned taskfmt executable before any host case runs.
 
-## Observer IPC (Phase 2 skeleton; transport Phase 3b)
+## Observer IPC (Phase 3c transport)
 
 During `verify`, the host cannot self-attest worker or taskfmt execution. The planner-owned observer (outside the host sandbox) supplies three host-only environment values:
 
@@ -54,4 +54,4 @@ Worker subprocesses inherit none of these. The host writes one newline-terminate
 
 Success responses use `tc-proof-observation/v1` with `step`, frozen `tree`, actual `argv`, integer `exit`, base64 `stdout`/`stderr`, and `files` (relative output names to base64 bytes). Protocol violations return `tc-proof-observer-error/v1`. Reordering, replay, wrong nonce, or extra keys fail closed.
 
-Rust types live in `refactor_proof::observer` (`ObserverClient`, `ObserverRequest`, `ObserverObservation`). Transport over inherited FDs is Phase 3; Phase 2 provides compile-only stubs and request encoding.
+Rust types live in `refactor_proof::observer` (`ObserverClient`, `ObserverRequest`, `ObserverObservation`). `ObserverClient::from_env()` reads inherited FDs and performs newline-framed JSON request/response exchange for the fixed build → test → taskfmt sequence.

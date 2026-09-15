@@ -4,10 +4,12 @@ use std::io::{self, Write as _};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
+use super::freeze::{run_freeze, FreezeOutcome};
 use super::install::{run_install, InstallOutcome};
 use super::operation::HostOperation;
 use super::prepare::{run_prepare, PrepareOutcome};
 use super::result::HostResult;
+use super::verify::{run_verify, VerifyOutcome};
 
 pub fn emit_result(result: &HostResult) -> io::Result<()> {
     let json = serde_json::to_string(result).map_err(io::Error::other)?;
@@ -48,6 +50,47 @@ pub fn dispatch_install(args: &[String]) -> ExitCode {
         InstallOutcome::Failed(error) => {
             eprintln!("tc-proof-host: install: {error}");
             finish(HostResult::rejected(HostOperation::Install, "receipt"))
+        }
+    }
+}
+
+pub fn dispatch_freeze(args: &[String]) -> ExitCode {
+    let Some(run) = flag_value(args, "--run") else {
+        return usage_exit("freeze requires --run and --candidate");
+    };
+    let Some(candidate) = flag_value(args, "--candidate") else {
+        return usage_exit("freeze requires --run and --candidate");
+    };
+    if has_unknown_flags(args, &["--run", "--candidate"]) {
+        return usage_exit("freeze received unknown option");
+    }
+    match run_freeze(&run, &candidate) {
+        FreezeOutcome::Passed => finish(HostResult::passed(HostOperation::Freeze)),
+        FreezeOutcome::Rejected(category) => {
+            finish(HostResult::rejected(HostOperation::Freeze, category))
+        }
+        FreezeOutcome::Failed(error) => {
+            eprintln!("tc-proof-host: freeze: {error}");
+            finish(HostResult::rejected(HostOperation::Freeze, "integrity"))
+        }
+    }
+}
+
+pub fn dispatch_verify(args: &[String]) -> ExitCode {
+    let Some(run) = flag_value(args, "--run") else {
+        return usage_exit("verify requires --run");
+    };
+    if has_unknown_flags(args, &["--run"]) {
+        return usage_exit("verify received unknown option");
+    }
+    match run_verify(&run) {
+        VerifyOutcome::Passed => finish(HostResult::passed(HostOperation::Verify)),
+        VerifyOutcome::Rejected(category) => {
+            finish(HostResult::rejected(HostOperation::Verify, category))
+        }
+        VerifyOutcome::Failed(error) => {
+            eprintln!("tc-proof-host: verify: {error}");
+            finish(HostResult::rejected(HostOperation::Verify, "integrity"))
         }
     }
 }

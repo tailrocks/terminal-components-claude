@@ -39,6 +39,16 @@ pub fn sha256_canonical(value: &Value) -> String {
     sha256_bytes(canonical_json(value).as_bytes())
 }
 
+/// SHA-256 hex digest of canonical JSON bytes with a terminal newline.
+pub fn sha256_canonical_line(value: &Value) -> String {
+    sha256_bytes(format!("{}\n", canonical_json(value)).as_bytes())
+}
+
+/// Serialize canonical JSON with a terminal newline for host artifacts.
+pub fn canonical_json_line(value: &Value) -> String {
+    format!("{}\n", canonical_json(value))
+}
+
 /// Parse JSON while rejecting duplicate object keys at any depth.
 pub fn parse_json_strict(text: &str) -> Result<Value, String> {
     let mut de = serde_json::Deserializer::from_str(text);
