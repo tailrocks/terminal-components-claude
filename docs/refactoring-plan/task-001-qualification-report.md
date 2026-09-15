@@ -1,19 +1,20 @@
 # TASK-001 qualification evidence report
 
 **Date:** 2026-09-15  
-**Worktree branch:** `task-001-bootstrap` @ `cf2e79a068518e229751f82b635832ecaba8ae4d`  
+**Worktree branch:** `task-001-bootstrap` @ `3ed5157074d5a05f3a78149b17f9ae01d2324c25`  
 **Worktree path:** `/Users/donbeave/Projects/terminal-components-claude/.worktrees/main`  
-**Remote branch:** [`task-001-bootstrap`](https://github.com/donbeave/terminal-components-claude/tree/task-001-bootstrap) @ `cf2e79a0…`  
+**Remote branch:** [`task-001-bootstrap`](https://github.com/donbeave/terminal-components-claude/tree/task-001-bootstrap) @ `3ed5157074d5a05f3a78149b17f9ae01d2324c25`  
 **Planning branch:** `prep-wave1-verify` (this report)  
 **Context-check dispatch:** `@0a31a338` — non-fixture frozen verify contexts spawn sibling `tc-proof` subprocess (`context_check.rs`); `tc-host-fixture-check-context/v1` retains stub no-op (`388c173d` warning cleanup → 53 warnings).  
 **Architecture test fix:** `@cf2e79a0` — `tools/refactor-proof/architecture-exemption.json` registers `tc-proof`/`tc-proof-host` for `binary_names_are_preserved`; `capture_matrix_contract` tolerates checkout-local `resolved_path` and absent gitignored `shots/.capture-state/` stderr on worktrees.  
+**Review fixes (since `cf2e79a0`):** `05b20ad4` gitignore `.qual/` sandbox scratch; `cd910c7b` portable `TASKFMT_BIN`/`TASKFMT_SOURCE` in vector scripts; `3ed51570` correct `tui-snap` path (`../../../tui-snap` in `refactor-proof/Cargo.toml`).  
 **Pinned taskfmt:** `/tmp/taskfmt-install/bin/taskfmt` (rev `52d9f1eb7721f409bc47beb9fced7997b5c13ede`)  
 **Pinned taskfmt source:** `/tmp/taskfmt-qualification` @ `52d9f1eb7721f409bc47beb9fced7997b5c13ede`  
 **Pinned tuisnap:** `/Users/donbeave/Projects/tui-snap/target/release/tuisnap`  
-**Full workspace nextest:** **3201/3201 pass** @ `cf2e79a0` (worktree `.worktrees/main`; 6 skipped)  
+**Full workspace nextest:** **3201/3201 pass** @ `3ed51570` (worktree `.worktrees/main`; 6 skipped)  
 **Planning PR:** [#4](https://github.com/donbeave/terminal-components-claude/pull/4)  
-**Operator evidence draft:** [`task-001-operator-evidence-draft.md`](task-001-operator-evidence-draft.md) @ `8dea381e`  
-**taskfmt verify prep:** [`task-001-taskfmt-verify-notes.md`](task-001-taskfmt-verify-notes.md) — OB-006 **blocked** (§7)  
+**Operator evidence draft:** [`task-001-operator-evidence-draft.md`](task-001-operator-evidence-draft.md)  
+**taskfmt verify prep:** [`task-001-verify-container.md`](task-001-verify-container.md), [`task-001-progress-completion-guide.md`](task-001-progress-completion-guide.md), [`task-001-taskfmt-verify-notes.md`](task-001-taskfmt-verify-notes.md) — OB-006 **blocked** (§7)  
 **validate-plan:** `error_count: 0` on `prep-wave1-verify`
 
 ---
@@ -32,7 +33,7 @@
 | Full workspace `cargo nextest run` | **PASS** | 3201 | 0 |
 
 **Aggregate:** **240 pass / 0 fail** across refactor-proof gates.  
-**Workspace regression (advisory):** **3201/3201** @ `cf2e79a0` — no worktree fixes required.
+**Workspace regression (advisory):** **3201/3201** @ `3ed51570` — no worktree fixes required.
 
 **Overall TASK-001 bootstrap qualification:** **PASS** — host matrix 63/63 via synced Mach-O at `tools/refactor-proof/bin/tc-proof-host` after `sync-binaries.sh`.
 
@@ -191,7 +192,7 @@ cd .worktrees/main && cargo nextest run
 | Passed | 3201 |
 | Failed | 0 |
 | Skipped | 6 |
-| Worktree tip | `cf2e79a068518e229751f82b635832ecaba8ae4d` |
+| Worktree tip | `3ed5157074d5a05f3a78149b17f9ae01d2324c25` |
 | Duration | ~171s |
 
 Advisory workspace regression only; does not substitute for TASK-001 host receipt or OB-006 `taskfmt verify`.
@@ -216,7 +217,7 @@ Source: [`task-001-taskfmt-verify-notes.md`](task-001-taskfmt-verify-notes.md). 
 
 **Direct-flag verify summary:** `pass=4 fail=6` — config, task_lint, scope, forbidden_paths, forbidden_patterns pass; CHK-001–007 fail on container paths; progress fails (`state=IN_PROGRESS (want DONE)`).
 
-**Advisory qualification (substituted paths, not via `taskfmt verify`):** CHK-001, CHK-004, CHK-005 all exit **0** against worktree @ `cf2e79a0` after `sync-binaries.sh`. Implementation appears ready; standalone gate blocked on environment layout and progress completion, not driver failures.
+**Advisory qualification (substituted paths, not via `taskfmt verify`):** CHK-001, CHK-004, CHK-005 all exit **0** against worktree @ `3ed51570` after `sync-binaries.sh`. Implementation appears ready; standalone gate blocked on environment layout and progress completion, not driver failures.
 
 ---
 
