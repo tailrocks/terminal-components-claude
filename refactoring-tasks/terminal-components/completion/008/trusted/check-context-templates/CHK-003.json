@@ -1,0 +1,12 @@
+{
+  "schema": "tc-proof-check-context-template/v1",
+  "check_id": "CHK-003",
+  "operation": "account-tests",
+  "qualification": {
+    "mode": "preparation",
+    "family": "accounting",
+    "register_kind": "post-migration",
+    "requires_inventory_receipt": false,
+    "requires_disposition_receipt": false
+  }
+}

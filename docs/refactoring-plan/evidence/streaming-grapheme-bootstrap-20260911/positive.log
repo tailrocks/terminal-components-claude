@@ -1,0 +1,93 @@
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /private/tmp/tc-architecture.L0vAdH/main/crates/tui/src/lib.rs
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /private/tmp/tc-architecture.L0vAdH/main/crates/tui/src/lib.rs
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /private/tmp/tc-architecture.L0vAdH/main/crates/tui-testing/src/lib.rs
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /private/tmp/tc-architecture.L0vAdH/main/crates/tui-testing/src/lib.rs
+warning: stripping debug info with `rust-objcopy` failed: signal: 6 (SIGABRT)
+  |
+  = note: dyld[132]: Library not loaded: @rpath/libLLVM.dylib
+            Referenced from: <AC0D75A8-23BF-301F-B7CE-3E5CC0C1BC06> /Users/donbeave/.rustup/toolchains/1.98.0-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/rust-objcopy
+            Reason: tried: '/Users/donbeave/.rustup/toolchains/1.98.0-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/../lib/libLLVM.dylib' (no such file), '/Users/donbeave/.rustup/toolchains/1.98.0-aarch64-apple-darwin/lib/rustlib/aarch64-apple-darwin/bin/../lib/libLLVM.dylib' (no such file)
+          
+
+warning: `stream-projection-feasibility` (lib test) generated 1 warning
+    Finished `release` profile [optimized] target(s) in 0.05s
+     Running unittests lib.rs (/tmp/stream-projection.ghBlfQ/target/release/deps/stream_projection_feasibility-373e07785aa0b9b0)
+
+running 7 tests
+test tests::clipping_stops_projection_not_original_formatter_effects ... ok
+test tests::exact_clusters_all_fragment_boundaries_and_bounded_work ... ok
+test tests::formatting_error_and_unwind_clear_incomplete_storage ... 
+thread 'tests::formatting_error_and_unwind_clear_incomplete_storage' (46588137) panicked at lib.rs:416:13:
+intentional formatter failure
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+ok
+test tests::honest_cold_warm_and_fresh_owner_allocation_counts ... ascii: cold=(0, 0, 5, 2) warm=(0, 0, 5, 2) fresh=(0, 0, 5, 2) retained_capacity=0
+cjk: cold=(0, 0, 2, 6) warm=(0, 0, 2, 6) fresh=(0, 0, 2, 6) retained_capacity=0
+combining: cold=(0, 0, 1, 3) warm=(0, 0, 1, 3) fresh=(0, 0, 1, 3) retained_capacity=0
+zwj: cold=(0, 0, 1, 25) warm=(0, 0, 1, 25) fresh=(0, 0, 1, 25) retained_capacity=0
+long: cold=(9, 16128, 2, 8194) warm=(0, 0, 2, 8194) fresh=(9, 16128, 2, 8194) retained_capacity=16128
+ok
+test tests::long_short_long_keeps_only_high_water_capacity_and_fresh_owner_is_cold ... ok
+test tests::public_consumer_allocation_resize_long_short_long_matches_each_first_frame ... ok
+test tests::public_list_consumer_cells_one_original_display_call_and_allocation_attribution ... consumer bytes=3 width=1 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=3 width=1 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=3 width=2 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=3 width=2 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=3 width=3 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=3 width=3 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=3 width=8 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=3 width=8 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=3 width=20 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=3 width=20 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=26 width=1 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=26 width=1 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=26 width=2 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=26 width=2 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=26 width=3 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=26 width=3 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=26 width=8 pass=0 scratch_allocs=0 output_and_style_allocs=1
+consumer bytes=26 width=8 pass=1 scratch_allocs=0 output_and_style_allocs=1
+consumer bytes=26 width=20 pass=0 scratch_allocs=0 output_and_style_allocs=1
+consumer bytes=26 width=20 pass=1 scratch_allocs=0 output_and_style_allocs=1
+consumer bytes=16 width=1 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=16 width=1 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=16 width=2 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=16 width=2 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=16 width=3 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=16 width=3 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=16 width=8 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=16 width=8 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=16 width=20 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=16 width=20 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=4 width=1 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=4 width=1 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=4 width=2 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=4 width=2 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=4 width=3 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=4 width=3 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=4 width=8 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=4 width=8 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=4 width=20 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=4 width=20 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=514 width=1 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=514 width=1 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=514 width=2 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=514 width=2 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=514 width=3 pass=0 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=514 width=3 pass=1 scratch_allocs=0 output_and_style_allocs=0
+consumer bytes=514 width=8 pass=0 scratch_allocs=5 output_and_style_allocs=1
+consumer bytes=514 width=8 pass=1 scratch_allocs=0 output_and_style_allocs=1
+consumer bytes=514 width=20 pass=0 scratch_allocs=5 output_and_style_allocs=1
+consumer bytes=514 width=20 pass=1 scratch_allocs=0 output_and_style_allocs=1
+ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+
+   Doc-tests stream_projection_feasibility
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+mbx[cache]: 0 hits, 0 misses, 1 bypassed; 0 B downloaded, 0 B uploaded, 0 B stored locally
+mbx[savings]: has quietly disposed of 357.2 GiB of build leftovers. nobody saw anything.

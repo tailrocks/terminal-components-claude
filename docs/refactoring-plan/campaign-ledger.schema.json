@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "terminal-components/campaign-ledger/v1",
+  "title": "Campaign ledger",
+  "description": "Operator-maintained resumable state for the 73-task campaign. Not candidate authority.",
+  "type": "object",
+  "required": [
+    "schema",
+    "integration_ref",
+    "integration_head",
+    "catalog",
+    "toolchain",
+    "tasks",
+    "receipts"
+  ],
+  "properties": {
+    "schema": {
+      "const": "campaign-ledger/v1"
+    },
+    "integration_ref": {
+      "type": "string",
+      "const": "refs/heads/refactor/holla-parity"
+    },
+    "integration_head": {
+      "type": "string",
+      "description": "Current tip SHA of integration_ref after last accepted integrate"
+    },
+    "armed": {
+      "type": "boolean",
+      "default": false,
+      "description": "True only after operator authorized /goal arming"
+    },
+    "armed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "catalog": {
+      "type": "object",
+      "required": ["commit", "recorded_at"],
+      "properties": {
+        "commit": { "type": "string" },
+        "branch": { "type": "string" },
+        "recorded_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "toolchain": {
+      "type": "object",
+      "properties": {
+        "architectural_main": { "type": "string" },
+        "oracle_commit": { "type": "string" },
+        "visual_baseline_tag_peeled": { "type": "string" },
+        "taskfmt_revision": { "type": "string" },
+        "taskfmt_fingerprint": { "type": "string" },
+        "taskfmt_path": { "type": "string" },
+        "tuisnap_path": { "type": "string" }
+      }
+    },
+    "receipts": {
+      "type": "object",
+      "description": "task_id -> receipt SHA or path",
+      "additionalProperties": { "type": "string" }
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["task_id", "status"],
+        "properties": {
+          "task_id": { "type": "string", "pattern": "^TASK-[0-9]{3}$" },
+          "status": {
+            "enum": ["pending", "dispatched", "verified", "integrated", "blocked"]
+          },
+          "parent_sha": { "type": "string" },
+          "candidate_tree_sha": { "type": "string" },
+          "verifier_verdict": {
+            "enum": ["VERIFIED", "REJECTED", "BLOCKED", "NOT_RUN"]
+          },
+          "integrated_at": { "type": "string", "format": "date-time" },
+          "run_id": { "type": "string" },
+          "notes": { "type": "string" }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,11 @@
+{
+  "schema": "tc-proof-check-context-template/v1",
+  "extends": null,
+  "qualification": {
+    "mode": "preparation",
+    "family": "accounting",
+    "register_kind": "post-migration",
+    "requires_inventory_receipt": false,
+    "requires_disposition_receipt": false
+  }
+}

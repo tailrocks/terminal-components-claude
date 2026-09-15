@@ -1,0 +1,13 @@
+{
+  "schema": "tc-proof-preflight-context/v1",
+  "operation": "preflight",
+  "merge_readiness": {
+    "pinned_architectural_main": "7b27732a8c3c131760ec3438f641cb3c11343a42",
+    "remote_main_ref": "refs/heads/main",
+    "remote_readonly": true,
+    "drift_policy": "fail_until_fresh_integration"
+  },
+  "trust_pins": {
+    "product_oracle": "02f5294bfdbf38004cc49130d0aff1d01f31434c"
+  }
+}

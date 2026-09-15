@@ -1,0 +1,44 @@
+{
+  "schema": "tc-proof-account-tests-context/v1",
+  "operation": "account-tests",
+  "mode": "production",
+  "required_commands": [
+    {
+      "id": "visual_fidelity_full",
+      "argv": [
+        "cargo",
+        "nextest",
+        "run",
+        "--run-ignored",
+        "only",
+        "-E",
+        "binary(visual_baseline)"
+      ],
+      "env_forbid": {
+        "TUISNAP_FAST": [
+          "1"
+        ]
+      },
+      "tier": "fidelity_full",
+      "expected_exit": 0
+    },
+    {
+      "id": "store_integrity",
+      "argv": [
+        "cargo",
+        "nextest",
+        "run",
+        "-E",
+        "test(store_integrity)"
+      ],
+      "expected_exit": 0
+    }
+  ],
+  "snapshots_integrity": {
+    "paths": [
+      "snapshots/",
+      "shots/"
+    ],
+    "tree_digest": "3be0a0c035e0688c5efe713636193b922e71997d7d9ac55b9f0100e5272f29db"
+  }
+}

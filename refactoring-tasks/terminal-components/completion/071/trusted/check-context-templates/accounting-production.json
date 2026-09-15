@@ -1,0 +1,11 @@
+{
+  "schema": "tc-proof-check-context-template/v1",
+  "extends": null,
+  "qualification": {
+    "mode": "production",
+    "family": "accounting",
+    "register_kind": "production",
+    "requires_inventory_receipt": true,
+    "requires_disposition_receipt": true
+  }
+}

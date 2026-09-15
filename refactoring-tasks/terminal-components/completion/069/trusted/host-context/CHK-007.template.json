@@ -1,0 +1,25 @@
+{
+  "schema": "tc-proof-close-context/v1",
+  "operation": "close",
+  "required_passed_checks": [
+    "CHK-001",
+    "CHK-002",
+    "CHK-003",
+    "CHK-004",
+    "CHK-005",
+    "CHK-006"
+  ],
+  "forbid_fields": [
+    "human_review",
+    "adversarial_verdict",
+    "reviewer_attestation"
+  ],
+  "receipt_fields": [
+    "tree",
+    "parent",
+    "scope_base",
+    "command_hashes",
+    "scenario_closure",
+    "performance_results"
+  ]
+}

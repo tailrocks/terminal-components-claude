@@ -1,0 +1,57 @@
+path	disposition	owner_tasks	notes
+.DS_Store	exclude_binary_noise		no semantic credit; inventory byte binding only
+tests/baselines/jackin.txt	preserve_historical_baseline	TASK-004;TASK-008;TASK-066	legacy perf baseline text; not immutable oracle receipt
+tests/baselines/tablepro.txt	preserve_historical_baseline	TASK-005;TASK-008;TASK-066	legacy perf baseline text; not immutable oracle receipt
+tests/choice_containment.rs	preserve_oracle_conflict_disposition	TASK-008;TASK-018	holla-only integration test; TASK-007/008 identity disposition
+tests/focus_gutter.rs	preserve_oracle_conflict_disposition	TASK-008;TASK-021	holla focus gutter; conflicts modern viewport policy per branch partition
+tests/holla_pty.rs	preserve_oracle_conflict_disposition	TASK-003;TASK-008;TASK-050	holla PTY integration; app closure owned by TASK-050
+tests/perf.rs	preserve_mechanism_reconcile	TASK-067;TASK-008;TASK-073	root perf harness; TASK-067 owns accepted workload membership
+tests/perf_baseline.txt	preserve_historical_baseline	TASK-067;TASK-008	legacy baseline artifact; not fresh acceptance receipt
+tests/perf_common.rs	preserve_mechanism_reconcile	TASK-067;TASK-008	shared perf helpers substrate for TASK-067
+tests/showcase_baseline.txt	preserve_historical_baseline	TASK-002;TASK-008;TASK-066	historical showcase baseline text
+tests/terminal_suspend.rs	preserve_oracle_conflict_disposition	TASK-009;TASK-008;TASK-050	holla terminal suspend integration
+tools/__pycache__/ansi2html.cpython-314.pyc	exclude_generated_cache		no source credit; byte binding only
+tools/baseline_capture.sh	preserve_archive_route	TASK-003;TASK-070;TASK-069	historical capture route; qualified capture supersedes for acceptance
+tools/qualified-capture/harness/Cargo.lock	preserve_pin_metadata	TASK-070;TASK-001	lockfile pin for qualified harness; integrity tests cover membership
+tools/qualified-capture/licenses/tui-snap-LICENSE	preserve_provenance	TASK-070;TASK-001	license pin artifact; not executable semantics
+tools/qualified-capture/licenses/tui-test-LICENSE	preserve_provenance	TASK-070;TASK-001	license pin artifact
+tools/qualified-capture/licenses/vt100-LICENSE	preserve_provenance	TASK-070;TASK-001	license pin artifact
+tools/qualified-capture/proof/clean-metadata.json	preserve_archival_receipt	TASK-070	self-recorded clean metadata; not current host boundary
+tools/qualified-capture/proof/cursor-independent-review/SHA256SUMS	preserve_archival_receipt	TASK-070	review checksum artifact; not fresh acceptance
+tools/qualified-capture/proof/cursor-review.md	preserve_archival_receipt	TASK-070	historical review prose; not executable authority
+tools/qualified-capture/proof/cursor-review.sha256	preserve_archival_receipt	TASK-070	review checksum sidecar
+tools/qualified-capture/proof/final-test-identities.json	preserve_archival_receipt	TASK-070;TASK-007	self-reported test identity snapshot; TASK-007 owns reconciliation
+tools/qualified-capture/proof/final-tool-gates.json	preserve_archival_receipt	TASK-070;TASK-001	self-reported gate snapshot; not host proof
+tools/qualified-capture/proof/full-0.log	preserve_archival_receipt	TASK-070	captured run log; not rerun credit
+tools/qualified-capture/proof/full-1.log	preserve_archival_receipt	TASK-070	captured run log
+tools/qualified-capture/proof/full-2.log	preserve_archival_receipt	TASK-070	captured run log
+tools/qualified-capture/proof/full-3.log	preserve_archival_receipt	TASK-070	captured run log
+tools/qualified-capture/proof/full-4.log	preserve_archival_receipt	TASK-070	captured run log
+tools/qualified-capture/proof/full-5.log	preserve_archival_receipt	TASK-070	captured run log
+tools/qualified-capture/proof/independent-review/verified.json	preserve_archival_receipt	TASK-070	self-reported verification JSON
+tools/qualified-capture/proof/matrix-status.json	preserve_archival_receipt	TASK-070	matrix status snapshot; live matrix not authorized during planning
+tools/qualified-capture/proof/migration-review.md	preserve_archival_receipt	TASK-070	historical migration review prose
+tools/qualified-capture/proof/migration-reviewed-hashes.json	preserve_archival_receipt	TASK-070	review hash snapshot
+tools/qualified-capture/proof/recorded-environment.json	preserve_archival_receipt	TASK-070;TASK-072	recorded environment; actual-compiler host boundary supersedes
+tools/qualified-capture/proof/resolved-tools.json	preserve_archival_receipt	TASK-070;TASK-072	resolved tool snapshot
+tools/qualified-capture/proof/source-artifacts.json	preserve_archival_receipt	TASK-070	source artifact index; separate from source-artifact reconciliation
+tools/qualified-capture/proof/test-identities.json	preserve_archival_receipt	TASK-007;TASK-070	duplicate identity snapshot; TASK-007 authoritative
+tools/qualified-capture/repairs/tuisnap-code.patch	preserve_archival_receipt	TASK-070	reviewed repair patch bytes; not reapplied during planning
+tools/qualified-capture/repairs/tuisnap.bundle	preserve_archival_receipt	TASK-070	reviewed repair bundle bytes
+xtask/doc_check_allow.txt	delegate_historian_complete	TASK-065;TASK-068	xtask historian partition 18/18; allowlist disposition in reaudit-branch-xtask.md
+xtask/fixtures/backend-free-core/Cargo.lock	delegate_historian_complete	TASK-065;TASK-068	xtask fixture lock; historian partition complete
+xtask/fixtures/backend-free-core/Cargo.toml	delegate_historian_complete	TASK-065;TASK-068	xtask fixture manifest
+xtask/fixtures/backend-free-core/src/main.rs	delegate_historian_complete	TASK-065;TASK-068	xtask fixture source
+xtask/fixtures/backend-free-testing/Cargo.lock	delegate_historian_complete	TASK-065;TASK-068	xtask fixture lock
+xtask/fixtures/backend-free-testing/Cargo.toml	delegate_historian_complete	TASK-065;TASK-068	xtask fixture manifest
+xtask/fixtures/backend-free-testing/src/main.rs	delegate_historian_complete	TASK-065;TASK-068	xtask fixture source
+xtask/named_tests_allow.txt	delegate_historian_complete	TASK-065;TASK-068	xtask named-test allowlist
+xtask/src/app_inventory.rs	delegate_historian_complete	TASK-065;TASK-068;TASK-007	xtask app inventory generator; historian partition complete
+xtask/src/backend_free.rs	delegate_historian_complete	TASK-065;TASK-068	xtask backend-free checks
+xtask/src/capture_build.rs	delegate_historian_complete	TASK-065;TASK-068;TASK-070	xtask capture build wiring
+xtask/src/capture_confinement.rs	delegate_historian_complete	TASK-065;TASK-068;TASK-070	xtask capture confinement checks
+xtask/src/capture_contract.rs	delegate_historian_complete	TASK-065;TASK-068;TASK-070	xtask capture contract checks
+xtask/src/capture_wiring.rs	delegate_historian_complete	TASK-065;TASK-068;TASK-070	xtask capture wiring checks
+xtask/src/historical_additions.rs	delegate_historian_complete	TASK-065;TASK-068;TASK-069	xtask historical additions helper
+xtask/src/main.rs	delegate_historian_complete	TASK-065;TASK-068;TASK-007	xtask main driver; historian partition complete
+xtask/src/parity.rs	delegate_historian_complete	TASK-065;TASK-068;TASK-069	xtask parity helper

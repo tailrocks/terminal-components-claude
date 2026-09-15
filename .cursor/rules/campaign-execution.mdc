@@ -1,0 +1,33 @@
+---
+description: Refactoring campaign execution protocol — single branch refactor/holla-parity
+alwaysApply: true
+---
+
+# Campaign execution (pre-arm and active)
+
+Read before any refactoring task work:
+
+- `refactoring-tasks/terminal-components/CAMPAIGN_AGENTS.md` — **supersedes AGENTS.md steps 6–7** for campaign tasks
+- `docs/refactoring-plan/campaign-policy.md` — single branch `refactor/holla-parity`
+- `docs/refactoring-plan/campaign-pre-arm-checklist.md` — do not arm `/goal` until complete
+
+## Hard rules
+
+- All production commits integrate to **`refs/heads/refactor/holla-parity` only**
+- Never merge to `main`, move `visual-baseline` tag, or write `snapshots/` during campaign
+- Never use `taskfmt run`, `monitor`, or `promote`
+- Never claim task DONE from local `taskfmt verify --progress ""` — host `tc-proof-host verify` is authority
+- Use `cargo nextest`, never `cargo test`
+- One task per worktree; edit only `writable_paths` from task `verify.toml`
+
+## Roles
+
+- **Implementer:** edits `/work/`, advisory local tests only, submits progress to operator
+- **Verifier:** fresh context, read-only, verdict VERIFIED | REJECTED | BLOCKED
+- **Operator/host:** freeze, verify, integrate — not the implementer agent
+
+## Pre-arm
+
+Preparation scripts: `scripts/campaign-init.sh`, `campaign-preflight.sh`, `campaign-install-taskfmt.sh`.
+
+Do not start the full `/goal` campaign until operator completes `campaign-pre-arm-checklist.md` P0–P3 and explicitly authorizes P4.

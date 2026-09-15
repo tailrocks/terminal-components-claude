@@ -1,0 +1,109 @@
+{
+  "aggregate": {
+    "comparator_invocations_pass": 141,
+    "host_matrix_invocations_pass": 63,
+    "nextest_refactor_proof_pass": 17,
+    "nextest_workspace_pass": 3201,
+    "total_fail": 0,
+    "total_pass": 221
+  },
+  "build": {
+    "command": "cargo build -p refactor-proof",
+    "exit": 0,
+    "warnings": 53
+  },
+  "capture_session": "fresh-qualification-prep-wave1-verify",
+  "comparator": {
+    "driver": "/private/tmp/prep-wave1-verify-wt/docs/refactoring-plan/evidence/proof-comparator-bootstrap.py",
+    "exit": 0,
+    "fail_count": 0,
+    "output": {
+      "case_count": 72,
+      "driver_sha256": "3ecb9c6ea3a37da22a864c0c016f6ea58a0ec52973742782d5f73c3e4c7c8dae",
+      "failures": [],
+      "invocation_count": 141,
+      "runner_sha256": "1b3dbcbe80f7e37ccd0851e423000034e687c17b499e092fa4dfb66d7217947f",
+      "schema": "tc-proof-bootstrap-qualification/v1",
+      "scope": "comparator-only; host isolation/capture/adapter qualification required separately",
+      "vectors_sha256": "84f4b35d92acc39bd5feddfb639920b8484aaff12f9de1f71807612d753046d0"
+    },
+    "pass_count": 141
+  },
+  "completed_at": "2026-09-15T14:09:18Z",
+  "host_matrix": {
+    "case_count": 32,
+    "driver": "/private/tmp/prep-wave1-verify-wt/docs/refactoring-plan/evidence/host-bootstrap-driver.py",
+    "exit": 0,
+    "fail_count": 0,
+    "invocation_count": 63,
+    "output": {
+      "cases": [
+        "exact_tested_tree",
+        "forged_install_receipt",
+        "forged_predecessor_receipt",
+        "wrong_predecessor",
+        "unintegrated_predecessor",
+        "out_of_scope",
+        "forbidden_checker",
+        "overlay_tamper",
+        "symlink_escape",
+        "hardlink_escape",
+        "ignored_source",
+        "hidden_index_flag",
+        "changed_git_config",
+        "submodule_substitution",
+        "premature_seal",
+        "unauthorized_seal",
+        "failed_worker",
+        "done_nonzero_worker",
+        "missing_worker_result",
+        "candidate_expected",
+        "missing_expected",
+        "missing_gate",
+        "context_index_tamper",
+        "context_member_tamper",
+        "context_member_missing",
+        "context_member_extra",
+        "context_member_swap",
+        "context_cross_run",
+        "incomplete_progress",
+        "wrong_expected_parent",
+        "stale_parent_cas",
+        "wrong_integration_ref"
+      ],
+      "host_sha256": "a6bd97551efd0a84423c87b2ec3f11d549f8de4ddb28670716af449118e217f6",
+      "schema": "tc-host-bootstrap-qualification/v1"
+    },
+    "pass_count": 63
+  },
+  "host_sha256": "a6bd97551efd0a84423c87b2ec3f11d549f8de4ddb28670716af449118e217f6",
+  "nextest": {
+    "refactor_proof": {
+      "command": "cargo nextest run -p refactor-proof",
+      "exit": 0,
+      "failed": 0,
+      "passed": 17,
+      "run": 17,
+      "skipped": 0
+    },
+    "workspace": {
+      "command": "cargo nextest run",
+      "exit": 0,
+      "failed": 0,
+      "passed": 3201,
+      "run": 3201,
+      "skipped": 6
+    }
+  },
+  "planning_branch": "prep-wave1-verify",
+  "schema": "tc-task-001-qualification-evidence/v1",
+  "started_at": "2026-09-15T14:01:00Z",
+  "sync_binaries": {
+    "command": "tools/refactor-proof/scripts/sync-binaries.sh",
+    "exit": 0,
+    "host_sha256": "a6bd97551efd0a84423c87b2ec3f11d549f8de4ddb28670716af449118e217f6"
+  },
+  "worktree_branch": "task-001-bootstrap",
+  "worktree_commit": "13f78370b339061db8f141771ee51011bc06ec18",
+  "worktree_path": "/Users/donbeave/Projects/terminal-components-claude/.worktrees/main"
+}
