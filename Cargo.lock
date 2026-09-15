@@ -2128,6 +2128,7 @@ dependencies = [
 [[package]]
 name = "tuisnap"
 version = "0.2.0"
+source = "git+https://github.com/donbeave/tui-snap.git?rev=0a2e490802b7b048cd96349c6af860f8a3a05c3d#0a2e490802b7b048cd96349c6af860f8a3a05c3d"
 dependencies = [
  "anyhow",
  "base64 0.23.1",
