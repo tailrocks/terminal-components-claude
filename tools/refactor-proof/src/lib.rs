@@ -1,5 +1,8 @@
 //! Shared JSON schemas and canonical serialization for tc-proof tools.
 
+pub mod host;
+pub mod observer;
+
 use serde_json::{Map, Value};
 
 /// Serialize JSON with sorted object keys and compact separators (no trailing newline).
