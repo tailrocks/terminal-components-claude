@@ -4,7 +4,7 @@
 **Task:** TASK-001 — Implement independently qualified comparator and host core  
 **Product:** `qualified-harness`  
 **Architectural base:** `7b27732a8c3c131760ec3438f641cb3c11343a42`  
-**Catalog tip (planning):** `prep-wave1-verify` @ `c140a40e` in [`READY-FOR-REFACTORING-EXECUTION.md`](READY-FOR-REFACTORING-EXECUTION.md)  
+**Catalog tip (planning):** `prep-wave1-verify` @ `483347bc` in [`READY-FOR-REFACTORING-EXECUTION.md`](READY-FOR-REFACTORING-EXECUTION.md)  
 **Worktree branch:** `task-001-bootstrap`  
 **Worktree path:** `.worktrees/main` (repo-relative) → `/Users/donbeave/Projects/terminal-components-claude/.worktrees/main`
 
