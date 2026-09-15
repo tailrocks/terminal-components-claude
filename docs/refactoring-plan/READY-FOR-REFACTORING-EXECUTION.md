@@ -1,9 +1,9 @@
 # READY FOR REFACTORING EXECUTION
 
-**Issued:** 2026-09-15  
-**Branch:** `prep-wave1-verify`  
-**Catalog commit:** `6706f81` on branch `prep-wave1-verify` (verify with `git rev-parse HEAD`)  
-**Parent planning tip:** `1a873cff` → Wave 2 bootstrap work (IW-02/03 + TASK-001 plan) on this branch  
+**Issued:** 2026-09-16 (Phase 0 catalog repairs follow on `refactor/holla-parity`)  
+**Branch:** `refactor/holla-parity`  
+**Catalog commit:** `dcd687a7` on branch `refactor/holla-parity` (verify with `git rev-parse HEAD`; post-repair tip may advance)  
+**Parent planning tip:** `7b27732a8c3c131760ec3438f641cb3c11343a42` (architectural main)  
 **Campaign worktree:** `.worktrees/campaign` on branch `refactor/holla-parity` (init via `scripts/campaign-init.sh`; historical `task-001-bootstrap` @ `3ed51570` absorbed)  
 **Planning branch `visual-baseline`:** `98fdd8d5` — READINESS-08 tip (Wave 2 on `prep-wave1-verify`; verify with `git rev-parse refs/heads/visual-baseline`)  
 **Product oracle:** `02f5294bfdbf38004cc49130d0aff1d01f31434c`  
@@ -15,7 +15,7 @@
 
 ## Issuance statement
 
-Independent planning witnesses, Wave 1 catalog repairs, and mechanical validators establish that the **frozen task catalog on `prep-wave1-verify`** satisfies Phase 0 planning readiness for campaign **specification and dispatch planning**.
+Independent planning witnesses, Wave 1 catalog repairs, Phase 0 partition C/D repairs, and mechanical validators establish that the **frozen task catalog on `refactor/holla-parity`** satisfies Phase 0 planning readiness for campaign **specification and dispatch planning**.
 
 **This issuance authorizes:**
 
@@ -58,8 +58,8 @@ Independent planning witnesses, Wave 1 catalog repairs, and mechanical validator
 
 | Partition | Verdict | Evidence |
 | --- | --- | --- |
-| **C — Architecture / ADJ-22** | **PASS** | `branch-host-projection.tsv` + TASK-008 trusted disposition; validate-plan coordinator linter |
-| **D — Verification / bootstrap** | **PASS** | CAMPAIGN_AGENTS ×73; accounting templates machine-bound; bootstrap self-tests unchanged green |
+| **C — Architecture / ADJ-22** | **PASS** | `branch-host-projection.tsv` + CHK-006.template.json + producer path lint; TASK-008 trusted disposition; ADJ-22 four-policy Grid prose |
+| **D — Verification / bootstrap** | **PASS** | CAMPAIGN_AGENTS ×73 machine-bound in validate-plan; accounting templates machine-bound; bootstrap self-tests unchanged green |
 | **E — Integration / TASK-069** | **PASS** | `coordinator-review-contract.md`; CHK-007 forbids human fields; CHK-005 fidelity argv frozen |
 
 ---
@@ -77,7 +77,7 @@ Independent planning witnesses, Wave 1 catalog repairs, and mechanical validator
 
 ## Arm procedure
 
-1. `git checkout prep-wave1-verify && git rev-parse HEAD` — record SHA in campaign ledger
+1. `git checkout refactor/holla-parity && git rev-parse HEAD` — record SHA in campaign ledger
 2. Copy `/goal` body from `campaign-execution-prompt.md` only
 3. `./scripts/campaign-init.sh` → `.worktrees/campaign` on `refactor/holla-parity` (from `7b27732a…` / absorbed bootstrap)
 4. Dispatch TASK-001 per campaign executor protocol (manual bootstrap exception for first host)
@@ -90,5 +90,5 @@ Independent planning witnesses, Wave 1 catalog repairs, and mechanical validator
 | --- | --- |
 | Planning witness | [`review-readiness-final.md`](review-readiness-final.md) @ `3213fce2`; Wave 1 spot-check this document |
 | Wave 1 probe | [`prep-wave1-verification-report.md`](prep-wave1-verification-report.md) |
-| Mechanical validator | `validate-plan.py --summary` error_count 0 @ catalog commit `6706f81` |
+| Mechanical validator | `validate-plan.py --summary` error_count 0 @ catalog commit `dcd687a7` (Phase 0 repairs) |
 | TASK-001 planning | [`task-001-operator-evidence-draft.md`](task-001-operator-evidence-draft.md); [`task-001-qualification-report.md`](task-001-qualification-report.md); [`task-001-verify-container.md`](task-001-verify-container.md); [`task-001-progress-completion-guide.md`](task-001-progress-completion-guide.md); [`task-001-taskfmt-verify-notes.md`](task-001-taskfmt-verify-notes.md); [`task-001-ci-requirements.md`](task-001-ci-requirements.md); PR [#4](https://github.com/donbeave/terminal-components-claude/pull/4) |

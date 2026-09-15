@@ -123,7 +123,7 @@ class Audit:
         self.require(package_ids == set(indexed), f"Catalog/index differ: missing={sorted(set(indexed)-package_ids)}, extra={sorted(package_ids-set(indexed))}")
         for task_id, row in indexed.items():
             package = catalog / task_id.removeprefix("TASK-")
-            for filename in ("README.md", "AGENTS.md", "task.toml", "verify.toml"):
+            for filename in ("README.md", "AGENTS.md", "CAMPAIGN_AGENTS.md", "task.toml", "verify.toml"):
                 self.require((package / filename).is_file(), f"Missing {task_id}/{filename}")
             try:
                 metadata = tomllib.loads((package / "task.toml").read_text())
@@ -166,6 +166,11 @@ class Audit:
             normalized = re.sub(rb"TASK-\d{3}", b"TASK-000", protocol)
             self.require(hashlib.sha256(normalized).hexdigest() == "08d3799b3165cd7cd12dedaed8d073920d57ff75a716ae625ad1e18066350df0", f"Canonical execution protocol drift: {task_id}")
             self.require("source-obligations.tsv" in readme, f"Historical payload not bound by README: {task_id}")
+            read_before = readme.split("Read before editing:", 1)
+            self.require(len(read_before) == 2, f"Missing Read before editing section: {task_id}")
+            if len(read_before) == 2:
+                self.require("CAMPAIGN_AGENTS.md" in read_before[1].split("##", 1)[0],
+                             f"{task_id} README must list CAMPAIGN_AGENTS.md under Read before editing")
             tasks[task_id] = {"requirements": requirements, "acceptance": acceptance, "checks": checks, "package": package}
         for task_id, deps in dependencies.items():
             self.require(task_id not in deps, f"Self dependency: {task_id}")
@@ -446,12 +451,42 @@ class Audit:
         claimed.discard("existing W-031-10/11")
 
         proj_path = self.root / "refactoring-tasks/terminal-components/completion/031/trusted/branch-host-projection.tsv"
+        template_path = (
+            self.root
+            / "refactoring-tasks/terminal-components/completion/031/trusted/check-context-templates/CHK-006.template.json"
+        )
+        spec_path = self.root / "refactoring-tasks/terminal-components/completion/031/trusted/host-context-spec.md"
         self.require(proj_path.is_file(), "Missing TASK-031 branch-host-projection.tsv")
+        self.require(template_path.is_file(), "Missing TASK-031 CHK-006.template.json")
+        self.require(spec_path.is_file(), "Missing TASK-031 host-context-spec.md")
+        if template_path.is_file():
+            body = json.loads(template_path.read_text())
+            self.require(body.get("operation") == "architecture", "TASK-031 CHK-006 template must bind architecture")
+            template_binding = body.get("branch_host_projection", {})
+            self.require(template_binding.get("index") == "/task/trusted/branch-host-projection.tsv",
+                         "TASK-031 CHK-006 template index mismatch")
+            self.require(set(template_binding.get("required_roles", [])) == {"branch_host_projection", "native_conformance"},
+                         "TASK-031 CHK-006 template role mismatch")
+            self.require("W-042-JUMP-SUBMIT" in template_binding.get("forbidden_witness_ids", []),
+                         "TASK-031 CHK-006 template must forbid W-042-JUMP-SUBMIT")
         if proj_path.is_file():
             with proj_path.open(newline="", encoding="utf-8") as stream:
-                indexed = {row["witness_id"] for row in csv.DictReader(stream, delimiter="\t")}
+                rows = list(csv.DictReader(stream, delimiter="\t"))
+                indexed = {row["witness_id"] for row in rows}
             self.require(claimed <= indexed, f"TASK-031 projection missing witnesses: {sorted(claimed - indexed)}")
             self.require("W-042-JUMP-SUBMIT" not in indexed, "W-042-JUMP-SUBMIT must not appear in TASK-031 branch projection")
+            for row in rows:
+                witness_id = row.get("witness_id", "")
+                producer_path = row.get("producer_trusted_path", "")
+                if "#" in producer_path:
+                    relative, anchor = producer_path.split("#", 1)
+                else:
+                    relative, anchor = producer_path, None
+                path = self.root / relative
+                self.require(path.is_file(), f"TASK-031 projection missing producer file: {witness_id}:{relative}")
+                if path.is_file() and anchor:
+                    self.require(anchor in path.read_text(),
+                                 f"TASK-031 projection missing producer anchor: {witness_id}:{anchor}")
 
         row008 = next((row for row in projection if "TASK-008 assertion dispositions" in row.get("integration_item", "")), None)
         self.require(row008 is not None, "Missing TASK-008 coordinator disposition row")
@@ -604,6 +639,8 @@ def main() -> int:
         audit.frozen_assets()
         graph = audit.graph(dependencies)
         audit.coordinator_branch_bindings()
+        root_campaign = audit.root / "refactoring-tasks/terminal-components/CAMPAIGN_AGENTS.md"
+        audit.require(root_campaign.is_file(), "Missing refactoring-tasks/terminal-components/CAMPAIGN_AGENTS.md")
         audit.accounting_context_bindings()
         audit.runner_index_receipt_bindings()
         audit.task069_host_context()

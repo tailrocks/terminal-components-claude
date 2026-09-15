@@ -425,7 +425,7 @@ Each clause below retains its exact source and disposition. Accepted requirement
 ### HIST:HL-64-GESTURE
 
 - Source: a1759b2a §64; COMPONENT_ARCHITECTURE.md;REFACTORING_STATE.md where cited
-- Requirement: Conformance PointerGesture default Click; Grid DoubleClick; single click Moved, double/Enter Activated key
+- Requirement: Four explicit Grid gesture policies (modern default, DataGrid, DataTable-row, DataTable-cell); historical §64 quote retained: Conformance PointerGesture default Click; Grid DoubleClick; single click Moved, double/Enter Activated key; DataGrid oracle supersedes universal single-click-Moved for that policy only
 - Disposition: accepted_mechanism_product_gesture_superseded_by_current_oracle; current not independently verified in this source ledger; join architecture-matrix.tsv and {showcase,tablepro,jackin,holla}-scenarios.tsv; source disposition is not completion
 - Remaining proof: For the DataGrid policy only, oracle02f5294b grid.rs1322-1344/542-578 supersedes the historical product gesture: current-cell completed click calls begin_edit when globally editable, whose read_only-column/pending-deleted-row guards refuse with Consumed and no action/edit/mutation; globally noneditable Grid activates; different-cell click moves. Retain gesture metadata, keyed identity/selection separation and accepted modern default; DataTable row/cell policies are independently source-qualified, not overridden by this DataGrid rule
 - Gates: DataGrid current/different cell x globally editable/noneditable x read_only-column/pending-deleted-row isolated trajectories, keyboard, cancellation and reorder; retain modern-default/DataTable policy controls and actual gesture metadata

@@ -1,0 +1,15 @@
+{
+  "schema": "tc-proof-architecture-context/v1",
+  "operation": "architecture",
+  "branch_host_projection": {
+    "index": "/task/trusted/branch-host-projection.tsv",
+    "required_roles": [
+      "branch_host_projection",
+      "native_conformance"
+    ],
+    "forbidden_witness_ids": [
+      "W-042-JUMP-SUBMIT"
+    ],
+    "requires_accepted_producer_receipt": true
+  }
+}
