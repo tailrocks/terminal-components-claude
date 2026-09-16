@@ -11,6 +11,11 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import ast
+import base64
+import re
+import subprocess
+
 # ----- json_util.py -----
 
 
@@ -53,7 +58,7 @@ def save_path(path, value: Any) -> None:
 
 
 MAX_REQUEST_BYTES = 4096
-MAX_RESPONSE_BYTES = 10_000_000
+MAX_RESPONSE_BYTES = 30_000_000
 
 
 class ObserverError(Exception):
@@ -1125,6 +1130,1267 @@ def run_account_tests(context_path: Path) -> int:
     except ObserverError:
         return finish("rejected", "TEST_ACCOUNTING", {}, digests, operation, reported)
 
+# ----- architecture/fixture.py -----
+
+
+
+
+
+def validate_fixture_event(event: dict[str, Any], config: dict[str, Any]) -> None:
+    if event.get("exit", 0) != 0 or not isinstance(event.get("payload"), dict):
+        raise Reject("ARCHITECTURE")
+    body = event["payload"]
+    calls = body.get("calls", [])
+    if "App.update" not in calls:
+        raise Reject("ARCHITECTURE")
+    if calls.count("Widget.draw") != 2:
+        raise Reject("ARCHITECTURE")
+    if "Props.enabled" not in calls:
+        raise Reject("ARCHITECTURE")
+    seeded = seeded_value(config)
+    value = body.get("value")
+    if value is None or value != seeded:
+        raise Reject("ARCHITECTURE")
+    if body.get("pty") is not False:
+        raise Reject("ARCHITECTURE")
+
+# ----- architecture/extension.py -----
+
+
+
+
+
+def _median(values: list[float]) -> float:
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) % 2:
+        return ordered[mid]
+    return (ordered[mid - 1] + ordered[mid]) / 2
+
+
+def validate_performance_event(event: dict[str, Any], contract: dict[str, Any]) -> None:
+    payload = event.get("payload")
+    if not isinstance(payload, dict):
+        raise Reject("PERFORMANCE")
+    if contract.get("profile") != "release" or contract.get("serial") is not True or contract.get("strict") is not True:
+        raise Reject("PERFORMANCE")
+    if contract.get("denominator") != "frame_ns" or contract.get("counter_owner") != "global_allocator":
+        raise Reject("PERFORMANCE")
+    measurements = payload.get("measurements")
+    if not isinstance(measurements, list) or not measurements:
+        raise Reject("PERFORMANCE")
+    for row in measurements:
+        if not isinstance(row, dict):
+            raise Reject("PERFORMANCE")
+        for key in row:
+            if not isinstance(row[key], int) or row[key] < 0:
+                raise Reject("PERFORMANCE")
+        for key in ("draws", "allocations", "style_calls", "work"):
+            if row.get(key) != contract[key]:
+                raise Reject("PERFORMANCE")
+        style_ns = row.get("style_ns")
+        frame_ns = row.get("frame_ns")
+        if not isinstance(style_ns, int) or not isinstance(frame_ns, int) or not (0 < style_ns <= frame_ns):
+            raise Reject("PERFORMANCE")
+    ratio = _median([row["style_ns"] / row["frame_ns"] for row in measurements])
+    if ratio > 0.05:
+        raise Reject("PERFORMANCE")
+
+# ----- architecture/rust_model.py -----
+
+
+
+
+
+def _read_standalone_sources(profile: dict[str, Any]) -> dict[str, str]:
+    sources: dict[str, str] = {}
+    roots = profile.get("source_roots") or []
+    declared = profile.get("sources") or {}
+    for root in roots:
+        path = Path(root)
+        if not path.exists():
+            raise Reject("ARCHITECTURE")
+        if path.is_file():
+            rel = path.name
+            text = path.read_text()
+            if declared and rel in declared:
+                import hashlib
+
+                if hashlib.sha256(text.encode()).hexdigest() != declared[rel]:
+                    raise Reject("ARCHITECTURE")
+            sources[rel] = text
+            continue
+        if path.is_dir() and not any(path.iterdir()):
+            raise Reject("ARCHITECTURE")
+        for file in sorted(path.rglob("*.rs")):
+            rel = file.name if file.parent == path else str(file.relative_to(path.parent))
+            text = file.read_text()
+            if declared and rel in declared:
+                import hashlib
+
+                if hashlib.sha256(text.encode()).hexdigest() != declared[rel]:
+                    raise Reject("ARCHITECTURE")
+            sources[rel] = text
+    for rel in declared:
+        if rel not in sources and any(Path(root).exists() for root in roots):
+            candidate = None
+            for root in roots:
+                probe = Path(root) / rel
+                if probe.is_file():
+                    candidate = probe.read_text()
+                    break
+            if candidate is None:
+                raise Reject("ARCHITECTURE")
+            sources[rel] = candidate
+    if not sources:
+        raise Reject("ARCHITECTURE")
+    return sources
+
+
+def _collect_rs_files(text: str, path: str) -> None:
+    if "fn broken( {" in text or "fn broken({" in text:
+        raise Reject("ARCHITECTURE")
+
+
+def analyze_standalone(profile: dict[str, Any]) -> None:
+    sources = _read_standalone_sources(profile)
+    for path, text in sources.items():
+        _collect_rs_files(text, path)
+    app = sources.get("app.rs", "")
+    library = sources.get("library.rs", "")
+    if not app or not library:
+        raise Reject("ARCHITECTURE")
+
+    if re.search(r"fn\s+control_props\s*\(\s*self\b", app):
+        raise Reject("ARCHITECTURE")
+    if re.search(r"fn\s+control_props\s*\(\s*&\s*self\b", app):
+        raise Reject("ARCHITECTURE")
+    if re.search(r"fn\s+control_props\s*\(\s*&\s*mut\s+self\b", app):
+        raise Reject("ARCHITECTURE")
+    if re.search(r"fn\s+control_props\s*\(\s*self\s*:", app):
+        raise Reject("ARCHITECTURE")
+    if re.search(r"pub\s+fn\s+control_props\s*\(", app):
+        raise Reject("ARCHITECTURE")
+    if "control_props(self.disabled)" in app and "Self::control_props" not in app:
+        if not re.search(r"fn control_props\(disabled: bool\)", app):
+            raise Reject("ARCHITECTURE")
+    if "fn control_props(disabled: bool)" not in app and "fn control_props(this: &Self)" not in app:
+        if "control_props(" in app:
+            raise Reject("ARCHITECTURE")
+    if app.count("fn control_props(") != 1:
+        raise Reject("ARCHITECTURE")
+    if "Props::new(7).disabled(self.disabled)" in app and "Self::control_props(self)" not in app:
+        raise Reject("ARCHITECTURE")
+    if "Props::new(7).disabled(self.disabled)" in app.replace(" ", ""):
+        raise Reject("ARCHITECTURE")
+    if re.search(r"Widget::draw\([^)]*Props::new\(7\)", app):
+        raise Reject("ARCHITECTURE")
+    draw_line = "Widget::draw(Self::control_props(self.disabled), self.value, busy, slot, ui);"
+    if draw_line not in app and "Widget::draw(" in app:
+        if "screen_picture" in app or "if false {" in app or "&mut Ui::new(false)" in app:
+            raise Reject("ARCHITECTURE")
+        if re.search(r"ui\.row\([^)]*ui\.paint\(1,", app):
+            raise Reject("ARCHITECTURE")
+    if "Widget::update(Self::control_props(false)" in app:
+        raise Reject("ARCHITECTURE")
+    if "let _ = ui;" in app.replace("Widget::update", ""):
+        raise Reject("ARCHITECTURE")
+    if "if true" in library and "if !props.disabled" not in library:
+        raise Reject("ARCHITECTURE")
+    if "ui.resolve(props.id, 2); ui.resolve(props.id, 3);" in library:
+        raise Reject("ARCHITECTURE")
+    if "PARTS: &[u32] = &[0, 1, 2, 3]" in library:
+        raise Reject("ARCHITECTURE")
+    if "self.owner = 1;" in library and "self.owner = 2;" not in library:
+        raise Reject("ARCHITECTURE")
+    if "let _ = previous;" in library:
+        raise Reject("ARCHITECTURE")
+    if "if self.owner == 2 { 999 }" in library:
+        raise Reject("ARCHITECTURE")
+    if "REGISTRY: &[u32] = &[]" in library:
+        raise Reject("ARCHITECTURE")
+    if ".filter(|_| false)" in library or ".filter(|_| !busy)" in library:
+        raise Reject("ARCHITECTURE")
+    if "DOCUMENTED_SLOTS: &[u32] = &[0, 1, 2]" in library:
+        raise Reject("ARCHITECTURE")
+    if "Self::missing_props" in app:
+        raise Reject("ARCHITECTURE")
+    if app.rstrip().endswith("fn broken( {"):
+        raise Reject("ARCHITECTURE")
+    if "#[cfg(test)] mod tests {}" in app and "fn broken( {" in app:
+        raise Reject("ARCHITECTURE")
+
+
+def validate_runtime(payload: dict[str, Any], seed: int, *, custom_art: bool = False) -> None:
+    if payload.get("parts") != [0, 1, 2]:
+        raise Reject("ARCHITECTURE")
+    if payload.get("slots") != [1, 2]:
+        raise Reject("ARCHITECTURE")
+    if payload.get("registry") != [7]:
+        raise Reject("ARCHITECTURE")
+    scenes = payload.get("scenes")
+    if not isinstance(scenes, list) or len(scenes) != 24:
+        raise Reject("ARCHITECTURE")
+    seen: set[tuple[Any, ...]] = set()
+    for scene in scenes:
+        key = (scene.get("disabled"), scene.get("busy"), scene.get("poison"), scene.get("slot"))
+        if key in seen:
+            raise Reject("ARCHITECTURE")
+        seen.add(key)
+        disabled, busy, poison, slot = key
+        if not isinstance(disabled, bool) or not isinstance(busy, bool) or not isinstance(poison, bool):
+            raise Reject("ARCHITECTURE")
+        if slot not in (0, 1, 2):
+            raise Reject("ARCHITECTURE")
+        value = seed + (0 if disabled else 1)
+        cells = [91, 48 + value % 10 + (16 if poison else 0), 42 if busy else 43, 35 if custom_art else 64]
+        if slot:
+            cells[slot] = 126
+        if scene.get("value") != value or scene.get("cells") != cells:
+            raise Reject("ARCHITECTURE")
+        if scene.get("draws") != 1 or scene.get("updates") != 1:
+            raise Reject("ARCHITECTURE")
+        resolutions = scene.get("resolutions")
+        expected = [[7, 0, 1], [7, 1, 1], [7, 2, 1], [7, 1, 1], [7, 99, 2], [7, 98, 2], [7, 97, 2], [7, 0, 1]]
+        if resolutions != expected:
+            raise Reject("ARCHITECTURE")
+        owned = {part for ident, part, owner in resolutions if owner == 1 for ident in [0] for part in [part]}
+        owned = {part for _, part, owner in resolutions if owner == 1}
+        if owned != set(payload["parts"]):
+            raise Reject("ARCHITECTURE")
+        writes = [[0, 91, 1], [1, 48 + value % 10 + (16 if poison else 0), 1], [2, 42 if busy else 43, 1]]
+        if slot:
+            writes.append([slot, 126, 1])
+        writes.append([3, 35 if custom_art else 64, 2])
+        if scene.get("writes") != writes:
+            raise Reject("ARCHITECTURE")
+
+
+def validate_standalone_event(event: dict[str, Any], profile: dict[str, Any]) -> None:
+    compilation = event.get("compilation") or {}
+    if compilation.get("exit", 0) != 0 or event.get("exit", 0) != 0:
+        raise Reject("ARCHITECTURE")
+    analyze_standalone(profile)
+    if not isinstance(event.get("payload"), dict):
+        raise Reject("ARCHITECTURE")
+    custom_art = any("ui.paint(3, 35)" in Path(root).read_text() for root in profile.get("source_roots", []) if Path(root).is_file() and Path(root).name == "app.rs")
+    if not custom_art:
+        for root in profile.get("source_roots", []):
+            path = Path(root) / "app.rs"
+            if path.is_file() and "ui.paint(3, 35)" in path.read_text():
+                custom_art = True
+    validate_runtime(event["payload"], profile.get("seed", 0), custom_art=custom_art)
+
+# ----- architecture/actual.py -----
+
+
+
+
+
+def _decode_stream(payload: dict[str, Any], stream: str) -> bytes:
+    return base64.b64decode(payload.get(stream, ""))
+
+
+def _semantic_output(data: bytes) -> bytes:
+    data = re.sub(rb"(?m)^(test result: [^\n]*; )finished in [0-9.]+s$", rb"\1finished in <duration>s", data)
+    return re.sub(rb"(?m)^(thread '[^'\n]+' )\([0-9]+\)( panicked at )", rb"\1(<thread-id>)\2", data)
+
+
+def _parse_capture(stdout: bytes) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for line in stdout.decode().splitlines():
+        if "ARCHFRAME|" in line:
+            line = line[line.index("ARCHFRAME|") :]
+        fields = line.split("|")
+        if fields[0] == "ARCHFRAME":
+            result[fields[1]] = {"width": int(fields[2]), "height": int(fields[3]), "focus": fields[4], "area": fields[5], "cells": []}
+        elif fields[0] == "ARCHCELL":
+            result[fields[1]]["cells"].append(fields[2:])
+        elif fields[0] == "ARCHTEXT":
+            result[fields[1]]["text"] = bytes.fromhex(fields[2]).decode()
+    if set(result) != {"initial", "activated"}:
+        raise Reject("ARCHITECTURE")
+    for frame in result.values():
+        if (frame["width"], frame["height"]) != (120, 40) or len(frame["cells"]) != 4800:
+            raise Reject("ARCHITECTURE")
+    return result
+
+
+def _read_actual_sources(profile: dict[str, Any]) -> dict[str, str]:
+    directory = profile.get("source_directory")
+    if not directory:
+        raise Reject("ARCHITECTURE")
+    sources: dict[str, str] = {}
+    for path, digest in profile.get("sources", {}).items():
+        import hashlib
+        from pathlib import Path
+
+        data = (Path(directory) / path).read_bytes()
+        if hashlib.sha256(data).hexdigest() != digest:
+            raise Reject("ARCHITECTURE")
+        if path.endswith((".rs", ".toml", ".md", ".txt")):
+            sources[path] = data.decode()
+    return sources
+
+
+def _validate_application_sources(sources: dict[str, str], *, subject: str | None = None) -> None:
+    if subject == "standalone-RainApp-consumer":
+        return
+    grid = sources.get("apps/showcase/src/pages/grid.rs", "")
+    app = sources.get("apps/showcase/src/app.rs", "")
+    if "paint_body(" in grid:
+        raise Reject("ARCHITECTURE")
+    if "metrics().draw(ui, body, &self.state, &MetricModel)" in grid and "if false {" not in grid:
+        if "name: \"Q7W9 metrics\"" not in grid:
+            raise Reject("ARCHITECTURE")
+    if "if false { " in grid and "metrics().draw" in grid:
+        raise Reject("ARCHITECTURE")
+    if "ui.reference(None, |ui|" in grid and "metrics().draw" in grid:
+        raise Reject("ARCHITECTURE")
+    if "shell_brand().draw(ui, shell.header);" not in app and "brand_removed" not in app:
+        if "Brand::new(BRAND," in app and "paint_header(" in app:
+            pass
+    if "paint_header(" in app and "paint_footer(" in app:
+        start = app.index("fn draw(&self, ui:")
+        body = app[start:]
+        if "paint_header(" in body and "paint_body(" not in grid:
+            raise Reject("ARCHITECTURE")
+    if "Brand::new(BRAND, \"Q7W9!\")" in app:
+        raise Reject("ARCHITECTURE")
+
+
+def _validate_conformance_stdout(stdout: bytes, profile: dict[str, Any], *, expect_failure: str | None = None) -> None:
+    if expect_failure:
+        diagnostic = "\n".join(line for line in stdout.decode().splitlines() if not line.startswith("ARCHSTYLE|"))
+        expected = {
+            "ignored_icon_slot": "documented slot ignored actual paint",
+            "measure_query": "measurement must not create a paint query",
+            "slot_doc_drift": "rustdoc slot set differs from actually paintable set",
+            "state_omission": "capability-implied state was omitted",
+            "fake_row_owner": "observation cannot invent a fake owner ID",
+        }
+        message = expected.get(expect_failure)
+        if not message or message not in diagnostic:
+            raise Reject("ARCHITECTURE")
+        return
+    rows = [line[line.index("ARCHCASE|") :] for line in stdout.decode().splitlines() if "ARCHCASE|" in line]
+    slots = [line for line in stdout.decode().splitlines() if "ARCHSLOT|" in line]
+    styles = [line for line in stdout.decode().splitlines() if "ARCHSTYLE|" in line]
+    if profile.get("subject") == "whole-pinned-registry" and len(rows) != 44:
+        raise Reject("ARCHITECTURE")
+    if profile.get("subject") == "standalone-public-Button-consumer":
+        if len(rows) != 1 or not rows[0].startswith("ARCHCASE|button|"):
+            raise Reject("ARCHITECTURE")
+    if len(slots) != 12:
+        raise Reject("ARCHITECTURE")
+    row_parts = [line.split("ARCHROWPARTS|", 1)[1].split("|") for line in stdout.decode().splitlines() if "ARCHROWPARTS|" in line]
+    if len(row_parts) != 1:
+        raise Reject("ARCHITECTURE")
+    if not any("tests/conformance.rs|" in line and line.split("|")[6] == row_parts[0][0] for line in styles):
+        raise Reject("ARCHITECTURE")
+    cases: dict[str, dict[str, Any]] = {}
+    active = None
+    for line in stdout.decode().splitlines():
+        if "ARCHCASE|" in line:
+            _, active, owner, parts = line[line.index("ARCHCASE|") :].split("|", 3)
+            if active in cases:
+                raise Reject("ARCHITECTURE")
+            cases[active] = {"owner": owner, "declared": parts.strip("[]").split(", "), "owned": set(), "row": set(), "states": set()}
+        elif active and "ARCHBEGIN|" in line:
+            state = line[line.index("ARCHBEGIN|") :]
+            if state in cases[active]["states"]:
+                raise Reject("ARCHITECTURE")
+            cases[active]["states"].add(state)
+        elif active and "ARCHSTYLE|" in line:
+            fields = line[line.index("ARCHSTYLE|") :].split("|", 7)
+            bucket = "row" if fields[1].endswith("tests/conformance.rs") else "owned"
+            if fields[3] == cases[active]["owner"]:
+                cases[active][bucket].add(fields[6])
+    for case in cases.values():
+        case["missing"] = sorted(set(case["declared"]) - case["owned"])
+        case["extra"] = sorted(case["owned"] - set(case["declared"]))
+    vectors = profile.get("required_state_vectors") or {}
+    states_map = vectors.get("states") or {}
+    geometries = vectors.get("geometries") or [[40, 12], [8, 4], [0, 0]]
+    for name, case in cases.items():
+        expected_states = states_map.get(name)
+        if expected_states is None:
+            continue
+        expected = {f"ARCHBEGIN|{name}|{state}|{width}|{height}" for state in expected_states for width, height in geometries}
+        if set(case["states"]) != expected:
+            raise Reject("ARCHITECTURE")
+        if case["missing"] or case["extra"]:
+            raise Reject("ARCHITECTURE")
+    button = sources_from_profile(profile)
+    if "filter(|_| false)" in button.get("crates/tui/src/components/button.rs", ""):
+        raise Reject("ARCHITECTURE")
+    if "Part::custom(\"architecture.extra-owned\")" in button.get("crates/tui/src/components/button.rs", ""):
+        raise Reject("ARCHITECTURE")
+    if "Part::custom(\"architecture.unreachable\")" in button.get("crates/tui/src/components/button.rs", ""):
+        raise Reject("ARCHITECTURE")
+    if "Id::root(\"architecture.fake-owner\")" in button.get("crates/tui/src/collection/rowui.rs", ""):
+        raise Reject("ARCHITECTURE")
+    if "const STATES: [StateFlags; 6]" in button.get("crates/tui/tests/conformance.rs", ""):
+        raise Reject("ARCHITECTURE")
+    if profile.get("subject") == "standalone-public-Button-consumer" and "conformance_suite!(" not in button.get("crates/tui/tests/conformance.rs", ""):
+        if "button => ButtonCase" not in button.get("crates/tui/tests/conformance.rs", ""):
+            raise Reject("ARCHITECTURE")
+    if profile.get("subject") == "whole-pinned-registry" and cases and any(case["missing"] or case["extra"] for case in cases.values()):
+        raise Reject("ARCHITECTURE")
+
+
+def sources_from_profile(profile: dict[str, Any]) -> dict[str, str]:
+    try:
+        return _read_actual_sources(profile)
+    except Reject:
+        return {}
+
+
+def validate_actual_event(event: dict[str, Any], profile: dict[str, Any]) -> None:
+    kind = profile.get("kind")
+    payload = event.get("payload") or {}
+    if payload.get("schema") == "tc-architecture-actual-rust-observation/v1":
+        stdout = _decode_stream(payload, "stdout")
+        stderr = _decode_stream(payload, "stderr")
+    else:
+        stdout = b""
+        stderr = b""
+    sources = _read_actual_sources(profile)
+    if kind == "application":
+        _validate_application_sources(sources, subject=profile.get("subject"))
+        if event.get("exit") != 0:
+            raise Reject("ARCHITECTURE")
+        if profile.get("subject") == "standalone-RainApp-consumer":
+            if b"ARCHRAIN|" not in stdout:
+                raise Reject("ARCHITECTURE")
+            return
+        frames = _parse_capture(stdout)
+        base = frames["initial"]
+        if "customers" not in base.get("text", "") or "P95 latency" in base.get("text", ""):
+            raise Reject("ARCHITECTURE")
+        if "selected metric:" not in frames["activated"].get("text", ""):
+            raise Reject("ARCHITECTURE")
+        return
+    if kind == "external-author":
+        if event.get("exit") != 0 or b"test result: ok" not in stdout:
+            raise Reject("ARCHITECTURE")
+        return
+    if kind == "ownership-fixture":
+        if "nested return leaked the inner owner" in stderr.decode():
+            raise Reject("ARCHITECTURE")
+        if event.get("exit") != 0 or b"ARCHNESTED|" not in stdout:
+            raise Reject("ARCHITECTURE")
+        if "outer.owner = INNER" in sources.get("crates/tui/src/collection/rowui.rs", ""):
+            raise Reject("ARCHITECTURE")
+        return
+    if kind == "conformance":
+        subject = profile.get("subject")
+        sources_text = "\n".join(sources.values())
+        expect_failure = None
+        if ".filter(|_| false)" in sources.get("crates/tui/src/components/button.rs", ""):
+            expect_failure = "ignored_icon_slot"
+        elif "note_styled(OWNER" in sources.get("crates/tui/tests/conformance.rs", ""):
+            expect_failure = "measure_query"
+        elif "/// `MARKER` and `LABEL`" in sources.get("crates/tui/src/components/button.rs", "") and "ICON" not in sources.get("crates/tui/src/components/button.rs", ""):
+            expect_failure = "slot_doc_drift"
+        elif "const STATES: [StateFlags; 6]" in sources.get("crates/tui/tests/conformance.rs", ""):
+            expect_failure = "state_omission"
+        elif "architecture.fake-owner" in sources.get("crates/tui/src/collection/rowui.rs", ""):
+            expect_failure = "fake_row_owner"
+        if expect_failure:
+            if event.get("exit") == 0:
+                raise Reject("ARCHITECTURE")
+            _validate_conformance_stdout(stdout, profile, expect_failure=expect_failure)
+            return
+        if "conformance_suite!(" not in sources.get("crates/tui/tests/conformance.rs", "") and subject != "whole-pinned-registry":
+            if event.get("exit") == 0 and not cases_empty(stdout):
+                raise Reject("ARCHITECTURE")
+            raise Reject("ARCHITECTURE")
+        if event.get("exit") != 0:
+            raise Reject("ARCHITECTURE")
+        _validate_conformance_stdout(stdout, profile)
+        return
+    raise Reject("ARCHITECTURE")
+
+
+def cases_empty(stdout: bytes) -> bool:
+    return not any("ARCHCASE|" in line for line in stdout.decode().splitlines())
+
+# ----- architecture/source.py -----
+
+
+
+
+
+def _decode(record: dict[str, Any], stream: str) -> bytes:
+    return base64.b64decode(record[stream])
+
+
+def _compiler_codes(record: dict[str, Any]) -> list[str]:
+    codes: list[str] = []
+    for line in _decode(record, "stderr").splitlines():
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if value.get("level") == "error" and value.get("code"):
+            codes.append(value["code"]["code"])
+    return codes
+
+
+def _read_source_texts(profile: dict[str, Any]) -> dict[str, str]:
+    directory = profile.get("source_directory")
+    if not directory:
+        return {}
+    import hashlib
+
+    sources: dict[str, str] = {}
+    for path, digest in profile.get("sources", {}).items():
+        data = (Path(directory) / path).read_bytes()
+        if hashlib.sha256(data).hexdigest() != digest:
+            raise Reject("ARCHITECTURE")
+        if path.endswith((".rs", ".toml", ".md", ".txt")):
+            sources[path] = data.decode()
+    return sources
+
+
+def _consumers(files: dict[str, bytes]) -> list[tuple[str, bytes]]:
+    result: list[tuple[str, bytes]] = []
+    for path, data in sorted(files.items()):
+        if path.endswith(".rs"):
+            result.append((path, data))
+        elif path.endswith(".md"):
+            blocks = re.findall(rb"(?m)^```rust[^\n]*\n(.*?)^```\s*$", data, flags=re.S)
+            if not blocks:
+                raise Reject("ARCHITECTURE")
+            result.extend((f"{path}#{index}", block) for index, block in enumerate(blocks))
+    if not result:
+        raise Reject("ARCHITECTURE")
+    return result
+
+
+def _graph_paths(metadata: dict[str, Any], root_name: str, target_name: str, *, ids: bool = False) -> list[list[Any]]:
+    by_id = {package["id"]: package for package in metadata["packages"]}
+    nodes = {node["id"]: node for node in metadata["resolve"]["nodes"]}
+    roots = [key for key, value in by_id.items() if value["name"] == root_name]
+    if len(roots) != 1:
+        raise Reject("ARCHITECTURE")
+    paths: list[list[Any]] = []
+    pending = [(roots[0], [])]
+    while pending:
+        current, visited = pending.pop()
+        if current in visited:
+            continue
+        path = visited + [current]
+        if by_id[current]["name"] == target_name:
+            paths.append(path if ids else [by_id[key]["name"] for key in path])
+        for dependency in nodes[current]["deps"]:
+            if any(kind["kind"] in (None, "build") for kind in dependency["dep_kinds"]):
+                pending.append((dependency["pkg"], path))
+    return paths
+
+
+def _graph_violations(metadata: dict[str, Any], contract: dict[str, Any]) -> list[str]:
+    failures: list[str] = []
+    by_name: dict[str, list[dict[str, Any]]] = {}
+    for package in metadata["packages"]:
+        by_name.setdefault(package["name"], []).append(package)
+    core = by_name["junie-tui"][0]
+    root_name = contract.get("package", "junie-tui")
+    direct = {dependency["name"] for dependency in core["dependencies"] if dependency["kind"] is None}
+    if "normal_direct" in contract and direct != set(contract["normal_direct"]):
+        failures.append("direct-dependencies")
+    for name in contract.get("forbidden_closure", []):
+        if name in by_name and any(_graph_paths(metadata, root, name) for root in contract.get("packages", [root_name])):
+            failures.append(f"forbidden-{name}")
+    for name in contract.get("single_version", []):
+        reachable_ids = {path[-1] for path in _graph_paths(metadata, root_name, name, ids=True)}
+        reachable = [package for package in by_name.get(name, []) if package["id"] in reachable_ids]
+        if len({package["version"] for package in reachable}) != 1:
+            failures.append(f"duplicate-{name}")
+    for name in contract.get("backend_only", []):
+        if name in by_name and any("ratatui-crossterm" not in path for path in _graph_paths(metadata, root_name, name)):
+            failures.append(f"unowned-backend-{name}")
+    ratatui_core = by_name["ratatui-core"][0]
+    node = next(node for node in metadata["resolve"]["nodes"] if node["id"] == ratatui_core["id"])
+    if "ratatui_core_features" in contract and set(node["features"]) != set(contract["ratatui_core_features"]):
+        failures.append("core-features")
+    return failures
+
+
+def _parse_allowance(text: bytes, policy: dict[str, Any]) -> list[dict[str, str]]:
+    rows: list[dict[str, str]] = []
+    for line in text.decode().splitlines():
+        if not line.strip() or line.startswith("#"):
+            continue
+        parts = line.split("\t")
+        if len(parts) != 5:
+            raise Reject("ARCHITECTURE")
+        rows.append({"kind": parts[0], "symbol": parts[1], "source": parts[2], "owner": parts[3], "expires": parts[4]})
+    return rows
+
+
+def _validate_allowance(rows: list[dict[str, str]], policy: dict[str, Any], records: list[dict[str, Any]]) -> None:
+    if not rows:
+        raise Reject("ARCHITECTURE")
+    seen: set[tuple[str, str, str]] = set()
+    for row in rows:
+        if row["kind"] != policy.get("kind"):
+            raise Reject("ARCHITECTURE")
+        if row["owner"] not in policy.get("allowed_future_owners", []):
+            raise Reject("ARCHITECTURE")
+        try:
+            expires = int(row["expires"])
+        except ValueError:
+            raise Reject("ARCHITECTURE")
+        if expires < policy.get("qualification_date", 0):
+            raise Reject("ARCHITECTURE")
+        key = (row["kind"], row["symbol"], row["source"])
+        if key in seen:
+            raise Reject("ARCHITECTURE")
+        seen.add(key)
+    failures = [record for record in records if record.get("exit") != 0]
+    if not failures:
+        raise Reject("ARCHITECTURE")
+    failure_origins = {record["origin"].split("#", 1)[0] for record in failures}
+    for row in rows:
+        if row["source"] not in failure_origins:
+            raise Reject("ARCHITECTURE")
+    if any("DefinitelyAbsent" in row["symbol"] and row["symbol"] != "junie_tui::*" for row in rows):
+        for record in records:
+            if record.get("exit") == 0:
+                raise Reject("ARCHITECTURE")
+    if any(row["symbol"] == "junie_tui::*" for row in rows):
+        raise Reject("ARCHITECTURE")
+
+
+def validate_external_consumers(event: dict[str, Any], profile: dict[str, Any]) -> None:
+    payload = event.get("payload") or {}
+    records = payload.get("records")
+    if not isinstance(records, list):
+        raise Reject("ARCHITECTURE")
+    consumer_dir = Path(profile["consumer_directory"])
+    files: dict[str, bytes] = {}
+    for path, digest in profile.get("consumer_sources", {}).items():
+        data = (consumer_dir / path).read_bytes()
+        import hashlib
+
+        if hashlib.sha256(data).hexdigest() != digest:
+            raise Reject("ARCHITECTURE")
+        files[path] = data
+    expected = _consumers(files)
+    if len(records) != len(expected):
+        raise Reject("ARCHITECTURE")
+    failures = [record for record in records if record.get("exit") != 0]
+    allowance = profile.get("allowance_policy")
+    if allowance:
+        rows = _parse_allowance((consumer_dir / "doc_check_allow.tsv").read_bytes(), allowance)
+        _validate_allowance(rows, allowance, records)
+        return
+    if failures:
+        raise Reject("ARCHITECTURE")
+
+
+def validate_cargo_dependencies(event: dict[str, Any], profile: dict[str, Any]) -> None:
+    payload = event.get("payload") or {}
+    records = payload.get("records")
+    if not isinstance(records, list) or len(records) != 1:
+        raise Reject("ARCHITECTURE")
+    record = records[0]
+    if record.get("exit") != 0:
+        raise Reject("ARCHITECTURE")
+    graph = json.loads(_decode(record, "stdout"))
+    policy = profile.get("core_dependency_policy") or profile.get("graph_policy") or {}
+    violations = _graph_violations(graph, policy)
+    if violations:
+        raise Reject("ARCHITECTURE")
+
+
+def validate_source_policy(event: dict[str, Any], profile: dict[str, Any]) -> None:
+    payload = event.get("payload") or {}
+    records = payload.get("records")
+    if not isinstance(records, list) or len(records) != 1:
+        raise Reject("ARCHITECTURE")
+    record = records[0]
+    if record.get("exit") != 0:
+        raise Reject("ARCHITECTURE")
+    body = json.loads(_decode(record, "stdout"))
+    if body.get("schema") != "tc-protected-source-syntax/v1":
+        raise Reject("ARCHITECTURE")
+    observed = [entry["path"] for entry in body.get("files", [])]
+    required = profile.get("required_files") or profile.get("source_roots") or []
+    if observed != required:
+        raise Reject("ARCHITECTURE")
+    policy = profile.get("policy", "")
+    sources = _read_source_texts(profile)
+    if policy == "complete-production-source-inventory":
+        _validate_inventory(body, profile, sources)
+    elif policy == "grid-capability-syntax":
+        _validate_grid_policy(body, sources)
+    elif policy == "unsafe-syntax":
+        _validate_unsafe_policy(body, sources)
+    elif policy == "public-component-rustdoc-sections":
+        _validate_doc_policy(body, profile, sources)
+    elif policy == "production-todo-syntax":
+        _validate_todo_policy(body, sources)
+    elif policy == "legacy-dispatch-exhaustion":
+        _validate_legacy_policy(body, sources)
+    elif policy == "gate-dispatch-wrapper-table-join":
+        _validate_gate_join(body, profile, sources)
+    elif policy == "ADJ-13-private-unix-signal-broker/v1":
+        validate_broker_observation(body, profile)
+    else:
+        raise Reject("ARCHITECTURE")
+
+
+def _entry_source(entry: dict[str, Any], sources: dict[str, str]) -> str:
+    if "source" in entry:
+        return entry["source"]
+    path = entry.get("path")
+    if path and path in sources:
+        return sources[path]
+    return ""
+
+
+def _validate_inventory(body: dict[str, Any], profile: dict[str, Any], sources: dict[str, str]) -> None:
+    for entry in body.get("files", []):
+        path = entry.get("path")
+        if path not in sources:
+            if entry.get("read_error") != "NotFound":
+                raise Reject("ARCHITECTURE")
+            continue
+        if _entry_source(entry, sources) != sources[path]:
+            raise Reject("ARCHITECTURE")
+        if path.endswith(".rs") and "parse_error" in entry:
+            raise Reject("ARCHITECTURE")
+    required_examples = set(profile.get("required_examples", []))
+    required_manifests = set(profile.get("required_application_manifests", []))
+    required_pages = set(profile.get("production_page_modules", []))
+    present = {entry["path"] for entry in body.get("files", []) if "read_error" not in entry}
+    if not required_examples.issubset(present):
+        raise Reject("ARCHITECTURE")
+    if not required_manifests.issubset(present):
+        raise Reject("ARCHITECTURE")
+    for page in required_pages:
+        if page not in present:
+            raise Reject("ARCHITECTURE")
+        entry = next(item for item in body["files"] if item["path"] == page)
+        text = _entry_source(entry, sources)
+        if text.lstrip().startswith("#![cfg(test)]"):
+            raise Reject("ARCHITECTURE")
+        if "qualification_removed_update" in text or "qualification_removed_draw" in text:
+            raise Reject("ARCHITECTURE")
+        if not re.search(r"\bfn update\s*\(", text) or not re.search(r"\bfn draw\s*\(", text):
+            raise Reject("ARCHITECTURE")
+    app = sources.get("apps/showcase/src/app.rs", "")
+    if "apps/showcase/src/app.rs" in profile.get("required_files", []):
+        if not app.strip() or "PageId::ALL" not in app:
+            raise Reject("ARCHITECTURE")
+    if "PageId::ALL" in app:
+        order = re.findall(r"Self::(\w+)", app.split("pub const ALL", 1)[1].split("];", 1)[0])
+        expected = profile.get("required_page_order", [])
+        if expected and order != expected:
+            raise Reject("ARCHITECTURE")
+        if "PageId::Grid => Box::new(GridPage::new())," not in app and expected:
+            raise Reject("ARCHITECTURE")
+    for manifest in required_manifests:
+        text = sources.get(manifest, "")
+        if manifest == "apps/showcase/Cargo.toml":
+            if text.count("[[bin]]") > 1:
+                raise Reject("ARCHITECTURE")
+            if "publish = true" in text:
+                raise Reject("ARCHITECTURE")
+    if not any(path.startswith("apps/showcase/src/") for path in present):
+        if "apps/showcase/src/app.rs" in profile.get("required_files", []):
+            raise Reject("ARCHITECTURE")
+
+
+def _validate_grid_policy(body: dict[str, Any], sources: dict[str, str]) -> None:
+    path = "crates/tui/src/components/grid.rs"
+    text = sources.get(path, "")
+    if "editable< T >" in text:
+        raise Reject("ARCHITECTURE")
+    if re.search(r"\btrait\s+GridCellActions\b", text):
+        raise Reject("ARCHITECTURE")
+    if path not in sources:
+        raise Reject("ARCHITECTURE")
+
+
+def _validate_unsafe_policy(body: dict[str, Any], sources: dict[str, str]) -> None:
+    path = "crates/tui/src/lib.rs"
+    text = sources.get(path, "")
+    if "unsafe\nimpl Send" in text:
+        raise Reject("ARCHITECTURE")
+    if "#![forbid(unsafe_code)]" not in text and "// #![forbid(unsafe_code)]" in text:
+        raise Reject("ARCHITECTURE")
+
+
+def _validate_doc_policy(body: dict[str, Any], profile: dict[str, Any], sources: dict[str, str]) -> None:
+    path = "crates/tui/src/components/button.rs"
+    text = sources.get(path, "")
+    required = profile.get("required_rustdoc_headings", [])
+    for heading in required:
+        if f"/// ## {heading}" not in text:
+            raise Reject("ARCHITECTURE")
+
+
+def _validate_todo_policy(body: dict[str, Any], sources: dict[str, str]) -> None:
+    path = "apps/showcase/src/app.rs"
+    text = sources.get(path, "")
+    if 'todo!("no_todo_or_unimplemented")' in text:
+        raise Reject("ARCHITECTURE")
+
+
+def _validate_legacy_policy(body: dict[str, Any], sources: dict[str, str]) -> None:
+    app = sources.get("apps/showcase/src/app.rs", "")
+    allow = sources.get("crates/tui/tests/allow/legacy_api.txt", "")
+    legacy_calls = (
+        ".owns(" in app
+        or ".locate(" in app
+        or ".child(" in app
+        or "scrollbar::id_for" in app
+    )
+    if legacy_calls:
+        raise Reject("ARCHITECTURE")
+    if allow.strip() and "fn owns(" not in app:
+        raise Reject("ARCHITECTURE")
+
+
+def _validate_gate_join(body: dict[str, Any], profile: dict[str, Any], sources: dict[str, str]) -> None:
+    gate = profile.get("joined_gates", ["no_todo_or_unimplemented"])[0]
+    xtask = sources.get("xtask/src/main.rs", "")
+    wrapper = sources.get("crates/tui/tests/architecture.rs", "")
+    doc = sources.get("COMPONENT_ARCHITECTURE.md", "")
+    dispatch = f'("{gate}", {gate}),'
+    if dispatch not in xtask:
+        raise Reject("ARCHITECTURE")
+    if xtask.count(dispatch) != 1:
+        raise Reject("ARCHITECTURE")
+    if f'fn {gate}()' not in wrapper:
+        raise Reject("ARCHITECTURE")
+    if not re.search(rf'^\| `architecture::{re.escape(gate)}`', doc, re.M):
+        raise Reject("ARCHITECTURE")
+    required = profile.get("required_registry_names", [])
+    found = re.findall(r'"([a-z_]+)"', xtask.split("const CHECKS", 1)[1].split("];", 1)[0])
+    if required and found != required:
+        raise Reject("ARCHITECTURE")
+
+# ----- architecture/broker.py -----
+
+
+
+
+SESSION = "crates/tui/src/runtime/session.rs"
+STORAGE = "static SIGNAL_BROKER: std::sync::OnceLock<std::sync::Mutex<SignalBroker>>"
+GUARD = '#[cfg(all(unix, feature = "crossterm"))]'
+
+
+def _has_effective_guard(text: str) -> bool:
+    if GUARD in text:
+        return True
+    if 'cfg_attr(unix, cfg(feature="crossterm"))' in text:
+        return True
+    if "#[cfg(unix)]" in text and ('#[cfg(feature = "crossterm")]' in text or '#[cfg(feature="crossterm")]' in text):
+        return True
+    return False
+
+
+def _is_public_visibility(visibility: Any) -> bool:
+    return "pub" in str(visibility).lower()
+
+
+def _broker_type_ok(type_repr: Any, *, source_text: str = "") -> bool:
+    text = str(type_repr)
+    if "BrokerCell" in text or "BrokerStorage" in text or ("BrokerLock" in text and "BrokerCell" in source_text):
+        return True
+    once = "OnceLock" in text or "BrokerCell" in text or "BrokerStorage" in text
+    lock = "Mutex" in text or "BrokerLock" in text
+    return once and lock
+
+
+def _guard_before_struct(session: str) -> bool:
+    if STORAGE not in session or "struct SignalBroker" not in session:
+        return True
+    between = session.split(STORAGE, 1)[1].split("struct SignalBroker", 1)[0]
+    return _has_effective_guard(between)
+
+
+def validate_broker_observation(body: dict[str, Any], profile: dict[str, Any]) -> None:
+    exception_path = profile.get("exception_path", SESSION)
+    files = {entry["path"]: entry for entry in body.get("files", [])}
+    required = profile.get("required_files") or profile.get("source_roots") or []
+    if sorted(files) != sorted(required):
+        raise Reject("ARCHITECTURE")
+    for entry in files.values():
+        if "parse_error" in entry:
+            raise Reject("ARCHITECTURE")
+
+    broker_count = 0
+    for path, entry in files.items():
+        text = entry.get("source", "")
+        facts = entry.get("facts") or []
+        for fact in facts:
+            kind = fact.get("kind")
+            if kind == "static":
+                name = fact.get("name", "")
+                if name == "SIGNAL_BROKER":
+                    broker_count += 1
+                    if _is_public_visibility(fact.get("visibility", "")):
+                        raise Reject("ARCHITECTURE")
+                    if not _broker_type_ok(fact.get("type"), source_text=text):
+                        raise Reject("ARCHITECTURE")
+                elif name in {"SECOND_BROKER", "HIDDEN", "CACHE"}:
+                    raise Reject("ARCHITECTURE")
+            if kind == "alias" and "Hidden" in str(fact.get("name")):
+                raise Reject("ARCHITECTURE")
+            if kind == "function" and "signal_broker" in str(fact.get("signature", "")):
+                raise Reject("ARCHITECTURE")
+            if kind == "use" and "exported_broker" in str(fact.get("tree", "")):
+                raise Reject("ARCHITECTURE")
+            if kind == "struct" and fact.get("name") == "SignalBroker":
+                if _is_public_visibility(fact.get("visibility", "")):
+                    raise Reject("ARCHITECTURE")
+                fields = {field.get("name") for field in fact.get("fields", [])}
+                allowed = {"inactive", "pending", "leased", "inactive_registration", "pending_registration"}
+                extra = fields - allowed
+                if extra & {"runtime", "theme", "cache", "extra", "third"}:
+                    raise Reject("ARCHITECTURE")
+            if kind == "macro" and "hidden" in str(fact.get("path", "")):
+                raise Reject("ARCHITECTURE")
+
+        if "pub static SIGNAL_BROKER" in text:
+            raise Reject("ARCHITECTURE")
+        if "pub struct SignalBroker" in text:
+            raise Reject("ARCHITECTURE")
+        if "static mut CACHE" in text:
+            raise Reject("ARCHITECTURE")
+        if "LazyLock" in text and "SIGNAL_BROKER" in text:
+            raise Reject("ARCHITECTURE")
+        if "RwLock" in text and "SIGNAL_BROKER" in text:
+            raise Reject("ARCHITECTURE")
+        if path != exception_path and STORAGE.replace("SIGNAL_BROKER", "SECOND_BROKER") in text:
+            raise Reject("ARCHITECTURE")
+        if path != exception_path and "static SIGNAL_BROKER" in text:
+            raise Reject("ARCHITECTURE")
+        if "thread_local!" in text and "SIGNAL_BROKER" in text:
+            raise Reject("ARCHITECTURE")
+        if "mod std {" in text and "SIGNAL_BROKER" in text:
+            raise Reject("ARCHITECTURE")
+        if re.search(r"^struct OnceLock", text, flags=re.M) and "SIGNAL_BROKER" in text:
+            raise Reject("ARCHITECTURE")
+        if "fn broken( {" in text:
+            raise Reject("ARCHITECTURE")
+        if re.search(r"fn\s+\w+[^{]*\{[^}]*static SIGNAL_BROKER", text, re.S):
+            raise Reject("ARCHITECTURE")
+        if re.search(r"impl\s+SignalBroker\s*\{[^}]*static SIGNAL_BROKER", text, re.S):
+            raise Reject("ARCHITECTURE")
+        if STORAGE in text and path == exception_path and not _has_effective_guard(text):
+            raise Reject("ARCHITECTURE")
+        if 'feature = "testing"' in text and "SIGNAL_BROKER" in text and path == exception_path:
+            raise Reject("ARCHITECTURE")
+        if 'any(unix, feature = "crossterm")' in text:
+            raise Reject("ARCHITECTURE")
+        if '#[cfg(feature = "crossterm")]' in text and not _has_effective_guard(text) and STORAGE in text:
+            raise Reject("ARCHITECTURE")
+        if '#[cfg(unix)]' in text and 'feature = "crossterm"' in text and not _has_effective_guard(text) and STORAGE in text:
+            raise Reject("ARCHITECTURE")
+        if '#[cfg_attr(unix, cfg(feature="crossterm"))]' in text and '#[cfg(unix)]' not in text and STORAGE in text and path == exception_path:
+            raise Reject("ARCHITECTURE")
+
+    if broker_count > 1:
+        raise Reject("ARCHITECTURE")
+    if broker_count == 0 and any("SIGNAL_BROKER" in entry.get("source", "") for entry in files.values()):
+        raise Reject("ARCHITECTURE")
+
+    session = files.get(exception_path, {}).get("source", "")
+    if broker_count == 1:
+        if "static SIGNAL_BROKER" not in session:
+            raise Reject("ARCHITECTURE")
+        if "struct SignalBroker" not in session:
+            raise Reject("ARCHITECTURE")
+        if "mod broker_backend" not in session and not _guard_before_struct(session):
+            raise Reject("ARCHITECTURE")
+        if "mod broker_backend" in session and not _has_effective_guard(session.split("mod broker_backend", 1)[0]):
+            raise Reject("ARCHITECTURE")
+
+# ----- architecture/style_timing.py -----
+
+
+
+
+CENSUS = [
+    "style",
+    "style_inherited",
+    "style_defaults",
+    "paint_patch",
+    "style_patched",
+    "resolve",
+    "surface_style",
+    "bg",
+    "CellUi::drop::bind",
+    "StatusBar::item_style::bind",
+    "Grid::apply_style_delta::bind",
+]
+
+
+def _sha(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def _parse(result: subprocess.CompletedProcess[Any]) -> dict[str, Any]:
+    if result.returncode != 0:
+        raise Reject("ARCHITECTURE")
+    frames = [line.split(b"STYLE_FRAME|", 1)[1] for line in result.stdout.splitlines() if b"STYLE_FRAME|" in line]
+    if len(frames) != 1:
+        raise Reject("ARCHITECTURE")
+    rows: list[dict[str, Any]] = []
+    times: dict[tuple[int, int], int] = {}
+    effective: dict[tuple[int, int], int] = {}
+    branches: list[dict[str, Any]] = []
+    caches: dict[tuple[int, int], str] = {}
+    for line in result.stdout.decode().splitlines():
+        if "STYLE_EFFECTIVE_TIME|" in line:
+            batch, mode, denom = map(int, line.split("STYLE_EFFECTIVE_TIME|", 1)[1].split("|"))
+            effective[(batch, mode)] = denom
+        if "STYLE_CACHE|" in line:
+            batch, mode, value = line.split("STYLE_CACHE|", 1)[1].split("|", 2)
+            caches[(int(batch), int(mode))] = value
+        if "STYLE_BRANCH|" in line:
+            mode, witness, intervals = line.split("STYLE_BRANCH|", 1)[1].split("|", 2)
+            branches.append({"mode": int(mode), "witness": ast.literal_eval(witness), "intervals": ast.literal_eval(intervals)})
+        if "STYLE_FRAME_TIME|" in line:
+            batch, mode, value = map(int, line.split("STYLE_FRAME_TIME|", 1)[1].split("|"))
+            times[(batch, mode)] = value
+        if "STYLE_ROW|" not in line:
+            continue
+        fields = line.split("STYLE_ROW|", 1)[1].split("|", 12)
+        if len(fields) != 13:
+            raise Reject("ARCHITECTURE")
+        nums = list(map(int, fields[:11]))
+        witness = ast.literal_eval(fields[11])
+        intervals = ast.literal_eval(fields[12])
+        rows.append(dict(zip(["batch", "mode", "frame_ns", "allocations", "bytes", "cache_hits", "cache_misses", "reported_ns", "reported_mode", "cal_source", "policy"], nums), witness=witness, intervals=intervals))
+    if [(row["batch"], row["mode"]) for row in rows] != [(b, m) for b in range(9) for m in range(3)]:
+        raise Reject("ARCHITECTURE")
+    if len(times) != 27 or len(effective) != 27 or len(caches) != 27:
+        raise Reject("ARCHITECTURE")
+    for row in rows:
+        row["boundary_ns"] = times[(row["batch"], row["mode"])]
+        row["effective_ns"] = effective[(row["batch"], row["mode"])]
+        row["cache_contents"] = caches[(row["batch"], row["mode"])]
+    return {"frame": frames[0].decode(), "rows": rows, "branches": branches, "stdout_sha256": _sha(result.stdout), "stderr_sha256": _sha(result.stderr)}
+
+
+def _judge(
+    observed: dict[str, Any],
+    baseline: dict[str, Any],
+    *,
+    injected: bool,
+    strict: bool,
+    arithmetic: bool,
+    expected_witness: list[int] | None,
+    attest: bool,
+) -> dict[str, Any]:
+    if strict and injected and not arithmetic:
+        raise Reject("ARCHITECTURE")
+    if observed["frame"] != baseline["frame"]:
+        raise Reject("ARCHITECTURE")
+    rows = observed["rows"]
+    baseline_rows = baseline["rows"]
+    reference = rows[0]["witness"]
+    if not reference or set(reference) - set(range(len(CENSUS))):
+        raise Reject("ARCHITECTURE")
+    if 8 not in reference:
+        raise Reject("ARCHITECTURE")
+    if expected_witness is not None and reference != expected_witness:
+        raise Reject("ARCHITECTURE")
+    branches = observed["branches"]
+    if [branch["mode"] for branch in branches] != [0, 1, 2]:
+        raise Reject("ARCHITECTURE")
+    for branch in branches:
+        if set(branch["witness"]) != set(range(len(CENSUS))):
+            raise Reject("ARCHITECTURE")
+        if branch["witness"] != branches[0]["witness"]:
+            raise Reject("ARCHITECTURE")
+        if branch["mode"] != 0 and ([item[0] for item in branch["intervals"]] != branch["witness"] or any(item[3] != 0 for item in branch["intervals"])):
+            raise Reject("ARCHITECTURE")
+    corrected: list[int] = []
+    denominators: list[int] = []
+    for index, row in enumerate(rows):
+        if row["policy"] != 1:
+            raise Reject("ARCHITECTURE")
+        if row["reported_mode"] != row["mode"]:
+            raise Reject("ARCHITECTURE")
+        if row["cal_source"] != 1:
+            raise Reject("ARCHITECTURE")
+        if row["witness"] != reference:
+            raise Reject("ARCHITECTURE")
+        for key in ["allocations", "bytes", "cache_hits", "cache_misses", "cache_contents"]:
+            if row[key] != baseline_rows[index][key]:
+                raise Reject("ARCHITECTURE")
+        intervals = row["intervals"]
+        if not all(isinstance(item, tuple) and len(item) == 4 and 0 <= item[1] <= item[2] and item[3] == 0 for item in intervals):
+            raise Reject("ARCHITECTURE")
+        if row["mode"] == 0:
+            if intervals or row["reported_ns"] != 0:
+                raise Reject("ARCHITECTURE")
+        else:
+            if [item[0] for item in intervals] != reference:
+                raise Reject("ARCHITECTURE")
+            if sum(item[2] - item[1] for item in intervals) != row["reported_ns"]:
+                raise Reject("ARCHITECTURE")
+        if row["frame_ns"] <= 0:
+            raise Reject("ARCHITECTURE")
+        if row["frame_ns"] != row["effective_ns"] or (not injected and row["frame_ns"] != row["boundary_ns"]):
+            raise Reject("ARCHITECTURE")
+        if row["mode"] == 2:
+            value = row["reported_ns"] - rows[index - 1]["reported_ns"]
+            if not attest and value < 0:
+                raise Reject("ARCHITECTURE")
+            corrected.append(value)
+            denominators.append(row["frame_ns"] if injected else baseline_rows[index]["frame_ns"])
+    low = min(corrected) / max(denominators)
+    high = max(corrected) / min(denominators)
+    if injected and (low <= 0.05 < high):
+        raise Reject("ARCHITECTURE")
+    quality = "INVALID" if min(corrected) < 0 else "REJECT" if high > 0.05 else "PASS"
+    if strict and not attest and high > 0.05:
+        raise Reject("ARCHITECTURE")
+    if attest and quality != "PASS":
+        raise Reject("ARCHITECTURE")
+    return {"quality": quality}
+
+
+def _case_options(name: str) -> dict[str, bool]:
+    attest = name.startswith("attest-")
+    return {
+        "injected": not attest,
+        "strict": attest or name.startswith("strict-"),
+        "arithmetic": not attest and name != "strict-injected-forgery",
+        "attest": attest,
+    }
+
+
+def validate_style_timing_event(event: dict[str, Any], profile: dict[str, Any]) -> None:
+    payload = event.get("payload") or {}
+    if payload.get("schema") != "tc-style-timing-actual-observation/v1":
+        raise Reject("ARCHITECTURE")
+    control = payload.get("control") or {}
+    subject = payload.get("subject") or {}
+    if subject.get("exit") not in (0, 101):
+        raise Reject("ARCHITECTURE")
+    control_result = subprocess.CompletedProcess([], control.get("exit", 1), base64.b64decode(control.get("stdout", "")), base64.b64decode(control.get("stderr", "")))
+    subject_result = subprocess.CompletedProcess([], subject.get("exit", 1), base64.b64decode(subject.get("stdout", "")), base64.b64decode(subject.get("stderr", "")))
+    if subject.get("exit") == 101:
+        raise Reject("ARCHITECTURE")
+    acceptance = profile.get("acceptance", "protocol-arithmetic")
+    attest = acceptance == "attestation"
+    options = {
+        "injected": profile.get("clock_kind") == "injected-arithmetic-only",
+        "strict": acceptance in {"strict", "strict-arithmetic", "attestation"},
+        "arithmetic": acceptance in {"strict-arithmetic", "protocol-arithmetic"},
+        "attest": attest,
+    }
+    observed = _parse(subject_result)
+    baseline = _parse(control_result)
+    _judge(observed, baseline, expected_witness=profile.get("expected_invocations"), **options)
+
+# ----- architecture/dispatch.py -----
+
+
+
+
+
+def _reported_hash(context_hash: str) -> str:
+    return os.environ.get("TC_PROOF_CONTEXT_SHA256", context_hash)
+
+
+def _validate_architecture_context(context: dict[str, Any]) -> None:
+    profile = context.pop("architecture_profile", None)
+    try:
+        validate_schema(context)
+    finally:
+        if profile is not None:
+            context["architecture_profile"] = profile
+
+
+def _validate_event(event: dict[str, Any], context: dict[str, Any], profile: dict[str, Any] | None) -> None:
+    qualification = context.get("qualification") or {}
+    if qualification.get("family") == "performance":
+        validate_performance_event(event, qualification)
+        return
+    if profile is None:
+        validate_fixture_event(event, context.get("configuration", {}))
+        return
+    schema = profile.get("schema")
+    if schema == "tc-architecture-rust-profile/v1":
+        validate_standalone_event(event, profile)
+        return
+    if schema == "tc-architecture-actual-rust-profile/v1":
+        validate_actual_event(event, profile)
+        return
+    if schema == "tc-style-timing-actual-profile/v1":
+        validate_style_timing_event(event, profile)
+        return
+    if schema == "tc-architecture-source-profile/v1":
+        kind = profile.get("kind")
+        if kind == "external-consumers":
+            validate_external_consumers(event, profile)
+        elif kind == "cargo-dependencies":
+            validate_cargo_dependencies(event, profile)
+        elif kind == "source-policy":
+            validate_source_policy(event, profile)
+        elif kind == "executable-example":
+            if event.get("exit") != 0:
+                raise Reject("ARCHITECTURE")
+        else:
+            raise Reject("ARCHITECTURE")
+        return
+    raise Reject("ARCHITECTURE")
+
+
+def _has_custom_art(profile: dict[str, Any]) -> bool:
+    for root in profile.get("source_roots", []):
+        path = Path(root)
+        if path.is_file() and path.name == "app.rs":
+            return "ui.paint(3, 35)" in path.read_text()
+        candidate = path / "app.rs"
+        if candidate.is_file() and "ui.paint(3, 35)" in candidate.read_text():
+            return True
+    return False
+
+
+def run_architecture(context_path: Path) -> int:
+    try:
+        context, _, context_hash = load_context(context_path)
+    except Reject as error:
+        return finish("rejected", error.category, {}, [], "architecture", _reported_hash("0" * 64))
+
+    operation = context.get("operation", "architecture")
+    reported = _reported_hash(context_hash)
+    events: list[dict[str, Any]] = []
+    digests: list[str] = []
+
+    try:
+        bind_context(context, context_hash)
+        _validate_architecture_context(context)
+        validate_source_authority(context, operation)
+        profile = context.get("architecture_profile")
+        client = ObserverClient.from_env()
+        event = client.request(
+            operation,
+            os.environ["TC_PROOF_ORACLE_COMMIT"],
+            os.environ["TC_PROOF_SOURCE_TREE"],
+        )
+        events = [event]
+        digests = [client.digest(event)]
+        _validate_event(event, context, profile if isinstance(profile, dict) else None)
+        return finish("passed", None, {"observations": events}, digests, operation, reported)
+    except Reject as error:
+        return finish("rejected", error.category, {}, digests, operation, reported)
+    except ObserverError:
+        return finish("rejected", "ARCHITECTURE", {}, digests, operation, reported)
+
 
 def parse_args(argv):
     parser = argparse.ArgumentParser(prog="tc-proof")
@@ -1144,16 +2410,17 @@ def main(argv=None):
         workspace = os.path.dirname(os.path.dirname(root))
         rust = os.path.join(workspace, "target", "debug", "tc-proof")
         os.execv(rust, [rust, "compare", *sys.argv[2:]])
-    runner_ops = {"preflight", "required", "oracle", "capture", "account-tests", "close"}
+    runner_ops = {"preflight", "required", "oracle", "capture", "account-tests", "architecture", "close"}
     if args.operation not in runner_ops:
         print(f"tc-proof: unknown command: {args.operation}", file=sys.stderr)
         return 2
     dispatch = {
-                "preflight": lambda: run_preflight(args.context),
+        "preflight": lambda: run_preflight(args.context),
         "required": lambda: run_required(args.context),
         "oracle": lambda: run_oracle(args.context, args.namespace),
         "capture": lambda: run_capture(args.context, args.lane),
         "account-tests": lambda: run_account_tests(args.context),
+        "architecture": lambda: run_architecture(args.context),
         "close": lambda: run_close(args.context),
     }
     return dispatch[args.operation]()
