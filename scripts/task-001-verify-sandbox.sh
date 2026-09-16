@@ -97,16 +97,18 @@ synthetic_fragment_path() {
 }
 
 write_synthetic_fragment() {
-  local frag task_rel work_rel proof_rel
+  local frag task_rel work_rel proof_rel run_rel
   frag="$(synthetic_fragment_path)"
   task_rel="$(synthetic_target "$TC_BIND/task")"
   work_rel="$(synthetic_target "$TC_BIND/work")"
   proof_rel="$(synthetic_target "$TC_BIND/proof")"
+  run_rel="$(synthetic_target "$TC_BIND/run")"
   {
     synthetic_marker
     printf 'task\t%s\n' "$task_rel"
     printf 'work\t%s\n' "$work_rel"
     printf 'proof\t%s\n' "$proof_rel"
+    printf 'run\t%s\n' "$run_rel"
   } >"$frag"
   echo "Wrote synthetic fragment: $frag"
 }
@@ -138,7 +140,7 @@ cmd_prepare() {
   task_pkg="$TC_CATALOG_ROOT/completion/001"
   bootstrap="$TC_BIND/proof/bootstrap"
 
-  mkdir -p "$bootstrap/bin"
+  mkdir -p "$bootstrap/bin" "$TC_BIND/run/tc-proof/contexts"
   ln -sfn "$task_pkg" "$TC_BIND/task"
   ln -sfn "$TC_WORKTREE" "$TC_BIND/work"
   ln -sfn "$TC_TASKFMT" "$bootstrap/bin/taskfmt"
