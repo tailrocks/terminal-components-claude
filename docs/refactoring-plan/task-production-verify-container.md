@@ -1,68 +1,50 @@
-# Production task container paths (TASK-002+)
+# Retired production container-path design
 
-**Scope:** Tasks **002–069** and **073** (and hybrid **071–072** for bootstrap checks). Complements [`task-001-verify-container.md`](task-001-verify-container.md) and [`path-contract.md`](path-contract.md).
+> Historical record only. This file is non-executable and is not a campaign
+> runbook. Never create containers, mounts, firmlinks, fixed root namespaces,
+> or host lifecycle services for this refactoring.
 
----
+## Status
 
-## Why these paths exist
+The former production verification design coupled task packages to fixed
+container namespaces and a host-owned lifecycle. That design is rejected. The
+current contract is [campaign-policy.md](campaign-policy.md): an
+implementer, verifier, and reviewer subagent use isolated host-local paths;
+standalone latest taskfmt is limited to one task's lint and verify checks.
 
-Production `verify.toml` files invoke the accepted harness worker:
+The current path rules are in [path-contract.md](path-contract.md). The
+readiness report remains the authority for whether any task may dispatch.
 
-```text
-/proof/bin/tc-proof <operation> --context /run/tc-proof/contexts/CHK-NNN.json
-```
+## Preserved finding
 
-The host (`tc-proof-host`) must install `/proof/bin/tc-proof` after TASK-001 receipt and materialize frozen contexts under `/run/tc-proof/` before `taskfmt verify` runs.
+Production task packages once assumed that the checker executable and frozen
+context files would appear through external runtime namespaces. Passing a
+worktree root or task directory to taskfmt could not rewrite those embedded
+arguments. Verification therefore depended on runtime setup that the current
+policy forbids.
 
-**taskfmt does not create these paths.** `prepare` and `freeze` do.
+That dependency was the reason for the old readiness blocker. It is retained
+here as provenance only; it is not a supported workaround and cannot authorize
+task dispatch.
 
----
+## Replacement contract
 
-## Required container layout (TASK-002+)
+For each task, the verifier subagent receives:
 
-| Container path | Host source | Required for |
-| --- | --- | --- |
-| `/task/` | Catalog package `completion/NNN` | taskfmt lint, package checks |
-| `/work/` | Frozen candidate checkout | scope, subprocess CWD |
-| `/progress/progress.md` | Host-frozen progress | progress gate |
-| `/proof/bin/tc-proof` | Accepted harness install | CHK-001–007 (tc-proof operations) |
-| `/run/tc-proof/context-index.json` | Host `prepare`/`freeze` | context binding |
-| `/run/tc-proof/contexts/CHK-NNN.json` | One per check in verify.toml | each tc-proof invocation |
+- TASK_DIR: one catalog package;
+- WORKTREE: one isolated candidate worktree;
+- RUN_DIR: one external evidence directory;
+- TASKFMT: the exact latest standalone taskfmt binary;
+- SCOPE_BASE: the recorded scope-base commit.
 
-Bootstrap tasks **001** and **070** do not use `/proof/bin/` or `/run/tc-proof/` in verify.toml. Tasks **071** and **072** use both bootstrap and production paths (hybrid).
+The verifier runs only the per-task taskfmt lint and taskfmt verify commands
+defined by the current policy. The coordinator reviews raw evidence and
+reviewer findings before serial integration. No historical lifecycle operation
+from this document is part of that flow.
 
----
+## Cross-reference policy
 
-## Host sequence (not taskfmt run/promote)
-
-```sh
-tc-proof-host prepare --campaign "$CAMPAIGN" \
-  --task terminal-components/completion/NNN \
-  --parent "$INTEGRATION_PARENT" \
-  --run "$RUN"
-
-# executor completes /work edits and progress …
-
-tc-proof-host freeze --run "$RUN" --candidate "$WORKTREE"
-tc-proof-host verify --run "$RUN"
-```
-
-Inside `verify`, the host runs pinned `taskfmt verify` with container paths visible. Individual checks spawn `/proof/bin/tc-proof` per frozen context.
-
----
-
-## Common mistakes
-
-| Mistake | Result |
-| --- | --- |
-| Running `taskfmt verify` with only `--task-dir` and `--root` | CHK fail: `/proof/bin/tc-proof` not found |
-| Using `/work/tools/refactor-proof/bin/tc-proof` in production tasks | Wrong — production uses `/proof/bin/tc-proof` after install receipt |
-| Expecting `target/debug/tc-proof` to satisfy production verify.toml | Wrong — only bootstrap tasks use `/work/tools/.../bin/` |
-| Confusing `$TC_RUN` with `/run/tc-proof/` | Host maps run dir → container `/run/tc-proof/` at verify time |
-
----
-
-## Validation
-
-- Planning: `validate-plan.py` `catalog_argv_smoke()` — 479 `/proof/bin/tc-proof` argv references across packages (does not invoke binary).
-- Runtime: host must prove contexts exist and match `verify.toml` check IDs before verify.
+Existing planning documents may link here because the filename records the old
+design. Readers must follow the current policy links above. Do not copy a
+command, path, or lifecycle sequence from this historical record into a task
+package, script, or operator prompt.

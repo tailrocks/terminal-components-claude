@@ -1,5 +1,8 @@
 # Streaming grapheme feasibility qualifier
 
+> Historical feasibility evidence only. It is not a live refactoring task or
+> campaign execution authority.
+
 Planning-only prototype for branch finding BA-FMT and proposed ADJ-14; no TC production implementation or baseline change. The actual public consumer is pinned main List -> custom RowUi callback -> existing atomic-cluster label_fmt -> Scene. The original user Display is invoked exactly once per visible row callback. The adapter is not claimed to preserve production style-query cardinality: TASK-013's final shared painter resolves/applies the style once and TASK-015 migrates the real default Display path.
 
 ## Source and reproduction
@@ -9,7 +12,7 @@ Pinned main checkout used read-only: `/private/tmp/tc-architecture.L0vAdH/main`,
 Copy these authored fixture files into a fresh disposable directory, preserving the lock. On another host replace only the two manifest path dependencies with a read-only exact-pin checkout; do not edit that checkout. Run:
 
 ```sh
-rtk proxy cargo test --manifest-path /tmp/stream-projection.ghBlfQ/Cargo.toml --offline --locked --release -- --nocapture --test-threads=1
+rtk proxy cargo nextest run --manifest-path /tmp/stream-projection.ghBlfQ/Cargo.toml --offline --locked --release -- --nocapture --test-threads=1
 rtk proxy cargo clippy --manifest-path /tmp/stream-projection.ghBlfQ/Cargo.toml --offline --locked --all-targets -- -D warnings
 rtk proxy cargo fmt --manifest-path /tmp/stream-projection.ghBlfQ/Cargo.toml --check
 ```

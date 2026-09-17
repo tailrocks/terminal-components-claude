@@ -1,5 +1,8 @@
 # Runner bootstrap preparation evidence
 
+> Historical preparation evidence only. It is non-executable campaign
+> provenance, not a current task gate or host/lifecycle contract.
+
 This records qualification of the independent preparation files, not acceptance of a production `tc-proof` implementation. No production runner was supplied, no terminal-components production source was changed, and no application baseline was created or blessed. All source commits belong to disposable synthetic Git repositories and use DCO signoff plus the required Codex co-author trailer.
 
 The following combined command passed on 2026-09-11 after the final-review repairs:

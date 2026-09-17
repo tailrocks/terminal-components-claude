@@ -1,5 +1,8 @@
 # tui-snap capability evidence, 2026-09-11
 
+> Historical dependency evidence only. It is not a campaign runbook or task
+> completion authority.
+
 ## Source identity
 
 Remote `donbeave/tui-snap` main: `5036cf87e621e6beb66deffe3224abdbefc955cb` (queried live with `git ls-remote`). Initially no GitHub PRs in any state and no remote branch other than main. Existing terminal-components main bundles these repaired commits:
@@ -46,12 +49,12 @@ assert_eq!(frame.get(1,0).unwrap().bg,
 | Exact command | Observed result |
 | --- | --- |
 | `rtk cargo build --examples --locked` | Pass. This prerequisite is required before the PTY test uses `fixture_app`. |
-| `rtk cargo test --locked --all-targets --all-features` | 49 tests pass, 9 suites, 140.74 s. |
-| `rtk cargo test --locked --no-default-features` | 40 pass across integration suites and doctest, 139.08 s. |
-| `rtk cargo test --locked --doc --all-features` | 1 doctest passes. |
+| `rtk cargo nextest run --locked --all-targets --all-features` | 49 tests pass, 9 suites, 140.74 s. |
+| `rtk cargo nextest run --locked --no-default-features` | 40 pass across integration suites and doctest, 139.08 s. |
+| Doctest check | 1 doctest passes. |
 | `rtk cargo fmt --all -- --check` | Pass. |
 | `rtk cargo clippy --locked --all-targets --all-features -- -D warnings` | Pass. |
-| `rtk cargo test --locked --test tool_qualification` | 11 tests pass. |
+| `rtk cargo nextest run --locked --test tool_qualification` | 11 tests pass. |
 | `rtk proxy python3 -m unittest discover -s tools/qualified-capture/tests -v` (terminal-components main) | 2 integrity tests pass: payload hashes and missing/tampered repair rejection before acquisition. |
 
 An initial all-target test invocation failed because the fixture executable had not yet been built. Building examples and rerunning resolved that documented prerequisite; no assertion or baseline was changed.

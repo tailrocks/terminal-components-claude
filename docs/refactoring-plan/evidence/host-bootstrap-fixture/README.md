@@ -7,6 +7,9 @@ kind: bugfix
 
 # TASK-901 — Transform the independent qualification payload
 
+> Archival synthetic fixture only. It is not a live campaign task, execution
+> authority, or permission to use containers or host/taskfmt lifecycle helpers.
+
 ## Goal
 
 The candidate payload contains exactly `qualified\n` while the protected sentinel remains unchanged.

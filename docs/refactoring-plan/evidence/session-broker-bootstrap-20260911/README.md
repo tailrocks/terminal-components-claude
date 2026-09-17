@@ -1,5 +1,8 @@
 # Safe Unix session broker feasibility qualifier
 
+> Historical feasibility evidence only. It is not a live refactoring task or
+> campaign execution authority.
+
 This is disposable planning evidence, not Terminal Components production code or a task completion receipt.
 It tests whether the TASK-009 safe signal-hook/process-lifetime design can work with real crossterm waits on an owned PTY.
 The supported process starts with default SIGTSTP handling and installs no competing SIGTSTP registration.
@@ -29,14 +32,16 @@ Use this manifest as an independent fixture and a disposable target directory; d
 rtk cargo build --offline --locked --manifest-path docs/refactoring-plan/evidence/session-broker-bootstrap-20260911/Cargo.toml --target-dir /tmp/tc-broker-proof.uBbtHa/target
 rtk proxy python3 -B docs/refactoring-plan/evidence/session-broker-bootstrap-20260911/pty_probe.py /tmp/tc-broker-proof.uBbtHa/target/debug/tc-session-broker-feasibility
 rtk proxy python3 -B -O docs/refactoring-plan/evidence/session-broker-bootstrap-20260911/pty_probe.py /tmp/tc-broker-proof.uBbtHa/target/debug/tc-session-broker-feasibility
-rtk cargo test --offline --locked --all-targets --manifest-path docs/refactoring-plan/evidence/session-broker-bootstrap-20260911/Cargo.toml --target-dir /tmp/tc-broker-proof.uBbtHa/target
+rtk cargo nextest run --offline --locked --all-targets --manifest-path docs/refactoring-plan/evidence/session-broker-bootstrap-20260911/Cargo.toml --target-dir /tmp/tc-broker-proof.uBbtHa/target
 rtk cargo clippy --offline --locked --all-targets --manifest-path docs/refactoring-plan/evidence/session-broker-bootstrap-20260911/Cargo.toml --target-dir /tmp/tc-broker-proof.uBbtHa/target -- -D warnings
 rtk cargo fmt --check --manifest-path docs/refactoring-plan/evidence/session-broker-bootstrap-20260911/Cargo.toml
 ```
 
 The target path above records the actual disposable directory used; another fresh `mktemp -d` target is equivalent.
-No doctest target exists because this fixture is binary-only; the attempted `cargo test --doc` correctly reported that limitation and is not counted as passing doctests.
-Nextest was not needed for two deterministic unit tests plus a custom owned-PTY supervisor.
+No doctest target exists because this fixture is binary-only; the attempted
+doctest check correctly reported that limitation and is not counted as passing
+doctests. The deterministic unit checks and custom owned-PTY supervisor did
+not require an additional nextest invocation.
 
 ## Observed results
 

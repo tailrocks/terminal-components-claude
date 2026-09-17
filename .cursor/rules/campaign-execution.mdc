@@ -15,20 +15,29 @@ Read before any refactoring task work:
 
 - All production commits integrate to **`refs/heads/refactor/holla-parity` only**
 - Never merge to `main`, move `visual-baseline` tag, or write `snapshots/` during campaign
-- Never use `taskfmt run`, `monitor`, or `promote`
-- Never claim task DONE from local `taskfmt verify --progress ""` — host `tc-proof-host verify` is authority
+- Never use containers, Docker, Podman, images, mounts, firmlinks, or a
+  container runtime
+- Never use `taskfmt init`, `status`, `taskfmt-host`, `taskfmt-runtime`,
+  `run`, `monitor`, or `promote`
+- Use only per-task `taskfmt lint` and `taskfmt verify` from a verifier
+  subagent; the result is evidence, not automatic integration authority
 - Use `cargo nextest`, never `cargo test`
 - One task per worktree; edit only `writable_paths` from task `verify.toml`
 
 ## Roles
 
-- **Implementer:** edits `/work/`, advisory local tests only, submits progress to operator
-- **Verifier:** fresh context, read-only, verdict VERIFIED | REJECTED | BLOCKED
-- **Operator/host:** freeze, verify, integrate — not the implementer agent
+- **Implementer subagent:** edits one isolated host-local worktree, advisory local tests only
+- **Verifier subagent:** fresh context, read-only, runs per-task taskfmt lint/verify
+- **Reviewer subagent:** independently reviews diff and raw evidence
+- **Coordinator:** schedules, reviews, and serially integrates accepted commits
 
 ## Pre-arm
 
 Preparation scripts: `scripts/campaign-init.sh`, `campaign-preflight.sh`, `campaign-install-taskfmt.sh`.
+
+All task paths must be host-local. Legacy `/task`, `/work`, `/proof`, and
+`/run` entries in `verify.toml` are blockers; never create mounts or firmlinks
+to satisfy them.
 
 Do not start the `/goal` campaign while the current readiness report is
 **NO-GO**. A future arm requires a fresh operator authorization recorded

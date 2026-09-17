@@ -1,5 +1,9 @@
 # Actual style timing bootstrap protocol
 
+> Historical qualification evidence only. The former fixed-path runner
+> invocation is retired and intentionally omitted. This record is not a
+> campaign runbook and never authorizes containers or lifecycle services.
+
 Preparation-only qualification. Not a production instrumentation implementation;
 not TASK067's product performance acceptance; not evidence that TASK073 is done.
 TASK070 and TASK072 may consume this frozen qualifier before TASK073 implements
@@ -32,10 +36,11 @@ still requires controlled-host valid real-clock ≤5% evidence.
 
 ## Inputs and command
 
-`python3 -B /task/trusted/style-timing-bootstrap/style-timing-bootstrap-driver.py --runner /work/tools/refactor-proof/bin/tc-proof`
-qualifies the submitted `tc-proof architecture --context PATH` dispatcher.
-`--self-test` instead supplies an independent external FD consumer plus malicious
-consumers. Repeat self-test under `python3 -O -B`; Python assertions are not gates.
+The historical qualification paired the style-timing driver with a
+verifier-owned runner and frozen trusted assets to qualify the submitted
+architecture dispatcher. That fixed-path invocation is retired and
+intentionally omitted. Its self-test supplied an independent external FD
+consumer plus malicious consumers; Python assertions were not gates.
 
 Input main is commit `7b27732a8c3c131760ec3438f641cb3c11343a42`, exact compressed
 `main-source.tar.gz` SHA-256

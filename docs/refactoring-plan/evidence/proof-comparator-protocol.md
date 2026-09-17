@@ -1,5 +1,9 @@
 # Independent comparator qualification protocol
 
+> Historical qualification evidence only. The old host-dispatch acceptance
+> command is retired and intentionally omitted. Do not use this document as a
+> campaign runbook or to start containers or lifecycle services.
+
 This is the planner-owned test contract for the comparison part of B-HARNESS. The executable under test is a future deliverable. These files do not implement the production comparator:
 
 - `proof-comparator-bootstrap.py`: independent Python standard-library black-box driver.
@@ -21,11 +25,10 @@ python3 docs/refactoring-plan/evidence/proof-comparator-bootstrap.py --self-test
 
 The self-test constructs every fixture, validates the report contract for every positive/negative outcome, rejects 888 report-schema and aggregation mutations, rejects nine deliberately lying/incomplete runners, and optionally roundtrips the positive frame through tuisnap's existing `render --format json` command. The aggregation probes reject later omissions, duplicate identity substitutions and unrequested checkpoints even when reported counters match the incomplete result array. Explicit guards remain active with `python3 -O`; no qualification decision uses Python `assert`. This is not a passing production-harness qualification.
 
-Future B-HARNESS acceptance command:
-
-```sh
-python3 /task/trusted/proof-bootstrap/proof-comparator-bootstrap.py --runner /absolute/candidate/tc-proof
-```
+The historical B-HARNESS acceptance bound this driver to a verifier-owned
+runner and frozen trusted assets. Its old path-bound command is retired and
+intentionally omitted. Current campaign verification is performed by the
+verifier subagent through the host-local per-task taskfmt contract.
 
 The driver invokes that regular executable as `tc-proof compare --context ABSOLUTE_CONTEXT_JSON`. All 72 cases must pass their declared outcome, followed by a fresh valid case after each of the 69 negative cases: 141 successful invocations of the qualification process. Each recovery retains the negative case's required-set cardinality. A successful negative case means the comparator correctly rejected its input, not that input matched. Run IDs and fixture paths are opaque random values, case order is shuffled, and inert binary/tool/adapter fixture contents receive fresh salt. Mutation names and expected verdicts are not supplied to the comparator. No shell command, candidate import, candidate test report or stdout marker supplies the driver verdict.
 

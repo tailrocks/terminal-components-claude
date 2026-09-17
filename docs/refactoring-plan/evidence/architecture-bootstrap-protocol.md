@@ -1,16 +1,22 @@
 # Independent Rust architecture qualification
 
+> Historical qualification evidence only. The old path-bound invocation is
+> retired and intentionally not reproduced. Never use this record to launch a
+> campaign task, container, mount, or lifecycle service.
+
 Planning owner: `/root/history_early`; independent reviewer: `/root/review_rust_qualification`. Neither is TASK072's implementer. These are qualification subjects, observers, and expected verdicts—not a terminal-components verifier implementation. No production source, public API, or baseline is changed. TASK073 is not a dependency; the `073 → 008 → 072` cycle is prohibited.
 
 ## Frozen check and authority
 
-Reserved TASK072 AC-009 / CHK-011 invokes:
-
-```sh
-python3 /task/trusted/architecture-bootstrap/architecture-bootstrap-driver.py --runner /work/tools/refactor-proof/bin/tc-proof
-```
-
-The command runs both standalone Rust and actual terminal-components matrices. The planner freezes every file/digest before dispatch. The implementer cannot modify them or their expectations. The sibling `/task/trusted/runner-bootstrap/` package includes its driver, app, worker, and host observer because the inherited fixture constructs initial disposable Git authority. Final assembly and independent review must pass before the readiness flag is enabled. The candidate checker is later TASK072 acceptance, not a prerequisite for independent fixture preparation.
+Reserved TASK072 AC-009 / CHK-011 historically paired the architecture driver
+with a verifier-owned runner and frozen trusted assets. The exact path-bound
+invocation is retired and intentionally omitted. The historical driver ran
+both standalone Rust and actual terminal-components matrices. The planner
+froze every file/digest before dispatch; the implementer could not modify them
+or their expectations. The sibling runner-bootstrap package supplied the
+driver, app, worker, and observer for the inherited disposable Git authority.
+Final assembly and independent review were prerequisites to any readiness
+decision. This evidence never became current campaign authority.
 
 The architecture package contains:
 

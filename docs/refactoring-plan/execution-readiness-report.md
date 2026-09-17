@@ -84,7 +84,9 @@ Status means current-candidate evidence, not ledger claims.
 | 065–069 | Pending | Closure gates have no completed upstream evidence. |
 | 073 | Blocked | Depends on 008/072; generated registry authority is not qualified. |
 
-No task is proven complete. No task is proven obsolete or superseded. No task definition is inherently invalid, but the host/container path contract requires correction for autonomous macOS execution.
+No task is proven complete. No task is proven obsolete or superseded. The
+task definitions remain pending, but every `verify.toml` must be migrated from
+legacy container namespaces to host-local subagent paths before dispatch.
 
 The catalog itself is structurally healthy: the latest standalone taskfmt
 `lint` passes all 73 numbered packages. Required CLAUDE.md symlinks are valid
@@ -199,16 +201,16 @@ Current tests cover much component behavior, but parity proof needs replayed sta
 
 | Script | Purpose / state | macOS, Grok, container | Recommendation |
 |---|---|---|---|
-| scripts/campaign-dispatch.sh | Host status/prepare/freeze/verify/integrate wrapper. | Status is available; mutating commands require an armed ledger and a synced Mach-O host binary. | Keep fail-closed. |
+| scripts/campaign-dispatch.sh | Per-task taskfmt lint/verify wrapper. | Runs only in a verifier subagent's host-local worktree and external run directory. | Keep fail-closed. |
 | scripts/campaign-init.sh | Branch/worktree/ledger bootstrap. | Must never move an existing ref or force-checkout a worktree. | Keep only after non-forcing guard repair. |
 | scripts/campaign-install-taskfmt.sh | Installs latest taskfmt from the local checkout. | Exact source HEAD, version, executable hash, and numeric-package lint are checked. | Keep. |
 | scripts/campaign-absorb-planning.sh | Copies planning worktree and stages changes. | Obsolete branch-copy workflow. | Retire. |
-| scripts/campaign-preflight.sh | Pre-arm checks. | Fails closed; uses latest taskfmt and `cargo nextest` discovery. | Keep; current plan validator remains a blocker. |
+| scripts/campaign-preflight.sh | Pre-arm checks. | Fails closed; uses latest taskfmt per-task lint and rejects legacy container paths. | Keep; current plan validator remains a blocker. |
 | scripts/fix-catalog-container-paths.py | Mass-rewrites literal container paths. | Unsafe broad mutation; not part of current host workflow. | Retire. |
 | scripts/hybrid-verify-sandbox.sh | Synthetic `/task`, `/work`, `/proof` sandbox. | Requires root firmlinks; not macOS qualification. | Retire. |
 | scripts/task-001-verify-sandbox.sh | TASK-001 container-path staging. | Same root/sudo blocker; not autonomous. | Retire. |
-| tools/refactor-proof/scripts/dev-tc-proof-host.sh | Runs host proof binary. | macOS-compatible; no container. | Keep, simplify paths. |
-| tools/refactor-proof/scripts/dev-tc-proof.sh | Runs proof binary. | macOS-compatible; no container. | Keep or merge with host wrapper. |
+| tools/refactor-proof/scripts/dev-tc-proof-host.sh | Retired host-lifecycle wrapper. | Historical only; never use for campaign execution. | Retire from campaign authority. |
+| tools/refactor-proof/scripts/dev-tc-proof.sh | Runs the proof binary for verifier-owned checks. | Host-local and subagent-scoped. | Keep only as a verifier helper. |
 | tools/refactor-proof/scripts/sync-binaries.sh | Copies binaries into tracked tree. | Darwin-specific; no container. | Rewrite to external per-run artifacts. |
 | tools/refactor-proof/scripts/test_freeze_vectors.py | Temporary-repository freeze tests. | macOS-compatible; no container. | Keep; parameterize paths. |
 | tools/refactor-proof/scripts/test_integrate_seal_vectors.py | Temporary-repository seal/integrate tests. | macOS-compatible; no container. | Keep; parameterize paths. |
@@ -240,18 +242,20 @@ afd3b575dbcc7044620bec4b9493a74eca3e5ef2
 - Isolated worktrees.
 - No Docker or container runtime.
 
-Current scripts additionally require root-created synthetic firmlinks such as /run; Grok cannot provision those autonomously. Rewrite the path adapter before execution.
+Current task packages still contain legacy `/task`, `/work`, `/proof`, and
+`/run` argv paths. Rewrite those checks to host-local subagent paths before
+execution. Do not create mounts or firmlinks to preserve the old contract.
 
-## I. Grok Build execution architecture
+## I. Subagent execution architecture
 
-One /goal coordinator should own:
+One coordinator should own:
 
 1. Immutable ref/tag verification.
 2. Host preflight.
 3. DAG scheduling.
-4. Taskfmt invocation.
-5. Serial integration.
-6. Receipt collection.
+4. Subagent assignment and worktree isolation.
+5. Per-task taskfmt lint/verify evidence collection.
+6. Serial integration.
 7. Final gates.
 
 Each task gets:
@@ -259,8 +263,8 @@ Each task gets:
 - One implementer in an isolated worktree.
 - One focused test/behavior verifier.
 - One independent review agent.
-- Host-owned taskfmt verification.
-- Host-owned frozen-oracle comparison.
+- A verifier subagent running taskfmt lint/verify.
+- A reviewer subagent checking evidence and frozen-oracle reads.
 
 Agents must not:
 
@@ -270,7 +274,8 @@ Agents must not:
 - Modify main.
 - Share writable build/snapshot directories.
 
-Only the serial integrator may merge task commits and update campaign receipts.
+Only the serial coordinator may merge reviewed task commits. No host lifecycle
+service or taskfmt promotion path exists.
 
 ## J. taskfmt strategy
 
@@ -282,30 +287,29 @@ binary identity is checked by exact `--version` output and executable SHA-256.
 Allowed:
 
 ~~~text
-taskfmt lint refactoring-tasks/terminal-components/completion/[0-9][0-9][0-9]
-taskfmt init --task-dir /absolute/task --out /absolute/run/progress.md
-taskfmt verify --root /absolute/work --task-dir /absolute/task \
-  --base "$SCOPE_BASE" --progress "$PROGRESS" --log-dir "$LOG_DIR"
-taskfmt-host lint --json
+taskfmt lint /absolute/catalog/terminal-components/completion/NNN
+taskfmt verify --root /absolute/subagent-worktree \
+  --task-dir /absolute/catalog/terminal-components/completion/NNN \
+  --base "$SCOPE_BASE" --progress "" --log-dir "$RUN_DIR/taskfmt-logs"
 ~~~
 
-The latest standalone lint passes all 73 numbered packages. The latest
-standalone CLI has no `project`, `group`, `fingerprint`, `progress-init`, or
-`--config` interface. Older commands and receipts are historical only.
+The latest standalone lint passes all 73 numbered packages. This campaign uses
+only per-task `lint` and `verify`; it does not invoke taskfmt progress,
+runtime, host, lifecycle, dispatch, or promotion commands.
 
 Do not use taskfmt lifecycle operations that create/reset workspaces or
 promote refs. They are outside the latest standalone command surface and are
 incompatible with this campaign.
 
-`--root` and `--task-dir` do not rewrite literal `/task`, `/work`, `/proof`, or
-`/run` paths. A host-owned adapter must resolve these paths into isolated local
-directories while preserving trust boundaries.
+`--root` and `--task-dir` do not rewrite paths. Every task `verify.toml` must
+use host-local relative paths or explicit subagent paths; legacy `/task`,
+`/work`, `/proof`, and `/run` entries are migration blockers.
 
 ## K. Verification matrix
 
 | Workstream | Tests | Visual proof | Behavioral proof | Gate |
 |---|---|---|---|---|
-| 001, 070–073 | Proof-vector nextest, host receipts, architecture probes | Frozen store integrity only | Ref identity, sealing, source binding, accounting, architecture ownership | Host receipt + latest taskfmt verify |
+| 001, 070–073 | Proof-vector nextest, subagent evidence, architecture probes | Frozen store integrity only | Ref identity, source binding, accounting, architecture ownership | Reviewed subagent evidence + latest taskfmt lint/verify |
 | 002–008 | Capture/source identity and protected-authority tests | All 7,550 frozen keys; four artifacts each | PTY startup, dimensions, colors, capture provenance | Exact inventory; no candidate blessing |
 | 009–031 | Component conformance, unit, architecture, compile-fail tests | Affected app families across 5 sizes × 5 colors | Focus, cursor, layers, hit regions, resize, editing, scrolling | Component tests + frozen comparisons |
 | 032–039 | Showcase app/elapsed/perf tests | Showcase audit/fade/flows/hover/pages/resize | All 23 routes, dialogs, pickers, editor, progress, focus | Complete Showcase oracle |
@@ -324,12 +328,13 @@ Hard blockers:
 - visual_baseline binary unavailable on HEAD.
 - test(store_integrity) has no active test.
 - Plan validator fails on missing docs/refactoring-plan/evidence/main-source.tar.gz.
-- .campaign/ledger.json is disarmed; no accepted current host receipt exists.
-- TASK-071 verify record says exit 1, scope failure, and missing /run firmlink.
-- TASK-072 dependency receipt is TBD.
-- Ledger candidate tree hash `4d3501a6` is not current HEAD; no accepted host
-  receipt binds the current branch.
-- Current proof binary hash differs from the recorded receipt.
+- `.campaign/ledger.json` is disarmed; no accepted current subagent
+  verification evidence exists.
+- Task verify configs still contain legacy container paths and cannot be
+  dispatched until migrated.
+- Ledger candidate tree hash `4d3501a6` is not current HEAD; no reviewed
+  subagent evidence binds the current branch.
+- Current proof-worker identity is not yet bound to a reviewed subagent run.
 - Current worktree is dirty.
 - Recorded remote performance CI for the pre-cleanup candidate failed three
   Jackin allocation-budget tests; no fresh performance qualification was run
@@ -352,10 +357,10 @@ Hard blockers:
 3. Recover the exact reviewed main-source.tar.gz asset or establish a separately verified equivalent.
 4. Make the frozen suite/config/store available read-only from tag-derived bytes.
 5. Add the grouped visual suite without importing old product architecture.
-6. Rewrite host path handling; remove /run and /task root-firmlink dependence.
-7. Rewrite preflight/dispatch fail-closed.
+6. Rewrite every task `verify.toml` to host-local paths and remove legacy namespaces.
+7. Spawn subagent implementer/verifier/reviewer lanes with disjoint worktrees and run directories.
 8. Keep CI and hidden test generation on nextest-only commands.
-9. Qualify the host verifier and latest taskfmt identity.
+9. Qualify the latest taskfmt identity and per-task lint/verify wrapper.
 10. Run the current code against the frozen oracle. Record drift. Do not bless.
 
 Stop if any preparation gate fails.
@@ -412,16 +417,16 @@ Not satisfied:
 
 - Frozen visual authority is unavailable.
 - Plan validator is red.
-- Host proof receipts are stale/failed.
-- Campaign ledger is disarmed and has no accepted current host receipt.
+- Subagent verification evidence is absent.
+- Campaign ledger is disarmed and has no accepted current task evidence.
 - Proof tree is dirty.
-- The current proof binary is not receipt-bound to an accepted host run.
+- The current proof worker is not bound to a reviewed subagent run.
 - Consumer migration is incomplete.
 - Compatibility renderers remain.
 - Behavior and performance parity are not fully proven.
 
 Smallest preparation goal:
 
-> Make refactor/holla-parity a clean, unarmed, host-executable, frozen-oracle-backed campaign branch. Do not modify production behavior or the frozen tag. Pass plan validation, latest taskfmt verification, host receipt qualification, strict refactor-proof compilation, and the full nextest/visual preflight.
+> Make refactor/holla-parity a clean, unarmed, subagent-executable, frozen-oracle-backed campaign branch. Do not modify production behavior or the frozen tag. Pass plan validation, latest per-task taskfmt lint/verify, independent subagent review, strict refactor-proof compilation, and the full nextest/visual preflight.
 
 Until that goal passes, do not launch the autonomous 73-task implementation campaign.
