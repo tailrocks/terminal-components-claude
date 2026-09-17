@@ -1,5 +1,9 @@
 # Independent project runner qualification, version 1
 
+> Historical qualification evidence only. The former fixed-path acceptance
+> commands are retired and intentionally omitted. This record is not a
+> campaign runbook and never authorizes containers or lifecycle services.
+
 This package is planning-owned test preparation. It is not the implementation of `tc-proof`, an application baseline, or authority to bless one. It closes the independent fixture gap identified in BR-06 of [the bootstrap review](../bootstrap-review.md). The comparator and host suites remain separate prerequisites. The following bounded implementations own this contract:
 
 - TASK-070 implements `preflight`, `required`, `oracle`, `capture`, and `close`.
@@ -8,18 +12,13 @@ This package is planning-owned test preparation. It is not the implementation of
 
 The planner freezes this protocol, all files listed by the [qualification extensions](runner-bootstrap-extensions-protocol.md), and the separately reviewed `host-bootstrap-observer.py` together outside all three implementation checkouts. Freeze their exact bytes, interpreter and Git identities, source review decision, and self-test evidence. The runner cannot edit the driver, fixtures, observer or acceptance inputs. Do not treat a checkout-local mutable file as the frozen package. The extensions add executable immutable per-check contexts, preparation accounting, assertion-span preservation, successful stage closure, measured performance, and native/resized source mapping qualification; the base cases alone are insufficient.
 
-## Canonical acceptance commands
+## Historical acceptance boundary
 
-```sh
-python3 /task/trusted/runner-bootstrap/runner-bootstrap-driver.py \
-  --runner /work/tools/refactor-proof/bin/tc-proof --group 070
-python3 /task/trusted/runner-bootstrap/runner-bootstrap-driver.py \
-  --runner /work/tools/refactor-proof/bin/tc-proof --group 071
-python3 /task/trusted/runner-bootstrap/runner-bootstrap-driver.py \
-  --runner /work/tools/refactor-proof/bin/tc-proof --group 072
-```
-
-Omitting `--group` runs the union. Each negative case is followed by a fresh positive recovery for the same operation. Case order is randomized. Paths and run IDs are opaque random values; no submitted input contains the private mutation label or expected error category. The source seed and palette vary between invocations. There is no candidate command today, and no production runner has passed these commands.
+The old qualification ran groups 070, 071, and 072 through a verifier-owned
+runner and frozen trusted assets. Those fixed-path commands are retired and
+intentionally omitted. Each historical negative case was followed by a fresh
+positive recovery; case order, paths, run IDs, source seed, and palette were
+opaque. No production runner was authorized by those observations.
 
 The executable preparation check is:
 

@@ -1,6 +1,15 @@
 # ADJ-13 broker checker qualification
 
-TASK-072 R-002 / AC-011 / CHK-013 must execute `broker-bootstrap-driver.py --runner /work/tools/refactor-proof/bin/tc-proof` from the host-frozen `broker-bootstrap` group. `--self-test` is only an observer/source-premise diagnostic; its output explicitly says `submitted_checker_qualified: false`. No premise run, existing 193-case corpus, or caller-owned lifecycle prototype substitutes for CHK-013.
+> Historical qualification evidence only. The former fixed-path runner
+> invocation is retired and intentionally omitted. This record is not a
+> campaign runbook and never authorizes containers or lifecycle services.
+
+TASK-072 R-002 / AC-011 / CHK-013 historically used the broker driver with a
+verifier-owned runner and frozen broker assets. The fixed-path invocation is
+retired and intentionally omitted. Self-test was only an observer/source
+premise diagnostic and never claimed submitted-checker qualification. No
+premise run, existing corpus, or caller-owned lifecycle prototype substitutes
+for CHK-013.
 
 The driver imports the unchanged protected source/actual/common transport. It builds `broker-bootstrap-observer.rs` using the pinned main source archive's xtask dependencies, extracts the exact executable artifact, and freezes complete `crates/tui/src/**/*.rs` source snapshots before submitted code runs. Each snapshot changes only its named fixture bytes. The candidate sees source bytes, their complete inventory, and the ADJ-13 policy; it never receives the private expected verdict or mutation name. The observer parses every inventoried Rust file with syn, including inactive and unreferenced source. Its raw records include file/module/item attributes, statics, storage types and nested generic arguments, type aliases, imports/reexports, bounded struct fields, function/method-local depth and macro token trees. Parse errors are data, not skipped files. The observer emits no checker verdict.
 

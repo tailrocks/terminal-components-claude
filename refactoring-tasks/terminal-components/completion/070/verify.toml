@@ -6,7 +6,9 @@ forbidden_paths = ["refactoring-tasks", "docs/refactoring-plan", "shots", "snaps
 [[checks]]
 id = "CHK-001"
 phase = "precondition"
-shell = 'python3 refactoring-tasks/terminal-components/completion/070/trusted/proof-bootstrap/host-bootstrap-driver.py --taskfmt "$TC_TASKFMT" --taskfmt-source "$TC_TASKFMT_SOURCE"'
+# The former host-bootstrap/taskfmt-init qualification path is retired. Keep
+# this task fail-closed until a subagent-only source-runner contract replaces it.
+argv = ["python3","-c","raise SystemExit(78)"]
 expected = { exit = 0 }
 requirements = ["R-004"]
 acceptance = ["AC-004"]

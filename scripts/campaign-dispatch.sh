@@ -1,36 +1,36 @@
 #!/usr/bin/env bash
-# Host dispatch wrapper for campaign tasks (pre-arm: status/help only until receipt exists).
+# Run latest taskfmt validation/verification for one host-local subagent task.
 set -euo pipefail
 
-INTEGRATION_REF="${INTEGRATION_REF:-refs/heads/refactor/holla-parity}"
-CATALOG_ROOT="${TC_CATALOG_ROOT:-refactoring-tasks/terminal-components}"
+TASKFMT_REV="${TASKFMT_REV:-afd3b575dbcc7044620bec4b9493a74eca3e5ef2}"
+TASKFMT_SHA256="${TASKFMT_SHA256:-f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de}"
+TASKFMT_SOURCE="${TC_TASKFMT_SOURCE:-/Users/donbeave/Projects/taskfmt/task-format}"
+TASKFMT="${TC_TASKFMT:-/tmp/taskfmt-latest-install/bin/taskfmt}"
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+CATALOG_ROOT="${TC_CATALOG_ROOT:-$REPO_ROOT/refactoring-tasks/terminal-components/completion}"
+WORKTREE="${TC_TASK_WORKTREE:-$REPO_ROOT}"
+RUN_DIR="${TC_TASK_RUN_DIR:-}"
+BASE="${TC_TASK_BASE:-$(git -C "$WORKTREE" rev-parse HEAD)}"
 
 usage() {
   cat <<'EOF'
-Usage: campaign-dispatch.sh <command> [args]
+Usage: campaign-dispatch.sh <lint|verify|help>
 
-Commands:
-  status          Show ledger integration head and receipt summary
-  prepare         tc-proof-host prepare (requires TASK-001 receipt for TASK-002+)
-  freeze          tc-proof-host freeze --run RUN --candidate CANDIDATE
-  verify          tc-proof-host verify --run RUN
-  integrate       tc-proof-host integrate --run RUN --expected-parent PARENT
-  help            This message
+Required:
+  TASK=001                 Numbered task package.
 
-Environment:
-  TC_CAMPAIGN_WORKTREE   Default .worktrees/campaign
-  TC_CAMPAIGN_DIR        Host campaign root (default .campaign/host)
-  TC_CATALOG_ROOT        Task catalog path
-  RUN                    Run directory for freeze/verify/integrate
-  PARENT                 Expected parent SHA for integrate
-  TASK                   Task path e.g. terminal-components/completion/001
+Optional:
+  TC_TASKFMT               Pinned standalone taskfmt executable.
+  TASKFMT_SHA256           Exact pinned taskfmt executable SHA-256.
+  TC_TASKFMT_SOURCE        Exact taskfmt source checkout.
+  TC_CATALOG_ROOT          Catalog root (default: refactoring-tasks/terminal-components/completion).
+  TC_TASK_WORKTREE         Isolated subagent worktree (default: current directory).
+  TC_TASK_RUN_DIR          Required for verify; unique external run/log directory.
+  TC_TASK_BASE             Immutable task scope base commit.
 
-Pre-arm: run `status` only while the current readiness report is NO-GO.
+Only the standalone taskfmt lint and verify commands are allowed. This script
+never starts containers, invokes taskfmt lifecycle binaries, or integrates refs.
 EOF
-}
-
-repo_root() {
-  git -C "${BASH_SOURCE[0]%/*}/.." rev-parse --show-toplevel
 }
 
 die() {
@@ -38,103 +38,64 @@ die() {
   exit 1
 }
 
-host_bin() {
-  local root wt synced
-  root="$(repo_root)"
-  wt="${TC_CAMPAIGN_WORKTREE:-$root/.worktrees/campaign}"
-  synced="$wt/tools/refactor-proof/bin/tc-proof-host"
-  # verify.toml gate path: /work/tools/refactor-proof/bin/tc-proof-host (synced Mach-O).
-  if [[ -x "$synced" ]] && file "$synced" 2>/dev/null | grep -q 'Mach-O'; then
-    echo "$synced"
-  else
-    die "synced Mach-O tc-proof-host not found at $synced"
-  fi
+require_absolute_paths() {
+  [[ "$CATALOG_ROOT" = /* ]] || die "catalog root must be absolute: $CATALOG_ROOT"
+  [[ "$WORKTREE" = /* ]] || die "subagent worktree must be absolute: $WORKTREE"
+  [[ "$TASKFMT_SOURCE" = /* ]] || die "taskfmt source must be absolute: $TASKFMT_SOURCE"
 }
 
-ledger_head() {
-  python3 - "$(repo_root)/.campaign/ledger.json" <<'PY'
-import json, sys
-with open(sys.argv[1]) as f:
-    print(json.load(f)["integration_head"])
-PY
+task_dir() {
+  local task="${TASK:-}"
+  [[ "$task" =~ ^[0-9]{3}$ ]] || die "set TASK=NNN"
+  echo "$CATALOG_ROOT/$task"
 }
 
-cmd_status() {
-  local root="$1"
-  local ledger="$root/.campaign/ledger.json"
-  [[ -f "$ledger" ]] || die "missing ledger — run campaign-init.sh"
-  python3 - "$ledger" <<'PY'
-import json, sys
-with open(sys.argv[1]) as f:
-    L = json.load(f)
-print("integration_ref:", L["integration_ref"])
-print("integration_head:", L["integration_head"])
-print("armed:", L.get("armed", False))
-print("catalog:", L["catalog"]["commit"][:12], "from", L["catalog"].get("branch", "?"))
-print("receipts:", L.get("receipts") or {})
-tasks = L.get("tasks") or []
-if tasks:
-    print("tasks recorded:", len(tasks))
-else:
-    print("tasks recorded: 0")
-PY
+require_taskfmt() {
+  require_absolute_paths
+  [[ -x "$TASKFMT" ]] || die "taskfmt not executable: $TASKFMT"
+  local actual_sha
+  actual_sha="$(shasum -a 256 "$TASKFMT" | awk '{print $1}')"
+  [[ "$actual_sha" == "$TASKFMT_SHA256" ]] \
+    || die "taskfmt SHA-256 is $actual_sha; expected $TASKFMT_SHA256"
+  "$TASKFMT" --version | grep -Fq "git $TASKFMT_REV" \
+    || die "taskfmt is not latest $TASKFMT_REV"
+  [[ -d "$TASKFMT_SOURCE/.git" ]] \
+    || die "taskfmt source is not a git checkout: $TASKFMT_SOURCE"
+  [[ "$(git -C "$TASKFMT_SOURCE" rev-parse HEAD)" == "$TASKFMT_REV" ]] \
+    || die "taskfmt source is not latest $TASKFMT_REV"
 }
 
-require_armed_for_mutating() {
-  local root="$1"
-  [[ -f "$root/.campaign/ledger.json" ]] || die "missing $root/.campaign/ledger.json"
-  python3 - "$root/.campaign/ledger.json" <<'PY' || die "campaign ledger is not armed; status is the only allowed command"
-import json, sys
-with open(sys.argv[1]) as f:
-    armed = json.load(f).get("armed", False)
-if not armed:
-    sys.exit(1)
-PY
+cmd_lint() {
+  require_taskfmt
+  local dir
+  dir="$(task_dir)"
+  export TC_TASKFMT="$TASKFMT" TC_TASKFMT_SOURCE="$TASKFMT_SOURCE"
+  "$TASKFMT" lint "$dir"
+}
+
+cmd_verify() {
+  require_taskfmt
+  local dir
+  dir="$(task_dir)"
+  [[ -d "$WORKTREE" ]] || die "subagent worktree missing: $WORKTREE"
+  [[ -n "$RUN_DIR" && "$RUN_DIR" = /* ]] \
+    || die "set TC_TASK_RUN_DIR to a unique absolute verifier run directory"
+  mkdir -p "$RUN_DIR/taskfmt-logs"
+  export TC_TASKFMT="$TASKFMT" TC_TASKFMT_SOURCE="$TASKFMT_SOURCE"
+  "$TASKFMT" verify \
+    --root "$WORKTREE" \
+    --task-dir "$dir" \
+    --base "$BASE" \
+    --progress "" \
+    --log-dir "$RUN_DIR/taskfmt-logs"
 }
 
 main() {
-  local root
-  root="$(repo_root)"
-  local cmd="${1:-help}"
-  shift || true
-
-  case "$cmd" in
-    help|-h|--help)
-      usage
-      ;;
-    status)
-      cmd_status "$root"
-      ;;
-    prepare|freeze|verify|integrate)
-      require_armed_for_mutating "$root"
-      local host
-      host="$(host_bin)"
-      local run="${RUN:-}"
-      [[ -n "$run" ]] || die "set RUN= for $cmd"
-      case "$cmd" in
-        prepare)
-          local task="${TASK:-}"
-          local parent="${PARENT:-$(ledger_head)}"
-          [[ -n "$task" ]] || die "set TASK=terminal-components/completion/NNN"
-          "$host" prepare --campaign "${TC_CAMPAIGN_DIR:-$root/.campaign/host}" \
-            --task "$task" --parent "$parent" --run "$run"
-          ;;
-        freeze)
-          local candidate="${CANDIDATE:-${TC_CAMPAIGN_WORKTREE:-$root/.worktrees/campaign}}"
-          "$host" freeze --run "$run" --candidate "$candidate"
-          ;;
-        verify)
-          "$host" verify --run "$run"
-          ;;
-        integrate)
-          local parent="${PARENT:-$(ledger_head)}"
-          "$host" integrate --run "$run" --ref "$INTEGRATION_REF" --expected-parent "$parent"
-          ;;
-      esac
-      ;;
-    *)
-      die "unknown command: $cmd"
-      ;;
+  case "${1:-help}" in
+    lint) cmd_lint ;;
+    verify) cmd_verify ;;
+    help|-h|--help) usage ;;
+    *) die "unknown command: ${1:-}" ;;
   esac
 }
 

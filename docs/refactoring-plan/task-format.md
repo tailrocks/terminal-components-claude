@@ -14,6 +14,7 @@ to execute. Current readiness is [`execution-readiness-report.md`](execution-rea
 | Version | `0.2.0` |
 | Rust requirement | `1.98.1` toolchain / source `rust-version = 1.98` |
 | Binary identity | `taskfmt 0.2.0 (git afd3b575dbcc7044620bec4b9493a74eca3e5ef2)` |
+| Executable SHA-256 | `f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de` |
 
 The source checkout was clean when inspected. The binary was built from
 `crates/taskfmt` into an external install root and its `--version` output
@@ -22,28 +23,25 @@ matched the source commit. No old taskfmt checkout, fingerprint command, or
 
 ## Current command split
 
-The latest source has separate binaries:
-
-- `taskfmt`: in-container `init`, `status`, `lint`, and `verify`.
-- `taskfmt-host`: host catalog lint, self-tests, dispatch, gate, and promotion.
-- `taskfmt-runtime`: container boot and agent launch.
-
-The removed `taskfmt project`, `taskfmt group`, `taskfmt fingerprint`, and
-`taskfmt progress-init` commands must not appear in live instructions.
+The refactoring uses only the standalone `taskfmt` executable for per-task
+validation and verification. It does not install or invoke `taskfmt-host` or
+`taskfmt-runtime`, and it never uses taskfmt to start or supervise a
+container. The source also exposes lifecycle/progress helpers, but this
+project policy forbids them.
 
 Use these commands:
 
 ```sh
-taskfmt lint refactoring-tasks/terminal-components/completion/[0-9][0-9][0-9]
-taskfmt init --task-dir /absolute/catalog/terminal-components/completion/NNN --out /absolute/run/progress.md
-taskfmt verify --root /absolute/work --task-dir /absolute/catalog/terminal-components/completion/NNN --base RECORDED_SCOPE_BASE_COMMIT --progress /absolute/run/progress.md --log-dir /absolute/run/taskfmt-logs
-taskfmt-host lint --json
+taskfmt lint /absolute/catalog/terminal-components/completion/NNN
+taskfmt verify --root /absolute/subagent-worktree \
+  --task-dir /absolute/catalog/terminal-components/completion/NNN \
+  --base RECORDED_SCOPE_BASE_COMMIT --progress "" \
+  --log-dir <RUN_DIR>/taskfmt-logs
 ```
 
-Do not pass `--config` to the latest `taskfmt` binary. Host lifecycle
-commands are not used by this campaign unless the current campaign contract
-explicitly adopts them; in particular, do not use a lifecycle command that
-creates or promotes `main`.
+Do not pass `--config` or any container path mapping to the latest `taskfmt`
+binary. Do not use `init`, `status`, host lifecycle, dispatch, promotion, or
+container-runtime commands.
 
 ## Catalog result
 
@@ -67,7 +65,7 @@ CARGO_TARGET_DIR=/tmp/taskfmt-latest-target cargo install --locked --path "$TASK
 git -C "$TASKFMT_SRC" status --short --branch
 git -C "$TASKFMT_SRC" rev-parse HEAD
 /tmp/taskfmt-latest-install/bin/taskfmt --version
-/tmp/taskfmt-latest-install/bin/taskfmt lint refactoring-tasks/terminal-components/completion/[0-9][0-9][0-9]
+/tmp/taskfmt-latest-install/bin/taskfmt lint refactoring-tasks/terminal-components/completion/NNN
 ```
 
 Rust validation for the task-format source uses `cargo nextest` only:

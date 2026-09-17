@@ -1,5 +1,9 @@
 # Independent atomic capture qualification
 
+> Historical qualification evidence only. The former fixed-path acceptance
+> invocation is retired and intentionally omitted. Do not use this record to
+> start a container, create mounts, or run a campaign task.
+
 This preparation-owned corpus addresses BA-ART-01: independently valid representation files can belong to different production time states. It qualifies real PTY capture, decoded-frame/state coherence and representation origin on a small Rust source fixture. It is not a TC application, a reference baseline, a general rendering fidelity qualification, or an alternative to the existing runner/comparator/host suites.
 
 ## Protected inputs and build
@@ -42,14 +46,10 @@ Every negative is followed by two fresh processes/fixture roots, one coherent A 
 
 ## TASK-070 invocation and preservation
 
-The mandatory CHK-004 and CHK-005 command runs the existing complete group070 driver first, then this additional corpus:
-
-```sh
-python3 -B /task/trusted/capture-atomicity-bootstrap/capture-atomicity-bootstrap-driver.py \
-  --runner /work/tools/refactor-proof/bin/tc-proof \
-  --base-driver /task/trusted/runner-bootstrap/runner-bootstrap-driver.py \
-  --tuisnap-source /proof/bootstrap/tui-snap
-```
+The mandatory historical CHK-004 and CHK-005 binding ran the complete group070
+driver first, then this additional corpus, using a verifier-owned runner and
+frozen source/tool assets. The old fixed-path command is intentionally omitted
+because it is no longer executable under the current subagent-only policy.
 
 CHK-004 maps R-001/AC-001; CHK-005 maps R-003/AC-003. Existing comparator CHK-008, architecture and close gates remain mandatory. The base-driver argument is protected host configuration, never supplied by an application/executor. The atomic command cannot report complete runner qualification after skipping the base group or its index/extensions. Base and submitted executable bytes must remain fixed through the chain.
 

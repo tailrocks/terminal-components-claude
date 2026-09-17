@@ -1,10 +1,14 @@
 # Actual-source doc/API/dependency qualification
 
+> Historical qualification evidence only. The former path-bound candidate
+> invocation is retired and intentionally omitted. This record is not a
+> campaign runbook and never authorizes containers or lifecycle services.
+
 This planner-owned extension supplies TASK-072 CHK-006. It is an independent test instrument, not a production scanner, repaired TC workspace, baseline, or parity receipt. Freeze this protocol, architecture-bootstrap-source-driver.py, architecture-bootstrap-source-policy.py and architecture-bootstrap-source-observer.rs with every existing architecture, runner and host dependency and the exact pinned main archive. No TASK-073 product is needed. Source mutations occur only in private temporary copies.
 
-Canonical candidate acceptance:
-
-    python3 /task/trusted/architecture-bootstrap/architecture-bootstrap-source-driver.py --runner /work/tools/refactor-proof/bin/tc-proof
+The historical candidate acceptance paired the source driver with a
+verifier-owned runner and frozen trusted assets. Its fixed-path invocation is
+retired and intentionally omitted.
 
 Preparation only:
 

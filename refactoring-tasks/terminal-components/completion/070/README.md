@@ -7,6 +7,12 @@ kind: feature
 
 # TASK-070 — Implement qualified source capture and scenario runner
 
+> **Current status: retired/non-qualifying.** The former host-bootstrap check
+> and its nested `taskfmt init` flow are not part of the current campaign.
+> `verify.toml` fails closed until a verifier/reviewer subagent replaces that
+> contract with host-local standalone taskfmt `lint`/`verify` evidence. The
+> trusted host-bootstrap fixture is historical evidence only.
+
 ## Goal
 
 The source/scenario runner executes preflight, required, oracle, capture and close through independently qualified production-source fixtures and isolated workers.
@@ -21,13 +27,16 @@ Read before editing:
 
 - `CAMPAIGN_AGENTS.md`: repository scope and integration constraints; this task-local AGENTS.md defines subagent execution and verification.
 - `../../../../docs/refactoring-plan/proof-contract.md` and `../../../../docs/refactoring-plan/architecture-adjudication.md`.
-- `trusted/runner-bootstrap/runner-bootstrap-protocol.md` and the exact group70 fixture/driver source.
+- `trusted/runner-bootstrap/runner-bootstrap-protocol.md` and the historical
+  group70 fixture source. The former host-bootstrap driver is not an active
+  check.
 - `trusted/source-obligations.tsv`: all mapped clauses, exact historical source revisions, remaining-work and named-test obligations bind their requirement/acceptance/check IDs.
-- `trusted/proof-bootstrap/proof-comparator-protocol.md` and `host-bootstrap-protocol.md`.
+- `trusted/proof-bootstrap/proof-comparator-protocol.md` and the historical
+  host-bootstrap evidence record.
 
 ## Preconditions
 
-- **P-001:** The protected host validates `TASK-001` receipts and actual integrated source ancestry, the recorded candidate parent/scope base, current canonical taskfmt revision and fingerprint, and the reviewed tui-snap tool pin.
+- **P-001:** A verifier/reviewer subagent checks `TASK-001` evidence and actual integrated source ancestry, the recorded candidate parent/scope base, current latest taskfmt revision and SHA-256, and the reviewed tui-snap tool pin.
 - **P-002:** The driver, fixture application, worker program, isolation observer and source requirement inputs are immutable outside the coordinator checkout. The submitted executable cannot alter the independent judge or its expected data.
 - **P-003:** Candidate workers have the pinned offline toolchain and owned PTYs where required, with no verification authority, expected artifacts, network, credentials or host socket access.
 
@@ -37,7 +46,7 @@ In scope:
 
 - `tools/refactor-proof/runner` for the stated operation and narrow directly necessary tests.
 - `tools/refactor-proof/bin/tc-proof` for the stated operation and narrow directly necessary tests.
-- Independent qualification outputs in host-assigned run directories; no production application changes.
+- Independent qualification outputs in verifier-subagent-owned external run directories; no production application changes.
 
 Out of scope:
 
@@ -135,7 +144,10 @@ Then the complete prerequisite behavior remains exact without omitted results
 - **D-001:** The independently reviewed runner-bootstrap group70 driver and its fixtures judge this product. No self-test or printed success marker is acceptance.
 - **D-002:** UI oracle remains `02f5294bfdbf38004cc49130d0aff1d01f31434c`; architectural starting point remains `7b27732a8c3c131760ec3438f641cb3c11343a42`.
 - **D-003:** Use existing canonical taskfmt standalone verification and current tui-snap primitives. No task orchestration call is allowed; no ref update targets main.
-- **D-004:** Host accepts `source-runner` only after independent qualification and source rebuild. A later task resolves exactly that accepted producer product; no mutable latest path or candidate-written receipt is valid.
+- **D-004:** A future coordinator may accept `source-runner` only after
+  independent subagent qualification and source rebuild. A later task resolves
+  exactly that accepted producer product; no mutable latest path or
+  candidate-written receipt is valid.
 - **D-005:** All commands and result schemas are exactly the fixed proof contract. Unsupported required behavior fails; adding permissive flags or alternative expected data cannot unblock it.
 
 ## Subagent execution

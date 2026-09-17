@@ -8,16 +8,17 @@ It is a preparation audit, not execution authorization.
 **NO-GO.**
 
 `refactor/holla-parity` remains campaign/proof scaffolding, not completed
-refactor work. The pre-cleanup audit snapshot was `a34a1cff`; this cleanup
-changes documentation/tooling contracts only and does not claim product
-parity.
+refactor work. The pre-cleanup audit snapshot was `a34a1cff`; the current
+cleanup also retires the forbidden host-lifecycle proof path. It does not
+claim product parity.
 
 - Audit snapshot `main..a34a1cff`: 27 commits, zero apps/ or crates/ product-source changes.
 - All 73 task manifests remain pending.
 - Shared architecture is substantial, but consumers still contain compatibility painters, duplicate state, and historical renderers.
 - Frozen visual oracle is absent.
-- Planning validator fails.
-- Current worktree is dirty:
+- Planning validator fails with three missing frozen archive assets.
+- After the cleanup commit, the only intentionally preserved dirty files are
+  pre-existing proof artifacts:
   - tools/refactor-proof/architecture/source.py
   - tools/refactor-proof/bin/tc-proof
 
@@ -29,17 +30,18 @@ Validation:
 - Latest taskfmt `0.2.0` at `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`:
   73/73 numbered packages linted successfully.
 - Plan validator: fails with three missing main-source.tar.gz errors.
-- Workspace nextest: **3,350 passed**, 154 binaries, 761.956 seconds.
-- Strict `RUSTFLAGS=-Dwarnings` refactor-proof nextest: **17 passed**.
-- The known slowest test remains the macOS capture-build qualification; the
-  fresh workspace run completed in 761.956 seconds.
+- Existing pre-cleanup workspace nextest audit: **3,350 passed**, 154
+  binaries, 761.956 seconds. It is retained as historical evidence, not a
+  post-retirement proof claim.
+- Current post-retirement `cargo nextest` gate for `refactor-proof`:
+  **3 passed**.
 
 ## B. Branch reconciliation (pre-cleanup audit snapshot)
 
 | Ref | Commit |
 |---|---|
 | main | 7b27732a |
-| refactor/holla-parity | a34a1cff |
+| refactor/holla-parity | a34a1cff (pre-cleanup audit snapshot) |
 | visual-baseline branch | 4a79c0a2 |
 | visual-baseline tag peel | 4a79c0a2 |
 
@@ -68,10 +70,10 @@ Status means current-candidate evidence, not ledger claims.
 
 | Tasks | Status | Reason |
 |---|---|---|
-| 001 | Partially complete | Proof/host code exists, but current tracked binary is not receipt-bound. |
-| 070 | Partially complete | Source-runner implementation exists; host qualification and receipt integrity are incomplete. |
-| 071 | Partially complete | Implementation exists; recorded verify exits 1 and requires /run firmlink. |
-| 072 | Partially complete | Implementation exists; dependency receipt is TBD; no current accepted host proof. |
+| 001 | Retired/non-qualifying | The host-lifecycle path is removed. Comparator smoke coverage remains, but fail-closed gates prevent acceptance until a subagent-only proof contract is independently implemented and reviewed. |
+| 070 | Retired/non-qualifying | The former taskfmt-init host-bootstrap check is retired and fail-closed; source-runner work has no accepted subagent evidence. |
+| 071 | Pending/blocked | Implementation exists, but no accepted verifier-subagent evidence exists. |
+| 072 | Pending/blocked | Implementation exists, but dependency receipt and accepted verifier-subagent evidence are absent. |
 | 002–005 | Blocked | Frozen oracle and qualified foundation unavailable. |
 | 006 | Blocked | Complete baseline cannot be sealed without oracle captures. |
 | 007 | Blocked | Historical/oracle identity reconciliation lacks active oracle authority. |
@@ -85,8 +87,9 @@ Status means current-candidate evidence, not ledger claims.
 | 073 | Blocked | Depends on 008/072; generated registry authority is not qualified. |
 
 No task is proven complete. No task is proven obsolete or superseded. The
-task definitions remain pending, but every `verify.toml` must be migrated from
-legacy container namespaces to host-local subagent paths before dispatch.
+task definitions remain pending. All 73 `verify.toml` files now use
+repository-relative host-local paths; the validator rejects any reintroduction
+of legacy container namespaces before dispatch.
 
 The catalog itself is structurally healthy: the latest standalone taskfmt
 `lint` passes all 73 numbered packages. Required CLAUDE.md symlinks are valid
@@ -203,17 +206,15 @@ Current tests cover much component behavior, but parity proof needs replayed sta
 |---|---|---|---|
 | scripts/campaign-dispatch.sh | Per-task taskfmt lint/verify wrapper. | Runs only in a verifier subagent's host-local worktree and external run directory. | Keep fail-closed. |
 | scripts/campaign-init.sh | Branch/worktree/ledger bootstrap. | Must never move an existing ref or force-checkout a worktree. | Keep only after non-forcing guard repair. |
-| scripts/campaign-install-taskfmt.sh | Installs latest taskfmt from the local checkout. | Exact source HEAD, version, executable hash, and numeric-package lint are checked. | Keep. |
+| scripts/campaign-install-taskfmt.sh | Installs latest taskfmt from the local checkout. | Exact source HEAD, version, and pinned executable SHA-256 are checked; preflight separately lints all 73 packages. | Keep. |
 | scripts/campaign-absorb-planning.sh | Copies planning worktree and stages changes. | Obsolete branch-copy workflow. | Retire. |
 | scripts/campaign-preflight.sh | Pre-arm checks. | Fails closed; uses latest taskfmt per-task lint and rejects legacy container paths. | Keep; current plan validator remains a blocker. |
-| scripts/fix-catalog-container-paths.py | Mass-rewrites literal container paths. | Unsafe broad mutation; not part of current host workflow. | Retire. |
-| scripts/hybrid-verify-sandbox.sh | Synthetic `/task`, `/work`, `/proof` sandbox. | Requires root firmlinks; not macOS qualification. | Retire. |
-| scripts/task-001-verify-sandbox.sh | TASK-001 container-path staging. | Same root/sudo blocker; not autonomous. | Retire. |
-| tools/refactor-proof/scripts/dev-tc-proof-host.sh | Retired host-lifecycle wrapper. | Historical only; never use for campaign execution. | Retire from campaign authority. |
-| tools/refactor-proof/scripts/dev-tc-proof.sh | Runs the proof binary for verifier-owned checks. | Host-local and subagent-scoped. | Keep only as a verifier helper. |
-| tools/refactor-proof/scripts/sync-binaries.sh | Copies binaries into tracked tree. | Darwin-specific; no container. | Rewrite to external per-run artifacts. |
-| tools/refactor-proof/scripts/test_freeze_vectors.py | Temporary-repository freeze tests. | macOS-compatible; no container. | Keep; parameterize paths. |
-| tools/refactor-proof/scripts/test_integrate_seal_vectors.py | Temporary-repository seal/integrate tests. | macOS-compatible; no container. | Keep; parameterize paths. |
+| Retired container-path helper names | No such scripts are present in the current tree; old reports may still cite them. | Historical only. | Do not restore or invoke. |
+| tools/refactor-proof/scripts/dev-tc-proof-host.sh | Removed host-lifecycle wrapper. | No current path; historical references are non-executable. | Do not restore or invoke. |
+| tools/refactor-proof/scripts/dev-tc-proof.sh | Proof helper for verifier-owned checks. | Host-local and subagent-scoped. | Keep only if a verifier task requires it. |
+| tools/refactor-proof/scripts/sync-binaries.sh | Legacy tracked-binary synchronizer. | Not part of current taskfmt-only flow. | Do not use for campaign authority. |
+| tools/refactor-proof/scripts/test_freeze_vectors.py | Removed host-lifecycle vector tests. | No current path; historical references are non-executable. | Do not restore or invoke. |
+| tools/refactor-proof/scripts/test_integrate_seal_vectors.py | Removed host-lifecycle vector tests. | No current path; historical references are non-executable. | Do not restore or invoke. |
 | docs/refactoring-plan/evidence/validate-plan.py | Read-only catalog/DAG/traceability validator. | macOS-compatible; no container. | Keep; make preflight fail closed. |
 
 No script directly runs tuisnap accept. All Bash scripts pass syntax checks.
@@ -242,9 +243,10 @@ afd3b575dbcc7044620bec4b9493a74eca3e5ef2
 - Isolated worktrees.
 - No Docker or container runtime.
 
-Current task packages still contain legacy `/task`, `/work`, `/proof`, and
-`/run` argv paths. Rewrite those checks to host-local subagent paths before
-execution. Do not create mounts or firmlinks to preserve the old contract.
+All current task packages now contain host-local repository-relative argv
+paths. The validator and preflight reject legacy `/task`, `/work`, `/proof`,
+and `/run` namespaces. Do not create mounts or firmlinks to preserve the old
+contract.
 
 ## I. Subagent execution architecture
 
@@ -330,12 +332,14 @@ Hard blockers:
 - Plan validator fails on missing docs/refactoring-plan/evidence/main-source.tar.gz.
 - `.campaign/ledger.json` is disarmed; no accepted current subagent
   verification evidence exists.
-- Task verify configs still contain legacy container paths and cannot be
-  dispatched until migrated.
+- No accepted current verifier-subagent evidence exists for any task.
+- The migrated task checks are not dispatch-ready until fresh verifier runs
+  prove their referenced host-local inputs and outputs.
 - Ledger candidate tree hash `4d3501a6` is not current HEAD; no reviewed
   subagent evidence binds the current branch.
 - Current proof-worker identity is not yet bound to a reviewed subagent run.
-- Current worktree is dirty.
+- Two pre-existing proof artifacts remain intentionally dirty and are not part
+  of this cleanup commit.
 - Recorded remote performance CI for the pre-cleanup candidate failed three
   Jackin allocation-budget tests; no fresh performance qualification was run
   by this documentation/tooling cleanup.
@@ -357,7 +361,7 @@ Hard blockers:
 3. Recover the exact reviewed main-source.tar.gz asset or establish a separately verified equivalent.
 4. Make the frozen suite/config/store available read-only from tag-derived bytes.
 5. Add the grouped visual suite without importing old product architecture.
-6. Rewrite every task `verify.toml` to host-local paths and remove legacy namespaces.
+6. Confirm every task `verify.toml` remains host-local and legacy namespaces stay rejected.
 7. Spawn subagent implementer/verifier/reviewer lanes with disjoint worktrees and run directories.
 8. Keep CI and hidden test generation on nextest-only commands.
 9. Qualify the latest taskfmt identity and per-task lint/verify wrapper.
@@ -430,3 +434,12 @@ Smallest preparation goal:
 > Make refactor/holla-parity a clean, unarmed, subagent-executable, frozen-oracle-backed campaign branch. Do not modify production behavior or the frozen tag. Pass plan validation, latest per-task taskfmt lint/verify, independent subagent review, strict refactor-proof compilation, and the full nextest/visual preflight.
 
 Until that goal passes, do not launch the autonomous 73-task implementation campaign.
+
+## O. Next step after this cleanup
+
+Recover the exact reviewed `docs/refactoring-plan/evidence/main-source.tar.gz`
+asset, or independently verify an equivalent immutable archive, then rerun the
+plan validator and the required subagent review. Do not dispatch any task yet.
+Execution requires explicit user confirmation after those gates pass; it uses
+isolated subagents only, with latest standalone taskfmt `lint`/`verify` as the
+per-task gate and no containers.

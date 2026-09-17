@@ -6,6 +6,7 @@ INTEGRATION_BRANCH="${INTEGRATION_BRANCH:-refactor/holla-parity}"
 WORKTREE_PATH="${TC_CAMPAIGN_WORKTREE:-.}"
 TAG_PEELED_EXPECT="${TAG_PEELED_EXPECT:-4a79c0a2d40fca46fc406b77157ce3b3f12ec16b}"
 TASKFMT_REV="${TASKFMT_REV:-afd3b575dbcc7044620bec4b9493a74eca3e5ef2}"
+TASKFMT_SHA256="${TASKFMT_SHA256:-f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de}"
 
 repo_root() {
   git -C "${BASH_SOURCE[0]%/*}/.." rev-parse --show-toplevel
@@ -82,13 +83,31 @@ check_taskfmt() {
   local bin="${TC_TASKFMT:-/tmp/taskfmt-latest-install/bin/taskfmt}"
   [[ -x "$bin" ]] || fail "taskfmt not at $bin (run campaign-install-taskfmt.sh)"
   pass "taskfmt @ $bin"
+  local actual_sha
+  actual_sha="$(shasum -a 256 "$bin" | awk '{print $1}')"
+  [[ "$actual_sha" == "$TASKFMT_SHA256" ]] \
+    || fail "taskfmt SHA-256 is $actual_sha; expected $TASKFMT_SHA256"
   "$bin" --version | grep -Fq "git $TASKFMT_REV" \
     || fail "taskfmt is not latest $TASKFMT_REV"
   local catalog
   catalog="$(repo_root)/refactoring-tasks/terminal-components/completion"
-  "$bin" lint "$catalog"/[0-9][0-9][0-9] >/dev/null \
-    || fail "latest taskfmt lint failed"
-  pass "latest taskfmt lint passed for all numbered packages"
+  local task
+  for task in "$catalog"/[0-9][0-9][0-9]; do
+    "$bin" lint "$task" >/dev/null \
+      || fail "latest taskfmt lint failed: $task"
+  done
+  pass "latest taskfmt lint passed for every numbered package"
+}
+
+check_host_local_task_paths() {
+  local root
+  root="$(repo_root)"
+  if rg -n '(^|[" ])/(task|work|proof|run)(/|[" ])' \
+    "$root/refactoring-tasks/terminal-components/completion" \
+    --glob 'verify.toml' >/dev/null; then
+    fail "task verify.toml still contains legacy container paths"
+  fi
+  pass "task verify.toml paths are host-local"
 }
 
 check_harness() {
@@ -131,12 +150,13 @@ main() {
   check_worktree
   check_ledger
   check_taskfmt
+  check_host_local_task_paths
   check_harness
   check_validate_plan
   echo ""
   echo "Preflight complete. See docs/refactoring-plan/execution-readiness-report.md for remaining blockers."
   if [[ ! -f .campaign/ledger.json ]] || ! grep -q task-001 .campaign/ledger.json 2>/dev/null; then
-    echo "TASK-001 receipt not recorded — host qualification remains blocked."
+    echo "TASK-001 subagent evidence not recorded — task verification remains blocked."
   fi
 }
 

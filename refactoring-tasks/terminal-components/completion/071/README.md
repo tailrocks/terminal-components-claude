@@ -7,6 +7,12 @@ kind: feature
 
 # TASK-071 — Implement qualified exact test execution accounting
 
+> **Current status: pending/blocked.** “Protected host” and “host-assigned”
+> language below is historical terminology. The current boundary is a
+> verifier/reviewer subagent using host-local paths, latest standalone taskfmt
+> `lint`/`verify`, and an external per-task run directory. No host lifecycle
+> service, container, or taskfmt lifecycle command is part of this task.
+
 ## Goal
 
 The accounting operation executes every required source-qualified test and enforces exact immutable stage ownership without hiding a failure.
@@ -23,11 +29,12 @@ Read before editing:
 - `../../../../docs/refactoring-plan/proof-contract.md` and `../../../../docs/refactoring-plan/architecture-adjudication.md`.
 - `trusted/runner-bootstrap/runner-bootstrap-protocol.md` and the exact group71 fixture/driver source.
 - `trusted/source-obligations.tsv`: all mapped clauses, exact historical source revisions, remaining-work and named-test obligations bind their requirement/acceptance/check IDs.
-- `trusted/proof-bootstrap/proof-comparator-protocol.md` and `host-bootstrap-protocol.md`.
+- `trusted/proof-bootstrap/proof-comparator-protocol.md` and the historical
+  host-bootstrap evidence record.
 
 ## Preconditions
 
-- **P-001:** The protected host validates `TASK-070` receipts and actual integrated source ancestry, the recorded candidate parent/scope base, current canonical taskfmt revision and fingerprint, and the reviewed tui-snap tool pin.
+- **P-001:** A verifier/reviewer subagent checks `TASK-070` evidence and actual integrated source ancestry, the recorded candidate parent/scope base, current latest taskfmt revision and SHA-256, and the reviewed tui-snap tool pin.
 - **P-002:** The driver, fixture application, worker program, isolation observer and source requirement inputs are immutable outside the coordinator checkout. The submitted executable cannot alter the independent judge or its expected data.
 - **P-003:** Candidate workers have the pinned offline toolchain and owned PTYs where required, with no verification authority, expected artifacts, network, credentials or host socket access.
 
@@ -37,7 +44,7 @@ In scope:
 
 - `tools/refactor-proof/accounting` for the stated operation and narrow directly necessary tests.
 - `tools/refactor-proof/bin/tc-proof` for the stated operation and narrow directly necessary tests.
-- Independent qualification outputs in host-assigned run directories; no production application changes.
+- Independent qualification outputs in verifier-subagent-owned external run directories; no production application changes.
 
 Out of scope:
 

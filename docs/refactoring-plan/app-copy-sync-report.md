@@ -1,4 +1,8 @@
-# Mechanical application-copy synchronization
+# Historical application-copy synchronization report
+
+> Superseded maintenance report. Retained for provenance only; it is not a
+> current taskfmt authority, execution plan, or permission to rewrite task
+> packages. Current readiness is [`execution-readiness-report.md`](execution-readiness-report.md).
 
 2026-09-11. Bounded planning maintenance, not semantic scenario authoring or whole-plan acceptance. The surgical-patch skill kept the fix at explicit source-copy boundaries and required negative stale-copy proof before live synchronization.
 

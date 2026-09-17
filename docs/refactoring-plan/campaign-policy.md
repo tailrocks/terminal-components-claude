@@ -24,26 +24,37 @@ Ephemeral worktrees are allowed. They must checkout **`refactor/holla-parity`** 
 
 Default campaign worktree: `.worktrees/campaign` (created by [`scripts/campaign-init.sh`](../../scripts/campaign-init.sh)).
 
-## Host integration
+## Subagent execution
 
-Every accepted task integrates with compare-and-swap:
+Every task is implemented and verified by isolated host-local subagents:
 
 ```sh
-tc-proof-host integrate --run "$RUN" \
-  --ref refs/heads/refactor/holla-parity \
-  --expected-parent "$PARENT_SHA"
+taskfmt lint "$TASK_DIR"
+taskfmt verify --root "$WORKTREE" --task-dir "$TASK_DIR" \
+  --base "$PARENT_SHA" --progress "" --log-dir "$RUN_DIR/taskfmt-logs"
 ```
+
+The coordinator reviews the subagent commit and evidence before serial
+integration. No host daemon, container, image, mount, `tc-proof-host`, or
+taskfmt lifecycle command participates in this workflow.
 
 ## What this policy does not authorize
 
 - Arming `/goal` or starting TASK-002+ production dispatch
 - Merging or pushing to `main`
 - Moving the `visual-baseline` tag or writing `snapshots/`
-- Using taskfmt lifecycle commands that create/reset `main` or promote refs. Use latest standalone `taskfmt lint`, `init`, and `verify` with the host-owned adapter.
+- Using taskfmt commands other than per-task `lint` and `verify`.
+- Starting or depending on containers, Docker, Podman, images, mounts, root
+  firmlinks, or container path namespaces.
+- Letting a coordinator implement task-owned production changes instead of a
+  subagent.
 
 ## Verification paths
 
-Container paths in `verify.toml` are literal; see [`path-contract.md`](path-contract.md). Campaign worktree: `.worktrees/campaign` (not `.worktrees/main` / `task-001-bootstrap`).
+`verify.toml` must use host-local paths supplied to the subagent. Legacy
+`/task`, `/work`, `/proof`, and `/run` argv entries are invalid and must be
+migrated before dispatch. Campaign worktree: `.worktrees/campaign` (not
+`.worktrees/main` / `task-001-bootstrap`).
 
 ## Related docs
 
@@ -51,3 +62,4 @@ Container paths in `verify.toml` are literal; see [`path-contract.md`](path-cont
 - Ledger schema: [`campaign-ledger.schema.json`](campaign-ledger.schema.json)
 - Current readiness: [`execution-readiness-report.md`](execution-readiness-report.md)
 - Executor protocol: [`campaign-executor-protocol.md`](campaign-executor-protocol.md)
+- Subagent-only policy: [`subagent-only-policy.md`](subagent-only-policy.md)
