@@ -1,5 +1,9 @@
 # Adjudication K — `Form` API and the `Grid::update` bound
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 **Status:** proposed. Resolves the two items left open at `COMPONENT_ARCHITECTURE.md:3677-3681` ("Not applied — requires a fresh `read-only analyst` decision"). Nothing here reopens Adjudications A–J.
 
 **Convention:** **[F]** = collected fact with a citation. Everything else is decision or inference.

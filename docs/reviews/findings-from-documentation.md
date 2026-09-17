@@ -1,5 +1,9 @@
 # Findings from writing the §24 guides
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Produced while writing `docs/guides/**`. Every item was **measured** — the agent built a throwaway crate outside the repo that depends on `crates/tui` under the final `junie_tui` name and compiled all 38 snippets — not inferred from reading. Each needs a decision or a fix.
 
 ## F1 — undeclared custom families get no mono fallbacks (defect)

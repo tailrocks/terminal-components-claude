@@ -1,5 +1,9 @@
 # Main-based Holla integration execution plan
 
+> Historical execution plan. Superseded by the current
+> [readiness report](../../refactoring-plan/execution-readiness-report.md).
+> Do not replay its branch, taskfmt, container, command, or merge instructions.
+
 ## Contract and authority
 
 The user task supplied on 2026-09-08 is the execution authority. Its complete

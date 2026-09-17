@@ -1,5 +1,9 @@
 # Whole-branch generated-artifact disposition
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 ## Exact scope and method
 
 The artifact partition contains 7,019 changed paths between Holla `2e2401393c47360741ebd321679de08982dca50a` and main `7b27732a8c3c131760ec3438f641cb3c11343a42`. All are endpoint additions/deletions. The census reads every Git blob, recomputes its object identity, records SHA-256, parses every text/JSON/TSV/HTML/cursor artifact and verifies/decodes every PNG. This covers 5,399 unique blobs and 218,438,713 endpoint bytes, with no decode errors.

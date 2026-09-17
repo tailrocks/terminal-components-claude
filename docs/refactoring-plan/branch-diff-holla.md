@@ -1,5 +1,9 @@
 # Holla branch-to-main semantic diff
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 ## Status and provenance
 
 All assigned endpoint bytes have been read and semantically reviewed. This is a read-only source review, not an implementation or runtime completion certificate. No application probe, build, baseline blessing, or production edit was performed for this branch review.

@@ -5,7 +5,7 @@
 //! Run in release, single-threaded, with output visible:
 //!
 //! ```text
-//! cargo test --release --test perf -- --test-threads=1 --nocapture
+//! cargo nextest run --release --test perf --test-threads=1 -- --nocapture
 //! ```
 //!
 //! `--test-threads=1` is only needed for stable wall times: allocation

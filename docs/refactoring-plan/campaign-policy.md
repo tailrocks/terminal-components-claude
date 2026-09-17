@@ -1,6 +1,6 @@
 # Campaign policy — single branch, pre-arm
 
-**Status (2026-09-18):** Preparation only. **Do not arm `/goal`**. The current readiness report is NO-GO: the frozen oracle is absent from this branch, plan validation is red, and host receipts are not accepted.
+**Status (2026-09-18):** Preparation only. **Do not arm `/goal`**. The current readiness report is NO-GO: the frozen oracle is absent from this branch and active gate, task checks now reference external `$RUN_DIR` contexts but no trusted verifier has materialized and accepted those contexts/receipts, and host receipts are not accepted. Plan asset validation is green; it does not establish execution readiness.
 
 ## Integration branch (sole production line)
 
@@ -51,10 +51,12 @@ taskfmt lifecycle command participates in this workflow.
 
 ## Verification paths
 
-`verify.toml` must use host-local paths supplied to the subagent. Legacy
-`/task`, `/work`, `/proof`, and `/run` argv entries are invalid and must be
-migrated before dispatch. Campaign worktree: `.worktrees/campaign` (not
-`.worktrees/main` / `task-001-bootstrap`).
+`verify.toml` must use host-local paths supplied to the subagent. Repository
+paths are relative to `WORKTREE`; external proof contexts use the exported
+`$RUN_DIR/contexts/CHK-NNN.json` form. Legacy `/task`, `/work`, `/proof`, and
+`/run` entries are invalid. A verifier must materialize the exact external
+context set and accepted receipts before dispatch. Campaign worktree:
+`.worktrees/campaign` (not `.worktrees/main` / `task-001-bootstrap`).
 
 ## Related docs
 

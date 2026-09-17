@@ -1,5 +1,9 @@
 # Holla semantic review — code and prose coverage complete; visual/runtime proof pending
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Pinned reference 794b095c196562d38f1b6f7ce379c128af2a023d. Source read in bounded nontruncated chunks; no source mutation, test execution or live reproduction. Findings below source-proven unless stated otherwise. Main remains implementation base. Recovery-tree replacement directives remain explicitly superseded (AUDIT.md).
 
 ## Coverage ledger

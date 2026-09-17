@@ -1,5 +1,9 @@
 # Interaction, Overlay and Identity Architecture Audit
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Scope: `src/core/{event,focus,hit,id,scroll,text}.rs`, `src/runtime.rs`, `src/ui/{ctx,layout,popup,text}.rs`, `src/widgets/{dialog,menu,picker,select,completion,scrollbar,viewport,splitter,tabs,list,tree,button,input}.rs`, and the three applications.
 Authorities: `REFACTORING_GOAL.md` §§11–14, 17; `DESIGN.md` (Scrolling and clipping, Focus model, Interaction grammar, Elevation & Depth, Component catalogue, Agent implementation guardrails).
 

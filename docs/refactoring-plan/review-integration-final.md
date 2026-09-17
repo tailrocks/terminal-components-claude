@@ -1,5 +1,9 @@
 # Independent final integration-plan review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Reviewer scope: planning only; branch topology, protected catalog/source separation, dependency ancestry, frozen-tree integration, standalone taskfmt, historical assertion authority and final readiness. No production edits, task execution, ref updates, push or merge. Reviewed 2026-09-11. Findings below exclude already assigned host-observer substitution/ledger-authority and Rust architecture qualification defects.
 
 ## INT-01 — High: integration-branch creation follows tasks that already require that branch

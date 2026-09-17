@@ -2,7 +2,7 @@
 //! §7.2 A/B). Run in release:
 //!
 //! ```text
-//! cargo test --release --bin jackin-preview perf_tests -- --test-threads=1 --nocapture
+//! cargo nextest run --release -p jackin-preview --test perf --test-threads=1 -- --nocapture
 //! ```
 //!
 //! Fixtures: the `hard-cases` scenario for the manager (every Workspace

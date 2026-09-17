@@ -1,5 +1,9 @@
 # Independent adjudication and historical-prose projection rereview
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 2026-09-11. Bounded read-only review after the separate complete foundation branch diff. This review neither authors production fixes nor certifies future qualifiers. The verify-and-stop skill kept execution limited to the requested projection diagnostics; no additional product tests were created.
 
 ## Authority and exact scope

@@ -4,6 +4,8 @@ This graph is generated from canonical task.toml dependencies and verify.toml sc
 
 The graph contains 73 tasks, maximum depth 35, and 24 equally deepest dependency paths. The complete predecessor representation is in [task-graph.json](task-graph.json).
 
+TASK-001 and TASK-070 are retained fail-closed preparation prerequisites, not dispatchable implementation tasks. TASK-071 and TASK-072 remain blocked until fresh accepted receipts exist.
+
 ## One exact longest dependency path
 
 `TASK-001 → TASK-070 → TASK-071 → TASK-072 → TASK-002 → TASK-006 → TASK-008 → TASK-073 → TASK-009 → TASK-010 → TASK-014 → TASK-015 → TASK-018 → TASK-019 → TASK-023 → TASK-024 → TASK-027 → TASK-028 → TASK-030 → TASK-031 → TASK-040 → TASK-041 → TASK-042 → TASK-043 → TASK-044 → TASK-045 → TASK-046 → TASK-047 → TASK-048 → TASK-049 → TASK-050 → TASK-065 → TASK-066 → TASK-068 → TASK-069`

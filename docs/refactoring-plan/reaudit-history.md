@@ -1,5 +1,9 @@
 # Historical authority re-audit
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 ## Scope and method
 
 Planning-only review, 2026-09-11. `docs/sources/PLANNING_GOAL.md` was read completely. Git independently resolved main to `7b27732a8c3c131760ec3438f641cb3c11343a42` and the oracle tag to `02f5294bfdbf38004cc49130d0aff1d01f31434c`. Existing PASS reports and ledger joins were not treated as source coverage proof. The review examined the architecture/component matrices, decision authority, source ledgers and installed task obligations, then checked disputed clauses against Git source. No production source or task payload was changed by this review.

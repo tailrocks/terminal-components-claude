@@ -1,5 +1,9 @@
 # Independent Rust architecture qualification review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Reviewer: `/root/review_rust_qualification`. Review date: 2026-09-11.
 
 ## Current verdict

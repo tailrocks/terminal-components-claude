@@ -1,5 +1,9 @@
 # Independent history-other row audit
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 2026-09-11. All56 RG01–RG56 rows reviewed individually. Historical source/disposition and current owner-proof contract only; no production implementation acceptance. No canonical source or task payload changed by this reviewer. Historian independently owns the196 global rows.
 
 ## Source reconstruction and binding result

@@ -43,6 +43,10 @@ subagent. The subagent may write only the paths declared by that task.
 4. Implementer commits only its task change; no push, tag, oracle, or main
    update is allowed.
 5. Verifier subagent checks that the worktree is still within task scope and
+   prepares native proof execution with `scripts/campaign-build-proof.sh`, an
+   exact external `RUN_DIR/contexts` set, and the reviewed observer/result
+   environment for each proof check. The helper is a normal host-local Cargo
+   build; it is not a taskfmt operation and never starts a container. Then it
    runs exactly:
 
    ```sh
@@ -55,9 +59,14 @@ subagent. The subagent may write only the paths declared by that task.
      --log-dir "$RUN_DIR/taskfmt-logs"
    ```
 
-   Task checks must use host-local paths. A literal `/task`, `/work`,
-   `/proof`, or `/run` in `verify.toml` is a blocking contract defect; do not
-   create a mount or firmlink to make it pass.
+   Task checks must use host-local paths. Proof checks use the exported
+   `$RUN_DIR/contexts/CHK-NNN.json` path; latest taskfmt executes shell checks
+   under the explicit worktree root and does not interpolate `argv` values.
+   A literal `/task`, `/work`, `/proof`, or `/run` in `verify.toml` is a
+   blocking contract defect; do not create a mount or firmlink to make it pass.
+   Missing native comparator or context preparation is also a blocking
+   precondition; the dispatcher fails before taskfmt instead of allowing a
+   partial proof run.
 
 6. Reviewer subagent independently reads the diff and raw verifier output.
 7. Coordinator integrates only after verifier and reviewer both pass. The
@@ -90,4 +99,5 @@ scope, oracle, trust-root, or dependency rule was bypassed.
 - Direct coordinator edits to task-owned production files.
 - Main merges, force pushes, oracle writes, baseline blessing, or tag changes.
 
-The `visual-baseline` tag, release, and store remain immutable.
+The `visual-baseline` tag, release, and store must remain unchanged by policy;
+provider-level immutability is not assumed.

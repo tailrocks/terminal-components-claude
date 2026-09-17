@@ -1,5 +1,9 @@
 # Independent review of the cell-selector repair
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 ## Scope and result
 
 The newly B-authored JTR-01/JTR-02 repair is source-consistent in this bounded review. This reviewer authored earlier JT planning changes, but did not author B's select-only/click-cell repair or its six counterexample/positive probes. Verify-and-stop limited this review to those new mechanisms, eight canonical TablePro scenarios, their affected flow contributions and TASK-022's shared routing responsibility. This is not approval of all 150 application parents, all 84 contributions, complete application frames or PTY parity.

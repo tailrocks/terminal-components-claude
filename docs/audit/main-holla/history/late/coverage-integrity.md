@@ -1,5 +1,9 @@
 # Coverage integrity audit
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Read-only integrity audit of completed source-history evidence. No semantic rereview or implementation proof claimed. Only this file written. Current files inspected after assignment; early/API artifacts had arrived meanwhile.
 
 ## Result

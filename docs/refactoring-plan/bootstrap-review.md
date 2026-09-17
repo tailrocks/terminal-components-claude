@@ -1,5 +1,9 @@
 # Independent bootstrap review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Status: the comparator and Darwin host preparation are accepted for their explicitly bounded qualification profiles. BR-01 through BR-05, including the late-freeze and surviving-child evidence problems, are resolved in the exact revisions recorded below. VF-02 aggregation and the host portions of INT-03/VF-03 are independently re-tested. BR-06's finite synthetic runner checks pass; its actual Rust preparation remains a separate independent review and is not approved by this document. This review qualifies planning fixtures, not a production harness. No terminal-components production source was changed, no oracle was blessed, and no real integration ref was updated. All adversarial executions used temporary synthetic repositories.
 
 ## Scope and acceptance

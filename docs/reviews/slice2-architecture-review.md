@@ -1,5 +1,9 @@
 # Slice 2 architecture review — COMPONENT_ARCHITECTURE.md
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 **Reviewer:** fresh read-only `read-only analyst` (goal §27 Slice 2, §28 "Independent verifier"). No prior work assumed correct.
 **Scope read:** `REFACTORING_GOAL.md` §5, §9–§23, §25, §27, §29; `COMPONENT_ARCHITECTURE.md` in full (2 768 lines); spot verification against `Cargo.toml`, `src/core/id.rs`, `src/bin/showcase/app_tests.rs`, `src/bin/jackin_preview/screens/mod.rs`.
 **Method:** §16–§20 and Appendices A/B were treated as a *consumer* of §3–§15 and every type, method, module path, test name, precedence rule and file path used downstream was resolved against §3–§15 or §17.0. Every §17 example was read as Rust that must compile under `architecture::all_examples_compile`.

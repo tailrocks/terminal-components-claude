@@ -1,5 +1,9 @@
 # HIST-01 planning closure witness
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Planning-only read-only verification, 2026-09-15. Confirms the census/revision-index repair for JACKIN_GOAL and linked prompt/reference/design paths; does not certify full 620-clause semantic coverage.
 
 ## Method

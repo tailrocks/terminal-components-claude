@@ -1,5 +1,9 @@
 # Holla adversarial re-audit — 2026-09-11
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 ## Scope and evidence
 
 Reviewed TASK-040 through TASK-050: 114 package files, 9,702 lines. The appendix records the exact pre-repair bytes. Repeated canonical protocol/check material and copied scenario fields were read with content deduplication, then checked against their complete source records. No production refactoring or commits were performed.

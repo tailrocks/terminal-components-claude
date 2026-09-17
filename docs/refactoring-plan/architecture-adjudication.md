@@ -1,5 +1,9 @@
 # Architecture decision adjudication
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 This independent, bounded adjudication resolves architecture questions before task generation. It reads pinned main `7b27732a8c3c131760ec3438f641cb3c11343a42`, immutable UI oracle `02f5294bfdbf38004cc49130d0aff1d01f31434c`, and the historical authorities identified below. It changes planning documents only. A planning decision is not an assertion that a production fix exists, a visual reference, or permission to bless snapshots. The immutable application oracle remains authoritative.
 
 ## ADJ-01: Held pointer eligibility is already publication-owned

@@ -1,5 +1,9 @@
 # Fresh foundation audit
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 This report covers the current preparation snapshot for TASK-001–008 and TASK-070–072. It does not certify future implementation, production captures, or all source joins. The file ledger distinguishes semantic review from indirect execution. No production code, branch, commit, merge, or canonical AGENTS bytes were changed by this audit.
 
 ## Finding FND-01: architecture qualification lacks callable doc/API/dependency controls

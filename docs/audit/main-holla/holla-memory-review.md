@@ -1,5 +1,9 @@
 # Independent corrected Holla memory review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 ACCEPT final committed memory scope at1b1d23f3aaea179a481de8def6cffc9ec3eaa596. Reviewed exact three-file correction on clean detached source; no source edits, owner uncommitted accounting changes or intermediate package-wiring commit accepted here.
 
 Both prior findings closed. Alias seed/set/lookup/visible paths now share trim+Unicode lowercase identity. Exact prior Ä/ä probe now rejects a second command owner, with lookup/query resolving the same first command. Added whitespace, Å/å, É/é and Unicode lowercase expansion İ/i+combining-dot coverage; replacement removes previous ownership. No alternate raw alias mutation path is public.

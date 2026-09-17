@@ -1,5 +1,9 @@
 # Foundation branch comparison
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Read-only full-diff review complete: 67/67 assigned paths, including every test and comment. Main architecture base is 7b27732a8c3c131760ec3438f641cb3c11343a42; moving Holla context is 2e2401393c47360741ebd321679de08982dca50a; immutable behavior oracle is 02f5294bfdbf38004cc49130d0aff1d01f31434c (tag resolution independently rechecked). The assigned inventory contains 51 main additions and 16 Holla deletions. These are architectural relocation/addition statuses, not evidence that behavior may be deleted. Exact path, mode, blob, payload line coverage, semantic review and task mapping are recorded in [the separate ledger](branch-diff-foundation-ledger.md).
 
 Every deleted foundation path under src/core, src/ui, src/runtime.rs, src/theme.rs and src/lib.rs is byte-identical between pinned Holla and oracle. Their full deletion diffs were read, including tests. There is no moving-branch behavioral override in this partition's old source.

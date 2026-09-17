@@ -1,5 +1,9 @@
 # Direct history review: architecture §§30–55
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Planning-only evidence, 2026-09-11. Architecture source is `7b27732a8c3c131760ec3438f641cb3c11343a42`; UI/UX oracle is `02f5294bfdbf38004cc49130d0aff1d01f31434c`. Historical green counts below are records, not current test execution.
 
 ## Direct-read coverage and method

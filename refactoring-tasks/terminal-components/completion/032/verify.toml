@@ -6,7 +6,7 @@ forbidden_paths = ["docs/refactoring-plan","refactoring-tasks","tools/refactor-p
 [[checks]]
 id = "CHK-001"
 phase = "precondition"
-argv = ["tools/refactor-proof/bin/tc-proof","preflight","--context",".campaign/evidence/contexts/CHK-001.json"]
+shell = "tools/refactor-proof/bin/tc-proof preflight --context \"$RUN_DIR/contexts/CHK-001.json\""
 expected = { exit = 0 }
 requirements = ["R-004"]
 acceptance = ["AC-004"]
@@ -14,7 +14,7 @@ acceptance = ["AC-004"]
 [[checks]]
 id = "CHK-002"
 phase = "focused"
-argv = ["tools/refactor-proof/bin/tc-proof","capture","--context",".campaign/evidence/contexts/CHK-002.json","--lane","direct"]
+shell = "tools/refactor-proof/bin/tc-proof capture --context \"$RUN_DIR/contexts/CHK-002.json\" --lane direct"
 expected = { exit = 0 }
 requirements = ["R-001"]
 acceptance = ["AC-006"]
@@ -22,7 +22,7 @@ acceptance = ["AC-006"]
 [[checks]]
 id = "CHK-003"
 phase = "focused"
-argv = ["tools/refactor-proof/bin/tc-proof","capture","--context",".campaign/evidence/contexts/CHK-003.json","--lane","pty"]
+shell = "tools/refactor-proof/bin/tc-proof capture --context \"$RUN_DIR/contexts/CHK-003.json\" --lane pty"
 expected = { exit = 0 }
 requirements = ["R-001"]
 acceptance = ["AC-007"]
@@ -30,7 +30,7 @@ acceptance = ["AC-007"]
 [[checks]]
 id = "CHK-004"
 phase = "focused"
-argv = ["tools/refactor-proof/bin/tc-proof","compare","--context",".campaign/evidence/contexts/CHK-004.json"]
+shell = "tools/refactor-proof/bin/tc-proof compare --context \"$RUN_DIR/contexts/CHK-004.json\""
 expected = { exit = 0 }
 requirements = ["R-001"]
 acceptance = ["AC-008"]
@@ -38,7 +38,7 @@ acceptance = ["AC-008"]
 [[checks]]
 id = "CHK-005"
 phase = "regression"
-argv = ["tools/refactor-proof/bin/tc-proof","account-tests","--context",".campaign/evidence/contexts/CHK-005.json"]
+shell = "tools/refactor-proof/bin/tc-proof account-tests --context \"$RUN_DIR/contexts/CHK-005.json\""
 expected = { exit = 0 }
 requirements = ["R-003"]
 acceptance = ["AC-003"]
@@ -46,7 +46,7 @@ acceptance = ["AC-003"]
 [[checks]]
 id = "CHK-006"
 phase = "lint"
-argv = ["tools/refactor-proof/bin/tc-proof","architecture","--context",".campaign/evidence/contexts/CHK-006.json"]
+shell = "tools/refactor-proof/bin/tc-proof architecture --context \"$RUN_DIR/contexts/CHK-006.json\""
 expected = { exit = 0 }
 requirements = ["R-001", "R-002"]
 acceptance = ["AC-001", "AC-002"]
@@ -54,7 +54,7 @@ acceptance = ["AC-001", "AC-002"]
 [[checks]]
 id = "CHK-007"
 phase = "gate"
-argv = ["tools/refactor-proof/bin/tc-proof","close","--context",".campaign/evidence/contexts/CHK-007.json"]
+shell = "tools/refactor-proof/bin/tc-proof close --context \"$RUN_DIR/contexts/CHK-007.json\""
 expected = { exit = 0 }
 requirements = ["R-005"]
 acceptance = ["AC-005"]

@@ -1,5 +1,9 @@
 # Lane C status
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 ## Current state
 
 The fresh Jackin review is recorded in

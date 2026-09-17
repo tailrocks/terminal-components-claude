@@ -1,5 +1,9 @@
 # Main-based Holla integration execution plan
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 ## Authority and completion
 
 The complete [user task](main-holla-integration-task.md) is the acceptance

@@ -1,5 +1,9 @@
 # Review of runtime-proposal.md after focus integration
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Read-only review against integrated focus source and full docs/audit/main-holla/runtime-proposal.md. No repository edits. The proposal preserves required invariants, but its independently movable frame token, runtime identity/error checks and fully bundled migration are larger than necessary.
 
 ## 1. Replace identity-bearing tokens with exclusive publication guards

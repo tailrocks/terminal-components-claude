@@ -1,13 +1,27 @@
 # Visual changes ledger
 
+> Historical visual-change evidence. The current branch is **NO-GO** for
+> candidate baseline regeneration. Do not replay the legacy blessing commands
+> in this file, write the frozen oracle, or treat this ledger as execution
+> authorization. Current visual authority and gates are
+> [`refactoring-tasks/visual-validation.md`](../refactoring-tasks/visual-validation.md)
+> and [`docs/refactoring-plan/execution-readiness-report.md`](refactoring-plan/execution-readiness-report.md).
+
 **What this is.** The ledger `COMPONENT_ARCHITECTURE.md` §20.10 requires and `xtask bless-guard` (§16.3) reads. No baseline file (`crates/tui/tests/baselines/components.txt`, `apps/*/tests/baselines/*.txt`, `perf_baseline.txt` hit counts) may be regenerated without an entry here that names a numbered §20.10 item, **accounts for every baseline key the diff moved or added**, and names the reviewable artefact — a capture path under `shots/` for a baseline produced by a running application, **or** the frame-text dump for a baseline produced headlessly by a `Scene`, named explicitly (§16.3 as amended by §36). Every entry classifies a difference as *intended* (matches the §20.10 item), *fix* (a demonstrated defect in the old output) or *regression* (must be fixed, never blessed).
 
 **Order, fixed (review A14, §21 item 30): change → capture → classify → bless.**
 
-1. **Change** — land the code change on the working tree.
-2. **Capture** — for an application baseline, `tools/capture.sh` / `xtask capture-matrix` writes the before/after captures into `shots/`. For a headless `Scene` matrix there is no capture and there can be none (`tools/capture.sh` drives a terminal session and cannot address a `Scene`, §36): the artefact is the frame text the failing run prints. Digest tests go red either way.
-3. **Classify** — add or extend the entry under the matching §20.10 item below: the reviewable artefact, the affected tests/baseline lines, the moved and added keys, and the classification with its reason.
-4. **Bless** — `BLESS=1 cargo test --workspace --test render --test render_components --test visual` (or `PERF_BLESS=1` for hit counts). `xtask bless-guard` is specified in §16.3 and **is implemented and binding** (`xtask/src/main.rs`, the `bless-guard` subcommand over the `baseline_moves_are_classified` check). It fails closed: with no base revision — neither `BLESS_GUARD_BASE` nor `GITHUB_BASE_REF` — it refuses rather than comparing against `HEAD`, because comparing against `HEAD` passes vacuously (commit `f28a81e`). This ledger is therefore machine-enforced, not convention enforced by review. <!-- corrected 2026-09-05: the previous text claimed the guard was unimplemented. It has been implemented since §47; that sentence was stale, and it is the only claim replaced here. -->
+1. **Change** — only an authorized implementer subagent may land a scoped code change.
+2. **Capture** — only a verifier subagent may collect candidate evidence in an
+   external run directory. The frozen oracle remains read-only.
+3. **Classify** — record the reviewable artefact, affected keys, and reason in
+   the task receipt before any acceptance decision.
+4. **Accept** — currently disabled while readiness is **NO-GO**. Never set
+   `BLESS=1` or `PERF_BLESS=1`, regenerate candidate baselines, run
+   `tuisnap accept`, or mutate the `visual-baseline` tag from this workflow.
+   Once execution is authorized, the current nextest visual gate and a
+   reviewed, fail-closed candidate-baseline policy must replace this historical
+   command block.
 
 A capture cannot exist before the change, so `bless-guard` never runs locally against an unchanged tree. No baseline is regenerated because a test failed; the classification comes first.
 

@@ -1,5 +1,9 @@
 # Independent rereview: component-B repairs
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Date: 2026-09-11. Scope: TASK-021–031/073 repair contracts and shared ADJ-04/09, authored by another agent. TASK-067 consumer changes are excluded because this reviewer authored them. Planning-only review under `docs/sources/PLANNING_GOAL.md` and verify-and-stop; no production, baseline, task package, shared validator or Git ref was changed by this rereview.
 
 ## Result and boundary

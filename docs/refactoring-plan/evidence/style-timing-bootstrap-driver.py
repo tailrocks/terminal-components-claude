@@ -289,7 +289,7 @@ def build(root, target, source):
     actual.write_sources(root,source)
     identity=actual.compiler_identity()
     actual.validate_compiler_identity(identity)
-    argv=[identity["cargo"]["path"],"test","--release","--no-run","--locked","--offline","--message-format=json","-p","showcase","--test","style_timing_bootstrap"]
+    argv=[identity["cargo"]["path"],"nextest","run","--release","--no-run","--locked","--offline","--cargo-message-format=json","--user-config-file","none","-p","showcase","--test","style_timing_bootstrap"]
     env=build_environment(target,identity)
     done=subprocess.run(argv,cwd=root,env=env,capture_output=True,timeout=300,check=False)
     actual.validate_compiler_identity(identity)
@@ -508,7 +508,7 @@ def prepare(case_names=None):
             actual.write_sources(root,source_fixture(original))
             identity=actual.compiler_identity()
             actual.validate_compiler_identity(identity)
-            featureless=subprocess.run([identity["cargo"]["path"],"check","--release","--locked","--offline","--no-default-features","-p","junie-tui","--lib"],cwd=root,env=build_environment(target,identity),capture_output=True,timeout=180,check=False)
+            featureless=subprocess.run([identity["cargo"]["path"],"nextest","run","--release","--no-run","--locked","--offline","--no-default-features","--user-config-file","none","-p","junie-tui","--lib"],cwd=root,env=build_environment(target,identity),capture_output=True,timeout=180,check=False)
             actual.validate_compiler_identity(identity)
             require(featureless.returncode==0,"testing-disabled compilation failed: "+featureless.stderr.decode()[-1500:])
     return prepared

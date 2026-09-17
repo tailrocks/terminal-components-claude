@@ -1,5 +1,9 @@
 # Adjudication Q — three residuals from the Adjudication P code pass
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 **Status:** accepted and applied for Q1–Q3 in the current tree. The source review was read-only at `HEAD 0f66160`; implementation follow-up evidence is recorded below. Facts marked **[F]** describe that review snapshot; later execution and source corrections are recorded as applied evidence. One premise handed to the review (Q1's byte-identity observation) could not be reproduced statically — R1 is now closed by the three-phase execution record. This status does not claim that the concurrent Slice 4 wave or the full workspace gate is green.
 
 ---

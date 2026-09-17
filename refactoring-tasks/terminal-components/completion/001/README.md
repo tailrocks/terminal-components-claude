@@ -21,7 +21,7 @@ supported; no current qualification is claimed.
 
 ## Context
 
-Visual regression gate: committed `snapshots/` grouped store (`../../../../docs/baseline/snapshots-v2.md` (task catalog: `refactoring-tasks/visual-validation.md`)). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
+Visual acceptance is currently blocked: this branch lacks the grouped store and PTY suite. A verifier subagent must import them read-only from the immutable `visual-baseline` tag into the external run before using [`visual-validation.md`](../../../visual-validation.md). Never write `snapshots/`, bless output, or mutate the tag.
 
 This is a later execution task retained as an immutable historical package. The
 UI authority is `02f5294bfdbf38004cc49130d0aff1d01f31434c`; architecture starts

@@ -13,7 +13,7 @@ Produce an independently verified merge-readiness receipt for one exact integrat
 
 ## Context
 
-Visual regression gate: committed `snapshots/` grouped store (`../../../../docs/baseline/snapshots-v2.md` (task catalog: `refactoring-tasks/visual-validation.md`)). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
+Visual acceptance is currently blocked: this branch lacks the grouped store and PTY suite. A verifier subagent must import them read-only from the immutable `visual-baseline` tag into the external run before using [`visual-validation.md`](../../../visual-validation.md). Never write `snapshots/`, bless output, or mutate the tag.
 
 Tested integration head passes whole required oracle direct/PTY set, authoritative stable/MSRV/build/lint/docs/API/performance gates, trust immutability and ancestry/merge-readiness checks. This is a bounded closure of already restored production work, not permission to reopen unrelated design choices. HIST:A130; HIST:RG49; HIST:RG51; HIST:RG52; HIST:RG56; ARCH:A28–A32; every HIST/ARCH/COMP/APP/DEC source in traceability.tsv; docs/sources/PLANNING_GOAL.md §§16–18; proof-contract.md.
 

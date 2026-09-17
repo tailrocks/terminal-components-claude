@@ -1,5 +1,9 @@
 # Historical obligation audit — completed document semantics
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Pinned source: c12cad8728755cd2d03eefdd8e02891143fca86d. Scope is both contract paths reachable from this commit, not Holla-only history (another owner).
 
 ## Exhaustiveness

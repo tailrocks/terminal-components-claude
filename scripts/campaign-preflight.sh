@@ -5,8 +5,9 @@ set -euo pipefail
 INTEGRATION_BRANCH="${INTEGRATION_BRANCH:-refactor/holla-parity}"
 WORKTREE_PATH="${TC_CAMPAIGN_WORKTREE:-.}"
 TAG_PEELED_EXPECT="${TAG_PEELED_EXPECT:-4a79c0a2d40fca46fc406b77157ce3b3f12ec16b}"
-TASKFMT_REV="${TASKFMT_REV:-afd3b575dbcc7044620bec4b9493a74eca3e5ef2}"
-TASKFMT_SHA256="${TASKFMT_SHA256:-f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de}"
+TASKFMT_REV="afd3b575dbcc7044620bec4b9493a74eca3e5ef2"
+TASKFMT_SHA256="f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de"
+TASKFMT_SOURCE="/Users/donbeave/Projects/taskfmt/task-format"
 
 repo_root() {
   git -C "${BASH_SOURCE[0]%/*}/.." rev-parse --show-toplevel
@@ -19,6 +20,16 @@ fail() {
 
 pass() {
   echo "campaign-preflight: OK: $*"
+}
+
+campaign_worktree() {
+  local root
+  root="$(repo_root)"
+  if [[ "$WORKTREE_PATH" = /* ]]; then
+    echo "$WORKTREE_PATH"
+  else
+    echo "$root/$WORKTREE_PATH"
+  fi
 }
 
 check_tag() {
@@ -38,15 +49,15 @@ check_branch() {
 }
 
 check_worktree() {
-  local root
-  root="$(repo_root)"
-  [[ -d "$root/$WORKTREE_PATH" ]] || fail "missing worktree $root/$WORKTREE_PATH"
+  local wt
+  wt="$(campaign_worktree)"
+  [[ -d "$wt" ]] || fail "missing worktree $wt"
   local wt_branch
-  wt_branch="$(git -C "$root/$WORKTREE_PATH" branch --show-current 2>/dev/null || echo detached)"
+  wt_branch="$(git -C "$wt" branch --show-current 2>/dev/null || echo detached)"
   if [[ "$wt_branch" != "$INTEGRATION_BRANCH" ]]; then
     fail "worktree on '$wt_branch' (expected $INTEGRATION_BRANCH)"
   else
-    pass "worktree $root/$WORKTREE_PATH on $INTEGRATION_BRANCH"
+    pass "worktree $wt on $INTEGRATION_BRANCH"
   fi
 }
 
@@ -64,6 +75,9 @@ assert d.get("schema") == "campaign-ledger/v1"
 assert d.get("integration_ref") == "refs/heads/refactor/holla-parity"
 assert d.get("armed") is False, "ledger shows armed=true — do not arm /goal via preflight"
 assert d["catalog"]["commit"] != "REPLACE_AT_INIT", "catalog commit not recorded"
+accepted = [row for row in d.get("tasks", [])
+            if row.get("status") == "accepted" and row.get("verifier_verdict") == "PASS"]
+assert accepted, "no current accepted verifier receipt exists"
 print("ledger schema OK; armed=false; catalog recorded")
 PY
   local head
@@ -81,6 +95,11 @@ PY
 
 check_taskfmt() {
   local bin="${TC_TASKFMT:-/tmp/taskfmt-latest-install/bin/taskfmt}"
+  [[ -d "$TASKFMT_SOURCE/.git" ]] || fail "taskfmt source is not a git checkout: $TASKFMT_SOURCE"
+  [[ -z "$(git -C "$TASKFMT_SOURCE" status --porcelain)" ]] \
+    || fail "taskfmt source is dirty: $TASKFMT_SOURCE"
+  [[ "$(git -C "$TASKFMT_SOURCE" rev-parse HEAD)" == "$TASKFMT_REV" ]] \
+    || fail "taskfmt source is not latest $TASKFMT_REV"
   [[ -x "$bin" ]] || fail "taskfmt not at $bin (run campaign-install-taskfmt.sh)"
   pass "taskfmt @ $bin"
   local actual_sha
@@ -111,11 +130,10 @@ check_host_local_task_paths() {
 }
 
 check_harness() {
-  local root wt
-  root="$(repo_root)"
-  wt="$root/$WORKTREE_PATH"
+  local wt
+  wt="$(campaign_worktree)"
   if [[ -f "$wt/Cargo.toml" ]] && grep -q refactor-proof "$wt/Cargo.toml" 2>/dev/null; then
-    if (cd "$wt" && cargo nextest list -p refactor-proof >/dev/null 2>/dev/null); then
+    if (cd "$wt" && NEXTEST_USER_CONFIG_FILE=none cargo nextest list -p refactor-proof >/dev/null 2>/dev/null); then
       pass "refactor-proof nextest discovery"
     else
       fail "refactor-proof nextest discovery failed in worktree"
@@ -123,6 +141,40 @@ check_harness() {
   else
     fail "worktree missing refactor-proof"
   fi
+}
+
+check_native_proof() {
+  local wt binary receipt commit
+  wt="$(campaign_worktree)"
+  binary="$wt/target/debug/tc-proof"
+  [[ -f "$binary" && ! -L "$binary" && -x "$binary" ]] \
+    || fail "native tc-proof comparator missing: $binary (run scripts/campaign-build-proof.sh in this worktree)"
+  receipt="$binary.build.json"
+  [[ -f "$receipt" && ! -L "$receipt" ]] \
+    || fail "native tc-proof build receipt missing: $receipt (run scripts/campaign-build-proof.sh)"
+  commit="$(git -C "$wt" rev-parse HEAD)"
+  python3 - "$receipt" "$wt" "$commit" "$binary" <<'PY' || fail "native tc-proof build receipt does not match this worktree"
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+receipt, worktree, commit, binary = sys.argv[1:]
+with Path(receipt).open() as stream:
+    value = json.load(stream)
+if value.get("schema") != "tc-proof-native-build/v1":
+    raise SystemExit("wrong build receipt schema")
+if value.get("worktree") != str(Path(worktree).resolve()):
+    raise SystemExit("wrong build worktree")
+if value.get("commit") != commit:
+    raise SystemExit("wrong build commit")
+if value.get("binary") != str(Path(binary).resolve()):
+    raise SystemExit("wrong build binary")
+actual = hashlib.sha256(Path(binary).read_bytes()).hexdigest()
+if value.get("binary_sha256") != actual:
+    raise SystemExit("native comparator hash mismatch")
+PY
+  pass "native tc-proof comparator and build receipt match worktree HEAD"
 }
 
 check_validate_plan() {
@@ -152,12 +204,10 @@ main() {
   check_taskfmt
   check_host_local_task_paths
   check_harness
+  check_native_proof
   check_validate_plan
   echo ""
   echo "Preflight complete. See docs/refactoring-plan/execution-readiness-report.md for remaining blockers."
-  if [[ ! -f .campaign/ledger.json ]] || ! grep -q task-001 .campaign/ledger.json 2>/dev/null; then
-    echo "TASK-001 subagent evidence not recorded — task verification remains blocked."
-  fi
 }
 
 main "$@"

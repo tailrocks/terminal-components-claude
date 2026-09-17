@@ -1,5 +1,9 @@
 # Branch coordinator integration witness — components B and closure partition
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 **Date:** 2026-09-15  
 **Scope:** Close **BRANCH-01** coordinator-owned integration from [`branch-diff-components-b.md#authorized-planning-repair-handoff`](branch-diff-components-b.md#authorized-planning-repair-handoff) and bind unread closure-partition rows in [`reaudit-branch-tooling-tests.md`](reaudit-branch-tooling-tests.md).  
 **Boundary:** Planning bookkeeping and witness projection only. No production Rust edits, no canonical history/decision ledger edits, no oracle blessing, no `READY FOR REFACTORING EXECUTION` issuance.

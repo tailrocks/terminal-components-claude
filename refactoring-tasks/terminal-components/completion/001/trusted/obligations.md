@@ -10,8 +10,8 @@ Qualify nonzero exit with printed DONE, omitted logs/checks, forged receipt, wro
 
 Source requirements:
 
-- [docs/refactoring-plan/proof-contract.md](/work/docs/refactoring-plan/proof-contract.md).
-- [docs/refactoring-plan/evidence/proof-comparator-protocol.md](/work/docs/refactoring-plan/evidence/proof-comparator-protocol.md).
-- [docs/refactoring-plan/evidence/host-bootstrap-protocol.md](/work/docs/refactoring-plan/evidence/host-bootstrap-protocol.md).
+- [docs/refactoring-plan/proof-contract.md](../../../../../docs/refactoring-plan/proof-contract.md).
+- [docs/refactoring-plan/evidence/proof-comparator-protocol.md](../../../../../docs/refactoring-plan/evidence/proof-comparator-protocol.md).
+- [docs/refactoring-plan/evidence/host-bootstrap-protocol.md](../../../../../docs/refactoring-plan/evidence/host-bootstrap-protocol.md).
 
 The host binds the source documents, canonical historical union and scenario files named above into the immutable campaign input manifest. Their exact scenario expansion algorithms and source-qualified tests are required membership, not a best-effort glob. Rejected/deferred source clauses retain their disposition. A task-local candidate manifest cannot override this document or the protected host context.

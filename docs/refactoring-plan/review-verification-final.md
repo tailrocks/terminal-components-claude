@@ -1,5 +1,9 @@
 # Independent final verification review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Status: **changes required; not accepted for dispatch**. Review date: 2026-09-11. This is an independent review of planning and qualification preparation, not an execution of terminal-components refactoring or acceptance of the future proof harness.
 
 ## Scope and evidence identity

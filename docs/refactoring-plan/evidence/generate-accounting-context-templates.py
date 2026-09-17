@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shlex
 import tomllib
 from pathlib import Path
 
@@ -53,8 +54,11 @@ def discover_account_checks() -> list[tuple[str, str]]:
         data = tomllib.loads(verify_path.read_text())
         task_id = data.get("task_id", "")
         for check in data.get("checks", []):
-            argv = check.get("argv", [])
-            if "account-tests" in argv:
+            if isinstance(check.get("shell"), str):
+                command = shlex.split(check["shell"])
+            else:
+                command = check.get("argv", [])
+            if "account-tests" in command:
                 rows.append((task_id, check["id"]))
     return sorted(set(rows))
 
@@ -64,8 +68,8 @@ def write_canonical_bases() -> None:
     readme = CANONICAL / "README.md"
     readme.write_text(
         "# Accounting check context templates (TASK-071 authority)\n\n"
-        "Frozen partial contexts merged by `tc-proof-host prepare` into "
-        "`/run/tc-proof/contexts/CHK-NNN.json`. "
+        "Frozen partial contexts are materialized by the verifier subagent into "
+        "the external `$RUN_DIR/contexts/CHK-NNN.json` directory. "
         "See `accounting-mode-bindings.tsv` and `proof-contract.md` §136–144.\n",
         encoding="utf-8",
     )
@@ -128,6 +132,8 @@ def cleanup_stale_templates(valid: set[tuple[str, str]]) -> None:
         if not dest_dir.is_dir():
             continue
         for path in dest_dir.glob("CHK-*.json"):
+            if path.name.endswith(".template.json"):
+                continue
             task_id = tomllib.loads(verify_path.read_text()).get("task_id", "")
             check_id = path.stem
             if (task_id, check_id) not in valid:

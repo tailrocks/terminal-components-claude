@@ -1,5 +1,9 @@
 # Branch-diff history review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Scope: all188 history-partition paths from `branch-diff-inventory.tsv`, Holla `2e2401393c47360741ebd321679de08982dca50a` against main `7b27732a8c3c131760ec3438f641cb3c11343a42`. Immutable product oracle remains separately `02f5294bfdbf38004cc49130d0aff1d01f31434c`. These revisions are not interchangeable: Holla adds PLANNING_GOAL.md after the oracle. No production/task payload changes or execution probes are authorized by this review.
 
 `branch-diff-history-ledger.json` is the per-file source manifest. A deleted source remains historical evidence; deletion does not cancel an accepted requirement. An added historical PASS report remains a claim to inspect, not candidate execution proof. Current goals and explicit amendments control old execution, blessing, framework and live-OS proposals.

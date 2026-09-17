@@ -1,5 +1,9 @@
 # Independent coordinator-contract rereview
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 2026-09-11. Validation-only, following verify-and-stop. Scope: TASK-006 finite witness binding; ADJ-09/10/11 decision and exact check edges; new named application consumers. No production or shared-contract edits by this rereviewer. This is not full-plan acceptance or execution of future component proofs.
 
 ## Result and repaired counterexamples

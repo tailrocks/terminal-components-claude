@@ -1,5 +1,9 @@
 # TablePro / Jackin audit
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Pinned comparison: MAIN_BASE c12cad8728755cd2d03eefdd8e02891143fca86d; HOLLA_REFERENCE 794b095c196562d38f1b6f7ce379c128af2a023d. Read-only source inspection; no binary execution or parity claim. Source paths below relative to respective worktrees. Original worktree was not modified.
 
 ## Source-proven blockers

@@ -1,5 +1,9 @@
 # Normative amendments: fully reviewed patch ranges 22–34 and 54–67
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 These 27 parent-relative patches were reviewed through every added/deleted line with hunk headers, 215,628 characters in ten contiguous bounded reads. Necessary full context was also read for the earlier gate records. `snapshot-reconstruction.json` proves exact parent+patch reconstruction for all 68 history edges; unchanged snapshot text is inherited, not claimed repeatedly reread. This report complements earlier/later agent ranges.
 
 ## Revision dispositions

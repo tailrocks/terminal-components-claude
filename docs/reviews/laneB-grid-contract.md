@@ -1,5 +1,9 @@
 # Lane B adjudication: Grid and hidden-focus contract
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 **Status:** accepted for Q1–Q3. This record resolves the three questions in
 `docs/plans/slice6-tablepro.md` that block Slice 4I and Slice 6. Lane A still owns
 the corresponding edits to `COMPONENT_ARCHITECTURE.md`, `REFACTORING_STATE.md`,

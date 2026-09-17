@@ -10,8 +10,8 @@ Run the original 63 application tests and their complete assertions, plus inline
 
 Source requirements:
 
-- [docs/refactoring-plan/jackin.md](/work/docs/refactoring-plan/jackin.md).
-- [docs/refactoring-plan/jackin-scenarios.tsv](/work/docs/refactoring-plan/jackin-scenarios.tsv).
-- [docs/refactoring-plan/verification.md](/work/docs/refactoring-plan/verification.md).
+- [docs/refactoring-plan/jackin.md](../../../../../docs/refactoring-plan/jackin.md).
+- [docs/refactoring-plan/jackin-scenarios.tsv](../../../../../docs/refactoring-plan/jackin-scenarios.tsv).
+- [docs/refactoring-plan/execution-readiness-report.md](../../../../../docs/refactoring-plan/execution-readiness-report.md).
 
 The host binds the source documents, canonical historical union and scenario files named above into the immutable campaign input manifest. Their exact scenario expansion algorithms and source-qualified tests are required membership, not a best-effort glob. Rejected/deferred source clauses retain their disposition. A task-local candidate manifest cannot override this document or the protected host context.

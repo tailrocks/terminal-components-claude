@@ -1,5 +1,9 @@
 # Slice A — explicit bootstrap, no update from painting
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Base89090d6. Candidate branch codex/runtime-initialize, isolated worktree terminal-components-initialize. Scope: runtime initialization/live session, testing Harness/Scene documentation, initialization integration suite, and69 explicit initialization setup migrations in existing behavioral tests/helpers.203 Runtime constructor leads classified in caller-migration.json; pure Stub/slot/reference projections deliberately remain uninitialized. No blanket constructor rewrite. No manifests, exports, theme, application production, baseline or xtask edits.
 
 ## Implemented guarantee

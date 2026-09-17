@@ -41,6 +41,12 @@ for that subagent. Literal container namespaces (`/task`, `/work`, `/proof`,
 `/run`) are legacy contract defects, not paths to provision. No task may be
 dispatched until its checks are host-local.
 
+The verifier subagent must build the native `tc-proof` comparator with
+`scripts/campaign-build-proof.sh`, materialize the task's exact external
+`RUN_DIR/contexts/CHK-NNN.json` set, and bind each check's run/task/source/
+result/observer environment. The dispatcher only calls taskfmt after those
+preconditions pass. Taskfmt never creates contexts or proof infrastructure.
+
 ## Task sequence
 
 1. Coordinator creates an isolated host worktree and assigns one task to an
@@ -51,4 +57,6 @@ dispatched until its checks are host-local.
 4. Reviewer subagent inspects the diff and the verifier evidence.
 5. Coordinator integrates only a reviewed, verified task commit.
 
-The `visual-baseline` tag, release, and oracle store remain immutable.
+The `visual-baseline` tag, release, and oracle store must remain unchanged by
+policy. Their current pointers are recorded in the readiness report; provider
+enforcement is not assumed.

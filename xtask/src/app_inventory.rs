@@ -295,8 +295,8 @@ impl Inventory<'_> {
                 }
                 args.extend([
                     "--release".into(),
-                    "--".into(),
                     "--test-threads=1".into(),
+                    "--".into(),
                     "--nocapture".into(),
                 ]);
                 args

@@ -349,7 +349,7 @@
     "TASK-001": {
       "dependencies": [],
       "key": "B-HARNESS",
-      "title": "Implement independently qualified comparator and host core",
+      "title": "Implement independently qualified comparator and verifier core",
       "writable_paths": [
         "tools/refactor-proof"
       ]

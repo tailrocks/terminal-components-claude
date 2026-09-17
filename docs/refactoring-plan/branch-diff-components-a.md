@@ -1,5 +1,9 @@
 # Whole-branch diff: components A
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 ## Scope and actual read coverage
 
 Compared holla `2e2401393c47360741ebd321679de08982dca50a` with main `7b27732a8c3c131760ec3438f641cb3c11343a42`; immutable UI oracle remains separately pinned at `02f5294bfdbf38004cc49130d0aff1d01f31434c`. Main is implementation evidence, not authority to override accepted historical contracts.

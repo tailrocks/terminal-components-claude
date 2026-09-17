@@ -14,14 +14,14 @@ Execute the complete required inventory with no-fail-fast and record every actua
 
 ## Branch components-B assertion dispositions
 
-Normative under R-001/R-002/R-003 and CHK-004/005/006. The protected `/task/trusted/branch-test-disposition-bindings.tsv` binds **W-021-07**, **W-025-07**, **W-025-08**, and **W-026-05** to TASK-008 exact-identity disposition authority: preserve compatible architectural assertions; replace only source-adjudicated conflicting observations using independently accepted oracle data. External test targets are listed in `/task/trusted/external-test-source-scope.md`; inline `M:` targets remain in `/task/trusted/inline-test-source-scope.md`. No component executor may edit dispositions without protected host review.
+Normative under R-001/R-002/R-003 and CHK-004/005/006. The protected `branch-test-disposition-bindings.tsv` binds **W-021-07**, **W-025-07**, **W-025-08**, and **W-026-05** to TASK-008 exact-identity disposition authority: preserve compatible architectural assertions; replace only source-adjudicated conflicting observations using independently accepted oracle data. External test targets are listed in `external-test-source-scope.md`; inline `M:` targets remain in `inline-test-source-scope.md`. No component executor may edit dispositions without protected host review.
 
 Source requirements:
 
-- [docs/refactoring-plan/proof-contract.md](/work/docs/refactoring-plan/proof-contract.md).
-- [docs/refactoring-plan/decomposition-proposal.md](/work/docs/refactoring-plan/decomposition-proposal.md).
-- [docs/refactoring-plan/holla.md](/work/docs/refactoring-plan/holla.md).
-- [docs/refactoring-plan/showcase.md](/work/docs/refactoring-plan/showcase.md).
-- [docs/refactoring-plan/tablepro.md](/work/docs/refactoring-plan/tablepro.md).
+- [docs/refactoring-plan/proof-contract.md](../../../../../docs/refactoring-plan/proof-contract.md).
+- [docs/refactoring-plan/decomposition-proposal.md](../../../../../docs/refactoring-plan/decomposition-proposal.md).
+- [docs/refactoring-plan/holla.md](../../../../../docs/refactoring-plan/holla.md).
+- [docs/refactoring-plan/showcase.md](../../../../../docs/refactoring-plan/showcase.md).
+- [docs/refactoring-plan/tablepro.md](../../../../../docs/refactoring-plan/tablepro.md).
 
 The host binds the source documents, canonical historical union and scenario files named above into the immutable campaign input manifest. Their exact scenario expansion algorithms and source-qualified tests are required membership, not a best-effort glob. Rejected/deferred source clauses retain their disposition. A task-local candidate manifest cannot override this document or the protected host context.

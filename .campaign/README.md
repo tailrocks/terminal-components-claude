@@ -14,4 +14,8 @@ Initialize with:
 ./scripts/campaign-init.sh
 ```
 
-Do not arm `/goal` until `docs/refactoring-plan/campaign-pre-arm-checklist.md` is complete.
+This directory is local operator state, not authority. The old pre-arm checklist
+is superseded. Read
+[`docs/refactoring-plan/execution-readiness-report.md`](../docs/refactoring-plan/execution-readiness-report.md)
+and follow its current NO-GO/GO conditions; no container or taskfmt lifecycle
+arming path exists.

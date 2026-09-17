@@ -1,5 +1,9 @@
 # Independent review of parity-plan repairs
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Review date: 2026-09-11. Verdict: **PARITY-FINAL-01–04 are resolved in the reviewed planning contracts. No remaining parity-plan finding was identified in this review.** This report reviews the repairs to `review-parity-final.md`. It is not an application parity receipt, an oracle-capture receipt, or approval of a candidate implementation. No production source or authored task contract was changed by this reviewer.
 
 ## Authority and review boundary

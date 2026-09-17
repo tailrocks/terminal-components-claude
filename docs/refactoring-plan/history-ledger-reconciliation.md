@@ -1,5 +1,9 @@
 # Historical ledger reconciliation rules
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 The ledgers form one evidence set. Rows are never silently deleted because another row mentions the same component. `historical-obligations.tsv` is the compact global semantic index; supplemental ledgers retain independently enforceable source clauses, exact test obligations and supersession evidence.
 
 `historical-obligations-canonical.tsv` is the lossless row-identity union: **620 unique IDs** from all nine source ledgers (196 global +54 later-prefix amendments +60 early +13 inline Form +44 HAR +66 HI +60 late +71 middle +56 goal). It normalizes the eleven required matrix columns and adds the exact original ledger line and relationship. Original source ledgers remain the detailed authority for additional rationale, named evidence and corrections; every substantive row is retained, including duplicate-equivalent and rejected/superseded rows. One trailing blank source record was excluded, not treated as an obligation. Current implementation status is copied when established; otherwise it explicitly says unverified and names the architecture/app matrices for the remaining join. No historical green count is promoted to current status.

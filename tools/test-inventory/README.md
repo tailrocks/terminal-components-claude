@@ -1,9 +1,11 @@
-# Exact test inventory
+# Exact cargo-nextest inventory
 
-`inventory.py` uses Cargo and stable libtest/rustdoc interfaces. It does not scan
-Rust function names or accept a nonzero test count as coverage.
+`inventory.py` uses Cargo metadata plus the standalone `cargo nextest` listing
+and structured result interfaces. It does not scan Rust function names or
+accept a nonzero test count as coverage. It never invokes `cargo test`.
 
-Requirements: Python 3.11+, Git, Cargo/Rust (tested with 1.88 and stable).
+Requirements: Python 3.11+, Git, Cargo/Rust, and cargo-nextest 0.9.143 or a
+newer reviewed version (tested with 1.88 and stable).
 
 ```sh
 python3 tools/test-inventory/inventory.py capture \
@@ -28,10 +30,9 @@ variables need a separately reviewed wrapper change, not an implicit passthrough
 Each explicit package/feature profile gets a new Cargo target directory. Only
 that invocation's `compiler-artifact` messages with `profile.test=true` and an
 executable qualify. Package/kind/target keys must be unique. This prevents reuse
-of binaries produced by another profile or earlier capture. Cargo may still
-unify dependency features within one package's dev-dependency graph: recorded
-artifact features expose that result; this tool does not replace the isolated
-backend-free consumer gate.
+of binaries produced by another profile or earlier capture. Nextest's
+structured listing supplies exact test identities and runtime binaries; the
+compiler-artifact feature set remains authoritative for feature activation.
 
 Cargo-owned testable library, binary, integration and example targets must
 produce artifacts. `test=false` targets without test artifacts are explicitly
@@ -47,24 +48,22 @@ uses its declared local feature closure (default, aliases and transitive local
 features); unsupported qualified selectors fail. An enabled target without its
 expected artifact remains a blocker. Workspace-wide metadata feature unions and
 manual target skip lists never decide activation.
-Library rustdoc targets are listed and run separately, including compile-fail
-and should-panic modes. Documentation identities retain their actual source
-line: moves require a reviewed mapping, not fuzzy matching.
+Library rustdoc targets are recorded as explicit blockers because
+cargo-nextest 0.9.143 has no doctest runner. Do not restore `cargo test --doc`;
+an approved nextest-compatible adapter is required. Documentation identities
+retain their actual source line: moves require a reviewed mapping, not fuzzy
+matching.
 
-Each compiled target is listed and executed through Cargo with its exact
+Each compiled target is listed and executed through cargo-nextest with its exact
 `--lib`, `--bin NAME`, `--test NAME`, or `--example NAME` selector and the same
 isolated target directory/feature flags. This preserves Cargo's package runtime
 environment as well as package working directory. Commands and targets record
 the workspace invocation cwd; targets separately record the package runtime cwd. Artifact bytes are checked again after execution.
-Listing uses `--list --format pretty` (terse omits the count summary on Rust1.88).
-Execution uses `--format pretty --test-threads=1` with no filter, plus a fresh
-external `--logfile` for exact libtest statuses. This stable-but-deprecated option
-is verified on MSRV/stable; if unavailable, capture fails closed. Its separate
-status channel prevents subprocess stdout from splitting/impersonating pretty
-result lines. Only the status-file hash and parsed identities/statuses survive
-capture; ignored reasons or fixture output are not copied into the evidence.
-Rustdoc uses its normal Cargo-owned listing/execution interface. Names and
-statuses must agree with all libtest summaries. Missing,
+Listing uses nextest JSON. Execution uses `libtest-json-plus`,
+`--test-threads=1`, and no filter, with ignored tests included and executed. The
+structured execution stream is hashed and parsed, so child stdout cannot
+impersonate a test result. Names and statuses must agree with
+the nextest events. Missing,
 duplicate, measured, filtered or unexecuted names fail. Ignored tests require an
 explicit per-identity reason in the reviewed requirements. Empty targets also
 require an explicit reviewed reason. A compile failure is coverage failure,
@@ -118,9 +117,9 @@ disabled and enabled, actual-artifact feature authority, transitive default
 activation without artifacts, duplicate artifacts, and missing enabled targets.
 
 The execution-context regression uses an actual nested workspace package with
-relative input data and runtime Cargo package variables, compares genuine Cargo
-execution, and reproduces child stdout interleaving. Missing/duplicate/unknown
-status-file identities remain failures; using a dedicated status file does not
-permit filtered or empty execution to satisfy required names.
+relative input data and runtime Cargo package variables, compares genuine
+nextest execution, and verifies that structured child output cannot impersonate
+a result. Missing/duplicate/unknown nextest identities remain failures; a
+filtered or empty execution cannot satisfy required names.
 
 Cargo metadata, build, listing, and execution all use the same workspace invocation directory, so nested package Cargo configuration cannot substitute another executable. Each command and target records this `cwd`; target `runtime_cwd` records the package directory supplied by Cargo to the test process. Legacy captures without this distinction are rejected.

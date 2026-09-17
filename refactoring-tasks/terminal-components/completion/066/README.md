@@ -13,7 +13,7 @@ Consolidate the expired render/render_components split into one test target whil
 
 ## Context
 
-Visual regression gate: committed `snapshots/` grouped store (`../../../../docs/baseline/snapshots-v2.md` (task catalog: `refactoring-tasks/visual-validation.md`)). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
+Visual acceptance is currently blocked: this branch lacks the grouped store and PTY suite. A verifier subagent must import them read-only from the immutable `visual-baseline` tag into the external run before using [`visual-validation.md`](../../../visual-validation.md). Never write `snapshots/`, bless output, or mutate the tag.
 
 Exact historical/oracle executions and qualified scenario identities survive Buttons/render-target relocations; no unresolved required inventory entries. This is a bounded closure of already restored production work, not permission to reopen unrelated design choices. ARCH:A28; ARCH:A29; DEC:ADJ-07; HIST:A113; HIST:A115; main COMPONENT_ARCHITECTURE.md:2054,3934; tools/test-inventory/README.md:69 and required.json (absent on visual-baseline; archive `origin/main:tools/test-inventory/README.md`); TASK-007/TASK-008 sealed identity and disposition receipts.
 

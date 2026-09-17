@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Mutation proofs plus a real Cargo/libtest/rustdoc fixture, no dependencies."""
+"""Mutation proofs plus a real cargo-nextest fixture, no dependencies."""
 import copy
 import json
 import os
@@ -118,16 +118,18 @@ pub fn example() {}
     def tearDownClass(cls):
         cls.temp.cleanup()
 
-    def test_real_binary_integration_feature_and_docs_are_executed(self):
-        gate.verify(self.capture, self.required, self.catalog)
-        self.assertEqual({r["kind"] for r in self.capture["targets"]}, {"lib", "bin", "test", "example", "doc"})
+    def test_real_binary_integration_feature_and_doctest_block_are_recorded(self):
+        with self.assertRaises(gate.Invalid):
+            gate.verify(self.capture, self.required, self.catalog)
+        self.assertTrue(any("doctest" in b["reason"] for b in self.capture["blocked"]))
+        self.assertEqual({r["kind"] for r in self.capture["targets"]}, {"lib", "bin", "test", "example"})
         names = [n for r in self.capture["targets"] for n in r["listed"]]
         self.assertIn("gated", names)
         self.assertIn("example_local", names)
-        self.assertEqual(len(names), 8)
+        self.assertEqual(len(names), 6)
 
     def test_required_missing_feature_doc_or_target_fails(self):
-        for kind in ("lib", "bin", "test", "example", "doc"):
+        for kind in ("lib", "bin", "test", "example"):
             cap = copy.deepcopy(self.capture)
             cap["targets"] = [r for r in cap["targets"] if r["kind"] != kind]
             with self.assertRaises(gate.Invalid):
@@ -198,12 +200,12 @@ pub fn example() {}
             (self.root / "tests/extra_contract.rs").write_text('#[test] fn extra_contract() {}\n')
             disabled = dict(PROFILE, id="fixture-default", all_features=False)
             cap = gate.capture(self.root, [disabled], self.base / "inactive.json", False, TOOLCHAIN)
-            self.assertEqual(cap["blocked"], [])
+            self.assertTrue(any("doctest" in b["reason"] for b in cap["blocked"]))
             self.assertTrue(any(c["target"] == ["test", "extra_contract"] and
                                 c["classification"] == "inactive required-features"
                                 for c in cap["classifications"]))
             enabled = gate.capture(self.root, [PROFILE], self.base / "enabled.json", True, TOOLCHAIN)
-            self.assertEqual(enabled["blocked"], [])
+            self.assertTrue(any("doctest" in b["reason"] for b in enabled["blocked"]))
             row = next(r for r in enabled["targets"] if r["target"] == "extra_contract")
             self.assertEqual(row["executed"], {"extra_contract": "ok"})
         finally:
@@ -240,22 +242,33 @@ class ExecutionContext(unittest.TestCase):
             subprocess.run(["git", "add", "."], cwd=root, check=True, capture_output=True)
             cargo = ["cargo", "+" + TOOLCHAIN]
             subprocess.run(cargo + ["generate-lockfile", "--offline"], cwd=root, check=True, capture_output=True)
-            reference = subprocess.run(cargo + ["test", "--locked", "-p", "context-fixture", "--", "--test-threads=1"],
-                                       cwd=root, capture_output=True, text=True)
+            env = dict(os.environ, NEXTEST_EXPERIMENTAL_LIBTEST_JSON="1",
+                       NEXTEST_USER_CONFIG_FILE="none")
+            reference = subprocess.run(
+                cargo + ["nextest", "run", "--locked", "--no-fail-fast",
+                         "--run-ignored", "all", "--message-format", "libtest-json-plus",
+                         "--show-progress", "none", "--status-level", "none",
+                         "--final-status-level", "none", "--test-threads", "1",
+                         "-p", "context-fixture"], cwd=root, env=env,
+                capture_output=True, text=True)
             self.assertEqual(reference.returncode, 0, reference.stderr)
-            # Cargo launches tests in the package directory, but child stdout
-            # splits pretty result lines even on a passing test suite.
-            with self.assertRaises(gate.Invalid):
-                gate.executed(reference.stdout, ["package_relative_data", "child_stdout_interleaves_pretty_result"])
+            self.assertEqual(
+                gate.executed(reference.stdout,
+                              ["package_relative_data", "child_stdout_interleaves_pretty_result",
+                               "invocation_configuration_matches_build"]),
+                {"package_relative_data": "ok", "child_stdout_interleaves_pretty_result": "ok",
+                 "invocation_configuration_matches_build": "ok"})
             profile = dict(PROFILE, id="context", package="context-fixture")
             cap = gate.capture(root, [profile], base / "capture.json", True, TOOLCHAIN)
-            self.assertEqual(cap["blocked"], [])
+            self.assertTrue(any("doctest" in b["reason"] for b in cap["blocked"]))
             row = next(t for t in cap["targets"] if t["kind"] == "lib")
             self.assertEqual(row["executed"], {"package_relative_data": "ok", "child_stdout_interleaves_pretty_result": "ok", "invocation_configuration_matches_build": "ok"})
             self.assertEqual(row["cwd"], str(root.resolve()))
             self.assertEqual(row["runtime_cwd"], str(package.resolve()))
             self.assertEqual(len(row["status_log_sha256"]), 64)
-            direct = [c for c in cap["commands"] if "--logfile" in c["argv"]]
+            direct = [c for c in cap["commands"]
+                      if any(c["argv"][i:i + 2] == ["nextest", "run"]
+                             for i in range(len(c["argv"]) - 1))]
             self.assertEqual(len(direct), 1)
             self.assertTrue(all(c["cwd"] == str(root.resolve()) for c in cap["commands"]))
 

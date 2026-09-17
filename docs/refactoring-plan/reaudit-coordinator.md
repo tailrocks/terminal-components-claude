@@ -1,5 +1,9 @@
 # Coordinator re-audit evidence
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 ## Current boundary
 
 This is ongoing planning/preparation verification. It does not certify completion, production refactoring, accepted application baselines or a working production proof harness. The complete re-audit remains open in [reaudit-plan.md](reaudit-plan.md). Repository tracked source remains unchanged; the original three planning artifact roots are still untracked.

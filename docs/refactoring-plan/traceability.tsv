@@ -2134,8 +2134,6 @@ DEC	ADJ-17	TASK-056	R-001	AC-001	CHK-004	primary	Complete source Jackin CLI envi
 DEC	ADJ-17	TASK-057	R-001	AC-001	CHK-004	primary	Source TablePro CLI default and override use explicit launch policy; existing library theme helpers retain Detect.
 DEC	ADJ-17	TASK-063	R-001	AC-001	CHK-004	primary	Complete source TablePro CLI environment and first-frame color precedence.
 DEC	ADJ-17	TASK-068	R-001	AC-001	CHK-006	primary	Document additive terminal color policy and external facade with generic Detect defaults unchanged.
-DEC	ADJ-09	TASK-059	R-002	AC-002	CHK-006	primary	Explorer and tab lifecycle routing reaches workbench search and explorer-filter paste recipients under Picker without Query-only collapse.
-DEC	ADJ-09	TASK-061	R-002	AC-002	CHK-006	primary	History search and Query branches receive Picker-under-modal paste through explicit app-owned routes and shared paste operations.
 DEC	ADJ-18	TASK-060	R-002	AC-002	CHK-006	primary	Retain editable Table-path architecture adversaries separately from live Query read-only source composition.
 DEC	ADJ-18	TASK-061	R-001	AC-001	CHK-004	primary	Configure source read-only Query rows in live app frames; architecture grid tests do not authorize added Query editing UX.
 DEC	ADJ-18	TASK-063	R-001	AC-001	CHK-004	primary	Close route-specific QuickSwitcher compatibility by named oracle replay; contract Ctrl+C expectations are not immutable UX authority.

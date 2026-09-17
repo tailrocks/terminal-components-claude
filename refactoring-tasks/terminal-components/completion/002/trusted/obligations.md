@@ -10,8 +10,8 @@ Run all original Showcase test identities from pinned source; preserve their ass
 
 Source requirements:
 
-- [docs/refactoring-plan/showcase.md](/work/docs/refactoring-plan/showcase.md).
-- [docs/refactoring-plan/showcase-scenarios.tsv](/work/docs/refactoring-plan/showcase-scenarios.tsv).
-- [docs/refactoring-plan/verification.md](/work/docs/refactoring-plan/verification.md).
+- [docs/refactoring-plan/showcase.md](../../../../../docs/refactoring-plan/showcase.md).
+- [docs/refactoring-plan/showcase-scenarios.tsv](../../../../../docs/refactoring-plan/showcase-scenarios.tsv).
+- [docs/refactoring-plan/execution-readiness-report.md](../../../../../docs/refactoring-plan/execution-readiness-report.md).
 
 The host binds the source documents, canonical historical union and scenario files named above into the immutable campaign input manifest. Their exact scenario expansion algorithms and source-qualified tests are required membership, not a best-effort glob. Rejected/deferred source clauses retain their disposition. A task-local candidate manifest cannot override this document or the protected host context.

@@ -1,5 +1,9 @@
 # Independent review of Components B branch repairs
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 This is an independent review of the planning repairs listed in `branch-diff-components-b.md`, not a production implementation or future proof-gate result. It covers the 27-file author handoff for TASK-021 through TASK-028 and TASK-042, plus any narrowly added repair file recorded below. The review reads the changed source-policy paragraphs, finite witnesses and scope clauses against immutable main `7b27732a8c3c131760ec3438f641cb3c11343a42` and oracle `02f5294bfdbf38004cc49130d0aff1d01f31434c`. It also reads the author's original source counterexamples and preserves the distinction between modern defaults and configured historical behavior. It does not claim a second complete reading of every unchanged historical obligation block or every whole source blob.
 
 ## Findings and repair checks

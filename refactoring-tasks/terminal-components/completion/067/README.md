@@ -13,7 +13,7 @@ Measure real production rendering and input workloads, close the missing Showcas
 
 ## Context
 
-Visual regression gate: committed `snapshots/` grouped store (`../../../../docs/baseline/snapshots-v2.md` (task catalog: `refactoring-tasks/visual-validation.md`)). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
+Visual acceptance is currently blocked: this branch lacks the grouped store and PTY suite. A verifier subagent must import them read-only from the immutable `visual-baseline` tag into the external run before using [`visual-validation.md`](../../../visual-validation.md). Never write `snapshots/`, bless output, or mutate the tag.
 
 Real Showcase style share measurement and all preserved allocation/byte/dirty-append/visible-work counters meet accepted thresholds. This is a bounded closure of already restored production work, not permission to reopen unrelated design choices. ARCH:A26; ARCH:A27; HIST:A116–A126; docs/sources/main/COMPONENT_ARCHITECTURE.md §16 performance table and §§20.9,25,27,37,53,66,69,70; main apps/showcase/tests/perf.rs:129 currently compares digests, not allocation counts.
 

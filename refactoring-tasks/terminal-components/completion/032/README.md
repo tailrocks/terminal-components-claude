@@ -13,7 +13,7 @@ Restore the live 23-entry shell route table including Diff; cursor movement vers
 
 ## Context
 
-Visual regression gate: committed `snapshots/` grouped store (`../../../../docs/baseline/snapshots-v2.md` (task catalog: `refactoring-tasks/visual-validation.md`)). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
+Visual acceptance is currently blocked: this branch lacks the grouped store and PTY suite. A verifier subagent must import them read-only from the immutable `visual-baseline` tag into the external run before using [`visual-validation.md`](../../../visual-validation.md). Never write `snapshots/`, bless output, or mutate the tag.
 
 Live public shell/chrome/navigation serves 23 pages with exact sidebar thresholds, help/inspector/focus/persistence and no compatibility paint-over. The application report shows that a migrated file, a green self-baseline or a generic component call can coexist with wrong live behavior. This task proves actual public-component state transitions and oracle output, not nominal API use.
 

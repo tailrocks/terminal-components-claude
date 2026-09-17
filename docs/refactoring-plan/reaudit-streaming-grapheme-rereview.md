@@ -1,5 +1,9 @@
 # Independent streaming-grapheme feasibility review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 The coordinator read the complete original 448-line prototype, then all additions in the final 540-line fixture, its README and changed TASK-013/015 contracts. This is planning-only source and feasibility review, not acceptance of a production painter or full application parity.
 
 Final persisted `lib.rs` SHA-256: `b40fbabcf0f6965669041d5e39015cf8720520c36a1e5b4c77fa76fe2a3f7ca3`. `cmp` confirmed tested disposable source and Cargo.lock equal persisted files. The read-only dependency checkout is exactly main `7b27732a8c3c131760ec3438f641cb3c11343a42`, with empty `git status --short`. No TC source was changed.

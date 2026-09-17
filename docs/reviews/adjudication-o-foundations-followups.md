@@ -1,5 +1,9 @@
 # Adjudication O — Slice 3 foundations follow-ups
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 **Source.** Four research requests returned by the Slice 3 foundations correction pass (F1–F26 + Adjudication N) at `HEAD 7899678`. Each is a conflict between two already-accepted statements. Nothing here reopens Adjudications A–N; each item decides only *which side moves*.
 
 **Method.** Facts are `path:line`. Arithmetic marked **[derived]** was recomputed in this pass from the checked-in token values; the review's `(estimate)` figures are corrected where they were wrong.

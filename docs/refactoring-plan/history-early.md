@@ -1,5 +1,9 @@
 # Early architecture history: direct-source ledger
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 This ledger covers the initial `COMPONENT_ARCHITECTURE.md` and decisions through §29 (Adjudication Q), plus selected later amendments to early contracts. It is planning evidence, not a claim that the implementation satisfies those contracts. Main is pinned to `7b27732a8c3c131760ec3438f641cb3c11343a42`; the controlling Holla oracle is `02f5294bfdbf38004cc49130d0aff1d01f31434c`.
 
 ## Authority and coverage

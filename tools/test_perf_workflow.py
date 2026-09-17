@@ -45,7 +45,7 @@ class PerfWorkflowTests(unittest.TestCase):
     def setUpClass(cls):
         cls.source = WORKFLOW.read_text()
         cls.shell = shell_template(cls.source)
-        cls.pipelines = re.findall(r"^          (cargo (?:test|run) .+ \| tee .+)$", cls.source, re.MULTILINE)
+        cls.pipelines = re.findall(r"^          (cargo (?:nextest|run) .+ \| tee .+)$", cls.source, re.MULTILINE)
 
     def test_all_current_perf_targets_have_blocking_and_advisory_pipelines(self):
         self.assertEqual(len(self.pipelines), 4)

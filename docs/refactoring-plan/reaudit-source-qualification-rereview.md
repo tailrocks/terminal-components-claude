@@ -1,5 +1,9 @@
 # Independent actual-source qualification rereview
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Status: **planning-bootstrap boundary complete for FND-01/FND-02; no submitted `--runner` execution receipt**. FND-01 and FND-02 are closed in [`reaudit-findings.tsv`](reaudit-findings.tsv) at the planning-bootstrap qualification layer; TASK-072 owns submitted `--runner` source-qualification execution later. This review is independent of the source-driver author. Planning instruments only; no production edits, commits, baseline blessing or dispatcher acceptance. `verify-and-stop` and `investigate-first` govern evidence scope and stopping. Holla's separately requested idle MenuBar paste correction is recorded in `holla-trace-corrections.md`, not treated as source-qualifier evidence.
 
 ## Read scope and authority

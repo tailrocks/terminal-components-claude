@@ -1,5 +1,9 @@
 # ADJ-13 finite broker corpus author handoff
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Added an independently executable source/AST corpus, not production broker or scanner implementation. TASK-072 R-002 / AC-011 / CHK-013 now mandatorily runs the submitted dispatcher through the new frozen group; the DEC ADJ-13 and HIST EARLY-046 edges name that exact lane. EARLY-AMEND-046 is an unrelated ActionKey amendment and was deliberately not changed. Coordinator assembly must project the new edge into the trusted source-obligation copy.
 
 The corpus contains 45 distinct source snapshots: eight accepted shapes and 37 required rejections. Base snapshots preserve all 95 pinned main core Rust files, not just session.rs; other-file mutants add their explicit path. A real syn parser observes every byte, even inactive/unreferenced source. Parsed facts retain hierarchical guards, types/generic arguments, aliases/imports, visibility, field inventory, function/method depth and macro tokens. The observer emits no verdict. A future submitted checker must resolve these facts/source and pass the complete corpus with fresh positive recovery after each negative. A whole-file exemption, old regex, constant pass/reject checker or self-reported digest cannot satisfy the acceptance contract.

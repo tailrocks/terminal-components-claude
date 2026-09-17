@@ -36,8 +36,10 @@ active product goal; `COMPONENT_ARCHITECTURE.md` and `DESIGN.md` are active
 architecture/design references; the remaining old goal, handoff, state, and
 coordination files are historical context.
 
-The frozen `visual-baseline` tag remains an immutable oracle reference. Never
-move, retarget, recreate, or write to its release/store.
+The frozen `visual-baseline` tag remains the policy-protected oracle reference.
+Its local and remote pointers are unchanged, but provider-enforced tag/release
+immutability is not established. Never move, retarget, recreate, or write to
+its tag, release, or oracle store.
 
 No refactoring task may start a container or use a container runtime. All task
 implementation and task verification runs through isolated subagents. Taskfmt

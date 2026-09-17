@@ -1,5 +1,9 @@
 # Showcase adversarial re-audit — tasks 032–039
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Audit date: 2026-09-11. Planning only. Oracle `02f5294bfdbf38004cc49130d0aff1d01f31434c`; architectural main `7b27732a8c3c131760ec3438f641cb3c11343a42`. Production source unchanged. Findings below describe the pre-repair transcripts, not new oracle behavior. Author repairs require independent re-review; this report does not close its own findings.
 
 ## Method and coverage

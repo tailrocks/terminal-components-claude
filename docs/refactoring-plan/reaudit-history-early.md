@@ -1,5 +1,9 @@
 # Independent early-history semantic re-audit
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Scope: all 60 EARLY clauses and all 54 EARLY-AMEND clauses. Planning only; no Terminal Components production edits, commits, merges, baseline blessing or declaration of runtime parity. Architectural start `7b27732a8c3c131760ec3438f641cb3c11343a42`; immutable UI oracle `02f5294bfdbf38004cc49130d0aff1d01f31434c`. Historical source is inspected at each row's original commit, not inferred from current main or a successful ledger join.
 
 ## Method and limits

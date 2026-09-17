@@ -1,5 +1,9 @@
 # Independent UI/UX parity synthesis
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 The four applications exist on main, but source evidence demonstrates missing flows and incompatible compositions. No application has established equality to the required oracle. The largest common failure is independent ownership of visible content and interactive state: a historical-looking frame can cover an unrelated, incomplete or inert component model. Completing the architectural refactor must remove that condition through production public components and one controlled state/geometry path.
 
 ## Authority, method and evidence boundary

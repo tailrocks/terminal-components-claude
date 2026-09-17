@@ -1,5 +1,9 @@
 # Slice 3 foundations review — fresh read-only `read-only analyst`
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 **Scope.** `crates/tui` (package `tui-next`, lib `tui_next`), `crates/tui-testing`, `xtask`, `crates/tui/tests/**`, `crates/tui/examples/12_author_component.rs`, `crates/tui/README.md`, at commit `18afddd`. Read against `COMPONENT_ARCHITECTURE.md` §3–§13, §16, §17.0, §21–§24, Appendix B, and `docs/audit/modern-api-audit.md` §1–§2.
 
 **Verdict.** **Components may build on this surface: NO as it stands; YES after the seven blockers and the eight adjudications below are applied.** The foundation is substantially correct, well-documented and unusually honestly tested for a first cut — the intent queue, focus ring, capture, scroll, layout, reconcile core and the conformance driver are ready. Seven defects are load-bearing for Slice 4 and cannot be fixed by a 4x owner (they all live in files Slice 3 owns), and four architecture-document amendments are required so the gates stop asserting things that are false.

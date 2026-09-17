@@ -1,5 +1,9 @@
 # Historical API, application, and architecture-research inputs
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Planning evidence only. No production changes or implementation verification. Reader: `history_inputs/audit_remaining`. Pinned source: `7b27732a`. Historical findings describe the old `src/` tree; they are not current defect claims. Audit recommendations and research sketches have no independent authority to change the target architecture.
 
 ## Direct-source coverage

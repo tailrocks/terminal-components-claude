@@ -1,5 +1,9 @@
 # Later amendments to architecture sections 0–29
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 ## Scope and completion
 
 This planning ledger directly reconstructs amendments to the prefix of `COMPONENT_ARCHITECTURE.md` before the top-level §30 heading. The prefix includes the original appendices and sections 21–29. It covers every indexed parent edge after `3ed377e3`, which is the last edge owned by the early reader; the parent assignment's `3ed5c26f` spelling was corrected against Git. The early reader owns `70dacec1` and `3ed377e3` themselves. The historian owns the initial J/L/M inline reconciliation. Later numbered sections belong to the middle and late readers, even when their decisions amend the earlier prefix.

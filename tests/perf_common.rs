@@ -11,10 +11,10 @@
 //! Run in release with a single thread for meaningful timings:
 //!
 //! ```text
-//! cargo test --release --test perf -- --test-threads=1 --nocapture
-//! cargo test --release --bin showcase perf_tests -- --test-threads=1 --nocapture
-//! cargo test --release --bin tablepro perf_tests -- --test-threads=1 --nocapture
-//! cargo test --release --bin jackin-preview perf_tests -- --test-threads=1 --nocapture
+//! cargo nextest run --release --test perf --test-threads=1 -- --nocapture
+//! cargo nextest run --release --bin showcase --test-threads=1 perf_tests -- --nocapture
+//! cargo nextest run --release --bin tablepro --test-threads=1 perf_tests -- --nocapture
+//! cargo nextest run --release --bin jackin-preview --test-threads=1 perf_tests -- --nocapture
 //! ```
 //!
 //! Allocation counters are per thread, so counts stay exact with any

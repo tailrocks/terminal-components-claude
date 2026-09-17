@@ -1,5 +1,9 @@
 # Refactoring history and decision authority
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Investigation date: 2026-09-11. This is planning evidence, not implementation or parity certification. Commit-qualified paths below mean `git show <commit>:<path>`; historical pass counts are not current gate results.
 
 ## Immutable identities and topology

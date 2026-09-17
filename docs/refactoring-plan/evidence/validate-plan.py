@@ -26,7 +26,7 @@ VERIFY_CHECK_PHASES = frozenset({"precondition", "focused", "regression", "lint"
 VERIFY_CHECK_REQUIRED = frozenset({"id", "phase", "expected", "requirements", "acceptance"})
 CHECK_ID_PATTERN = re.compile(r"^CHK-\d{3}$")
 TC_PROOF_BINARY = "tools/refactor-proof/bin/tc-proof"
-CONTEXT_ROOT = ".campaign/evidence/contexts"
+CONTEXT_ROOT = "$RUN_DIR/contexts"
 TRUSTED_ROOT = "refactoring-tasks/terminal-components/completion"
 LEGACY_NAMESPACE = re.compile(r"(?<![A-Za-z0-9_.-])/(?:task|work|proof|run)(?:/|$)")
 FORBIDDEN_RUNTIME = re.compile(
@@ -88,14 +88,12 @@ class Audit:
                 self.require((self.root / token).is_file(), f"Missing proof executable: {task_id}:{check_id}:{token}")
 
         expected_context = f"{CONTEXT_ROOT}/{check_id}.json"
-        if has_argv and isinstance(check.get("argv"), list):
-            argv = check["argv"]
-            if argv and argv[0] == TC_PROOF_BINARY:
-                self.require("--context" in argv, f"Missing operation context: {task_id}:{check_id}")
-                if "--context" in argv:
-                    position = argv.index("--context") + 1
-                    self.require(position < len(argv) and argv[position] == expected_context,
-                                 f"Per-check context mismatch: {task_id}:{check_id}")
+        if tokens and tokens[0] == TC_PROOF_BINARY:
+            self.require("--context" in tokens, f"Missing operation context: {task_id}:{check_id}")
+            if "--context" in tokens:
+                position = tokens.index("--context") + 1
+                self.require(position < len(tokens) and tokens[position] == expected_context,
+                             f"Per-check context mismatch: {task_id}:{check_id}")
         return tokens
 
     def table(self, name: str, key: str | None = None) -> list[dict[str, str]]:
@@ -208,17 +206,10 @@ class Audit:
             checks = {check["id"]: check for check in verify.get("checks", [])}
             self.require(bool(requirements) and bool(acceptance) and bool(checks), f"Empty contract graph: {task_id}")
             for check_id, check in checks.items():
-                self.host_local_command(task_id, check_id, check, package)
-                argv = check.get("argv", [])
-                if argv and argv[0] == TC_PROOF_BINARY:
-                    self.require("--context" in argv, f"Missing operation context: {task_id}:{check_id}")
-                    if "--context" in argv:
-                        position = argv.index("--context") + 1
-                        expected_context = f"{CONTEXT_ROOT}/{check_id}.json"
-                        self.require(position < len(argv) and argv[position] == expected_context, f"Per-check context mismatch: {task_id}:{check_id}")
-                if any("runner-bootstrap-driver.py" in argument for argument in argv) and "--group" in argv:
-                    position = argv.index("--group") + 1
-                    self.require(position < len(argv) and argv[position] in {"070", "071", "072"}, f"Invalid runner qualification group: {task_id}:{check_id}")
+                tokens = self.host_local_command(task_id, check_id, check, package)
+                if any("runner-bootstrap-driver.py" in argument for argument in tokens) and "--group" in tokens:
+                    position = tokens.index("--group") + 1
+                    self.require(position < len(tokens) and tokens[position] in {"070", "071", "072"}, f"Invalid runner qualification group: {task_id}:{check_id}")
             protocol = (package / "AGENTS.md").read_bytes()
             normalized = re.sub(rb"TASK-\d{3}", b"TASK-000", protocol)
             self.require(hashlib.sha256(normalized).hexdigest() == "86bbf024a51aa62f6bc739a0ed46d54faab76cf87ffe918c682dfbc453b964de", f"Canonical execution protocol drift: {task_id}")
@@ -256,7 +247,7 @@ class Audit:
                 self.require(check_id not in seen_ids, f"Duplicate check id: {relative}:{check_id}")
                 seen_ids.add(check_id)
                 self.require(set(check) >= VERIFY_CHECK_REQUIRED, f"Missing check fields: {relative}:{check_id}")
-                self.host_local_command(task_id, check_id, check, verify_path.parent)
+                tokens = self.host_local_command(task_id, check_id, check, verify_path.parent)
                 phase = check.get("phase", "")
                 self.require(phase in VERIFY_CHECK_PHASES, f"Unknown check phase: {relative}:{check_id}:{phase}")
                 argv = check.get("argv", [])
@@ -270,33 +261,33 @@ class Audit:
                 for field in ("requirements", "acceptance"):
                     values = check.get(field, [])
                     self.require(isinstance(values, list) and bool(values), f"Empty {field}: {relative}:{check_id}")
-                if not argv or argv[0] != TC_PROOF_BINARY:
+                if not tokens or tokens[0] != TC_PROOF_BINARY:
                     continue
                 tc_proof_checks += 1
-                self.require(len(argv) >= 2, f"Missing tc-proof operation: {relative}:{check_id}")
-                operation = argv[1]
+                self.require(len(tokens) >= 2, f"Missing tc-proof operation: {relative}:{check_id}")
+                operation = tokens[1]
                 self.require(operation in TC_PROOF_OPERATIONS,
                              f"Unknown tc-proof operation: {relative}:{check_id}:{operation}")
-                self.require("--context" in argv, f"Missing tc-proof context: {relative}:{check_id}")
-                position = argv.index("--context") + 1
-                self.require(position < len(argv), f"Dangling tc-proof --context: {relative}:{check_id}")
+                self.require("--context" in tokens, f"Missing tc-proof context: {relative}:{check_id}")
+                position = tokens.index("--context") + 1
+                self.require(position < len(tokens), f"Dangling tc-proof --context: {relative}:{check_id}")
                 expected_context = f"{CONTEXT_ROOT}/{check_id}.json"
-                self.require(argv[position] == expected_context,
+                self.require(tokens[position] == expected_context,
                              f"Context check id mismatch: {relative}:{check_id}")
                 if operation == "oracle":
-                    self.require("--namespace" in argv, f"Missing oracle namespace: {relative}:{check_id}")
-                    namespace_position = argv.index("--namespace") + 1
-                    self.require(namespace_position < len(argv)
-                                 and argv[namespace_position] in TC_PROOF_ORACLE_NAMESPACES,
+                    self.require("--namespace" in tokens, f"Missing oracle namespace: {relative}:{check_id}")
+                    namespace_position = tokens.index("--namespace") + 1
+                    self.require(namespace_position < len(tokens)
+                                 and tokens[namespace_position] in TC_PROOF_ORACLE_NAMESPACES,
                                  f"Invalid oracle namespace: {relative}:{check_id}")
                 elif operation == "capture":
-                    self.require("--lane" in argv, f"Missing capture lane: {relative}:{check_id}")
-                    lane_position = argv.index("--lane") + 1
-                    self.require(lane_position < len(argv) and argv[lane_position] in TC_PROOF_CAPTURE_LANES,
+                    self.require("--lane" in tokens, f"Missing capture lane: {relative}:{check_id}")
+                    lane_position = tokens.index("--lane") + 1
+                    self.require(lane_position < len(tokens) and tokens[lane_position] in TC_PROOF_CAPTURE_LANES,
                                  f"Invalid capture lane: {relative}:{check_id}")
                 else:
-                    self.require("--namespace" not in argv, f"Unexpected oracle namespace: {relative}:{check_id}")
-                    self.require("--lane" not in argv, f"Unexpected capture lane: {relative}:{check_id}")
+                    self.require("--namespace" not in tokens, f"Unexpected oracle namespace: {relative}:{check_id}")
+                    self.require("--lane" not in tokens, f"Unexpected capture lane: {relative}:{check_id}")
         self.counts["catalog_argv_smoke_tc_proof_checks"] = tc_proof_checks
 
     def historical_prose(self, sources: dict, tasks: dict) -> None:
@@ -417,7 +408,15 @@ class Audit:
                 continue
             num = task_id.split("-")[1]
             for check in data.get("checks", []):
-                if "account-tests" not in check.get("argv", []):
+                shell = check.get("shell")
+                if isinstance(shell, str):
+                    try:
+                        command_tokens = shlex.split(shell)
+                    except ValueError:
+                        command_tokens = []
+                else:
+                    command_tokens = check.get("argv", [])
+                if "account-tests" not in command_tokens:
                     continue
                 check_id = check["id"]
                 template = completion / num / "trusted/check-context-templates" / f"{check_id}.json"
@@ -469,16 +468,22 @@ class Audit:
             if verify.is_file():
                 data = tomllib.loads(verify.read_text())
                 checks = data.get("checks", [])
-                match = next(
-                    (
-                        check
-                        for check in checks
-                        if check.get("id") == spec["check_id"]
-                        and spec["group"] in check.get("argv", [])
-                        and "runner-bootstrap-driver.py" in " ".join(check.get("argv", []))
-                    ),
-                    None,
-                )
+                match = None
+                for check in checks:
+                    if check.get("id") != spec["check_id"]:
+                        continue
+                    shell = check.get("shell")
+                    if isinstance(shell, str):
+                        try:
+                            command_tokens = shlex.split(shell)
+                        except ValueError:
+                            command_tokens = []
+                    else:
+                        command_tokens = check.get("argv", [])
+                    if (spec["group"] in command_tokens
+                            and "runner-bootstrap-driver.py" in " ".join(command_tokens)):
+                        match = check
+                        break
                 self.require(match is not None, f"{task_id} verify.toml must wire {spec['check_id']} to runner --group {spec['group']}")
 
     def task069_host_context(self) -> None:

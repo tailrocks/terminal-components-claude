@@ -223,7 +223,7 @@ def compile_execute(root, target, package, test, selected, kind="test"):
     env = compiler_environment(identity, dict(os.environ, CARGO_TARGET_DIR=str(target),
         RUSTFLAGS="--cap-lints=allow", CARGO_NET_OFFLINE="true"))
     cargo = identity["cargo"]["path"]
-    argv = [cargo, "test", "--no-run", "--message-format=json", "--locked", "--offline", "-p", package,
+    argv = [cargo, "nextest", "run", "--no-run", "--cargo-message-format=json", "--user-config-file", "none", "--locked", "--offline", "-p", package,
             *(["--lib"] if kind == "lib" else ["--" + kind, test])]
     build = subprocess.run(argv, cwd=root, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=300, check=False)
     validate_compiler_identity(identity)

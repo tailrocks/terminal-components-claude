@@ -1,5 +1,9 @@
 # Whole-branch xtask review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Scope: all18 `xtask/` additions in `branch-diff-inventory.tsv`, main7b27732a8c3c131760ec3438f641cb3c11343a42 versus Holla2e2401393c47360741ebd321679de08982dca50a. Entire added source is the entire changed hunk set. Immutable product oracle remains02f5294bfdbf38004cc49130d0aff1d01f31434c. No builds, execution probes or source edits.
 
 Coverage complete:18/18 full files;17727 source lines total, including main.rs1–11816 and every embedded test body. Every path is added, so its complete source is also its complete changed-hunk set. Per-file manifest records exact blobs, read mode and source-derived disposition/task mapping. This is source review, not a claim that any test was executed or any checker is independently qualified.

@@ -1,5 +1,9 @@
 # Jackin and TablePro whole-branch comparison
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 ## Scope and current status
 
 Completed source-read and bounded semantic comparison:92 Jackin paths and45 TablePro paths,137 exact branch blobs. The companion `branch-diff-jackin-tablepro-read-ledger.tsv` records every commit/blob/SHA-256/line count, complete read coverage, retained architecture, restoration responsibility and finding/task mapping. Reading means all current bytes plus all changed old bytes and exact equal-line mapping where recorded; hashing alone never counted. This is not an implementation/parity completion claim. Open disposition and proof additions remain explicit below.

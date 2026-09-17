@@ -1,5 +1,9 @@
 # Complex-Component and Domain-Boundary Audit
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Scope: `src/widgets/*` (grid, table, code, completion, diff, statusbar, hintbar, dialog, menu, picker, panel, splitter, viewport, tabs, textarea, input, field_common, select, choice, chips), all TablePro consumers, all Jackin `screens/*` plus `jackin_preview/app.rs`.
 
 Convention: **[F]** = collected fact with citation. **[I]** = inference / recommendation. All paths are repo-relative; `file:line` refers to the file as it stands at the audited revision (d5e7075).

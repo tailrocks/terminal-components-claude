@@ -56,13 +56,13 @@ Exact historical test accounting exists but is unfinished: `tools/test-inventory
 These commands are mandatory future implementation gates at the final candidate, with no baseline blessing variables. `BLESS_GUARD_BASE` must resolve the actual integration base, not the candidate itself. Use a dedicated target directory and capture compiler versions, commands, exit codes, and source/lock fingerprints.
 
 ```sh
-rtk cargo +1.88.0 check --locked --workspace --all-targets --all-features
-rtk cargo +stable check --locked --workspace --all-targets --all-features
+rtk cargo +1.88.0 nextest run --locked --workspace --all-targets --all-features --no-run
+rtk cargo +stable nextest run --locked --workspace --all-targets --all-features --no-run
 rtk cargo fmt --all --check
 rtk cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 rtk cargo build --locked --workspace --all-targets --all-features
 rtk cargo build --locked -p junie-tui --examples
-rtk cargo check --locked -p junie-tui --no-default-features
+rtk cargo nextest run --locked -p junie-tui --no-default-features --no-run --lib
 rtk cargo nextest run --locked --workspace --all-targets --all-features
 rtk cargo nextest run --locked -p junie-tui --test render --test render_components
 rtk cargo doc --locked --workspace --all-features --no-deps

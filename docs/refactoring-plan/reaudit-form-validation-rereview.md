@@ -1,5 +1,9 @@
 # Independent Form validation adjudication review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 2026-09-11. Planning-only, source-backed review of ADJ-12 and TASK-006/019/058/068 bindings. No production or canonical edits. Verify-and-stop limits this result to the stated contract.
 
 ## Authority and root condition

@@ -2,7 +2,14 @@
 
 ## Authority and inspected state
 
-The UI oracle used here is `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze, formerly tagged `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`). The architecture comparison is main `7b27732a8c3c131760ec3438f641cb3c11343a42`. The investigation checkout was later, but `git diff 02f5294b HEAD -- src/bin/tablepro` is empty, so the cited application files exactly match the oracle. Widget acceptance still requires reading/capturing the immutable commit, not the moving checkout.
+The UI source oracle used here is `02f5294bfdbf38004cc49130d0aff1d01f31434c`
+(historical freeze, formerly tagged `holla-fable-2026-09-10`); the frozen
+visual-baseline tag is `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`. The
+architecture comparison is main `7b27732a8c3c131760ec3438f641cb3c11343a42`.
+The investigation checkout was later, but `git diff 02f5294b HEAD --
+src/bin/tablepro` is empty, so the cited application files exactly match the
+oracle. Widget acceptance still requires reading/capturing the frozen tag's
+oracle, not the moving checkout.
 
 This is a planning artifact. It does not implement the migration or bless baselines. Companion [tablepro-scenarios.tsv](tablepro-scenarios.tsv) specifies the execution matrix. All source references below and TSV references prefixed O refer to the oracle; M refers to the main SHA above.
 
@@ -100,8 +107,18 @@ Main `apps/tablepro/tests` contains app_tests, cli_contract, close_contract, com
 
 Existing `shots/audit`, `shots/audit-flows/tablepro_ack_*`, `tools/audit_flows.sh` and main `baseline/before/tablepro_*` are historical evidence. They cover much of the initial shell/editor/grid/safety flow but are not automatically immutable-tag baselines. Inspect source/binary manifest hashes before reuse. `tools/capture.sh` provides text/ANSI/cursor/PNG and explicit provenance/fidelity; final execution uses mandated tui-snap, preserving these evidence properties.
 
-Observed local validation: `rtk cargo test --bin tablepro` passed 35 tests (25 application + 6 SQL + 4 model), 0 failures, on the current checkout whose entire TablePro application subtree equals the oracle. This is behavioral evidence, not a claim that shared widgets or current screenshots match the immutable tag.
+Historical local validation recorded 35 passing tests (25 application, 6 SQL,
+and 4 model) on a checkout whose entire TablePro application subtree equaled
+the oracle. This is behavioral evidence, not a claim that shared widgets or
+current screenshots match the immutable tag. A current rerun, when authorized,
+must use host-local `cargo nextest run --locked --bin tablepro` in an isolated
+target.
 
-Planned gates: immutable oracle `rtk cargo test --bin tablepro`; candidate `rtk cargo test -p tablepro`; candidate workspace format/check/clippy/test and architecture/public API checks from the central verification plan; all TP TSV rows via pinned tui-snap adapter; current controls/action routes and cross-app shared component gates. Run oracle tests in an oracle checkout/isolated target, not by substituting main tests.
+Planned gates: immutable-oracle and candidate `cargo nextest run --locked`
+selectors for `tablepro`; candidate workspace format/clippy/nextest and
+architecture/public API checks from the central verification plan; all TP TSV
+rows via a reviewed tui-snap adapter; current controls/action routes and
+cross-app shared component gates. Run oracle tests in an oracle
+checkout/isolated target, not by substituting main tests.
 
 Completion requires every row's expanded checkpoints to match oracle, all source inventory routes mapped, meaningful current tests passing, and no private facade escape or app-domain leakage. Capture gaps are remaining work, never an approved tolerance.

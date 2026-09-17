@@ -1,5 +1,9 @@
 # Independent witness: Jackin/TablePro post-rereview corrections
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 2026-09-15. Fresh independent reviewer; did not author `reaudit-jackin-tablepro-rereview.md` repairs or prior JT planning edits. Read `docs/sources/PLANNING_GOAL.md` scope via assigned finding JT-JT01-JT06 and verify-and-stop bounds. Only this report and the closed finding row were written; no canonical scenario, task package, product source, or baseline was edited by this reviewer.
 
 Oracle pin: `02f5294bfdbf38004cc49130d0aff1d01f31434c`. Architecture main: `7b27732a8c3c131760ec3438f641cb3c11343a42`.

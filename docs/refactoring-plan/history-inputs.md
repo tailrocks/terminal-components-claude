@@ -1,5 +1,9 @@
 # Historical audit inputs and early state reconstruction
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 This evidence supplement covers the initial linked audits, review adjudications, and `REFACTORING_STATE.md` chronology through `70dacec1dd527218bdba394675938a9e9c4de285`. It is planning evidence, not a claim that current production code satisfies a historical check.
 
 The pinned architecture source is `7b27732a8c3c131760ec3438f641cb3c11343a42`. The user-visible acceptance oracle supplied by the coordinator is `02f5294bfdbf38004cc49130d0aff1d01f31434c`. This reader did not independently resolve the tag. Historical permissions to change or bless visuals do not override the current planning goal's strict oracle parity.

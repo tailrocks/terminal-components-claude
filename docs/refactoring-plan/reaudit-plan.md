@@ -1,5 +1,9 @@
 # Source-first planning re-audit
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 ## Scope and current disposition
 
 The user reopened the planning goal on 2026-09-11 to verify every plan item and every line of every task, identify omissions, and repair them. The original planning/preparation boundary remains: no terminal-components production refactor, task execution, integration branch, commit, merge or publication is authorized by this re-audit. The explicitly permitted external tui-snap dependency remains separate.

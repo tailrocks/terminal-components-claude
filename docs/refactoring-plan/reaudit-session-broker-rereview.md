@@ -1,5 +1,9 @@
 # Independent safe session-broker feasibility review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 The coordinator independently read the complete persisted README, Rust program, PTY supervisor and Cargo manifest for `evidence/session-broker-bootstrap-20260911`. This is bounded planning feasibility evidence, not a production implementation, replacement oracle or TASK-009 acceptance. Verify-and-stop confined this review to the stated signal protocol and proof claims.
 
 ## Finding and repair

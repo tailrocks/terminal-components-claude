@@ -8,49 +8,60 @@ It is a preparation audit, not execution authorization.
 **NO-GO.**
 
 `refactor/holla-parity` remains campaign/proof scaffolding, not completed
-refactor work. The pre-cleanup audit snapshot was `a34a1cff`; the current
-cleanup also retires the forbidden host-lifecycle proof path. It does not
-claim product parity.
+refactor work. The pre-cleanup audit snapshot was `a34a1cff`; the cleanup
+parent was `c9eef7bd`. The reconciled tree is the current branch HEAD after
+this report's changes and does not claim product parity.
 
 - Audit snapshot `main..a34a1cff`: 27 commits, zero apps/ or crates/ product-source changes.
+- The reconciled branch is `main` plus 35 commits; `apps/` and `crates/`
+  remain identical to `main`. The reconciliation adds only docs, task
+  contracts, scripts, and verification tooling on top of the 34-commit
+  pre-reconciliation tree.
 - All 73 task manifests remain pending.
 - Shared architecture is substantial, but consumers still contain compatibility painters, duplicate state, and historical renderers.
-- Frozen visual oracle is absent.
-- Planning validator fails with three missing frozen archive assets.
-- After the cleanup commit, the only intentionally preserved dirty files are
+- Frozen visual oracle is absent from this branch and its active gate; it
+  remains available at the immutable `visual-baseline` tag.
+- Planning validator passes: all 211 frozen bootstrap asset bindings are present and hash-valid.
+- After the reconciliation commit, the only intentionally preserved dirty files are
   pre-existing proof artifacts:
   - tools/refactor-proof/architecture/source.py
   - tools/refactor-proof/bin/tc-proof
 
 `CLAUDE.md -> AGENTS.md` is correct. The current peeled `visual-baseline` tag
-remains `4a79c0a2`; its tag, release, and oracle store are immutable.
+remains `4a79c0a2`; the local tag pointer and remote pointer are unchanged.
+The tag is unsigned, GitHub reports the release as `immutable: false`, and the
+branch has no provider protection, so immutability is currently a repository
+policy boundary, not a provider-enforced guarantee. No mutation is authorized.
 
 Validation:
 
 - Latest taskfmt `0.2.0` at `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`:
   73/73 numbered packages linted successfully.
-- Plan validator: fails with three missing main-source.tar.gz errors.
+- Plan validator: passes with `error_count: 0`; the exact reviewed
+  `main-source.tar.gz` projection is present at SHA-256
+  `ab9568812e86e3c8e18c1d945886d4b2387b1e175ad61ba4d60750b5d6f98119`.
 - Existing pre-cleanup workspace nextest audit: **3,350 passed**, 154
   binaries, 761.956 seconds. It is retained as historical evidence, not a
   post-retirement proof claim.
 - Current post-retirement `cargo nextest` gate for `refactor-proof`:
   **3 passed**.
 
-## B. Branch reconciliation (pre-cleanup audit snapshot)
+## B. Branch reconciliation
 
 | Ref | Commit |
 |---|---|
 | main | 7b27732a |
-| refactor/holla-parity | a34a1cff (pre-cleanup audit snapshot) |
+| refactor/holla-parity | final HEAD containing this report (parent `c9eef7bd`; `a34a1cff` was the audit snapshot) |
 | visual-baseline branch | 4a79c0a2 |
 | visual-baseline tag peel | 4a79c0a2 |
 
 Relationships:
 
-- merge-base(main, refactor) = 7b27732a; refactor is main + 27 commits.
+- merge-base(main, refactor) = 7b27732a; the cleanup parent was main + 34
+  commits, and the reconciled final HEAD will be main + 35 commits.
 - merge-base(visual-baseline, refactor) = cc14dd6b.
 - Baseline has 77 commits absent from refactor.
-- Refactor has 801 commits absent from baseline.
+- Refactor has 808 commits absent from baseline.
 - Baseline and refactor were never reconciled.
 
 Missing from the current branch:
@@ -87,9 +98,10 @@ Status means current-candidate evidence, not ledger claims.
 | 073 | Blocked | Depends on 008/072; generated registry authority is not qualified. |
 
 No task is proven complete. No task is proven obsolete or superseded. The
-task definitions remain pending. All 73 `verify.toml` files now use
-repository-relative host-local paths; the validator rejects any reintroduction
-of legacy container namespaces before dispatch.
+task definitions remain pending. All 73 `verify.toml` files now use either
+repository-relative `WORKTREE` paths or exported external `$RUN_DIR` proof
+paths; the validator rejects any reintroduction of legacy container namespaces
+before dispatch.
 
 The catalog itself is structurally healthy: the latest standalone taskfmt
 `lint` passes all 73 numbered packages. Required CLAUDE.md symlinks are valid
@@ -204,20 +216,26 @@ Current tests cover much component behavior, but parity proof needs replayed sta
 
 | Script | Purpose / state | macOS, Grok, container | Recommendation |
 |---|---|---|---|
-| scripts/campaign-dispatch.sh | Per-task taskfmt lint/verify wrapper. | Runs only in a verifier subagent's host-local worktree and external run directory. | Keep fail-closed. |
+| scripts/campaign-dispatch.sh | Per-task taskfmt lint/verify wrapper. | Runs only in a verifier subagent's host-local worktree and external run directory; requires an explicit full scope base, clean worktree, native build receipt, exact context set, and fresh logs. | Keep fail-closed; the missing per-check launcher remains a blocker. |
 | scripts/campaign-init.sh | Branch/worktree/ledger bootstrap. | Must never move an existing ref or force-checkout a worktree. | Keep only after non-forcing guard repair. |
 | scripts/campaign-install-taskfmt.sh | Installs latest taskfmt from the local checkout. | Exact source HEAD, version, and pinned executable SHA-256 are checked; preflight separately lints all 73 packages. | Keep. |
 | scripts/campaign-absorb-planning.sh | Copies planning worktree and stages changes. | Obsolete branch-copy workflow. | Retire. |
-| scripts/campaign-preflight.sh | Pre-arm checks. | Fails closed; uses latest taskfmt per-task lint and rejects legacy container paths. | Keep; current plan validator remains a blocker. |
+| scripts/campaign-preflight.sh | Pre-arm checks. | Fails closed; uses latest taskfmt per-task lint, rejects legacy container paths, and validates the native comparator receipt against worktree HEAD. | Keep; ledger, oracle, context, and accepted-receipt blockers remain. |
 | Retired container-path helper names | No such scripts are present in the current tree; old reports may still cite them. | Historical only. | Do not restore or invoke. |
 | tools/refactor-proof/scripts/dev-tc-proof-host.sh | Removed host-lifecycle wrapper. | No current path; historical references are non-executable. | Do not restore or invoke. |
 | tools/refactor-proof/scripts/dev-tc-proof.sh | Proof helper for verifier-owned checks. | Host-local and subagent-scoped. | Keep only if a verifier task requires it. |
-| tools/refactor-proof/scripts/sync-binaries.sh | Legacy tracked-binary synchronizer. | Not part of current taskfmt-only flow. | Do not use for campaign authority. |
+| tools/refactor-proof/scripts/sync-binaries.sh | Legacy tracked-binary synchronizer. | Explicit fail-closed retirement; it refuses to overwrite the Python dispatcher. | Do not use for campaign authority. |
 | tools/refactor-proof/scripts/test_freeze_vectors.py | Removed host-lifecycle vector tests. | No current path; historical references are non-executable. | Do not restore or invoke. |
 | tools/refactor-proof/scripts/test_integrate_seal_vectors.py | Removed host-lifecycle vector tests. | No current path; historical references are non-executable. | Do not restore or invoke. |
-| docs/refactoring-plan/evidence/validate-plan.py | Read-only catalog/DAG/traceability validator. | macOS-compatible; no container. | Keep; make preflight fail closed. |
+| docs/refactoring-plan/evidence/validate-plan.py | Read-only catalog/DAG/traceability validator. | macOS-compatible; no container; parses the current shell/argv proof path contract. | Keep; make preflight fail closed. |
 
-No script directly runs tuisnap accept. All Bash scripts pass syntax checks.
+`campaign-build-proof.sh` is a separate host-local preparation helper. It runs
+locked offline Cargo build for the standalone native `tc-proof` comparator and
+writes a commit/path/hash receipt; taskfmt does not build it. The current
+dispatcher validates the receipt and context filenames, but no trusted helper
+yet materializes the per-check context/index/result/observer ABI.
+
+No script directly runs `tuisnap accept`. All Bash scripts pass syntax checks.
 
 ## H. macOS execution prerequisites
 
@@ -243,10 +261,15 @@ afd3b575dbcc7044620bec4b9493a74eca3e5ef2
 - Isolated worktrees.
 - No Docker or container runtime.
 
-All current task packages now contain host-local repository-relative argv
-paths. The validator and preflight reject legacy `/task`, `/work`, `/proof`,
-and `/run` namespaces. Do not create mounts or firmlinks to preserve the old
-contract.
+All current task packages now contain host-local `WORKTREE` paths or exported
+external `$RUN_DIR` proof paths. The validator and preflight reject legacy
+`/task`, `/work`, `/proof`, and `/run` namespaces. Do not create mounts or
+firmlinks to preserve the old contract. Proof checks use exported
+`$RUN_DIR/contexts/CHK-NNN.json`; their
+contexts, result paths, observer transport, and context index still need a
+trusted verifier-owned materializer. The native comparator must be built by
+the host-local helper and bound to its commit/path/hash receipt. Do not create
+mounts or firmlinks to preserve the old contract.
 
 ## I. Subagent execution architecture
 
@@ -277,7 +300,10 @@ Agents must not:
 - Share writable build/snapshot directories.
 
 Only the serial coordinator may merge reviewed task commits. No host lifecycle
-service or taskfmt promotion path exists.
+service or taskfmt promotion path exists. The verifier subagent must perform
+native proof preparation before taskfmt: build the standalone comparator,
+materialize immutable per-check contexts and the context index, bind observer
+and result capabilities, then invoke only taskfmt's per-task commands.
 
 ## J. taskfmt strategy
 
@@ -307,6 +333,12 @@ incompatible with this campaign.
 use host-local relative paths or explicit subagent paths; legacy `/task`,
 `/work`, `/proof`, and `/run` entries are migration blockers.
 
+The latest taskfmt executes `argv` from the supplied root and does not
+interpolate `$RUN_DIR`; shell checks are run by bash. The dispatcher exports
+`RUN_DIR` and validates filenames/run identity, but taskfmt itself validates
+neither proof ABI nor result provenance. This is why a passing package lint is
+not a ready verification run.
+
 ## K. Verification matrix
 
 | Workstream | Tests | Visual proof | Behavioral proof | Gate |
@@ -326,15 +358,23 @@ All Rust gates must use cargo nextest.
 
 Hard blockers:
 
-- Frozen oracle absent from current branch.
+- Frozen oracle absent from current branch and active gate.
 - visual_baseline binary unavailable on HEAD.
 - test(store_integrity) has no active test.
-- Plan validator fails on missing docs/refactoring-plan/evidence/main-source.tar.gz.
 - `.campaign/ledger.json` is disarmed; no accepted current subagent
   verification evidence exists.
 - No accepted current verifier-subagent evidence exists for any task.
 - The migrated task checks are not dispatch-ready until fresh verifier runs
   prove their referenced host-local inputs and outputs.
+- No trusted per-check native launcher/materializer currently binds
+  `TC_PROOF_CONTEXT_SHA256`, run/task/check IDs, source tree, oracle commit,
+  result path, observer FDs/nonce, and context-index identity end-to-end.
+  The dispatcher currently checks the exact context filenames, JSON object
+  shape, and common `run_id`; that is necessary but not sufficient.
+- The standalone native comparator is now fail-closed behind
+  `campaign-build-proof.sh` and a commit/path/hash receipt, but no accepted
+  receipt exists for the reconciled tree because the two pre-existing proof
+  files remain dirty and are intentionally excluded from this commit.
 - Ledger candidate tree hash `4d3501a6` is not current HEAD; no reviewed
   subagent evidence binds the current branch.
 - Current proof-worker identity is not yet bound to a reviewed subagent run.
@@ -345,12 +385,19 @@ Hard blockers:
   by this documentation/tooling cleanup.
 - CI and app perf command generation now use `cargo nextest`; this cleanup did
   not add the missing frozen visual gate.
+- `cargo-nextest 0.9.143` has no doctest runner. Rustdoc compilation remains
+  available in CI, but executable doctest coverage is an explicit TASK-066
+  blocker; no invalid `nextest --doc` or legacy test-runner fallback is
+  permitted.
 - Compatibility painters remain in Showcase, Jackin, Holla, and TablePro.
 - Current generic-copy architecture checks miss dominant duplicate-paint patterns.
 - Historical readiness documents retain superseded verdicts, but the current
   authority and routing are now explicit in `docs/refactoring-plan/README.md`.
 - Historical sandbox scripts are container-path dependent and are not a valid
   host qualification path.
+- Normal Jackin allocation/performance budgets still fail in the recorded
+  candidate evidence (capsule, manager, and key-movement allocations); the
+  flag-placement fixes and nextest migration do not qualify those budgets.
 
 ## M. Final long-running /goal execution plan
 
@@ -358,14 +405,18 @@ Hard blockers:
 
 1. Freeze current branch SHA and preserve the two dirty proof files as explicit inputs.
 2. Reconcile .campaign ledger, stale receipts, disarmed state, and current HEAD.
-3. Recover the exact reviewed main-source.tar.gz asset or establish a separately verified equivalent.
+3. Confirm the restored `main-source.tar.gz` and all 211 frozen planning asset bindings remain byte/hash exact.
 4. Make the frozen suite/config/store available read-only from tag-derived bytes.
 5. Add the grouped visual suite without importing old product architecture.
 6. Confirm every task `verify.toml` remains host-local and legacy namespaces stay rejected.
-7. Spawn subagent implementer/verifier/reviewer lanes with disjoint worktrees and run directories.
-8. Keep CI and hidden test generation on nextest-only commands.
-9. Qualify the latest taskfmt identity and per-task lint/verify wrapper.
-10. Run the current code against the frozen oracle. Record drift. Do not bless.
+7. Implement and independently test the trusted native per-check context/result
+   launcher, observer binding, and context-index receipt in a clean host-local
+   verifier worktree.
+8. Spawn subagent implementer/verifier/reviewer lanes with disjoint worktrees
+   and run directories.
+9. Keep CI and hidden test generation on nextest-only commands.
+10. Qualify the latest taskfmt identity and per-task lint/verify wrapper.
+11. Run the current code against the frozen oracle. Record drift. Do not bless.
 
 Stop if any preparation gate fails.
 
@@ -419,8 +470,9 @@ Satisfied:
 
 Not satisfied:
 
-- Frozen visual authority is unavailable.
-- Plan validator is red.
+- Frozen visual authority is unavailable on the current branch; the immutable
+  tag remains the source to import read-only.
+- Provider-enforced visual-baseline immutability is absent; local tag/release policy is the guard.
 - Subagent verification evidence is absent.
 - Campaign ledger is disarmed and has no accepted current task evidence.
 - Proof tree is dirty.
@@ -437,9 +489,45 @@ Until that goal passes, do not launch the autonomous 73-task implementation camp
 
 ## O. Next step after this cleanup
 
-Recover the exact reviewed `docs/refactoring-plan/evidence/main-source.tar.gz`
-asset, or independently verify an equivalent immutable archive, then rerun the
-plan validator and the required subagent review. Do not dispatch any task yet.
-Execution requires explicit user confirmation after those gates pass; it uses
-isolated subagents only, with latest standalone taskfmt `lint`/`verify` as the
-per-task gate and no containers.
+Implement and independently test the trusted native per-check launcher and
+materializer end-to-end: exact contexts/index, task/check/run/source/oracle
+binding, observer transport, result ABI, and commit/hash receipts. Then make a
+read-only import of the frozen suite, configuration, and grouped oracle store
+from `refs/tags/visual-baseline`. Do not dispatch a refactoring task yet. The
+execution workflow remains **Grok Build → isolated subagents → implementation
+→ latest standalone taskfmt `lint`/`verify` → visual/behavioral gates → serial
+integration**, with no containers and no taskfmt orchestration.
+
+## P. Independent-feedback reconciliation
+
+The requested `another-agent-feedback/**` tree is absent. Independent search
+covered this worktree, its parent and sibling worktrees, the project tree,
+ignored/untracked paths, all reachable refs, stash/reflog data, and unreachable
+Git objects; the inventory is zero files. Therefore no external report finding
+could be accepted, rejected, or superseded, and no external file was
+overwritten. The findings below are the independent audits requested for the
+same topics, reconciled against the current source and history.
+
+The current audit nevertheless reconciled the requested high-risk topics:
+
+| Topic | Disposition | Current evidence |
+|---|---|---|
+| Branch/baseline relationship | Integrated into this report | Final HEAD contains this reconciliation (parent `c9eef7bd`); `main` is `7b27732a`; frozen tag peel is `4a79c0a2`; 30,200 frozen files and the PTY suite remain absent from HEAD. |
+| Missing planning archive | Fixed from reviewed bytes | `docs/refactoring-plan/evidence/main-source.tar.gz` now matches the tracked TASK-072 trusted source and manifest hash; validator and all seven asset groups pass. |
+| Latest taskfmt | Already correct; revalidated | Local source is clean at `afd3b575`; version `0.2.0`; executable hash matches; 73/73 lints pass. |
+| Containers/taskfmt orchestration | Already fixed and retained | Active scripts and task contracts allow only standalone per-task `lint`/`verify`; historical host/container fixtures are non-authoritative. |
+| Snapshot and behavioral parity | Still valid blockers | Static/current self-baselines do not replace the 30,200-file grouped store, PTY transitions, cursor/focus/hit ownership, or real component routes. Compatibility painters remain an ownership risk. |
+| CI and performance | Integrated, blocker retained | Active CI/perf commands use nextest with corrected thread-flag placement; rustdoc remains a compile gate because nextest 0.9.143 has no doctest runner. Recorded normal Jackin allocation budgets still fail for capsule, manager, and key movement; no fresh qualification was claimed. |
+| Stale goals/reports/runbooks | Integrated | `GOAL.md` is product intent only; obsolete root goals, handoffs, state/coordination files, old plans, reports, and runbooks are either retired pointers or evidence-only banners. Current docs route through this report and the subagent-only contracts. |
+| Documentation links | Integrated | Repository-wide Markdown path scan now reports zero missing path links; the 73 task visual-validation links and 16 trusted protocol links found during reconciliation were corrected. |
+| Proof compile/dispatcher consistency | Partially integrated; blocker retained | The plural `checks` parser, exact context-file set, external run directory, explicit scope base, clean worktree, and native binary receipt checks are now fail-closed. A native build helper records commit/path/hash. No trusted per-check context/result/observer launcher exists yet. |
+| Scripts and package rebundling | Integrated | Obsolete container/taskfmt lifecycle paths are not execution authority; alternate Python rebundlers now fail closed instead of overwriting the dispatcher. Useful nextest/inventory checks remain. |
+| DAG and task acceptance | Integrated; acceptance still absent | The current graph is acyclic and regenerated from current metadata; stale graph/title/context bindings were reconciled. Task metadata remains `pending`; only accepted verifier receipts and integrated ancestry can establish completion. |
+| macOS-native execution | Partially integrated; blocker retained | Native host build and receipt tooling is present, with no container path. Context provisioning, observer transport, result ABI, and the frozen-oracle read-only import still require an independently tested verifier launcher. |
+| Visual-baseline immutability | Integrated as policy | Local/remote tag pointers are unchanged. Provider enforcement is not assumed because the tag is unsigned, release immutability is false, and branch protection is absent. |
+
+The visual-baseline row records the current policy result; provider
+enforcement is deliberately not assumed. Historical
+reports that mention old taskfmt pins, old oracle tags, old commands, or old
+execution authorities remain evidence only and are routed through the current
+README. They were not rewritten into false current results.

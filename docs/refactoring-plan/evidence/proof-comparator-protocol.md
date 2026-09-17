@@ -98,4 +98,4 @@ The qualification report records executable, driver and vector hashes, case/invo
 
 ## Coverage boundary
 
-This suite qualifies exact comparator behavior and artifact/provenance rejection. It does not qualify production input decoding, PTY fidelity, source-only capture, driver equivalence, complete application inventory, source freeze, ref updates or host isolation. Those retain independent named preparation owners in [proof-contract.md](../proof-contract.md). Passing this suite cannot authorize oracle sealing or component implementation by itself.
+This suite qualifies exact comparator behavior and artifact/provenance rejection. It does not qualify production input decoding, PTY fidelity, source-only capture, driver equivalence, complete application inventory, source freeze, ref updates or host isolation. Those retain independent named preparation owners in `docs/refactoring-plan/proof-contract.md`. Passing this suite cannot authorize oracle sealing or component implementation by itself.

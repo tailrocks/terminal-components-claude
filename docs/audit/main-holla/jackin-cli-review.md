@@ -1,5 +1,9 @@
 # Independent Jackin CLI review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Candidate: `aaf9630b9f8c828ff0fd488e90f11c5ee19563a3`, clean worktree. Reference: `794b095c196562d38f1b6f7ce379c128af2a023d`, `src/bin/jackin_preview/main.rs`. Scope: four committed Jackin parser/entrypoint/test files. No source edits.
 
 ## Result

@@ -1,5 +1,9 @@
 # Whole branch-delta audit — TUI tests and examples
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Status: **COMPLETE** (112/112 paths). Every ledger row has explicit full read coverage and semantic disposition; companion [`branch-diff-findings-tui-tests-examples.tsv`](branch-diff-findings-tui-tests-examples.tsv) records four example-phase findings (TTE-01–04) pending TASK-065/068 enforcement. No build/test execution during the concurrent timing measurement.
 
 Scope agreed with closure: all112 changed tooling-tests paths under `crates/tui/tests/` and `crates/tui/examples/`. Closure owns the complement, including `crates/tui-testing` and root `tests/`/`examples/`. All112 are main additions, absent at Holla. Exact ls-tree bindings verified for main `7b27732a8c3c131760ec3438f641cb3c11343a42` and Holla `2e2401393c47360741ebd321679de08982dca50a`. Metadata totals33949 main lines, not a semantic-read claim. Immutable UI oracle remains `02f5294bfdbf38004cc49130d0aff1d01f31434c`; added main tests are architectural evidence, not oracle output.

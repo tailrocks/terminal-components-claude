@@ -1,5 +1,9 @@
 # Runtime/identity audit — source evidence, not executed parity
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Base: c12cad8728755cd2d03eefdd8e02891143fca86d. Read-only repository audit; no source mutations. Source hashes attached. Task scope is architectural dependency diagnosis; complete historical patch audit belongs to history owner. No tests executed by this worker; named-tests.tsv is source symbol inventory, never executed test counts.
 
 ## Preserved foundation

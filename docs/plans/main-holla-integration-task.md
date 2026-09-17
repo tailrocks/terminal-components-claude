@@ -1,4 +1,8 @@
 
+
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
 Finish the architectural refactoring of https://github.com/donbeave/terminal-components-claude, repair the broken main-branch implementation, restore the complete accepted TUI experience from holla, migrate the Holla application to the refactored public API, and integrate the verified result into main.
 
 This is an implementation-and-verification goal, not an analysis-only assignment. Continue through investigation, plan, implementation, application migration, independent review, corrections, and verified integration. A buildable library with broken applications is failure. Matching screenshots with broken interactions is failure. Restoring the old monolith instead of completing the architecture is also failure.

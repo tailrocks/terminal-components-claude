@@ -1,5 +1,9 @@
 # Qualified capture package integration review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Root reviewed worker `263be4f9828d9f734e0ad2dfda9a06b90d1c28e4`, integrated as
 `16e4e7a`. This approves the portable acquisition package and its explicit tool
 limits, not application snapshots or parity.

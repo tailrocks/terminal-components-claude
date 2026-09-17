@@ -1,5 +1,9 @@
 # Follow-up: semantic paint provenance cannot be inferred from Style
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Reviewed73a5ee9 immutable. Followup branch codex/theme-paint-provenance contains four additional regression tests only; no broader production edit made pending parent API/ownership decision. Do not integrate73a5ee9 as complete.
 
 ## Reproduction

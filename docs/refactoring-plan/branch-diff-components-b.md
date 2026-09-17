@@ -1,5 +1,9 @@
 # Full branch-delta review — components B
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Source reading complete: all35 assigned whole-file deltas, including inline tests and comments. This is a planning/source audit, not execution of future component proofs or complete oracle qualification.
 
 Branches: Holla `2e2401393c47360741ebd321679de08982dca50a`; main `7b27732a8c3c131760ec3438f641cb3c11343a42`. UI oracle remains `02f5294bfdbf38004cc49130d0aff1d01f31434c`, not the moving branch. All17 deleted legacy widget blobs in this partition were independently compared and equal the oracle blobs exactly. This is provenance evidence, not semantic completion.

@@ -19,7 +19,7 @@ The accounting operation executes every required source-qualified test and enfor
 
 ## Context
 
-Visual regression gate: committed `snapshots/` grouped store (`../../../../docs/baseline/snapshots-v2.md` (task catalog: `refactoring-tasks/visual-validation.md`)). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
+Visual acceptance is currently blocked: this branch lacks the grouped store and PTY suite. A verifier subagent must import them read-only from the immutable `visual-baseline` tag into the external run before using [`visual-validation.md`](../../../visual-validation.md). Never write `snapshots/`, bless output, or mutate the tag.
 
 TASK-001 qualifies comparison and the thin verifier core only. This package owns the distinct `test-accounting` operation implementation. Its independently fixed group71 fixture contract establishes acceptance; the implementation cannot judge itself. This package is a later execution contract, not authorization to implement terminal-components during the planning goal.
 

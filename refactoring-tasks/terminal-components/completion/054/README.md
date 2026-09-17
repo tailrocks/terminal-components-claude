@@ -13,7 +13,7 @@ Restore Cockpit stage frontier/status, cached/skipped states, build-log and info
 
 ## Context
 
-Visual regression gate: committed `snapshots/` grouped store (`../../../../docs/baseline/snapshots-v2.md` (task catalog: `refactoring-tasks/visual-validation.md`)). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
+Visual acceptance is currently blocked: this branch lacks the grouped store and PTY suite. A verifier subagent must import them read-only from the immutable `visual-baseline` tag into the external run before using [`visual-validation.md`](../../../visual-validation.md). Never write `snapshots/`, bless output, or mutate the tag.
 
 The immutable UX oracle is commit 02f5294bfdbf38004cc49130d0aff1d01f31434c (formerly tagged holla-fable-2026-09-10); accepted architecture starts at main 7b27732a8c3c131760ec3438f641cb3c11343a42. This package owns J-LAUNCH, not an application rewrite. The architectural enabling condition is that copied painting, surface labels and real input/model ownership can diverge. Restore the production owner instead of adding another visual facade.
 

@@ -1,5 +1,9 @@
 # HI/HAR source-clause re-audit
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Planning-only source review by components-B. Scope: all66 HI rows and all44 HAR rows, then the coordinator-authorized HAR locator/HAR-020 repairs, A38/A58 corrections and Dialog reference witness. Main architecture pin: `7b27732a8c3c131760ec3438f641cb3c11343a42`; immutable UI oracle: `02f5294bfdbf38004cc49130d0aff1d01f31434c`. No production code, baseline, commit, merge, or canonical AGENTS mutation.
 
 ## Result and limits

@@ -17,7 +17,8 @@ to subagents; the coordinator integrates only reviewed task commits.
 - Latest taskfmt revision:
   `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`.
 - Latest taskfmt version: `0.2.0`.
-- Frozen `visual-baseline` tag/release/store: immutable.
+- Frozen `visual-baseline` tag/release/store: policy-protected and never
+  mutated; provider-level immutability is not assumed.
 
 Taskfmt is used only for one task at a time:
 
@@ -64,6 +65,18 @@ task-scoped, immutable for one verification run, and stored under `RUN_DIR`.
 Each context binds task ID, worktree commit, scope base, operation, required
 outputs, and expected provenance. Missing, extra, substituted, cross-run, or
 mutated contexts fail verification.
+
+Before invoking taskfmt, the verifier subagent must perform the native proof
+preparation in the isolated worktree: run
+`scripts/campaign-build-proof.sh`, materialize the exact context set and
+context index under the external `RUN_DIR`, and provide the per-check result,
+source/oracle, and observer capabilities required by the proof worker. The
+campaign dispatcher validates that the standalone `target/debug/tc-proof`
+binary and every referenced JSON context exist before it calls taskfmt. It
+does not synthesize contexts, start an observer, or build through taskfmt.
+Until that native preparation contract is implemented and independently
+reviewed, taskfmt verification is correctly blocked rather than treated as a
+passing smoke test.
 
 ## Evidence ownership
 

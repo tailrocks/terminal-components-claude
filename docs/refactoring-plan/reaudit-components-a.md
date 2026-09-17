@@ -1,5 +1,9 @@
 # Component planning re-audit A: TASK-009–020
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Status: **planning repairs applied; independent acceptance pending**. This is an adversarial planning review, not an execution receipt or a whole-plan clean certificate. The initial audit below preceded repairs. The parent subsequently authorized changes to TASK-009–020 package documents and metadata, excluding AGENTS; the repair checkpoint below records those changes. No production source, canonical AGENTS protocol, baseline, commit or branch was changed by this reviewer.
 
 ## Authority and review coverage

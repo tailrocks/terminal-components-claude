@@ -35,6 +35,14 @@ The current taskfmt identity is `0.2.0` at
 and `taskfmt verify` are allowed. Do not invoke `taskfmt init`, `status`,
 `taskfmt-host`, `taskfmt-runtime`, `run`, `monitor`, or `promote`.
 
+`tools/refactor-proof/scripts/sync-binaries.sh` is a retired fail-closed shim;
+it must not overwrite the Python `bin/tc-proof` dispatcher with the Rust-only
+comparator. `cargo nextest` validates the Rust package, but its test harness is
+not the standalone comparator. Build that executable natively with
+`scripts/campaign-build-proof.sh` before a verifier subagent runs proof checks.
+The verifier must also supply immutable external contexts and the reviewed
+observer/result environment; taskfmt does not provision either one.
+
 ## Removed implementation
 
 The former `tc-proof-host` install/prepare/freeze/verify/seal/integrate service

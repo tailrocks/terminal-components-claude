@@ -1,5 +1,11 @@
 # Deterministic parity verification contract
 
+> Historical verification contract. Superseded on 2026-09-18 for execution
+> purposes. Its old oracle/tag, taskfmt, tui-snap, and test-runner commands are
+> evidence only; do not replay them. Use the current
+> [visual-validation contract](../../refactoring-tasks/visual-validation.md)
+> and [execution-readiness report](execution-readiness-report.md).
+
 ## Authority and measured tool state
 
 The user-visible oracle used here is exactly `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze, formerly tagged `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`). That SHA was recorded on 2026-09-11. The architectural candidate inspected here is `7b27732a`; the coordinator's topology evidence supplies its complete SHA. The working `visual-baseline` checkout is not the oracle.

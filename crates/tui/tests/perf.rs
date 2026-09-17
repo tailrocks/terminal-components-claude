@@ -3,7 +3,7 @@
 //! foundations. Run in release, single-threaded, with output visible:
 //!
 //! ```text
-//! cargo test -p junie-tui --test perf --release -- --test-threads=1 --nocapture
+//! cargo nextest run -p junie-tui --test perf --release --test-threads=1 -- --nocapture
 //! ```
 //!
 //! See `junie_tui_testing::perf` for the environment knobs.

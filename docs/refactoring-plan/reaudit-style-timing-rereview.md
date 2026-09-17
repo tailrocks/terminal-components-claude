@@ -1,5 +1,9 @@
 # Independent style timing bootstrap rereview
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 ## Current boundary
 
 This is a bounded review of the newly authored style-timing-bootstrap driver/probe/frame and the corresponding TASK-073/TASK-067 measurement contracts. Verify-and-stop applies. It does not certify restored Showcase parity, a final five-percent product result, all component attribution, or a general-purpose profiler. Final bounded compiler-bound execution passes below; earlier invalid checkpoints remain recorded as provenance.

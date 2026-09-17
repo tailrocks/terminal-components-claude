@@ -1,5 +1,9 @@
 # EH-03 / EH-04 planning closure witness
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Planning-only read-only verification, 2026-09-15. Confirms task-owner repairs for Dialog reference targeting (EH-03) and Jackin file-browser ownership (EH-04); does not execute TASK-023/TASK-051 production witnesses.
 
 ## EH-03 — Dialog first-enabled reference target

@@ -1,5 +1,9 @@
 # Modern-API and Practices Audit — Binding Guidance
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 **Scope.** Crate/feature choice for the new workspace, current-code API drift against ratatui 0.30.2 / crossterm 0.29.0 / unicode-width 0.2.2, Rust 2024 + MSRV-1.88 practice, the `smallvec`/`bitflags` question, the MSRV question, and a binding rule set + architecture check for builders.
 
 **Method.** Every `[F]` claim below is read from the unpacked registry sources under

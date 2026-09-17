@@ -2,7 +2,17 @@
 
 ## Provenance and limits
 
-UI oracle **O** is `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze, formerly tagged `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`). Candidate **M** is `7b27732a8c3c131760ec3438f641cb3c11343a42`. `O:pages/foo.rs` means `O:src/bin/showcase/pages/foo.rs`; `M:pages/foo.rs` means `M:apps/showcase/src/pages/foo.rs`. Other references give full repository paths. Findings below are source-proven unless explicitly marked runtime evidence. No candidate visual parity is claimed. The investigation checkout was `2e2401393c47360741ebd321679de08982dca50a`; `git diff O HEAD -- src Cargo.toml Cargo.lock` is empty, so its production sources and dependency lock equal O.
+UI source oracle **O** is `02f5294bfdbf38004cc49130d0aff1d01f31434c`
+(historical freeze, formerly tagged `holla-fable-2026-09-10`); the frozen
+visual-baseline tag is `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`. Candidate
+**M** is `7b27732a8c3c131760ec3438f641cb3c11343a42`. `O:pages/foo.rs` means
+`O:src/bin/showcase/pages/foo.rs`; `M:pages/foo.rs` means
+`M:apps/showcase/src/pages/foo.rs`. Other references give full repository
+paths. Findings below are source-proven unless explicitly marked runtime
+evidence. No candidate visual parity is claimed. The investigation checkout
+was `2e2401393c47360741ebd321679de08982dca50a`; `git diff O HEAD -- src
+Cargo.toml Cargo.lock` is empty, so its production sources and dependency lock
+equal O.
 
 The oracle has **23 pages**, not 22. Its Diff page was added after the older `794b095` oracle used in `M:docs/audit/main-holla/showcase.md`. Main has 22 pages and no Diff module or route. Do not reuse that audit's page count, compact-navigation height threshold, or reference SHA.
 
@@ -79,7 +89,12 @@ O:src/bin/showcase/app_tests.rs contains production App tests for shell launch/s
 
 O's `showcase_visual_baseline` at641 hashes symbol/colors/modifiers after Tab at five sizes/four colors but **excludes the entire sidebar** and does not hash cursor. Its `UPDATE_BASELINE` writer must never be an executor acceptance path. M:apps/showcase/tests/visual.rs covers candidate defaults22×4×4×2themes; it has no trusted O origin. M's elapsed and sidebar contracts add useful semantic gates but still require O23-page reconciliation. Existing `shots/audit/showcase-*` and `baseline/before/showcase_*` artifacts are historical supporting evidence only until producer SHA, commands, size/color, sequence and canonical content are validated. Do not bless candidate snapshots to obtain parity.
 
-Runtime evidence on 2026-09-11: `rtk cargo test --bin showcase -- --test-threads=1` completed **41 passed**, 11.61 seconds, using the working checkout whose `src`, `Cargo.toml`, and `Cargo.lock` equal O. This proves the existing oracle suite passes here; it does not claim that the proposed SC-* scenarios were captured or that M passes.
+Historical runtime evidence on 2026-09-11 recorded **41 passing tests** in a
+checkout whose `src`, `Cargo.toml`, and `Cargo.lock` equaled O. This proves
+only that the existing oracle suite passed in that environment; it does not
+claim that proposed SC-* scenarios were captured or that M passes. A current
+rerun, when authorized, must use host-local `cargo nextest run --locked
+--bin showcase --test-threads=1` in an isolated target.
 
 The reusable root condition behind the largest regressions is **separate sources for visible content and event/state content**. Acceptance must prove visible controls own their public component's live state, geometry and transitions. Screenshots can pass while General settings, inputs or the customer grid remain fake. Compile success and nominal page inventories cannot close this gap.
 

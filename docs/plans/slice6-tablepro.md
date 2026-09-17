@@ -1,5 +1,9 @@
 # Slice 6 — TablePro migration plan
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Everything marked **[F]** was read from the legacy TablePro tree; everything
 else is an accepted contract or an explicit migration decision. This remains
 a future application plan: current Slice 4 library exports do not imply the

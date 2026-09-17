@@ -1,5 +1,9 @@
 # Proposed runtime API — explicit time and presented-frame lifecycle
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Read-only design, not approved implementation. References: CURRENT-CONTRACT.md items1–5/8/11; REFACTORING_STATE.md:1548–1618 historical §54 addendum;1846–2030 checkpoint and residual evidence. Current source inspected at MAIN_BASE. Historical checkpoint counts are not current test evidence.
 
 ## Decisions

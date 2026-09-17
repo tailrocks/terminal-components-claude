@@ -1,5 +1,9 @@
 # Cross-cutting findings from the Slice 6 and Slice 7 plans
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Both plans were produced read-only against the tree. Each item below is a **measured discrepancy** between a recorded number or claim and what the source actually says. They are listed separately from the plans because several affect work already in flight.
 
 ## Counts in `COMPONENT_ARCHITECTURE.md` §16.4 that are wrong

@@ -37,6 +37,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  NEXTEST_USER_CONFIG_FILE: none
 
 # Explicit template: an omitted GitHub Actions shell does not enable pipefail.
 defaults:
@@ -63,7 +64,7 @@ jobs:
         run: cargo run --locked -p xtask -- bless-guard
       - name: Library perf (foundation and collections)
         run: |
-          cargo nextest run --locked -p junie-tui --test perf --test perf_collections --release -- --test-threads=1 --nocapture 2>&1 | tee perf-lib.log
+          cargo nextest run --locked -p junie-tui --test perf --test perf_collections --release --test-threads=1 -- --nocapture 2>&1 | tee perf-lib.log
       - name: Application perf (authoritative inventory)
         run: |
           cargo run --locked -p xtask -- app-perf 2>&1 | tee perf-apps.log
@@ -98,7 +99,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Library perf (foundation and collections, strict)
         run: |
-          cargo nextest run --locked -p junie-tui --test perf --test perf_collections --release -- --test-threads=1 --nocapture 2>&1 | tee perf-strict-lib.log
+          cargo nextest run --locked -p junie-tui --test perf --test perf_collections --release --test-threads=1 -- --nocapture 2>&1 | tee perf-strict-lib.log
       - name: Application perf (authoritative inventory, strict)
         run: |
           cargo run --locked -p xtask -- app-perf 2>&1 | tee perf-strict-apps.log

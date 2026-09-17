@@ -1,5 +1,9 @@
 # Performance and Ownership Audit — current code + measurement plan
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Scope: `REFACTORING_GOAL.md` §25.6 and §28 ("Performance and ownership review"), judged against `docs/audit/architecture-research.md` §2–§3, §8 and `docs/audit/interaction-audit.md` Part B (B1–B3).
 
 Every claim under **FACT** carries a `file:line` citation and is directly readable in the source. Every claim under **INFERENCE** is judgement, arithmetic on those facts, or a recommendation. Cell/row counts for representative screens are arithmetic on the layout code and are labelled as estimates.

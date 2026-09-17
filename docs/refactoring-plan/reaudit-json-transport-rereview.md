@@ -1,5 +1,9 @@
 # Independent canonical JSON transport rereview
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Subsequent actual-compiler repair and all affected normal/optimized reruns are independently completed in [reaudit-compiler-identity-rereview.md](reaudit-compiler-identity-rereview.md). The original byte bindings below remain historical records, not silently replaced results.
 
 Bounded conclusion: the shared type-equality repair rejects the reproduced boolean/integer and float/integer observation substitutions. This is not whole-plan acceptance, compiler-identity qualification, or ADJ-13 qualification. No production changes occurred.

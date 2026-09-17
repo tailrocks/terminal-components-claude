@@ -1,6 +1,6 @@
 # TASK-069 coordinator adversarial review (non-machine)
 
-Binding: campaign [execution prompt](/work/docs/refactoring-plan/campaign-execution-prompt.md) §“Final adversarial campaign review” and §“Definition of done”.
+Binding: current [campaign executor protocol](../../../../../docs/refactoring-plan/campaign-executor-protocol.md) and [execution-readiness report](../../../../../docs/refactoring-plan/execution-readiness-report.md). The final adversarial review remains a required closure perspective.
 
 TASK-069 **CHK-007** success (`tc-proof close`) is **necessary but not sufficient** for campaign completion. It establishes machine merge-readiness closure only: joining host-authentic passed records for CHK-001–CHK-006 on the exact frozen tree.
 

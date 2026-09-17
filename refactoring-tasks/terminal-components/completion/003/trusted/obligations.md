@@ -10,10 +10,10 @@ Execute every original Holla test assertion, all 143 binary tests as source-qual
 
 Source requirements:
 
-- [docs/refactoring-plan/holla.md](/work/docs/refactoring-plan/holla.md).
-- [docs/refactoring-plan/holla-scenarios.tsv](/work/docs/refactoring-plan/holla-scenarios.tsv).
-- [holla-trace-corrections.md](/task/trusted/holla-trace-corrections.md): all sixteen named source-correct branches are normative; four preview, four Args and eight editing/idle overlay branches.
-- [docs/refactoring-plan/verification.md](/work/docs/refactoring-plan/verification.md).
+- [docs/refactoring-plan/holla.md](../../../../../docs/refactoring-plan/holla.md).
+- [docs/refactoring-plan/holla-scenarios.tsv](../../../../../docs/refactoring-plan/holla-scenarios.tsv).
+- [holla-trace-corrections.md](holla-trace-corrections.md): all sixteen named source-correct branches are normative; four preview, four Args and eight editing/idle overlay branches.
+- [docs/refactoring-plan/execution-readiness-report.md](../../../../../docs/refactoring-plan/execution-readiness-report.md).
 
 The host binds the source documents, canonical historical union and scenario files named above into the immutable campaign input manifest. Their exact scenario expansion algorithms and source-qualified tests are required membership, not a best-effort glob. Rejected/deferred source clauses retain their disposition. A task-local candidate manifest cannot override this document or the protected host context.
 

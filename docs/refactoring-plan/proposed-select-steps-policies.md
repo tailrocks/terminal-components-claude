@@ -1,5 +1,9 @@
 # Proposed shared Select and Steps policies
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Status: proposal history; final authority is ADJ-15/16 and the fixed TASK-018/019/020 contracts. The original ValueRequests proposal below is rejected: Select already owns its value and the existing Chose/Form bridge handles commits, so NavigationRequested and a second Form engine are unnecessary. Pins: main `7b27732a8c3c131760ec3438f641cb3c11343a42`, oracle `02f5294bfdbf38004cc49130d0aff1d01f31434c`. Preserve existing public defaults and accepted architectural history. One shared component implementation per family.
 
 ## Select proposal

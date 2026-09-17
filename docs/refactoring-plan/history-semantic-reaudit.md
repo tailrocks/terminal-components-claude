@@ -1,5 +1,9 @@
 # Historical semantic re-audit progress
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 This is a source/disposition audit, not execution approval. Pinned main is `7b27732a8c3c131760ec3438f641cb3c11343a42`; product oracle is `02f5294bfdbf38004cc49130d0aff1d01f31434c`. A source clause matching a canonical row does not prove its owning task's verifier works. Prior PASS reports, matching row counts and traceability joins are not substituted for source reads.
 
 ## Finite scope and remaining work

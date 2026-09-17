@@ -1,5 +1,9 @@
 # Rediscovered prompt, reference and design history
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 ## Evidence boundary
 
 This is the source-first continuation of `reaudit-history.md`, not certification by a successful ledger join. All three rediscovered prompt/reference blobs were read completely. DESIGN was read as the complete initial generation, complete rewrite, complete oracle generation, and every distinct subsequent parent-relative delta, including the non-first merge parent. Exact unchanged object identities reuse a read; a merge subject alone does not establish equality. `git log --all --follow` found no earlier rename of these four paths. Additions and deletions were also checked with `--full-history` and actual parents, not inferred from `--follow` output.

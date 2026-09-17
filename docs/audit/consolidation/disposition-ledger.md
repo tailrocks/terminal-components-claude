@@ -1,5 +1,9 @@
 # Consolidation disposition ledger
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Generated 2026-09-09 for GOAL2 (worktree consolidation into `codex/main-holla-integration`).
 Scope: 233 git worktrees (231 scratch checkouts + the protected main checkout + this integration checkout) and 113 local branches.
 

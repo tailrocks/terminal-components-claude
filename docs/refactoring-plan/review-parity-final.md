@@ -1,5 +1,9 @@
 # Final-plan independent UI/UX parity review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Review date: 2026-09-11. Verdict: **changes required**. This is a planning review, not a candidate parity verdict. No terminal-components production source was edited, and no golden output was accepted.
 
 ## Reviewed identities and boundary

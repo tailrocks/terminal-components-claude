@@ -1,5 +1,9 @@
 # BA-ART-01 atomic capture qualification proposal
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 This is a read-only seam proposal awaiting coordinator approval, not an implemented qualifier or passing receipt.
 
 ## Observed gap

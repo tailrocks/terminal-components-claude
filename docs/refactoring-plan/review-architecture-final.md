@@ -1,5 +1,9 @@
 # Independent final architecture/API plan review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Review date: 2026-09-11. Perspective: accepted architecture, API ownership, PARTS/slots, semantic verification and executable task boundaries. This reviewer did not author the reviewed task packages. No production code or task contract was changed.
 
 ## Reviewed identities and limits

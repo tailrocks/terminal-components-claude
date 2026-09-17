@@ -1,5 +1,9 @@
 # Current normative contract from reachable architecture history
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Pinned MAIN_BASE `c12cad8728755cd2d03eefdd8e02891143fca86d`. User attachment governs main-based implementation, pinned-Holla product parity, four applications, available Codex routing and exact verification/integration. This external synthesis does not edit or replace repository source documents. It is not implementation-completion evidence.
 
 ## Authority and continuity

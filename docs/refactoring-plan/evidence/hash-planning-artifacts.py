@@ -18,10 +18,12 @@ def main():
     args = parser.parse_args()
     root = args.root.resolve()
     manifest = root / "docs/refactoring-plan/planning-artifacts.tsv"
-    paths = [root / "docs/sources/REFACTORING_COMPLETION_PLAN.md"]
+    paths = []
     for directory in (root / "docs/refactoring-plan", root / "refactoring-tasks"):
         for path in directory.rglob("*"):
             if path.is_symlink():
+                if path.name == "CLAUDE.md" and path.readlink() == Path("AGENTS.md") and path.with_name("AGENTS.md").is_file():
+                    continue
                 raise ValueError(f"Unexpected symlink in planning artifact set: {path}")
             if "__pycache__" in path.parts or path.suffix == ".pyc":
                 raise ValueError(f"Generated Python cache is not a planning artifact: {path}")

@@ -1,5 +1,9 @@
 # Direct inline amendment review: J, K/L, M
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Planning-only. This closes the three early parent-delta gaps identified by `history-early.md`; it does not substitute an adjudication summary for the edited source.
 
 | Exact source edge | Directly read scope | Complementary direct reading |

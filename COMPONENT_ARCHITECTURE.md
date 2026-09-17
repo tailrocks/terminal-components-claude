@@ -13,6 +13,14 @@ follow a retired slice order, or use a historical execution protocol is
 provenance only. Current status, review, and execution policy live in the
 current readiness report and subagent-only policy linked above.
 
+**Execution note (2026-09-18):** This document remains authoritative for
+accepted architecture decisions and their source-qualified rationale. Commands,
+slice ordering, state-mirroring requests, model names, and operational wording
+inside historical adjudication records are evidence of how those decisions were
+reviewed; they are not runnable instructions. Current execution is host-local
+and subagent-only, all Rust tests/validation use `cargo nextest`, and the sole
+readiness authority is the current execution-readiness report.
+
 **Inputs adjudicated:** `docs/audit/api-audit.md` (API), `docs/audit/app-audit.md` (APP), `docs/audit/domain-boundary-audit.md` (DOM), `docs/audit/interaction-audit.md` (INT), `docs/audit/architecture-research.md` (RES). `docs/audit/performance-audit.md` (PERF) landed after §1–§15 were written; §20.9 folds its obligations in and amends earlier decisions where needed. `docs/audit/modern-api-audit.md` (MOD), `docs/reviews/adjudication-k-form-grid.md` (ADJ‑K) and `docs/reviews/adjudication-m-small-items.md` (ADJ‑M) landed after §21; §22, §23 and §24 record them as binding, and every earlier section they change carries an inline `<!-- amended by §22 -->` / `<!-- amended by §23 -->` / `<!-- amended by §24 -->` marker. `docs/reviews/slice3-foundations-review.md` (the fresh read-only Slice 3 foundations review, at commit `18afddd`) and `docs/reviews/adjudication-n-layer-measure.md` (ADJ‑N) landed after §24; §25 and §26 record them as binding, and every earlier section they change carries an inline `<!-- amended by §25 -->` / `<!-- amended by §26 -->` marker. `docs/reviews/adjudication-o-foundations-followups.md` (ADJ‑O) landed after §26; §27 records it as binding, and every earlier section it changes carries an inline `<!-- amended by §27 -->` marker.
 
 `docs/reviews/adjudication-p...` and `docs/reviews/adjudication-q-residuals.md` are the binding §28/§29 review inputs; the Q and §30 records below preserve unresolved API questions rather than deciding them implicitly. <!-- amended by §29; §30 -->

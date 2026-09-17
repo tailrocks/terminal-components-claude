@@ -1,5 +1,9 @@
 # Adjudication M — three small surface items
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 **Status:** proposed. Decides the two items left open at `COMPONENT_ARCHITECTURE.md:4447-4450` (§22.10) and the one at `:4468` (§23.1 open item 1). Nothing here reopens Adjudications A–L.
 
 **Convention:** **[F]** = collected fact with a citation. Everything else is decision or inference.

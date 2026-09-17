@@ -1,5 +1,9 @@
 # Independent baseline and gate audit
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Pinned reference: `794b095c196562d38f1b6f7ce379c128af2a023d`. Reference source never edited; isolated target-holla. Commands and raw logs: holla-commands.json. Test identity inventory: holla-test-identities.json. Initial candidate artifact hash inventory: artifact-inventory.json (before integration changes).
 
 ## Verified findings

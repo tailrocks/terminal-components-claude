@@ -1,5 +1,9 @@
 # Terminal tool evaluation (initial)
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Current source revisions are pinned in tool-pins.json; inspected upstream
 README, manifests and adapter sources. Stable rustc 1.98.1 builds both tools
 outside the application workspace. Neither is an MSRV dependency.

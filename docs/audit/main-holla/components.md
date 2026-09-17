@@ -1,5 +1,9 @@
 # Component/theme contract audit
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Read-only source audit. Main base c12cad8728755cd2d03eefdd8e02891143fca86d; Holla reference 794b095c196562d38f1b6f7ce379c128af2a023d. No candidate source changed. No builds, tests, visual inspection or live interactions executed by this audit. JSON inventory records source-discovered test names, not executed test coverage. Full historical obligation authority remains the history worker's responsibility; the user attachment supersedes holla-first/tree-replacement and historical model restrictions.
 
 ## Source-proven shared gaps

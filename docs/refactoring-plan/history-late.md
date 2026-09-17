@@ -1,5 +1,9 @@
 # Late architecture history: direct source reconstruction
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Scope: `COMPONENT_ARCHITECTURE.md` §§56–75, the §54 addendum, and the Meter/ScrollRegion amendments. Analysis reads Git objects; it does not assume that the planning checkout contains production files. Source checkpoint: `7b27732a8c3c131760ec3438f641cb3c11343a42`. Product acceptance belongs to `02f5294bfdbf38004cc49130d0aff1d01f31434c`, as required by `docs/sources/PLANNING_GOAL.md`. Historical visual approvals, including first-generation keys, cannot authorize differences from that oracle.
 
 The companion [obligation ledger](history-late-obligations.tsv) separates contracts, rejected alternatives, supersession, evidence debt and present planning decisions. “Implemented” below describes source/history evidence, not a freshly executed test result. No production code, baseline, task graph, branch or checkout was changed for this review.

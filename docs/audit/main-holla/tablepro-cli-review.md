@@ -1,5 +1,9 @@
 # Independent TablePro CLI review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Candidate: 967f7e72ec44d5e4991c690c1d7975b5d79d67a7. Reference: 794b095c196562d38f1b6f7ce379c128af2a023d. Read-only source review of all five changed files and pinned reference main.rs; clean candidate status verified. Independent reviewer build used stable rustc 1.98.1 (48a229cea 2026-09-01), isolated target under this directory.
 
 Disposition: PASS for bounded CLI extraction and redacted argument errors; not full application acceptance. No new slice-specific correctness defect found. Help short-circuits before runtime, prints original description/key copy plus additive Paper theme option; error paths retain exit 2 without argument-value disclosure. Ignored unknown arguments and absent --connect preserve reference behavior. Existing additive case-insensitive colors, ansi256/ansi16 and Paper remain accepted. Theme/color order is independent in parser; actual explicit-color versus NO_COLOR remains deferred shared runtime defect, not proven by parser tests.

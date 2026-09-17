@@ -14,7 +14,7 @@ TASK-070 owns the immutable `tc-proof-context-index/v1` qualification corpus (`r
 ## Preconditions
 
 - **P-001** on this package already requires an accepted **TASK-070** receipt and integrated ancestry.
-- Host `prepare`/`freeze` publishes `/run/tc-proof/context-index.json` from accepted predecessor receipts; TASK-071 must not substitute a candidate-authored index.
+- The verifier subagent publishes `$RUN_DIR/context-index.json` from accepted predecessor receipts; TASK-071 must not substitute a candidate-authored index.
 
 ## Acceptance rule
 

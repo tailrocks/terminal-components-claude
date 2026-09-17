@@ -12,7 +12,7 @@ observer-owned evidence. Those findings remain useful for security review.
 They do not define the current campaign executor and cannot authorize a
 production task.
 
-The current model is [campaign-policy.md](../campaign-policy.md):
+The current model is described in `docs/refactoring-plan/campaign-policy.md`:
 isolated implementer, verifier, and reviewer subagents operate on host-local
 paths. Standalone latest taskfmt is used only for the per-task lint and verify
 checks. The coordinator reviews evidence and integrates accepted commits.

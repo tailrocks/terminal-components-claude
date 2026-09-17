@@ -1,5 +1,9 @@
 # Late history semantic audit — patch indices 35–53
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Read-only source audit. Owned output: this directory only. No builds, source changes, runtime reproductions, snapshot approvals, or implementation-completion claims.
 
 ## Coverage and method

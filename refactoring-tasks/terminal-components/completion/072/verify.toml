@@ -6,7 +6,7 @@ forbidden_paths = ["refactoring-tasks", "docs/refactoring-plan", "shots", "snaps
 [[checks]]
 id = "CHK-001"
 phase = "precondition"
-argv = ["tools/refactor-proof/bin/tc-proof","preflight","--context",".campaign/evidence/contexts/CHK-001.json"]
+shell = "tools/refactor-proof/bin/tc-proof preflight --context \"$RUN_DIR/contexts/CHK-001.json\""
 expected = { exit = 0 }
 requirements = ["R-004"]
 acceptance = ["AC-004"]

@@ -1,5 +1,9 @@
 # Current-source corroboration
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Read-only source inspection; no runtime reproduction claimed.
 
 - xtask/src/main.rs SHA256 a306865782095880b7d9d471693b024b7b4ddfad896737372062cfb1f002bf31

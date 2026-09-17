@@ -6,9 +6,9 @@ currently **NO-GO**.
 
 Current references:
 
-- Product and architecture intent: [`goal.md`](goal.md), [`../GOAL.md`](../GOAL.md),
-  [`../COMPONENT_ARCHITECTURE.md`](../COMPONENT_ARCHITECTURE.md), and
-  [`../DESIGN.md`](../DESIGN.md).
+- Product and architecture intent: [`goal.md`](goal.md), [`../../GOAL.md`](../../GOAL.md),
+  [`../../COMPONENT_ARCHITECTURE.md`](../../COMPONENT_ARCHITECTURE.md), and
+  [`../../DESIGN.md`](../../DESIGN.md).
 - Campaign policy: [`../refactoring-plan/campaign-policy.md`](../refactoring-plan/campaign-policy.md).
 - Subagent-only execution: [`../refactoring-plan/subagent-only-policy.md`](../refactoring-plan/subagent-only-policy.md),
   [`../refactoring-plan/campaign-executor-protocol.md`](../refactoring-plan/campaign-executor-protocol.md),

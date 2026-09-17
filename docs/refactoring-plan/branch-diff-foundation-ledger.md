@@ -1,5 +1,9 @@
 # Foundation full-diff review ledger
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Compared immutable object IDs: main `7b27732a8c3c131760ec3438f641cb3c11343a42`; Holla `2e2401393c47360741ebd321679de08982dca50a`; oracle `02f5294bfdbf38004cc49130d0aff1d01f31434c`. This ledger is a bijection with the 67 foundation rows in branch-diff-inventory.tsv, not an update to that shared inventory.
 
 Every row records a complete no-renames, no-external-diff read: diff headers, all added/deleted source lines, and all tests/comments. All statuses are whole-file additions/deletions, so the stated line range is also the exact full diff payload range. Long files were paged without skipped ranges; two combined-output truncations were repaired by rereading event.rs:420–475 and theme/glyph.rs:125–180. Blob IDs identify exact source bytes. No production or qualification tests were run for this comparison; reviewed does not mean behavioral PASS.

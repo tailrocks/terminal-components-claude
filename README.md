@@ -346,7 +346,8 @@ and `png`; failed conversion never replaces the previous complete directory.
 The capture manifest records the exact argv, binary hash, Git dirty state,
 environment, and tool versions.
 
-The showcase also carries a visual baseline (`apps/showcase/tests/baselines/showcase.txt`):
-a digest of every page at 120×40 and 80×24, excluding the navigation sidebar.
-The showcase visual test fails when a page changes; regenerate deliberately
-with `UPDATE_BASELINE=1 cargo nextest run -p showcase --test visual showcase_visual_baseline`.
+The showcase also carries a diagnostic self-baseline
+(`apps/showcase/tests/baselines/showcase.txt`): a digest of every page at
+120×40 and 80×24, excluding the navigation sidebar. It is not the immutable
+visual oracle and is not an acceptance path while readiness is **NO-GO**. Do
+not regenerate it or set `UPDATE_BASELINE=1` during campaign preparation.

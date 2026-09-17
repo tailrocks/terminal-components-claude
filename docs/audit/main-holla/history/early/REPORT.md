@@ -1,5 +1,9 @@
 # Early semantic history audit — indices 0–6
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Scope: reversed `tree-audit.json.patches`, inclusive indices 0–6, pinned MAIN_BASE `c12cad8728755cd2d03eefdd8e02891143fca86d`. Read-only source audit. External artifacts only. Indices 7–8 delegated by parent to history_api; their exact byte-application checks here do not claim semantic review.
 
 ## Method and precise coverage

@@ -1,5 +1,9 @@
 # Historical API adjudication patch review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Scope: reversed tree-audit patches 7 and 8 only. All added/deleted lines and hunk headers read, not commit-title inference. Exact parent pairs, original patch SHA256, line counts and hunk coverage: `coverage.json`. Full reviewed semantic input: the two `*.delta.txt` files. Exact test/command-bearing added and removed lines: `*.test-and-command-lines.txt`. No builds, runtime reproduction, current implementation compliance audit, or source edits performed. Earlier snapshot reconstruction is parent-provided evidence, not rerun here. These are both semantic changes, not formatting-only changes; neither patch creates/deletes/renames the document.
 
 ## 27bd918e3a8a0a7fdba14fb10643139340d6281f relative to f2d30b654e5c6bea154392a8be6e9f4b7d4dbcb1

@@ -1,5 +1,9 @@
 # Showcase contract audit
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Pinned reference: `794b095c196562d38f1b6f7ce379c128af2a023d`. Implementation base: `c12cad8728755cd2d03eefdd8e02891143fca86d`. Read-only source investigation. No binary execution, screenshot inspection, behavioral pass, independent review, or visual parity claimed. Initial main compile failure is owned by integrator. All findings below are source-proven unless explicitly marked proposed.
 
 ## Scope inventory

@@ -1,5 +1,9 @@
 # Adjudication N — layer sizing (MI‑9) and `Measure` style access (MI‑16)
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 **Scope.** Two Slice‑3 foundation decisions blocking Slice 4 packages 4A (buttons/measure) and 4F (dialog/overlays). Read against `COMPONENT_ARCHITECTURE.md` §9.1, §9.2, §10, §11.1 A3, §11.3, §16.1, §16.2 cases 14/19, §17.0 A2/A6/A7, §17 examples 9 and 10, §21 items 14/20/30, and the code at the commit after `18afddd`.
 
 **Method.** Facts are `path:line`. Everything under *Decision*, *Rationale*, *Rejected* is inference from those facts.

@@ -1,8 +1,13 @@
 # Main-based Holla integration execution plan
 
+> Historical execution plan. Superseded by the current
+> [readiness report](../../refactoring-plan/execution-readiness-report.md).
+> Do not replay its branch, taskfmt, container, command, or merge instructions.
+
 ## Authority and stop condition
 
-The complete user task is preserved in [main-holla-integration-task.md](main-holla-integration-task.md).
+The complete historical user task is preserved in
+[main-holla-integration-task.md](../../plans/main-holla-integration-task.md).
 Main is the implementation base; pinned Holla is the product reference. All four
 applications, every surviving architecture obligation, all verification layers,
 and exact merged-commit verification are required. Narrow slice acceptance is
@@ -415,7 +420,7 @@ mapping and all visual obligations remain separate.
 ## Historical checkpoints
 
 The previous 352-line execution log is preserved byte-for-byte in
-[execution-checkpoints-through-825bbb6.md](../audit/main-holla/execution-checkpoints-through-825bbb6.md).
+[execution-checkpoints-through-825bbb6.md](execution-checkpoints-through-825bbb6.md).
 Its SHA256 is b99d5700f77b77ae77eeaf774f0766b01ec6eb46623d48cdece588dbf1801855. It records earlier observations, including superseded
 failures and temporary owner assignments; this plan supplies current status.
 No obligation was removed: the complete archived task remains the final audit

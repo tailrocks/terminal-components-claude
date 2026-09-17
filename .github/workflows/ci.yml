@@ -4,12 +4,11 @@ name: CI
 # COMPONENT_ARCHITECTURE.md; do not add, drop or weaken one without amending the
 # section it comes from.
 #
-#   fmt / clippy / build / test / doc-test / doc
+#   fmt / clippy / build / nextest / rustdoc
 #       §22 §7 "the gate commands" and Appendix A Slice 8 (the unscoped goal §26 set).
-#   cargo nextest run --workspace --doc
-#       §16.5 CI gate `readme_compiles` — crates/tui/src/lib.rs carries
-#       `#![doc = include_str!("../README.md")]`, so the doc-test run compile-checks
-#       every README fence (§22.3).
+#   cargo doc --workspace --all-features --no-deps
+#       §16.5 rustdoc compilation. cargo-nextest 0.9.143 does not execute
+#       doctests; executable doctest coverage remains an explicit TASK-066 blocker.
 #   RUSTDOCFLAGS="-D warnings" cargo doc
 #       §16.5 `architecture::public_items_are_documented` (the other half of
 #       `#![deny(missing_docs)]`). Set through the job-level `RUSTDOCFLAGS` env below,
@@ -39,10 +38,10 @@ name: CI
 #       and why the step sets `BLESS_GUARD_BASE` (§49.6).
 #   cargo run -p xtask -- doc-check
 #       §16.5 / §21 item 34 — every `Ident::method` in the document resolves.
-#   cargo check -p junie-tui --no-default-features
+#   cargo nextest run -p junie-tui --no-default-features --no-run --lib
 #       §16.5 CI gate `core_is_backend_free` / §22.1: nothing outside
 #       runtime/session.rs needs a backend.
-#   cargo check --workspace --all-targets --all-features on the pinned 1.88.0 leg
+#   cargo nextest run --workspace --all-targets --all-features --no-run on the pinned 1.88.0 leg
 #       §16.5 `architecture::msrv_and_edition_are_unchanged` + §22.5: `cargo metadata`
 #       proves the FIELD, this job proves the code compiles on the floor. Without it a
 #       builder could use a 1.95 API on a 1.98 toolchain and every other gate would pass.
@@ -59,6 +58,7 @@ env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: -D warnings
   RUSTDOCFLAGS: -D warnings
+  NEXTEST_USER_CONFIG_FILE: none
 
 defaults:
   run:
@@ -97,14 +97,14 @@ jobs:
         run: cargo metadata --locked --format-version 1 > /dev/null
 
       # §22.5 / §16.5 msrv_and_edition_are_unchanged. On the 1.88.0 leg this IS the
-      # `cargo +1.88.0 check --workspace --all-targets --all-features` gate; on stable
+      # `cargo +1.88.0 nextest run --workspace --all-targets --all-features --no-run` gate; on stable
       # it is a fast compile-error signal ahead of the slower steps.
       - name: MSRV compile check (§22.5)
-        run: cargo check --locked --workspace --all-targets --all-features
+        run: cargo nextest run --locked --workspace --all-targets --all-features --no-run
 
       # §22.1 / §16.5 core_is_backend_free.
       - name: Backend-free core (§22.1)
-        run: cargo check --locked -p junie-tui --no-default-features
+        run: cargo nextest run --locked -p junie-tui --no-default-features --no-run --lib
 
       - name: Format (§26)
         run: cargo fmt --all --check
@@ -141,10 +141,9 @@ jobs:
       - name: Render matrix is reachable under its documented path (§25.12)
         run: cargo nextest list --locked --workspace --all-targets --all-features | grep -c 'render::components'
 
-      # §16.5 readme_compiles + "all examples compile".
-      - name: Doc tests (§16.5)
-        run: cargo nextest run --locked --workspace --doc --all-features
-
+      # cargo-nextest 0.9.143 has no doctest runner. Keep rustdoc compilation
+      # here; executable doctest coverage remains an explicit TASK-066 blocker
+      # and must not be replaced with an invalid `nextest --doc` invocation.
       - name: Docs (§16.5, RUSTDOCFLAGS=-D warnings from the job env)
         run: cargo doc --locked --workspace --all-features --no-deps
 

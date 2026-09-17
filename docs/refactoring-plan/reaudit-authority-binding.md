@@ -1,5 +1,9 @@
 # Independent canonical-authority suffix review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Reviewed 2026-09-11. Scope is the new `bind_authority` projection in `evidence/sync-history-stages.py` and the matching historical-suffix check in `evidence/validate-plan.py`. This is not a whole-plan or historical semantic-authority approval.
 
 ## Result

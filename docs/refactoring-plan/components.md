@@ -1,5 +1,9 @@
 # Component system inventory and parity obligations
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 This is a source audit for planning, not a report that the refactor passes. The immutable oracle used here is `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze, formerly tagged `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`). The candidate source is main `7b27732a8c3c131760ec3438f641cb3c11343a42`. References below use `O:path:line` and `M:path:line` for those exact trees. Paths without a line identify the complete module. The companion [component-parity.tsv](component-parity.tsv) is the exhaustive family ledger. Owner names are bounded work streams for the task planner to map to canonical task IDs; they are not task packages.
 
 ## Evidence rules

@@ -1,5 +1,9 @@
 # Independent tui-snap repair review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Review date: 2026-09-11. Initial candidate: `e45d3fae2ecc628e294c0b5796a8775ad2d7f0e2`, compared with upstream `5036cf87e621e6beb66deffe3224abdbefc955cb`. The candidate worktree is `/tmp/tui-snap-audit.656lHG/repaired`. No repository-local `AGENTS.md` or `CLAUDE.md` was found. This review made no production-code changes.
 
 ## Final decision

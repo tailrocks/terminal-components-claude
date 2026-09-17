@@ -1,5 +1,9 @@
 # F03: immutable Settings failure through the full application
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Status: the failure is reproduced; disposition **`oracle_crash_archived_safe_continuation_required`** approved 2026-09-15 (ADJ-09 extension). Pre-crash frames match oracle; refactor requires safe continuation; no post-failure oracle frame may be invented.
 
 ## Source and boundary

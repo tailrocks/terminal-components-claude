@@ -1,5 +1,9 @@
 # Architecture Research — Component Model, Theme, Composition, Package Boundary
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Scope: read-only research for `COMPONENT_ARCHITECTURE.md`. **Facts** are cited `file:line`. **Inference / Recommendation** sections are judgment and are labelled.
 
 ---

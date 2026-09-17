@@ -2,7 +2,7 @@
   "schema": "tc-proof-architecture-context/v1",
   "operation": "architecture",
   "branch_host_projection": {
-    "index": "/task/trusted/branch-host-projection.tsv",
+    "index": "branch-host-projection.tsv",
     "required_roles": [
       "branch_host_projection",
       "native_conformance"

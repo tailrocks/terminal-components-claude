@@ -1,5 +1,9 @@
 # Components B independent repair review — byte ledger
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Snapshot follows the author's stable eight-file follow-up. These are independently computed current bytes for the original 27 paths plus two newly changed files. `Lines` is whole-file length, not a claim of full-file semantic rereading. Coverage is all changed clauses/witnesses/scopes plus the relevant unchanged guard context; unchanged historical appendices are not silently counted as reread. The companion report records immutable source branches and findings.
 
 | Path | Lines | SHA-256 | Semantic coverage |

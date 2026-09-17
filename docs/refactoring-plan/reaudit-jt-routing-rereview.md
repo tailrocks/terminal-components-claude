@@ -1,5 +1,9 @@
 # Independent rereview of Filter, ChipBar and Inspect trace repairs
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Bounded verdict: the repaired TP-039–042 and JA-060 routing premises are supported by actual oracle source and replay. This is not full application or frozen baseline acceptance. The coordinator did not author these scenario repairs or their five replay tests.
 
 Read `reaudit-jt-routing-repairs.md` completely, all five repaired canonical scenario rows, both disposable Rust harnesses (`lib.rs`, 32 physical lines; `jackin.rs`, 16 physical lines), their Cargo manifest, and the reused Jackin Harness definition through its input/render methods. Minified source lines were read in full, not treated as one-line coverage shortcuts.

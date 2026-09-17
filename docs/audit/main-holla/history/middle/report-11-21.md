@@ -1,5 +1,9 @@
 # Semantic history review — indices 11–21
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Scope: reversed `tree-audit.json.patches`, indices 11–21 inclusive, all COMPONENT_ARCHITECTURE.md. Exact patch/novel hashes and complete code/test-name token inventory: `coverage-11-21.json`. Reviewed 331,716 novel characters in bounded ≤17,000-character reads without truncation. Every added and removed semantic line was reviewed. One identical moved `FixtureRow` declaration at index13 was separately read; its shape remains `{ key: ItemKey, label: String, meta: String, disabled: bool }`. Full raw patch context was not repeatedly reread; preceding unchanged contract belongs to parent audit induction. Parent owns patch→snapshot reconstruction proof. This is historical obligation review, not present implementation verification or execution of quoted commands. Claims that historical code/tests passed remain historical reports until reproduced.
 
 Current user overrides historical model-routing names, three-app scope, ownership dates, and acceptance shortcuts. Independent judgment/review remains required using available agents; four applications and pinned Holla production parity govern. Historical weak first-generation review is explicitly insufficient for current full canonical-cell/style and independent image/interaction review. Later sections outside this slice may supersede exact API spellings or decisions; integrate with their audit, never drop a surviving requirement merely because current implementation violates it.

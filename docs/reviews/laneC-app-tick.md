@@ -1,5 +1,9 @@
 # Lane C adjudication proposal: Jackin status, ticks, and dimming
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 **Status:** proposed for Q1, Q2, and Q4. Lane A must record the accepted
 decisions in `COMPONENT_ARCHITECTURE.md` and `REFACTORING_STATE.md` before any
 library implementation. This review is read-only with respect to `crates/**` and

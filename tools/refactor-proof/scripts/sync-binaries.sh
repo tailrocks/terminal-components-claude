@@ -1,21 +1,11 @@
 #!/usr/bin/env bash
-# Copy workspace-built refactor-proof binaries to tools/refactor-proof/bin/.
-# The comparator is the only accepted proof executable. Keep this script limited
-# to copying that standalone binary; verifier lifecycle orchestration is retired.
+# Retired fail-closed compatibility shim.
+#
+# bin/tc-proof is the host-local Python dispatcher used by current task
+# contracts. Overwriting it with the Rust comparator silently removes
+# preflight/capture/accounting/architecture operations. Build and test the
+# comparator through cargo nextest; never install it over the dispatcher.
 set -euo pipefail
 
-root="$(cd "$(dirname "$0")/.." && pwd)"
-workspace="$(cd "$root/../.." && pwd)"
-profile="${PROFILE:-debug}"
-target="$workspace/target/$profile"
-
-built="$target/tc-proof"
-dest="$root/bin/tc-proof"
-if [[ ! -f "$built" ]]; then
-  echo "sync-binaries: missing $built (run: cargo build -p refactor-proof)" >&2
-  exit 1
-fi
-cp "$built" "$dest"
-chmod 755 "$dest"
-
-echo "sync-binaries: installed $(shasum -a 256 "$dest" | awk '{print $1}') -> bin/tc-proof"
+echo "sync-binaries: retired; refusing to overwrite bin/tc-proof" >&2
+exit 78

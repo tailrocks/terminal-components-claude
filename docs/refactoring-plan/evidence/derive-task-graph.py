@@ -82,7 +82,7 @@ def main() -> int:
         current = longest[current][0]
     selected.reverse()
     graph = {"schema": "tc-plan-graph/v1", "tasks": tasks, "dependency_depth": depth, "longest_path_predecessors": longest, "longest_path_count": sum(path_count[t] for t in terminal), "maximum_dependency_depth": maximum, "deepest_tasks": terminal, "representative_critical_path": selected, "serialization_locks": locks}
-    lines = ["# Derived execution graph", "", "This graph is generated from canonical task.toml dependencies and verify.toml scopes. Task numbers do not define execution order. Dependency depth is an unweighted critical-path measure; no invented duration estimate is used.", "", f"The graph contains {len(tasks)} tasks, maximum depth {maximum}, and {graph['longest_path_count']} equally deepest dependency paths. The complete predecessor representation is in [task-graph.json](task-graph.json).", "", "## One exact longest dependency path", "", "`" + " → ".join(selected) + "`", "", "## Earliest dependency layers", "", "Tasks in one layer are only candidates for parallel execution. Apply the shared-file locks below and require actual prerequisite code/trust receipts, not metadata status alone.", "", "| Depth | Tasks |", "| --- | --- |"]
+    lines = ["# Derived execution graph", "", "This graph is generated from canonical task.toml dependencies and verify.toml scopes. Task numbers do not define execution order. Dependency depth is an unweighted critical-path measure; no invented duration estimate is used.", "", f"The graph contains {len(tasks)} tasks, maximum depth {maximum}, and {graph['longest_path_count']} equally deepest dependency paths. The complete predecessor representation is in [task-graph.json](task-graph.json).", "", "TASK-001 and TASK-070 are retained fail-closed preparation prerequisites, not dispatchable implementation tasks. TASK-071 and TASK-072 remain blocked until fresh accepted receipts exist.", "", "## One exact longest dependency path", "", "`" + " → ".join(selected) + "`", "", "## Earliest dependency layers", "", "Tasks in one layer are only candidates for parallel execution. Apply the shared-file locks below and require actual prerequisite code/trust receipts, not metadata status alone.", "", "| Depth | Tasks |", "| --- | --- |"]
     for level in range(1, maximum + 1):
         lines.append(f"| {level} | " + ", ".join(f"`{t}`" for t in ids if depth[t] == level) + " |")
     lines += ["", "## Shared-file serialization", "", "Disjoint ready work may run in isolated worktrees. The following incomparable tasks have overlapping writable scope and must not execute concurrently. When both are ready, dispatch the lower task ID first, integrate its verified tree, and start the other from that accepted parent. This is a declared soft scheduling constraint, not an invented task.toml field. If only the higher task is ready, it may run first; the later task must still start after its verified integration. No two such tasks share an executor or target/output directory.", "", "| Tasks | Overlapping scopes |", "| --- | --- |"]
@@ -102,14 +102,8 @@ def main() -> int:
             raise ValueError("Stored machine graph is stale; regenerate from canonical metadata")
         if (docs / "task-graph.md").read_text() != "\n".join(lines):
             raise ValueError("Stored readable graph is stale; regenerate from canonical metadata")
-    plan = (root / "docs/sources/REFACTORING_COMPLETION_PLAN.md").read_text()
-    stated = re.findall(r"maximum dependency depth (\d+) and (\d+) equally deepest paths", plan)
-    if stated != [(str(maximum), str(graph["longest_path_count"]))]:
-        raise ValueError("Authoritative plan depth/path count differs from canonical DAG")
-    if "TASK-065" not in tasks["TASK-066"]["dependencies"] or "TASK-065/TASK-066 serialization is a hard edge" not in plan:
-        raise ValueError("Required TASK-065/TASK-066 hard serialization drift")
-    if re.search(r"TASK-065.{0,30}TASK-066.{0,50}soft", plan, re.I):
-        raise ValueError("Authoritative plan revives the obsolete soft-only serialization")
+    if "TASK-065" not in tasks["TASK-066"]["dependencies"]:
+        raise ValueError("Required TASK-065/TASK-066 hard dependency drift")
     with (docs / "historical-obligations-canonical.tsv").open(newline="") as stream:
         historical_count = sum(1 for _ in csv.DictReader(stream, delimiter="\t"))
     inventory_readme = (root / "refactoring-tasks/terminal-components/completion/007/README.md").read_text()

@@ -1,5 +1,9 @@
 # Independent assembly and Choice caller rereview
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 ## Result and boundary
 
 PASS for the two-line dependency projection repair and the corrected ADJ-10 Jackin caller census. No production or global plan file was edited by this reviewer. Checks ran in `/tmp/assembly-rereview.ySTjup`; this report is the only repository write for this subtask. Verify-and-stop bounded the work. This is not global plan approval or a claim that the whole assembler is an independent acceptance judge.

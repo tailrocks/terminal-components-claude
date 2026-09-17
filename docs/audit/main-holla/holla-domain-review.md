@@ -1,5 +1,9 @@
 # Independent Holla domain migration review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 ACCEPT committed source scope at1781b54fbe5d50de23c0f6f06667d659b2d942fe, including e39c16e pure port and2d7a236 bounded seek. Review used a clean detached worktree; owner uncommitted accounting/risk-memory work was not read. No app/runtime/source edits made. This accepts domain API wiring, not app visual parity or completion of excluded obligations H-S14/15 and H-S12/18.
 
 Plan declaration validation: unique nonempty IDs, earlier-only dependency indices, legal pending/excluded/policy states, required-step exclusion refusal. Immutable plan/step access removes postvalidation graph corruption. Linear iterative run/exclusion propagation cannot recurse through cycles. Failed/excluded/policy-skipped dependencies cannot authorize their dependents; independent branches continue.

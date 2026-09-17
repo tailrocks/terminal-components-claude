@@ -23,7 +23,7 @@ SPECS = {
     "tablepro": ("scenario_id", "oracle_source", range(58, 65)),
 }
 SHELL_IDS = {"SC-SHELL-C02", "SC-SHELL-C06", "SC-SHELL-C07"}
-CORRECTION_BINDING = "- [holla-trace-corrections.md](/task/trusted/holla-trace-corrections.md): all sixteen named source-correct branches are normative; four preview, four Args and eight editing/idle overlay branches."
+CORRECTION_BINDING = "- [holla-trace-corrections.md](holla-trace-corrections.md): all sixteen named source-correct branches are normative; four preview, four Args and eight editing/idle overlay branches."
 HEADER = re.compile(r"^### (?:APP:)?((?:SC-|HO-|JA-|TP-)[^\n]+)\n", re.MULTILINE)
 NEXT_SECTION = re.compile(r"^#{1,3} ", re.MULTILINE)
 

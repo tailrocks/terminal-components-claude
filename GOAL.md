@@ -6,7 +6,8 @@
 > which is **NO-GO**. This file states product intent; it is not a campaign
 > ledger, taskfmt pin, or execution approval.
 
-This is the canonical continuation goal. Read this file before acting. Treat
+This is the canonical product-intent goal. It is not an execution prompt.
+Read the current readiness report and execution policy before acting. Treat
 older execution prompts as historical unless they agree with this contract.
 
 ## Mission

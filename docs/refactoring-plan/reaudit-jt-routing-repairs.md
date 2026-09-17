@@ -1,5 +1,9 @@
 # Source-qualified Filter, chips and Inspect routing repairs
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 ## Authority and boundary
 
 The coordinator authorized repairs to TP-040/042 and JA-060, then explicitly extended the same-mechanism repair to TP-039/041. This is author work awaiting a separate root review, not self-approval. Surgical-patch required reproducing the wrong traces and changing only their owning planning contracts; verify-and-stop bounded diagnostics and lints. No Terminal Components production source, canonical AGENTS file, branch, commit or golden capture was changed.

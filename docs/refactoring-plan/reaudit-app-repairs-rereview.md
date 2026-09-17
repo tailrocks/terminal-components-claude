@@ -1,5 +1,9 @@
 # Independent rereview: Showcase and Holla app repairs
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 2026-09-11. Planning-only, source-backed rereview under `docs/sources/PLANNING_GOAL.md` and verify-and-stop. This reviewer did not author these app repairs. Only this report was written in the repository; no production, baseline, task package, shared copy, fixture source or Git ref was changed. The disposable replay harnesses were inspected and rerun without modification.
 
 ## Bounded result

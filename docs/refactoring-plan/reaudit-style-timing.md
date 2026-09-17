@@ -1,5 +1,9 @@
 # Actual style timing qualification re-audit
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Author-owned preparation; independent re-review pending. This report does not
 close TASK073, certify TASK067's five-percent product bound, or authorize a
 production edit. Root owns frozen assets, manifest synchronization and acceptance.

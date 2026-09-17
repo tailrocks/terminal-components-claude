@@ -1,5 +1,9 @@
 # HAR-LOCATORS planning closure witness
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Planning-only read-only verification, 2026-09-15. Confirms repaired immutable revision-range locators and HAR-020 accepted-disposition table; does not execute the 110 HI/HAR production owner proofs.
 
 ## Locator repair (HIHAR-01)

@@ -1,5 +1,9 @@
 # Independent review of verifier repairs
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Reviewed 2026-09-11. Verdict: the finite runner qualification repairs are accepted at the exact identities below. The reviewer did not author or modify the qualification source, task contracts or production source. The only durable review edit is this report. No production runner, oracle baseline or terminal-components refactoring was executed or accepted.
 
 ## Finding disposition

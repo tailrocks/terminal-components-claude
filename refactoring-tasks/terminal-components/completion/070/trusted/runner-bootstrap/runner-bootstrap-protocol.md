@@ -4,7 +4,7 @@
 > commands are retired and intentionally omitted. This record is not a
 > campaign runbook and never authorizes containers or lifecycle services.
 
-This package is planning-owned test preparation. It is not the implementation of `tc-proof`, an application baseline, or authority to bless one. It closes the independent fixture gap identified in BR-06 of [the bootstrap review](../bootstrap-review.md). The comparator and host suites remain separate prerequisites. The following bounded implementations own this contract:
+This package is planning-owned test preparation. It is not the implementation of `tc-proof`, an application baseline, or authority to bless one. It closes the independent fixture gap identified in BR-06 of `docs/refactoring-plan/bootstrap-review.md`. The comparator and host suites remain separate prerequisites. The following bounded implementations own this contract:
 
 - TASK-070 implements `preflight`, `required`, `oracle`, `capture`, and `close`.
 - TASK-071 implements `account-tests`, including immutable stage accounting.
@@ -48,7 +48,7 @@ Production uses the same authority split with pinned Rust build/test tools and a
 
 ## Context and result ABI
 
-The exact CLI remains the project interface in [proof-contract.md](../proof-contract.md): `tc-proof OPERATION --context PATH`; oracle adds `--namespace synthetic`, and capture adds `--lane direct` or `--lane pty`. Unknown operations and flags fail. The synthetic namespace belongs only to this operator-owned qualification context; normal campaign membership cannot be expanded by passing it as a CLI option.
+The exact CLI remains the project interface in `docs/refactoring-plan/proof-contract.md`: `tc-proof OPERATION --context PATH`; oracle adds `--namespace synthetic`, and capture adds `--lane direct` or `--lane pty`. Unknown operations and flags fail. The synthetic namespace belongs only to this operator-owned qualification context; normal campaign membership cannot be expanded by passing it as a CLI option.
 
 `Fixture.__init__` in the independent driver defines the normative `tc-proof-runner-context/v1` object. It binds the opaque run, operation, frozen tree, oracle commit/tree and Git bundle/hash, exact interpreter path/hash, accepted/integrated prerequisite records, adapter delta list, lane, finite axes, flat membership, test inventory, typed prerequisite evidence, and execution configuration. The operator additionally supplies `TC_PROOF_CONTEXT_SHA256`, `TC_PROOF_RUN_ID`, `TC_PROOF_SOURCE_TREE`, and `TC_PROOF_ORACLE_COMMIT`. These are protected host entrypoint inputs; never inherit them into arbitrary candidate workers. They allow fail-closed reporting even if the context is damaged. No hash is expected to reveal the original run identity.
 

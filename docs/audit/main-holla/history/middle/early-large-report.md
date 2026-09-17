@@ -1,5 +1,9 @@
 # Semantic delta audit: chronological edges 9–10
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Scope: COMPONENT_ARCHITECTURE.md additions and deletions at 69fcdcad413375a181c72a144b776e08a7b2b5fd relative to fa87a59c6d1028bc08515132e1f7719624bf9a08, and 587c53bdfaa6f391b686f2383b5675194d9ba9f8 relative to 1129ab1c0225548f3a2bd20cae5e33aa87fbc5a5. Complete novel extracts read in contiguous character intervals of at most 18,000: edge 9 [0,84983), edge 10 [0,136188). No output truncation in those reads. Counter comparison against original patches found edge 9 omitted exactly one `-}` and one `+}`; those brace-only lines were separately inspected. Edge 10 contained every +/- line. Immutable original/extract SHA256 and exact identities: `early-large-coverage.json`. Parent-snapshot/context induction belongs to parent auditor; this report proves full semantic +/- review of assigned edges, not review of all prior history.
 
 Edge 9 is the partial inline amendment; edge 10 finishes its signature/example updates and appends §§25–26, explicitly accepting the Slice 3 review and Adjudication N. These are semantic amendments, not formatting-only edits. No rename/deletion in these two edges. Neither document assertion of implementation nor historical review verdict is fresh implementation evidence. No source edits, builds, behavioral tests, or baseline approvals performed here.

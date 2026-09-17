@@ -2,11 +2,19 @@
 
 ## Authority and observed state
 
-The UI/UX oracle used here is `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze, formerly tagged `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`). Every source reference in this document and the scenario register resolves against that commit unless explicitly marked otherwise. The comparison target is main `7b27732a8c3c131760ec3438f641cb3c11343a42`.
+The UI/UX source oracle used here is `02f5294bfdbf38004cc49130d0aff1d01f31434c`
+(historical freeze, formerly tagged `holla-fable-2026-09-10`); the frozen
+visual-baseline tag is `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`. Every source
+reference in this document and the scenario register resolves against that
+commit unless explicitly marked otherwise. The comparison target is main
+`7b27732a8c3c131760ec3438f641cb3c11343a42`.
 
 Main has a migrated Holla package at `apps/holla` (`holla_app` library plus `holla` binary). The removal of `src/bin/holla` is a packaging move and does not prove application absence. Main uses the accepted App/Cx/Ui update/draw boundary, shared TextInput/NavList/TextViewport/Dialog controls and persistent interaction state. Its actual UI and simulation represent a substantially smaller, different Holla experience. The comparison matrix below distinguishes migrated behavior from missing oracle flows. Source evidence proves specific differences; complete frame equality remains unmeasured.
 
-Current investigation checkout HEAD was `2e2401393c47360741ebd321679de08982dca50a`. The comparison `git diff --name-only ORACLE HEAD -- src/bin/holla src/core src/widgets src/runtime.rs Cargo.toml Cargo.lock` was empty. An isolated build ran `CARGO_TARGET_DIR=/tmp/holla-plan-test.IdMvk0 rtk cargo test --bin holla`: **143 passed, 0 failed; suite runtime 9.06 seconds**. This proves those current logic assertions; it does not prove complete visual equality or missing main functionality.
+The historical investigation checkout comparison was empty. Its recorded
+143-test result remains evidence only; it does not prove complete visual
+equality or missing main functionality. A current rerun, when authorized, must
+use host-local `cargo nextest run --locked --bin holla` in an isolated target.
 
 The companion [scenario register](holla-scenarios.tsv) is an execution specification, not captured baseline evidence. No new visual captures were generated during this audit. Existing `shots/h_*` artifacts must pass provenance and fidelity review before reuse.
 
@@ -34,7 +42,11 @@ All paths in this table resolve against main `7b27732a8c3c131760ec3438f641cb3c11
 
 Main already has `apps/holla/src/app/historical_tests.rs`, substantial inline app/domain tests, `tests/perf.rs` and `tests/visual.rs`. The visual baseline loops 11 worlds × 4 sizes × 2 themes × 4 colors = 352 self-baseline cases at frame 4000; it does not contain the missing 23 worlds or prove oracle parity. Several tests explicitly assert changed behavior, such as Ctrl+A activity cycling and scope-before-query Escape. Retain architecture/ownership/safety assertions; rewrite conflicting product expectations against the oracle after recording the mismatch.
 
-Measured main gate: in detached worktree `/private/tmp/tc-architecture.L0vAdH/main` at `7b27732a8c3c131760ec3438f641cb3c11343a42`, `CARGO_TARGET_DIR=/tmp/holla-plan-test.IdMvk0 rtk cargo test -p holla` passed **173 tests across 5 suites, 41.46 seconds**. Main is buildable and its own tests pass. Those tests do not prove the oracle experience; source mismatches above remain despite the green gate.
+The historical main gate passed **173 tests across 5 suites**. Main is
+buildable and its own tests pass in that recorded evidence; those tests do not
+prove the oracle experience. A current rerun, when authorized, must use
+`cargo nextest run --locked -p holla` in an isolated target. Source mismatches
+above remain despite the historical green gate.
 
 ## Application contract and complete surface map
 

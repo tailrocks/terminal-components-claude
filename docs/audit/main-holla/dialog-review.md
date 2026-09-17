@@ -1,5 +1,9 @@
 # Independent dialog compiler repair review
 
+> Historical planning evidence. Not current execution authority. Do not replay
+> its commands, branch/pin/model/merge/container instructions. Reconcile this
+> record against the current readiness report and current contracts.
+
 Candidate: fa99577f6684c398ab56c1a31630004be8771b2e
 Parent: 95776a40c87f8dbf14a9d75a4932bb4e2dc192d9
 Detached worktree: /Users/donbeave/Projects/terminal-components-dialog-review
