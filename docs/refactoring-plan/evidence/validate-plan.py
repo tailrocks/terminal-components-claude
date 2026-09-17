@@ -9,6 +9,7 @@ import hashlib
 import json
 import re
 import runpy
+import shlex
 import sys
 import tomllib
 from collections import Counter
@@ -22,8 +23,17 @@ TC_PROOF_OPERATIONS = frozenset({
 TC_PROOF_ORACLE_NAMESPACES = frozenset({"showcase", "holla", "jackin", "tablepro", "components"})
 TC_PROOF_CAPTURE_LANES = frozenset({"direct", "pty"})
 VERIFY_CHECK_PHASES = frozenset({"precondition", "focused", "regression", "lint", "gate"})
-VERIFY_CHECK_REQUIRED = frozenset({"id", "phase", "argv", "expected", "requirements", "acceptance"})
+VERIFY_CHECK_REQUIRED = frozenset({"id", "phase", "expected", "requirements", "acceptance"})
 CHECK_ID_PATTERN = re.compile(r"^CHK-\d{3}$")
+TC_PROOF_BINARY = "tools/refactor-proof/bin/tc-proof"
+TC_PROOF_HOST_BINARY = "tools/refactor-proof/bin/tc-proof-host"
+CONTEXT_ROOT = ".campaign/evidence/contexts"
+TRUSTED_ROOT = "refactoring-tasks/terminal-components/completion"
+LEGACY_NAMESPACE = re.compile(r"(?<![A-Za-z0-9_.-])/(?:task|work|proof|run)(?:/|$)")
+FORBIDDEN_RUNTIME = re.compile(
+    r"\b(?:docker|podman|mount|firmlink)\b|"
+    r"\btaskfmt\s+(?:init|status|host|runtime|run|lifecycle)\b"
+)
 
 
 class Audit:
@@ -36,6 +46,57 @@ class Audit:
     def require(self, condition: bool, message: str) -> None:
         if not condition:
             self.errors.append(message)
+
+    def host_local_command(self, task_id: str, check_id: str, check: dict, package: Path) -> list[str]:
+        """Validate the repository-relative command contract used by taskfmt verify."""
+        has_argv = "argv" in check
+        has_shell = "shell" in check
+        self.require(has_argv != has_shell, f"Command must use exactly one of argv/shell: {task_id}:{check_id}")
+        if has_argv:
+            command = check.get("argv", [])
+            self.require(isinstance(command, list) and bool(command), f"Empty command: {task_id}:{check_id}")
+            if not isinstance(command, list):
+                return []
+            tokens = command
+        else:
+            shell = check.get("shell", "")
+            self.require(isinstance(shell, str) and bool(shell.strip()), f"Empty shell command: {task_id}:{check_id}")
+            if not isinstance(shell, str):
+                return []
+            try:
+                tokens = shlex.split(shell)
+            except ValueError as error:
+                self.errors.append(f"Invalid shell command {task_id}:{check_id}: {error}")
+                return []
+            self.require(bool(tokens), f"Empty shell command: {task_id}:{check_id}")
+
+        for token in tokens:
+            if not isinstance(token, str):
+                continue
+            self.require(not token.startswith("/"), f"Absolute command path: {task_id}:{check_id}:{token}")
+            self.require(not LEGACY_NAMESPACE.search(token), f"Legacy namespace in command: {task_id}:{check_id}:{token}")
+            self.require(not FORBIDDEN_RUNTIME.search(token), f"Forbidden runtime command: {task_id}:{check_id}:{token}")
+
+        trusted_prefix = f"{TRUSTED_ROOT}/{task_id.removeprefix('TASK-')}/trusted/"
+        for token in tokens:
+            if not isinstance(token, str):
+                continue
+            if token.startswith(TRUSTED_ROOT + "/"):
+                self.require(token.startswith(trusted_prefix), f"Cross-task trusted input: {task_id}:{check_id}:{token}")
+                self.require((self.root / token).is_file(), f"Missing trusted input: {task_id}:{check_id}:{token}")
+            elif token in {TC_PROOF_BINARY, TC_PROOF_HOST_BINARY}:
+                self.require((self.root / token).is_file(), f"Missing proof executable: {task_id}:{check_id}:{token}")
+
+        expected_context = f"{CONTEXT_ROOT}/{check_id}.json"
+        if has_argv and isinstance(check.get("argv"), list):
+            argv = check["argv"]
+            if argv and argv[0] == TC_PROOF_BINARY:
+                self.require("--context" in argv, f"Missing operation context: {task_id}:{check_id}")
+                if "--context" in argv:
+                    position = argv.index("--context") + 1
+                    self.require(position < len(argv) and argv[position] == expected_context,
+                                 f"Per-check context mismatch: {task_id}:{check_id}")
+        return tokens
 
     def table(self, name: str, key: str | None = None) -> list[dict[str, str]]:
         path = self.docs / name
@@ -147,24 +208,20 @@ class Audit:
             checks = {check["id"]: check for check in verify.get("checks", [])}
             self.require(bool(requirements) and bool(acceptance) and bool(checks), f"Empty contract graph: {task_id}")
             for check_id, check in checks.items():
+                self.host_local_command(task_id, check_id, check, package)
                 argv = check.get("argv", [])
-                if argv and argv[0] == "/proof/bin/tc-proof":
+                if argv and argv[0] == TC_PROOF_BINARY:
                     self.require("--context" in argv, f"Missing operation context: {task_id}:{check_id}")
                     if "--context" in argv:
                         position = argv.index("--context") + 1
-                        expected_context = f"/run/tc-proof/contexts/{check_id}.json"
+                        expected_context = f"{CONTEXT_ROOT}/{check_id}.json"
                         self.require(position < len(argv) and argv[position] == expected_context, f"Per-check context mismatch: {task_id}:{check_id}")
                 if any("runner-bootstrap-driver.py" in argument for argument in argv) and "--group" in argv:
                     position = argv.index("--group") + 1
                     self.require(position < len(argv) and argv[position] in {"070", "071", "072"}, f"Invalid runner qualification group: {task_id}:{check_id}")
-                for argument in argv:
-                    if argument.startswith("/task/"):
-                        relative = argument.removeprefix("/task/")
-                        self.require(".." not in Path(relative).parts, f"Escaping trusted input: {task_id}:{argument}")
-                        self.require((package / relative).exists(), f"Missing invoked trusted input: {task_id}:{relative}")
             protocol = (package / "AGENTS.md").read_bytes()
             normalized = re.sub(rb"TASK-\d{3}", b"TASK-000", protocol)
-            self.require(hashlib.sha256(normalized).hexdigest() == "cae56507a9300ae4d7daee2b0cc484340b87a17627df10b96a157cdd0fd80b89", f"Canonical execution protocol drift: {task_id}")
+            self.require(hashlib.sha256(normalized).hexdigest() == "86bbf024a51aa62f6bc739a0ed46d54faab76cf87ffe918c682dfbc453b964de", f"Canonical execution protocol drift: {task_id}")
             self.require("source-obligations.tsv" in readme, f"Historical payload not bound by README: {task_id}")
             read_before = readme.split("Read before editing:", 1)
             self.require(len(read_before) == 2, f"Missing Read before editing section: {task_id}")
@@ -178,7 +235,7 @@ class Audit:
         return tasks, dependencies
 
     def catalog_argv_smoke(self) -> None:
-        """Dry-run verify.toml argv structure without invoking /proof/bin/tc-proof."""
+        """Dry-run verify.toml commands without invoking configured checkers."""
         catalog = self.root / "refactoring-tasks/terminal-components/completion"
         tc_proof_checks = 0
         for verify_path in sorted(catalog.glob("*/verify.toml")):
@@ -199,10 +256,12 @@ class Audit:
                 self.require(check_id not in seen_ids, f"Duplicate check id: {relative}:{check_id}")
                 seen_ids.add(check_id)
                 self.require(set(check) >= VERIFY_CHECK_REQUIRED, f"Missing check fields: {relative}:{check_id}")
+                self.host_local_command(task_id, check_id, check, verify_path.parent)
                 phase = check.get("phase", "")
                 self.require(phase in VERIFY_CHECK_PHASES, f"Unknown check phase: {relative}:{check_id}:{phase}")
                 argv = check.get("argv", [])
-                self.require(isinstance(argv, list) and bool(argv), f"Empty argv: {relative}:{check_id}")
+                if "argv" in check:
+                    self.require(isinstance(argv, list) and bool(argv), f"Empty argv: {relative}:{check_id}")
                 self.require(all(isinstance(argument, str) and argument for argument in argv),
                              f"Blank argv segment: {relative}:{check_id}")
                 expected = check.get("expected", {})
@@ -211,7 +270,7 @@ class Audit:
                 for field in ("requirements", "acceptance"):
                     values = check.get(field, [])
                     self.require(isinstance(values, list) and bool(values), f"Empty {field}: {relative}:{check_id}")
-                if argv[0] != "/proof/bin/tc-proof":
+                if not argv or argv[0] != TC_PROOF_BINARY:
                     continue
                 tc_proof_checks += 1
                 self.require(len(argv) >= 2, f"Missing tc-proof operation: {relative}:{check_id}")
@@ -221,7 +280,7 @@ class Audit:
                 self.require("--context" in argv, f"Missing tc-proof context: {relative}:{check_id}")
                 position = argv.index("--context") + 1
                 self.require(position < len(argv), f"Dangling tc-proof --context: {relative}:{check_id}")
-                expected_context = f"/run/tc-proof/contexts/{check_id}.json"
+                expected_context = f"{CONTEXT_ROOT}/{check_id}.json"
                 self.require(argv[position] == expected_context,
                              f"Context check id mismatch: {relative}:{check_id}")
                 if operation == "oracle":
@@ -463,7 +522,7 @@ class Audit:
             body = json.loads(template_path.read_text())
             self.require(body.get("operation") == "architecture", "TASK-031 CHK-006 template must bind architecture")
             template_binding = body.get("branch_host_projection", {})
-            self.require(template_binding.get("index") == "/task/trusted/branch-host-projection.tsv",
+            self.require(Path(str(template_binding.get("index", ""))).name == proj_path.name,
                          "TASK-031 CHK-006 template index mismatch")
             self.require(set(template_binding.get("required_roles", [])) == {"branch_host_projection", "native_conformance"},
                          "TASK-031 CHK-006 template role mismatch")
