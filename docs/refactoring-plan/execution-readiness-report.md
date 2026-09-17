@@ -327,7 +327,8 @@ Hard blockers:
 - .campaign/ledger.json is disarmed; no accepted current host receipt exists.
 - TASK-071 verify record says exit 1, scope failure, and missing /run firmlink.
 - TASK-072 dependency receipt is TBD.
-- Ledger integration head 4d3501a6 is stale versus HEAD.
+- Ledger candidate tree hash `4d3501a6` is not current HEAD; no accepted host
+  receipt binds the current branch.
 - Current proof binary hash differs from the recorded receipt.
 - Current worktree is dirty.
 - Recorded remote performance CI for the pre-cleanup candidate failed three
