@@ -13,26 +13,26 @@ Every reusable component family and all accepted application bundles form one co
 
 ## Context
 
-Visual regression gate: committed `snapshots/` grouped store (`/work/docs/baseline/snapshots-v2.md` (host catalog: `refactoring-tasks/visual-validation.md`)). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
+Visual regression gate: committed `snapshots/` grouped store (`../../../../docs/baseline/snapshots-v2.md` (task catalog: `refactoring-tasks/visual-validation.md`)). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
 
-This is a later execution task. The current planning goal only creates this immutable package. UI authority is `02f5294bfdbf38004cc49130d0aff1d01f31434c`; architecture starts from `7b27732a8c3c131760ec3438f641cb3c11343a42`. The accepted producer product is `oracle-complete`. Task dependencies are `TASK-002`, `TASK-003`, `TASK-004`, `TASK-005`, `TASK-070`, `TASK-071`, `TASK-072`. Dependency status alone never proves integrated source ancestry or trusted product acceptance. Follow the standalone host workflow in proof-contract.md; do not execute taskfmt's main-only dispatcher or promotion.
+This is a later execution task. The current planning goal only creates this immutable package. UI authority is `02f5294bfdbf38004cc49130d0aff1d01f31434c`; architecture starts from `7b27732a8c3c131760ec3438f641cb3c11343a42`. The accepted producer product is `oracle-complete`. Task dependencies are `TASK-002`, `TASK-003`, `TASK-004`, `TASK-005`, `TASK-070`, `TASK-071`, `TASK-072`. Dependency status alone never proves integrated source ancestry or trusted product acceptance. Follow the subagent-only host-local workflow in proof-contract.md; use standalone taskfmt only for this package's lint and verify evidence.
 
 Read before editing:
 
-- `/task/CAMPAIGN_AGENTS.md`: campaign executor protocol; supersedes AGENTS.md steps 6–7 for verification authority.
-- [docs/refactoring-plan/components.md](/work/docs/refactoring-plan/components.md).
-- [docs/refactoring-plan/component-parity.tsv](/work/docs/refactoring-plan/component-parity.tsv).
-- [docs/refactoring-plan/parity-synthesis.md](/work/docs/refactoring-plan/parity-synthesis.md).
-- [docs/refactoring-plan/verification.md](/work/docs/refactoring-plan/verification.md).
-- `/task/trusted/source-obligations.tsv`: every mapped clause, remaining-work obligation and named test is binding under its requirement/acceptance/check IDs.
-- `/task/trusted/obligations.md` and `/work/docs/refactoring-plan/proof-contract.md`.
+- `CAMPAIGN_AGENTS.md`: repository scope and integration constraints; this task-local AGENTS.md defines subagent execution and verification.
+- [docs/refactoring-plan/components.md](../../../../docs/refactoring-plan/components.md).
+- [docs/refactoring-plan/component-parity.tsv](../../../../docs/refactoring-plan/component-parity.tsv).
+- [docs/refactoring-plan/parity-synthesis.md](../../../../docs/refactoring-plan/parity-synthesis.md).
+- [docs/refactoring-plan/verification.md](../../../../docs/refactoring-plan/verification.md).
+- `trusted/source-obligations.tsv`: every mapped clause, remaining-work obligation and named test is binding under its requirement/acceptance/check IDs.
+- `trusted/obligations.md` and `../../../../docs/refactoring-plan/proof-contract.md`.
 
 ## Preconditions
 
-- **P-001:** The host has pinned the immutable task/catalog/bootstrap, taskfmt revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, accepted tui-snap PR/revision and toolchain/image/lock fingerprints.
-- **P-002:** Every declared predecessor's accepted product and actual integrated source ancestry resolve from protected host receipts; the candidate starts at the recorded parent and scope base.
+- **P-001:** The coordinator has pinned the immutable task/catalog/bootstrap, taskfmt revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, accepted tui-snap PR/revision and toolchain/lock fingerprints.
+- **P-002:** Every declared predecessor's accepted product and actual integrated source ancestry resolve from protected receipts; the candidate starts at the recorded parent and scope base.
 - **P-003:** The source requirements and finite scenario expansion contract are immutable. Expected numeric traces and capture hashes are outputs of the authorized baseline producer, never fabricated preconditions.
-- **Container mounts:** Read-only `/proof/bin/tc-proof`, `/run/tc-proof/context-index.json`, and `/run/tc-proof/contexts/CHK-NNN.json` per `verify.toml`; taskfmt `--task-dir` / `--root` do not substitute for these mounts.
+- **Host-local verifier inputs:** The verifier subagent resolves the comparator at `$WORKTREE/tools/refactor-proof/bin/tc-proof` and per-check contexts under `$RUN_DIR/contexts/`; taskfmt receives explicit `--task-dir`, `--root`, `--base`, and `--log-dir` paths. No mounts are involved.
 
 ## Scope
 
@@ -48,11 +48,11 @@ Out of scope:
 
 ## Requirements
 
-- **R-001 (MUST):** Satisfy every exact clause mapped to R-001 in `/task/trusted/source-obligations.tsv` together with the bounded outcome below. Classify all 54 component rows. Expand every oracle-renderable row into actual production widget/view fixtures, preserving the common states and CP-specific corpus. The `testing-registry` row is architecture-only: CHK-002 must retain its explicit non-frame disposition and bind its attribution/conformance obligations to TASK-073 and TASK-031. It has no invented oracle screenshot, direct capture, or PTY identity. Cover default/focus/hover/pressed/selected/disabled/readiness, all source-supported capability levels, tiny/nonzero origins, exact resize thresholds, scroll/fades, Unicode/selection/cursor, overlays and semantic identities. Explicit evidence-backed non-applicability replaces impossible states; absence never does.
+- **R-001 (MUST):** Satisfy every exact clause mapped to R-001 in `trusted/source-obligations.tsv` together with the bounded outcome below. Classify all 54 component rows. Expand every oracle-renderable row into actual production widget/view fixtures, preserving the common states and CP-specific corpus. The `testing-registry` row is architecture-only: CHK-002 must retain its explicit non-frame disposition and bind its attribution/conformance obligations to TASK-073 and TASK-031. It has no invented oracle screenshot, direct capture, or PTY identity. Cover default/focus/hover/pressed/selected/disabled/readiness, all source-supported capability levels, tiny/nonzero origins, exact resize thresholds, scroll/fades, Unicode/selection/cursor, overlays and semantic identities. Explicit evidence-backed non-applicability replaces impossible states; absence never does.
 - **R-002 (MUST):** Satisfy every exact source clause mapped to R-002 in the protected source obligations. Use original widget code and separately reviewed oracle observation adapters; keep architecture-only Paper/API tests distinct from oracle-Junie's product frames. Components introduced only by the new architecture are proven through matching oracle compositions, with an explicit old-to-new semantic mapping and architecture fixture; do not invent an old component screenshot.
 - **R-003 (MUST):** Preserve every source-qualified assertion and test mapped to R-003 in the protected source obligations. Resolve accepted oracle-showcase/holla/jackin/tablepro receipts, verify all source/tool/adapter/required-set pins, and join every namespace without duplicate/missing/checkpoint IDs. Require two independent component captures and repeat equality plus exact union coverage of every APP and COMP obligation. Include fade heights3/4/11/12,55%/80% rounding, non-RGB DIM, protected rows/cursor, styled-wide continuation and all retained-output mutation cases.
 - **R-004 (MUST NOT):** Violate any rejection, deferral, non-goal or trust rule mapped to R-004 in the protected source obligations. Never seal a complete product while an app bundle or required component state is missing. Never infer parity from2560main digests, the499historical archive, hand-painted expected fixtures or candidate-specific semantics. Do not modify accepted app bundles or shared comparator/expansion rules.
-- **R-005 (MUST):** The complete authoritative gate succeeds with all actual check logs, protected-input integrity and the exact accepted source tree recorded by the host.
+- **R-005 (MUST):** The complete authoritative gate succeeds with all actual check logs, protected-input integrity and the exact accepted source tree recorded by verifier and reviewer subagents.
 
 R-001/R-002 also require the protected observation schema and logical identity mapping consumed by candidate capture. Reference adapters remain independently accepted baseline products. Candidate extraction seams are separately owned untrusted implementation code under the proof contract; this baseline never requires a future candidate-adapter receipt or permits a candidate-defined schema.
 
@@ -99,7 +99,7 @@ Then every required case passes its specified outcome and no execution or result
 
 ### AC-004 — Keep authority immutable
 ```gherkin
-Given the host-owned task contract and protected source and verification inputs
+Given the campaign-pinned task contract and protected source and verification inputs
 When source identity ownership scope and receipt authority are validated
 Then every R-004 prohibition holds and no candidate-selected artifact defines success
 ```
@@ -146,7 +146,7 @@ Then every owned product artifact binds the correct source and complete actual e
 ## Fixed decisions
 
 - **D-001:** The UI oracle and architecture source have separate authority; never substitute main output for an expected frame.
-- **D-002:** This task produces `oracle-complete`. Only the protected host can accept/seal its output after independent checks; the executor cannot edit receipts or task metadata.
+- **D-002:** This task produces `oracle-complete`. Only verifier and reviewer subagents can approve evidence after independent checks; the coordinator cannot edit receipts or task metadata.
 - **D-003:** Use the existing proof-contract operation interface and canonical taskfmt standalone gate. Runner operations belong to TASK-070, accounting to TASK-071 and architecture verification to TASK-072; do not invent private bypass scripts.
 - **D-004:** Preserve original source/fixture/test identities and exact finite membership. Artifact absence, invalid data and unimplemented required cases fail closed.
 - **D-005:** Trusted candidate capture output and trusted expected oracle output occupy separate authority domains. This preparation task cannot approve changed candidate UX.
@@ -154,11 +154,23 @@ Then every owned product artifact binds the correct source and complete actual e
 
 ## Preparation accounting authority
 
-All `account-tests` checks in this task use TASK-071's independently qualified preparation mode, fixed by the host-owned per-check context. They do not require this task's own future accepted product or TASK-008's future disposition receipt. The host independently discovers the exact pinned-source inventory using protected source/module/profile inputs and actual compiler listings/execution; a candidate inventory or disposition is a proposal to validate, never the membership or allowed-failure authority. The host freezes the preparation expectation register before dispatch, recording exact source/test/outcome/classification and any source-evidenced pre-existing product failure. Require complete execution and unchanged compatible assertions; failures remain failed diagnostics. Missing/unknown/new failures and self-approved omissions fail. TASK-008 may use accepted TASK-007/TASK-006 products but cannot use its own proposal as a receipt. Only later production consumers require accepted inventory and disposition receipts together.
+All `account-tests` checks in this task use TASK-071's independently qualified preparation mode, fixed by the campaign-pinned per-check context. They do not require this task's own future accepted product or TASK-008's future disposition receipt. The verifier subagent independently discovers the exact pinned-source inventory using protected source/module/profile inputs and actual compiler listings/execution; a candidate inventory or disposition is a proposal to validate, never the membership or allowed-failure authority. The verification records the preparation expectation register before dispatch, recording exact source/test/outcome/classification and any source-evidenced pre-existing product failure. Require complete execution and unchanged compatible assertions; failures remain failed diagnostics. Missing/unknown/new failures and self-approved omissions fail. TASK-008 may use accepted TASK-007/TASK-006 products but cannot use its own proposal as a receipt. Only later production consumers require accepted inventory and disposition receipts together.
 
-## Campaign execution binding
+## Subagent execution
 
-The explicit [campaign executor adaptation](/work/docs/refactoring-plan/campaign-executor-protocol.md) is mandatory. It preserves canonical AGENTS template provenance but supersedes its executor-authoritative checks and empty-progress invocation. Local checks are advisory; the executor submits candidate/progress to the operator, who invokes the existing host freeze and verify commands with `/run/tc-proof/context-index.json` and `/run/tc-proof/contexts/CHK-NNN.json` (immutable per-check contexts), pinned configuration, explicit base and complete progress. Only the host-authentic exact-tree verdict authorizes completion/integration. No new scheduler or taskfmt lifecycle API is implied.
+The implementer, verifier, and reviewer subagents own this task. The coordinator assigns isolated worktrees, reviews evidence, and integrates only reviewed commits; it does not edit task-owned files.
+
+All execution is host-local. Use `$TASK_DIR` for this package, `$WORKTREE` for the isolated repository, `$RUN_DIR` for evidence and logs, and `$SCOPE_BASE` for the recorded parent. Run the latest standalone taskfmt only for this package:
+
+```text
+taskfmt lint "$TASK_DIR"
+taskfmt verify --root "$WORKTREE" --task-dir "$TASK_DIR" \
+  --base "$SCOPE_BASE" --progress "" \
+  --log-dir "$RUN_DIR/taskfmt-logs"
+```
+
+Taskfmt is validation only. No containers, images, mounts, or task orchestration commands are used. The verifier owns the final taskfmt evidence; the reviewer checks it against every `R-*`, `AC-*`, and `CHK-*` obligation before the coordinator integrates. Keep generated evidence under `$RUN_DIR` and do not modify task metadata or protected oracle inputs.
+
 
 ## Checklist
 
@@ -172,6 +184,6 @@ The explicit [campaign executor adaptation](/work/docs/refactoring-plan/campaign
     - [ ] **2.4** Join exact accepted bundle hashes and submit complete oracle receipt for independent sealing. (`R-001`, `AC-001`, `CHK-004`)
     - [ ] **2.5** Validate exact source membership. (`R-001`, `AC-006`, `CHK-002`)
     - [ ] **2.6** Execute and record the owned preparation operation. (`R-001`, `AC-007`, `CHK-003`)
-- [ ] **3** Verify the frozen product.
-    - [ ] **3.1** Run the complete host-controlled gate and preserve evidence. (`R-005`, `AC-005`, `CHK-007`)
+- [ ] **3** Verify the fixed product.
+    - [ ] **3.1** Run the complete subagent-verified gate and preserve evidence. (`R-005`, `AC-005`, `CHK-007`)
 <!-- checklist:end -->

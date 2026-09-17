@@ -13,23 +13,23 @@ Close application ownership and configured-props enforcement: every reusable con
 
 ## Context
 
-Visual regression gate: committed `snapshots/` grouped store (`/work/docs/baseline/snapshots-v2.md` (host catalog: `refactoring-tasks/visual-validation.md`)). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
+Visual regression gate: committed `snapshots/` grouped store (`../../../../docs/baseline/snapshots-v2.md` (task catalog: `refactoring-tasks/visual-validation.md`)). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
 
 Generic visible pixels and interaction have the same reusable production owner; forbidden legacy imports/copies/paint-over and method-based props-helper loopholes rejected with negative fixtures. This is a bounded closure of already restored production work, not permission to reopen unrelated design choices. ARCH:A23; DEC:ADJ-02; HIST:A108; HIST:A110; accepted architecture §§16,47,48,73; main xtask/src/main.rs:3443,3596,3613,3666,3768,4464.
 
 Read before editing:
 
-- `/task/CAMPAIGN_AGENTS.md`: campaign executor protocol; supersedes AGENTS.md steps 6–7 for verification authority.
-- `/task/trusted/obligations.md` and the exact historical clauses in `/task/trusted/source-obligations.tsv`.
+- `CAMPAIGN_AGENTS.md`: repository scope and integration constraints; this task-local AGENTS.md defines subagent execution and verification.
+- `trusted/obligations.md` and the exact historical clauses in `trusted/source-obligations.tsv`.
 - The immutable host-mounted proof contract, architecture assessment/adjudication, test dispositions, scenario expansions and task-stage command inventory.
 - The accepted parent versions of every writable file and the commit-qualified source references above.
 
 ## Preconditions
 
 - **P-001:** The host has accepted and integrated every hard dependency: `terminal-components/completion/039`, `terminal-components/completion/050`, `terminal-components/completion/057`, `terminal-components/completion/064`, `terminal-components/completion/009`, `terminal-components/completion/010`, `terminal-components/completion/011`, `terminal-components/completion/012`, `terminal-components/completion/013`, `terminal-components/completion/014`, `terminal-components/completion/015`, `terminal-components/completion/016`, `terminal-components/completion/017`, `terminal-components/completion/018`, `terminal-components/completion/019`, `terminal-components/completion/020`, `terminal-components/completion/021`, `terminal-components/completion/022`, `terminal-components/completion/023`, `terminal-components/completion/024`, `terminal-components/completion/025`, `terminal-components/completion/026`, `terminal-components/completion/027`, `terminal-components/completion/028`, `terminal-components/completion/029`, `terminal-components/completion/030`, `terminal-components/completion/031`. Their tested source identities must be ancestors of the actual integration parent.
-- **P-002:** The accepted TASK-001/TASK-070/TASK-071/TASK-072 proof products, sealed complete oracle bundle, required-test inventory and dispositions are installed read-only. The host has frozen this package and generated `/run/tc-proof/context-index.json` and its `/run/tc-proof/context-index.json` and `/run/tc-proof/contexts/CHK-NNN.json` (immutable per-check contexts) from those receipts.
+- **P-002:** The accepted TASK-001/TASK-070/TASK-071/TASK-072 proof products, sealed complete oracle bundle, required-test inventory and dispositions are installed read-only. The verifier has recorded this package and generated `$RUN_DIR/context-index.json` and its `$RUN_DIR/context-index.json` and `$RUN_DIR/contexts/CHK-NNN.json` (immutable per-check contexts) from those receipts.
 - **P-003:** Start from the host's isolated integration worktree, never main or the oracle. All four application closures pass and the closure-stage unresolved migration set is empty. Missing or changed trust products stop execution.
-- **Container mounts:** Read-only `/proof/bin/tc-proof`, `/run/tc-proof/context-index.json`, and `/run/tc-proof/contexts/CHK-NNN.json` per `verify.toml`; taskfmt `--task-dir` / `--root` do not substitute for these mounts.
+- **Host-local verifier inputs:** The verifier subagent resolves the comparator at `$WORKTREE/tools/refactor-proof/bin/tc-proof` and per-check contexts under `$RUN_DIR/contexts/`; taskfmt receives explicit `--task-dir`, `--root`, `--base`, and `--log-dir` paths. No mounts are involved.
 
 ## Scope
 
@@ -49,7 +49,7 @@ Out of scope:
 - **R-002 (MUST):** Use the existing parsed source boundary checker and independently protected TASK-072 mutation corpus. Record receiver presence for every self form; do not build a whole-program compiler plugin or claim unresolved call paths passed. Legitimate domain composition, custom art and caller row parts remain permitted.
 - **R-003 (MUST):** Execute the full required source-qualified test/profile/scenario inventory without fail-fast suppression. At this closure stage the unresolved set is empty: all owned, prerequisite and previously closed cases pass. Whole-workspace compilation, MSRV, formatting, lint, documentation and compatible architecture gates remain green. Missing execution and renamed or removed assertions without approved relocation fail.
 - **R-004 (MUST NOT):** Alter the oracle, expected artifacts, required membership, action coordinates, normalization, trust roots, test-disposition authority, tool pins or host context; bless candidate output; suppress failure; fabricate review/worker evidence; reintroduce rejected architecture; or push or merge main.
-- **R-005 (MUST):** The completion gate succeeds on the exact frozen tree with genuine accepted dependency ancestry and unchanged protected evidence.
+- **R-005 (MUST):** The completion gate succeeds on the exact fixed tree with genuine accepted dependency ancestry and unchanged protected evidence.
 
 ## Acceptance criteria
 
@@ -70,7 +70,7 @@ Then each closure clause has passing source-bound evidence and no unresolved own
 ### AC-002 — Accepted architecture and proof mechanisms remain intact
 
 ```gherkin
-Given the frozen candidate and protected architecture mutation witnesses
+Given the fixed candidate and protected architecture mutation witnesses
 When the trusted architecture verifier executes the applicable production and negative fixtures
 Then every named ownership API and measurement invariant holds without weakening proof
 ```
@@ -98,7 +98,7 @@ Then all required results are present and pass with no skipped or silently reloc
 ### AC-004 — Trust and integration authority remain unchanged
 
 ```gherkin
-Given the host-owned catalog oracle tool pins and accepted dependency receipts
+Given the campaign-pinned catalog oracle tool pins and accepted dependency receipts
 When preflight verifies provenance scope isolation and actual ancestor identities
 Then the candidate cannot redefine proof authority and every prerequisite is integrated
 ```
@@ -113,7 +113,7 @@ Then the candidate cannot redefine proof authority and every prerequisite is int
 
 ```gherkin
 Given all completed application and component direct scenarios in the sealed required set
-When the independent runner builds the frozen production tree and replays the direct actions
+When the independent runner builds the fixed production tree and replays the direct actions
 Then all required frame and semantic checkpoints are captured with authentic source bindings
 ```
 
@@ -127,7 +127,7 @@ Then all required frame and semantic checkpoints are captured with authentic sou
 
 ```gherkin
 Given all applicable sealed executable scenarios and literal input transcripts
-When the independent runner executes the frozen binaries in owned PTYs
+When the independent runner executes the fixed binaries in owned PTYs
 Then all terminal checkpoints exits and lifecycle observations are captured without retargeting
 ```
 
@@ -162,15 +162,27 @@ Then every required checkpoint is exactly equal and no expectation or membership
 
 - **D-001:** This task strengthens enforcement and closes remaining production adoption; it does not authorize a new renderer or copying oracle widgets into applications. If the final application tree still needs a functional repair outside scope, return the failure to its owning task and reverify the dependency.
 - **D-002:** The immutable oracle is `02f5294bfdbf38004cc49130d0aff1d01f31434c`; architecture starts from `7b27732a8c3c131760ec3438f641cb3c11343a42`. Neither old main snapshots nor current moving branches can redefine UX.
-- **D-003:** All 361 source scenario rows and their accepted finite expansions remain mandatory at closure. Direct-only states retain their independently approved lane applicability; executors cannot waive an unavailable PTY scenario.
+- **D-003:** All 361 source scenario rows and their accepted finite expansions remain mandatory at closure. Direct-only states retain their independently approved lane applicability; coordinators cannot waive an unavailable PTY scenario.
 - **D-004:** The host owns verdicts, review attestations, immutable context and integration refs. Candidate-written reports are untrusted inputs. Exact comparison plus source/semantic proof is required; no masks, tolerances or screenshots alone.
 - **D-005:** Taskfmt's run/promote lifecycle hardcodes main and is prohibited. Use supported standalone verification and the qualified host's exact-tree expected-parent integration protocol.
 - **D-006:** Shared xtask, CI, facade and test-inventory files have one integration writer. Parallel individually green siblings require a fresh combined-tree verification before downstream use.
 - **D-007:** The configured-props gate is the accepted intra-module/source scan at pinned architecture lines 2193 and 8577. Prove receiver-free constructor ownership and identical controlled configuration within that boundary; preserve the explicitly approved dynamic-ID, unconfigured and test-fixture exemptions. Cross-file call-graph completeness is not an accepted requirement or a passing claim. An unresolved path inside the declared source scope fails; a documented cross-file limitation cannot silently become whole-program analysis or a blanket exemption.
 
-## Campaign execution binding
+## Subagent execution
 
-The explicit [campaign executor adaptation](/work/docs/refactoring-plan/campaign-executor-protocol.md) is mandatory. It preserves canonical AGENTS template provenance but supersedes its executor-authoritative checks and empty-progress invocation. Local checks are advisory; the executor submits candidate/progress to the operator, who invokes the existing host freeze and verify commands with `/run/tc-proof/context-index.json` and `/run/tc-proof/contexts/CHK-NNN.json` (immutable per-check contexts), pinned configuration, explicit base and complete progress. Only the host-authentic exact-tree verdict authorizes completion/integration. No new scheduler or taskfmt lifecycle API is implied.
+The implementer, verifier, and reviewer subagents own this task. The coordinator assigns isolated worktrees, reviews evidence, and integrates only reviewed commits; it does not edit task-owned files.
+
+All execution is host-local. Use `$TASK_DIR` for this package, `$WORKTREE` for the isolated repository, `$RUN_DIR` for evidence and logs, and `$SCOPE_BASE` for the recorded parent. Run the latest standalone taskfmt only for this package:
+
+```text
+taskfmt lint "$TASK_DIR"
+taskfmt verify --root "$WORKTREE" --task-dir "$TASK_DIR" \
+  --base "$SCOPE_BASE" --progress "" \
+  --log-dir "$RUN_DIR/taskfmt-logs"
+```
+
+Taskfmt is validation only. No containers, images, mounts, or task orchestration commands are used. The verifier owns the final taskfmt evidence; the reviewer checks it against every `R-*`, `AC-*`, and `CHK-*` obligation before the coordinator integrates. Keep generated evidence under `$RUN_DIR` and do not modify task metadata or protected oracle inputs.
+
 
 ## Checklist
 

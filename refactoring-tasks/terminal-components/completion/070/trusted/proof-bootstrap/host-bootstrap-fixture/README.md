@@ -27,7 +27,7 @@ In scope:
 
 Out of scope:
 
-- The protected sentinel, task contract, checker, host receipts, expected bytes, and repository refs.
+- The protected sentinel, task contract, checker, protected receipts, expected bytes, and repository refs.
 
 ## Requirements
 

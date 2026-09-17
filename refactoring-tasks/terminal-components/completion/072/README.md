@@ -13,23 +13,23 @@ A protected architecture operation executes source-qualified invariants and reje
 
 ## Context
 
-Visual regression gate: committed `snapshots/` grouped store (`/work/docs/baseline/snapshots-v2.md` (host catalog: `refactoring-tasks/visual-validation.md`)). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
+Visual regression gate: committed `snapshots/` grouped store (`../../../../docs/baseline/snapshots-v2.md` (task catalog: `refactoring-tasks/visual-validation.md`)). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
 
-TASK-001 qualifies comparison and the thin host core only. This package owns the distinct `architecture-verifier` operation implementation. Its independently frozen group72 fixture contract establishes acceptance; the implementation cannot judge itself. This package is a later execution contract, not authorization to implement terminal-components during the planning goal.
+TASK-001 qualifies comparison and the thin verifier core only. This package owns the distinct `architecture-verifier` operation implementation. Its independently fixed group72 fixture contract establishes acceptance; the implementation cannot judge itself. This package is a later execution contract, not authorization to implement terminal-components during the planning goal.
 
 Read before editing:
 
-- `/task/CAMPAIGN_AGENTS.md`: campaign executor protocol; supersedes AGENTS.md steps 6–7 for verification authority.
-- `/work/docs/refactoring-plan/proof-contract.md` and `/work/docs/refactoring-plan/architecture-adjudication.md`.
-- `/task/trusted/runner-bootstrap/runner-bootstrap-protocol.md` and the exact group72 fixture/driver source.
-- `/task/trusted/source-obligations.tsv`: all mapped clauses, exact historical source revisions, remaining-work and named-test obligations bind their requirement/acceptance/check IDs.
-- `/task/trusted/proof-bootstrap/proof-comparator-protocol.md` and `host-bootstrap-protocol.md`.
+- `CAMPAIGN_AGENTS.md`: repository scope and integration constraints; this task-local AGENTS.md defines subagent execution and verification.
+- `../../../../docs/refactoring-plan/proof-contract.md` and `../../../../docs/refactoring-plan/architecture-adjudication.md`.
+- `trusted/runner-bootstrap/runner-bootstrap-protocol.md` and the exact group72 fixture/driver source.
+- `trusted/source-obligations.tsv`: all mapped clauses, exact historical source revisions, remaining-work and named-test obligations bind their requirement/acceptance/check IDs.
+- `trusted/proof-bootstrap/proof-comparator-protocol.md` and `host-bootstrap-protocol.md`.
 
 ## Preconditions
 
 - **P-001:** The protected host validates `TASK-071` receipts and actual integrated source ancestry, the recorded candidate parent/scope base, current canonical taskfmt revision and fingerprint, and the reviewed tui-snap tool pin.
-- **P-002:** The driver, fixture application, worker program, isolation observer and source requirement inputs are immutable outside the executor checkout. The submitted executable cannot alter the independent judge or its expected data.
-- **P-003:** Candidate workers have the pinned offline toolchain and owned PTYs where required, with no host authority, expected artifacts, network, credentials or host socket access.
+- **P-002:** The driver, fixture application, worker program, isolation observer and source requirement inputs are immutable outside the coordinator checkout. The submitted executable cannot alter the independent judge or its expected data.
+- **P-003:** Candidate workers have the pinned offline toolchain and owned PTYs where required, with no verification authority, expected artifacts, network, credentials or host socket access.
 
 ## Scope
 
@@ -48,9 +48,9 @@ Out of scope:
 
 - **R-001 (MUST):** Satisfy all exact R-001 clauses in the protected source obligations. Implement architecture from proof-contract.md using immutable per-task source obligations and qualified test/source-check profiles. Qualify whole-source parsing, missing/empty roots, forbidden dependency/public API paths, receiver-bearing Props helpers, copied/renamed painters, inert/dead component calls and paint-over witnesses against independent fixtures. Preserve legitimate external author components and application-owned art. Distinguish attributed PARTS resolution, documented painted-slot equality and source registry completeness; TASK-073 supplies production observation infrastructure and TASK-031 closes the full real registry.
 - **R-002 (MUST):** Satisfy all exact R-002 clauses in the protected source obligations. Separate the independent verifier implementation/fixtures from later production scanner and component repairs. Stage-specific known unfinished architecture obligations retain exact owners and truthful failure records; they are never silently passed. In-scope already completed invariants and the task's own fixtures must pass. A narrow syntax scan cannot claim whole-program reachability or API semantics; pair explicit scan scope with executed production phase/action tests.
-- **R-003 (MUST):** Preserve every source-qualified assertion/test mapped to R-003. Pass every group072 independent fixture and recovery positive, including malformed syntax, empty claimed root, omitted registry member, subset-only PARTS acceptance, false component-versus-row attribution, ignored slot, self/borrowed/typed receiver forms, unreferenced Props helper, duplicate same-ID construction and live paint-over. Reject fixture/allowlist/profile substitution and source/task/tree mismatch. Preserve existing runner/accounting/comparator behavior when adding dispatch.
+- **R-003 (MUST):** Preserve every source-qualified assertion/test mapped to R-003. Pass every group072 independent fixture and recovery positive, including malformed syntax, empty claimed root, omitted registry member, subset-only PARTS acceptance, false component-versus-row attribution, ignored slot, self/borrowed/typed receiver forms, unreferenced Props helper, duplicate same-ID construction and live paint-over. Reject fixture/allowlist/profile substitution and source$TASK_DIR/tree mismatch. Preserve existing runner/accounting/comparator behavior when adding dispatch.
 - **R-004 (MUST NOT):** Violate any mapped rejection, deferral or trust rule. Never use broad keyword bans that reject legitimate custom author painting, grant blanket generic drawing waivers, claim dynamic-disabled capture is unimplemented despite its publication tests, invent public Ord/FieldControl/patch_part APIs, or edit application/component production source in this verifier task.
-- **R-005 (MUST):** The complete independently controlled gate passes on the exact frozen candidate tree with all required outputs and unchanged trusted inputs.
+- **R-005 (MUST):** The complete independently controlled gate passes on the exact fixed candidate tree with all required outputs and unchanged trusted inputs.
 
 R-001 also requires the protected `architecture-bootstrap/architecture-bootstrap-protocol.md` corpus through CHK-011. Qualify both the finite Rust contract model and actual pinned terminal-components production probes, including real compiler/runtime evidence, focused positive controls, mutation contrasts, complete registry/state membership and protected external observer transport. Neither an integer-cell model nor an already-failing whole-main subject substitutes for actual positive/mutant discrimination. These fixtures use existing pinned source and private test observations; they do not require the future TASK-073 product.
 
@@ -175,7 +175,7 @@ Then exact source compiler runtime and result evidence passes without fixture su
 
 ### AC-010 — Qualify actual style timing measurement authority
 ```gherkin
-Given frozen actual source timing subjects and an independent host clock and observer
+Given fixed actual source timing subjects and an independent host clock and observer
 When the submitted architecture dispatcher handles every protected timing positive negative and recovery case
 Then raw calibration corrected and complete frame observations bind to actual production paths without forged durations omitted calls or a future receipt cycle
 ```
@@ -203,14 +203,26 @@ Then the sole private guarded broker and immutable data are accepted while every
 
 - **D-001:** Both the independently reviewed runner-bootstrap group072 driver and the separate Rust/actual-production architecture corpus judge this product. No self-test or printed success marker is acceptance.
 - **D-002:** UI oracle remains `02f5294bfdbf38004cc49130d0aff1d01f31434c`; architectural starting point remains `7b27732a8c3c131760ec3438f641cb3c11343a42`.
-- **D-003:** Use existing canonical taskfmt standalone verification and current tui-snap primitives. No taskfmt dispatcher/monitor/promote call is allowed; no ref update targets main.
+- **D-003:** Use existing canonical taskfmt standalone verification and current tui-snap primitives. No task orchestration call is allowed; no ref update targets main.
 - **D-004:** Host accepts `architecture-verifier` only after independent qualification and source rebuild. A later task resolves exactly that accepted producer product; no mutable latest path or candidate-written receipt is valid.
-- **D-005:** All commands and result schemas are exactly the frozen proof contract. Unsupported required behavior fails; adding permissive flags or alternative expected data cannot unblock it.
+- **D-005:** All commands and result schemas are exactly the fixed proof contract. Unsupported required behavior fails; adding permissive flags or alternative expected data cannot unblock it.
 - **D-006:** Context-index qualification (VF-03) is owned by TASK-070. This package inherits it through **CHK-009** (`--group 070`) per [`trusted/runner-index-receipt-binding.md`](trusted/runner-index-receipt-binding.md); `--group 072` checks alone do not satisfy index membership.
 
-## Campaign execution binding
+## Subagent execution
 
-The explicit [campaign executor adaptation](/work/docs/refactoring-plan/campaign-executor-protocol.md) is mandatory. It preserves canonical AGENTS template provenance but supersedes its executor-authoritative checks and empty-progress invocation. Local checks are advisory; the executor submits candidate/progress to the operator, who invokes the existing host freeze and verify commands with `/run/tc-proof/context-index.json` and `/run/tc-proof/contexts/CHK-NNN.json` (immutable per-check contexts), pinned configuration, explicit base and complete progress. Only the host-authentic exact-tree verdict authorizes completion/integration. No new scheduler or taskfmt lifecycle API is implied.
+The implementer, verifier, and reviewer subagents own this task. The coordinator assigns isolated worktrees, reviews evidence, and integrates only reviewed commits; it does not edit task-owned files.
+
+All execution is host-local. Use `$TASK_DIR` for this package, `$WORKTREE` for the isolated repository, `$RUN_DIR` for evidence and logs, and `$SCOPE_BASE` for the recorded parent. Run the latest standalone taskfmt only for this package:
+
+```text
+taskfmt lint "$TASK_DIR"
+taskfmt verify --root "$WORKTREE" --task-dir "$TASK_DIR" \
+  --base "$SCOPE_BASE" --progress "" \
+  --log-dir "$RUN_DIR/taskfmt-logs"
+```
+
+Taskfmt is validation only. No containers, images, mounts, or task orchestration commands are used. The verifier owns the final taskfmt evidence; the reviewer checks it against every `R-*`, `AC-*`, and `CHK-*` obligation before the coordinator integrates. Keep generated evidence under `$RUN_DIR` and do not modify task metadata or protected oracle inputs.
+
 
 ## Checklist
 
@@ -227,6 +239,6 @@ The explicit [campaign executor adaptation](/work/docs/refactoring-plan/campaign
     - [ ] **2.7** Qualify the Rust model and actual production architecture corpus through protected execution. (`R-001`, `AC-009`, `CHK-011`)
     - [ ] **2.8** Qualify real style timing paths, raw measurements and forgery controls without a future producer receipt. (`R-001`, `AC-010`, `CHK-012`)
     - [ ] **2.9** Qualify the exact ADJ-13 broker AST exception through the independent submitted-checker corpus. (`R-002`, `AC-011`, `CHK-013`)
-- [ ] **3** Qualify the frozen executable.
+- [ ] **3** Qualify the fixed executable.
     - [ ] **3.1** Run every independent case and the complete gate with actual logs. (`R-005`, `AC-005`, `CHK-007`)
 <!-- checklist:end -->

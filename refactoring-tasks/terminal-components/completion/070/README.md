@@ -13,23 +13,23 @@ The source/scenario runner executes preflight, required, oracle, capture and clo
 
 ## Context
 
-Visual regression gate: committed `snapshots/` grouped store (`/work/docs/baseline/snapshots-v2.md` (host catalog: `refactoring-tasks/visual-validation.md`)). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
+Visual regression gate: committed `snapshots/` grouped store (`../../../../docs/baseline/snapshots-v2.md` (task catalog: `refactoring-tasks/visual-validation.md`)). After product edits, `cargo nextest run --run-ignored only -E 'binary(visual_baseline)'` must match. Never write `snapshots/` or run `tuisnap accept`.
 
-TASK-001 qualifies comparison and the thin host core only. This package owns the distinct `source-runner` operation implementation. Its independently frozen group70 fixture contract establishes acceptance; the implementation cannot judge itself. This package is a later execution contract, not authorization to implement terminal-components during the planning goal.
+TASK-001 qualifies comparison and the thin verifier core only. This package owns the distinct `source-runner` operation implementation. Its independently fixed group70 fixture contract establishes acceptance; the implementation cannot judge itself. This package is a later execution contract, not authorization to implement terminal-components during the planning goal.
 
 Read before editing:
 
-- `/task/CAMPAIGN_AGENTS.md`: campaign executor protocol; supersedes AGENTS.md steps 6–7 for verification authority.
-- `/work/docs/refactoring-plan/proof-contract.md` and `/work/docs/refactoring-plan/architecture-adjudication.md`.
-- `/task/trusted/runner-bootstrap/runner-bootstrap-protocol.md` and the exact group70 fixture/driver source.
-- `/task/trusted/source-obligations.tsv`: all mapped clauses, exact historical source revisions, remaining-work and named-test obligations bind their requirement/acceptance/check IDs.
-- `/task/trusted/proof-bootstrap/proof-comparator-protocol.md` and `host-bootstrap-protocol.md`.
+- `CAMPAIGN_AGENTS.md`: repository scope and integration constraints; this task-local AGENTS.md defines subagent execution and verification.
+- `../../../../docs/refactoring-plan/proof-contract.md` and `../../../../docs/refactoring-plan/architecture-adjudication.md`.
+- `trusted/runner-bootstrap/runner-bootstrap-protocol.md` and the exact group70 fixture/driver source.
+- `trusted/source-obligations.tsv`: all mapped clauses, exact historical source revisions, remaining-work and named-test obligations bind their requirement/acceptance/check IDs.
+- `trusted/proof-bootstrap/proof-comparator-protocol.md` and `host-bootstrap-protocol.md`.
 
 ## Preconditions
 
 - **P-001:** The protected host validates `TASK-001` receipts and actual integrated source ancestry, the recorded candidate parent/scope base, current canonical taskfmt revision and fingerprint, and the reviewed tui-snap tool pin.
-- **P-002:** The driver, fixture application, worker program, isolation observer and source requirement inputs are immutable outside the executor checkout. The submitted executable cannot alter the independent judge or its expected data.
-- **P-003:** Candidate workers have the pinned offline toolchain and owned PTYs where required, with no host authority, expected artifacts, network, credentials or host socket access.
+- **P-002:** The driver, fixture application, worker program, isolation observer and source requirement inputs are immutable outside the coordinator checkout. The submitted executable cannot alter the independent judge or its expected data.
+- **P-003:** Candidate workers have the pinned offline toolchain and owned PTYs where required, with no verification authority, expected artifacts, network, credentials or host socket access.
 
 ## Scope
 
@@ -46,13 +46,13 @@ Out of scope:
 
 ## Requirements
 
-- **R-001 (MUST):** Satisfy all exact R-001 clauses in the protected source obligations. Implement exactly preflight, required, oracle, capture and close from proof-contract.md and runner-bootstrap-protocol.md. Source-only expansion freezes finite numeric events/checkpoints before candidate replay. Oracle capture rebuilds the pinned immutable source and reviewed adapter, captures twice in fresh workers, validates complete membership and exact repeated output, and never uses candidate data to choose expected output. Candidate direct/PTY capture builds the frozen source and replays fixed numeric actions through actual production handlers/rendering/executable input. Close joins actual typed result identities and complete integrity evidence; it cannot manufacture missing results.
+- **R-001 (MUST):** Satisfy all exact R-001 clauses in the protected source obligations. Implement exactly preflight, required, oracle, capture and close from proof-contract.md and runner-bootstrap-protocol.md. Source-only expansion records finite numeric events/checkpoints before candidate replay. Oracle capture rebuilds the pinned immutable source and reviewed adapter, captures twice in fresh workers, validates complete membership and exact repeated output, and never uses candidate data to choose expected output. Candidate direct/PTY capture builds the fixed source and replays fixed numeric actions through actual production handlers/rendering/executable input. Close joins actual typed result identities and complete integrity evidence; it cannot manufacture missing results.
 - **R-002 (MUST):** Satisfy all exact R-002 clauses in the protected source obligations. Reuse TASK-001's independently qualified comparator and thin host without weakening their contexts, immutable tree/receipt authority or worker isolation. Capture workers receive no expected frames or host ledger. Preserve direct private-semantic versus PTY terminal-observable lanes and independently qualify logical time/observation adapters against original source blobs. A project runner is thin orchestration over existing tuisnap, not a test-only application or new scheduler.
-- **R-003 (MUST):** Preserve every source-qualified assertion/test mapped to R-003. Run every group070 fixture and recovery positive against the submitted executable, covering changed oracle/source/adapter/action/profile pins, omitted/extra/duplicate membership, fake captures, reordered/missing checkpoints, stale binaries, candidate-driven selectors, mutated output/trust roots, incomplete close records and wrong tree/run/task binding. Rerun the full independently qualified comparator corpus after changing its CLI dispatcher. Existing comparator/host accepted behaviors must remain unchanged.
+- **R-003 (MUST):** Preserve every source-qualified assertion/test mapped to R-003. Run every group070 fixture and recovery positive against the submitted executable, covering changed oracle/source/adapter/action/profile pins, omitted/extra/duplicate membership, fake captures, reordered/missing checkpoints, stale binaries, candidate-driven selectors, mutated output/trust roots, incomplete close records and wrong tree$RUN_DIR/task binding. Rerun the full independently qualified comparator corpus after changing its CLI dispatcher. Existing comparator/host accepted behaviors must remain unchanged.
 - **R-004 (MUST NOT):** Violate any mapped rejection, deferral or trust rule. Never add baseline blessing, relaxation, skipped-state, mutable expected source or candidate-selected identity options. Never copy rendering/business/hit-test logic into adapters, replace original fixed conditions, call the runner as its own sole qualification gate, or implement production terminal-components repairs.
-- **R-005 (MUST):** The complete independently controlled gate passes on the exact frozen candidate tree with all required outputs and unchanged trusted inputs.
+- **R-005 (MUST):** The complete independently controlled gate passes on the exact fixed candidate tree with all required outputs and unchanged trusted inputs.
 
-R-001/R-002 require candidate capture to compile extraction-only untrusted seams with the exact frozen candidate and invoke real production handlers/rendering. Baseline TASK-002–006 own the protected state schema/identity mapping; production task owners implement seams only in their declared source/completion-test scope. No future accepted candidate-adapter receipt is required and no candidate seam receives verdict authority. R-003 includes independent wrong-state, constant-state, omitted-field, wrong-source/binary and test-only-path substitution cases; actual variable actions/state and frame provenance must reject each mutant.
+R-001/R-002 require candidate capture to compile extraction-only untrusted seams with the exact fixed candidate and invoke real production handlers/rendering. Baseline TASK-002–006 own the protected state schema/identity mapping; production task owners implement seams only in their declared source/completion-test scope. No future accepted candidate-adapter receipt is required and no candidate seam receives verdict authority. R-003 includes independent wrong-state, constant-state, omitted-field, wrong-source/binary and test-only-path substitution cases; actual variable actions/state and frame provenance must reject each mutant.
 
 R-002 also preserves the shared observer transport for raw style-timing evidence: canonical JSON types and exact private observation bytes remain bound independently of a submitted digest list, and the candidate cannot choose source, timing scope, frame denominator or observer argv. TASK-072 CHK-012 qualifies the later architecture operation and actual timing semantics against protected pinned-main source mutations; TASK-070 does not require that not-yet-implemented operation or a future TASK-073 receipt. TASK-073 produces the real measurement implementation only after those prerequisites, and TASK-067 consumes its independently observed results.
 
@@ -134,13 +134,25 @@ Then the complete prerequisite behavior remains exact without omitted results
 
 - **D-001:** The independently reviewed runner-bootstrap group70 driver and its fixtures judge this product. No self-test or printed success marker is acceptance.
 - **D-002:** UI oracle remains `02f5294bfdbf38004cc49130d0aff1d01f31434c`; architectural starting point remains `7b27732a8c3c131760ec3438f641cb3c11343a42`.
-- **D-003:** Use existing canonical taskfmt standalone verification and current tui-snap primitives. No taskfmt dispatcher/monitor/promote call is allowed; no ref update targets main.
+- **D-003:** Use existing canonical taskfmt standalone verification and current tui-snap primitives. No task orchestration call is allowed; no ref update targets main.
 - **D-004:** Host accepts `source-runner` only after independent qualification and source rebuild. A later task resolves exactly that accepted producer product; no mutable latest path or candidate-written receipt is valid.
-- **D-005:** All commands and result schemas are exactly the frozen proof contract. Unsupported required behavior fails; adding permissive flags or alternative expected data cannot unblock it.
+- **D-005:** All commands and result schemas are exactly the fixed proof contract. Unsupported required behavior fails; adding permissive flags or alternative expected data cannot unblock it.
 
-## Campaign execution binding
+## Subagent execution
 
-The explicit [campaign executor adaptation](/work/docs/refactoring-plan/campaign-executor-protocol.md) is mandatory. It preserves canonical AGENTS template provenance but supersedes its executor-authoritative checks and empty-progress invocation. Local checks are advisory; the executor submits candidate/progress to the operator, who invokes the existing host freeze and verify commands with `/run/tc-proof/context-index.json` and `/run/tc-proof/contexts/CHK-NNN.json` (immutable per-check contexts), pinned configuration, explicit base and complete progress. Only the host-authentic exact-tree verdict authorizes completion/integration. No new scheduler or taskfmt lifecycle API is implied.
+The implementer, verifier, and reviewer subagents own this task. The coordinator assigns isolated worktrees, reviews evidence, and integrates only reviewed commits; it does not edit task-owned files.
+
+All execution is host-local. Use `$TASK_DIR` for this package, `$WORKTREE` for the isolated repository, `$RUN_DIR` for evidence and logs, and `$SCOPE_BASE` for the recorded parent. Run the latest standalone taskfmt only for this package:
+
+```text
+taskfmt lint "$TASK_DIR"
+taskfmt verify --root "$WORKTREE" --task-dir "$TASK_DIR" \
+  --base "$SCOPE_BASE" --progress "" \
+  --log-dir "$RUN_DIR/taskfmt-logs"
+```
+
+Taskfmt is validation only. No containers, images, mounts, or task orchestration commands are used. The verifier owns the final taskfmt evidence; the reviewer checks it against every `R-*`, `AC-*`, and `CHK-*` obligation before the coordinator integrates. Keep generated evidence under `$RUN_DIR` and do not modify task metadata or protected oracle inputs.
+
 
 ## Checklist
 
@@ -152,6 +164,6 @@ The explicit [campaign executor adaptation](/work/docs/refactoring-plan/campaign
     - [ ] **2.2** Preserve isolation, identity and ownership boundaries. (`R-002`, `AC-002`, `CHK-006`)
     - [ ] **2.3** Retain the accepted comparator and every required regression. (`R-003`, `AC-003`, `CHK-005`)
     - [ ] **2.4** Preserve exact comparison with its independent corpus. (`R-003`, `AC-006`, `CHK-008`)
-- [ ] **3** Qualify the frozen executable.
+- [ ] **3** Qualify the fixed executable.
     - [ ] **3.1** Run every independent case and the complete gate with actual logs. (`R-005`, `AC-005`, `CHK-007`)
 <!-- checklist:end -->

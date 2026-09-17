@@ -1,57 +1,93 @@
 # Execution protocol
 
-Your goal is to fully implement this task: `/task/README.md`.
+Your goal is to fully implement this task: `$TASK_DIR/README.md`.
 
-`/task/` is read-only: it holds the task contract (`README.md`, this protocol, and `verify.toml`). Keep coordination state in `/progress/progress.md`. Do all work in `/work/`.
+The task package is read-only. It contains the task contract and verification
+configuration. All implementation belongs in the isolated host-local
+`$WORKTREE/`; coordination notes belong in `$RUN_DIR/`.
+
+## Roles
+
+- The implementer subagent changes only files allowed by this task's
+  `verify.toml`.
+- The verifier subagent independently runs the task checks and the latest
+  standalone taskfmt lint/verify commands.
+- The reviewer subagent checks the diff, task requirements, evidence, and
+  acceptance mapping before integration.
+- The coordinator assigns isolated subagent work, records evidence, and
+  integrates only reviewed commits. The coordinator does not implement
+  task-owned changes.
+
+All work is host-local. No containers are used. Do not provision images,
+mounts, or another execution environment for this task.
 
 ## Files
 
 | Path | Access | Purpose |
 | --- | --- | --- |
-| `/task/README.md` | read-only | The contract: goal, requirements, acceptance criteria, decisions, checklist. |
-| `/task/verify.toml` | read-only | Machine authority: checks, expected results, and writable paths; never edit. |
-| `/progress/progress.md` | read-write | Coordination event stream and handoff. |
-| `/work/` | read-write | The repository. All code changes happen here. |
+| `$TASK_DIR/README.md` | read-only | The task contract: goal, requirements, acceptance criteria, decisions, and checklist. |
+| `$TASK_DIR/verify.toml` | read-only | Machine authority: checks, expected results, and writable paths; never edit. |
+| `$RUN_DIR/progress.md` | read-write | Optional host-local subagent handoff and coordination log. It is not taskfmt state. |
+| `$WORKTREE/` | read-write | The isolated repository where implementation changes happen. |
 
-The completion gate is `taskfmt verify` (binary baked into the image, read-only). Run it from `/work`; never modify or bypass it. `$TASKFMT_BASE` is the scope base commit.
+The completion gate is the latest standalone `taskfmt verify` run by the
+verifier subagent with explicit host-local paths. `$SCOPE_BASE` is the recorded
+scope-base commit. Taskfmt is validation only: it does not create coordination
+state, dispatch workers, or integrate commits.
 
-The task README uses canonical typed acceptance blocks. Each non-gate `AC-*` block has one exact
-` ```gherkin ` fence containing constrained Given/When/Then behavior. Its `Verification` section
-has `Type`, real `Covers` requirement IDs, and one `Check` ID. A gate has `Type: gate` and one
-`Check` ID, but no `Covers` or Gherkin body. Commands and expected results belong only in
-`verify.toml`; acceptance prose has no machine authority. These blocks are task metadata, not
-Cucumber feature files, and have no runtime step definitions.
+The task README uses canonical typed acceptance blocks. Each non-gate `AC-*`
+block has one exact ` ```gherkin ` fence containing constrained Given/When/Then
+behavior. Its `Verification` section has `Type`, real `Covers` requirement
+IDs, and one `Check` ID. A gate has `Type: gate` and one `Check` ID, but no
+`Covers` or Gherkin body. Commands and expected results belong only in
+`verify.toml`; acceptance prose has no machine authority. These blocks are task
+metadata, not Cucumber feature files, and have no runtime step definitions.
 
 ## Protocol
 
-1. Read `/task/README.md` fully, then the files listed under "Read before editing".
-2. If `/progress/progress.md` exists you are resuming: read it, run `git status` and `git diff --stat`, and continue from its derived current leaf. The on-disk event stream is the only authority for coordination state; summaries are claims to check, never a substitute. Re-read it before appending an event and before the final report. Re-read `/task/README.md` before editing after any resume or context compaction.
+1. Read `$TASK_DIR/README.md` fully, then the files listed under "Read before editing".
+2. If `$RUN_DIR/progress.md` exists, read it, run `git status` and `git diff --stat`, and continue from its evidence-backed handoff. Re-read the task README before editing after any resume or context compaction.
 3. State in the transcript: task ID, one-sentence goal, acceptance IDs, and the first leaf.
-4. Run every `precondition` check. If one fails, append the prescribed blocking event and emit `STATUS: BLOCKED`. Do not work around it.
-5. Work checklist leaves in ID order unless README states dependencies. Append only valid versioned events for known leaves and allowed transitions; do not edit the README checklist or duplicate it into progress.
+4. Run every precondition check. If one fails, append the prescribed blocking event and emit `STATUS: BLOCKED`; do not work around it.
+5. Work checklist leaves in ID order unless the README states dependencies. Append only valid handoff events for known leaves; do not edit the README checklist or duplicate it into progress.
 6. Run the ordered verifier checks at the relevant leaf. A check that both passes and fails on the same tree is failed evidence: record it and stop `NEEDS_REPLAN`, naming the command.
-7. When implementation leaves are complete, run `taskfmt verify --progress ""` from `/work`; fix and rerun until it exits 0 with last line `DONE`. Then append the terminal progress event and run full `taskfmt verify`. Its complete output is completion evidence.
+7. When implementation leaves are complete, the verifier subagent runs:
 
-## progress.md grammar
+   ```text
+   taskfmt lint "$TASK_DIR"
+   taskfmt verify --root "$WORKTREE" --task-dir "$TASK_DIR" \
+     --base "$SCOPE_BASE" --progress "" \
+     --log-dir "$RUN_DIR/taskfmt-logs"
+   ```
 
-`progress.md` is a strict, versioned event format generated by `taskfmt init`. Do not hand-edit its schema, headers, sequence numbers, or derived fields. Append events only for checklist leaf IDs; statuses and transitions must be accepted by the parser. Keep free-form handoff notes in the separate handoff section. Progress is coordination state, never gate evidence.
+   Fix failures and rerun until both commands exit 0 with the verifier's
+   complete logs retained under `$RUN_DIR/taskfmt-logs`.
+
+## Handoff log
+
+`$RUN_DIR/progress.md` is optional host-local coordination state maintained by
+the subagents. Append evidence-backed updates only; taskfmt does not create or
+supervise this file. A verifier result is valid only when its command, exact
+task package, scope base, isolated worktree, and log directory are recorded.
 
 ## Prohibited
 
-- Editing anything under `/task/`, or modifying/replacing the `taskfmt` binary.
+- Editing anything under `$TASK_DIR/`, or modifying/replacing the taskfmt binary.
 - Deleting, skipping, weakening, or rewriting a failing test or check to make it pass.
 - Special-casing known fixtures or verifier inputs.
 - Suppressing errors, warnings, lint rules, type checks, or exit codes.
-- Changing any file outside `writable_paths` in `/task/verify.toml`; the gate rejects every other path.
-- Changing user-visible behavior with no `R-*`/`AC-*` names, even inside `writable_paths`; note it under `FOLLOW_UP`.
-- Claiming `DONE` without a `taskfmt verify` run in this session whose output is in the transcript.
+- Changing any file outside `writable_paths` in `$TASK_DIR/verify.toml`; the gate rejects every other path.
+- Changing user-visible behavior with no `R-*`/`AC-*` name, even inside `writable_paths`; note it under `FOLLOW_UP`.
+- Running any taskfmt command other than the per-task `lint` and `verify` commands above.
+- Letting the coordinator edit task-owned production files instead of assigning an implementer subagent.
+- Claiming `DONE` without verifier evidence from this session retained in the run log.
 
 ## Stop conditions
 
-- `BLOCKED`: a precondition command exited non-zero, or an environment or dependency condition outside `writable_paths` is false (missing dependency, credentials, infrastructure). A precondition command that errors (rc 127 etc.) is `BLOCKED` too.
-- `NEEDS_REPLAN`: satisfying the task requires changing its goal, acceptance criteria, fixed decisions, scope, or checklist; requirements contradict; a material design decision is unresolved; or the unblock itself needs such a change.
-- `INCOMPLETE`: the turn or budget cap is reached first. Leave the event stream non-terminal and fill the handoff.
-- Do not spin. A leaf with no evidence-backed action left is recorded as failed with its command and observed result; then move to the next independent leaf. Take a terminal only when no leaf anywhere has an evidence-backed action left — or at once where rule 4 or rule 6 says to stop — and report every failed leaf, what was tried, and the smallest decision or dependency needed to resume. If you continued past a failed leaf, say so under `DEVIATIONS`. Retrying a leaf whose failure you have already diagnosed is spinning.
+- `BLOCKED`: a precondition command exited non-zero, or an environment or dependency condition outside `writable_paths` is false. A missing executable or credential is `BLOCKED` too.
+- `NEEDS_REPLAN`: satisfying the task requires changing its goal, acceptance criteria, fixed decisions, scope, or checklist; requirements contradict; or a material design decision is unresolved.
+- `INCOMPLETE`: the turn or budget cap is reached first. Leave the handoff non-terminal and record the next evidence-backed action.
+- Do not spin. A leaf with no evidence-backed action left is recorded as failed with its command and observed result; then move to the next independent leaf. Take a terminal only when no leaf has an evidence-backed action left, or immediately when a precondition or mixed-result rule requires it.
 
 ## Turn signal
 
@@ -61,7 +97,9 @@ At the end of every turn EXCEPT the one that carries the final report, print one
 GOAL_PROGRESS task=TASK-073 state=<derived-state> current=<ID|NONE> done_this_turn=<IDs|none> blocked=<ID|none>
 ```
 
-On the turn that carries the final report, print this line immediately BEFORE the report and print nothing after the report's `GOAL_RESULT` line. `GOAL_RESULT` is the last line of the session, in every terminal state, without exception.
+On the final-report turn, print this line immediately before the report and
+print nothing after the `GOAL_RESULT` line. `GOAL_RESULT` is the last line in
+every terminal state.
 
 ## Final report
 
@@ -76,7 +114,7 @@ ACCEPTANCE:
 - AC-002: ...
 VERIFY: command=taskfmt verify exit=<n|NOT_RUN> last_line=<DONE|other|NOT_RUN>
 CHANGED:
-<verbatim `git diff --no-renames --name-status $TASKFMT_BASE`, then the untracked lines of `git status --porcelain --untracked-files=all`; not recall>
+<verbatim `git diff --no-renames --name-status $SCOPE_BASE`, then the untracked lines of `git status --porcelain --untracked-files=all`; not recall>
 DEVIATIONS: none | <list>
 FOLLOW_UP: none | <smallest decision, dependency, or split needed>
 GOAL_RESULT task=TASK-073 status=<STATUS>
