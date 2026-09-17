@@ -1,4 +1,8 @@
-# Wave 1 verification report — readiness probe
+# Historical Wave 1 verification report — readiness probe
+
+> **Superseded.** This readiness probe is historical evidence, not execution
+> authorization. Current state is **NO-GO**; use
+> [`execution-readiness-report.md`](execution-readiness-report.md).
 
 **Branch:** `prep-wave1-verify` (isolated from `visual-baseline`)  
 **Parent:** `63cf451d` (`visual-baseline` planning tip before probe)  

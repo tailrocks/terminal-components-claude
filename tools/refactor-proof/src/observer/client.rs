@@ -1,13 +1,19 @@
 //! Observer IPC client over inherited anonymous pipe descriptors.
 
-#![expect(unsafe_code, reason = "observer IPC wraps inherited anonymous pipe file descriptors")]
+#![expect(
+    unsafe_code,
+    reason = "observer IPC wraps inherited anonymous pipe file descriptors"
+)]
 
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, BufWriter, Write};
 
 use base64::Engine as _;
 
-use super::ipc::{ObserverObservation, ObserverRequest, ObserverRequestSchema, ObserverResponse, ObserverStep, OBSERVER_STEP_ORDER};
+use super::ipc::{
+    OBSERVER_STEP_ORDER, ObserverObservation, ObserverRequest, ObserverRequestSchema,
+    ObserverResponse, ObserverStep,
+};
 
 const MAX_LINE_BYTES: usize = 4096;
 
@@ -30,6 +36,7 @@ impl From<ObserverUnavailable> for io::Error {
 }
 
 /// Host-side observer IPC client bound to inherited pipe descriptors.
+#[derive(Debug)]
 pub struct ObserverClient {
     nonce: String,
     request: BufWriter<File>,
@@ -47,7 +54,8 @@ impl ObserverClient {
             .map_err(|_| ObserverUnavailable)?
             .parse::<i32>()
             .map_err(|_| ObserverUnavailable)?;
-        let nonce = std::env::var(super::ipc::ObserverEnv::NONCE).map_err(|_| ObserverUnavailable)?;
+        let nonce =
+            std::env::var(super::ipc::ObserverEnv::NONCE).map_err(|_| ObserverUnavailable)?;
         if nonce.is_empty() {
             return Err(ObserverUnavailable);
         }
@@ -74,18 +82,24 @@ impl ObserverClient {
     }
 
     /// Issue one observer request and return the captured observation.
-    pub fn execute_step(&mut self, step: ObserverStep) -> Result<ObserverObservation, ObserverUnavailable> {
+    pub fn execute_step(
+        &mut self,
+        step: ObserverStep,
+    ) -> Result<ObserverObservation, ObserverUnavailable> {
         let line = self.encode_request(step).map_err(|_| ObserverUnavailable)?;
         self.request
             .write_all(line.as_bytes())
             .and_then(|_| self.request.flush())
             .map_err(|_| ObserverUnavailable)?;
-        let response_line = read_response_line(&mut self.response).map_err(|_| ObserverUnavailable)?;
+        let response_line =
+            read_response_line(&mut self.response).map_err(|_| ObserverUnavailable)?;
         parse_observation(&response_line)
     }
 
     /// Issue the fixed verify sequence: build, test, taskfmt.
-    pub fn execute_verify_sequence(&mut self) -> Result<Vec<ObserverObservation>, ObserverUnavailable> {
+    pub fn execute_verify_sequence(
+        &mut self,
+    ) -> Result<Vec<ObserverObservation>, ObserverUnavailable> {
         let mut observations = Vec::with_capacity(OBSERVER_STEP_ORDER.len());
         for step in OBSERVER_STEP_ORDER {
             observations.push(self.execute_step(step)?);
@@ -186,7 +200,9 @@ mod tests {
         if result != 0 {
             return Err(io::Error::last_os_error());
         }
-        Ok((unsafe { File::from_raw_fd(fds[0]) }, unsafe { File::from_raw_fd(fds[1]) }))
+        Ok((unsafe { File::from_raw_fd(fds[0]) }, unsafe {
+            File::from_raw_fd(fds[1])
+        }))
     }
 
     #[test]

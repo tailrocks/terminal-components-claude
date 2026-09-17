@@ -30,7 +30,7 @@ Read before editing:
 ## Preconditions
 
 - **P-001:** The protected host has accepted TASK-001/070/071/072 products, sealed complete baseline TASK-006 and exact inventory/dispositions TASK-007/008; every listed predecessor is accepted and integrated into the recorded parent.
-- **P-002:** Source pins, taskfmt `52d9f1eb7721f409bc47beb9fced7997b5c13ede`, reviewed tui-snap revision, image/toolchain/lock and immutable catalog/context identities resolve from protected receipts.
+- **P-002:** Source pins, taskfmt `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, reviewed tui-snap revision, image/toolchain/lock and immutable catalog/context identities resolve from protected receipts.
 - **P-003:** The host froze exact owned scenario membership, source-qualified non-applicability, numeric traces and new-test obligations; the executor cannot choose expected output or expand write scope.
 - **Container mounts:** Read-only `/proof/bin/tc-proof`, `/run/tc-proof/context-index.json`, and `/run/tc-proof/contexts/CHK-NNN.json` per `verify.toml`; taskfmt `--task-dir` / `--root` do not substitute for these mounts.
 

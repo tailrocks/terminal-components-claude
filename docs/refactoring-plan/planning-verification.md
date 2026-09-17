@@ -1,4 +1,8 @@
-# Planning verification record
+# Historical planning verification record
+
+> **Superseded.** This verification record predates the current taskfmt
+> migration and is not a current gate. Use
+> [`execution-readiness-report.md`](execution-readiness-report.md).
 
 This verifies completed planning/preparation artifacts, not execution of the refactoring campaign or acceptance of application parity. Independent qualification, final source/task joins and all 151 frozen bootstrap assets pass. The complete artifact identity is recorded in [planning-artifacts.tsv](planning-artifacts.tsv).
 

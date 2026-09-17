@@ -1,12 +1,12 @@
 # COMPONENT_ARCHITECTURE.md
 
-**Status:** Accepted through §74, including the §73 disabled-pointer, shared-Props, and inert-registration adjudication. This document is the single source of truth for the refactor. Builders implement it as written; a change to any *Decision*, *invariant*, exact type, or precedence rule requires a fresh `read-only analyst` adjudication recorded here and in `REFACTORING_STATE.md` (goal §0).
+**Status:** Accepted through §74, including the §73 disabled-pointer, shared-Props, and inert-registration adjudication. This remains the architecture source of truth. It does not authorize execution; readiness is governed by [`docs/refactoring-plan/execution-readiness-report.md`](docs/refactoring-plan/execution-readiness-report.md), currently **NO-GO**. Changes to any *Decision*, *invariant*, exact type, or precedence rule require a fresh review recorded in the current planning record.
 
 Sections §40–§49 record subsequent gate, API, migration and baseline findings; §§50–§55 are
 accepted fresh adjudications for choice semantics, StatusBar hover, Grid ownership, incremental
 Tree indexing, Jackin timing/status/dimming, and closure-bearing containers. <!-- amended by §55 -->
 
-**Authority:** `REFACTORING_GOAL.md` › `DESIGN.md` › existing rendered output/tests › current source. Where the Slice‑1 audits conflict, the adjudications in §3–§15 below are final; the rejected alternative and the reason are stated with each.
+**Authority:** [`GOAL.md`](GOAL.md) for product intent › [`DESIGN.md`](DESIGN.md) for visual language › existing rendered output/tests › current source. Where the Slice‑1 audits conflict, the adjudications in §3–§15 below are final; the rejected alternative and the reason are stated with each. Historical references to `REFACTORING_GOAL.md` and `REFACTORING_STATE.md` are provenance, not active instructions.
 
 **Inputs adjudicated:** `docs/audit/api-audit.md` (API), `docs/audit/app-audit.md` (APP), `docs/audit/domain-boundary-audit.md` (DOM), `docs/audit/interaction-audit.md` (INT), `docs/audit/architecture-research.md` (RES). `docs/audit/performance-audit.md` (PERF) landed after §1–§15 were written; §20.9 folds its obligations in and amends earlier decisions where needed. `docs/audit/modern-api-audit.md` (MOD), `docs/reviews/adjudication-k-form-grid.md` (ADJ‑K) and `docs/reviews/adjudication-m-small-items.md` (ADJ‑M) landed after §21; §22, §23 and §24 record them as binding, and every earlier section they change carries an inline `<!-- amended by §22 -->` / `<!-- amended by §23 -->` / `<!-- amended by §24 -->` marker. `docs/reviews/slice3-foundations-review.md` (the fresh read-only Slice 3 foundations review, at commit `18afddd`) and `docs/reviews/adjudication-n-layer-measure.md` (ADJ‑N) landed after §24; §25 and §26 record them as binding, and every earlier section they change carries an inline `<!-- amended by §25 -->` / `<!-- amended by §26 -->` marker. `docs/reviews/adjudication-o-foundations-followups.md` (ADJ‑O) landed after §26; §27 records it as binding, and every earlier section it changes carries an inline `<!-- amended by §27 -->` marker.
 
@@ -1723,12 +1723,12 @@ impl fmt::Debug for FormState { /* manual; every draft renders as "[redacted]" *
 **Acceptance conditions (executable).** <!-- amended by §28: the render line names both targets -->
 
 ```bash
-cargo test -p junie-tui --lib form::
-cargo test -p junie-tui --test conformance form::
-cargo test -p junie-tui --test render --test render_components render::components::form::   # both targets (§16.3, §28)
-cargo test -p junie-tui --test architecture architecture::props_are_built_once
-cargo test -p tablepro -p jackin-preview
-cargo test -p junie-tui --test perf --release -- --test-threads=1 frame_tablepro_connection_form
+cargo nextest run -p junie-tui --lib form::
+cargo nextest run -p junie-tui --test conformance form::
+cargo nextest run -p junie-tui --test render --test render_components render::components::form::   # both targets (§16.3, §28)
+cargo nextest run -p junie-tui --test architecture architecture::props_are_built_once
+cargo nextest run -p tablepro -p jackin-preview
+cargo nextest run -p junie-tui --test perf --release -- --test-threads=1 frame_tablepro_connection_form
 ```
 
 Named tests (listed in §16.1, §16.4 and §16.6 so `architecture::every_named_test_exists` covers them): `form::tab_order_follows_declaration_order_skipping_hidden`, `form::hidden_field_registers_no_ring_entry_and_keeps_its_draft`, `form::field_height_is_a_pure_function_of_spec_and_design_tokens`, `form::scroll_reveals_the_focused_field_from_update_not_draw`, `form::submit_commits_the_in_flight_edit_before_validating`, `form::submit_validates_every_visible_field_then_focuses_the_first_error`, `form::submit_skips_hidden_fields_during_validation`, `form::enter_submits_only_when_the_focused_control_is_not_editing`, `form::submit_chord_is_declared_on_the_action_not_baked_in`, `form::dirty_is_set_by_a_commit_not_by_a_keystroke`, `form::chooser_activation_emits_chose_with_the_field_id`, `form::note_rows_register_only_decorative_regions`, `form::at_most_one_action_per_frame_in_declaration_order`, `form::open_select_popover_dismisses_on_focus_out_and_esc_closes_only_the_popover`, `form::form_action_variants_carry_no_value` (exhaustive `match`, one arm per variant), `form::zeroize_overwrites_every_secret_draft`, `form::every_declared_field_resolves_a_value` (debug-assert-backed, run by the app suites over each real `FormData`), <!-- amended by §24 --> `form::select_field_options_come_from_form_data`, `form::changing_options_between_frames_does_not_rebuild_props`, `form::state_holds_no_props`, `form::value_and_options_is_a_single_borrow` (§24 M3); generated: `conformance::form::draw_does_not_commit_or_cancel` (`Caps::EDITS`), `conformance::form::secret_never_appears_in_debug` (`Caps::SECRET`), `conformance::form::survives_tiny_rects_0x0_to_3x3`, `conformance::form::draw_twice_leaves_state_equal`; application: `tablepro::connection_form_keyboard_and_mouse_reach_every_field`, `tablepro::connection_form_focuses_the_first_invalid_field`, `tablepro::connection_password_is_masked_and_absent_from_the_frame` (closes the **[F]** `connections.rs:155-157` defect — the password is a plain `TextInput` today), `jackin::form_dialog_toggles_visibility_and_keeps_drafts`, `jackin::form_dialog_secret_never_reaches_the_screen_as_a_string`; perf: `frame_tablepro_connection_form_120x40` — **< 40 allocs/frame**.
@@ -1763,12 +1763,12 @@ Every test named below is a real, runnable name. Builders create them with exact
 
 | Level | Location | Runner |
 |---|---|---|
-| unit | `#[cfg(test)] mod tests` inside each library module | `cargo test -p junie-tui --lib` |
-| conformance | `crates/tui/tests/conformance.rs` + `crates/tui-testing/src/conformance/` | `cargo test -p junie-tui --test conformance` |
-| rendering / digest | `crates/tui/tests/render.rs` + `crates/tui/tests/render_components.rs` (§16.3: the test *path* is the contract, not the file), `apps/*/tests/visual.rs` | `cargo test --workspace --test render --test render_components --test visual` <!-- amended by §28 --> |
-| application integration | `apps/*/tests/app_tests*.rs` (moved out of the binaries, see §18) | `cargo test -p showcase -p tablepro -p jackin-preview` |
-| architecture | `crates/tui/tests/architecture.rs` + `xtask` | `cargo test --workspace --test architecture` |
-| performance | `crates/tui/tests/{perf,perf_collections}.rs`, `apps/*/tests/perf.rs` | `cargo test --workspace --test perf --test perf_collections --release -- --test-threads=1` |
+| unit | `#[cfg(test)] mod tests` inside each library module | `cargo nextest run -p junie-tui --lib` |
+| conformance | `crates/tui/tests/conformance.rs` + `crates/tui-testing/src/conformance/` | `cargo nextest run -p junie-tui --test conformance` |
+| rendering / digest | `crates/tui/tests/render.rs` + `crates/tui/tests/render_components.rs` (§16.3: the test *path* is the contract, not the file), `apps/*/tests/visual.rs` | `cargo nextest run --workspace --test render --test render_components --test visual` <!-- amended by §28 --> |
+| application integration | `apps/*/tests/app_tests*.rs` (moved out of the binaries, see §18) | `cargo nextest run -p showcase -p tablepro -p jackin-preview` |
+| architecture | `crates/tui/tests/architecture.rs` + `xtask` | `cargo nextest run --workspace --test architecture` |
+| performance | `crates/tui/tests/{perf,perf_collections}.rs`, `apps/*/tests/perf.rs` | `cargo nextest run --workspace --test perf --test perf_collections --release -- --test-threads=1` |
 
 `crates/tui-testing` is a **dev-only** crate (`publish = false`, depended on with `[dev-dependencies]` only) so the counting allocator, the `Harness` and the conformance driver never reach a shipped binary.
 
@@ -2049,9 +2049,9 @@ pub struct Baseline { path: &'static str }   // one `name w h theme color hash` 
 | `apps/tablepro/tests/baselines/tablepro.txt` | tablepro | **new** — closes **[F]** APP §9 risk 5 (TablePro had no cell-level baseline) |
 | `apps/jackin-preview/tests/baselines/jackin.txt` | jackin | **new**, at `--motion paused --frame N` for determinism |
 
-**Regeneration and review policy.** `BLESS=1 cargo test --workspace --test render --test render_components --test visual` <!-- amended by §28 --> rewrites baselines. The rule from goal §6.10 is enforced by `xtask bless-guard`, which fails a commit that changes a baseline file without a matching entry in `docs/visual-changes.md` that names a numbered §20.10 item **and accounts for every key the diff moved or added**, and which refuses outright any commit that *moves* a key whose colour field is `truecolor`. The reviewable artefact the entry must name is a capture path under `shots/` for a baseline produced by a running application, and the **frame-text dump** of each affected cell for a baseline produced headlessly by a `Scene` — the component matrix, which `tools/capture.sh` cannot address at all. **The guard is implemented and binding** (`xtask` dispatches `doc-check`, `boundary`, `bless-guard`, `capture-matrix` and `list`); it fails closed when `BLESS_GUARD_BASE` is absent or invalid. No baseline is regenerated because a test failed; the classification comes first. The order is fixed (A14, §21 item 30): **change → capture → classify → bless**, with the moved set read from a scratch bless that is discarded before the classification is written (§36). **Ordering itself is not machine-checkable on a committed tree** — the classification and the blessed baseline land in one commit and a repository-state check cannot recover the order in which the tree reached that state; **completeness** is checkable, and is what the guard checks. <!-- amended by §36 --> <!-- amended by §21 items 28, 30 -->
+**Regeneration and review policy.** `BLESS=1 cargo nextest run --workspace --test render --test render_components --test visual` <!-- amended by §28 --> rewrites baselines. The rule from goal §6.10 is enforced by `xtask bless-guard`, which fails a commit that changes a baseline file without a matching entry in `docs/visual-changes.md` that names a numbered §20.10 item **and accounts for every key the diff moved or added**, and which refuses outright any commit that *moves* a key whose colour field is `truecolor`. The reviewable artefact the entry must name is a capture path under `shots/` for a baseline produced by a running application, and the **frame-text dump** of each affected cell for a baseline produced headlessly by a `Scene` — the component matrix, which `tools/capture.sh` cannot address at all. **The guard is implemented and binding** (`xtask` dispatches `doc-check`, `boundary`, `bless-guard`, `capture-matrix` and `list`); it fails closed when `BLESS_GUARD_BASE` is absent or invalid. No baseline is regenerated because a test failed; the classification comes first. The order is fixed (A14, §21 item 30): **change → capture → classify → bless**, with the moved set read from a scratch bless that is discarded before the classification is written (§36). **Ordering itself is not machine-checkable on a committed tree** — the classification and the blessed baseline land in one commit and a repository-state check cannot recover the order in which the tree reached that state; **completeness** is checkable, and is what the guard checks. <!-- amended by §36 --> <!-- amended by §21 items 28, 30 -->
 
-**The matrix.** <!-- amended by §28 --> The binding contract is the **test path**, not the file: `render::components::<component>::<state>`, `render::overrides::<case>`, `render::overlay::<case>`. ~~`crates/tui/tests/render.rs`~~ is not the contract. During Slices 3–4 these live in **two** targets, because two work packages own them: `crates/tui/tests/render.rs` (foundations — `render::overrides::*`, `render::overlay::*`, painted straight onto `Ui`) and `crates/tui/tests/render_components.rs` (components — `render::components::*`, one function per matrix cell over `{junie, paper} × {truecolor, mono} × {120×40, 40×10}`). Both are ordinary `cargo test` targets whose module paths are identical to the single-file form (`mod render { mod components { … } }`), so every name §16.3 and the slice acceptance conditions quote resolves unchanged. **Every gate command that runs the render tests must name both targets** (`--test render --test render_components`), or the command silently runs half the matrix. Merge into one target at Slice 5, when one owner holds both.
+**The matrix.** <!-- amended by §28 --> The binding contract is the **test path**, not the file: `render::components::<component>::<state>`, `render::overrides::<case>`, `render::overlay::<case>`. ~~`crates/tui/tests/render.rs`~~ is not the contract. During Slices 3–4 these live in **two** targets, because two work packages own them: `crates/tui/tests/render.rs` (foundations — `render::overrides::*`, `render::overlay::*`, painted straight onto `Ui`) and `crates/tui/tests/render_components.rs` (components — `render::components::*`, one function per matrix cell over `{junie, paper} × {truecolor, mono} × {120×40, 40×10}`). Both are ordinary `cargo nextest run` targets whose module paths are identical to the single-file form (`mod render { mod components { … } }`), so every name §16.3 and the slice acceptance conditions quote resolves unchanged. **Every gate command that runs the render tests must name both targets** (`--test render --test render_components`), or the command silently runs half the matrix. Merge into one target at Slice 5, when one owner holds both.
 
 
 * Test `render::components::<component>::<state>` for every registered `Conformance` case × states `{default, focused, focus_visible, hovered, focus_plus_hover, pressed, selected, disabled, read_only, busy, loading, error, warning, editing, empty, overflow}` where meaningful (the driver derives which are meaningful from `Caps`).
@@ -2169,7 +2169,7 @@ Mapping of the seven "must keep working" facts from **[F]** APP §6:
 | `architecture::library_has_no_application_dependency` <!-- amended by §22 --> | `cargo metadata` from `xtask`: the dependency closure of `junie-tui` | `showcase`, `tablepro`, `jackin-preview` are absent; the only direct normal deps are `ratatui-core`, `ratatui-crossterm`, `unicode-width`, `unicode-segmentation`, `bitflags` (never `ratatui`, `ratatui-widgets`, `ratatui-macros`, `smallvec`, a direct `crossterm`) |
 | `architecture::applications_depend_only_on_the_library_facade` <!-- amended by §22 --> | `cargo tree -p <app> -e normal --depth 1` — a one-line assertion, because each app's only normal dependency is `junie-tui` and `junie-tui` re-exports every ratatui type the public API mentions (§22 §1.2); plus a source scan for `junie_tui::` paths | `cargo tree` prints `junie-tui` and nothing else; every path resolves under `junie_tui::` or `junie_tui::author::`; there is no `#[path]`, no `include!`, and no `pub(crate)` reachable from an app (guaranteed structurally — a separate crate cannot name a `pub(crate)` item, so the scan is a belt-and-braces report, not the enforcement) |
 | `architecture::examples_are_external_consumers` | `cargo build -p junie-tui --examples` in CI plus a check that no example uses `#[path]` | The 13 §17 examples compile against the public API only <!-- amended by §23 --> |
-| `architecture::all_examples_compile` | `cargo test --workspace --doc` + `--examples` gate | goal §25.5 "all examples compile" <!-- historical §25 F12 named the then-missing state-override check; §72 replaces that obsolete boundary with the two reference-scope checks below --> |
+| `architecture::all_examples_compile` | `cargo nextest run --workspace --doc` + `--examples` gate | goal §25.5 "all examples compile" <!-- historical §25 F12 named the then-missing state-override check; §72 replaces that obsolete boundary with the two reference-scope checks below --> |
 | `architecture::public_items_are_documented` | `#![deny(missing_docs)]` in `crates/tui/src/lib.rs` + `RUSTDOCFLAGS="-D warnings" cargo doc` | Every public item has rustdoc |
 | `architecture::no_unsafe` | `#![forbid(unsafe_code)]` in the library; `crates/tui-testing` carries the single documented `unsafe impl GlobalAlloc` with a safety comment | goal §26 |
 | `architecture::no_domain_vocabulary_in_the_library` | grep allow-list over `crates/tui/src/**` for `(?i)\b(sql|schema|primary key|nullable|foreign|references|not null|tablepro|jackin|workspace|instance|daemon|capsule|construct|catalog)\b`, with an allow-list file `crates/tui/tests/allow/domain.txt` (currently empty) <!-- amended by §25 §4(j): scans **code lines only**, deliberately — `\bworkspace\b` and `\binstance\b` appear in ordinary architectural prose ("per-instance patch") and a reflowed `///` line must not fire it --> | DOM §7 acceptance conditions 1 and 2 |
@@ -2182,7 +2182,7 @@ Mapping of the seven "must keep working" facts from **[F]** APP §6:
 | `architecture::draw_takes_shared_self` | `syn`-based scan in `xtask`: every `fn draw` in `crates/tui/src/components/**` has `&self` and, if it takes a state parameter, `&XState` | G2 — the structural form of "render cannot change semantics" |
 | `architecture::no_static_bound_in_component_surface` | `syn` scan for `'static` bounds on public component types and their builder parameters, allow-listed to `Binding<A: 'static>` and `Conformance: 'static` | goal §2.2 |
 | `architecture::conformance_covers_every_public_component` | `syn` scan of `pub struct`s in `components/**` vs the `conformance_suite!` list | G10 / §16.2 |
-| `architecture::every_named_test_exists` <!-- amended by §25 F12: must exist in `xtask`'s `CHECKS` and `tests/architecture.rs`; it was absent at `18afddd` and is the gate that makes §25's renamed/missing names visible --> | one-directional and scoped (§21 item 28): every name listed in §16.1, §16.2's suite-level list and §16.4 exists in `cargo test --workspace -- --list`; §16.6 perf names are checked against `cargo test --workspace --test perf --test perf_collections --release -- --list`; `trybuild` cases against `tests/ui/*.rs` filenames; extra tests are allowed | Documentation and the suite cannot drift; the `capsule_pane_clone_4x2000` deletion is asserted by line-absence in `perf_baseline.txt` |
+| `architecture::every_named_test_exists` <!-- amended by §25 F12: must exist in `xtask`'s `CHECKS` and `tests/architecture.rs`; it was absent at `18afddd` and is the gate that makes §25's renamed/missing names visible --> | one-directional and scoped (§21 item 28): every name listed in §16.1, §16.2's suite-level list and §16.4 exists in `cargo nextest run --workspace -- --list`; §16.6 perf names are checked against `cargo nextest run --workspace --test perf --test perf_collections --release -- --list`; `trybuild` cases against `tests/ui/*.rs` filenames; extra tests are allowed | Documentation and the suite cannot drift; the `capsule_pane_clone_4x2000` deletion is asserted by line-absence in `perf_baseline.txt` |
 | `architecture::binary_names_are_preserved` | `cargo metadata` target names | `showcase`, `tablepro`, `jackin-preview` (goal §21) |
 | `architecture::capture_matrix_contract` <!-- §74.2 --> | `xtask` contract check, also listed by `xtask list`; it reads `tools/capture.sh` and validates `shots/capture-matrix.tsv` plus `shots/capture-provenance.json` | `xtask capture-matrix` exists, uses exactly `showcase` × `tablepro` × `jackin-preview`, `80×24|100×30|120×40|160×50`, `junie|paper` and `truecolor|256|16|mono` (96 cells), proves the script consumes `BIN`, explicit argv, `COLOR`, an owned run/session, tmux capture and PNG conversion, and verifies all checked-in cell/artifact hashes before a visual review |
 | `architecture::app_baselines_exist` | `xtask` checks each migrated app's checked-in paths | `apps/<app>/tests/baselines/<app>.txt` and `apps/<app>/tests/perf_baseline.txt` exist and are non-empty; missing paths fail closed |
@@ -2205,7 +2205,7 @@ Mapping of the seven "must keep working" facts from **[F]** APP §6:
 | CI gate `core_is_backend_free` <!-- §22; amended by §25 (adjudication 1) --> | `cargo check -p junie-tui --no-default-features` | proves that nothing outside `runtime/session.rs` needs a backend: the `crossterm` feature gates the terminal session only, and `ratatui-crossterm` (a normal, non-optional dependency taken for its version-unified `crossterm::event` vocabulary) still compiles. The **stronger** claim — that the widget layer is backend-independent — is proved by forbidden-pattern rule 27 (`CrosstermBackend` only in `runtime/session.rs`) and by `architecture::ratatui_crossterm_is_named_in_exactly_two_files` |
 | `architecture::ratatui_crossterm_is_named_in_exactly_two_files` <!-- §25 F20 --> | `xtask` boundary check | `ratatui_crossterm` is named in exactly `src/event.rs` (the `crossterm::event` vocabulary — `KeyCode`, `KeyModifiers`, `Input::from_crossterm`) and `src/runtime/session.rs` (the backend); nowhere else |
 | `architecture::no_unreachable_spin_loops` <!-- §25 F2 --> | `xtask` rule 27a: `loop {` with `spin_loop` forbidden in `crates/tui/src/**` | no `unreachable_*` helper hangs the process with raw mode on — a livelock with the alternate screen entered is strictly worse than a panic, whose hook restores the terminal; `Vec::insert(i, _)` makes `get_mut(i)` infallible and is written as one documented `#[expect(clippy::expect_used, reason = …)]` |
-| CI gate `readme_compiles` <!-- §22 --> | `cargo test --workspace --doc` with `#![doc = include_str!("../README.md")]` at the top of `crates/tui/src/lib.rs` | every README code fence is valid Rust or tagged ` ```text `/` ```ignore ` (goal §24, §25.5) |
+| CI gate `readme_compiles` <!-- §22 --> | `cargo nextest run --workspace --doc` with `#![doc = include_str!("../README.md")]` at the top of `crates/tui/src/lib.rs` | every README code fence is valid Rust or tagged ` ```text `/` ```ignore ` (goal §24, §25.5) |
 | `xtask semver` <!-- §22 §3.4: DEFERRED --> | `cargo semver-checks --baseline-rev <tag>` | **Not a shipped gate during the refactor**: during a total public-API rewrite every check fails by construction. Added at the end of Slice 8 against tag `v0.1.0`; blocking in CI from `v0.1.1` onward |
 | `xtask doc-check` <!-- §21 item 34; amended by §23, §24, §25 F23 --> | `xtask` source scan: `doc_sections` keeps top-level §3–§17 and §21 through the current numbered tail; regexes inspect backticked type/member references and `use junie_tui...` names against a `syn`-collected source API plus a small foreign-member table. It rejects stale and duplicate `xtask/doc_check_allow.txt` entries. It does not compile examples, verify signatures or visibility, or read `crates/tui-testing`. The earlier fixed-range/rustdoc-json description is historical (see §40.1 and §42.2). | every reference resolves, or is on the printed allow-list; run in every slice gate |
 
@@ -2287,13 +2287,13 @@ Mapping of the seven "must keep working" facts from **[F]** APP §6:
 
 <!-- amended by §22 --> Removing `SmallVec` from `PartRecipe`, `Recipe`, `KeySet` and `HintLayer` (§22 §4.2) changes `Theme`/`Recipes` sizes and therefore shifts the perf baseline; the §16.6 pre-refactor baseline is taken on the *unmodified* tree (WP‑0) and the `Vec` decision is recorded as one of the "after" explanations. The `KeySet` sorted-`Vec` representation is what keeps `list_100k_rows_render` inside its 1.5× bound with a 5 000-row selection (O(40 · log 5000) instead of O(5000) per visible row).
 
-**CI wiring** (perf §7.3, adopted verbatim): one always-on job `cargo test --workspace --test perf --test perf_collections --release` (allocation counts only) and one pinned-runner job `PERF_STRICT=1 cargo test --workspace --test perf --test perf_collections --release -- --test-threads=1`. `PERF` lines are collected into a build artefact for the final report (goal §30 item 13).
+**CI wiring** (perf §7.3, adopted verbatim): one always-on job `cargo nextest run --workspace --test perf --test perf_collections --release` (allocation counts only) and one pinned-runner job `PERF_STRICT=1 cargo nextest run --workspace --test perf --test perf_collections --release -- --test-threads=1`. `PERF` lines are collected into a build artefact for the final report (goal §30 item 13).
 
 ---
 
 ## 17. Representative usage examples
 
-Thirteen examples <!-- amended by §23: example 13 -->, one file each under `crates/tui/examples/`, built by `cargo build -p junie-tui --examples` (`-p junie-tui` during Slices 3–4) and gated by `architecture::all_examples_compile`. Every file is complete — a `main` or a `#[test]`, every `use` list exact — because Slice 2 acceptance condition 1 compiles them verbatim. They use only the public facade, so they are literal proof of the "external consumer" claim. Examples 1–10 are also condensed into rustdoc doctests on the corresponding types (`cargo test --workspace --doc`).
+Thirteen examples <!-- amended by §23: example 13 -->, one file each under `crates/tui/examples/`, built by `cargo build -p junie-tui --examples` (`-p junie-tui` during Slices 3–4) and gated by `architecture::all_examples_compile`. Every file is complete — a `main` or a `#[test]`, every `use` list exact — because Slice 2 acceptance condition 1 compiles them verbatim. They use only the public facade, so they are literal proof of the "external consumer" claim. Examples 1–10 are also condensed into rustdoc doctests on the corresponding types (`cargo nextest run --workspace --doc`).
 
 ### 17.0 API additions
 
@@ -4159,7 +4159,7 @@ Maps goal §27 slices 3–8 onto work packages with **disjoint file ownership**,
 * **Still owed before Slice 3** (not in `07cb2c9`): the two pre-refactor app digests for §20.10‑14 (`tests/baselines/` on the current tree; they move to `apps/*/tests/baselines/` with their apps) and `.github/workflows/perf.yml`.
 * **Moves.** Slice 3 moves `tests/perf_common.rs` to `crates/tui-testing/src/perf.rs` and the library benchmarks to `crates/tui/tests/perf.rs`; the app benchmarks stay at the root until Slices 5–7 move them with their apps. `perf_baseline.txt` moves with the harness and its line names never change, so "before/after" stays literal.
 * **Findings from the run** are recorded in §20.9 (P‑A, P‑B).
-* **Gate:** `cargo test --test perf --release -- --test-threads=1` green; `perf_baseline.txt` committed; `PERF` lines archived as a build artefact.
+* **Gate:** `cargo nextest run --test perf --release -- --test-threads=1` green; `perf_baseline.txt` committed; `PERF` lines archived as a build artefact.
 * **Dependency:** everything. No refactor commit lands before this one.
 
 ### Slice 3 — Foundations (one owner, serial) <!-- amended by §21 items 31, 34 -->
@@ -4186,7 +4186,7 @@ Maps goal §27 slices 3–8 onto work packages with **disjoint file ownership**,
   [lib]     name = "junie_tui"
   ```
 
-  Consequences: no duplicate lib name ever exists; `cargo doc --workspace` never collides; `default-run`, the three `[[bin]]`s, `tools/capture.sh`'s `BIN` and all 198 tests are untouched; `cargo test --workspace` runs both trees. `crates/tui-testing` (package name `junie-tui-testing`, unchanged) and `xtask` depend on `junie-tui` during Slices 3–4. Gate commands in Slices 3–4 therefore say `-p junie-tui`; from Slice 5 they say `-p junie-tui`.
+  Consequences: no duplicate lib name ever exists; `cargo doc --workspace` never collides; `default-run`, the three `[[bin]]`s, `tools/capture.sh`'s `BIN` and all 198 tests are untouched; `cargo nextest run --workspace` runs both trees. `crates/tui-testing` (package name `junie-tui-testing`, unchanged) and `xtask` depend on `junie-tui` during Slices 3–4. Gate commands in Slices 3–4 therefore say `-p junie-tui`; from Slice 5 they say `-p junie-tui`.
 
   **Start of Slice 5, one commit, no behaviour change:** delete the root package's `[lib]`, `src/`, `src/bin/*`, `default-run` and its `[[bin]]`s as the apps move to `apps/*`; then rename `junie-tui` → `junie-tui` / `junie_tui` → `junie_tui` by scripted `sed` over a closed, slice-owned file set (`crates/tui/**`, `crates/tui-testing/**`, `xtask/**`, `crates/tui/examples/**`, `crates/tui/tests/**`). Re-run the full Slice-4 gate. Apps' `use junie_tui::…` lines are then written **once**, in their own migration slice, where the diff belongs.
 
@@ -4205,18 +4205,18 @@ Maps goal §27 slices 3–8 onto work packages with **disjoint file ownership**,
   # junie-tui is the temporary Slice 3–4 name of crates/tui (§21 item 31); junie-tui from Slice 5
   cargo fmt --all --check
   cargo clippy -p junie-tui -p junie-tui-testing --all-targets --all-features -- -D warnings
-  cargo test -p junie-tui -p junie-tui-testing --all-targets --all-features
-  cargo test -p junie-tui --doc
+  cargo nextest run -p junie-tui -p junie-tui-testing --all-targets --all-features
+  cargo nextest run -p junie-tui --doc
   RUSTDOCFLAGS="-D warnings" cargo doc -p junie-tui --all-features --no-deps
   cargo build -p junie-tui --examples
-  cargo test -p junie-tui --test architecture
-  cargo test -p junie-tui --test perf --test perf_collections --release -- --test-threads=1
-  cargo test --workspace -- --list | rg -c '^render::components::'   # non-zero: the matrix is reachable
+  cargo nextest run -p junie-tui --test architecture
+  cargo nextest run -p junie-tui --test perf --test perf_collections --release -- --test-threads=1
+  cargo nextest run --workspace -- --list | rg -c '^render::components::'   # non-zero: the matrix is reachable
                                                     # under the documented path from BOTH targets (§16.3, §28 P2)
   cargo run -p xtask -- doc-check                   # §21 item 34
   cargo check -p junie-tui --no-default-features     # §22: the core is backend-free
   cargo +1.88.0 check --workspace --all-targets --all-features   # §22: the MSRV is a fact, not a field
-  cargo test --all-targets                          # the legacy root package: all 198 existing tests stay green (M30)
+  cargo nextest run --all-targets                          # the legacy root package: all 198 existing tests stay green (M30)
   ```
   plus a fresh read-only `read-only analyst` API review of the foundation surface (goal §27 Slice 2's review, applied to the real implementation) before Slice 4 begins.
 
@@ -4244,17 +4244,17 @@ Shared, contended files are handled by convention rather than by ownership: `com
   # junie-tui is the temporary Slice 3–4 name of crates/tui (§21 item 31)
   cargo fmt --all --check
   cargo clippy -p junie-tui --all-targets --all-features -- -D warnings
-  cargo test -p junie-tui --lib
-  cargo test -p junie-tui --test conformance
-  cargo test -p junie-tui --test render --test render_components   # both targets; --test render alone runs half the matrix (§16.3, §28)
-  cargo test -p junie-tui --test architecture
-  cargo test -p junie-tui --doc
+  cargo nextest run -p junie-tui --lib
+  cargo nextest run -p junie-tui --test conformance
+  cargo nextest run -p junie-tui --test render --test render_components   # both targets; --test render alone runs half the matrix (§16.3, §28)
+  cargo nextest run -p junie-tui --test architecture
+  cargo nextest run -p junie-tui --doc
   cargo build -p junie-tui --examples
-  cargo test -p junie-tui --test perf --test perf_collections --release -- --test-threads=1
+  cargo nextest run -p junie-tui --test perf --test perf_collections --release -- --test-threads=1
   cargo run -p xtask -- doc-check                   # §21 item 34
   cargo check -p junie-tui --no-default-features     # §22
   cargo +1.88.0 check --workspace --all-targets --all-features   # §22
-  cargo test --all-targets                          # the legacy root package stays green (M30)
+  cargo nextest run --all-targets                          # the legacy root package stays green (M30)
   ```
   Every component in the package must appear in `conformance_suite!` and pass all 20 applicable cases. After each package, a fresh read-only `read-only analyst` reviews API consistency against §13; the coordinator applies verified corrections before the next wave.
 
@@ -4284,16 +4284,16 @@ Shared, contended files are handled by convention rather than by ownership: `com
   ```bash
   cargo fmt --all --check
   cargo clippy --workspace --all-targets --all-features -- -D warnings
-  cargo test --workspace --all-targets --all-features
-  cargo test --workspace --doc
+  cargo nextest run --workspace --all-targets --all-features
+  cargo nextest run --workspace --doc
   RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
   cargo build --workspace --all-targets --all-features
-  cargo test --workspace --test perf --test perf_collections --release -- --test-threads=1
-  PERF_STRICT=1 cargo test --workspace --test perf --test perf_collections --release -- --test-threads=1
+  cargo nextest run --workspace --test perf --test perf_collections --release -- --test-threads=1
+  PERF_STRICT=1 cargo nextest run --workspace --test perf --test perf_collections --release -- --test-threads=1
   cargo run -p xtask -- doc-check
   cargo check -p junie-tui --no-default-features                    # §22: the core is backend-free
   cargo +1.88.0 check --workspace --all-targets --all-features      # §22: MSRV job, blocking
-  cargo test  --workspace --test architecture no_deprecated_or_legacy_api_usage dependency_graph_is_exactly_the_declared_set   # §22
+  cargo nextest run  --workspace --test architecture no_deprecated_or_legacy_api_usage dependency_graph_is_exactly_the_declared_set   # §22
   cargo run -p showcase & cargo run -p tablepro & cargo run -p jackin-preview
   tools/capture.sh   # the full matrix, reviewed
   ```
@@ -4633,7 +4633,7 @@ What is deliberately **not** in `author`: `Runtime`, `run`, `TerminalSession`, `
 ### B.5 Examples and capture tooling
 
 * The thirteen §17 examples live in `crates/tui/examples/` and are built by `cargo build -p junie-tui --examples` in every slice gate. Because Cargo compiles examples as separate crates linked against `junie_tui`, they see exactly the public API and nothing else — the "external-style consumer" requirement of goal §21 is satisfied structurally, not by convention.
-* Doctests carry the condensed forms of examples 1–10 on the corresponding types and run under `cargo test --workspace --doc`.
+* Doctests carry the condensed forms of examples 1–10 on the corresponding types and run under `cargo nextest run --workspace --doc`.
 * `tools/capture.sh` requires `BIN` explicitly and accepts the exact application argv after `--`; `--theme {junie|paper}` and `--color {truecolor|256|16|none}` are passed as separate arguments so the §20.10 review matrix is scriptable without shell interpolation. Each run has its own state/session identity and records binary, Git, environment, and tool provenance. `xtask capture-matrix` drives it over the full size × theme × colour × app grid and writes into `shots/`, so the visual reviewer receives a complete, reproducible set rather than ad-hoc screenshots.
 
 ---
@@ -4893,7 +4893,7 @@ Option (a) of the review is chosen (legible in a real monochrome terminal, which
 
 **Item 28 — M18, M27.** Amends §16.5, §16.6, §16.3.
 
-`architecture::every_named_test_exists` is one-directional and scoped: *every name listed in §16.1, §16.2's suite-level list and §16.4 exists in `cargo test --workspace -- --list`; §16.6 perf names are checked against `cargo test --workspace --test perf --test perf_collections --release -- --list`; `trybuild` cases are checked against `tests/ui/*.rs` filenames; extra tests are allowed.* The prose-parsed deletion assertion for `capsule_pane_clone_4x2000` is replaced by line-absence in `perf_baseline.txt`. `Scene` (§16.3) owns a headless `FrameState` (registry + focus ring + layer stack + style stack) built from the theme, which is how it can construct a `Ui`.
+`architecture::every_named_test_exists` is one-directional and scoped: *every name listed in §16.1, §16.2's suite-level list and §16.4 exists in `cargo nextest run --workspace -- --list`; §16.6 perf names are checked against `cargo nextest run --workspace --test perf --test perf_collections --release -- --list`; `trybuild` cases are checked against `tests/ui/*.rs` filenames; extra tests are allowed.* The prose-parsed deletion assertion for `capsule_pane_clone_4x2000` is replaced by line-absence in `perf_baseline.txt`. `Scene` (§16.3) owns a headless `FrameState` (registry + focus ring + layer stack + style stack) built from the theme, which is how it can construct a `Ui`.
 
 **Item 29 — M21, M22, M23, A3, A6, A7: algorithms, corpora and their tests.** Amends §11.2, §11.4, §11.7, §16.1, §16.3, §20.10.
 
@@ -4922,7 +4922,7 @@ so it moves and adds no baseline key.
 
 **Item 31 — B16, review §7, M30: staging.** Amends Appendix A (WP‑0, Slice 3, Slice 4 gates), Appendix B.1/B.2, §16.6.
 
-The coordinator's `junie-tui-legacy` rename proposal is rejected (doc-target collision on `junie_tui` under `RUSTDOCFLAGS="-D warnings"`; duplicate `showcase`/`tablepro`/`jackin-preview` bin names making `cargo run --bin` and `target/debug/<bin>` ambiguous in the slices where visual comparison matters; `default-run` resolving to the legacy showcase). Accepted plan: the root package stays `junie-tui` untouched and becomes the workspace root; the new library at `crates/tui` is temporarily `junie-tui`/`junie_tui` during Slices 3–4; one scripted rename to `junie-tui`/`junie_tui` at the start of Slice 5 when root `src/`, `src/bin/*`, `[lib]`, `default-run` and the `[[bin]]`s are removed. Appendix A records the plan, the five risks and WP‑0's actual landed paths (commit `07cb2c9`: `tests/perf.rs`, `tests/perf_common.rs`, `tests/perf_baseline.txt`, `src/bin/{showcase,tablepro,jackin_preview}/perf_tests.rs`); the legacy test command `cargo test --all-targets` at the repository root is added to the Slice 3 and Slice 4 gates. `REFACTORING_STATE.md` must carry the same five risks (coordinator-owned; not part of this edit).
+The coordinator's `junie-tui-legacy` rename proposal is rejected (doc-target collision on `junie_tui` under `RUSTDOCFLAGS="-D warnings"`; duplicate `showcase`/`tablepro`/`jackin-preview` bin names making `cargo run --bin` and `target/debug/<bin>` ambiguous in the slices where visual comparison matters; `default-run` resolving to the legacy showcase). Accepted plan: the root package stays `junie-tui` untouched and becomes the workspace root; the new library at `crates/tui` is temporarily `junie-tui`/`junie_tui` during Slices 3–4; one scripted rename to `junie-tui`/`junie_tui` at the start of Slice 5 when root `src/`, `src/bin/*`, `[lib]`, `default-run` and the `[[bin]]`s are removed. Appendix A records the plan, the five risks and WP‑0's actual landed paths (commit `07cb2c9`: `tests/perf.rs`, `tests/perf_common.rs`, `tests/perf_baseline.txt`, `src/bin/{showcase,tablepro,jackin_preview}/perf_tests.rs`); the legacy test command `cargo nextest run --all-targets` at the repository root is added to the Slice 3 and Slice 4 gates. `REFACTORING_STATE.md` must carry the same five risks (coordinator-owned; not part of this edit).
 
 **Item 32 — M12: jackin's request bus `Jx` and the `Msg` channel.** Amends §3.4, §17.0 A1, §18.3 #22.
 
@@ -5017,7 +5017,7 @@ Each item names the exact modern primitive; the `Ui` signatures are in §17.0 A2
 
 * `#![forbid(unsafe_code)]` in `crates/tui/src/lib.rs` and every app crate root. **`crates/tui-testing` uses `#![deny(unsafe_code)]`**, not `forbid` (`forbid` cannot be overridden; that crate carries the documented `unsafe impl GlobalAlloc`, §16.6, under a local `#[expect(unsafe_code, reason = "counting allocator; see SAFETY")]` plus a `// SAFETY:` comment). Correspondingly `[workspace.lints.rust] unsafe_code = "deny"`, tightened to `forbid` at the `crates/tui` root; `forbid` at workspace level would make `tui-testing` uncompilable.
 * `#![deny(missing_docs)]` in `crates/tui` (§16.5) plus `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps` in CI (goal §26).
-* **`#![doc = include_str!("../README.md")]`** at the top of `crates/tui/src/lib.rs`, so `cargo test --workspace --doc` compile-checks every README example — the cheapest way to satisfy goal §24 + §25.5 "all examples compile" for the quick-start. Caveat: every README code fence must be valid Rust or tagged ```` ```text ````/```` ```ignore ````.
+* **`#![doc = include_str!("../README.md")]`** at the top of `crates/tui/src/lib.rs`, so `cargo nextest run --workspace --doc` compile-checks every README example — the cheapest way to satisfy goal §24 + §25.5 "all examples compile" for the quick-start. Caveat: every README code fence must be valid Rust or tagged ```` ```text ````/```` ```ignore ````.
 * **Doctests hide setup only.** `#`-hidden lines hold fixture construction (`# let mut ui = junie_tui::testing::ui();`); never hide a `use` a real downstream caller would need — a doctest that compiles only because a hidden line imports a private path is a false proof of §17's "external consumer" claim.
 * **`#[non_exhaustive]` — apply narrowly.** Yes on types the runtime produces and the caller only matches, which will grow: `Diagnostic`, `Intent`, `Phase`, `FocusVia`, `LayerEvent`, `DismissReason`, `Status`, `ColorLevel`, `RegionKind`, plus the already-marked `LayerSpec` and `LayoutFacts` (applied inline in §6.1, §9.1, §17.0 A8/A9, B.3 item 4). **No** on `ColorTokens` (§17 example 2: a new token must be a compile error for downstream themes; `map_colors`'s exhaustive destructure depends on it), `StylePatch`, `RowDecor`, `CellDecor`, `Insets`, `Headroom` — all constructed by users with struct literals. Trade-off stated: `#[non_exhaustive]` on an enum forces a wildcard arm downstream and destroys the "adding a variant is a compile error" property; apply only where downstream exhaustiveness is not wanted.
 * **No process-global state in `crates/tui/src`.** `LazyLock`, `OnceLock`, `static mut`, `thread_local!` are forbidden (rule 18). The `Runtime` owns all state (§4); a global would break `Harness` isolation and `--test-threads=1`-free testing. This is a second, independent reason `ratatui-core/layout-cache` stays off — it *is* such a global.
@@ -5097,7 +5097,7 @@ New test in `crates/tui/tests/architecture.rs`, driven from `xtask` (it reads th
 | 27 <!-- amended by §25 (adjudication 1, D‑1) --> | `CrosstermBackend\|ratatui_crossterm::(?!crossterm::event)` | `crates/tui/src/runtime/session.rs` | the mechanical proof that the backend is confined to one file. `cargo check --no-default-features` cannot prove it — `ratatui-crossterm` is a normal, non-optional dependency (§22.1) — so this rule, together with `architecture::ratatui_crossterm_is_named_in_exactly_two_files`, is what makes the backend-independence claim true instead of theatre |
 | 27a <!-- amended by §25 F2 (BL‑2) --> | `loop\s*\{[^}]*spin_loop` (a `loop {` whose body calls `core::hint::spin_loop`) | nowhere in `crates/tui/src/**` | an "unreachable" arm that **hangs** the process is strictly worse than a panic: `TerminalSession`'s chained hook restores the terminal on a panic, while a livelock with raw mode on and the alternate screen entered leaves the user with an unusable terminal and no stack. The two occurrences existed only to satisfy `clippy::panic`/`expect_used` at deny; the correct form is one documented `#[expect(clippy::expect_used, reason = "Vec::insert(i, _) makes get_mut(i) infallible")]`, or a restructure that returns the reference from the insert branch. Test `architecture::no_unreachable_spin_loops` |
 
-**Companion check `architecture::dependency_graph_is_exactly_the_declared_set`** (`xtask`, `cargo metadata`): (1) `junie-tui`'s direct normal dependencies are exactly `{ratatui-core, ratatui-crossterm, unicode-width, unicode-segmentation, bitflags}`; (2) <!-- amended by §25 (adjudication 5) --> split into four parts, because "`smallvec` is absent from the normal closure" was simply **false** — it arrives through `ratatui-crossterm → crossterm → parking_lot → smallvec`, and `ratatui-crossterm` is mandatory (§22.1). Pruning the crossterm subtree makes the check pass but silently deletes a whole subtree without asserting anything about it. **(2a)** `ratatui`, `ratatui-widgets` and `ratatui-macros` are absent from `junie-tui`'s **entire** normal closure. **(2b)** `critical-section` and `palette` are absent from the **entire** (unpruned) closure — they can only arrive through `ratatui-core` features we disable. **(2c)** `smallvec`, `parking_lot`, `parking_lot_core`, `lock_api`, `scopeguard`, `libc`, `mio` and `signal-hook*` may appear **only beneath `ratatui-crossterm`**: asserted positively with `cargo tree -p junie-tui -e normal --invert <crate>` for each of the eight names, requiring `ratatui-crossterm` on every printed path. They are crossterm's internals, not a choice of ours; §22.4's decision is about *our* containers and is enforced by forbidden-pattern rule 26 over our source. The pruned subtree is printed once on success so the exception is visible in CI output. **(2d)** `junie-tui`'s **direct** normal dependencies contain no `smallvec` and no direct `crossterm`; (3) each app's direct normal dependencies are exactly `{junie-tui}`; (4) `unicode-width`, `unicode-segmentation` and `bitflags` each resolve to **one** version in the graph; (5) enabled features on `ratatui-core` are exactly `{std, underline-color}`. **Companion CI gates** (beyond goal §26's list): `cargo check -p junie-tui --no-default-features`; `cargo +1.88.0 check --workspace --all-targets --all-features`; `cargo test --workspace --doc` with the README included. All three are in §16.5 and Appendix A's gates.
+**Companion check `architecture::dependency_graph_is_exactly_the_declared_set`** (`xtask`, `cargo metadata`): (1) `junie-tui`'s direct normal dependencies are exactly `{ratatui-core, ratatui-crossterm, unicode-width, unicode-segmentation, bitflags}`; (2) <!-- amended by §25 (adjudication 5) --> split into four parts, because "`smallvec` is absent from the normal closure" was simply **false** — it arrives through `ratatui-crossterm → crossterm → parking_lot → smallvec`, and `ratatui-crossterm` is mandatory (§22.1). Pruning the crossterm subtree makes the check pass but silently deletes a whole subtree without asserting anything about it. **(2a)** `ratatui`, `ratatui-widgets` and `ratatui-macros` are absent from `junie-tui`'s **entire** normal closure. **(2b)** `critical-section` and `palette` are absent from the **entire** (unpruned) closure — they can only arrive through `ratatui-core` features we disable. **(2c)** `smallvec`, `parking_lot`, `parking_lot_core`, `lock_api`, `scopeguard`, `libc`, `mio` and `signal-hook*` may appear **only beneath `ratatui-crossterm`**: asserted positively with `cargo tree -p junie-tui -e normal --invert <crate>` for each of the eight names, requiring `ratatui-crossterm` on every printed path. They are crossterm's internals, not a choice of ours; §22.4's decision is about *our* containers and is enforced by forbidden-pattern rule 26 over our source. The pruned subtree is printed once on success so the exception is visible in CI output. **(2d)** `junie-tui`'s **direct** normal dependencies contain no `smallvec` and no direct `crossterm`; (3) each app's direct normal dependencies are exactly `{junie-tui}`; (4) `unicode-width`, `unicode-segmentation` and `bitflags` each resolve to **one** version in the graph; (5) enabled features on `ratatui-core` are exactly `{std, underline-color}`. **Companion CI gates** (beyond goal §26's list): `cargo check -p junie-tui --no-default-features`; `cargo +1.88.0 check --workspace --all-targets --all-features`; `cargo nextest run --workspace --doc` with the README included. All three are in §16.5 and Appendix A's gates.
 
 ### 22.8 Risks (MOD §7)
 
@@ -5115,15 +5115,15 @@ cargo +1.88.0 check --workspace --all-targets --all-features        # MSRV is a 
 cargo check -p junie-tui --no-default-features                      # core is backend-free
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test  --workspace --all-targets --all-features
-cargo test  --workspace --doc                                       # README + §17 examples compile
+cargo nextest run  --workspace --all-targets --all-features
+cargo nextest run  --workspace --doc                                       # README + §17 examples compile
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
-cargo test  --workspace --test architecture                         # incl. the two new checks below
+cargo nextest run  --workspace --test architecture                         # incl. the two new checks below
 cargo tree  -p showcase -e normal --depth 1                         # => junie-tui, and nothing else
 cargo tree  -p junie-tui -e normal | grep -E 'ratatui-widgets|ratatui-macros|^ratatui |smallvec'  # => no matches
-cargo test  -p junie-tui --lib text::width_matches_ratatui_cell_width
-cargo test  --workspace --test architecture no_deprecated_or_legacy_api_usage
-cargo test  --workspace --test architecture dependency_graph_is_exactly_the_declared_set
+cargo nextest run  -p junie-tui --lib text::width_matches_ratatui_cell_width
+cargo nextest run  --workspace --test architecture no_deprecated_or_legacy_api_usage
+cargo nextest run  --workspace --test architecture dependency_graph_is_exactly_the_declared_set
 ```
 
 Pass condition for the two new architecture tests: `crates/tui/tests/allow/legacy_api.txt` is **empty**, and the five `dependency_graph_is_exactly_the_declared_set` assertions hold. During Slices 3–4 the crate is `junie-tui` (§21 item 31), so `-p junie-tui` reads `-p junie-tui`.
@@ -5203,11 +5203,11 @@ Two consequential corrections come with it, applied in §12.3: **`read_only_reas
 **Acceptance conditions (executable).**
 
 ```bash
-cargo test -p junie-tui --lib grid::
-cargo test -p junie-tui --test conformance grid::
-cargo test -p junie-tui --test architecture
-cargo test -p tablepro tablepro::grid_adapter_keeps_every_pending_change_capability
-cargo test -p junie-tui --test perf_collections --release -- --test-threads=1 grid_
+cargo nextest run -p junie-tui --lib grid::
+cargo nextest run -p junie-tui --test conformance grid::
+cargo nextest run -p junie-tui --test architecture
+cargo nextest run -p tablepro tablepro::grid_adapter_keeps_every_pending_change_capability
+cargo nextest run -p junie-tui --test perf_collections --release -- --test-threads=1 grid_
 ! rg -n 'fn editable\(' crates/tui/src/components/grid.rs
 ! rg -n 'trait GridCellActions' crates/tui/src
 ```
@@ -5427,20 +5427,20 @@ Re-running the self-check over §17 examples 1–13 after the amendments found n
 ```bash
 cargo check -p junie-tui --no-default-features
 cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test  --workspace --all-targets --all-features
-cargo test  --workspace --doc
+cargo nextest run  --workspace --all-targets --all-features
+cargo nextest run  --workspace --doc
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
 cargo build -p junie-tui --examples                     # examples 2 and 13 compile as amended
 cargo tree  -p showcase -e normal --depth 1             # => junie-tui, and nothing else
 
-cargo test --workspace --test architecture every_foreign_type_in_the_public_surface_is_re_exported
-cargo test --workspace --test architecture capability_has_no_unicode_field
-cargo test --workspace --test architecture field_kind_has_no_type_parameters
-cargo test -p junie-tui --lib theme::ascii_border_set_is_pure_ascii
-cargo test -p junie-tui --lib theme::builtin_border_sets_are_ratatui_sets
-cargo test -p junie-tui --lib ui::paint_spans_matches_row_ui_label_spans
-cargo test -p junie-tui --lib form::
-cargo test -p junie-tui --test conformance form::
+cargo nextest run --workspace --test architecture every_foreign_type_in_the_public_surface_is_re_exported
+cargo nextest run --workspace --test architecture capability_has_no_unicode_field
+cargo nextest run --workspace --test architecture field_kind_has_no_type_parameters
+cargo nextest run -p junie-tui --lib theme::ascii_border_set_is_pure_ascii
+cargo nextest run -p junie-tui --lib theme::builtin_border_sets_are_ratatui_sets
+cargo nextest run -p junie-tui --lib ui::paint_spans_matches_row_ui_label_spans
+cargo nextest run -p junie-tui --lib form::
+cargo nextest run -p junie-tui --test conformance form::
 
 # M1: neither colliding ratatui type is re-exported, and no umbrella path appears
 ! rg -n 'pub use ratatui_core::(layout::\{[^}]*\bSize\b|text::\{)' crates/tui/src/lib.rs
@@ -5691,36 +5691,36 @@ The Appendix A Slice 3 gate stands, with these additions; all commands from the 
 
 ```bash
 # F1: precedence is real, not a colour coincidence
-cargo test -p junie-tui --lib theme::resolve::tests::precedence_family_then_variant_then_state_then_global_then_scope_then_instance
-cargo test -p junie-tui --lib theme::resolve::tests::state_rules_beat_a_variant_base
+cargo nextest run -p junie-tui --lib theme::resolve::tests::precedence_family_then_variant_then_state_then_global_then_scope_then_instance
+cargo nextest run -p junie-tui --lib theme::resolve::tests::state_rules_beat_a_variant_base
 # F2: no hang-instead-of-panic path survives
 ! rg -n 'spin_loop' crates/tui/src
-cargo test --workspace --test architecture no_unreachable_spin_loops
+cargo nextest run --workspace --test architecture no_unreachable_spin_loops
 # F3/F4: the written-cell bitset and the row path
-cargo test -p junie-tui --test render --test render_components layer::composite_copies_only_painted_cells   # §28: both targets
-cargo test -p junie-tui --test perf --release -- --test-threads=1 paint_spans
+cargo nextest run -p junie-tui --test render --test render_components layer::composite_copies_only_painted_cells   # §28: both targets
+cargo nextest run -p junie-tui --test perf --release -- --test-threads=1 paint_spans
 # F5: DESIGN.md:320 is the contract
-cargo test -p junie-tui --lib theme::downgrade::tests::ansi16_preserves_hue_family_and_brightness
-cargo test --all-targets theme::tests::accent_survives_downgrade      # the legacy pin, still green
+cargo nextest run -p junie-tui --lib theme::downgrade::tests::ansi16_preserves_hue_family_and_brightness
+cargo nextest run --all-targets theme::tests::accent_survives_downgrade      # the legacy pin, still green
 # F6/F7: cursor selection and the theme-coupling migration contract
-cargo test -p junie-tui --lib cursor::tests::the_focused_owners_write_wins_on_the_same_layer
-cargo test -p junie-tui --all-features harness::resolved_reports_the_family_the_component_actually_queried
+cargo nextest run -p junie-tui --lib cursor::tests::the_focused_owners_write_wins_on_the_same_layer
+cargo nextest run -p junie-tui --all-features harness::resolved_reports_the_family_the_component_actually_queried
 # F9: the boundary check scans whole files
 cargo run -p xtask -- boundary                 # `ok` for every check, allow-lists printed and empty
 test -s crates/tui/tests/allow/legacy_api.txt && exit 1
 # F11/F12/F13: the named-test inventory is machine-checked
-cargo test --workspace --test architecture every_named_test_exists
-cargo test --workspace --test architecture conformance_covers_every_public_component
-cargo test -p junie-tui --test conformance registry::
-cargo test -p junie-tui --test conformance focus_transition_settles
-cargo test -p junie-tui --test conformance conflicting_visible_bindings_are_reported
-cargo test -p junie-tui --test conformance draw_registers_nothing_when_it_cannot_draw
+cargo nextest run --workspace --test architecture every_named_test_exists
+cargo nextest run --workspace --test architecture conformance_covers_every_public_component
+cargo nextest run -p junie-tui --test conformance registry::
+cargo nextest run -p junie-tui --test conformance focus_transition_settles
+cargo nextest run -p junie-tui --test conformance conflicting_visible_bindings_are_reported
+cargo nextest run -p junie-tui --test conformance draw_registers_nothing_when_it_cannot_draw
 # F19/F20: the dependency story is asserted, not assumed
-cargo test --workspace --test architecture dependency_graph_is_exactly_the_declared_set
-cargo test --workspace --test architecture ratatui_crossterm_is_named_in_exactly_two_files
+cargo nextest run --workspace --test architecture dependency_graph_is_exactly_the_declared_set
+cargo nextest run --workspace --test architecture ratatui_crossterm_is_named_in_exactly_two_files
 cargo tree -p junie-tui -e normal --invert smallvec    # every path passes through ratatui-crossterm
 # F18: the perf contract, re-blessed in the same commit as the code change
-PERF_STRICT=1 cargo test -p junie-tui --test perf --release -- --test-threads=1
+PERF_STRICT=1 cargo nextest run -p junie-tui --test perf --release -- --test-threads=1
 git diff --exit-code crates/tui/tests/perf_baseline.txt
 # F26: the document and the state ledger carry the adjudications
 rg -n 'Slice 3 foundations review' COMPONENT_ARCHITECTURE.md REFACTORING_STATE.md
@@ -6081,27 +6081,27 @@ Call site: `ui.fill(area, r.over(ui.surface_style()))`. Tests: `ui::surface_styl
 
 ```bash
 # N1 — the resolver is given a real size, and it clamps rather than grows
-cargo test -p junie-tui --lib layer::tests::fill_resolves_to_the_whole_screen
-cargo test -p junie-tui --lib layer::tests::fixed_size_is_clamped_never_grown
-cargo test -p junie-tui --lib layer::tests::point_anchor_flips_instead_of_covering_the_pointer
-cargo test -p junie-tui --lib layer::tests::popover_flips_above_when_the_content_does_not_fit_below
-cargo test -p junie-tui --lib layer::runtime_tests::resize_layer_re_resolves_the_anchor_on_the_next_draw
+cargo nextest run -p junie-tui --lib layer::tests::fill_resolves_to_the_whole_screen
+cargo nextest run -p junie-tui --lib layer::tests::fixed_size_is_clamped_never_grown
+cargo nextest run -p junie-tui --lib layer::tests::point_anchor_flips_instead_of_covering_the_pointer
+cargo nextest run -p junie-tui --lib layer::tests::popover_flips_above_when_the_content_does_not_fit_below
+cargo nextest run -p junie-tui --lib layer::runtime_tests::resize_layer_re_resolves_the_anchor_on_the_next_draw
 ! rg -n 'min_size' crates/tui/src            # the false name is gone from the source
 # N1 — no component computes an overlay rect (the "one resolver" claim, mechanically)
 ! rg -n 'centered|centered_horizontally|centered_vertically|resolve_anchor' crates/tui/src/components/
 # N2 — the two resolution paths cannot drift, and measurement has no side effects
-cargo test -p junie-tui --lib measure::tests::ui_resolve_equals_ui_style_for_every_family_variant_part
-cargo test -p junie-tui --lib measure::tests::measure_records_no_roles_and_no_styled_parts
-cargo test -p junie-tui --all-features measure::tests::measure_does_not_touch_the_style_cache
-cargo test -p junie-tui --lib theme::tests::metrics_are_surface_independent
+cargo nextest run -p junie-tui --lib measure::tests::ui_resolve_equals_ui_style_for_every_family_variant_part
+cargo nextest run -p junie-tui --lib measure::tests::measure_records_no_roles_and_no_styled_parts
+cargo nextest run -p junie-tui --all-features measure::tests::measure_does_not_touch_the_style_cache
+cargo nextest run -p junie-tui --lib theme::tests::metrics_are_surface_independent
 # the confirmations
-cargo test -p junie-tui --lib ui::tests::with_part_resolves_once_and_records_the_role
-cargo test -p junie-tui --lib ui::tests::surface_style_is_the_left_operand_of_the_final_patch
+cargo nextest run -p junie-tui --lib ui::tests::with_part_resolves_once_and_records_the_role
+cargo nextest run -p junie-tui --lib ui::tests::surface_style_is_the_left_operand_of_the_final_patch
 # the memo and allocation contracts are unperturbed
-PERF_STRICT=1 cargo test -p junie-tui --test perf --release -- --test-threads=1 style_resolve
-cargo test -p junie-tui --test perf --release -- --test-threads=1 measure_is_allocation_free
+PERF_STRICT=1 cargo nextest run -p junie-tui --test perf --release -- --test-threads=1 style_resolve
+cargo nextest run -p junie-tui --test perf --release -- --test-threads=1 measure_is_allocation_free
 # the inventory and the document agree
-cargo test --workspace --test architecture every_named_test_exists
+cargo nextest run --workspace --test architecture every_named_test_exists
 cargo run -p xtask -- doc-check
 rg -n 'Adjudication N' COMPONENT_ARCHITECTURE.md REFACTORING_STATE.md
 ```
@@ -6163,9 +6163,9 @@ Every path is O(1) and independent of the key count. **No new worst case.**
 **Tests and acceptance.**
 
 ```bash
-cargo test -p junie-tui --lib theme::resolve::tests::cache_hits_after_the_first_query_and_clears_by_generation
-cargo test -p junie-tui --lib theme::resolve::tests::cache_generation_wrap_does_not_serve_a_stale_entry   # new
-PERF_STRICT=1 cargo test -p junie-tui --test perf --release -- --test-threads=1 style_resolve_10k_parts
+cargo nextest run -p junie-tui --lib theme::resolve::tests::cache_hits_after_the_first_query_and_clears_by_generation
+cargo nextest run -p junie-tui --lib theme::resolve::tests::cache_generation_wrap_does_not_serve_a_stale_entry   # new
+PERF_STRICT=1 cargo nextest run -p junie-tui --test perf --release -- --test-threads=1 style_resolve_10k_parts
 ! rg -n 'direct.mapped' crates/tui/src            # the literal survives in this document only inside ~~strikeouts~~
 rg -n 'two-way set-associative' COMPONENT_ARCHITECTURE.md crates/tui/src/theme/resolve.rs
 ```
@@ -6217,10 +6217,10 @@ Two further findings are recorded, not fixed: the swap is **sticky and order-dep
 <!-- amended by §28: the render line names both targets (P2) -->
 
 ```bash
-cargo test -p junie-tui --test render --test render_components theme::ascii_theme_renders_without_box_drawing_glyphs   # §28: both targets
-cargo test -p junie-tui --lib theme::glyph::tests::ascii_glyph_set_has_no_box_drawing                      # new
-cargo test -p junie-tui --lib theme::builder::tests::ascii_glyphs_is_idempotent_and_glyph_overrides_it     # new
-cargo test -p junie-tui --lib theme::border::tests::ascii_border_set_is_pure_ascii
+cargo nextest run -p junie-tui --test render --test render_components theme::ascii_theme_renders_without_box_drawing_glyphs   # §28: both targets
+cargo nextest run -p junie-tui --lib theme::glyph::tests::ascii_glyph_set_has_no_box_drawing                      # new
+cargo nextest run -p junie-tui --lib theme::builder::tests::ascii_glyphs_is_idempotent_and_glyph_overrides_it     # new
+cargo nextest run -p junie-tui --lib theme::border::tests::ascii_border_set_is_pure_ascii
 rg -n 'ascii_glyphs' crates/tui/src/theme/builder.rs COMPONENT_ARCHITECTURE.md
 rg -n 'Slice 4E' COMPONENT_ARCHITECTURE.md
 ```
@@ -6264,9 +6264,9 @@ Also confirmed: the restored `nearest_16` is the legacy `src/theme.rs` implement
 **Tests and acceptance.**
 
 ```bash
-cargo test -p junie-tui --lib theme::downgrade::tests::ansi16_preserves_hue_family_and_brightness
-cargo test -p junie-tui --lib theme::downgrade::tests::downgrade_is_deterministic_per_level
-cargo test --all-targets theme::tests::accent_survives_downgrade          # the legacy pin, unchanged
+cargo nextest run -p junie-tui --lib theme::downgrade::tests::ansi16_preserves_hue_family_and_brightness
+cargo nextest run -p junie-tui --lib theme::downgrade::tests::downgrade_is_deterministic_per_level
+cargo nextest run --all-targets theme::tests::accent_survives_downgrade          # the legacy pin, unchanged
 git diff --exit-code crates/tui/tests/perf_baseline.txt                   # O3 re-blesses nothing
 ```
 
@@ -6303,8 +6303,8 @@ git diff --exit-code crates/tui/tests/perf_baseline.txt                   # O3 r
 **Tests and acceptance.**
 
 ```bash
-PERF_STRICT=1 cargo test -p junie-tui --test perf --release -- --test-threads=1 style_resolve_per_frame
-PERF_STRICT=1 cargo test -p junie-tui --test perf --release -- --test-threads=1 intents_drain
+PERF_STRICT=1 cargo nextest run -p junie-tui --test perf --release -- --test-threads=1 style_resolve_per_frame
+PERF_STRICT=1 cargo nextest run -p junie-tui --test perf --release -- --test-threads=1 intents_drain
 #   PERF-PROBES probes_500 - probes_20 == 480; PERF-RATIO intents_drain_ns_per_control <= 1.25
 rg -n 'style_resolve_per_frame' COMPONENT_ARCHITECTURE.md   # names Slice 5 + frame_showcase_lists_120x40
 ```
@@ -6314,7 +6314,7 @@ rg -n 'style_resolve_per_frame' COMPONENT_ARCHITECTURE.md   # names Slice 5 + fr
 ```bash
 rg -n 'Adjudication O' COMPONENT_ARCHITECTURE.md REFACTORING_STATE.md
 cargo run -p xtask -- doc-check
-cargo test --workspace --test architecture every_named_test_exists
+cargo nextest run --workspace --test architecture every_named_test_exists
 ```
 
 Every command in §27.1–§27.4 exits 0; `crates/tui/tests/perf_baseline.txt` changes only in its `#` header (O1's recorded hit rate, O4a's baseline-free note) unless `ascii_glyphs()` moves an allocation count; `every_named_test_exists` reports no missing name once `theme::ascii_glyph_set_has_no_box_drawing`, `theme::builder::ascii_glyphs_is_idempotent_and_glyph_overrides_it` and `theme::cache_generation_wrap_does_not_serve_a_stale_entry` — all three named in §16.1 — exist in the sources; and the amendments to §11.2, §16.1, §16.6, §20.9‑1/‑2, §21 item 6, §24.2, §25.3, §25.6 and §25.8 are applied and mirrored in `REFACTORING_STATE.md`.
@@ -6337,7 +6337,7 @@ Every command in §27.1–§27.4 exits 0; `crates/tui/tests/perf_baseline.txt` c
 
 **Rejected.** Widen to `crates/tui/examples/**` (applies the exemption to twelve files with no claim to it and makes "A11 is showcase/fixture-only" unenforceable for the rest of the refactor). Widen to `crates/tui/examples/showcase_*.rs` (costs the matrix's assertions for the same one slice and leaves an allow-list entry a later reader must remember to delete). Move the page to `crates/tui/tests/fixtures/` (a fixture is not runnable; goal §29's "the showcase demonstrates every public component" is not satisfied by a file nobody can start).
 
-**Tests.** `cargo run -p xtask -- boundary --check state_override_is_used_only_in_apps_and_fixtures` exits 0 **with no allow-list**; `cargo test -p junie-tui --test showcase_buttons` keeps asserting `b.area_of(MATRIX.index(0).index(0)).is_none()`; `cargo build -p junie-tui --example showcase_buttons` still builds the page. **Slice-5 obligation** (recorded in `REFACTORING_STATE.md`, and the whole mitigation for the risk that a convention-only deviation becomes permanent): *the two halves become one file under `apps/showcase`, and §18.3 #4's deviation paragraph is struck.*
+**Tests.** `cargo run -p xtask -- boundary --check state_override_is_used_only_in_apps_and_fixtures` exits 0 **with no allow-list**; `cargo nextest run -p junie-tui --test showcase_buttons` keeps asserting `b.area_of(MATRIX.index(0).index(0)).is_none()`; `cargo build -p junie-tui --example showcase_buttons` still builds the page. **Slice-5 obligation** (recorded in `REFACTORING_STATE.md`, and the whole mitigation for the risk that a convention-only deviation becomes permanent): *the two halves become one file under `apps/showcase`, and §18.3 #4's deviation paragraph is struck.*
 
 ### 28.2 P2 — `render::components::*` file placement
 
@@ -6347,7 +6347,7 @@ Every command in §27.1–§27.4 exits 0; `crates/tui/tests/perf_baseline.txt` c
 
 **Rejected.** *Require the fold now* — buys nothing testable, creates a cross-work-package file, and would be undone if the two owners diverge again in Slice 4.
 
-**Tests.** `cargo test -p junie-tui --test render --test render_components` runs the 384 component cells plus the foundations digests; `cargo test -p junie-tui --test render_components render::components::` lists the matrix under the documented path; added to the Slice 3 gate: `cargo test --workspace -- --list | rg -c '^render::components::'` is non-zero.
+**Tests.** `cargo nextest run -p junie-tui --test render --test render_components` runs the 384 component cells plus the foundations digests; `cargo nextest run -p junie-tui --test render_components render::components::` lists the matrix under the documented path; added to the Slice 3 gate: `cargo nextest run --workspace -- --list | rg -c '^render::components::'` is non-zero.
 
 ### 28.3 P3 — §17 example 11 and the undelivered-intent guard
 
@@ -6433,63 +6433,63 @@ This is the one item of the six that is a **goal §29 defect**, not a placement 
 
 ```bash
 # ── P3, first: confirm the premise correction before changing anything ──
-cargo test -p junie-tui --test showcase_buttons no_diagnostics_are_emitted_during_the_journey
-cargo test -p junie-tui --lib runtime::tests::a_layer_owners_dismissal_is_diagnosed_when_the_owner_does_not_drain_it
-cargo test -p junie-tui --lib runtime::tests::a_decorative_owner_is_not_diagnosed_for_a_pointer_intent
-cargo test -p junie-tui --test overlay                      # the unconditional shape stays green
+cargo nextest run -p junie-tui --test showcase_buttons no_diagnostics_are_emitted_during_the_journey
+cargo nextest run -p junie-tui --lib runtime::tests::a_layer_owners_dismissal_is_diagnosed_when_the_owner_does_not_drain_it
+cargo nextest run -p junie-tui --lib runtime::tests::a_decorative_owner_is_not_diagnosed_for_a_pointer_intent
+cargo nextest run -p junie-tui --test overlay                      # the unconditional shape stays green
 
 # ── P6 (priority) ──
-cargo test -p junie-tui --lib theme::downgrade::tests::mono_resolver_applies_once_without_recipe_storage
-cargo test -p junie-tui --lib theme::downgrade::tests::mono_disabled_is_dim_and_readable
-cargo test -p junie-tui --test conformance text_input::mono_states_are_distinguishable
-cargo test -p junie-tui --test conformance button::mono_states_are_distinguishable
-cargo test -p junie-tui --test conformance field::mono_states_are_distinguishable
-cargo test -p junie-tui --test conformance list::mono_states_are_distinguishable
-cargo test -p junie-tui --test conformance tabs::mono_states_are_distinguishable
-cargo test -p junie-tui --test conformance mono_states_required_by_is_a_union
+cargo nextest run -p junie-tui --lib theme::downgrade::tests::mono_resolver_applies_once_without_recipe_storage
+cargo nextest run -p junie-tui --lib theme::downgrade::tests::mono_disabled_is_dim_and_readable
+cargo nextest run -p junie-tui --test conformance text_input::mono_states_are_distinguishable
+cargo nextest run -p junie-tui --test conformance button::mono_states_are_distinguishable
+cargo nextest run -p junie-tui --test conformance field::mono_states_are_distinguishable
+cargo nextest run -p junie-tui --test conformance list::mono_states_are_distinguishable
+cargo nextest run -p junie-tui --test conformance tabs::mono_states_are_distinguishable
+cargo nextest run -p junie-tui --test conformance mono_states_required_by_is_a_union
 # ── Q2/A5: the forced state is private and read through its paired accessors ──
 ! rg -n 'pub (reference_state|status)\s*:' crates/tui-testing/src/conformance/mod.rs
 rg -n 'reference_state\s*=|status\s*=' crates/tui-testing/src/conformance/mod.rs  # only Fixture::force writes the paired state
-cargo test -p junie-tui --test conformance
+cargo nextest run -p junie-tui --test conformance
 rg -n 'reference_state: Option<StateFlags>,' crates/tui-testing/src/conformance/mod.rs | rg -v 'pub '
 
 # ── Q3/A6: the declared reason is checked in case 9, not by a source-shape grep ──
-cargo test -p junie-tui --test conformance -- --include-ignored
+cargo nextest run -p junie-tui --test conformance -- --include-ignored
 rg -n 'mono_narrowing_reason' crates/tui-testing/src/conformance/{mod,driver}.rs \
       crates/tui/tests/conformance.rs COMPONENT_ARCHITECTURE.md
 
 # ── P6 baselines: change → capture → classify → bless, in that order ──
-cargo test -p junie-tui --test render --test render_components render::components::   # RED on the mono disabled cells
-BLESS=1 cargo test -p junie-tui --test render --test render_components
+cargo nextest run -p junie-tui --test render --test render_components render::components::   # RED on the mono disabled cells
+BLESS=1 cargo nextest run -p junie-tui --test render --test render_components
 git diff --stat crates/tui/tests/baselines/components.txt              # mono lines only
 rg -n 'mono DISABLED' docs/visual-changes.md                           # the classification exists
 
 # ── P4 ──
-cargo test -p junie-tui --lib components::dialog::tests::layer_size_is_a_pure_function_of_props_and_design_tokens
-cargo test -p junie-tui --lib components::dialog::tests::a_prompt_dialog_sizes_its_own_field_row
+cargo nextest run -p junie-tui --lib components::dialog::tests::layer_size_is_a_pure_function_of_props_and_design_tokens
+cargo nextest run -p junie-tui --lib components::dialog::tests::a_prompt_dialog_sizes_its_own_field_row
 ! rg -n 'centered|resolve_anchor' crates/tui/src/components/           # §26.5 still holds
 
 # ── P5 ──
-cargo test -p junie-tui --test architecture legacy_forced_state_apis_are_absent
-cargo test -p junie-tui --test architecture reference_rendering_is_ui_scoped
+cargo nextest run -p junie-tui --test architecture legacy_forced_state_apis_are_absent
+cargo nextest run -p junie-tui --test architecture reference_rendering_is_ui_scoped
 cargo run -p xtask -- boundary --check state_override_is_used_only_in_apps_and_fixtures
 ! rg -n 'pub fn inherit_forced' crates/tui/src --glob '!field_control.rs'
 
 # ── P1 ──
 cargo run -p xtask -- boundary --check state_override_is_used_only_in_apps_and_fixtures   # unchanged allow-list
-cargo test -p junie-tui --test showcase_buttons                         # the matrix stays asserted
+cargo nextest run -p junie-tui --test showcase_buttons                         # the matrix stays asserted
 cargo build -p junie-tui --example showcase_buttons                     # the page still runs
 rg -n 'apps/showcase' REFACTORING_STATE.md                             # the Slice-5 obligation is recorded
 
 # ── P2 ──
-cargo test -p junie-tui --test render --test render_components
-cargo test --workspace -- --list | rg -c '^render::components::'       # non-zero
+cargo nextest run -p junie-tui --test render --test render_components
+cargo nextest run --workspace -- --list | rg -c '^render::components::'       # non-zero
 rg -n -- '--test render\b' COMPONENT_ARCHITECTURE.md | rg -v 'render_components' && exit 1   # no gate names one target
 
 # ── the whole gate ──
 cargo run -p xtask -- boundary
 cargo run -p xtask -- doc-check
-cargo test --workspace --test architecture every_named_test_exists
+cargo nextest run --workspace --test architecture every_named_test_exists
 ```
 
 **Gate pass condition.** Every command exits 0; `crates/tui/tests/allow/legacy_api.txt` and `allow/domain.txt` stay empty; `docs/visual-changes.md` carries the mono-`DISABLED` entry before any baseline is blessed; §3.3 step 9, §11.4, §12.1, §13, §16.1, §16.2 case 9, §16.3, §17 example 11, §18.3 #4, §20.10 item 18 and §26.1 carry the amendments above; and `every_named_test_exists` reports no missing name once the eight names §28 introduces exist in the sources or are deferred in `xtask/named_tests_allow.txt` with the owning slice.
@@ -6506,7 +6506,7 @@ cargo test --workspace --test architecture every_named_test_exists
 
 **(a) is not a new affordance; it is compliance with §11.4 as already written.** The `PRESSED` row requires the bracket *in addition to* the `CONTAINER` rule. `Button` discharges it; `Tabs` now discharges it. What was missing from the spec is the sentence saying who paints it, and Adjudication P's table assumed every component paints its own label the way `Button` does.
 
-**R1 is confirmed by execution.** With the `Tabs` bracket block enabled, `cargo test -p junie-tui --test conformance tabs::mono_states_are_distinguishable` exited 0. With only `tabs.rs:719–728` disabled, the same case was nonzero because `TabsCase`'s mono `PRESSED` and `FOCUSED` outputs were equal. Restoring the block returned the case to exit 0. Thus `CONTAINER`'s `BOLD` alone does not satisfy this observed pair; the bracket is independently required. (`--test conformance` exposes the integration target's module path directly; it does not add a `conformance::` filter prefix.)
+**R1 is confirmed by execution.** With the `Tabs` bracket block enabled, `cargo nextest run -p junie-tui --test conformance tabs::mono_states_are_distinguishable` exited 0. With only `tabs.rs:719–728` disabled, the same case was nonzero because `TabsCase`'s mono `PRESSED` and `FOCUSED` outputs were equal. Restoring the block returned the case to exit 0. Thus `CONTAINER`'s `BOLD` alone does not satisfy this observed pair; the bracket is independently required. (`--test conformance` exposes the integration target's module path directly; it does not add a `conformance::` filter prefix.)
 
 **Why the bracket cannot move into `RowUi` (rejects (c) as stated).** The bracket needs two columns that are not the label's. `Button` has a gutter and a trailing pad; a tab has two pad cells; a `List`/`Tree`/`Props`/`Grid` row has none — `RowUi::label` fills the whole remainder. Teaching `label` to bracket would take two content columns from every pressed row and pull the ellipsis in by two — a mono fallback changing geometry, which §28.6 already rejected. `RowUi` has no information with which to reserve those columns; only the component that laid out the row does. This is structurally the same conclusion §28.6(b) reached for the spinner: the theme rule states the affordance; the component that owns the cells paints it.
 
@@ -6648,11 +6648,11 @@ The following nine amendments from `docs/reviews/adjudication-q-residuals.md` ar
 
 ```bash
 # R1/Q1: the bracket is independently required and geometry is stable
-cargo test -p junie-tui --test conformance tabs::mono_states_are_distinguishable
-cargo test -p junie-tui --lib components::tabs::tests::mono_pressed_brackets_the_reserved_pad_cells
-cargo test -p junie-tui --lib components::button::tests::mono_pressed_does_not_truncate_the_label
-cargo test -p junie-tui --lib components::brand::tests::mono_pressed_brand_keeps_the_lockup_padding
-cargo test -p junie-tui --lib components::menu::tests::mono_pressed_menu_title_keeps_both_reserved_pads
+cargo nextest run -p junie-tui --test conformance tabs::mono_states_are_distinguishable
+cargo nextest run -p junie-tui --lib components::tabs::tests::mono_pressed_brackets_the_reserved_pad_cells
+cargo nextest run -p junie-tui --lib components::button::tests::mono_pressed_does_not_truncate_the_label
+cargo nextest run -p junie-tui --lib components::brand::tests::mono_pressed_brand_keeps_the_lockup_padding
+cargo nextest run -p junie-tui --lib components::menu::tests::mono_pressed_menu_title_keeps_both_reserved_pads
 
 # Choice's in-run bracket remains an unresolved §29.7 obligation; no closure test
 # is named here until that component-level geometry contract is adjudicated.
@@ -6673,12 +6673,12 @@ done < <(rg -l -- 'GlyphRole::PressLeft' crates/tui/src/components/ | rg -v '/(m
 
 # A4: live RowUi callers and Slot semantics, not the superseded no-caller grep
 rg -n '\.marker\(' crates/tui/examples/07_borrowed_rows.rs crates/tui/examples/08_dynamic_tabs.rs
-cargo test -p junie-tui --lib collection::rowui
+cargo nextest run -p junie-tui --lib collection::rowui
 
 # A5/A6: private paired Fixture state and machine-checked narrowing reasons
 ! rg -n 'pub (reference_state|status)\s*:' crates/tui-testing/src/conformance/mod.rs
 rg -n 'reference_state\s*=|status\s*=' crates/tui-testing/src/conformance/mod.rs  # only Fixture::force writes the paired state
-cargo test -p junie-tui --test conformance -- --include-ignored
+cargo nextest run -p junie-tui --test conformance -- --include-ignored
 rg -n 'reference_state: Option<StateFlags>,' crates/tui-testing/src/conformance/mod.rs | rg -v 'pub '
 rg -n 'mono_narrowing_reason' crates/tui-testing/src/conformance/{mod,driver}.rs \
       crates/tui/tests/conformance.rs COMPONENT_ARCHITECTURE.md
@@ -7375,7 +7375,7 @@ Related: Appendix B.3 argues `text` stays private because "a `pub mod text` leak
 
 ### §41.6 A check that runs but is invisible to the way checks are run <!-- amended by §41 -->
 
-`inherit_forced_stays_crate_internal` is registered and runs under `xtask boundary`, but has **no `#[test]` wrapper** in `architecture.rs` — every other registered check does — and **no §16.5 row**. So it is invisible to `cargo test --workspace --test architecture`, which §16.5 and §16.1 both present as the way architecture checks run. Same omission shape as `bless-guard`, weaker instance because the check does at least execute.
+`inherit_forced_stays_crate_internal` is registered and runs under `xtask boundary`, but has **no `#[test]` wrapper** in `architecture.rs` — every other registered check does — and **no §16.5 row**. So it is invisible to `cargo nextest run --workspace --test architecture`, which §16.5 and §16.1 both present as the way architecture checks run. Same omission shape as `bless-guard`, weaker instance because the check does at least execute.
 
 Its own doc comment states why it matters: if `inherit_forced` becomes public outside the `FieldControl` default, an application can force a component's state without writing `.state_override(`, **and the A11 boundary check becomes decorative.**
 
@@ -7619,7 +7619,7 @@ The full partition closes at Slice 8, not Slice 5. **Anyone who tries to close i
 
 Beyond `bless-guard` (now built) and `capture-matrix` (still absent and still asserted in the present indicative): **three architecture tests named in Appendix B as guarding the `apps/` boundary do not exist** — `binary_names_are_preserved`, `app_libs_are_not_published_and_are_not_depended_on_by_the_library`, and `applications_depend_only_on_the_library_facade`. Nothing pins the three binary names across the package split, which goal §21 requires.
 
-Six CI steps also run `cargo test --release --bin <name>`, and **all six break the moment the root binaries go**. Appendix A does not mention them.
+Six CI steps also run `cargo nextest run --release --bin <name>`, and **all six break the moment the root binaries go**. Appendix A does not mention them.
 
 ## §47 Record — GAP-2's pin found a second defect, and a convention standing in for a guarantee <!-- amended by §47 -->
 

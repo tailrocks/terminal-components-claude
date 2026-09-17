@@ -1,4 +1,7 @@
-# TASK-001 merge authorization checklist (PR #4 → `main`)
+# Historical TASK-001 merge authorization checklist (PR #4 → `main`)
+
+> **Superseded.** This PR/main merge path is retired. Current campaign state
+> is governed by the NO-GO readiness report.
 
 **Audience:** Operator (Alexey)  
 **Purpose:** Mandatory pre-merge gate before merging [PR #4](https://github.com/donbeave/terminal-components-claude/pull/4) (`task-001-bootstrap` → `main`)  

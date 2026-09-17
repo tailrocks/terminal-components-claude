@@ -30,7 +30,7 @@ Read before editing:
 
 ## Preconditions
 
-- **P-001:** The host has pinned the immutable task/catalog/bootstrap, taskfmt revision `52d9f1eb7721f409bc47beb9fced7997b5c13ede`, accepted tui-snap PR/revision and toolchain/image/lock fingerprints.
+- **P-001:** The host has pinned the immutable task/catalog/bootstrap, taskfmt revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, accepted tui-snap PR/revision and toolchain/image/lock fingerprints.
 - **P-002:** Every declared predecessor's accepted product and actual integrated source ancestry resolve from protected host receipts; the candidate starts at the recorded parent and scope base.
 - **P-003:** The source requirements and finite scenario expansion contract are immutable. Expected numeric traces and capture hashes are outputs of the authorized baseline producer, never fabricated preconditions.
 - **Container mounts:** Read-only `/proof/bin/tc-proof`, `/run/tc-proof/context-index.json`, and `/run/tc-proof/contexts/CHK-NNN.json` per `verify.toml`; taskfmt `--task-dir` / `--root` do not substitute for these mounts.

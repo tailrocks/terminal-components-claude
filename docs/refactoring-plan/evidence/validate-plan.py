@@ -164,7 +164,7 @@ class Audit:
                         self.require((package / relative).exists(), f"Missing invoked trusted input: {task_id}:{relative}")
             protocol = (package / "AGENTS.md").read_bytes()
             normalized = re.sub(rb"TASK-\d{3}", b"TASK-000", protocol)
-            self.require(hashlib.sha256(normalized).hexdigest() == "08d3799b3165cd7cd12dedaed8d073920d57ff75a716ae625ad1e18066350df0", f"Canonical execution protocol drift: {task_id}")
+            self.require(hashlib.sha256(normalized).hexdigest() == "cae56507a9300ae4d7daee2b0cc484340b87a17627df10b96a157cdd0fd80b89", f"Canonical execution protocol drift: {task_id}")
             self.require("source-obligations.tsv" in readme, f"Historical payload not bound by README: {task_id}")
             read_before = readme.split("Read before editing:", 1)
             self.require(len(read_before) == 2, f"Missing Read before editing section: {task_id}")

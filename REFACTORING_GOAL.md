@@ -215,7 +215,7 @@ At minimum run the repository’s current equivalents of:
 ```bash
 cargo fmt --check
 cargo clippy --all-targets -- -D warnings
-cargo test --all-targets
+cargo nextest run --all-targets
 cargo build --bins
 ````
 
@@ -1366,8 +1366,8 @@ After the final package or workspace structure is established, run the strongest
 ```bash
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test --workspace --all-targets --all-features
-cargo test --workspace --doc
+cargo nextest run --workspace --all-targets --all-features
+cargo nextest run --workspace --doc
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
 cargo build --workspace --all-targets --all-features
 ```

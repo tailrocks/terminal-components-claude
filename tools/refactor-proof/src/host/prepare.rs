@@ -4,7 +4,7 @@ use std::path::Path;
 use std::process::Command;
 
 use super::authority::{
-    load_authority, load_campaign, load_receipt, write_preparation, Authority, Campaign,
+    Authority, Campaign, load_authority, load_campaign, load_receipt, write_preparation,
 };
 use crate::json_util::sha256_bytes;
 
@@ -14,7 +14,12 @@ pub(super) enum PrepareOutcome {
     Failed(String),
 }
 
-pub(super) fn run_prepare(campaign_dir: &Path, task: &str, parent: &str, run_dir: &Path) -> PrepareOutcome {
+pub(super) fn run_prepare(
+    campaign_dir: &Path,
+    task: &str,
+    parent: &str,
+    run_dir: &Path,
+) -> PrepareOutcome {
     let authority = match load_authority() {
         Ok(value) => value,
         Err(error) => return PrepareOutcome::Failed(error),
@@ -54,11 +59,7 @@ fn prepare_run(
         if receipt.producer != dependency.producer || receipt.product != dependency.product {
             return Err("dependency");
         }
-        if !git_is_ancestor(
-            &campaign.repository,
-            &receipt.source_commit,
-            parent,
-        )? {
+        if !git_is_ancestor(&campaign.repository, &receipt.source_commit, parent)? {
             return Err("ancestry");
         }
     }
@@ -68,8 +69,7 @@ fn prepare_run(
         return Err("integrity");
     }
     let progress_path = run_dir.join("progress.md");
-    run_taskfmt_progress_init(&campaign.taskfmt, &package_dir, &progress_path)
-        .map_err(|_| "integrity")?;
+    run_taskfmt_init(&campaign.taskfmt, &package_dir, &progress_path).map_err(|_| "integrity")?;
     write_preparation(run_dir, task, parent).map_err(|_| "integrity")?;
     Ok(())
 }
@@ -79,23 +79,15 @@ fn validate_taskfmt(pin: &super::authority::TaskfmtPin) -> Result<(), String> {
     if sha256_bytes(&executable_bytes) != pin.sha256 {
         return Err("taskfmt executable hash mismatch".into());
     }
-    let config_bytes = std::fs::read(&pin.config).map_err(|error| error.to_string())?;
-    if sha256_bytes(&config_bytes) != pin.config_sha256 {
-        return Err("taskfmt config hash mismatch".into());
-    }
-    let version = run_command(&pin.executable, &["--version"]).map_err(|error| error.to_string())?;
+    let version =
+        run_command(&pin.executable, &["--version"]).map_err(|error| error.to_string())?;
     if !version.contains(&pin.revision) {
         return Err("taskfmt revision mismatch".into());
-    }
-    let fingerprint =
-        run_command(&pin.executable, &["fingerprint"]).map_err(|error| error.to_string())?;
-    if fingerprint.trim() != pin.fingerprint {
-        return Err("taskfmt fingerprint mismatch".into());
     }
     Ok(())
 }
 
-fn run_taskfmt_progress_init(
+fn run_taskfmt_init(
     pin: &super::authority::TaskfmtPin,
     package_dir: &Path,
     progress_path: &Path,
@@ -104,18 +96,14 @@ fn run_taskfmt_progress_init(
         std::fs::create_dir_all(parent).map_err(|error| error.to_string())?;
     }
     let status = Command::new(&pin.executable)
-        .args([
-            "progress-init",
-            &package_dir.to_string_lossy(),
-            "--config",
-            &pin.config.to_string_lossy(),
-            "--out",
-            &progress_path.to_string_lossy(),
-        ])
+        .args(["init", "--task-dir"])
+        .arg(package_dir)
+        .args(["--out"])
+        .arg(progress_path)
         .status()
         .map_err(|error| error.to_string())?;
     if !status.success() || !progress_path.is_file() {
-        return Err("taskfmt progress-init failed".into());
+        return Err("taskfmt init failed".into());
     }
     Ok(())
 }

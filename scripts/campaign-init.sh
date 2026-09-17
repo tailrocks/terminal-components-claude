@@ -4,9 +4,8 @@ set -euo pipefail
 
 ARCH_MAIN="${ARCH_MAIN:-7b27732a8c3c131760ec3438f641cb3c11343a42}"
 INTEGRATION_BRANCH="${INTEGRATION_BRANCH:-refactor/holla-parity}"
-CATALOG_BRANCH="${CATALOG_BRANCH:-prep-wave1-verify}"
+CATALOG_BRANCH="${CATALOG_BRANCH:-refactor/holla-parity}"
 WORKTREE_PATH="${TC_CAMPAIGN_WORKTREE:-.worktrees/campaign}"
-SEED_BRANCH="${SEED_BRANCH:-task-001-bootstrap}"
 
 repo_root() {
   git -C "${BASH_SOURCE[0]%/*}/.." rev-parse --show-toplevel
@@ -22,20 +21,12 @@ main() {
   root="$(repo_root)"
   cd "$root"
 
-  echo "==> Fetching remotes"
-  git fetch origin --tags 2>/dev/null || true
-
   local tag_peeled
   tag_peeled="$(git rev-parse "refs/tags/visual-baseline^{commit}" 2>/dev/null || echo UNKNOWN)"
   echo "==> visual-baseline tag (peeled): $tag_peeled"
 
   local seed_sha="$ARCH_MAIN"
-  if git rev-parse "origin/$SEED_BRANCH" >/dev/null 2>&1; then
-    seed_sha="$(git rev-parse "origin/$SEED_BRANCH")"
-    echo "==> Seeding $INTEGRATION_BRANCH from origin/$SEED_BRANCH @ ${seed_sha:0:12}"
-  else
-    echo "==> Seeding $INTEGRATION_BRANCH from architectural main @ ${seed_sha:0:12}"
-  fi
+  echo "==> Seeding only a missing $INTEGRATION_BRANCH from architectural main @ ${seed_sha:0:12}"
 
   if git show-ref --verify --quiet "refs/heads/$INTEGRATION_BRANCH"; then
     echo "==> Branch $INTEGRATION_BRANCH already exists @ $(git rev-parse "$INTEGRATION_BRANCH" | cut -c1-12)"
@@ -46,10 +37,13 @@ main() {
 
   if [[ -d "$WORKTREE_PATH" ]] || [[ -f "$WORKTREE_PATH/.git" ]]; then
     echo "==> Worktree exists: $WORKTREE_PATH"
-    git -C "$WORKTREE_PATH" checkout "$INTEGRATION_BRANCH" 2>/dev/null || true
+    local worktree_branch
+    worktree_branch="$(git -C "$WORKTREE_PATH" branch --show-current 2>/dev/null || echo detached)"
+    [[ "$worktree_branch" == "$INTEGRATION_BRANCH" ]] \
+      || die "existing worktree is on $worktree_branch; refusing to retarget it"
   else
     mkdir -p "$(dirname "$WORKTREE_PATH")"
-    git worktree add -B "$INTEGRATION_BRANCH" "$WORKTREE_PATH" "$INTEGRATION_BRANCH"
+    git worktree add "$WORKTREE_PATH" "$INTEGRATION_BRANCH"
     echo "==> Created worktree $WORKTREE_PATH"
   fi
 
@@ -96,8 +90,8 @@ Campaign workspace initialized (pre-arm).
 
 Next steps (do NOT arm /goal yet):
   1. ./scripts/campaign-install-taskfmt.sh
-  2. Complete docs/refactoring-plan/campaign-pre-arm-checklist.md (P2 TASK-001)
-  3. ./scripts/campaign-preflight.sh
+  2. Read docs/refactoring-plan/execution-readiness-report.md
+  3. ./scripts/campaign-preflight.sh (fails closed while readiness is NO-GO)
 
 Push when ready:
   git push -u origin $INTEGRATION_BRANCH

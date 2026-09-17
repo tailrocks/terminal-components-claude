@@ -1,4 +1,8 @@
-# Execution readiness assessment
+# Historical execution readiness assessment
+
+> **Superseded on 2026-09-18.** This assessment predates the current branch
+> reconciliation and taskfmt migration. It is retained as evidence only. The
+> sole current authority is [`execution-readiness-report.md`](execution-readiness-report.md).
 
 **Date:** 2026-09-15 (updated after BRANCH-01 closure)  
 **Catalog commit:** working tree @ BRANCH-01 closure round  

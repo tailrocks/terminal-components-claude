@@ -19,7 +19,7 @@ Committed `bin/tc-proof` and `bin/tc-proof-host` are shell wrappers that exec `t
 `install` and `prepare` are implemented against the host bootstrap protocol:
 
 - `install --receipt PATH --destination PATH` validates `TC_PROOF_AUTHORITY_FILE`, checks receipt digests against the authority allowlist, verifies harness executable bytes, and writes `bin/tc-proof-host` mode `0755`.
-- `prepare --campaign DIR --task ID --parent COMMIT --run DIR` validates campaign/receipt bindings, dependency producer/product tuples, predecessor ancestry, pinned taskfmt identity, runs `taskfmt progress-init`, and writes `run/preparation.json`.
+- `prepare --campaign DIR --task ID --parent COMMIT --run DIR` validates campaign/receipt bindings, dependency producer/product tuples, predecessor ancestry, the pinned latest-taskfmt executable identity, runs `taskfmt init`, and writes `run/preparation.json`.
 
 `verify` runs observer IPC (build/test/taskfmt), validates the frozen context index, materializes worker/taskfmt logs, and writes `run/verdict.json` with five `CHK-*` entries. Observer unavailable → `rejected` / `integrity` (no panic).
 
@@ -63,7 +63,7 @@ python3 refactoring-tasks/terminal-components/completion/001/trusted/proof-boots
   --taskfmt-source /path/to/pinned/task-format
 ```
 
-Requires macOS, pinned taskfmt revision `52d9f1eb…` / fingerprint `52c960db…`, and Mach-O entrypoints at `bin/tc-proof-host` after `sync-binaries.sh`.
+Requires macOS, taskfmt `0.2.0` at revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, and Mach-O entrypoints at `bin/tc-proof-host` after `sync-binaries.sh`.
 
 ## Observer IPC (Phase 3c transport)
 

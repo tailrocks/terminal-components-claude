@@ -8,36 +8,35 @@ This document specifies the missing project harness and its authority boundaries
 
 The UI source is `02f5294bfdbf38004cc49130d0aff1d01f31434c`. The architectural starting commit is `7b27732a8c3c131760ec3438f641cb3c11343a42`. They serve different purposes. Never capture an expected application frame from the latter.
 
-The inspected task-format revision is `52d9f1eb7721f409bc47beb9fced7997b5c13ede`, at `/Users/donbeave/Projects/donbeave/task-format`. These existing commands are supported:
+The inspected task-format revision is `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, at `/Users/donbeave/Projects/taskfmt/task-format`. The installed binary reports `taskfmt 0.2.0 (git afd3b575dbcc7044620bec4b9493a74eca3e5ef2)`. These latest commands are supported:
 
 ```sh
 taskfmt --version
-taskfmt fingerprint
-taskfmt --config /proof/bootstrap/experiment.toml project lint terminal-components --projects-root /absolute/catalog
-taskfmt --config /proof/bootstrap/experiment.toml project show terminal-components --projects-root /absolute/catalog --json
-taskfmt --config /proof/bootstrap/experiment.toml lint /absolute/catalog/terminal-components/completion/NNN
-taskfmt --config /proof/bootstrap/experiment.toml progress-init /absolute/catalog/terminal-components/completion/NNN --out /absolute/run/progress.md
-taskfmt --config /proof/bootstrap/experiment.toml verify --root /absolute/verification-checkout --task-dir /absolute/catalog/terminal-components/completion/NNN --base RECORDED_SCOPE_BASE_COMMIT --progress /absolute/run/progress.md --log-dir /absolute/run/taskfmt-logs
+taskfmt lint /absolute/catalog/terminal-components/completion/NNN
+taskfmt init --task-dir /absolute/catalog/terminal-components/completion/NNN --out /absolute/run/progress.md
+taskfmt verify --root /absolute/verification-checkout --task-dir /absolute/catalog/terminal-components/completion/NNN --base RECORDED_SCOPE_BASE_COMMIT --progress /absolute/run/progress.md --log-dir /absolute/run/taskfmt-logs
 ```
 
 `--root` and `--task-dir` affect taskfmt's own gate only; **`verify.toml` subprocess argv is literal** — the host must expose container paths at filesystem root before checks run (TASK-001/070: `/task`, `/work`, `/proof/bootstrap`; TASK-002+: `/proof/bin/tc-proof`, `/run/tc-proof/contexts/`). See [`path-contract.md`](path-contract.md).
 
-```sh
-# Example only — paths above are illustrative
-taskfmt --config /proof/bootstrap/experiment.toml verify --root /work --task-dir /task --base RECORDED_SCOPE_BASE_COMMIT --progress /absolute/run/progress.md --log-dir /absolute/run/taskfmt-logs
-```
+Paths, `NNN`, and the base above are invocation parameters, not literal
+fabricated artifact identities. The host supplies their resolved values. It
+checks the executable SHA-256 and the exact source commit embedded in
+`--version`; latest taskfmt has no `fingerprint` command.
 
-Paths, `NNN`, and the base above are invocation parameters, not literal fabricated artifact identities. The host supplies their resolved values. It checks the executable hash and compiled fingerprint in addition to the displayed version.
+`crates/taskfmt/src/cmds/verify.rs` enables full task-contract enforcement. `gate.rs` checks package lint, scope, forbidden paths/patterns, declared checks and progress. Success requires process exit 0 **and** the final stdout line exactly `DONE`. Run without `--fail-fast`, `--no-progress`, or empty progress. Pass `--base` explicitly: source implementation refuses an absent immutable base even though help text still mentions a default `baseline`.
 
-`harness/src/cmds/verify.rs` enables full task-contract enforcement. `gate.rs` checks package lint, scope, forbidden paths/patterns, declared checks and progress. Success requires process exit 0 **and** the final stdout line exactly `DONE`. Run without `--fail-fast`, `--no-progress`, or empty progress. Pass `--base` explicitly: source implementation refuses an absent immutable base even though help text still mentions a default `baseline`.
-
-Standalone verification does not overlay `trusted/`, freeze source, isolate candidate code, establish dependency ancestry, or promote a branch. The host must provide those operations. `cmds/run.rs` installs its own trusted overlay, but its lifecycle clones `main`; `cmds/promote.rs`/`ops/git.rs` push `refs/heads/main`. Do not use taskfmt run, monitor dispatch, or promote for this campaign. The supported standalone gate imposes no branch name. Preserve canonical `task/v5`, `verify/v2`, and `task-meta/v1`; put host evidence outside those schemas.
+Standalone verification does not overlay `trusted/`, freeze source, isolate
+candidate code, establish dependency ancestry, or integrate a branch. The host
+must provide those operations. The latest standalone taskfmt command surface
+has no lifecycle or branch-promote operation. Preserve canonical `task/v5`,
+`verify/v2`, and `task-meta/v1`; put host evidence outside those schemas.
 
 The inspected repaired tuisnap source is `/tmp/tui-snap-audit.656lHG/repaired`; its final accepted revision is recorded by the verification owner in [tuisnap-review.md](tuisnap-review.md). Existing tool qualification commands are:
 
 ```sh
-cargo test --locked --all-targets --all-features
-cargo test --locked --no-default-features
+cargo nextest run --locked --all-targets --all-features
+cargo nextest run --locked --no-default-features
 ```
 
 Run each from the qualified tuisnap checkout. PTY tests require a real owned PTY on the selected host. Record target, compiler, dependency lock and source revision; a temporary directory name is never a dependency pin. The final external PR and reviewed revision must be resolved before B-HARNESS accepts that tool.
@@ -216,7 +215,13 @@ At every production task stage:
 3. Execute the complete required test/scenario inventory as a diagnostic sweep, including future-owned oracle failures. Record every actual result, including failures. Use no-fail-fast test execution so an early failing binary does not suppress later targets.
 4. The accounting check accepts only the exact still-unfinished future-owner identities admitted by the immutable stage map minus closed identities. It fails on missing execution, unknown failures, unexpected errors or changed failure classification. A diagnostic failure remains a failure in the report; it never becomes a parity pass or an ignored test.
 
-This allows scoped completion during a migration whose full oracle suite starts red. It does not weaken any finished obligation. Every allowed unresolved entry has a fixed correction owner, source evidence and closing stage. At each app closure all that application's unresolved entries are empty; at X-FINAL the global set is empty. The final unfiltered primary workspace suite must pass. Do not claim unconditional `cargo test -p holla` success for H-SHELL if later Holla tasks still own known oracle failures.
+This allows scoped completion during a migration whose full oracle suite starts
+red. It does not weaken any finished obligation. Every allowed unresolved
+entry has a fixed correction owner, source evidence and closing stage. At each
+app closure all that application's unresolved entries are empty; at X-FINAL
+the global set is empty. The final unfiltered primary workspace suite must
+pass. Do not claim unconditional Holla package success while later Holla tasks
+still own known oracle failures.
 
 Existing main CI commands at `7b27732a:.github/workflows/ci.yml` include these real gates:
 
@@ -228,9 +233,9 @@ cargo fmt --all --check
 cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 cargo build --locked --workspace --all-targets --all-features
 cargo build --locked -p junie-tui --examples
-cargo test --locked --workspace --all-targets --all-features --no-fail-fast
-cargo test --locked -p junie-tui --test render --test render_components
-cargo test --locked --workspace --doc --all-features --no-fail-fast
+cargo nextest run --locked --workspace --all-targets --all-features --no-fail-fast
+cargo nextest run --locked -p junie-tui --test render --test render_components
+cargo nextest run --locked --workspace --doc --all-features --no-fail-fast
 cargo doc --locked --workspace --all-features --no-deps
 cargo run --locked -p xtask -- app-inventory --json
 cargo run --locked -p xtask -- boundary

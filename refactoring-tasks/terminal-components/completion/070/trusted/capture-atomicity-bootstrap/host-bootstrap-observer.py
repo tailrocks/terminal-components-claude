@@ -66,7 +66,7 @@ class Observer:
         self.temporary.cleanup()
 
     def arm(self, candidate: Path, progress: Path, package: Path, taskfmt: Path,
-            config: Path, parent: str, tree: str, protected: list[Path]) -> None:
+            parent: str, tree: str, protected: list[Path]) -> None:
         # All arguments originate in the independent fixture driver. Never read
         # these identities or argv from a submitted host request or context.
         self.source = self.root / "source"
@@ -75,8 +75,6 @@ class Observer:
         shutil.copyfile(progress, self.progress)
         self.package = self.root / "task"
         shutil.copytree(package, self.package)
-        self.config = self.root / "experiment.toml"
-        shutil.copyfile(config, self.config)
         self.taskfmt, self.parent, self.tree = taskfmt.resolve(), parent, tree
         self.protected = protected
         self.armed = True
@@ -89,12 +87,12 @@ class Observer:
         env = {"PATH": os.path.dirname(sys.executable) + ":/Library/Developer/CommandLineTools/usr/bin:/usr/bin:/bin", "LC_ALL": "C", "PYTHONDONTWRITEBYTECODE": "1",
                "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull, "GIT_TERMINAL_PROMPT": "0"}
         if step == "taskfmt":
-            argv = [str(self.taskfmt), "verify", "--config", str(self.config), "--root", str(self.source),
+            argv = [str(self.taskfmt), "verify", "--root", str(self.source),
                     "--task-dir", str(self.package), "--base", self.parent, "--progress", str(self.progress),
                     "--log-dir", str(output)]
             # taskfmt runs trusted checker bytes in this synthetic fixture.
             profile = sandbox(writable=[output], unreadable=[*self.protected, self.root],
-                              readable=[self.source, output, self.package, self.progress, self.config, self.taskfmt])
+                              readable=[self.source, output, self.package, self.progress, self.taskfmt])
             profile += f"\n(allow file-read-metadata (literal {quote(self.root)}))"
         else:
             argv = [sys.executable, "-I", "src/worker.py", step]

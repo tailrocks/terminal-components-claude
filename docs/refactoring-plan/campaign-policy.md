@@ -1,6 +1,6 @@
 # Campaign policy — single branch, pre-arm
 
-**Status:** Preparation only. **Do not arm `/goal`** until every item in [`campaign-pre-arm-checklist.md`](campaign-pre-arm-checklist.md) is green and the operator explicitly authorizes arming.
+**Status (2026-09-18):** Preparation only. **Do not arm `/goal`**. The current readiness report is NO-GO: the frozen oracle is absent from this branch, plan validation is red, and host receipts are not accepted.
 
 ## Integration branch (sole production line)
 
@@ -16,7 +16,7 @@ Retired as long-lived targets: `task-001-bootstrap`, open PR #3/#4/#5 merge stra
 ## Repository scope
 
 - **One repo:** `terminal-components-claude` — all production commits land on `refactor/holla-parity`.
-- **Tools (not work product):** [task-format](https://github.com/donbeave/task-format) @ `52d9f1eb…` and tui-snap @ campaign pin — installed binaries only.
+- **Tools (not work product):** taskfmt source `/Users/donbeave/Projects/taskfmt/task-format` @ `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, version `0.2.0`, plus tui-snap @ campaign pin. Use only the exact taskfmt source/binary identity recorded in `task-format.md`.
 
 ## Worktrees
 
@@ -39,7 +39,7 @@ tc-proof-host integrate --run "$RUN" \
 - Arming `/goal` or starting TASK-002+ production dispatch
 - Merging or pushing to `main`
 - Moving the `visual-baseline` tag or writing `snapshots/`
-- Using `taskfmt run`, `monitor`, or `promote`
+- Using taskfmt lifecycle commands that create/reset `main` or promote refs. Use latest standalone `taskfmt lint`, `init`, and `verify` with the host-owned adapter.
 
 ## Verification paths
 
@@ -48,7 +48,6 @@ Container paths in `verify.toml` are literal; see [`path-contract.md`](path-cont
 ## Related docs
 
 - Path contract: [`path-contract.md`](path-contract.md)
-- Pre-arm checklist: [`campaign-pre-arm-checklist.md`](campaign-pre-arm-checklist.md)
 - Ledger schema: [`campaign-ledger.schema.json`](campaign-ledger.schema.json)
-- Arm prompt (use only after checklist): [`campaign-execution-prompt.md`](campaign-execution-prompt.md)
+- Current readiness: [`execution-readiness-report.md`](execution-readiness-report.md)
 - Executor protocol: [`campaign-executor-protocol.md`](campaign-executor-protocol.md)

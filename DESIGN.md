@@ -166,10 +166,9 @@ components:
 
 Junie TUI is the terminal translation of the Junie visual language: a near-black
 canvas, a small number of dark planes, white text stepped down an opacity
-ladder, and one green used only where the user's attention belongs. Two
-applications share the system, a component showcase and a database workbench
-(TablePro), and both look like the same product because they share tokens,
-widgets, glyphs, and one interaction grammar.
+ladder, and one green used only where the user's attention belongs. Showcase,
+Holla, Jackin Preview, and TablePro share the system and look like one product
+because they share tokens, widgets, glyphs, and one interaction grammar.
 
 What makes a screen recognisably Junie TUI:
 
@@ -597,7 +596,7 @@ should not be extended).
 
 ### Interaction grammar
 
-Global keys shared by both applications:
+Global keys shared by the applications:
 
 - `Tab` / `Shift+Tab` move focus through every enabled control in reading
   order and wrap. Composite widgets are one stop.
@@ -1247,7 +1246,7 @@ not claim one exists; add it to the showcase first if it becomes necessary.
 8. Every new state must be legible in monochrome: pair each colour with a
    glyph or modifier from the tables above.
 9. Run `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings` and
-   `cargo test`; the showcase baseline must change only for the pages you
+   `cargo nextest run`; the showcase baseline must change only for the pages you
    intended to change.
 10. Treat the rendered capture as the evidence: the harness in `tools/`
     produces the frames to compare against, and a change is not done until

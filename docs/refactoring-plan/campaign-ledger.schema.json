@@ -45,12 +45,21 @@
     },
     "toolchain": {
       "type": "object",
+      "required": [
+        "taskfmt_revision",
+        "taskfmt_version",
+        "taskfmt_sha256",
+        "taskfmt_source",
+        "taskfmt_path"
+      ],
       "properties": {
         "architectural_main": { "type": "string" },
         "oracle_commit": { "type": "string" },
         "visual_baseline_tag_peeled": { "type": "string" },
         "taskfmt_revision": { "type": "string" },
-        "taskfmt_fingerprint": { "type": "string" },
+        "taskfmt_version": { "type": "string" },
+        "taskfmt_sha256": { "type": "string" },
+        "taskfmt_source": { "type": "string" },
         "taskfmt_path": { "type": "string" },
         "tuisnap_path": { "type": "string" }
       }
@@ -58,7 +67,25 @@
     "receipts": {
       "type": "object",
       "description": "task_id -> receipt SHA or path",
-      "additionalProperties": { "type": "string" }
+      "additionalProperties": {
+        "oneOf": [
+          { "type": "string" },
+          {
+            "type": "object",
+            "properties": {
+              "product": { "type": "string" },
+              "receipt_sha256": { "type": "string" },
+              "base": { "type": "string" },
+              "integration_commit": { "type": "string" },
+              "verify_exit": { "type": "integer" },
+              "verify_last_line": { "type": "string" },
+              "evidence": { "type": "string" },
+              "recorded_at": { "type": "string", "format": "date-time" }
+            },
+            "additionalProperties": true
+          }
+        ]
+      }
     },
     "tasks": {
       "type": "array",
@@ -80,6 +107,9 @@
           "notes": { "type": "string" }
         }
       }
+    },
+    "notes": {
+      "type": "string"
     }
   },
   "additionalProperties": false

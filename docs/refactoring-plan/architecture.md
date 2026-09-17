@@ -63,15 +63,14 @@ rtk cargo clippy --locked --workspace --all-targets --all-features -- -D warning
 rtk cargo build --locked --workspace --all-targets --all-features
 rtk cargo build --locked -p junie-tui --examples
 rtk cargo check --locked -p junie-tui --no-default-features
-rtk cargo test --locked --workspace --all-targets --all-features
-rtk cargo test --locked -p junie-tui --test render --test render_components
-rtk cargo test --locked --workspace --doc --all-features
+rtk cargo nextest run --locked --workspace --all-targets --all-features
+rtk cargo nextest run --locked -p junie-tui --test render --test render_components
 rtk cargo doc --locked --workspace --all-features --no-deps
 rtk cargo run --locked -p xtask -- app-inventory --json
 rtk cargo run --locked -p xtask -- boundary
 rtk cargo run --locked -p xtask -- bless-guard
 rtk cargo run --locked -p xtask -- doc-check
-rtk cargo test --locked -p junie-tui --test perf --test perf_collections --release -- --test-threads=1 --nocapture
+rtk cargo nextest run --locked -p junie-tui --test perf --test perf_collections --release
 rtk cargo run --locked -p xtask -- app-perf
 ```
 

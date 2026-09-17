@@ -1,5 +1,11 @@
 # Goal — restore the historical UI/TUI while finishing the refactor
 
+> **Current status (2026-09-18):** Product execution is not authorized. The
+> sole current readiness authority is
+> [`docs/refactoring-plan/execution-readiness-report.md`](docs/refactoring-plan/execution-readiness-report.md),
+> which is **NO-GO**. This file states product intent; it is not a campaign
+> ledger, taskfmt pin, or execution approval.
+
 This is the canonical continuation goal. Read this file before acting. Treat
 older execution prompts as historical unless they agree with this contract.
 
@@ -298,16 +304,16 @@ rtk cargo fmt --all -- --check
 rtk git diff --check
 rtk cargo check --workspace --all-features
 rtk cargo build --workspace --all-targets --all-features
-rtk cargo test --workspace --all-targets --all-features
+rtk cargo nextest run --workspace --all-targets --all-features
 rtk cargo clippy --workspace --all-targets --all-features -- -D warnings
 RUSTDOCFLAGS="-D warnings" rtk cargo doc --workspace --all-features --no-deps
-rtk cargo test --workspace --doc --all-features
+rtk cargo nextest run --workspace --doc --all-features
 rtk cargo run -p xtask -- doc-check
 rtk cargo run -p xtask -- boundary
-rtk cargo test -p junie-tui --test render --test render_components
-rtk cargo test -p showcase --test visual
-rtk cargo test -p tablepro --test visual
-rtk cargo test -p jackin-preview --test visual
+rtk cargo nextest run -p junie-tui --test render --test render_components
+rtk cargo nextest run -p showcase --test visual
+rtk cargo nextest run -p tablepro --test visual
+rtk cargo nextest run -p jackin-preview --test visual
 ```
 
 Run all three real binaries. Replay the full historical capture recipe and
@@ -344,24 +350,25 @@ Stop only when all are proven with fresh evidence:
    or clearly marked historical.
 8. Full build, test, clippy, doc, boundary, capture, comparator, and review
    gates pass.
-9. `REFACTORING_STATE.md` gets one current appended checkpoint; do not rewrite
-   historical entries. It lists remaining work as none only when the proof is
-   real.
+9. Record current execution evidence in
+   `docs/refactoring-plan/execution-readiness-report.md`; do not turn the
+   historical root state ledger into an active execution authority.
 10. The final report names every changed file, every approved visual change,
     every command/capture/review result, and any intentionally retained known
     defect.
 
 ## Documentation cleanup
 
-`REFACTORING_GOAL.md` and `COMPONENT_ARCHITECTURE.md` remain architecture
-reference documents. They do not override this parity-first execution order.
-`REFACTORING_STATE.md` is an evidence ledger, not proof by itself.
+`COMPONENT_ARCHITECTURE.md` and `DESIGN.md` remain active architecture/design
+references. They do not override this parity-first execution order.
+`REFACTORING_GOAL.md`, `GOAL2.md`, `REFACTORING_STATE.md`, `COORDINATION.md`,
+and `HANDOFF_SLICE4_WAVE1.md` are historical context, not active execution
+instructions or proof.
 
-The old `docs/REFACTORING_AUDIT_REPORT.md`,
-`docs/REFACTORING_EXECUTION_GOAL_PROMPT.md`, `CONTINUE_PROMPT.md`, and
-`RESUME_PROMPT.md` contain superseded migration assumptions. Mark them as
-historical or redirect them to this file. Do not leave contradictory active
-instructions such as “apps are not migrated” or obsolete model-routing rules.
+`docs/REFACTORING_AUDIT_REPORT.md` is historical and redirects to this file.
+The superseded prompt stubs `docs/REFACTORING_EXECUTION_GOAL_PROMPT.md`,
+`CONTINUE_PROMPT.md`, and `RESUME_PROMPT.md` are removed. Do not leave
+contradictory active instructions or obsolete model-routing rules.
 
 ## Final handoff
 

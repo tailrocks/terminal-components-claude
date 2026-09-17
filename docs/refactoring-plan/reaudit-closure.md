@@ -1,4 +1,7 @@
-# Independent closure, graph and execution-protocol reaudit
+# Historical independent closure, graph and execution-protocol reaudit
+
+> **Historical evidence only.** Superseded by the current
+> [`execution-readiness-report.md`](execution-readiness-report.md).
 
 Reviewed 2026-09-11. Planning only. This report covers TASK-065–069 and their complete delivered file inventory, global dependency/integration contracts and current standalone task-format semantics. It is not whole-goal acceptance and does not claim that future proof executables, sealed oracle bundles or implementation gates already exist.
 

@@ -1,4 +1,8 @@
-# Planning completion audit
+# Historical planning completion audit
+
+> **Superseded.** This acceptance record is historical evidence only and does
+> not authorize campaign execution. Use
+> [`execution-readiness-report.md`](execution-readiness-report.md).
 
 This register evaluates all twenty items in [docs/sources/PLANNING_GOAL.md §22](../sources/PLANNING_GOAL.md). It tracks planning readiness, not completion of the future refactoring. Investigations can be evidence-complete while verification qualification or final independent acceptance remains incomplete.
 

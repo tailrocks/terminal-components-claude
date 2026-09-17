@@ -1,4 +1,7 @@
-# DAG and executor-contract repair record
+# Historical DAG and executor-contract repair record
+
+> **Historical evidence only.** The current readiness verdict is in
+> [`execution-readiness-report.md`](execution-readiness-report.md).
 
 Planning-only repair, 2026-09-11. This records contract changes, not approval of unimplemented production tools.
 

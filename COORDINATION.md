@@ -1,5 +1,10 @@
 # Multi-lead coordination contract
 
+> **Historical archive.** The Lane A/B/C model and its ownership rules are
+> retired. Current work is single-integrator, read-only-review based, and
+> governed by `docs/refactoring-plan/campaign-policy.md` plus the current
+> readiness report. Do not use this file to coordinate execution.
+
 Three lead agents are working the same goal (`GOAL.md`, `REFACTORING_GOAL.md`,
 `CONTINUE_PROMPT.md`) against this one working tree. This file is the authoritative
 lane and file-ownership contract between the leads. It is the only cross-lead channel.

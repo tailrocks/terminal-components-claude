@@ -1,4 +1,7 @@
-# TASK-001 progress completion guide (OB-006 prep)
+# Historical TASK-001 progress completion guide (OB-006 prep)
+
+> **Superseded.** Retained for provenance only. Use latest taskfmt contracts
+> and the current readiness report.
 
 **Date:** 2026-09-15  
 **Branch (planning):** `prep-wave1-verify`  

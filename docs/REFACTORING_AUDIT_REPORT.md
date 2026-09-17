@@ -1,4 +1,9 @@
-# Current refactor audit — UI/TUI restoration required
+# Historical refactor audit — UI/TUI restoration required
+
+> Historical report from 2026-09-05. It is retained for provenance only. Do
+> not use its readiness, branch, tool-version, or execution claims as current
+> authority. Read [`GOAL.md`](../GOAL.md) and the
+> [`current execution-readiness report`](refactoring-plan/execution-readiness-report.md).
 
 Date: 2026-09-05
 Repository tip audited: `54a7aa1`

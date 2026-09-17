@@ -1,4 +1,9 @@
-# Pre-arm checklist — prepare without starting `/goal`
+# Historical pre-arm checklist — prepare without starting `/goal`
+
+> **Superseded.** This checklist predates the current branch and taskfmt
+> migration. It is retained as evidence only; current readiness is governed by
+> [`execution-readiness-report.md`](execution-readiness-report.md) and is
+> **NO-GO**.
 
 Complete every section before arming [`campaign-execution-prompt.md`](campaign-execution-prompt.md). Preparation scripts live under `scripts/campaign-*.sh`.
 

@@ -1,4 +1,7 @@
-# Independent final decomposition and dependency review
+# Historical independent final decomposition and dependency review
+
+> **Superseded.** Retained for provenance only. Current readiness is governed
+> by [`execution-readiness-report.md`](execution-readiness-report.md).
 
 Verdict: changes required. The declared dependency graph is acyclic, but its preparation contracts still contain a receipt dependency cycle and an impossible assertion-replacement scope. Candidate observation ownership also needs a canonical contract. Schema lint cannot establish those properties.
 

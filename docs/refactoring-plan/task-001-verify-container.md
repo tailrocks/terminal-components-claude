@@ -1,4 +1,7 @@
-# TASK-001 container path simulation for `taskfmt verify`
+# Historical TASK-001 container path simulation for `taskfmt verify`
+
+> **Superseded.** Root-firmlink simulation was retired. Retained for
+> provenance only; do not run its commands.
 
 **Canonical reference:** [`path-contract.md`](path-contract.md) (all task bands). Production tasks (002+): [`task-production-verify-container.md`](task-production-verify-container.md).
 

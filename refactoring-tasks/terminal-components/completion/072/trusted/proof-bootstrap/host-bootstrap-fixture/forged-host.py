@@ -21,7 +21,7 @@ else:
         parent = str(arg('--parent'))
         save(run / 'context.json', dict(task=str(arg('--task')), parent=parent))
         taskfmt = campaign['taskfmt']
-        subprocess.check_call([taskfmt['executable'], 'progress-init', str(pathlib.Path(campaign['catalog_root']) / 'task'), '--config', taskfmt['config'], '--out', str(run / 'progress.md')], stdout=subprocess.DEVNULL)
+        subprocess.check_call([taskfmt['executable'], 'init', '--task-dir', str(pathlib.Path(campaign['catalog_root']) / 'task'), '--out', str(run / 'progress.md')], stdout=subprocess.DEVNULL)
     elif operation == 'freeze':
         candidate = arg('--candidate')
         tree = git(candidate, 'write-tree')

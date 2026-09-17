@@ -1,4 +1,7 @@
-# Campaign arming readiness — prompt analysis (2026-09-15)
+# Historical campaign arming readiness — prompt analysis (2026-09-15)
+
+> **Superseded.** Do not arm `/goal` from this document. Current readiness is
+> **NO-GO**; use [`execution-readiness-report.md`](execution-readiness-report.md).
 
 **Purpose:** Prepare for arming `/goal` from [`campaign-execution-prompt.md`](campaign-execution-prompt.md) **without** starting production work.  
 **Catalog tip (last known):** `84742bf6` on `visual-baseline` (tag peeled `4a79c0a2` unmoved; branch **9 commits ahead**).  

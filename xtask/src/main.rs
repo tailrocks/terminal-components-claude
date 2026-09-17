@@ -2882,10 +2882,10 @@ fn doc_table_names(text: &str) -> BTreeSet<String> {
 
 /// Every `#[test]`-annotated function name in the workspace's sources.
 ///
-/// §21 item 28 words this as `cargo test --workspace -- --list`. This scans
+/// §21 item 28 words this as `cargo nextest list --workspace`. This scans
 /// the sources for the same thing — every `#[test] fn name` — because the
-/// check runs *inside* `cargo test --test architecture` and a nested
-/// `cargo test --workspace --test perf --test perf_collections --release -- --list` would rebuild the
+/// check runs *inside* `cargo nextest run --test architecture` and a nested
+/// `cargo nextest list --workspace --test perf --test perf_collections --release` would rebuild the
 /// world in a second profile on every architecture run. The two enumerate the
 /// same set; source scanning additionally sees `cfg`-gated tests, which for a
 /// one-directional "the name exists" check is the safer direction.

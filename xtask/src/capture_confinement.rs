@@ -93,7 +93,7 @@ fn tree_hash(root: &Path) -> Result<String, String> {
 }
 
 // Cargo vendor takes an exclusive cache lock. Never run it against the home
-// retained by an enclosing `cargo run`/`cargo test` process.
+// retained by an enclosing `cargo run`/`cargo nextest` process.
 fn snapshot_registry(source: &Path, destination: &Path) -> Result<(), String> {
     fn copy(source: &Path, destination: &Path) -> Result<(), String> {
         fs::create_dir(destination).map_err(|e| e.to_string())?;

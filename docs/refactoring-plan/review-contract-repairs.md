@@ -1,4 +1,7 @@
-# Independent review of contract repairs
+# Historical independent review of contract repairs
+
+> **Superseded.** Retained for provenance only. Current readiness is governed
+> by [`execution-readiness-report.md`](execution-readiness-report.md).
 
 Reviewed 2026-09-11. This review covers planning contracts only. It changes no terminal-components production source, task package, branch, receipt or verification fixture. The reviewer did not author the repairs.
 

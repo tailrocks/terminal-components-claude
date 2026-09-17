@@ -59,9 +59,6 @@ pub(super) struct TaskfmtPin {
     pub executable: PathBuf,
     pub sha256: String,
     pub revision: String,
-    pub fingerprint: String,
-    pub config: PathBuf,
-    pub config_sha256: String,
 }
 
 #[derive(Debug, Clone)]
@@ -119,7 +116,10 @@ pub(super) fn load_authority() -> Result<Authority, String> {
     })
 }
 
-pub(super) fn load_campaign(campaign_dir: &Path, authority: &Authority) -> Result<Campaign, String> {
+pub(super) fn load_campaign(
+    campaign_dir: &Path,
+    authority: &Authority,
+) -> Result<Campaign, String> {
     let campaign_path = campaign_dir.join("campaign.json");
     let bytes = fs::read(&campaign_path).map_err(|error| error.to_string())?;
     let digest = sha256_bytes(&bytes);
@@ -150,9 +150,6 @@ pub(super) fn load_campaign(campaign_dir: &Path, authority: &Authority) -> Resul
         executable: PathBuf::from(require_str(taskfmt_value, "executable")?),
         sha256: require_str(taskfmt_value, "sha256")?,
         revision: require_str(taskfmt_value, "revision")?,
-        fingerprint: require_str(taskfmt_value, "fingerprint")?,
-        config: PathBuf::from(require_str(taskfmt_value, "config")?),
-        config_sha256: require_str(taskfmt_value, "config_sha256")?,
     };
     let tasks_object = value
         .get("tasks")
@@ -309,16 +306,13 @@ fn require_schema(value: &Value, expected: &str) -> Result<(), String> {
 pub(super) fn load_preparation(run_dir: &Path) -> Result<(String, String), String> {
     let bytes = fs::read(run_dir.join("preparation.json")).map_err(|error| error.to_string())?;
     let value = parse_json_bytes_strict(&bytes)?;
-    Ok((
-        require_str(&value, "task")?,
-        require_str(&value, "parent")?,
-    ))
+    Ok((require_str(&value, "task")?, require_str(&value, "parent")?))
 }
 
 pub(super) fn write_preparation(run_dir: &Path, task: &str, parent: &str) -> Result<(), String> {
     fs::create_dir_all(run_dir).map_err(|error| error.to_string())?;
     let document = serde_json::json!({ "task": task, "parent": parent });
     let text = serde_json::to_string(&document).map_err(|error| error.to_string())?;
-    fs::write(run_dir.join("preparation.json"), format!("{text}\n")).map_err(|error| error.to_string())
+    fs::write(run_dir.join("preparation.json"), format!("{text}\n"))
+        .map_err(|error| error.to_string())
 }
-

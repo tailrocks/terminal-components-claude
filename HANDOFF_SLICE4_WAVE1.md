@@ -1,5 +1,9 @@
 # Goal — Finish Slice 4 wave 1 of the Rust TUI component-system refactor
 
+> **Historical archive.** This 2026-09-05 interrupted handoff is not an
+> execution instruction. Use `docs/refactoring-plan/execution-readiness-report.md`
+> for current state; all test commands and branch assumptions below are stale.
+
 ## Latest stop update — 2026-09-05
 
 The user stopped the continuation again. Resume from pushed `main` at

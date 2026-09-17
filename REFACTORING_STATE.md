@@ -1,5 +1,9 @@
 # Refactoring State
 
+> **Historical archive.** This ledger records interrupted 2026-09-04/05
+> sessions. It is evidence only, not current state or a resume prompt. Read
+> `docs/refactoring-plan/execution-readiness-report.md` for current readiness.
+
 **RESUMED 2026-09-04 on Opus 5 routing (see Assignments). Ground truth verified at HEAD 0c87fb0: `cargo build -p junie-tui --all-targets` OK; 190 lib tests pass; legacy root package 247 tests green; two expected failures from the interruption — `crates/tui/tests/conformance.rs` does not compile (components WIP) and `architecture::doc_check_resolves_every_reference` fails (architecture amendments half-applied). Both are owned by running builders.**
 
 ## Status

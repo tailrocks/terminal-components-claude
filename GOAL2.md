@@ -1,3 +1,7 @@
+> **Historical archive.** This completed consolidation goal targeted an obsolete
+> PR and branch. It is retained for provenance only. Current status and next
+> steps live in `docs/refactoring-plan/execution-readiness-report.md`.
+
 Consolidate every existing worktree and its meaningful changes into the open PR branch:
 
 https://github.com/donbeave/terminal-components-claude/pull/1
@@ -373,4 +377,3 @@ Do not stop because the task is large.
 Do not leave TODOs describing work that can be completed now.
 
 Use subagents aggressively and continue autonomously until the repository satisfies the completion criteria.
-

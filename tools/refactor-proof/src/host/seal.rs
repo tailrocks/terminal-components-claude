@@ -38,7 +38,11 @@ fn seal_run(
     product: &str,
 ) -> Result<(), &'static str> {
     let task_spec = campaign.tasks.get(task_id).ok_or("integrity")?;
-    if !task_spec.seal_products.iter().any(|allowed| allowed == product) {
+    if !task_spec
+        .seal_products
+        .iter()
+        .any(|allowed| allowed == product)
+    {
         return Err("authority");
     }
     Err("integrity")
@@ -69,9 +73,6 @@ mod tests {
                 executable: Default::default(),
                 sha256: String::new(),
                 revision: String::new(),
-                fingerprint: String::new(),
-                config: Default::default(),
-                config_sha256: String::new(),
             },
             tasks: [(
                 "task".into(),

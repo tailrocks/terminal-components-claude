@@ -5,16 +5,18 @@
   "armed": false,
   "catalog": {
     "commit": "REPLACE_AT_INIT",
-    "branch": "prep-wave1-verify",
+    "branch": "refactor/holla-parity",
     "recorded_at": "REPLACE_AT_INIT"
   },
   "toolchain": {
     "architectural_main": "7b27732a8c3c131760ec3438f641cb3c11343a42",
     "oracle_commit": "02f5294bfdbf38004cc49130d0aff1d01f31434c",
     "visual_baseline_tag_peeled": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
-    "taskfmt_revision": "52d9f1eb7721f409bc47beb9fced7997b5c13ede",
-    "taskfmt_fingerprint": "52c960db74b3b288ce93211c82e5703a338ba5ddfd40c92d6054ef93cfcd94e4",
-    "taskfmt_path": "/tmp/taskfmt-install/bin/taskfmt",
+    "taskfmt_revision": "afd3b575dbcc7044620bec4b9493a74eca3e5ef2",
+    "taskfmt_version": "0.2.0",
+    "taskfmt_sha256": "REPLACE_AT_INIT",
+    "taskfmt_source": "/Users/donbeave/Projects/taskfmt/task-format",
+    "taskfmt_path": "/tmp/taskfmt-latest-install/bin/taskfmt",
     "tuisnap_path": ""
   },
   "receipts": {},

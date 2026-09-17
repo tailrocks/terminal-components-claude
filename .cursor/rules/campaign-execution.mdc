@@ -9,7 +9,7 @@ Read before any refactoring task work:
 
 - `refactoring-tasks/terminal-components/CAMPAIGN_AGENTS.md` — **supersedes AGENTS.md steps 6–7** for campaign tasks
 - `docs/refactoring-plan/campaign-policy.md` — single branch `refactor/holla-parity`
-- `docs/refactoring-plan/campaign-pre-arm-checklist.md` — do not arm `/goal` until complete
+- `docs/refactoring-plan/execution-readiness-report.md` — current readiness; it is **NO-GO**
 
 ## Hard rules
 
@@ -30,4 +30,6 @@ Read before any refactoring task work:
 
 Preparation scripts: `scripts/campaign-init.sh`, `campaign-preflight.sh`, `campaign-install-taskfmt.sh`.
 
-Do not start the full `/goal` campaign until operator completes `campaign-pre-arm-checklist.md` P0–P3 and explicitly authorizes P4.
+Do not start the `/goal` campaign while the current readiness report is
+**NO-GO**. A future arm requires a fresh operator authorization recorded
+against the current report and ledger.

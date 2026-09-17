@@ -5,7 +5,7 @@ use std::path::Path;
 
 use serde_json::json;
 
-use super::authority::{load_authority, load_campaign, load_preparation, Campaign};
+use super::authority::{Campaign, load_authority, load_campaign, load_preparation};
 use super::git::GitCommand;
 use crate::json_util::{canonical_json_line, parse_json_bytes_strict, require_str, sha256_bytes};
 
@@ -29,7 +29,11 @@ struct VerdictRecord {
     task_id: String,
 }
 
-pub(super) fn run_integrate(run_dir: &Path, integration_ref: &str, expected_parent: &str) -> IntegrateOutcome {
+pub(super) fn run_integrate(
+    run_dir: &Path,
+    integration_ref: &str,
+    expected_parent: &str,
+) -> IntegrateOutcome {
     let authority = match load_authority() {
         Ok(value) => value,
         Err(error) => return IntegrateOutcome::Failed(error),
@@ -93,10 +97,7 @@ fn integrate_run(
         return Err("parent");
     }
     let task_spec = campaign.tasks.get(task_id).ok_or("integrity")?;
-    let predecessor = task_spec
-        .dependencies
-        .first()
-        .ok_or("integrity")?;
+    let predecessor = task_spec.dependencies.first().ok_or("integrity")?;
     let message = format!(
         "Integrate {task_id}\n\nSigned-off-by: tc-proof-host <host@example.invalid>\nCo-authored-by: Codex <codex@openai.com>"
     );
@@ -152,7 +153,7 @@ fn load_verdict(run_dir: &Path) -> Result<VerdictRecord, &'static str> {
 mod tests {
     use super::*;
     use crate::host::authority::{
-        write_preparation, Campaign, DependencySpec, TaskSpec, TaskfmtPin, TrustedOverlay,
+        Campaign, DependencySpec, TaskSpec, TaskfmtPin, TrustedOverlay, write_preparation,
     };
     use crate::json_util::canonical_json_line;
     use serde_json::json;
@@ -177,9 +178,6 @@ mod tests {
                 executable: Default::default(),
                 sha256: String::new(),
                 revision: String::new(),
-                fingerprint: String::new(),
-                config: Default::default(),
-                config_sha256: String::new(),
             },
             tasks: [(
                 "task".into(),
@@ -248,7 +246,9 @@ mod tests {
         write_preparation(run_dir, "task", parent).expect("preparation");
         fs::write(
             run_dir.join("freeze.json"),
-            canonical_json_line(&json!({"tree": "0".repeat(40), "parent": parent, "scope_base": parent})),
+            canonical_json_line(
+                &json!({"tree": "0".repeat(40), "parent": parent, "scope_base": parent}),
+            ),
         )
         .expect("freeze");
         fs::write(
@@ -276,7 +276,14 @@ mod tests {
         let run_dir = temp.path().join("run");
         write_run_artifacts(&run_dir, &parent);
         assert!(matches!(
-            integrate_run(&campaign, &run_dir, "task", &parent, "refs/heads/main", &parent),
+            integrate_run(
+                &campaign,
+                &run_dir,
+                "task",
+                &parent,
+                "refs/heads/main",
+                &parent
+            ),
             Err("authority")
         ));
     }
@@ -365,7 +372,14 @@ mod tests {
         let run_dir = temp.path().join("run");
         write_run_artifacts(&run_dir, &parent);
         assert!(matches!(
-            integrate_run(&campaign, &run_dir, "task", &parent, integration_ref, &parent),
+            integrate_run(
+                &campaign,
+                &run_dir,
+                "task",
+                &parent,
+                integration_ref,
+                &parent
+            ),
             Err("parent")
         ));
     }

@@ -1,20 +1,20 @@
 //! `verify` runs observer-driven workers, taskfmt gate, and writes `run/verdict.json`.
 
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
-use super::authority::{load_authority, load_campaign, Campaign, TaskSpec};
-use super::context::{load_bound_context_index, ContextIndex};
+use super::authority::{Campaign, TaskSpec, load_authority, load_campaign};
+use super::context::{ContextIndex, load_bound_context_index};
 use super::context_check::spawn_context_check;
 use crate::json_util::{is_safe_relative_path, parse_json_bytes_strict, require_str, sha256_bytes};
 use crate::observer::{
-    decode_file_payload, ObserverClient, ObserverObservation, ObserverStep, ObserverUnavailable,
+    ObserverClient, ObserverObservation, ObserverStep, ObserverUnavailable, decode_file_payload,
 };
 
-pub enum VerifyOutcome {
+pub(super) enum VerifyOutcome {
     Passed,
     Rejected(&'static str),
     Failed(String),
@@ -61,7 +61,7 @@ struct ArtifactComparison {
     sha256: String,
 }
 
-pub fn run_verify(run_dir: &Path) -> VerifyOutcome {
+pub(super) fn run_verify(run_dir: &Path) -> VerifyOutcome {
     let freeze = match load_freeze(run_dir) {
         Ok(value) => value,
         Err(category) => return VerifyOutcome::Rejected(category),
@@ -110,7 +110,8 @@ pub fn run_verify(run_dir: &Path) -> VerifyOutcome {
         Ok(value) => value,
         Err(category) => return VerifyOutcome::Rejected(category),
     };
-    if let Err(category) = materialize_observations(run_dir, &observations, &workers, &comparisons) {
+    if let Err(category) = materialize_observations(run_dir, &observations, &workers, &comparisons)
+    {
         return VerifyOutcome::Rejected(category);
     }
     if let Err(category) = run_context_checks(run_dir, &index) {
@@ -319,10 +320,7 @@ fn build_verdict_checks(
 ) -> Result<Vec<VerdictCheck>, &'static str> {
     let mut checks = Vec::with_capacity(index.members.len());
     for member in &index.members {
-        let encoded = taskfmt
-            .files
-            .get(&member.output_id)
-            .ok_or("integrity")?;
+        let encoded = taskfmt.files.get(&member.output_id).ok_or("integrity")?;
         let log_relative = format!("logs/{}", member.output_id);
         if !is_safe_relative_path(&log_relative) {
             return Err("integrity");
@@ -360,8 +358,8 @@ fn write_verdict(run_dir: &Path, verdict: &VerdictRecord) -> Result<(), String> 
 mod tests {
     use super::*;
     use crate::host::context::{ContextIndex, ContextIndexSchema, ContextMember};
-    use base64::Engine as _;
     use crate::observer::ObserverStep;
+    use base64::Engine as _;
     use std::collections::BTreeMap;
 
     #[test]

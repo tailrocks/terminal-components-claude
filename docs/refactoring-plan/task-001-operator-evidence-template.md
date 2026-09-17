@@ -1,4 +1,7 @@
-# TASK-001 operator bootstrap evidence template (IW-03)
+# Historical TASK-001 operator bootstrap evidence template (IW-03)
+
+> **Superseded.** Its old taskfmt fields and commands are retained only as
+> historical evidence. Do not use this template to authorize execution.
 
 **Schema:** `tc-proof-operator-bootstrap-checklist/v1`  
 **Repair ID:** IW-03  

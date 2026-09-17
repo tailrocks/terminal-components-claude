@@ -1,4 +1,7 @@
-# TASK-001 CI and container requirements
+# Historical TASK-001 CI and container requirements
+
+> **Superseded.** Retained for provenance only. Its old taskfmt/container
+> commands are not current execution inputs.
 
 **Date:** 2026-09-15  
 **Task:** TASK-001 — Implement independently qualified comparator and host core  

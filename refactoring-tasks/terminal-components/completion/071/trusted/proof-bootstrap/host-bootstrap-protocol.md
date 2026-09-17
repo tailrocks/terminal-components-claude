@@ -6,7 +6,7 @@ The synthetic fixture is deliberately tiny: `src/payload.txt` changes from the e
 
 ## Invocation and prerequisites
 
-Python 3.10 or later and Git are required. Host qualification additionally requires macOS, `/usr/bin/sandbox-exec`, and the direct `/Library/Developer/CommandLineTools/usr/bin/git` executable; unsupported isolation fails closed. The observer uses a fixed PATH containing the selected Python directory, direct Command Line Tools directory, `/usr/bin`, and `/bin`. It disables global/system Git configuration and prompts; user shims and the `xcrun` Git launcher do not select the verifier. The current independently inspected taskfmt executable must report revision `52d9f1eb7721f409bc47beb9fced7997b5c13ede` and fingerprint `52c960db74b3b288ce93211c82e5703a338ba5ddfd40c92d6054ef93cfcd94e4`. Supply that source checkout because standalone taskfmt currently also requires an experiment configuration. No taskfmt run, dispatch, monitor, or promote command is used.
+Python 3.10 or later and Git are required. Host qualification additionally requires macOS, `/usr/bin/sandbox-exec`, and the direct `/Library/Developer/CommandLineTools/usr/bin/git` executable; unsupported isolation fails closed. The observer uses a fixed PATH containing the selected Python directory, direct Command Line Tools directory, `/usr/bin`, and `/bin`. It disables global/system Git configuration and prompts; user shims and the `xcrun` Git launcher do not select the verifier. The current independently inspected taskfmt executable must report `taskfmt 0.2.0 (git afd3b575dbcc7044620bec4b9493a74eca3e5ef2)` and match its source checkout at that revision. Supply that source checkout; latest standalone taskfmt has no experiment configuration or fingerprint command. No taskfmt run, dispatch, monitor, or promote command is used.
 
 ```sh
 python3 docs/refactoring-plan/evidence/host-bootstrap-driver.py --self-test
@@ -77,7 +77,7 @@ Receipts use `tc-proof-host-receipt/v1`: `producer`, `product`, `source_commit`,
 - `repository` and `integration_ref` identify the only permitted local integration target.
 - `catalog_root` and `catalog_sha256` bind the external canonical package directory.
 - `receipt_root`, `ledger_root`, and `harness_receipt_sha256` identify protected authority state.
-- `taskfmt` binds executable path/hash, source revision, fingerprint, and experiment config location/hash. The host validates its executable and environment independently before running it.
+- `taskfmt` binds executable path/hash, source revision, and exact `--version` output. The host validates its executable and environment independently before running it.
 - `tasks` maps a concrete external task identity to its relative `package`, `package_sha256`, required dependency tuples/digests, allowed `seal_products`, exact `required_checks`, candidate `workers`, and `artifact_comparisons`.
 
 The fixture package keeps canonical `task/v5`, `verify/v2`, and `task-meta/v1` unchanged. These host fields do not become taskfmt fields. `writable_paths` and forbidden paths come from immutable `verify.toml`, never candidate Git configuration. Every positive host fixture has an approved `.proof/overlay.txt` addition: `trusted_overlay` binds its exact path/hash, original `parent`, and resulting `scope_base`. That scope base differs from the integration parent. The overlay remains in the frozen, tested, and integrated tree; stripping it before integration fails exact-tree equality. Modifying it fails the forbidden-path gate.

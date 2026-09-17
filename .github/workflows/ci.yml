@@ -6,7 +6,7 @@ name: CI
 #
 #   fmt / clippy / build / test / doc-test / doc
 #       §22 §7 "the gate commands" and Appendix A Slice 8 (the unscoped goal §26 set).
-#   cargo test --workspace --doc
+#   cargo nextest run --workspace --doc
 #       §16.5 CI gate `readme_compiles` — crates/tui/src/lib.rs carries
 #       `#![doc = include_str!("../README.md")]`, so the doc-test run compile-checks
 #       every README fence (§22.3).
@@ -16,10 +16,10 @@ name: CI
 #       which also hardens the doc-test step.
 #   cargo build -p junie-tui --examples
 #       §16.5 `architecture::examples_are_external_consumers` / `all_examples_compile`.
-#   cargo test -p junie-tui --test render --test render_components
+#   cargo nextest run -p junie-tui --test render --test render_components
 #       §16.3 + §28 P2. During Slices 3–4 the matrix lives in TWO targets; a gate
 #       naming only `--test render` silently runs half of it. Both are named here.
-#   cargo test --workspace -- --list | grep -c '^render::components::'
+#   cargo nextest list --workspace | grep -c 'render::components'
 #       §25.12 / §28 P2: the documented test path is reachable at all (non-zero).
 #   cargo run -p xtask -- boundary
 #       §16.5 and §22 §6.2 — the forbidden-pattern table, the dependency-graph check,
@@ -86,6 +86,7 @@ jobs:
         with:
           toolchain: ${{ matrix.toolchain }}
           components: rustfmt, clippy
+      - uses: taiki-e/install-action@nextest
       - name: Install nightly rustdoc toolchain
         run: rustup toolchain install nightly --profile minimal --no-self-update
       - uses: Swatinem/rust-cache@v2
@@ -126,23 +127,23 @@ jobs:
       # owns those snapshots; MSRV still runs every behavioral test.
       - name: Test (§26, MSRV)
         if: matrix.toolchain == '1.88.0'
-        run: cargo test --locked --workspace --all-targets --all-features -- --skip architecture::compile_fail_cases_hold
+        run: cargo nextest run --locked --workspace --all-targets --all-features -- --skip architecture::compile_fail_cases_hold
 
       - name: Test (§26, primary)
         if: matrix.toolchain == 'stable'
-        run: cargo test --locked --workspace --all-targets --all-features
+        run: cargo nextest run --locked --workspace --all-targets --all-features
 
       # §16.3 + §28 P2: BOTH render targets, or the gate runs half the matrix.
       - name: Render matrix, both targets (§16.3)
-        run: cargo test --locked -p junie-tui --test render --test render_components
+        run: cargo nextest run --locked -p junie-tui --test render --test render_components
 
       # §25.12 / §28 P2: the documented `render::components::*` path is reachable.
       - name: Render matrix is reachable under its documented path (§25.12)
-        run: cargo test --locked --workspace --all-targets --all-features -- --list | grep -c '^render::components::'
+        run: cargo nextest list --locked --workspace --all-targets --all-features | grep -c 'render::components'
 
       # §16.5 readme_compiles + "all examples compile".
       - name: Doc tests (§16.5)
-        run: cargo test --locked --workspace --doc --all-features
+        run: cargo nextest run --locked --workspace --doc --all-features
 
       - name: Docs (§16.5, RUSTDOCFLAGS=-D warnings from the job env)
         run: cargo doc --locked --workspace --all-features --no-deps

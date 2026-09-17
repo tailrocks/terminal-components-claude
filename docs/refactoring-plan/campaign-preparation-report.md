@@ -1,4 +1,8 @@
-# Campaign preparation report
+# Historical campaign preparation report
+
+> **Superseded.** This report is retained for provenance only. Its branch,
+> receipt, and taskfmt claims are not current inputs. Use
+> [`execution-readiness-report.md`](execution-readiness-report.md).
 
 **Date:** 2026-09-15 (re-verified after subagent audit + command benchmarks)  
 **Branch:** `visual-baseline` @ `84742bf6` (verify at arm time with `git rev-parse HEAD`)  

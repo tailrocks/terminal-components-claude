@@ -1,4 +1,7 @@
-# TASK-001 bootstrap plan
+# Historical TASK-001 bootstrap plan
+
+> **Superseded.** Retained for provenance only. Do not replay its old taskfmt
+> or branch commands. Use the current readiness report and contracts.
 
 **Date:** 2026-09-15  
 **Task:** TASK-001 — Implement independently qualified comparator and host core  

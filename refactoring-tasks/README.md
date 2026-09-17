@@ -1,8 +1,8 @@
 # Refactoring execution catalog
 
-This catalog implements the planning deliverable in [docs/sources/REFACTORING_COMPLETION_PLAN.md](../docs/sources/REFACTORING_COMPLETION_PLAN.md). It is not authorization to execute the terminal-components refactor during the planning goal. Check the top-level plan's readiness status before dispatch.
+This catalog implements the planning deliverable described by the current refactoring plan. It is not authorization to execute the terminal-components refactor. Check [`docs/refactoring-plan/execution-readiness-report.md`](../docs/refactoring-plan/execution-readiness-report.md) before dispatch.
 
-The project is `terminal-components`; its group is `completion`. Canonical packages use task-format revision `52d9f1eb7721f409bc47beb9fced7997b5c13ede`: `task/v5`, `verify/v2`, and `task-meta/v1`. Dependencies live in each task.toml, not Markdown ordering.
+The project is `terminal-components`; its group is `completion`. Canonical packages use taskfmt `0.2.0` at revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`: `task/v5`, `verify/v2`, and `task-meta/v1`. Dependencies live in each task.toml, not Markdown ordering.
 
 Read the [proof contract](../docs/refactoring-plan/proof-contract.md), [task index](../docs/refactoring-plan/task-index.tsv), and [bidirectional traceability](../docs/refactoring-plan/traceability.tsv). The host freezes the catalog and trusted inputs outside candidate authority before future execution. Package status remains `pending`; an accepted host receipt and integrated ancestry, not a mutable status field, establish a usable predecessor.
 

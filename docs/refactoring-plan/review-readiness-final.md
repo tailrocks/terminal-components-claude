@@ -1,4 +1,8 @@
-# Independent fresh witness — §22.17 planning readiness (2026-09-15)
+# Historical independent witness — §22.17 planning readiness (2026-09-15)
+
+> **Superseded.** This witness predates the current readiness audit and is
+> retained for provenance only. It does not authorize execution. Read
+> [`execution-readiness-report.md`](execution-readiness-report.md).
 
 **Catalog commit:** `3213fce285268925520be20b14aa8a1c4b136586` (`visual-baseline`)  
 **Witness type:** Fresh independent adversarial review on **post-repair frozen catalog bytes** (includes components-B ADJ-22, coordinator integration @ tip, campaign prep docs).  

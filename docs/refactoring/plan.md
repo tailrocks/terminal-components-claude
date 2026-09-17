@@ -18,7 +18,7 @@ The re-audit is organized as seven task partitions (001–008/070–072, 009–0
 | Architectural main | `7b27732a8c3c131760ec3438f641cb3c11343a42` |
 | Planning checkout visual-baseline | `2e2401393c47360741ebd321679de08982dca50a` |
 | Main/visual-baseline merge base | `cc14dd6beae526884aabdf897e309be837b4f504` |
-| task-format main + installed CLI | `52d9f1eb7721f409bc47beb9fced7997b5c13ede` |
+| taskfmt source main + installed CLI | `afd3b575dbcc7044620bec4b9493a74eca3e5ef2` (`0.2.0`) |
 | tui-snap reviewed PR #1 head (merged) | `883d03f19d890bbbf27468798db78b04e85297ac` (tree `dadbaa70facc317cfabb52f0374c1f3cdceb46a1`) |
 | tui-snap campaign pin | `0a2e490802b7b048cd96349c6af860f8a3a05c3d` |
 
@@ -55,7 +55,7 @@ Parallelization: independent oracle app capture/inventory after shared contracts
 
 **Location:** `refactoring-tasks/terminal-components/completion/` — 73 sealed task-format packages (`001/`–`073/`) plus the group `README.md`. Project `terminal-components`, group `completion`. Companion text sometimes says "74 packages"; the directory holds 73 task packages + 1 README = 74 entries, and `task-index.tsv` has 73 data rows — flagged, not an omission.
 
-**Format:** canonical task-format revision `52d9f1e`; schemas `task/v5` (contract README), `verify/v2` (`verify.toml`), `task-meta/v1` (`task.toml`). Dependencies live in each `task.toml`, never in Markdown ordering. All packages are `status = "pending"`; an accepted host receipt and integrated ancestry — not a mutable status field — establish a usable predecessor.
+**Format:** canonical taskfmt revision `afd3b575` (`0.2.0`); schemas `task/v5` (contract README), `verify/v2` (`verify.toml`), `task-meta/v1` (`task.toml`). Dependencies live in each `task.toml`, never in Markdown ordering. All packages are `status = "pending"`; an accepted host receipt and integrated ancestry — not a mutable status field — establish a usable predecessor.
 
 **Package anatomy** (verified on `001/`):
 - `README.md` — the contract: goal, context, preconditions, in/out of scope, MUST/MUST-NOT/non-regression requirements, typed acceptance blocks (constrained Gherkin per non-gate `AC-*`, `Type: gate` for gates), requirement→acceptance mapping, fixed decisions, checklist.

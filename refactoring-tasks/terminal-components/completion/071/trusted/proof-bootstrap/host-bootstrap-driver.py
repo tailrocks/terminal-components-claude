@@ -18,8 +18,7 @@ import unittest
 
 HERE = Path(__file__).resolve().parent
 FIXTURE = HERE / "host-bootstrap-fixture"
-TASKFMT_REVISION = "52d9f1eb7721f409bc47beb9fced7997b5c13ede"
-TASKFMT_FINGERPRINT = "52c960db74b3b288ce93211c82e5703a338ba5ddfd40c92d6054ef93cfcd94e4"
+TASKFMT_REVISION = "afd3b575dbcc7044620bec4b9493a74eca3e5ef2"
 REF = "refs/heads/refactor/holla-parity"
 OBSERVER_SPEC = importlib.util.spec_from_file_location("host_bootstrap_observer", HERE / "host-bootstrap-observer.py")
 OBSERVER_MODULE = importlib.util.module_from_spec(OBSERVER_SPEC)
@@ -95,7 +94,7 @@ def complete_progress(fresh: str) -> str:
     for leaf in leaves:
         for status in ["STARTED", "DONE"]:
             events.append(f"- {len(events) + 1} | {status} | {leaf}")
-    require("- 1 | STARTED | 1.1" in fresh, "unsupported progress-init grammar")
+    require("- 1 | STARTED | 1.1" in fresh, "unsupported taskfmt init grammar")
     return (fresh.replace("state: IN_PROGRESS", "state: DONE", 1)
             .replace("current: 1.1", "current: NONE", 1)
             .replace("latest_event: 1\n", "latest_event: 10\n", 1)
@@ -109,11 +108,9 @@ def taskfmt_pass(result: subprocess.CompletedProcess) -> bool:
 def qualify_taskfmt(binary: Path, source: Path) -> dict:
     """Real standalone gate on a canonical package; does not simulate host isolation."""
     require(TASKFMT_REVISION in run([binary, "--version"]).stdout, "wrong taskfmt revision")
-    require(run([binary, "fingerprint"]).stdout.strip() == TASKFMT_FINGERPRINT, "wrong taskfmt fingerprint")
     require(git(source, "rev-parse", "HEAD") == TASKFMT_REVISION, "taskfmt source pin changed")
     trusted = snapshot(FIXTURE)
-    config = source / "experiment.toml"
-    lint = run([binary, "lint", FIXTURE, "--config", config])
+    lint = run([binary, "lint", FIXTURE])
     require(lint.returncode == 0, "canonical fixture lint failed: " + lint.stdout + lint.stderr)
     results = {}
     for case in ["positive", "out_of_scope", "failed_check", "incomplete_progress", "done_nonzero", "missing_overlay"]:
@@ -122,8 +119,8 @@ def qualify_taskfmt(binary: Path, source: Path) -> dict:
             root = temporary / "work"
             parent = repository(root)
             progress = temporary / "progress.md"
-            initialized = run([binary, "progress-init", FIXTURE, "--config", config, "--out", progress])
-            require(initialized.returncode == 0, "progress-init failed")
+            initialized = run([binary, "init", "--task-dir", FIXTURE, "--out", progress])
+            require(initialized.returncode == 0, "taskfmt init failed")
             if case != "incomplete_progress":
                 progress.write_text(complete_progress(progress.read_text()))
             (root / "src/payload.txt").write_bytes(b"qualified\n")
@@ -139,7 +136,7 @@ def qualify_taskfmt(binary: Path, source: Path) -> dict:
             elif case == "missing_overlay":
                 (root / ".proof/check.py").unlink()
                 parent = commit(root, "Require externally supplied trusted overlay")
-            checked = run([binary, "verify", "--config", config, "--root", root,
+            checked = run([binary, "verify", "--root", root,
                            "--task-dir", FIXTURE, "--base", parent, "--progress", progress,
                            "--log-dir", temporary / "logs"])
             passed = taskfmt_pass(checked)
@@ -282,9 +279,7 @@ class HostFixture:
             "catalog_root": str(self.campaign / "catalog"), "catalog_sha256": tree_digest(self.campaign / "catalog"),
             "receipt_root": str(self.campaign / "receipts"), "ledger_root": str(self.campaign / "ledger"),
             "harness_receipt_sha256": digest(self.harness_receipt),
-            "taskfmt": {"executable": str(taskfmt), "sha256": digest(taskfmt), "revision": TASKFMT_REVISION,
-                        "fingerprint": TASKFMT_FINGERPRINT, "config": str(taskfmt_source / "experiment.toml"),
-                        "config_sha256": digest(taskfmt_source / "experiment.toml")},
+            "taskfmt": {"executable": str(taskfmt), "sha256": digest(taskfmt), "revision": TASKFMT_REVISION},
             "tasks": {self.task: {
                 "package": "task", "package_sha256": tree_digest(self.package),
                 "dependencies": [{"producer": "qualification/prerequisite/900", "product": "prerequisite",
@@ -326,7 +321,7 @@ class HostFixture:
         self.observer.immutable = [self.candidate, self.package, self.config, self.authority,
                                    self.campaign / "expected", self.campaign / "receipts", self.campaign / "other-run",
                                    self.campaign / "secret", self.campaign / "ledger/sentinel"]
-        self.observer.host_readable = [taskfmt, taskfmt_source / "experiment.toml", executable]
+        self.observer.host_readable = [taskfmt, executable]
 
     def independent_tree(self) -> str:
         private = self.observer.root / "expected-tree"
@@ -448,7 +443,7 @@ class HostFixture:
         context = strict_json((self.run_dir / "preparation.json").read_text())
         require(context.get("task") == self.task and context.get("parent") == self.parent, "context binding incorrect")
         progress = self.run_dir / "progress.md"
-        require(progress.is_file(), "prepare omitted progress-init result")
+        require(progress.is_file(), "prepare omitted taskfmt init result")
         if case != "incomplete_progress":
             progress.write_text(complete_progress(progress.read_text()))
         if case == "premature_seal":
@@ -496,7 +491,6 @@ class HostFixture:
         require(git(self.observer.root / "expected-tree", "ls-tree", expected_tree, "--", "src/obsolete.txt") == "", "independent tree restored tracked deletion")
         self.observer.arm(self.candidate, progress, self.package,
                           Path(strict_json(self.config.read_text())["taskfmt"]["executable"]),
-                          Path(strict_json(self.config.read_text())["taskfmt"]["config"]),
                           self.scope_base, expected_tree, [self.campaign, self.authority, self.install, self.repo, self.observer.root / "sentinel"])
         self.call("freeze", "--run", self.run_dir, "--candidate", self.candidate)
         frozen = strict_json((self.run_dir / "freeze.json").read_text())
@@ -682,14 +676,14 @@ def qualify_observer(taskfmt: Path, source: Path) -> dict:
             # not permitted to define the expected tree or probe bytes.
             fixture.run_dir.mkdir()
             progress = fixture.run_dir / "progress.md"
-            initialized = run([taskfmt, "progress-init", fixture.package, "--config", source / "experiment.toml", "--out", progress])
-            require(initialized.returncode == 0, "observer fixture progress-init failed")
+            initialized = run([taskfmt, "init", "--task-dir", fixture.package, "--out", progress])
+            require(initialized.returncode == 0, "observer fixture taskfmt init failed")
             progress.write_text(complete_progress(progress.read_text()))
             tree = fixture.independent_tree()
             write_json(fixture.run_dir / "context.json", {"task": fixture.task, "parent": fixture.parent})
             write_json(fixture.run_dir / "freeze.json", {"tree": tree, "parent": fixture.parent, "scope_base": fixture.scope_base})
             write_json(fixture.run_dir / "fake.json", {"candidate": str(fixture.candidate)})
-            fixture.observer.arm(fixture.candidate, progress, fixture.package, taskfmt, source / "experiment.toml",
+            fixture.observer.arm(fixture.candidate, progress, fixture.package, taskfmt,
                                  fixture.scope_base, tree, [fixture.campaign, fixture.authority, fixture.install, fixture.repo, fixture.observer.root / "sentinel"])
             fixture.call("verify", "--run", fixture.run_dir)
             try:

@@ -1,4 +1,7 @@
-# Contingent execution decomposition
+# Historical contingent execution decomposition
+
+> **Historical evidence only.** This proposal predates the current taskfmt
+> and campaign authority. Do not use it as an execution prompt.
 
 This proposal is retained as decomposition history. The reconciled 73-task catalog now exists; [task-index.tsv](task-index.tsv), canonical task packages and [proof-contract.md](proof-contract.md) supersede this document wherever they differ. In particular, TASK-001 now owns only comparator/host core; TASK-070 owns source/scenario runner operations; TASK-071 owns accounting; TASK-072 owns architecture verification; and TASK-073 establishes attributed conformance before component repairs. Independent qualification for those producers is required. Dynamic-disabled capture cancellation is already implemented and requires preservation/overlap proof, as ADJ-01 records. Do not execute this provisional label graph or revive its earlier umbrella scopes.
 

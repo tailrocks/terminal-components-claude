@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
-# Install pinned taskfmt for campaign gates (pre-arm).
+# Install the exact taskfmt source used by campaign gates.
 set -euo pipefail
 
-TASKFMT_REV="${TASKFMT_REV:-52d9f1eb7721f409bc47beb9fced7997b5c13ede}"
-TASKFMT_REPO="${TASKFMT_REPO:-https://github.com/donbeave/task-format.git}"
-TASKFMT_SOURCE="${TC_TASKFMT_SOURCE:-/tmp/taskfmt-qualification}"
-TASKFMT_ROOT="${TC_TASKFMT_INSTALL:-/tmp/taskfmt-install}"
-EXPECTED_FP="${EXPECTED_TASKFMT_FINGERPRINT:-52c960db74b3b288ce93211c82e5703a338ba5ddfd40c92d6054ef93cfcd94e4}"
+TASKFMT_REV="${TASKFMT_REV:-afd3b575dbcc7044620bec4b9493a74eca3e5ef2}"
+TASKFMT_SOURCE="${TC_TASKFMT_SOURCE:-/Users/donbeave/Projects/taskfmt/task-format}"
+TASKFMT_ROOT="${TC_TASKFMT_INSTALL:-/tmp/taskfmt-latest-install}"
 
 die() {
   echo "campaign-install-taskfmt: $*" >&2
@@ -14,38 +12,42 @@ die() {
 }
 
 main() {
-  if [[ ! -d "$TASKFMT_SOURCE/.git" ]]; then
-    git clone "$TASKFMT_REPO" "$TASKFMT_SOURCE"
-  fi
-  git -C "$TASKFMT_SOURCE" fetch origin --tags
-  git -C "$TASKFMT_SOURCE" checkout "$TASKFMT_REV"
+  [[ -d "$TASKFMT_SOURCE/.git" ]] || die "taskfmt source is not a git checkout: $TASKFMT_SOURCE"
+  [[ -z "$(git -C "$TASKFMT_SOURCE" status --porcelain)" ]] \
+    || die "taskfmt source is dirty: $TASKFMT_SOURCE"
+  local source_rev
+  source_rev="$(git -C "$TASKFMT_SOURCE" rev-parse HEAD)"
+  [[ "$source_rev" == "$TASKFMT_REV" ]] \
+    || die "taskfmt source is $source_rev; expected latest $TASKFMT_REV"
 
   cargo install --locked --root "$TASKFMT_ROOT" \
-    --path "$TASKFMT_SOURCE/harness" --bin taskfmt
+    --path "$TASKFMT_SOURCE/crates/taskfmt" --bin taskfmt
+  cargo install --locked --root "$TASKFMT_ROOT" \
+    --path "$TASKFMT_SOURCE/crates/taskfmt-host" --bin taskfmt-host
 
   local bin="$TASKFMT_ROOT/bin/taskfmt"
+  local host_bin="$TASKFMT_ROOT/bin/taskfmt-host"
   [[ -x "$bin" ]] || die "install failed: $bin"
+  [[ -x "$host_bin" ]] || die "install failed: $host_bin"
 
-  echo "taskfmt: $($bin --version 2>&1 || true)"
-  local fp
-  fp="$("$bin" fingerprint)"
-  echo "fingerprint: $fp"
-  if [[ "$fp" != "$EXPECTED_FP" ]]; then
-    echo "WARNING: fingerprint mismatch (expected $EXPECTED_FP)" >&2
-    echo "Use a clean checkout at $TASKFMT_REV" >&2
-  fi
-
-  mkdir -p /tmp/tc-proof-bootstrap 2>/dev/null || true
-  cp "$TASKFMT_SOURCE/experiment.toml" /tmp/tc-proof-bootstrap/experiment.toml 2>/dev/null || true
+  local version
+  version="$($bin --version)"
+  [[ "$version" == *"git $TASKFMT_REV"* ]] \
+    || die "taskfmt identity mismatch: $version"
+  echo "taskfmt: $version"
+  echo "taskfmt sha256: $(shasum -a 256 "$bin" | awk '{print $1}')"
+  echo "taskfmt-host: $($host_bin --version)"
 
   cat <<EOF
 
 Installed:
   TC_TASKFMT=$bin
+  TC_TASKFMT_HOST=$host_bin
   TC_TASKFMT_SOURCE=$TASKFMT_SOURCE
 
 Export for session:
   export TC_TASKFMT=$bin
+  export TC_TASKFMT_HOST=$host_bin
   export TC_TASKFMT_SOURCE=$TASKFMT_SOURCE
 
 EOF

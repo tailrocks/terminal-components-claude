@@ -1,4 +1,8 @@
-# READY FOR REFACTORING EXECUTION
+# Historical READY FOR REFACTORING EXECUTION issuance
+
+> **Superseded.** This issuance is historical evidence only. The current
+> campaign state is **NO-GO**; do not arm or execute from this document. Read
+> [`execution-readiness-report.md`](execution-readiness-report.md).
 
 **Issued:** 2026-09-16 (Phase 0 catalog repairs follow on `refactor/holla-parity`)  
 **Branch:** `refactor/holla-parity`  

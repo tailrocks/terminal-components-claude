@@ -1,4 +1,9 @@
-# Campaign execution prompt
+# Historical campaign execution prompt
+
+> **Superseded.** Never arm `/goal` from this prompt. It records an earlier
+> catalog/toolchain state. Current execution authority is
+> [`execution-readiness-report.md`](execution-readiness-report.md), currently
+> **NO-GO**.
 
 Stored for **campaign preparation** on **2026-09-15**; re-verified **2026-09-15** on branch `visual-baseline` @ `84742bf6` (tag `visual-baseline` peeled commit remains frozen at `4a79c0a2`). This file freezes the canonical `/goal` prompt for executing the terminal-components refactoring campaign against the pinned catalog. Do not edit planning contracts or task packages during campaign execution without explicit replanning.
 

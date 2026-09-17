@@ -1,4 +1,7 @@
-# TASK-001 Phase 4 operator runbook (IW-03)
+# Historical TASK-001 Phase 4 operator runbook (IW-03)
+
+> **Superseded.** Retained for provenance only. Do not replay its old
+> container or taskfmt commands.
 
 **Audience:** Alexey (operator)  
 **Repair ID:** IW-03  

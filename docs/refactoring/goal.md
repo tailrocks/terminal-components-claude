@@ -47,7 +47,7 @@ Provenance: `docs/sources/PLANNING_GOAL.md` §2–3, §6; `docs/sources/REFACTOR
 
 ### Task specification
 
-The current canonical task-format — revision `52d9f1eb7721f409bc47beb9fced7997b5c13ede`, schemas `task/v5`, `verify/v2`, `task-meta/v1` — with no invented custom schema (`docs/sources/PLANNING_GOAL.md` §9; `refactoring-tasks/README.md`; `docs/refactoring-plan/task-format.md`).
+The current canonical taskfmt is version `0.2.0` at source revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, with schemas `task/v5`, `verify/v2`, and `task-meta/v1`; no invented custom schema is allowed (`refactoring-tasks/README.md`; `docs/refactoring-plan/task-format.md`).
 
 ### Verification foundation
 

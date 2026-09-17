@@ -1,4 +1,9 @@
-# Refactoring completion planning progress
+# Historical refactoring completion planning progress
+
+> Historical planning ledger. Superseded on 2026-09-18 by
+> [`execution-readiness-report.md`](execution-readiness-report.md), the sole
+> current readiness authority. Do not treat the green claims or old taskfmt
+> commands below as current execution evidence.
 
 ## Current status — completion reopened
 

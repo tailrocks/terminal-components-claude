@@ -1,4 +1,8 @@
-# Pre-execution preparation plan
+# Historical pre-execution preparation plan
+
+> **Superseded.** This plan is retained for provenance only. Do not replay its
+> commands or readiness claims. Use
+> [`execution-readiness-report.md`](execution-readiness-report.md).
 
 **Date:** 2026-09-15  
 **Catalog tip:** `c3814f27` (`visual-baseline`)  

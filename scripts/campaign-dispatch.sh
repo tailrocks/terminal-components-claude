@@ -25,7 +25,7 @@ Environment:
   PARENT                 Expected parent SHA for integrate
   TASK                   Task path e.g. terminal-components/completion/001
 
-Pre-arm: run `status` only until campaign-pre-arm-checklist P2 is complete.
+Pre-arm: run `status` only while the current readiness report is NO-GO.
 EOF
 }
 
@@ -39,20 +39,15 @@ die() {
 }
 
 host_bin() {
-  local root wt synced debug
+  local root wt synced
   root="$(repo_root)"
   wt="${TC_CAMPAIGN_WORKTREE:-$root/.worktrees/campaign}"
   synced="$wt/tools/refactor-proof/bin/tc-proof-host"
-  debug="$wt/target/debug/tc-proof-host"
   # verify.toml gate path: /work/tools/refactor-proof/bin/tc-proof-host (synced Mach-O).
   if [[ -x "$synced" ]] && file "$synced" 2>/dev/null | grep -q 'Mach-O'; then
     echo "$synced"
-  elif [[ -x "$debug" ]]; then
-    echo "$debug"
-  elif [[ -x "$synced" ]]; then
-    echo "$synced"
   else
-    die "tc-proof-host not found (cargo build -p refactor-proof && sync-binaries.sh in worktree)"
+    die "synced Mach-O tc-proof-host not found at $synced"
   fi
 }
 
@@ -85,15 +80,15 @@ else:
 PY
 }
 
-require_not_armed_for_mutating() {
+require_armed_for_mutating() {
   local root="$1"
-  python3 - "$root/.campaign/ledger.json" <<'PY' || die "cannot read ledger"
+  [[ -f "$root/.campaign/ledger.json" ]] || die "missing $root/.campaign/ledger.json"
+  python3 - "$root/.campaign/ledger.json" <<'PY' || die "campaign ledger is not armed; status is the only allowed command"
 import json, sys
 with open(sys.argv[1]) as f:
     armed = json.load(f).get("armed", False)
-if armed:
-    sys.exit(0)
-print("pre-arm mode: host dispatch allowed for TASK-001 bootstrap only")
+if not armed:
+    sys.exit(1)
 PY
 }
 
@@ -111,6 +106,7 @@ main() {
       cmd_status "$root"
       ;;
     prepare|freeze|verify|integrate)
+      require_armed_for_mutating "$root"
       local host
       host="$(host_bin)"
       local run="${RUN:-}"

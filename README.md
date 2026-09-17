@@ -99,7 +99,7 @@ Verify:
 ```sh
 cargo fmt --check
 cargo clippy --all-targets -- -D warnings
-cargo test
+cargo nextest run
 ```
 
 ## Keyboard and mouse
@@ -308,6 +308,7 @@ apps/showcase       pages/ (one per component + two composed screens), app.rs sh
 apps/tablepro       db.rs (demo catalog + row generator), sql.rs (tokens, statements, safety tiers, runner, EXPLAIN),
                     model.rs, tabs.rs, workbench.rs, connections.rs, app.rs, tests
 apps/jackin-preview deterministic preview library, simulation, screens, and tests
+apps/holla       deterministic context-adaptive action launcher and tests
 tools/        headless capture harness (tmux → ANSI → PNG) used for visual review
 ```
 
@@ -318,9 +319,9 @@ the public facade.
 
 ## Library boundary
 
-- `crates/tui/src/` is the reusable library (`junie_tui`); `apps/showcase`,
-  `apps/tablepro`, and `apps/jackin-preview` consume it only through its public
-  API.
+- `crates/tui/src/` is the reusable library (`junie_tui`); all four applications
+  — Showcase, Holla, Jackin Preview, and TablePro — consume it only through its
+  public API.
 - `crates/tui/examples/` are external-style consumers of the same facade, so
   application code and examples exercise one supported API boundary.
 - Application packages own their domain models and screen composition; the
@@ -348,4 +349,4 @@ environment, and tool versions.
 The showcase also carries a visual baseline (`apps/showcase/tests/baselines/showcase.txt`):
 a digest of every page at 120×40 and 80×24, excluding the navigation sidebar.
 The showcase visual test fails when a page changes; regenerate deliberately
-with `UPDATE_BASELINE=1 cargo test -p showcase --test visual showcase_visual_baseline`.
+with `UPDATE_BASELINE=1 cargo nextest run -p showcase --test visual showcase_visual_baseline`.

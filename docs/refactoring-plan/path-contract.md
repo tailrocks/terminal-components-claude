@@ -2,7 +2,7 @@
 
 **Authority:** This document is the single canonical reference for filesystem paths used by `taskfmt verify` and `tc-proof-host`. Task packages (`verify.toml`) use **container paths** literally; taskfmt does **not** rewrite subprocess argv.
 
-Related: [`task-001-verify-container.md`](task-001-verify-container.md), [`task-production-verify-container.md`](task-production-verify-container.md), [`proof-contract.md`](proof-contract.md).
+Related: [`task-production-verify-container.md`](task-production-verify-container.md), [`proof-contract.md`](proof-contract.md).
 
 ---
 
@@ -11,7 +11,7 @@ Related: [`task-001-verify-container.md`](task-001-verify-container.md), [`task-
 | Namespace | Examples | Who owns it |
 | --- | --- | --- |
 | **Container verification** | `/task`, `/work`, `/proof/bootstrap`, `/proof/bin`, `/run/tc-proof` | Host must expose at filesystem root before checks run |
-| **Host operator** | `$REPO`, `.worktrees/campaign`, `/tmp/taskfmt-install`, `$TC_RUN` | Operator maps into container namespace |
+| **Host operator** | `$REPO`, `.worktrees/campaign`, `/tmp/taskfmt-latest-install`, `$TC_RUN` | Operator maps into container namespace |
 | **Campaign store** | `campaign/` or `.campaign/host/` (bootstrap, catalog, runs, ledger) | Host only; never candidate-writable |
 
 ---
@@ -37,13 +37,15 @@ Required at filesystem root when CHK checks execute:
 /task/                                    → read-only task package (completion/NNN)
 /work/                                    → candidate git checkout (taskfmt CWD)
 /proof/bootstrap/bin/taskfmt              → pinned standalone taskfmt
-/proof/bootstrap/task-format/              → source @ 52d9f1eb…
-/proof/bootstrap/experiment.toml            → frozen config bytes
+/proof/bootstrap/task-format/              → source @ afd3b575…
 /work/tools/refactor-proof/bin/tc-proof     → synced Mach-O (after sync-binaries.sh)
 /work/tools/refactor-proof/bin/tc-proof-host → synced Mach-O (after sync-binaries.sh)
 ```
 
-Provision with [`scripts/task-001-verify-sandbox.sh`](../../scripts/task-001-verify-sandbox.sh) (`prepare` + `mount`).
+Do not provision root firmlinks with a repository script. The old sandbox
+staging scripts were retired because they required interactive root changes
+and could not qualify the macOS host path. The current host adapter must map
+these namespaces in an isolated per-run directory before invoking taskfmt.
 
 ### Harness binary roles
 
@@ -87,7 +89,7 @@ Host `tc-proof-host prepare` materializes contexts; `freeze` binds the candidate
 | Campaign execution | `.worktrees/campaign` | `refactor/holla-parity` |
 | Planning catalog (read-only) | repo checkout | `prep-wave1-verify` (archive after SHA recorded) |
 
-Historical prep-wave1 docs may reference `.worktrees/main` @ `task-001-bootstrap`; after campaign init, **all production work uses `.worktrees/campaign`**.
+Historical prep-wave1 docs may reference `.worktrees/main` @ `task-001-bootstrap`; current production work, if later authorized, uses `.worktrees/campaign`.
 
 ---
 
@@ -97,7 +99,7 @@ After container mounts exist:
 
 ```sh
 cd /work
-taskfmt --config /proof/bootstrap/experiment.toml verify \
+taskfmt verify --root /work --task-dir /task \
   --base "$SCOPE_BASE" \
   --progress "$PROGRESS" \
   --log-dir "$LOG_DIR"
