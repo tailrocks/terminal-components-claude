@@ -9,12 +9,14 @@ It is a preparation audit, not execution authorization.
 
 `refactor/holla-parity` remains campaign/proof scaffolding, not completed
 refactor work. The pre-cleanup audit snapshot was `a34a1cff`; the cleanup
-parent was `c9eef7bd`. The reconciled tree is the current branch HEAD after
-this report's changes and does not claim product parity.
+parent was `c9eef7bd`. The current branch includes the reconciliation and
+campaign-policy documentation update and does not claim product parity.
 
 - Audit snapshot `main..a34a1cff`: 27 commits, zero apps/ or crates/ product-source changes.
-- The reconciled branch is `main` plus 35 commits; `apps/` and `crates/`
-  remain identical to `main`. The reconciliation adds only docs, task
+- The reconciled branch is `main` plus 38 commits; production implementation
+  behavior remains unchanged. `apps/` and `crates/` differ from `main` only in
+  two Rust performance-test documentation command examples migrated from
+  `cargo test` to `cargo nextest`. The reconciliation adds only docs, task
   contracts, scripts, and verification tooling on top of the 34-commit
   pre-reconciliation tree.
 - All 73 task manifests remain pending.
@@ -51,14 +53,14 @@ Validation:
 | Ref | Commit |
 |---|---|
 | main | 7b27732a |
-| refactor/holla-parity | final HEAD containing this report (parent `c9eef7bd`; `a34a1cff` was the audit snapshot) |
+| refactor/holla-parity | current campaign tree (parent `c9eef7bd`; `a34a1cff` was the audit snapshot) |
 | visual-baseline branch | 4a79c0a2 |
 | visual-baseline tag peel | 4a79c0a2 |
 
 Relationships:
 
 - merge-base(main, refactor) = 7b27732a; the cleanup parent was main + 34
-  commits, and the reconciled final HEAD is main + 35 commits.
+  commits, and the current campaign tree is main + 38 commits.
 - merge-base(visual-baseline, refactor) = cc14dd6b.
 - Baseline has 77 commits absent from refactor.
 - Refactor has 809 commits absent from baseline.
@@ -261,6 +263,10 @@ afd3b575dbcc7044620bec4b9493a74eca3e5ef2
 - External per-run temp/build directories with sufficient disk.
 - Isolated worktrees.
 - No Docker or container runtime.
+
+The active GitHub CI and performance workflows run on `ubuntu-latest`. Those
+Linux gates are supplementary and cannot substitute for the required native
+macOS proof, PTY execution, or frozen visual comparison.
 
 All current task packages now contain host-local `WORKTREE` paths or exported
 external `$RUN_DIR` proof paths. The validator and preflight reject legacy
