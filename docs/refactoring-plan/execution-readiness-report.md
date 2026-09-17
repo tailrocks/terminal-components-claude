@@ -20,7 +20,7 @@ this report's changes and does not claim product parity.
 - All 73 task manifests remain pending.
 - Shared architecture is substantial, but consumers still contain compatibility painters, duplicate state, and historical renderers.
 - Frozen visual oracle is absent from this branch and its active gate; it
-  remains available at the immutable `visual-baseline` tag.
+  remains available at the policy-protected `visual-baseline` tag.
 - Planning validator passes: all 211 frozen bootstrap asset bindings are present and hash-valid.
 - After the reconciliation commit, the only intentionally preserved dirty files are
   pre-existing proof artifacts:
@@ -61,7 +61,7 @@ Relationships:
   commits, and the reconciled final HEAD will be main + 35 commits.
 - merge-base(visual-baseline, refactor) = cc14dd6b.
 - Baseline has 77 commits absent from refactor.
-- Refactor has 808 commits absent from baseline.
+- Refactor has 809 commits absent from baseline.
 - Baseline and refactor were never reconciled.
 
 Missing from the current branch:
@@ -97,8 +97,9 @@ Status means current-candidate evidence, not ledger claims.
 | 065–069 | Pending | Closure gates have no completed upstream evidence. |
 | 073 | Blocked | Depends on 008/072; generated registry authority is not qualified. |
 
-No task is proven complete. No task is proven obsolete or superseded. The
-task definitions remain pending. All 73 `verify.toml` files now use either
+No task is proven complete. “Retired/non-qualifying” describes removed
+host-execution paths, not accepted task completion or dependency supersession.
+The task definitions remain pending. All 73 `verify.toml` files now use either
 repository-relative `WORKTREE` paths or exported external `$RUN_DIR` proof
 paths; the validator rejects any reintroduction of legacy container namespaces
 before dispatch.
@@ -267,9 +268,8 @@ external `$RUN_DIR` proof paths. The validator and preflight reject legacy
 firmlinks to preserve the old contract. Proof checks use exported
 `$RUN_DIR/contexts/CHK-NNN.json`; their
 contexts, result paths, observer transport, and context index still need a
-trusted verifier-owned materializer. The native comparator must be built by
-the host-local helper and bound to its commit/path/hash receipt. Do not create
-mounts or firmlinks to preserve the old contract.
+  trusted verifier-owned materializer. The native comparator must be built by
+  the host-local helper and bound to its commit/path/hash receipt.
 
 ## I. Subagent execution architecture
 
