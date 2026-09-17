@@ -3,10 +3,13 @@ task_id = "TASK-001"
 writable_paths = ["tools/refactor-proof"]
 forbidden_paths = ["refactoring-tasks","docs/refactoring-plan","shots", "snapshots","baseline"]
 
+# TASK-001 is retained as a historical contract, but its host lifecycle was
+# retired. This gate intentionally fails closed so no verifier run can create
+# an accepted qualification receipt for the removed product.
 [[checks]]
 id = "CHK-001"
 phase = "precondition"
-shell = 'python3 refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/host-bootstrap-driver.py --taskfmt "$TC_TASKFMT" --taskfmt-source "$TC_TASKFMT_SOURCE"'
+argv = ["python3", "-c", "raise SystemExit(78)"]
 expected = { exit = 0 }
 requirements = ["R-004"]
 acceptance = ["AC-004"]
@@ -22,7 +25,7 @@ acceptance = ["AC-001"]
 [[checks]]
 id = "CHK-005"
 phase = "regression"
-shell = 'python3 refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/host-bootstrap-driver.py --host tools/refactor-proof/bin/tc-proof-host --taskfmt "$TC_TASKFMT" --taskfmt-source "$TC_TASKFMT_SOURCE"'
+argv = ["python3", "-c", "raise SystemExit(78)"]
 expected = { exit = 0 }
 requirements = ["R-003"]
 acceptance = ["AC-003"]
@@ -30,7 +33,7 @@ acceptance = ["AC-003"]
 [[checks]]
 id = "CHK-006"
 phase = "lint"
-shell = 'python3 refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/host-bootstrap-driver.py --host tools/refactor-proof/bin/tc-proof-host --taskfmt "$TC_TASKFMT" --taskfmt-source "$TC_TASKFMT_SOURCE"'
+argv = ["python3", "-c", "raise SystemExit(78)"]
 expected = { exit = 0 }
 requirements = ["R-002"]
 acceptance = ["AC-002"]
@@ -38,7 +41,7 @@ acceptance = ["AC-002"]
 [[checks]]
 id = "CHK-007"
 phase = "gate"
-shell = 'python3 refactoring-tasks/terminal-components/completion/001/trusted/proof-bootstrap/host-bootstrap-driver.py --host tools/refactor-proof/bin/tc-proof-host --taskfmt "$TC_TASKFMT" --taskfmt-source "$TC_TASKFMT_SOURCE"'
+argv = ["python3", "-c", "raise SystemExit(78)"]
 expected = { exit = 0 }
 requirements = ["R-005"]
 acceptance = ["AC-005"]

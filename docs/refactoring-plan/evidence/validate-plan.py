@@ -26,12 +26,12 @@ VERIFY_CHECK_PHASES = frozenset({"precondition", "focused", "regression", "lint"
 VERIFY_CHECK_REQUIRED = frozenset({"id", "phase", "expected", "requirements", "acceptance"})
 CHECK_ID_PATTERN = re.compile(r"^CHK-\d{3}$")
 TC_PROOF_BINARY = "tools/refactor-proof/bin/tc-proof"
-TC_PROOF_HOST_BINARY = "tools/refactor-proof/bin/tc-proof-host"
 CONTEXT_ROOT = ".campaign/evidence/contexts"
 TRUSTED_ROOT = "refactoring-tasks/terminal-components/completion"
 LEGACY_NAMESPACE = re.compile(r"(?<![A-Za-z0-9_.-])/(?:task|work|proof|run)(?:/|$)")
 FORBIDDEN_RUNTIME = re.compile(
     r"\b(?:docker|podman|mount|firmlink)\b|"
+    r"\btc-proof-host\b|"
     r"\btaskfmt\s+(?:init|status|host|runtime|run|lifecycle)\b"
 )
 
@@ -84,7 +84,7 @@ class Audit:
             if token.startswith(TRUSTED_ROOT + "/"):
                 self.require(token.startswith(trusted_prefix), f"Cross-task trusted input: {task_id}:{check_id}:{token}")
                 self.require((self.root / token).is_file(), f"Missing trusted input: {task_id}:{check_id}:{token}")
-            elif token in {TC_PROOF_BINARY, TC_PROOF_HOST_BINARY}:
+            elif token == TC_PROOF_BINARY:
                 self.require((self.root / token).is_file(), f"Missing proof executable: {task_id}:{check_id}:{token}")
 
         expected_context = f"{CONTEXT_ROOT}/{check_id}.json"

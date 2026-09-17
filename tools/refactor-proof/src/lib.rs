@@ -3,7 +3,6 @@
 #![allow(missing_docs)]
 
 pub mod compare;
-pub mod host;
 pub mod json_util;
 pub mod observer;
 

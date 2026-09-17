@@ -1,6 +1,6 @@
 [package]
 name = "refactor-proof"
-description = "TASK-001 qualified-harness comparator and host core"
+description = "TASK-001 qualified-harness comparator"
 publish = false
 version.workspace = true
 edition.workspace = true
@@ -11,10 +11,6 @@ repository.workspace = true
 [[bin]]
 name = "tc-proof"
 path = "src/bin/tc_proof.rs"
-
-[[bin]]
-name = "tc-proof-host"
-path = "src/bin/tc_proof_host.rs"
 
 [dependencies]
 base64 = "0.22"
