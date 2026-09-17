@@ -22,7 +22,7 @@ this report's changes and does not claim product parity.
 - Frozen visual oracle is absent from this branch and its active gate; it
   remains available at the policy-protected `visual-baseline` tag.
 - Planning validator passes: all 211 frozen bootstrap asset bindings are present and hash-valid.
-- After the reconciliation commit, the only intentionally preserved dirty files are
+- After these reconciliation commits, the only intentionally preserved dirty files are
   pre-existing proof artifacts:
   - tools/refactor-proof/architecture/source.py
   - tools/refactor-proof/bin/tc-proof
@@ -58,7 +58,7 @@ Validation:
 Relationships:
 
 - merge-base(main, refactor) = 7b27732a; the cleanup parent was main + 34
-  commits, and the reconciled final HEAD will be main + 35 commits.
+  commits, and the reconciled final HEAD is main + 35 commits.
 - merge-base(visual-baseline, refactor) = cc14dd6b.
 - Baseline has 77 commits absent from refactor.
 - Refactor has 809 commits absent from baseline.
@@ -470,8 +470,8 @@ Satisfied:
 
 Not satisfied:
 
-- Frozen visual authority is unavailable on the current branch; the immutable
-  tag remains the source to import read-only.
+- Frozen visual authority is unavailable on the current branch; the
+  policy-protected tag remains the source to import read-only.
 - Provider-enforced visual-baseline immutability is absent; local tag/release policy is the guard.
 - Subagent verification evidence is absent.
 - Campaign ledger is disarmed and has no accepted current task evidence.
