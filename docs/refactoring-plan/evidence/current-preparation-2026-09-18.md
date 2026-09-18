@@ -89,6 +89,17 @@ Raw baseline logs/config and copied native-verifier logs are retained under
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-18/`.
 That external directory is evidence only, not an accepted campaign receipt.
 
+Durable raw evidence index:
+
+| File | SHA-256 |
+| --- | --- |
+| `baseline/campaign-baseline-nextest.toml` | `bdbe0a8958a696e4b5108ae190a0c07089f2d7aea91c64a20d52e3346e7092da` |
+| `baseline/campaign-baseline-full.log` | `906ff8f73b73998d89f8332ffed02bc2b0de3e6cd9a96189a163a02c9ff8c0ca` |
+| `baseline/campaign-baseline-rerun-holla.log` | `efc13afd0293c6eb6f4b1b337485a295ea4eafb90f5879746eb266d90c8c3db6` |
+| `baseline/campaign-baseline-rerun-tablepro.log` | `0e61be040af647e857c33c3340561d23fbfd02c568b1cc241f97446013f024a8` |
+| `native-verifier/logs/final-verifier-summary.log` | `56b5fd6f220af49c399621792824cc41201cc3a63e8c0ed4b3d75e2d459e4fad` |
+| `native-verifier/logs/cargo-nextest-refactor-proof.log` | `96ec3d26cac06a07dd410ea6a0b13fe5d0479e1d03d4b620ec7d4c8f6c9c7854` |
+
 ## Remaining blockers
 
 - The ledger remains disarmed and has no current accepted verifier receipt;
