@@ -1916,12 +1916,27 @@ def _validate_grid_policy(body: dict[str, Any], sources: dict[str, str]) -> None
         raise Reject("ARCHITECTURE")
 
 
+def _forbid_unsafe_inner_attribute(entry: dict[str, Any]) -> bool:
+    attrs = entry.get("file_attributes", "")
+    return (
+        "AttrStyle::Inner" in attrs
+        and re.search(r"ident:\s*Ident\s*\(\s*forbid\s*\)", attrs) is not None
+        and "unsafe_code" in attrs
+    )
+
+
 def _validate_unsafe_policy(body: dict[str, Any], sources: dict[str, str]) -> None:
     path = "crates/tui/src/lib.rs"
-    text = sources.get(path, "")
-    if "unsafe\nimpl Send" in text:
+    entry = next((file for file in body.get("files", []) if file.get("path") == path), None)
+    if entry is None:
         raise Reject("ARCHITECTURE")
-    if "#![forbid(unsafe_code)]" not in text and "// #![forbid(unsafe_code)]" in text:
+    text = entry.get("source") or sources.get(path, "")
+    facts = entry.get("facts") or []
+    if any(fact.get("kind") in ("unsafe_block", "unsafe_impl") for fact in facts):
+        raise Reject("ARCHITECTURE")
+    if re.search(r"unsafe\s+impl\s+Send", text):
+        raise Reject("ARCHITECTURE")
+    if not _forbid_unsafe_inner_attribute(entry):
         raise Reject("ARCHITECTURE")
 
 
