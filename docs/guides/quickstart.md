@@ -12,9 +12,10 @@ routing and layer z-order.
 > ## Current package names
 >
 > The component library in this workspace is **`junie-tui`** (Rust path
-> `junie_tui`, source `crates/tui`). The three applications are separate
-> packages under `apps/` and consume its public facade. The old root package
-> and legacy source tree have been removed.
+> `junie_tui`, source `crates/tui`). The four applications — Showcase,
+> TablePro, Jackin Preview, and Holla — are separate packages under `apps/`
+> and consume its public facade. The old root package and legacy source tree
+> have been removed.
 >
 > The snippets and examples in this guide target the current component library,
 > so their imports use `junie_tui`.

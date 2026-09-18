@@ -1,9 +1,15 @@
 
 
+# Historical main/Holla integration task
+
 > Historical planning evidence. Not current execution authority. Do not replay
 > its commands, branch/pin/model/merge/container instructions. Reconcile this
 > record against the current readiness report and current contracts.
-Finish the architectural refactoring of https://github.com/donbeave/terminal-components-claude, repair the broken main-branch implementation, restore the complete accepted TUI experience from holla, migrate the Holla application to the refactored public API, and integrate the verified result into main.
+The historical task requested finishing the architectural refactoring of https://github.com/donbeave/terminal-components-claude, repairing the broken main-branch implementation, restoring the accepted Holla TUI experience, migrating Holla to the public API, and integrating the result into main. It is retained as provenance, not an executable task.
+
+The sections below preserve the original task's requirements and evidence
+for traceability. They are not a current runbook; current execution authority
+is `AGENTS.md`, the readiness report, and the current task contracts.
 
 This is an implementation-and-verification goal, not an analysis-only assignment. Continue through investigation, plan, implementation, application migration, independent review, corrections, and verified integration. A buildable library with broken applications is failure. Matching screenshots with broken interactions is failure. Restoring the old monolith instead of completing the architecture is also failure.
 
@@ -23,7 +29,7 @@ The required result is the conjunction of two contracts:
 
 Where an architectural detail cannot represent the product contract, fix the abstraction with an evidence-backed decision; do not simplify the product to fit an inadequate API. Breaking the experimental Rust API is permitted where necessary. Unexplained user-visible changes are not.
 
-Read GOAL.md, REFACTORING_GOAL.md, COMPONENT_ARCHITECTURE.md, REFACTORING_STATE.md, COORDINATION.md, both branches' DESIGN.md, relevant audits/reviews, and holla's recovery reports. Explicitly supersede the holla-first/tree-replacement instructions in HOLLA_REFACTOR_RECOVERY_PLAN.md and holla-project/notes/main-vs-holla-refactor-analysis.md. Their findings are investigation leads, not authority to abandon main. Historical three-application scope and developer-machine absolute paths are also outdated.
+The old reading list below names historical inputs, including retired `REFACTORING_GOAL.md`, `REFACTORING_STATE.md`, coordination files, and recovery prompts. Current readers must use `AGENTS.md`, the current readiness report, and current task contracts.
 
 This prompt supersedes historical Claude/Fable/Opus-specific execution restrictions. Use actual available Codex capabilities and configured models. Preserve independent architectural judgment and review without blocking on unavailable historical model names or inventing agents/tools.
 

@@ -2,8 +2,9 @@
 
 > Historical report from 2026-09-05. It is retained for provenance only. Do
 > not use its readiness, branch, tool-version, or execution claims as current
-> authority. Read [`GOAL.md`](../GOAL.md) and the
-> [`current execution-readiness report`](refactoring-plan/execution-readiness-report.md).
+> authority. Current execution is governed by [`AGENTS.md`](../AGENTS.md) and the
+> [`current execution-readiness report`](refactoring-plan/execution-readiness-report.md);
+> `GOAL.md` is product/architecture intent only.
 
 Date: 2026-09-05
 Repository tip audited: `54a7aa1`
@@ -11,20 +12,26 @@ Historical source: `d5e7075` (`cc14dd6` UI/source state)
 
 ## Result
 
-The architecture migration is substantially present. Historical UI/TUI parity
-is not present or proven. The current work must restore the old experience
-through the new architecture; it must not continue redesigning the products.
+The architecture migration was substantially present at the audited snapshot.
+Historical UI/TUI parity was not present or proven. The work described by this
+report was required to restore the old experience through the new architecture;
+it was not authorization to continue redesigning the products.
 
-## Proven current state
+## State recorded at audited tip 54a7aa1
 
-- Workspace packages exist in `Cargo.toml` for `crates/tui`,
+- At the audited tip, workspace packages existed in `Cargo.toml` for `crates/tui`,
   `crates/tui-testing`, `apps/showcase`, `apps/tablepro`,
   `apps/jackin-preview`, and `xtask`.
-- All three applications use the `junie-tui` public facade under `apps/*`.
+- The three historical applications used the `junie-tui` public facade under
+  `apps/*`.
 - Shared runtime, focus, hit testing, layers, themes, components, testing,
   security hardening, and package boundaries are implemented.
-- Current component/conformance, package, and focused application evidence is
+- Component/conformance, package, and focused application evidence was
   substantial. It does not prove historical product rendering.
+
+The later campaign tree adds `apps/holla` and its Holla-specific evidence. That
+later state is not evidence from the `54a7aa1` snapshot and is governed by the
+current readiness report.
 
 ## Historical contract
 
@@ -34,7 +41,9 @@ four sizes, color modes, themes, menus, dialogs, forms, grids, editors,
 scrolling, mouse, resize, and route journeys. The archive contains exact ANSI,
 plain-text, cursor, HTML, and PNG evidence.
 
-The current `shots/capture-matrix.tsv` has 96 cells and stale provenance. The
+At the 2026-09-05 snapshot, the then-current `shots/capture-matrix.tsv` had 96
+cells and stale provenance. The current matrix has 112 cells (including Holla)
+and its provenance is separately qualified. The
 current package baselines are post-migration self-baselines. Current visual
 tests do not read `baseline/before/**`, so they can pass while output differs
 from the accepted UI.
@@ -43,12 +52,16 @@ Direct evidence:
 
 - Historical Showcase overview:
   `baseline/before/showcase_overview_default_120x40.txt`.
-- Current Showcase overview:
-  `shots/showcase_junie_truecolor_120x40.txt`.
+- Historical capture at the audited tip:
+  `54a7aa1:shots/showcase_junie_truecolor_120x40.txt`.
+  The current grouped diagnostic store is `shots/showcase_junie_truecolor_120x40/`
+  (`ansi`, `cursor`, `html`, `png`, and `txt`); it is not the frozen oracle.
 - Historical TablePro Connections:
   `baseline/before/tablepro_connections_default_120x40.txt`.
-- Current TablePro capture shows a different results-grid surface:
-  `shots/tablepro_junie_truecolor_120x40.txt`.
+- Historical TablePro capture showing a different results-grid surface:
+  `54a7aa1:shots/tablepro_junie_truecolor_120x40.txt`.
+  The current grouped diagnostic store is `shots/tablepro_junie_truecolor_120x40/`
+  (`ansi`, `cursor`, `html`, `png`, and `txt`); it is not the frozen oracle.
 - Historical Jackin manager/Capsule frames are in `baseline/before/` and the
   historical local `shots/` copy; current app captures are structurally
   different.
@@ -60,10 +73,10 @@ renderer before executable parity existed. Later migration rewrites changed
 product rendering and interaction contracts:
 
 - Showcase: `4e07ea1`; current shell at `apps/showcase/src/app.rs:627`.
-- TablePro: `5042a40`; current update/draw at
-  `apps/tablepro/src/app.rs:1016` and `:1190`.
-- Jackin: `444a8f4`; current route/update and draw paths at
-  `apps/jackin-preview/src/app.rs:2544` and `:3257`.
+- TablePro: `5042a40`; the then-current update/draw implementation in
+  `apps/tablepro/src/app.rs`.
+- Jackin: `444a8f4`; the then-current route/update and draw implementation in
+  `apps/jackin-preview/src/app.rs`.
 - Facade/evidence enforcement then cemented the new output without a
   historical comparison: `1378c31`.
 
@@ -71,9 +84,11 @@ The common architectural failure was treating rendering as replaceable. The
 new runtime has no parity adapter preserving historical geometry, paint order,
 focus order, hit regions, cursor placement, or interaction transitions.
 
-## Fresh gate snapshot
+## Historical gate snapshot at 54a7aa1
 
-Measured during this audit, after the documentation edits:
+Measured during this historical audit, after the documentation edits. These
+commands and results are historical evidence; do not replay the `cargo test`
+commands, because current policy requires `cargo nextest`.
 
 - `rtk proxy git diff --check`: pass.
 - `rtk cargo run -p xtask -- doc-check`: pass; 76 Rust blocks and 865 resolved
@@ -93,12 +108,15 @@ These results are evidence for the continuation goal, not a completion claim.
 
 ## Required continuation
 
-Follow [`GOAL.md`](../GOAL.md): build a dual-run parity oracle first, restore
-shared visual contracts, restore Showcase/TablePro/Jackin route by route, add
-non-vacuous historical-reference tests, classify approved additions and bug
-fixes, refresh provenance, and run independent visual review before any
-baseline blessing.
+Use current [`AGENTS.md`](../AGENTS.md), the
+[`execution-readiness report`](refactoring-plan/execution-readiness-report.md),
+and current contracts for execution. The product intent in [`GOAL.md`](../GOAL.md)
+requires a dual-run parity oracle first, restoration of shared visual contracts,
+and restoration of Showcase/TablePro/Jackin/Holla route by route, with
+non-vacuous historical-reference tests, classified additions and bug fixes,
+refreshed provenance, and independent visual review before any candidate
+baseline update is considered. The frozen visual oracle is never modified.
 
 Do not treat this report, `REFACTORING_STATE.md`, stale captures, or green
 self-baseline tests as completion proof. Fresh source, commands, captures, and
-review decide completion.
+review decide completion; `REFACTORING_STATE.md` is historical provenance only.

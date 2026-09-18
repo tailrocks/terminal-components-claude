@@ -58,12 +58,13 @@ main() {
   head_sha="$(git rev-parse "$INTEGRATION_BRANCH")"
 
   if command -v python3 >/dev/null 2>&1; then
-    python3 - "$root" "$catalog_sha" "$catalog_time" "$head_sha" "$CATALOG_BRANCH" <<'PY'
+    python3 - "$root" "$catalog_sha" "$catalog_time" "$head_sha" "$CATALOG_BRANCH" "$INTEGRATION_BRANCH" <<'PY'
 import json, sys
-root, catalog_sha, catalog_time, head_sha, catalog_branch = sys.argv[1:6]
+root, catalog_sha, catalog_time, head_sha, catalog_branch, integration_branch = sys.argv[1:7]
 path = f"{root}/.campaign/ledger.json"
 with open(path) as f:
     ledger = json.load(f)
+ledger["integration_ref"] = f"refs/heads/{integration_branch}"
 ledger["integration_head"] = head_sha
 ledger["catalog"] = {
     "commit": catalog_sha,
@@ -91,7 +92,7 @@ Campaign workspace initialized (pre-arm).
 Next steps (do NOT arm /goal yet):
   1. ./scripts/campaign-install-taskfmt.sh
   2. Read docs/refactoring-plan/execution-readiness-report.md
-  3. ./scripts/campaign-preflight.sh (fails closed while readiness is NO-GO)
+  3. TC_CAMPAIGN_WORKTREE="$WORKTREE_PATH" INTEGRATION_BRANCH="$INTEGRATION_BRANCH" ./scripts/campaign-preflight.sh (fails closed while readiness is NO-GO)
 
 Push when ready:
   git push -u origin $INTEGRATION_BRANCH

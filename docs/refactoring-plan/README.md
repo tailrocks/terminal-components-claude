@@ -18,6 +18,14 @@ Current operational contracts:
 - [`subagent-only-policy.md`](subagent-only-policy.md) — host-local, no-container execution policy
 - [`campaign-ledger.schema.json`](campaign-ledger.schema.json) — ledger schema
 
+Documentation integrity is enforced by the repository root
+[`lychee.toml`](../../lychee.toml) and the blocking `Markdown links` job in
+[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml). It audits every
+tracked Markdown input, including task and historical documents that remain
+referenced. Lychee is verifier-only; it does not orchestrate agents or start
+containers. Plain-text repository paths still require semantic review and Git
+history investigation when they are not Markdown link destinations.
+
 Use only taskfmt `0.2.0` at revision
 `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, from
 `/Users/donbeave/Projects/taskfmt/task-format`. Older taskfmt commands,
@@ -30,6 +38,12 @@ directory are retained for provenance. They are not active instructions and
 may describe superseded branches, tool versions, or failed experiments. Do
 not replay their commands. Reconcile any disagreement against the current
 readiness report and the current contracts above.
+
+Archived records may mention `docs/sources/PLANNING_GOAL.md`. That path is not
+a current-checkout document: where the historical source is still material,
+the authoritative reference is the immutable file at the
+[`visual-baseline` commit](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2/docs/sources/PLANNING_GOAL.md).
+Do not restore that deleted path merely to satisfy an archived reference.
 
 Root-level goal and coordination files follow the same rule: `GOAL.md` is the
 active product goal; `COMPONENT_ARCHITECTURE.md` and `DESIGN.md` are active

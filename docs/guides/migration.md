@@ -3,8 +3,9 @@
 This maps the pre-refactor root source tree (`src/core/`, `src/ui/`,
 `src/widgets/`) onto the current component library in `crates/tui`, whose
 package and Rust path are `junie-tui` / `junie_tui` in this workspace. The old
-root package and legacy source tree are removed; the three applications now
-live under `apps/` and consume the library facade.
+root package and legacy source tree are removed. The three applications
+migrated from that root package now live under `apps/`, alongside the current
+Holla application, and all four consume the library facade.
 
 Two ground rules for reading it:
 
@@ -402,7 +403,8 @@ hint priority and a visibility flag, and `impl Bindings` selects a table per
 `BindingState`. The same table is what the shared `HintBar` renders and what
 `update` matches, so the two cannot disagree — the conformance case
 `bindings_match_handled_keys` asserts it in both directions. The ~700 lines of
-hand-written hint tables in the three applications are deleted.
+hand-written hint tables in the three migrated applications are deleted; Holla
+uses the same shared facade from its own current package.
 
 An application adds, removes or remaps chords through `KeyMap` with a
 `KeyPhase` (`Capture` before dispatch, `Bubble` after), returning an

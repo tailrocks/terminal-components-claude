@@ -1,12 +1,12 @@
 # COMPONENT_ARCHITECTURE.md
 
-**Status:** Accepted through §74, including the §73 disabled-pointer, shared-Props, and inert-registration adjudication. This remains the architecture source of truth. It does not authorize execution; readiness is governed by [`docs/refactoring-plan/execution-readiness-report.md`](docs/refactoring-plan/execution-readiness-report.md), currently **NO-GO**. Changes to any *Decision*, *invariant*, exact type, or precedence rule require a fresh review recorded in the current planning record.
+**Status:** Accepted through §74, including the §73 disabled-pointer, shared-Props, and inert-registration adjudication. §75 is a conditional historical-rendering recovery policy, not execution authorization. The unnumbered Meter and ScrollRegion addenda below are current reviewed records with their own stated parity/acceptance conditions; Meter's canonical preservation review remains pending. This remains the architecture source of truth for accepted decisions. Readiness is governed by [`docs/refactoring-plan/execution-readiness-report.md`](docs/refactoring-plan/execution-readiness-report.md), currently **NO-GO**. Changes to any *Decision*, *invariant*, exact type, or precedence rule require a fresh review recorded in the current planning record.
 
 Sections §40–§49 record subsequent gate, API, migration and baseline findings; §§50–§55 are
 accepted fresh adjudications for choice semantics, StatusBar hover, Grid ownership, incremental
 Tree indexing, Jackin timing/status/dimming, and closure-bearing containers. <!-- amended by §55 -->
 
-**Authority:** [`GOAL.md`](GOAL.md) for product intent › [`DESIGN.md`](DESIGN.md) for visual language › existing rendered output/tests › current source. Where the Slice‑1 audits conflict, the adjudications in §3–§15 below are final; the rejected alternative and the reason are stated with each. Historical references to `REFACTORING_GOAL.md` and `REFACTORING_STATE.md` are provenance, not active instructions.
+**Authority:** [`AGENTS.md`](AGENTS.md) for campaign policy and verification › the frozen [`visual-baseline/snapshots`](https://github.com/donbeave/terminal-components-claude/tree/visual-baseline/snapshots) corpus for product output › current source, tests, task contracts and deterministic proof for implementation facts › this document for accepted architecture decisions › [`GOAL.md`](GOAL.md) for product intent and [`DESIGN.md`](DESIGN.md) for visual language. Where the Slice‑1 audits conflict, the adjudications in §3–§15 below are final; the rejected alternative and the reason are stated with each. Historical references to `REFACTORING_GOAL.md` and `REFACTORING_STATE.md` are provenance, not active instructions.
 
 Any section that asks an old coordinator to update `REFACTORING_STATE.md`,
 follow a retired slice order, or use a historical execution protocol is
@@ -21,9 +21,16 @@ reviewed; they are not runnable instructions. Current execution is host-local
 and subagent-only, all Rust tests/validation use `cargo nextest`, and the sole
 readiness authority is the current execution-readiness report.
 
+**Current repository projection (2026-09-18):** The workspace ships four
+application packages: `apps/showcase`, `apps/tablepro`,
+`apps/jackin-preview`, and `apps/holla`. The checked-in capture matrix has 112
+cells: 32 for each of the first three applications and 16 Holla
+`reference-default` cells. Historical three-application counts and `src/bin/`
+paths below remain source evidence only when explicitly identified as such.
+
 **Inputs adjudicated:** `docs/audit/api-audit.md` (API), `docs/audit/app-audit.md` (APP), `docs/audit/domain-boundary-audit.md` (DOM), `docs/audit/interaction-audit.md` (INT), `docs/audit/architecture-research.md` (RES). `docs/audit/performance-audit.md` (PERF) landed after §1–§15 were written; §20.9 folds its obligations in and amends earlier decisions where needed. `docs/audit/modern-api-audit.md` (MOD), `docs/reviews/adjudication-k-form-grid.md` (ADJ‑K) and `docs/reviews/adjudication-m-small-items.md` (ADJ‑M) landed after §21; §22, §23 and §24 record them as binding, and every earlier section they change carries an inline `<!-- amended by §22 -->` / `<!-- amended by §23 -->` / `<!-- amended by §24 -->` marker. `docs/reviews/slice3-foundations-review.md` (the fresh read-only Slice 3 foundations review, at commit `18afddd`) and `docs/reviews/adjudication-n-layer-measure.md` (ADJ‑N) landed after §24; §25 and §26 record them as binding, and every earlier section they change carries an inline `<!-- amended by §25 -->` / `<!-- amended by §26 -->` marker. `docs/reviews/adjudication-o-foundations-followups.md` (ADJ‑O) landed after §26; §27 records it as binding, and every earlier section it changes carries an inline `<!-- amended by §27 -->` marker.
 
-`docs/reviews/adjudication-p...` and `docs/reviews/adjudication-q-residuals.md` are the binding §28/§29 review inputs; the Q and §30 records below preserve unresolved API questions rather than deciding them implicitly. <!-- amended by §29; §30 -->
+`docs/reviews/adjudication-p-prototype-decisions.md` and `docs/reviews/adjudication-q-residuals.md` are the binding §28/§29 review inputs; the Q and §30 records below preserve unresolved API questions rather than deciding them implicitly. <!-- amended by §29; §30 -->
 
 Section §73 records the accepted disabled-pointer, shared-Props, and inert-registration contract. Sections §74.1–§74.3 record the accepted Slice-5 color, capture, and per-app evidence contracts. <!-- amended by §73; §74 -->
 
@@ -2057,12 +2064,13 @@ pub struct Baseline { path: &'static str }   // one `name w h theme color hash` 
 
 | File | Owner | Content |
 |---|---|---|
+| `apps/holla/tests/baselines/app.txt` | holla | current Holla reference-default visual baseline |
 | `crates/tui/tests/baselines/components.txt` | library | one line per component × state × theme × colour × size |
 | `apps/showcase/tests/baselines/showcase.txt` | showcase | the migrated `showcase_visual_baseline`, now **including** the sidebar (the exclusion existed only because the shell sidebar was hand-drawn; it becomes a `NavList` and is covered) |
 | `apps/tablepro/tests/baselines/tablepro.txt` | tablepro | **new** — closes **[F]** APP §9 risk 5 (TablePro had no cell-level baseline) |
 | `apps/jackin-preview/tests/baselines/jackin.txt` | jackin | **new**, at `--motion paused --frame N` for determinism |
 
-**Regeneration and review policy.** `BLESS=1 cargo nextest run --workspace --test render --test render_components --test visual` <!-- amended by §28 --> rewrites baselines. The rule from goal §6.10 is enforced by `xtask bless-guard`, which fails a commit that changes a baseline file without a matching entry in `docs/visual-changes.md` that names a numbered §20.10 item **and accounts for every key the diff moved or added**, and which refuses outright any commit that *moves* a key whose colour field is `truecolor`. The reviewable artefact the entry must name is a capture path under `shots/` for a baseline produced by a running application, and the **frame-text dump** of each affected cell for a baseline produced headlessly by a `Scene` — the component matrix, which `tools/capture.sh` cannot address at all. **The guard is implemented and binding** (`xtask` dispatches `doc-check`, `boundary`, `bless-guard`, `capture-matrix` and `list`); it fails closed when `BLESS_GUARD_BASE` is absent or invalid. No baseline is regenerated because a test failed; the classification comes first. The order is fixed (A14, §21 item 30): **change → capture → classify → bless**, with the moved set read from a scratch bless that is discarded before the classification is written (§36). **Ordering itself is not machine-checkable on a committed tree** — the classification and the blessed baseline land in one commit and a repository-state check cannot recover the order in which the tree reached that state; **completeness** is checkable, and is what the guard checks. <!-- amended by §36 --> <!-- amended by §21 items 28, 30 -->
+**Regeneration and review policy.** `BLESS=1 cargo nextest run --workspace --test render --test render_components --test visual` <!-- amended by §28 --> rewrites baselines. The rule from goal §6.10 is enforced by `xtask bless-guard`, which fails a commit that changes a baseline file without a matching entry in `docs/visual-changes.md` that names a numbered §20.10 item **and accounts for every key the diff moved or added**, and which refuses outright any commit that *moves* a key whose colour field is `truecolor`. The reviewable artefact the entry must name is a capture path under `shots/` for a baseline produced by a running application, and the **frame-text dump** of each affected cell for a baseline produced headlessly by a `Scene` — the component matrix, which `tools/capture.sh` cannot address at all. **The guard is implemented and binding** (`xtask` dispatches `doc-check`, `boundary`, `bless-guard`, `capture-matrix` and `list`); it fails closed when `BLESS_GUARD_BASE` is absent or invalid. No baseline is regenerated because a test failed; the classification comes first. The order is fixed (A14, §21 item 30): **change → capture → classify → bless**, with the moved set read from a scratch bless that is discarded before the classification is written (§36). **Ordering itself is not machine-checkable on a committed tree** — the classification and the blessed baseline land in one commit and a repository-state check cannot recover the order in which the tree reached that state; **completeness** is checkable, and is what the guard checks. **This self-baseline policy is diagnostic only: it never changes the frozen `visual-baseline/snapshots` oracle. While campaign readiness is `NO-GO`, do not set `BLESS=1` or `UPDATE_BASELINE`; acceptance must compare candidate output to the immutable oracle.** <!-- amended by §36 --> <!-- amended by §21 items 28, 30 -->
 
 **The matrix.** <!-- amended by §28 --> The binding contract is the **test path**, not the file: `render::components::<component>::<state>`, `render::overrides::<case>`, `render::overlay::<case>`. ~~`crates/tui/tests/render.rs`~~ is not the contract. During Slices 3–4 these live in **two** targets, because two work packages own them: `crates/tui/tests/render.rs` (foundations — `render::overrides::*`, `render::overlay::*`, painted straight onto `Ui`) and `crates/tui/tests/render_components.rs` (components — `render::components::*`, one function per matrix cell over `{junie, paper} × {truecolor, mono} × {120×40, 40×10}`). Both are ordinary `cargo nextest run` targets whose module paths are identical to the single-file form (`mod render { mod components { … } }`), so every name §16.3 and the slice acceptance conditions quote resolves unchanged. **Every gate command that runs the render tests must name both targets** (`--test render --test render_components`), or the command silently runs half the matrix. Merge into one target at Slice 5, when one owner holds both.
 
@@ -2074,7 +2082,7 @@ pub struct Baseline { path: &'static str }   // one `name w h theme color hash` 
 * Overrides: `render::overrides::global_family_override_changes_every_button`, `render::overrides::scoped_overlay_changes_only_the_subtree`, `render::overrides::instance_patch_changes_only_one_instance`, `render::overrides::part_slot_replaces_the_part_and_keeps_hit_regions`.
 * Composition: `render::overlay::modal_over_page`, `render::overlay::nested_picker_over_dialog`, `render::overlay::popover_anchored_below_then_flipped`, `render::overlay::backdrop_excludes_the_footer`, `render::overlay::layer_composites_bottom_to_top_regardless_of_call_order`.
 
-**Showcase digest contract** (from **[F]** APP §6): `apps/showcase/tests/visual.rs::showcase_visual_baseline` keeps its exact shape — for each page in `NAV_ENTRIES` × `{120×40, 80×24}`, focus the first control, hash every cell, write `"{w}x{h} {label} {hash:016x}"`, regenerate under an env var. Two changes, both recorded in §20.10: the sidebar rect is no longer excluded, and the matrix gains `× {junie, paper} × {truecolor, mono}` (four times the lines). `UPDATE_BASELINE=1` is preserved as an alias of `BLESS=1` so the documented workflow (`README.md:325-328`) still works.
+**Showcase digest contract** (from **[F]** APP §6): `apps/showcase/tests/visual.rs::showcase_visual_baseline` keeps its exact shape — for each page in `NAV_ENTRIES` × `{120×40, 80×24}`, focus the first control, hash every cell, write `"{w}x{h} {label} {hash:016x}"`, regenerate under an env var. Two changes, both recorded in §20.10: the sidebar rect is no longer excluded, and the matrix gains `× {junie, paper} × {truecolor, mono}` (four times the lines). `UPDATE_BASELINE=1` is preserved as an alias of `BLESS=1` for the documented visual-capture workflow in `README.md`; that self-baseline is diagnostic and does not replace the frozen visual oracle.
 
 ---
 
@@ -2082,9 +2090,13 @@ pub struct Baseline { path: &'static str }   // one `name w h theme color hash` 
 
 <!-- amended by §25 F7: `Harness::resolved` / `Runtime::resolved` return the recorded resolution, never a hard-coded `Family::BUTTON`; `resolved_in` is the explicit escape hatch -->
 
-**All current tests are retained**: 26 showcase, 23 tablepro, 28 jackin (22 + 6 chrome) <!-- corrected by §32.6 --> plus the in-module `rain`/`arbiter`/`clock`/`scenario` unit tests — the exact inventories in **[F]** APP §5.1–§5.3. They move from `#[cfg(test)] mod app_tests` inside each binary to `apps/<app>/tests/app_tests.rs` (integration tests linking the app's `[lib]` target — §21 item 23), which forces each app to expose a small, deliberate test surface instead of reaching into private fields (goal §21).
+**All current tests are retained**: the historical Showcase, TablePro and Jackin suites (26, 23 and 28 tests respectively, with Jackin's 22 + 6 chrome split) <!-- corrected by §32.6 --> plus Holla's current suite and the in-module `rain`/`arbiter`/`clock`/`scenario` unit tests. The exact historical inventories are in **[F]** APP §5.1–§5.3. They move from `#[cfg(test)] mod app_tests` inside each binary to `apps/<app>/tests/app_tests.rs` (integration tests linking the app's `[lib]` target — §21 item 23), which forces each app to expose a small, deliberate test surface instead of reaching into private fields (goal §21).
 
-**The `Harness` contract.** Every assertion shape in the three existing suites survives because `Harness` provides exactly these operations. This table is the migration contract: an operation missing here means an existing test cannot be expressed.
+**The `Harness` contract.** Every assertion shape in the three historical
+application suites survives because `Harness` provides exactly these
+operations; Holla's current suite uses the same library harness. This table is
+the migration contract: an operation missing here means an existing test
+cannot be expressed.
 
 ```rust
 // crates/tui-testing/src/harness.rs
@@ -2179,7 +2191,7 @@ Mapping of the seven "must keep working" facts from **[F]** APP §6:
 
 | Test name | Mechanism | Asserts |
 |---|---|---|
-| `architecture::library_has_no_application_dependency` <!-- amended by §22 --> | `cargo metadata` from `xtask`: the dependency closure of `junie-tui` | `showcase`, `tablepro`, `jackin-preview` are absent; the only direct normal deps are `ratatui-core`, `ratatui-crossterm`, `unicode-width`, `unicode-segmentation`, `bitflags` (never `ratatui`, `ratatui-widgets`, `ratatui-macros`, `smallvec`, a direct `crossterm`) |
+| `architecture::library_has_no_application_dependency` <!-- amended by §22 --> | `cargo metadata` from `xtask`: the dependency closure of `junie-tui` | `showcase`, `tablepro`, `jackin-preview`, and `holla` are absent; the only direct normal deps are `ratatui-core`, `ratatui-crossterm`, `unicode-width`, `unicode-segmentation`, `bitflags` (never `ratatui`, `ratatui-widgets`, `ratatui-macros`, `smallvec`, a direct `crossterm`) |
 | `architecture::applications_depend_only_on_the_library_facade` <!-- amended by §22 --> | `cargo tree -p <app> -e normal --depth 1` — a one-line assertion, because each app's only normal dependency is `junie-tui` and `junie-tui` re-exports every ratatui type the public API mentions (§22 §1.2); plus a source scan for `junie_tui::` paths | `cargo tree` prints `junie-tui` and nothing else; every path resolves under `junie_tui::` or `junie_tui::author::`; there is no `#[path]`, no `include!`, and no `pub(crate)` reachable from an app (guaranteed structurally — a separate crate cannot name a `pub(crate)` item, so the scan is a belt-and-braces report, not the enforcement) |
 | `architecture::examples_are_external_consumers` | `cargo build -p junie-tui --examples` in CI plus a check that no example uses `#[path]` | The 13 §17 examples compile against the public API only <!-- amended by §23 --> |
 | `architecture::all_examples_compile` | `cargo nextest run --workspace --doc` + `--examples` gate | goal §25.5 "all examples compile" <!-- historical §25 F12 named the then-missing state-override check; §72 replaces that obsolete boundary with the two reference-scope checks below --> |
@@ -2195,10 +2207,10 @@ Mapping of the seven "must keep working" facts from **[F]** APP §6:
 | `architecture::draw_takes_shared_self` | `syn`-based scan in `xtask`: every `fn draw` in `crates/tui/src/components/**` has `&self` and, if it takes a state parameter, `&XState` | G2 — the structural form of "render cannot change semantics" |
 | `architecture::no_static_bound_in_component_surface` | `syn` scan for `'static` bounds on public component types and their builder parameters, allow-listed to `Binding<A: 'static>` and `Conformance: 'static` | goal §2.2 |
 | `architecture::conformance_covers_every_public_component` | `syn` scan of `pub struct`s in `components/**` vs the `conformance_suite!` list | G10 / §16.2 |
-| `architecture::every_named_test_exists` <!-- amended by §25 F12: must exist in `xtask`'s `CHECKS` and `tests/architecture.rs`; it was absent at `18afddd` and is the gate that makes §25's renamed/missing names visible --> | one-directional and scoped (§21 item 28): every name listed in §16.1, §16.2's suite-level list and §16.4 exists in `cargo nextest run --workspace -- --list`; §16.6 perf names are checked against `cargo nextest run --workspace --test perf --test perf_collections --release -- --list`; `trybuild` cases against `tests/ui/*.rs` filenames; extra tests are allowed | Documentation and the suite cannot drift; the `capsule_pane_clone_4x2000` deletion is asserted by line-absence in `perf_baseline.txt` |
-| `architecture::binary_names_are_preserved` | `cargo metadata` target names | `showcase`, `tablepro`, `jackin-preview` (goal §21) |
-| `architecture::capture_matrix_contract` <!-- §74.2 --> | `xtask` contract check, also listed by `xtask list`; it reads `tools/capture.sh` and validates `shots/capture-matrix.tsv` plus `shots/capture-provenance.json` | `xtask capture-matrix` exists, uses exactly `showcase` × `tablepro` × `jackin-preview`, `80×24|100×30|120×40|160×50`, `junie|paper` and `truecolor|256|16|mono` (96 cells), proves the script consumes `BIN`, explicit argv, `COLOR`, an owned run/session, tmux capture and PNG conversion, and verifies all checked-in cell/artifact hashes before a visual review |
-| `architecture::app_baselines_exist` | `xtask` checks each migrated app's checked-in paths | `apps/<app>/tests/baselines/<app>.txt` and `apps/<app>/tests/perf_baseline.txt` exist and are non-empty; missing paths fail closed |
+| `architecture::every_named_test_exists` <!-- amended by §25 F12: must exist in `xtask`'s `CHECKS` and `tests/architecture.rs`; it was absent at `18afddd` and is the gate that makes §25's renamed/missing names visible --> | one-directional and scoped (§21 item 28): every name listed in §16.1, §16.2's suite-level list and §16.4 exists in `cargo nextest run --workspace -- --list`; §16.6 perf names are checked against `cargo nextest run --workspace --test perf --test perf_collections --release -- --list`; `trybuild` cases against `crates/tui/tests/ui/*.rs` filenames; extra tests are allowed | Documentation and the suite cannot drift; the `capsule_pane_clone_4x2000` deletion is asserted by line-absence in `perf_baseline.txt` |
+| `architecture::binary_names_are_preserved` | `cargo metadata` target names | `showcase`, `tablepro`, `jackin-preview`, and `holla` (current workspace) |
+| `architecture::capture_matrix_contract` <!-- §74.2 --> | `xtask` contract check, also listed by `xtask list`; it reads `tools/capture.sh` and validates `shots/capture-matrix.tsv` plus `shots/capture-provenance.json` | `xtask capture-matrix` exists, uses the four current apps (`showcase`, `tablepro`, `jackin-preview`, `holla`), `80×24|100×30|120×40|160×50`, the declared theme/color axes (Holla's current theme is `reference-default`), and 112 cells total, proves the script consumes `BIN`, explicit argv, `COLOR`, an owned run/session, tmux capture and PNG conversion, and verifies all checked-in cell/artifact hashes before a visual review |
+| `architecture::app_baselines_exist` | `xtask` checks each migrated app's checked-in paths | `apps/showcase/tests/baselines/showcase.txt`, `apps/tablepro/tests/baselines/tablepro.txt`, `apps/jackin-preview/tests/baselines/jackin.txt`, and `apps/holla/tests/baselines/app.txt` plus each app's `tests/perf_baseline.txt` exist and are non-empty; missing paths fail closed |
 | `architecture::workspace_root_is_virtual` | `cargo metadata` plus filesystem checks from `xtask` | the root has no Cargo package, no root `src/` tree, and no detached root application sources after the workspace split |
 | `architecture::msrv_and_edition_are_unchanged` <!-- amended by §22 --> | `cargo metadata` **plus** the blocking CI job `msrv`: `cargo +1.88.0 check --workspace --all-targets --all-features` — the metadata proves the *field*, the job proves the code compiles on 1.88 (on a 1.98 toolchain a builder could otherwise use a 1.95 API and every gate would pass) | edition 2024, `rust-version = "1.88"` on every package, held deliberately (§22 §5) |
 | `architecture::cache_types_are_derived_only` <!-- §21 item 2 --> | `syn` scan in `xtask`: every `T` used as `ui.cache::<T>(…)` | `T` appears in no `Response` and no `XState` (R8) |
@@ -2214,11 +2226,11 @@ Mapping of the seven "must keep working" facts from **[F]** APP §6:
 | `architecture::every_foreign_type_in_the_public_surface_is_re_exported` <!-- §24 M1; amended by §25 MA‑11: at `18afddd` this is a substring grep over `lib.rs`, recorded as a **deviation** with a Slice‑8 upgrade to the rustdoc-json form below — the grep cannot detect a `pub` signature naming an unexported foreign type --> | `xtask`, rustdoc-json: for every non-local type named in a `pub` item reachable from `junie_tui::`, a `pub use` path exists under `junie_tui::`; likewise for `junie_tui::author::` | the facade is *complete*, not merely the only edge: the day a `ratatui_core::text::Line` enters a signature the check fails and prints the type, the signature that names it and the missing facade line — instead of a downstream `ratatui-core` dependency line appearing |
 | `architecture::capability_has_no_unicode_field` <!-- §24 M2 --> | rustdoc-json | `Capability`'s field set is exactly `{color}`; no automatic ASCII-border selection can exist (§21 item 19, §24 M2) |
 | `architecture::field_kind_has_no_type_parameters` <!-- §24 M3 --> | rustdoc-json | `FieldKind` has one lifetime and zero type parameters; `Form`, `FormState` and every screen's `&[FieldSpec]` stay non-generic (§13) |
-| `architecture::no_boolean_capability_parameter_on_grid` <!-- §23 K2; mechanism corrected by §37 --> | `syn` scan: no `Signature` named `editable` in `crates/tui/src/components/grid.rs`, and no `trait GridCellActions` declared anywhere under `crates/tui/src` (both descend into inline modules). ~~grep: `! rg -n 'fn editable\(' …`~~ — struck: a text search misses `fn editable (`, `fn editable<T>(` and a signature split across lines. **Vacuous until `Grid` lands**: `components/grid.rs` does not exist, so the check returns `ok` at its first line and has asserted nothing for the whole refactor (§37) | G4: capability is chosen by the entry point (`update` / `update_editable`), never by a flag; `GridCellActions` is deleted |
+| `architecture::no_boolean_capability_parameter_on_grid` <!-- §23 K2; mechanism corrected by §37 --> | `syn` scan: no `Signature` named `editable` in `crates/tui/src/components/grid.rs`, and no `trait GridCellActions` declared anywhere under `crates/tui/src` (both descend into inline modules). A missing Grid source file is a fail-closed check error, never a vacuous pass. ~~grep: `! rg -n 'fn editable\(' …`~~ — struck: a text search misses `fn editable (`, `fn editable<T>(` and a signature split across lines. | G4: capability is chosen by the entry point (`update` / `update_editable`), never by a flag; `GridCellActions` is deleted |
 | CI gate `core_is_backend_free` <!-- §22; amended by §25 (adjudication 1) --> | `cargo check -p junie-tui --no-default-features` | proves that nothing outside `runtime/session.rs` needs a backend: the `crossterm` feature gates the terminal session only, and `ratatui-crossterm` (a normal, non-optional dependency taken for its version-unified `crossterm::event` vocabulary) still compiles. The **stronger** claim — that the widget layer is backend-independent — is proved by forbidden-pattern rule 27 (`CrosstermBackend` only in `runtime/session.rs`) and by `architecture::ratatui_crossterm_is_named_in_exactly_two_files` |
-| `architecture::ratatui_crossterm_is_named_in_exactly_two_files` <!-- §25 F20 --> | `xtask` boundary check | `ratatui_crossterm` is named in exactly `src/event.rs` (the `crossterm::event` vocabulary — `KeyCode`, `KeyModifiers`, `Input::from_crossterm`) and `src/runtime/session.rs` (the backend); nowhere else |
+| `architecture::ratatui_crossterm_is_named_in_exactly_two_files` <!-- §25 F20 --> | `xtask` boundary check | `ratatui_crossterm` is named in exactly `crates/tui/src/event.rs` (the `crossterm::event` vocabulary — `KeyCode`, `KeyModifiers`, `Input::from_crossterm`) and `crates/tui/src/runtime/session.rs` (the backend); nowhere else |
 | `architecture::no_unreachable_spin_loops` <!-- §25 F2 --> | `xtask` rule 27a: `loop {` with `spin_loop` forbidden in `crates/tui/src/**` | no `unreachable_*` helper hangs the process with raw mode on — a livelock with the alternate screen entered is strictly worse than a panic, whose hook restores the terminal; `Vec::insert(i, _)` makes `get_mut(i)` infallible and is written as one documented `#[expect(clippy::expect_used, reason = …)]` |
-| CI gate `readme_compiles` <!-- §22 --> | `cargo nextest run --workspace --doc` with `#![doc = include_str!("../README.md")]` at the top of `crates/tui/src/lib.rs` | every README code fence is valid Rust or tagged ` ```text `/` ```ignore ` (goal §24, §25.5) |
+| CI gate `readme_compiles` <!-- §22 --> | `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps` with `#![doc = include_str!("../README.md")]` at the top of `crates/tui/src/lib.rs` | every README code fence is valid Rust or tagged ` ```text `/` ```ignore ` (goal §24, §25.5) |
 | `xtask semver` <!-- §22 §3.4: DEFERRED --> | `cargo semver-checks --baseline-rev <tag>` | **Not a shipped gate during the refactor**: during a total public-API rewrite every check fails by construction. Added at the end of Slice 8 against tag `v0.1.0`; blocking in CI from `v0.1.1` onward |
 | `xtask doc-check` <!-- §21 item 34; amended by §23, §24, §25 F23 --> | `xtask` source scan: `doc_sections` keeps top-level §3–§17 and §21 through the current numbered tail; regexes inspect backticked type/member references and `use junie_tui...` names against a `syn`-collected source API plus a small foreign-member table. It rejects stale and duplicate `xtask/doc_check_allow.txt` entries. It does not compile examples, verify signatures or visibility, or read `crates/tui-testing`. The earlier fixed-range/rustdoc-json description is historical (see §40.1 and §42.2). | every reference resolves, or is on the printed allow-list; run in every slice gate |
 
@@ -4143,7 +4155,7 @@ Every item below changes rendered output relative to the reviewed baseline. Each
 | 31 | **Reference rendering is one central exact-target scope.** Replace component-local `state_override`/`inherit_forced` propagation with `Ui::reference`: one optional exact component/item/part target receives runtime reference bits, while the complete subtree is inert. Semantic selected/editing/disabled/readiness data remains caller-owned. Exactly 177 retained keys move for this root-class correction in the stabilized scratch comparison. `{scope: truecolor}` | The old component-root propagation admitted a defect class: composite children, collection rows, scrollbars and callback/slot bodies could all inherit one synthetic state or remain live. Central scoping removes the enabling condition and makes arbitrary subtrees inert without distributing paint state. | `docs/visual-changes.md` records all 177 exact old→new claims. Accept only differences attributable to removing broadcast/leaked reference state or selecting the declared exact target. Reject default/live-runtime/semantic changes, multiple targets, registration output, geometry/content drift and every unaccounted key. Independent frame review and separate bless authorization remain required. |
 | 32 | **First-generation per-app visual baselines.** Each migrated application owns a checked-in cell-exact baseline under `apps/<app>/tests/baselines/`. These keys are first-generation evidence for the application surfaces and are never treated as an implicit approval of future movement. `{scope: first-generation}` | Slice 5–7 application code must be reviewable as rendered output, not only by substring assertions. A fresh capture matrix and independent visual review compare the app frames with the matching frozen before evidence where one exists. | `xtask capture-matrix` artifacts under `shots/`, app visual tests, and a `docs/visual-changes.md` entry listing the exact generated key pattern and review disposition. A later movement cites the applicable defect/fix item or is a regression. |
 | 33 | **First-generation per-app performance baselines.** Each migrated application owns its measured rows under `apps/<app>/tests/perf_baseline.txt`; the frozen root performance file remains the before-image. `{scope: first-generation}` | Application performance must be measured through the shared allocator/timing harness after migration. Missing or empty per-app files are a failure, and a later allocation/byte increase is a regression. | `architecture::app_baselines_exist`, package-qualified perf targets with `PERF_BLESS=1`, CI's no-rebless diff, and the `PERF` lines uploaded as build artifacts. |
-| 34 | **Migrated app visual repair baselines.** Exactly 144 existing Showcase digest keys move after two demonstrated fixes: the Paper/ANSI16 foreground ladder is repaired for light surfaces (88 keys), and the shared Grid/Table geometry and header presentation are corrected (the remaining 56 Data grid and Tables keys across all themes and colour levels). `{scope: truecolor}` | The fresh visual audit found unreadable `#e5e5e5` labels on `#ffffff` in Paper/ANSI16 and stale shared grid/table output after the TablePro header/active-cell fixes. This row authorizes only the exact repaired cells below; it does not authorize unrelated app or component drift. | `apps/showcase/tests/visual.rs::showcase_visual_baseline`, a regenerated 96-cell `xtask capture-matrix`, and a fresh independent visual review of representative Paper/ANSI16, Grid/Table, TablePro and Jackin frames. Reject any unaccounted key, geometry/content drift, or remaining contrast defect. |
+| 34 | **Migrated app visual repair baselines.** Exactly 144 existing Showcase digest keys move after two demonstrated fixes: the Paper/ANSI16 foreground ladder is repaired for light surfaces (88 keys), and the shared Grid/Table geometry and header presentation are corrected (the remaining 56 Data grid and Tables keys across all themes and colour levels). `{scope: truecolor}` | The fresh visual audit found unreadable `#e5e5e5` labels on `#ffffff` in Paper/ANSI16 and stale shared grid/table output after the TablePro header/active-cell fixes. This row authorizes only the exact repaired cells below; it does not authorize unrelated app or component drift. | `apps/showcase/tests/visual.rs::showcase_visual_baseline`, a regenerated 112-cell `xtask capture-matrix`, and a fresh independent visual review of representative Paper/ANSI16, Grid/Table, TablePro and Jackin frames. Reject any unaccounted key, geometry/content drift, or remaining contrast defect. |
 | 35 | **Empty regions inherit the owning style; hover lifts only the hovered row.** The empty branches of `List`, `Grid`, `FilterList`/`Picker` route through `EmptyState::draw_inherited`, so the owner's EMPTY-part style fills the whole empty rect; NavList's container/header fills add `StateFlags::HOVERED` to their difference masks and Junie's LIST row-hover plane moves to `HoverSurface`. Exactly 20 retained truecolor component keys move; frame text is identical before and after for every one of them. `{scope: truecolor}` | An empty component with unstyled blank cells and a hover tint that lifted gaps, headers and unrelated rows were demonstrated defects of the shared path; the corrections remove the enabling condition rather than patching call sites. | The no-BLESS frame-text dumps (byte-identical text, style-only movement), the sidebar contract `row_hover_does_not_lift_headers_gaps_or_other_rows`, and the `render::components::*::empty`/`nav_list::hovered` digests; the exact claims live in `docs/visual-changes.md` Item 35. Reject any text or geometry change on these keys. |
 | 36 | **Showcase: coverage expansion unified with the historical page flows, pinned to the Holla shell.** The merged 22 pages are the reviewed single-constructor coverage line plus the main line's historical flows, and two Holla production-parity corrections (Editor heading always `Code editor`; capability cluster needs two cells of clearance from the breadcrumb). Every retained Showcase cell moves for that union — exactly 672 keys (168 truecolor and 504 mono/ANSI16/ANSI256) — and the Editor page's 32 cells are recorded for the first time under its corrected `Code editor` name. `{scope: truecolor}` | Both source lines were reviewed separately; the union is the deliberate rendering, and the Holla reference fixtures turned two divergences from taste questions into measurable defects. | `holla-page-headings.tsv` (352 rows) and `holla-shell-headers.tsv` (355 rows) from the Holla 794b095 binary, `showcase_visual_baseline`, and the exact claims in `docs/visual-changes.md` Item 36; a refreshed capture matrix and independent review remain required. Reject unaccounted pages, dropped component coverage, or further reference-fixture divergence. |
 | 37 | **TablePro: the merged shell is the union of the recorded historical restoration and the branch's role-owned corrections, re-blessed.** Legacy tree gutters resolve `Role::OnSurfaceInverse`, the embedded Grid carries the detailed-gutter and full-height-track corrections, and item 35 flows through the embedded components. Exactly 168 retained TablePro keys move (84 truecolor and 84 mono/ANSI16/ANSI256). `{scope: truecolor}` | Two divergent lines of deliberate corrections were unified; the recorded cells must describe the merged rendering, not either parent's. | `tablepro_visual_baseline`, the tablepro unit and interaction suites, and the exact claims in `docs/visual-changes.md` Item 37; refreshed captures and independent review remain required. Reject any surface whose movement is not explained by the union. |
@@ -4402,8 +4414,12 @@ apps/jackin-preview/      Cargo.toml  src/{lib.rs, main.rs, app.rs, arbiter.rs, 
                                            screens/**, domain/**, sim/**}
                           tests/{app_tests.rs, app_tests_chrome.rs, visual.rs, perf.rs,
                                  baselines/jackin.txt}
+apps/holla/               Cargo.toml  src/{lib.rs, main.rs, app.rs, cli.rs, clock.rs, scenario.rs,
+                                           screens/**, domain/**, sim/**}
+                          tests/{visual.rs, perf.rs, baselines/app.txt}
 
 xtask/                    Cargo.toml  src/main.rs   # boundary checks, bless-guard, capture matrix driver
+tools/refactor-proof/     native proof worker and architecture receipt tooling; not a workspace member
 ```
 
 Root `Cargo.toml` (virtual; exact, §22 §1.3) <!-- amended by §22 -->:
@@ -4411,8 +4427,8 @@ Root `Cargo.toml` (virtual; exact, §22 §1.3) <!-- amended by §22 -->:
 ```toml
 [workspace]
 resolver = "3"                      # explicit: a virtual manifest has no edition to imply it
-members         = ["crates/tui", "crates/tui-testing", "apps/showcase", "apps/tablepro", "apps/jackin-preview", "xtask"]
-default-members = ["crates/tui", "crates/tui-testing", "apps/showcase", "apps/tablepro", "apps/jackin-preview"]   # `cargo build` never compiles xtask
+members         = ["crates/tui", "crates/tui-testing", "apps/showcase", "apps/tablepro", "apps/jackin-preview", "apps/holla", "xtask"]
+default-members = ["crates/tui", "crates/tui-testing", "apps/showcase", "apps/tablepro", "apps/jackin-preview", "apps/holla"]   # `cargo build` never compiles xtask
 
 [workspace.package]
 version      = "0.1.0"
@@ -4554,7 +4570,7 @@ junie-tui.workspace = true              # the ONLY normal dependency (§22 §1.2
 junie-tui-testing.workspace = true
 ```
 
-`jackin-preview` sets `[[bin]] name = "jackin-preview"` with `path = "src/main.rs"`, preserving the hyphenated binary while the package directory stays readable. Its lib is `jackin_app`; tablepro's is `tablepro_app`.
+`jackin-preview` sets `[[bin]] name = "jackin-preview"` with `path = "src/main.rs"`, preserving the hyphenated binary while the package directory stays readable. Its lib is `jackin_app`; tablepro's is `tablepro_app`; Holla's is `holla_app`.
 
 ### B.3 `pub` vs `pub(crate)` policy
 
@@ -4564,7 +4580,7 @@ junie-tui-testing.workspace = true
 4. **`#[non_exhaustive]`** — applied narrowly <!-- amended by §21 item 8; §22 (MOD §3.2) -->: on `LayerSpec` and `LayoutFacts` (constructed through builders or by the runtime) **and** on the enums the runtime produces and the caller only matches, which will grow: `Diagnostic`, `Intent`, `Phase`, `FocusVia`, `LayerEvent`, `DismissReason`, `Status`, `ColorLevel`, `RegionKind`. Trade-off stated out loud: `#[non_exhaustive]` on an enum forces a wildcard arm downstream and *destroys* the "adding a variant is a compile error" property, so it is applied only where downstream exhaustiveness is not wanted; `StylePatch`, `RowDecor`, `CellDecor`, `Insets`, `Headroom` are constructed by users with struct literals and are **not** marked. `ColorTokens`, `DesignTokens`, `RowDecor` and `CellDecor` are **not** `#[non_exhaustive]`: example 2 builds a full `ColorTokens` literal from another crate, adapters build `RowDecor { marker: …, ..Default::default() }`, and §11.4 *wants* a new token to be a compile error. Recorded: adding a colour or design token is an intentional breaking change for downstream themes; `map_colors`'s exhaustive destructure is the mechanism.
 5. **No `#[doc(hidden)]` public items.** If something must be reachable it is documented in `author`; if it must not, it is `pub(crate)`.
 6. **`#![deny(missing_docs)]`, `#![forbid(unsafe_code)]` and `#![doc = include_str!("../README.md")]`** at the top of `crates/tui/src/lib.rs` <!-- amended by §22 -->. `[workspace.lints.rust] unsafe_code = "deny"` is the workspace level; `crates/tui` and every app root tighten it to `forbid`; **`crates/tui-testing` stays at `deny`** (`forbid` cannot be overridden) because it carries the single documented `unsafe impl GlobalAlloc` under a local `#[expect(unsafe_code, reason = "counting allocator; see SAFETY")]` with a `// SAFETY:` comment, covered by `debug_and_release_alloc_counts_match`. `#[allow]` is never used; every suppression is `#[expect(lint, reason = "…")]`. No process-global state (`LazyLock`, `OnceLock`, `static mut`, `thread_local!`) exists in `crates/tui/src` — the `Runtime` owns all state.
-7. **Applications export a test surface only.** Each app is a package with a `[lib]` (`showcase_app`, `tablepro_app`, `jackin_app`; `publish = false`) and a thin `[[bin]]` whose `main` calls `<app>::run()`. <!-- amended by §21 item 23 --> Integration tests in `tests/` link the lib and reach the app through its `pub` items — the app's `const Id`s, its `App` type and its screen enums; nothing else is `pub`. A binary-only package cannot host `tests/*.rs` (they link the library target), which is why the earlier "no `[lib]`" rule is struck. `architecture::app_libs_are_not_published_and_are_not_depended_on_by_the_library` guards the boundary. This is the migration contract of §16.4 item 3.
+7. **Applications export a test surface only.** Each app is a package with a `[lib]` (`showcase_app`, `tablepro_app`, `jackin_app`, `holla_app`; `publish = false`) and a thin `[[bin]]` whose `main` calls `<app>::run()`. <!-- amended by §21 item 23 --> Integration tests in `tests/` link the lib and reach the app through its `pub` items — the app's `const Id`s, its `App` type and its screen enums; nothing else is `pub`. A binary-only package cannot host `tests/*.rs` (they link the library target), which is why the earlier "no `[lib]`" rule is struck. `architecture::app_libs_are_not_published_and_are_not_depended_on_by_the_library` guards the boundary. This is the migration contract of §16.4 item 3.
 
 ### B.4 The `author` module
 
@@ -8361,8 +8377,8 @@ functions changed the unrelated `style_downgrade_theme_all_levels` result by 50 
 7,296 bytes through codegen/inlining, with its exercised product code unchanged. That makes the
 old single-binary baseline non-local.
 
-Keep the established foundation subjects in `tests/perf.rs`. Move the six new Slice-4 collection
-subjects and their helpers to `tests/perf_collections.rs`. Each integration-test executable owns
+Keep the established foundation subjects in `crates/tui/tests/perf.rs`. Move the six new Slice-4 collection
+subjects and their helpers to `crates/tui/tests/perf_collections.rs`. Each integration-test executable owns
 exactly one `Counting` global allocator; “single allocator” means one per measured process, never
 one for the whole source directory. Test names, thresholds, locking, reports, and serial release
 execution do not change. The gate runs both binaries explicitly or uses the all-target release
@@ -8601,11 +8617,16 @@ anything here.
 
 ### 74.1 D1 — `--color` is a ceiling, never a floor
 
-**The defect.** All three root binaries parse `--color` the same way, and all three are wrong in the
+**The defect.** The three historical root binaries parse `--color` the same way, and all three are wrong in the
 same way. `parse_args` seeds `let mut level = ColorLevel::detect();` and then, on `--color`,
 **replaces** it with the requested level (`src/bin/showcase/main.rs:21-36`,
 `src/bin/tablepro/main.rs:34-45`, `src/bin/jackin_preview/main.rs:44-55`). The detected value is
 discarded, not consulted.
+
+The cited `src/bin/` paths are historical source evidence. The current
+application entry points are under `apps/showcase`, `apps/tablepro`,
+`apps/jackin-preview`, and `apps/holla`; the current Holla CLI participates in
+the same color-ceiling contract.
 
 `ColorLevel::from_env`'s documented precedence exists precisely to encode facts a command line does
 not get to overrule: `TERM=dumb` is `Mono` because *the device cannot render SGR at all* and
@@ -8677,8 +8698,8 @@ not evidence.
 **Acceptance.** `xtask::capture_matrix_covers_every_declared_cell` and
 `xtask::capture_matrix_fails_closed_on_a_missing_cell`, plus `capture-matrix` joining the named-test
 and gate lists so its absence becomes reportable rather than invisible (§47.4). The command also
-validates the checked-in TSV and JSON evidence before it reports success: all 96 cells must be
-present, each of the 480 artifact files must have the recorded byte count and SHA-256, stderr must
+validates the checked-in TSV and JSON evidence before it reports success: all 112 cells must be
+present, each of the 560 artifact files must have the recorded byte count and SHA-256, stderr must
 be empty, and every record must describe a successful capture with one resolved source revision.
 `boundary` repeats the same validation against the checked-in evidence. The shell producer uses a
 worktree-scoped tmux session and a fail-closed capture lock, so concurrent worktrees cannot race on
@@ -8686,7 +8707,9 @@ one session or silently overwrite a run.
 
 **Implementation pin.** `xtask` independently asserts the exact four sizes `80×24`, `100×30`,
 `120×40`, `160×50`, the exact colour axis `truecolor|256|16|mono`, the exact theme axis
-`junie|paper`, and the three app owners `showcase|tablepro|jackin-preview` (96 cells). The check
+`junie|paper` for the three themed apps, the Holla `reference-default` theme,
+and the four app owners `showcase|tablepro|jackin-preview|holla` (112 cells).
+The check
 also reads `tools/capture.sh` and requires explicit `BIN`, explicit argv, `COLOR` branching,
 owned run/session identity, tmux dimensions/pane capture and the `ansi2png.py` conversion. The harness rejects the
 legacy implicit showcase binary, so a capture cannot silently use the wrong owner.
@@ -8709,7 +8732,8 @@ Two things were left unresolved, and both are resolved here.
 | Visual baseline | `apps/<app>/tests/baselines/<app>.txt` | `tests/showcase_baseline.txt`, `baseline/before/**` |
 | Perf baseline | `apps/<app>/tests/perf_baseline.txt` | the root `perf_baseline.txt` |
 
-`<app>` is one of `showcase`, `tablepro`, `jackin-preview`. Appendix B.2's per-app `tests/` lists
+`<app>` is one of `showcase`, `tablepro`, `jackin-preview`, and `holla`; Holla's visual baseline
+file is `tests/baselines/app.txt`. Appendix B.2's per-app `tests/` lists
 gain `perf_baseline.txt`. The root files are never edited, never renamed and never deleted before
 the post-Slice-7 rename commit; they remain the before-images every Slice 5–7 classification is
 measured against. CI's perf-baseline diff step currently names only the two existing files and would
@@ -8747,6 +8771,10 @@ citation for application baselines is rejected rather than silently accepted.
 
 ## 75. Reviewed recovery of absent historical renderings
 
+**Status: conditional historical policy.** This does not approve changed
+product baselines or authorize campaign execution; its acceptance conditions
+below must be satisfied independently.
+
 The user-authorized main-based integration task and independent review recorded
 in [the historical regeneration approval](docs/historical-regeneration-approval.md)
 authorize one narrow exception to the blanket frozen-addition refusal in §16.3,
@@ -8769,6 +8797,9 @@ baseline key blessing, candidate snapshot approval, or pinned-Holla acceptance.
 
 
 ## Meter semantic rest policy amendment
+
+**Status: pending canonical preservation review.** The source correction is
+recorded, but the stated before/after cell review is not complete.
 
 `MeterTokens::fill_rest` is now `MeterFillRest`, either `Color(Color)` or
 `ReferenceLift`. This is an explicit experimental API migration: existing custom
@@ -8802,6 +8833,9 @@ existing 16-frame Meter preservation assertion remains unchanged pending indepen
 review of canonical before/after cells and pinned-source role derivation.
 
 ## ScrollRegion scrollbar visibility amendment
+
+**Status: current API addendum.** Its implementation and behavior remain
+subject to the repository-wide frozen visual and behavioral acceptance gates.
 
 `ScrollRegion` gains `scrollbar_visible(bool)` (default `true`); `NavList`
 forwards it as `NavList::scrollbar_visible`. When false, the shared wheel

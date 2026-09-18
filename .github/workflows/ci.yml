@@ -50,9 +50,13 @@ name: CI
 # All four application packages live under `apps/` and consume the public facade.
 
 on:
+  # Run the blocking documentation gate on every branch push as well as PRs.
+  # Direct feature-branch pushes must not bypass link verification.
   push:
-    branches: [main]
   pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 3 * * 1'
 
 env:
   CARGO_TERM_COLOR: always
@@ -70,6 +74,7 @@ jobs:
   # job, kept so new compiler and clippy diagnostics are seen early.
   gates:
     name: gates (${{ matrix.toolchain }})
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -79,17 +84,17 @@ jobs:
       # `fetch-depth: 0` is required by `xtask bless-guard` (§16.3, §36.5): a shallow
       # checkout has no merge base, `origin/$GITHUB_BASE_REF` does not resolve, and the
       # guard would degrade to comparing a clean tree with itself and pass forever.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master (2026-09-18)
         with:
           toolchain: ${{ matrix.toolchain }}
           components: rustfmt, clippy
-      - uses: taiki-e/install-action@nextest
+      - uses: taiki-e/install-action@9874fc3fbcb156695ec7e9bfb472e60e9d2370e9 # nextest
       - name: Install nightly rustdoc toolchain
         run: rustup toolchain install nightly --profile minimal --no-self-update
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           key: ${{ matrix.toolchain }}
 
@@ -185,3 +190,62 @@ jobs:
       # §21 item 34: every `Ident::method` and code block in the document resolves.
       - name: Document reference check (§21 item 34)
         run: cargo run --locked -p xtask -- doc-check
+
+  # This is a separate blocking job because Markdown links are independent of
+  # the Rust toolchain matrix. The input list is generated from Git so hidden
+  # task/reference documents and the AGENTS/CLAUDE policy pair cannot silently
+  # fall outside the check.
+  markdown-links:
+    name: Markdown links
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 1
+
+      - name: Enumerate tracked Markdown
+        run: git ls-files -z | tr '\0' '\n' | awk 'tolower($0) ~ /\.(md|mkd|mdx|mdown|mdwn|mkdn|mkdown|markdown|mdc)$/ { print }' > "$RUNNER_TEMP/lychee-inputs.txt"
+
+      - name: Restore Lychee cache
+        id: lychee-cache
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .lycheecache
+          key: lychee-v0.24.2-action-v2.9.0-args-v1-${{ runner.os }}-${{ hashFiles('lychee.toml') }}-${{ github.sha }}
+          restore-keys: |
+            lychee-v0.24.2-action-v2.9.0-args-v1-${{ runner.os }}-${{ hashFiles('lychee.toml') }}-
+
+      - name: Check Markdown links
+        uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0
+        with:
+          args: >-
+            --config "${{ github.workspace }}/lychee.toml"
+            --root-dir "${{ github.workspace }}"
+            --files-from "$RUNNER_TEMP/lychee-inputs.txt"
+            --extensions md,mkd,mdx,mdown,mdwn,mkdn,mkdown,markdown,mdc
+            --include-fragments=full
+            --include-verbatim
+            --no-progress
+            --cache
+            --max-cache-age 1d
+            --max-retries 2
+            --retry-wait-time 2
+            --max-concurrency 16
+            --host-concurrency 2
+            --host-request-interval 250ms
+            --timeout 20
+          format: markdown
+          fail: true
+          failIfEmpty: true
+          lycheeVersion: v0.24.2
+          token: ${{ github.token }}
+          output: lychee/out.md
+
+      - name: Save Lychee cache
+        if: always() && steps.lychee-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        with:
+          path: .lycheecache
+          key: lychee-v0.24.2-action-v2.9.0-args-v1-${{ runner.os }}-${{ hashFiles('lychee.toml') }}-${{ github.sha }}

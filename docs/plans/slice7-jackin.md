@@ -499,10 +499,12 @@ impl Instance {
 | 5 | **Per-screen migration** in dependency order: `config.rs` (shared by editor+settings) → `editor.rs` → `settings.rs` → `accounts.rs` → `usage.rs` → `manager.rs` → `prelude.rs` → `inspect.rs` → `cockpit.rs` → `capsule.rs` (last, largest, and the perf target) | per-screen: its named tests + its visual digests |
 | 6 | **`rain.rs` onto `Role` + `Ui::dim_layer`** (§4). Last, because `dim_layer` needs every screen painting through `Ui` | `rain.rs` unit tests; handoff digests under both themes |
 | 7 | **Menu chords + derived hints** (M1–M3, H3). Deliberately after the screens, so component bindings exist to derive from | `chrome.rs:43, 74, 110, 133`; `bindings_match_handled_keys` |
-| 8 | **Classify → capture → bless** the 36 digests; write `docs/visual-changes.md` entries | `xtask bless-guard` |
+| 8 | **Historical proposal:** classify the 36 candidate digests against the immutable oracle and record causes; never bless the frozen oracle | historical `xtask bless-guard` reference |
 | 9 | Full Slice-7 gate (`COMPONENT_ARCHITECTURE.md:4080`) | see below |
 
 **Gate (verbatim from `:4080`, expanded):**
+The following gate is historical evidence from the pre-migration plan and is not replayable. Current native validation uses `AGENTS.md`, `cargo nextest`, current task contracts, and the frozen visual-baseline comparison.
+
 ```bash
 cargo fmt --all --check
 cargo clippy -p junie-tui -p jackin-preview --all-targets --all-features -- -D warnings

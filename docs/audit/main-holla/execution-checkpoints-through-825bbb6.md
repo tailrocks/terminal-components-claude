@@ -40,9 +40,10 @@ may proceed concurrently. No candidate output becomes expected evidence by fiat.
 Only the integrator writes shared files, manifests, public exports, the ledger,
 and this plan. Every future builder receives a dedicated branch/worktree,
 explicit owned paths, base SHA, dependency contracts, and acceptance commands.
-Current scouts are read-only against source; each owns its external report folder.
+Scouts were read-only against source at this checkpoint; each owned its
+external report folder.
 
-| Task | Requirements | Owner | Dependency | Current state |
+| Task | Requirements | Owner | Dependency | State recorded at checkpoint |
 |---|---|---|---|---|
 | T01 Pin sources, isolate, preserve dirty work | §1–2 | integrator | none | verified |
 | T02 Exhaustive history/obligation map | §3 | history_audit | T01 | two-document history independently verified; Holla/DESIGN semantic review complete |
@@ -87,9 +88,10 @@ remains active until all requirements are proven; main has not been merged.
 
 ## Latest evidence and next slice
 
-See REFACTORING_STATE.md, final checkpoint 2026-09-08, for exact committed
-repairs, measured failures, current ownership and outstanding work. Full goal
-remains unchanged. Initial source audits are copied under docs/audit/main-holla;
+The former `REFACTORING_STATE.md` checkpoint recorded exact committed repairs,
+measured failures, ownership and outstanding work at that date. It is historical
+provenance only. The full goal remained unchanged at that checkpoint. Initial
+source audits are copied under docs/audit/main-holla;
 raw logs, captures, patches and hash manifests remain separate external evidence.
 The sidebar real-process reproducer now confirms the predicted wrong hit target.
 Shared compact NavList geometry is integrated in 3710431 (documentation 1f869d8).
@@ -133,7 +135,7 @@ required before merging main. Preserve the original dirty checkout.
   fixture schema migration is under independent source/cell/image review.
   Application expected captures remain unchanged and unapproved.
 
-Current isolated ownership: runtime_audit (runtime/session/testing lifecycle),
+Ownership recorded at this checkpoint: runtime_audit (runtime/session/testing lifecycle),
 showcase_contract (Jackin CLI), holla_disposition (Junie theme and background
 provenance), baseline_gates (external capture tools), history_audit (independent
 tool migration review), holla_domain (Holla model/simulation),

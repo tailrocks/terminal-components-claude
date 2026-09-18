@@ -4,8 +4,12 @@
 > its commands, branch/pin/model/merge/container instructions. Reconcile this
 > record against the current readiness report and current contracts.
 
-**Status:** proposed. Read-only review at `HEAD 8ec40c1`. Source files cited by `file:line`.
-**Authority:** `REFACTORING_GOAL.md` › `DESIGN.md` › existing rendered output/tests › current source (`COMPONENT_ARCHITECTURE.md:5`).
+**Status at the historical review:** proposed. Read-only review at `HEAD 8ec40c1`.
+Source files cited by `file:line`.
+**Historical authority:** `REFACTORING_GOAL.md` › `DESIGN.md` › existing
+rendered output/tests › current source (`COMPONENT_ARCHITECTURE.md:5`). Current
+execution authority is `AGENTS.md` and the readiness report; this record is
+architecture provenance, not a runnable plan.
 Facts marked **[F]** were read from the tree in this pass. Everything else is inference or decision. Two of the six premises handed to me are **wrong as stated** (P3, and half of P6); both corrections are load-bearing, so they are recorded before the decisions.
 
 ---

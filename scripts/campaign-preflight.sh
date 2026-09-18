@@ -66,13 +66,14 @@ check_ledger() {
   root="$(repo_root)"
   ledger="$root/.campaign/ledger.json"
   [[ -f "$ledger" ]] || fail "missing $ledger (run campaign-init.sh)"
-  python3 - "$ledger" <<'PY' || fail "ledger invalid"
+  python3 - "$ledger" "$INTEGRATION_BRANCH" <<'PY' || fail "ledger invalid"
 import json, sys
 p = sys.argv[1]
 with open(p) as f:
     d = json.load(f)
 assert d.get("schema") == "campaign-ledger/v1"
-assert d.get("integration_ref") == "refs/heads/refactor/holla-parity"
+expected_ref = "refs/heads/" + sys.argv[2]
+assert d.get("integration_ref") == expected_ref, (d.get("integration_ref"), expected_ref)
 assert d.get("armed") is False, "ledger shows armed=true — do not arm /goal via preflight"
 assert d["catalog"]["commit"] != "REPLACE_AT_INIT", "catalog commit not recorded"
 accepted = [row for row in d.get("tasks", [])

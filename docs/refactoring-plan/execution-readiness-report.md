@@ -13,12 +13,12 @@ parent was `c9eef7bd`. The current branch includes the reconciliation and
 campaign-policy documentation update and does not claim product parity.
 
 - Audit snapshot `main..a34a1cff`: 27 commits, zero apps/ or crates/ product-source changes.
-- The reconciled branch is `main` plus 38 commits; production implementation
-  behavior remains unchanged. `apps/` and `crates/` differ from `main` only in
-  two Rust performance-test documentation command examples migrated from
-  `cargo test` to `cargo nextest`. The reconciliation adds only docs, task
-  contracts, scripts, and verification tooling on top of the 34-commit
-  pre-reconciliation tree.
+- The reconciled branch remains campaign/proof scaffolding; production
+  implementation behavior remains unchanged. `apps/` and `crates/` differ from
+  `main` only in two Rust performance-test documentation command examples
+  migrated from `cargo test` to `cargo nextest`. The reconciliation adds only
+  docs, task contracts, scripts, and verification tooling; no product parity
+  claim follows from these changes.
 - All 73 task manifests remain pending.
 - Shared architecture is substantial, but consumers still contain compatibility painters, duplicate state, and historical renderers.
 - Frozen visual oracle is absent from this branch and its active gate; it
@@ -53,14 +53,15 @@ Validation:
 | Ref | Commit |
 |---|---|
 | main | 7b27732a |
-| refactor/holla-parity | current campaign tree (parent `c9eef7bd`; `a34a1cff` was the audit snapshot) |
+| refactor/holla-parity | current campaign tree (cleanup parent `c9eef7bd`; `a34a1cff` was the audit snapshot) |
 | visual-baseline branch | 4a79c0a2 |
 | visual-baseline tag peel | 4a79c0a2 |
 
 Relationships:
 
 - merge-base(main, refactor) = 7b27732a; the cleanup parent was main + 34
-  commits, and the current campaign tree is main + 38 commits.
+  history rooted there. Exact ahead-count is intentionally not used as a
+  readiness claim; inspect the final commit graph at execution start.
 - merge-base(visual-baseline, refactor) = cc14dd6b.
 - Baseline has 77 commits absent from refactor.
 - Refactor has 809 commits absent from baseline.
@@ -525,7 +526,7 @@ The current audit nevertheless reconciled the requested high-risk topics:
 | Snapshot and behavioral parity | Still valid blockers | Static/current self-baselines do not replace the 30,200-file grouped store, PTY transitions, cursor/focus/hit ownership, or real component routes. Compatibility painters remain an ownership risk. |
 | CI and performance | Integrated, blocker retained | Active CI/perf commands use nextest with corrected thread-flag placement; rustdoc remains a compile gate because nextest 0.9.143 has no doctest runner. Recorded normal Jackin allocation budgets still fail for capsule, manager, and key movement; no fresh qualification was claimed. |
 | Stale goals/reports/runbooks | Integrated | `GOAL.md` is product intent only; obsolete root goals, handoffs, state/coordination files, old plans, reports, and runbooks are either retired pointers or evidence-only banners. Current docs route through this report and the subagent-only contracts. |
-| Documentation links | Integrated | Repository-wide Markdown path scan now reports zero missing path links; the 73 task visual-validation links and 16 trusted protocol links found during reconciliation were corrected. |
+| Documentation links | Integrated and requalified | Lychee 0.24.2 and the native semantic/path audit cover every tracked Markdown-formatted input; current results and the one narrow mail-data setting are recorded in §Q. |
 | Proof compile/dispatcher consistency | Partially integrated; blocker retained | The plural `checks` parser, exact context-file set, external run directory, explicit scope base, clean worktree, and native binary receipt checks are now fail-closed. A native build helper records commit/path/hash. No trusted per-check context/result/observer launcher exists yet. |
 | Scripts and package rebundling | Integrated | Obsolete container/taskfmt lifecycle paths are not execution authority; alternate Python rebundlers now fail closed instead of overwriting the dispatcher. Useful nextest/inventory checks remain. |
 | DAG and task acceptance | Integrated; acceptance still absent | The current graph is acyclic and regenerated from current metadata; stale graph/title/context bindings were reconciled. Task metadata remains `pending`; only accepted verifier receipts and integrated ancestry can establish completion. |
@@ -537,3 +538,73 @@ enforcement is deliberately not assumed. Historical
 reports that mention old taskfmt pins, old oracle tags, old commands, or old
 execution authorities remain evidence only and are routed through the current
 README. They were not rewritten into false current results.
+
+## Q. Documentation and link-integrity audit
+
+This documentation pass was completed against the current tree on 2026-09-18.
+The inventory contains **792 tracked Markdown-formatted inputs** (`.md`, `.mkd`,
+`.mdx`, `.mdown`, `.mdwn`, `.mkdn`, `.mkdown`, `.markdown`, and `.mdc`),
+including hidden, task, historical, and contributor documents. Lychee
+`0.24.2` parsed 723 destinations in the native offline qualification run:
+624 local successes, zero errors, zero timeouts, zero unknowns, and zero
+unsupported destinations. The local resolver found no missing repository file,
+directory, or fragment destination.
+
+The offline run necessarily did not exercise network destinations. It exposed
+91 external-link occurrences and eight email occurrences as offline exclusions;
+that is execution-mode output, not a repository allowlist. The 91 occurrences
+collapse to 79 unique HTTPS URLs. An independent bounded `curl` sweep checked
+all 79 and received HTTP 200 for all 79. A full live Lychee run on this host
+was inconclusive because Lychee's HTTP client repeatedly timed out on a GitHub
+destination and then aborted its queue; direct `curl` to that same URL returned
+HTTP 200. This is an environment/tool-client qualification limitation, not a
+link suppression or a claimed Lychee pass. CI retains real live Lychee checks
+with no URL/path exclusions.
+
+The only intentional Lychee category setting is `include_mail = false`: email
+values in campaign metadata and reserved `example.test` fixtures are not
+documentation destinations. There is no `.lycheeignore`, no broad URL/path
+ignore, no private-link suppression, and no accepted-status wildcard. Cache
+reuse is bounded to successful external results for one day; local paths and
+fragments are resolved from the checkout. CI's cache key includes the Lychee
+version, action version, arguments, configuration hash, runner, and commit.
+
+The semantic audit reconciled the deleted `docs/sources/PLANNING_GOAL.md`
+reference to an immutable `visual-baseline` commit URL in active task docs;
+historical mentions are explicitly provenance-only. It corrected the Holla
+stage contract's future target paths (`domain/cleanup.rs` and `sim/fs.rs`)
+without falsely claiming those files exist today; current path normalization is
+`apps/holla/src/domain/disk.rs`. It corrected the refactoring-plan authority
+pointer, demoted stale plan/report findings, and reviewed the duplicated task
+contracts. No obsolete document was restored and no placeholder was created.
+
+The independent review also found legacy `taskfmt init` probes in the retained
+host-bootstrap fixture copies for TASK-001/070/071/072. History review
+classified them as archival qualification evidence: TASK-001/070 are
+non-qualifying, and no current `verify.toml` invokes the host-bootstrap
+lifecycle fixture. Current task instructions explicitly prohibit lifecycle
+commands; those fixtures must not be executed as campaign infrastructure and
+remain a replacement-work blocker, not an accepted taskfmt workflow.
+
+A separate plain-text/path-reference audit found no missing current repository
+destination. References to historical or future paths remain only where their
+provenance or task target meaning is explicit; they are not treated as current
+filesystem claims. `AGENTS.md` makes this semantic review rule mandatory.
+The same audit corrected `completion/007`'s false absence claim and
+`completion/037`'s Showcase test paths. It also reconciled the branch override
+contract: `campaign-preflight.sh` now validates the configured integration
+branch, and `campaign-init.sh` passes its configured worktree/branch into the
+printed preflight command.
+
+CI enforcement is the blocking `Markdown links` job in
+[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), triggered on push,
+pull request, manual dispatch, and a weekly schedule. It enumerates the same
+tracked extension set, uses the pinned Lychee action `v2.9.0` with Lychee
+`0.24.2`, and reports source/destination diagnostics. `actionlint 1.7.12`
+passes locally. The authoritative workflow remains **Grok Build → subagents →
+implementation → taskfmt deterministic validation → visual/behavioral gates →
+integration**; taskfmt and Lychee are verifiers, never orchestrators, and no
+container path is part of this campaign.
+
+All existing workflow actions are now full-SHA pinned; the pin updates are
+security-hardening changes, not a relaxation of the link gate.

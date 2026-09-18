@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: Junie TUI
-description: Terminal-native design system extracted from the junie-tui Ratatui implementation (design-system showcase and TablePro workbench). Tokens are exact; prose explains how the implementation uses them.
+description: Terminal-native design system shared by the Showcase, TablePro, Jackin Preview, and Holla applications. Its initial visual provenance is the junie-tui Ratatui implementation; tokens are exact and prose explains how the current implementation uses them.
 omitted:
   - section: typography
     reason: "The terminal emulator owns font family, size, line height and letter spacing. The application controls only modifiers (bold, italic, underline, strikethrough), tone and layout, which are specified in the Typography prose."
@@ -314,17 +314,18 @@ replaces the placeholder.
 `COLORTERM=truecolor` selects the palette above; a `TERM` containing
 `256color`, `ghostty` or `kitty` maps every token to the nearest xterm-256
 value; other terminals get 16 named colours; `NO_COLOR` forces monochrome.
-Both binaries accept `--color truecolor|256|16|none`. What must survive at
+All shipped application binaries accept `--color truecolor|256|16|none`. What must survive at
 every level: the `▎` bar, bold for focus, underline for editing, the reversed
 cursor cell, `!`, `›`, `✓` and `•`. At 16 colours the accent is LightGreen and
 error is LightRed; in monochrome all hue is gone and the glyph and modifier
 language carries the state alone.
 
-### Declared but dormant
+### Current token names
 
-`accent_bg_subtle`, `error_bg` and `info` (`#8787ff`) exist in the theme
-struct but no resolver uses them. They are not part of the system; do not
-introduce them into new screens.
+The current `ColorTokens` API uses `accent_tint`, `danger_tint`, and `info`
+(`crates/tui/src/theme/tokens.rs`); their semantic roles are resolved by the
+theme. `accent_bg_subtle` and `error_bg` are historical names, not current
+tokens. Do not introduce them into new screens.
 
 ## Typography
 
@@ -402,9 +403,11 @@ counts.
 
 ### Shell
 
-Both applications use the same shell: a one-row header, a blank row, the
-body, a blank row, a one-row footer. The showcase body spans the full width;
-TablePro's body has a one-cell margin on each side.
+Showcase and TablePro use the shared shell: a one-row header, a blank row, the
+body, a blank row, and a one-row footer. Their body geometry differs: Showcase
+spans the full width; TablePro has a one-cell margin on each side. Jackin Preview
+and Holla compose application-specific shells from the same shared primitives
+and are covered by their own application contracts.
 
 - **Showcase**: navigation sidebar (`19` columns, `24` from `110` columns
   wide) + `2` gap + main pane; an optional inspector (`30` columns) appears at
@@ -463,7 +466,7 @@ widest label `+ 2`.
 
 ### Responsive rules
 
-Minimum size is `72×20`. Below it both apps show a centred four-line notice
+Minimum size is `72×20`. Below it each shipped application shows a centred four-line notice
 (product name, `Terminal too small`, `Need 72×20, have W×H`, `q Quit`) and
 nothing else. Representative sizes are `80×24`, `100×30`, `120×40`, `160×50`.
 
@@ -1183,8 +1186,10 @@ Tab still reaches them.
   wrapped query, facts under it, actions right after the facts.
 - **Safety gate**: the facts dialog composed from the statement classifier.
 
-There is no toast, context menu, diff viewer or generic badge component. Do
-not claim one exists; add it to the showcase first if it becomes necessary.
+`ContextMenu` and `DiffView` are current reusable components and are covered by
+the component/application contracts. There is no generic toast or generic badge
+component; do not invent duplicate versions in an application. Add a reusable
+component to the showcase before expanding the shared component surface.
 
 ## Do's and Don'ts
 
@@ -1215,7 +1220,9 @@ not claim one exists; add it to the showcase first if it becomes necessary.
   focused, typed acknowledgement for irreversible writes. **Don't** confirm
   harmless navigation or paint a production screen red.
 - **Do** verify a visual change with the capture harness at `80×24`,
-  `100×30`, `120×40` and `160×50` and against the showcase baseline.
+  `100×30`, `120×40` and `160×50` and against the applicable frozen
+  `visual-baseline/snapshots` cases. The Showcase self-baseline is diagnostic
+  only, not the product oracle.
   **Don't** regenerate the baseline to hide an unintended change.
 - **Do** update this file when a reusable convention is added on purpose.
   **Don't** document a one-screen workaround as a system rule.
@@ -1226,18 +1233,18 @@ not claim one exists; add it to the showcase first if it becomes necessary.
    writing a new one; every generic component already has a page, and a new
    generic component must get one, at `120×40` and `80×24`, in the same
    change.
-2. Widgets draw and register in one pass: `render` paints, registers hit
-   regions (container first, rows and close affordances after) and focus
-   stops (in reading order); `on_key`, `on_click`, `on_drag`, `on_wheel`
-   return `Ignored`, `Consumed` or `Changed`. Follow that shape exactly.
+2. Components separate interaction updates from drawing: update methods mutate
+   caller-owned state and return the documented response, while draw methods
+   paint and register hit regions/focus stops in reading order without
+   committing interaction semantics. Follow the current two-phase API exactly.
 3. Ask the theme for styles by state (`row`, `button`, `field_style`,
    `gutter`, `tone`, `syntax`, `badge`, `border`, `lift`). Never construct a
    style from colour constants.
 4. Keep domain knowledge out of the library: SQL tokenising, catalog types
    and safety levels live in the application and reach widgets as functions
    and plain data.
-5. A modal must call `begin_modal`; an anchored popup must be drawn after its
-   siblings and route outside-clicks through its owner.
+5. A modal or anchored popup opens through `cx.open_layer(...)`; draw layers in
+   their declared z-order and route outside clicks through the owning layer.
 6. Ignore typing-conflicting chords while any control is editing; route
    editing keys through the shared edit keymap.
 7. Responsive behaviour is prioritisation, not scaling: segments and hints

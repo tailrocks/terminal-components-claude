@@ -16,15 +16,21 @@ Two historical input corrections, up front, because they change the contract:
 
 ---
 
-**Status:** executable when its application-migration preconditions hold. Preconditions: Slice 5 closed (the `junie-tui` → `junie-tui` rename, root `src/` and its three `[[bin]]`s removed, `apps/` layout live), Slice 4 packages 4A–4I closed, `crates/tui/tests/fixtures/grid_model.rs` green. `NavList`, `Steps`, `Grid` and `TooSmall` are already exported by the Slice 4 library; that does not remove these later app preconditions. Slice 6 and Slice 7 run in parallel over disjoint app trees (Appendix A "Dependency summary").
+**Status:** historical plan snapshot; not executable and not authorizing. Its
+preconditions, sequence, paths, and acceptance language describe a prior
+application-migration proposal. Current status is governed by `AGENTS.md`,
+`docs/refactoring-plan/execution-readiness-report.md`, and the current
+subagent-only contracts.
 
-**Authority:** `REFACTORING_GOAL.md` §18/§22.2/§23-H/§29 › `DESIGN.md` › the pre-refactor captures and `tests/baselines/tablepro.txt` › `COMPONENT_ARCHITECTURE.md` §12.3, §14, §17, §18, §21–§29. DOM §1.6's 22-capability table is adopted verbatim as the checklist (§12.3, final sentence).
+**Historical authority at the time:** `REFACTORING_GOAL.md` §18/§22.2/§23-H/§29 › `DESIGN.md` › the pre-refactor captures and legacy `tests/baselines/tablepro.txt` › `COMPONENT_ARCHITECTURE.md` §12.3, §14, §17, §18, §21–§29. Current authority is `AGENTS.md`, the readiness report, current source/tests/contracts, and the frozen visual oracle. DOM §1.6's 22-capability table was adopted as the historical checklist.
 
 ---
 
 ## 0. Preconditions and the one-commit package move
 
-**[F]** Today: single package, `src/bin/tablepro/{main,app,workbench,tabs,connections,db,model,sql}.rs` + `#[cfg(test)] app_tests.rs, perf_tests.rs, visual_tests.rs` (`main.rs:4-16`).
+**[F]** At the pre-migration snapshot: single package,
+`src/bin/tablepro/{main,app,workbench,tabs,connections,db,model,sql}.rs` +
+`#[cfg(test)] app_tests.rs, perf_tests.rs, visual_tests.rs` (`main.rs:4-16`).
 
 Target (Appendix B.2):
 
@@ -40,7 +46,10 @@ apps/tablepro/tests/{app_tests.rs, visual.rs, perf.rs, baselines/tablepro.txt}
 * **[F]** `Theme::for_level(opts.level)` (`main.rs:63`) becomes `Theme::junie().downgrade(level)` / `Theme::paper().downgrade(level)` (§11.2).
 * `impl Application for App` becomes `impl junie_tui::App for App` with `update`/`draw`/`should_quit`/`keymap`/`min_size`/`on_esc` (§17.0 A1). `tick_interval` is **deleted** (§8.5, `cx.request_repaint_after`).
 * **[F]** `db.rs`, `sql.rs` are pure domain and move **unchanged**. `model.rs` moves with one signature change (§2.7 below).
-* `tests/baselines/tablepro.txt` (today at the repo root, `visual_tests.rs:253`) moves to `apps/tablepro/tests/baselines/tablepro.txt` unchanged, so it stays a genuine before-image (§20.10-14).
+* The legacy `tests/baselines/tablepro.txt` at the pre-migration repo root
+  (`visual_tests.rs:253`) was proposed to move to
+  `apps/tablepro/tests/baselines/tablepro.txt`; the current app-owned file is
+  not automatically a historical before-image.
 
 ---
 
@@ -48,7 +57,7 @@ apps/tablepro/tests/{app_tests.rs, visual.rs, perf.rs, baselines/tablepro.txt}
 
 `«tui»` = `crates/tui/src/`, `«tp»` = `apps/tablepro/src/`. "Deletes" lists the manual plumbing that must be *gone*, not merely moved.
 
-| # | Surface | Today (`file:line`) | Target composition | Plumbing deleted | Tests that must keep passing |
+| # | Surface | State at pre-migration snapshot (`file:line`) | Target composition | Plumbing deleted | Tests that must keep passing |
 |---|---|---|---|---|---|
 | 1 | Connections list (tree + filter) | `connections.rs:266-267`, build `:283-317`, keys `:470-484`, click `:749-769`, render `:938-966` | `Tree<'a, Connection, K, R>` keyed by `ItemKey::text(&c.name)` + `Field::new("", TextInput)`; `Panel::framed("Connections")` | `tree.locate(id)` + `on_click_toggle`/`on_click_row` (`:749-755`); `cx.focus.focus(self.tree.id)` (`:750`); `connection_at_path` path→index (`:319-325`); the rebuild-and-rescue-cursor idiom (`:309-315`); the `/`-to-filter interception (`:471-475`) → a `Binding` | 1, 2, 20, 23 |
 | 2 | Connection detail card + action row | `connections.rs:975-1117` | `Panel::card` + `Props` + `layout::action_row` + 4 `Button`s; spinner via `Status::Busy` on the Connect button | `row_layout` (`:1113`) → `layout::action_row`; the 5-button `for (b, action)` ladders (`:489-501`, `:773-785`); the render-time `connect_btn.busy`/`.label` writes (`:1101-1106`) move to props built once (§13) | 1, 2, 23 |
@@ -333,6 +342,8 @@ TablePro wiring and regression proof remain Slice 6 work.
 
 ### 2.9 The boundary acceptance condition (DOM §1.6, adopted verbatim)
 
+The following boundary command is historical evidence from the pre-migration plan. Do not replay it; current validation uses the native macOS workflow in `AGENTS.md` and `cargo nextest`.
+
 ```bash
 ! rg -n -i '\b(sql|primary key|nullable|foreign|references|NOT NULL|DEFAULT VALUES|commit queue)\b' \
      crates/tui/src/components/grid.rs
@@ -376,6 +387,8 @@ Wave 1 = {6A, 6B, 6E}; wave 2 = {6C, 6D}; wave 3 = 6F → 6G → 6H (serial).
 
 **Per-package gate** (Appendix A Slice 6, expanded to name both render targets per §28 P2):
 
+The following per-package gate is also historical and non-replayable. Current commands and acceptance are defined by `AGENTS.md`, the readiness report, and the task contract.
+
 ```bash
 cargo fmt --all --check
 cargo clippy -p junie-tui -p tablepro --all-targets --all-features -- -D warnings
@@ -386,7 +399,7 @@ cargo run -p xtask -- doc-check
 cargo test -p tablepro --test perf --release -- --test-threads=1
 ```
 
-**Slice close gate** additionally: all 23 `app_tests` green; `grid_500x12_load < 8 000 allocs` and `frame_tablepro_grid_500x12_120x40 < 100 allocs/frame` (§16.6); the two added benchmarks `frame_tablepro_connection_form_120x40 < 40` and `frame_tablepro_query_editor_2k_lines < 40`; `apps/tablepro/tests/baselines/tablepro.txt` regenerated **once**, in the order **change → capture → classify → bless** (§16.3), every one of the 42 lines classified in `docs/visual-changes.md`; captures of the connection, editor, grid, tabs, dialog, picker and results surfaces reviewed by a fresh read-only `read-only analyst`.
+**Historical slice-close proposal:** all 23 `app_tests` green; the recorded allocation thresholds and surface reviews were intended gates. The old proposal to regenerate or bless `apps/tablepro/tests/baselines/tablepro.txt` is superseded: the frozen visual-baseline oracle is immutable, and current acceptance requires exact comparison against it under `AGENTS.md`.
 
 ---
 
@@ -394,7 +407,7 @@ cargo test -p tablepro --test perf --release -- --test-threads=1
 
 ### 4.1 The wall-clock dependency (must be closed first)
 
-**[F]** TablePro reads the wall clock in five places: `use std::time::{Duration, Instant}` (`app.rs:4`); `status: Option<(String, Instant)>` (`:133`); `flash: Option<(WidgetId, Instant)>` (`:134`); `set_status` (`:207-209`); `interaction()`'s `at.elapsed() < 140ms` (`:212-215`); `on_tick`'s 140 ms flash expiry and 5 s status expiry (`:323-334`); and the two `self.flash = Some((id, Instant::now()))` writes (`:552`, `:1935`). `REFACTORING_STATE.md:30` records this as pre-existing finding (6).
+**[F]** At the pre-migration snapshot, TablePro read the wall clock in five places: `use std::time::{Duration, Instant}` (`app.rs:4`); `status: Option<(String, Instant)>` (`:133`); `flash: Option<(WidgetId, Instant)>` (`:134`); `set_status` (`:207-209`); `interaction()`'s `at.elapsed() < 140ms` (`:212-215`); `on_tick`'s 140 ms flash expiry and 5 s status expiry (`:323-334`); and the two `self.flash = Some((id, Instant::now()))` writes (`:552`, `:1935`). The retired `REFACTORING_STATE.md:30` entry is historical evidence only.
 
 **Replacement:**
 
@@ -508,7 +521,7 @@ evidence that Slice 5 or Slice 6 is complete.
 
 ### Collected facts vs inference — summary
 
-Everything in §1's "Today" column, §2.1's move list, §4.1's five wall-clock sites, §4.2's per-test line numbers and §4.3's surface list is **[F]**, read from `src/bin/tablepro/**` and `src/widgets/grid.rs`. Target compositions, the `RowId` decision (§2.2), the work-package split (§3), per-digest cause attribution (§4.3) and risks are migration decisions. Q1–Q4, Q9 and Q11 now reflect accepted or implemented contracts; unresolved rows still require proof before their dependent Slice 6 package starts.
+Everything in §1's **pre-migration snapshot** column, §2.1's move list, §4.1's five wall-clock sites, §4.2's per-test line numbers and §4.3's surface list is **[F]**, read from the historical `src/bin/tablepro/**` and `src/widgets/grid.rs`. Target compositions, the `RowId` decision (§2.2), the work-package split (§3), per-digest cause attribution (§4.3) and risks are migration decisions. Q1–Q4, Q9 and Q11 record decisions at that historical planning point; unresolved rows require fresh evidence under the current readiness report.
 
 **Files most relevant to the next agent:**
 `/Users/donbeave/Projects/terminal-components-claude/src/bin/tablepro/{app.rs,workbench.rs,tabs.rs,connections.rs,model.rs,db.rs,app_tests.rs,visual_tests.rs}`,

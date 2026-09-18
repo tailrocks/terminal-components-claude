@@ -6,7 +6,7 @@ These clauses are planner-owned acceptance inputs. Freeze this file and the exac
 
 ## Source authority
 
-HIST:A130; HIST:RG49; HIST:RG51; HIST:RG52; HIST:RG56; ARCH:A28–A32; every HIST/ARCH/COMP/APP/DEC source in traceability.tsv; docs/sources/PLANNING_GOAL.md §§16–18; proof-contract.md.
+HIST:A130; HIST:RG49; HIST:RG51; HIST:RG52; HIST:RG56; ARCH:A28–A32; every HIST/ARCH/COMP/APP/DEC source in traceability.tsv; [historical PLANNING_GOAL.md at the immutable visual-baseline commit](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2/docs/sources/PLANNING_GOAL.md) §§16–18; proof-contract.md.
 
 The full historical clauses, remaining work and proof requirements are included in source-obligations.tsv, with their original ledger locations. Architecture and decision IDs are namespaced; HIST:A23 is not ARCH:A23.
 

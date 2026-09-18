@@ -15,7 +15,7 @@ Produce an independently verified merge-readiness receipt for one exact integrat
 
 Visual acceptance is currently blocked: this branch lacks the grouped store and PTY suite. A verifier subagent must import them read-only from the immutable `visual-baseline` tag into the external run before using [`visual-validation.md`](../../../visual-validation.md). Never write `snapshots/`, bless output, or mutate the tag.
 
-Tested integration head passes whole required oracle direct/PTY set, authoritative stable/MSRV/build/lint/docs/API/performance gates, trust immutability and ancestry/merge-readiness checks. This is a bounded closure of already restored production work, not permission to reopen unrelated design choices. HIST:A130; HIST:RG49; HIST:RG51; HIST:RG52; HIST:RG56; ARCH:A28–A32; every HIST/ARCH/COMP/APP/DEC source in traceability.tsv; docs/sources/PLANNING_GOAL.md §§16–18; proof-contract.md.
+Acceptance requires a tested integration head to pass the whole required oracle direct/PTY set, authoritative stable/MSRV/build/lint/docs/API/performance gates, trust immutability and ancestry/merge-readiness checks. This task is a bounded closure of already restored production work, not permission to reopen unrelated design choices. HIST:A130; HIST:RG49; HIST:RG51; HIST:RG52; HIST:RG56; ARCH:A28–A32; every HIST/ARCH/COMP/APP/DEC source in traceability.tsv; [historical PLANNING_GOAL.md at the immutable visual-baseline commit](https://github.com/donbeave/terminal-components-claude/blob/4a79c0a2/docs/sources/PLANNING_GOAL.md) §§16–18; proof-contract.md.
 
 Read before editing:
 

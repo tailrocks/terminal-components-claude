@@ -5,7 +5,11 @@
 > record against the current readiness report and current contracts.
 
 Scope: `src/core/{event,focus,hit,id,scroll,text}.rs`, `src/runtime.rs`, `src/ui/{ctx,layout,popup,text}.rs`, `src/widgets/{dialog,menu,picker,select,completion,scrollbar,viewport,splitter,tabs,list,tree,button,input}.rs`, and the three applications.
-Authorities: `REFACTORING_GOAL.md` §§11–14, 17; `DESIGN.md` (Scrolling and clipping, Focus model, Interaction grammar, Elevation & Depth, Component catalogue, Agent implementation guardrails).
+Historical authorities: the then-current `REFACTORING_GOAL.md` §§11–14, 17;
+`DESIGN.md` (Scrolling and clipping, Focus model, Interaction grammar,
+Elevation & Depth, Component catalogue, Agent implementation guardrails).
+These citations describe the audited pre-migration source, not current
+execution authority; current application packages include `apps/holla`.
 
 Everything in **Part A** is a collected fact with a `file:line` citation. Everything marked **Inference** is judgement.
 

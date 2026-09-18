@@ -38,7 +38,7 @@ independent view/behavior proof → review → integration → exact final verif
 
 ## Requirement ledger
 
-| Task | User sections | Current state | Remaining proof/work |
+| Task | User sections | State recorded at checkpoint | Remaining proof/work |
 |---|---|---|---|
 | T01 Sources/work preservation | 1–2 | Pinned, isolated, original dirty tree preserved | Revalidate concurrent main before merge |
 | T02 History/obligations | 3 | Complete reachable history and parent-relative patches reviewed; H01–H20/1483 leads and68 edges indexed | Consolidate normative GOAL/architecture/coordination docs; close every mapped obligation |
@@ -76,7 +76,7 @@ in the immutable checkpoint archives and E reports.
 | Holla Plan and source journeys | Through3d3063f,8246d9e,28ebbbe | E/plan-binding-independent, holla-journeys-independent, holla-a613-independent; exact immutable review binding fixes original replacement bypass; root41 historical tests at28ebbbe include6 latest originals |
 | Cross-app smoke | 03e7cf9 | Root263 app library tests:158 Holla,67 Jackin,5 Showcase,33 TablePro; workspace all-target/all-feature MSRV Clippy and stable fmt pass; later28ebbbe test-only addition independently/root verified |
 
-## Current dependency queue
+## Dependency queue recorded at the historical checkpoint
 
 1. **Shared presentation:** tablepro_cli_review owns Columns ca20fdb and clipping
    repair e3c18a1; clipping is independently repaired, but root holds integration
@@ -133,4 +133,5 @@ SHA256 b99d5700f77b77ae77eeaf774f0766b01ec6eb46623d48cdece588dbf1801855.
 Update the relevant task/index/queue entry in place. Keep detailed chronological
 evidence outside this compact plan. Preserve original failures and source-bound
 reports. Never erase obligations, approve snapshots, or infer completion from
-counts. Main remains unmerged; the goal remains active.
+counts. At that historical checkpoint, main remained unmerged and the goal was
+still active. This plan does not report current status or authorize execution.

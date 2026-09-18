@@ -353,9 +353,9 @@ declare it with `Theme::define_family`. Two things follow if it does not:
 
 - an undeclared family resolves through the neutral recipe, which renders
   *something* but is not yours;
-- `Theme::downgrade(ColorLevel::Mono)` appends the mono fallback rules only to
-  **declared** families, so an undeclared family gets none, and a focused
-  control is indistinguishable from an unfocused one without colour.
+- `Theme::downgrade(ColorLevel::Mono)` applies generic fallback behavior, but
+  family-specific mono rules are added only for **declared** families. An
+  undeclared family therefore cannot rely on family-specific fallback styling.
 
 Either declare the family in the theme, or paint your own capability-independent
 affordance (a glyph, a modifier, a bracket) — see the conformance section
@@ -574,10 +574,7 @@ impl Conformance for SegmentedCase {
             .patch
             .map(|p| [p])
             .unwrap_or([(Part::CONTAINER, StylePatch::new())]);
-        let mut c = Segmented::new(SEG, &LABELS).patch_part(&patch);
-        if !f.forced().is_empty() {
-            c = c.state_override(f.forced());
-        }
+        let c = Segmented::new(SEG, &LABELS).patch_part(&patch);
         c.draw(ui, area, st);
     }
 
@@ -644,39 +641,34 @@ that the module identifier matches `NAME`:
 `CURSOR`, `SECRET`, `TYPES`. Declaring a capability never lets its case skip —
 the driver checks that too.
 
-### Three things example 12 does not have, and case 9 and case 10 need
+### Reference rendering in the conformance harness
 
-`crates/tui/examples/12_author_component.rs` is a complete component, but it
-is an *example*, not a registered conformance case. Registering it as written
-fails two cases. Verified, both:
+`crates/tui/examples/12_author_component.rs` is a complete external-consumer
+example. It already provides `.patch` and `.patch_part` builders and resolves
+them through `Ui::style_patched`; do not add the removed component-level
+`.state_override` API.
 
-1. **`local_override_does_not_mutate_the_theme` (case 10)** fails with *"the
-   instance patch had no effect"*. The driver puts a `StylePatch` on
-   `PARTS.first()` and asserts the render changes. Example 12's `Segmented`
-   has no `.patch`/`.patch_part` builder at all, so nothing happens. Add
-   `patch_part(&'a [(Part, StylePatch)])`, resolve through
-   `Ui::style_patched`, and make sure `PARTS.first()` is a part you actually
-   paint — the driver patches the *first* declared part.
-2. **`mono_states_are_distinguishable` (case 9)** fails twice over:
-   - The driver forces each state with `Fixture::force`, and a component
-     without a `.state_override(StateFlags)` builder never sees it, so every
-     state renders identically. Add `state_override`, and have the forced
-     path register **no** control and no parts — a reference rendering must
-     not leave a live control behind it.
-   - The fixture theme is `Theme::junie()`, in which
-     `Family::custom("segmented")` is undeclared, so
-     `apply_mono_fallbacks` never reaches it. The theme will not make your
-     states distinguishable. Paint the affordance yourself: a
-     `GlyphRole::FocusBar` in the gutter column when focused, a
-     `GlyphRole::Chosen` marker when selected, a `GlyphRole::PressLeft`
-     bracket when pressed. That is what the library's own components do at
-     `Mono`, and it works whether or not the application declared your family.
+`Fixture::forced()` returns `Option<StateFlags>`. A forced conformance case is
+an inert reference rendering, not a second component state machine. The
+conformance driver translates the runtime-owned focus/hover/press flags into an
+optional `ReferenceTarget` and wraps the component draw in `ui.reference(...)`:
 
-    A mono affordance must never change geometry — reserve the cells in your
-    normal layout and paint into them, rather than shifting the label right by
-    one when pressed.
+```rust
+if self.fixture.forced().is_some() {
+    let target = reference_target::<C>(&self.fixture);
+    ui.reference(target, |ui| {
+        C::draw(ui, self.fixture.area, &self.st, &self.fixture);
+    });
+} else {
+    C::draw(ui, self.fixture.area, &self.st, &self.fixture);
+}
+```
 
-With those three additions the same `Segmented` passes all twenty cases.
+The component itself remains an ordinary two-phase component: `update` owns
+interaction state and `draw` receives shared state plus fixture data. It must
+not force state, register duplicate reference controls, or mutate the theme.
+Use a declared family and capability-independent glyph/modifier affordances
+when a state needs a family-specific monochrome treatment.
 
 ### Beyond conformance
 
@@ -711,7 +703,8 @@ With those three additions the same `Segmented` passes all twenty cases.
 - [ ] `PARTS`, and every part you resolve is in it.
 - [ ] `impl Bindings` with a `&'static` table; `visible` set on exactly one
       chord per command.
-- [ ] `.patch`, `.patch_part`, `.slot` and `.state_override` builders.
+- [ ] `.patch`, `.patch_part`, and `.slot` builders as applicable; never add
+      component-level `.state_override` or `inherit_forced` APIs.
 - [ ] A `Family` (declared in the theme if it is custom) and a mono affordance
       that does not depend on hue or change geometry.
 - [ ] `register_control` / `register_editor`, `register_part` for every

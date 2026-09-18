@@ -261,7 +261,7 @@ Current explicit own read count **76/244**, including one xtask Cargo.toml overl
 | tools/qualified-capture/tests/test_integrity.py | absent | 41/c360bb4471d11cc70923adac571b5ee9ed4f38d5e629b872412982224cbc0465 | read; disposition/owner review ongoing |
 | tools/qualified-capture/tuitest_smoke.py | absent | 39/151815c99e7373e8a8cffb771a8cbc6e44a76dc17f1ac8a9b7ed3ff7ae163e5d | read; disposition/owner review ongoing |
 | tools/test-inventory/.gitignore | absent | 1/32dae3052f331ee34d628ef535709b301259a45df7c7522c4d35dcf49873f00b | read; disposition/owner review ongoing |
-| tools/test-inventory/README.md | absent | 126/675ad26c4e808b283cc8e818799b3348ad69bb0997d71182010df4d40a19f76c | read; disposition/owner review ongoing |
+| tools/test-inventory/README.md | absent at the historical endpoint; present in the current tree | 126/675ad26c4e808b283cc8e818799b3348ad69bb0997d71182010df4d40a19f76c | read; disposition/owner review ongoing |
 | tools/test-inventory/historical.json | absent | 19295/cd9c5c4908caf3150cd962e289f7310908c3a5b2285cd26cae624d520068af65 | read; disposition/owner review ongoing |
 | tools/test-inventory/inventory.py | absent | 390/271d660ca69efdc6edddf92c75e39b4b95c8ffd5e838ba539d168f3682d242c0 | read; disposition/owner review ongoing |
 | tools/test-inventory/profiles.json | absent | 60/5e8c81779b129888e27075ea456e408e0b0237a992791521f4e8b0283b7e378f | read; disposition/owner review ongoing |

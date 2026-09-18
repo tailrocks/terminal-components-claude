@@ -43,7 +43,7 @@ Reviewers inspect committed source and independently bound evidence. Lifecycle:
 characterize -> reproduce -> shared fix -> caller migration -> independent
 view/behavior proof -> review -> integration -> full candidate verification.
 
-| Task | Requirements | Owner | Current state and remaining proof |
+| Task | Requirements | Owner | State recorded at checkpoint and remaining proof |
 |---|---|---|---|
 | T01 Sources/work preservation | 1–2 | integrator | Pinned and isolated; revalidate concurrent main before merge |
 | T02 History/obligations | 3 | history audit/integrator | Exhaustive history review complete; normative consolidation and final obligation mapping remain |
@@ -120,7 +120,7 @@ showcase-fidelity, historical-regeneration and test-inventory.
 4. Finish actual Holla App lifecycle across routes/modals, all eleven scenarios,
    always-armed query/caret, focused hints with status, scrolling and real binary
    behavior. Domain-module tests alone do not prove the application.
-5. Expand capture/CI/build provenance from one authoritative current four-app
+5. Expand capture/CI/build provenance from one authoritative then-current four-app
    inventory. Preserve pinned Holla132 and historical499 separately. Unsupported
    theme/motion/clock axes and missing targets must fail, never be ignored.
    Phase2 candidate7e8a36c rejected: root actual-compiler probe changed an ignored
@@ -133,7 +133,7 @@ showcase-fidelity, historical-regeneration and test-inventory.
    matrix, all boundary/doc/perf/parity/capture gates, independent images/live
    journeys, coherent normative docs, PR and exact merged-source proof.
 
-Current integration checkpoint: runtime reparenting, scoped activation origin,
+Integration checkpoint recorded at that date: runtime reparenting, scoped activation origin,
 active menu bindings and conditional typing caret are integrated through2f13925.
 Root48 MSRV activation/layer/typing/publication/Scene tests pass. Jackin stable
 manager identity is integrated aaed062 (33 MSRV tests); Right rendering remains

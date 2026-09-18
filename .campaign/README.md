@@ -11,7 +11,7 @@ This directory holds operator-maintained campaign state. It is **not** candidate
 Initialize with:
 
 ```sh
-./scripts/campaign-init.sh
+../scripts/campaign-init.sh
 ```
 
 This directory is local operator state, not authority. The old pre-arm checklist

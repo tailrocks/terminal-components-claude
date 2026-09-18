@@ -58,7 +58,7 @@ This task requires JA-022, JA-028 through the exact frame and semantic flow tabl
 
 - world: returning
 - sizes: 80x24,120x40
-- actions: K(n); browser K(g); type(https://github.com/example/demo.git); choose source; choose custom destination; type(/work/demo); continue through Edit and Workdir; type(Demo); rewind Esc through each step
+- actions: K(n); browser K(g); type(https://github.com/donbeave/tui-snap.git); choose source; choose custom destination; type(/work/demo); continue through Edit and Workdir; type(Demo); rewind Esc through each step
 - checkpoints: Git/source/destination validation; choice persistence and stepper labels; no persistence during rewind
 - components: browser,form,picker
 - source: screens/prelude.rs; screens/modals.rs:266

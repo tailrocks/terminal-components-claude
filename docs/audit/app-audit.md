@@ -1,7 +1,3 @@
-I could not use grep/glob (only `Read` was available), so counts below are stated as lower bounds with an explicit coverage table. Here is the audit, ready to save verbatim to `docs/audit/app-audit.md`.
-
----
-
 # Historical Application Migration Audit — showcase · tablepro · jackin-preview
 
 Historical baseline revision: `d5e7075` (clean tree). Historical package layout:
@@ -10,8 +6,9 @@ single crate `junie-tui` (`Cargo.toml:1-25`), edition 2024, MSRV 1.88, deps
 
 > Historical snapshot. The `src/bin/...` paths, line numbers, counts, and
 > findings below describe the pre-migration tree and are retained as evidence;
-> they are not current behavior claims. Current packages are
-> `apps/showcase`, `apps/tablepro`, and `apps/jackin-preview`. The current
+> they are not current behavior claims. The three historical applications are
+> now packages under `apps/`, alongside the current `apps/holla` package. The
+> current
 > Jackin environment domain is `apps/jackin-preview/src/domain/workspace.rs`.
 > Its transient plain environment input is masked and enters the pending
 > workspace only after key validation and Save. Persisted plain values use a
@@ -418,7 +415,7 @@ Ranked by how clearly it belongs in the library (**[INFERENCE]** on the disposit
 
 **[FACT]** 22 pages (`app.rs:60-171`), minimum viewport 72×20 (`app.rs:20-21`), sidebar 24 cols wide ≥110 else 19 (`app.rs:753-754`), inspector 30 cols when width ≥100 (`app.rs:755-759`). Global keys: `Tab`/`Shift+Tab`, `q`, `?`, `i`, `[`/`]`, `0`, `Esc` (`app.rs:508-554`); `Ctrl+C` always quits (`app.rs:357-360`). Tick cadence 80 ms animating / 400 ms idle (`app.rs:318-324`). Keyboard activation flashes the focused widget for 140 ms (`app.rs:328, 494-505`). Hover is suppressed after any key press until the pointer moves (`app.rs:367`, `579-588`).
 
-**[FACT] Tests** (`src/bin/showcase/app_tests.rs`) — 20 tests:
+**[FACT] Historical snapshot tests** (`src/bin/showcase/app_tests.rs`) — 26 tests:
 
 | Test | Line | Proves |
 |---|---|---|
@@ -453,7 +450,7 @@ Ranked by how clearly it belongs in the library (**[INFERENCE]** on the disposit
 
 **[FACT]** Two screens; Safe Mode gate with 6 levels (`SafeMode::ALL`, used at `app.rs:1346-1362`); statement classification by "worst statement in the batch" (`app.rs:840-866`); typed-token acknowledgement for deliberate confirmations (`app.rs:959-963`); one-transaction commit with a 5-tick simulated latency (`app.rs:1821`, `339-346`); read-only refusal messages (`app.rs:879`, `1012-1016`); history recording including row-edit statements (`app.rs:1135-1148`); tab strip with `+` new-tab and close confirmation for dirty tabs (`workbench.rs:959-966`); explorer becomes a full-body drawer below 100 columns (`workbench.rs:1221-1243`); pinned result tabs survive a re-run (`tabs.rs:1060-1062`).
 
-**[FACT] Tests** (`src/bin/tablepro/app_tests.rs`) — 21 tests:
+**[FACT] Historical snapshot tests** (`src/bin/tablepro/app_tests.rs`) — 23 tests:
 
 | Test | Line | Proves |
 |---|---|---|
@@ -502,7 +499,7 @@ Ranked by how clearly it belongs in the library (**[INFERENCE]** on the disposit
 
 **[FACT] Motion contract** (`rain.rs`): intro phrase pacing `P1_LEN == 64` ticks (`rain.rs:488`, asserted `rain.rs:879`); `KNOCK_START`/`WARP_START`/`INTRO_END` derived constants (`491-494`); reduced motion = one static frame then `REDUCED_HOLD = 45` (`495`, `534-542`); skip semantics (phrases → warp → done, `560-570`); outro caption wording `"You were in the Construct for 2 hours 14 minutes"` (`748-755`, asserted `907`); `format_universe_duration` two-largest-units rule (`665-682`).
 
-**[FACT] Tests** — `app_tests.rs` (17) + `app_tests_chrome.rs` (5) + unit tests in `rain.rs` (3), `arbiter.rs` (4), `clock.rs` (2), `scenario.rs` (1):
+**[FACT] Historical snapshot tests** — `app_tests.rs` (22) + `app_tests_chrome.rs` (6) + unit tests in `rain.rs` (3), `arbiter.rs` (4), `clock.rs` (2), `scenario.rs` (1), for 38 tests total:
 
 | Test | File:line | Proves |
 |---|---|---|

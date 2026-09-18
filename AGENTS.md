@@ -296,6 +296,52 @@ discrepancy and update the documentation. Never weaken verification to preserve
 a stale claim. A task's local acceptance criteria cannot override the
 repository-wide final parity gate.
 
+## Documentation and link integrity
+
+Every tracked Markdown file is part of the documentation surface, including
+root instructions, `CLAUDE.md`, `docs/**`, task READMEs/contracts, examples,
+architecture records, reports, and historical files that remain referenced.
+The repository-wide link gate is [`lychee.toml`](lychee.toml), qualified against
+the latest stable Lychee release. CI enumerates the tracked inputs with Git and
+runs the pinned `lycheeverse/lychee-action` job in
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml). The current qualification
+is Lychee `0.24.2` and action `v2.9.0`; re-qualify both together when either
+version changes.
+All external GitHub Actions in the CI and performance workflows are pinned to
+full commit SHAs. An action update requires verifying the upstream release or
+ref, updating its version comment, and re-running workflow syntax validation.
+
+The gate checks local relative/root-relative paths, Markdown files and
+directories, fragments, verbatim references, repository GitHub URLs, and
+external HTTP/HTTPS links. `root-dir` is the checkout root, fragment checking
+is `full`, hidden and ignored tracked inputs are included, and no broad URL or
+path allowlist is permitted. The cache only reduces repeated external requests;
+it never turns a local or fragment mismatch into a pass. Retries and per-host
+throttling bound transient network pressure without accepting error statuses.
+Mail-looking values in task fixtures are data, not links; there are no active
+Markdown `mailto:` destinations to validate.
+
+Run the same native local check from the repository root:
+
+```sh
+INPUTS="$(mktemp)"
+git ls-files -z | tr '\0' '\n' | awk 'tolower($0) ~ /\.(md|mkd|mdx|mdown|mdwn|mkdn|mkdown|markdown|mdc)$/ { print }' > "$INPUTS"
+lychee --config lychee.toml --root-dir "$PWD" --files-from "$INPUTS"
+rm "$INPUTS"
+```
+
+A broken internal reference requires semantic investigation, not mechanical
+replacement. Check current source, Git history, renames, deletions,
+predecessor/successor documents, and the authority hierarchy. Update the
+surrounding claim and link to the authoritative current destination; restore a
+deleted document only when evidence shows it is still required, then modernize
+it fully. Never create placeholders, delete useful links, convert links to
+plain text, bless new output, or add a broad exclusion to make Lychee green.
+Lychee does not detect every bare path claim, so review explicit repository
+paths in prose and code blocks as well. Historical paths may remain only when
+their historical scope is explicit and they do not present themselves as live
+destinations.
+
 ## Definition of refactoring complete
 
 Do not declare the refactoring complete, ready to merge, or product-correct

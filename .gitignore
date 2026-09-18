@@ -21,6 +21,9 @@ parity/
 # local taskfmt qualification sandbox (not operator evidence)
 .qual/
 
+# Lychee's local HTTP-result cache; CI restores/saves it by job key.
+.lycheecache
+
 # local git worktrees (nested checkouts; not part of the branch tree)
 .worktrees/
 

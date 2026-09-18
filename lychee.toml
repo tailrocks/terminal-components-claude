@@ -1,0 +1,42 @@
+# Repository Markdown link policy.
+#
+# This file targets Lychee 0.24.2. Keep the CLI/action version aligned with the
+# latest stable release and re-qualify both when the version changes.
+
+# Emit useful local diagnostics. CI overrides the format to Markdown so the
+# lychee-action job summary contains source-file and destination details.
+verbose = "info"
+format = "detailed"
+no_progress = true
+extensions = ["md", "mkd", "mdx", "mdown", "mdwn", "mkdn", "mkdown", "markdown", "mdc"]
+
+# Check all tracked Markdown inputs, including hidden and ignored paths. The CI
+# job supplies an explicit `git ls-files` input list; these options also make
+# direct local runs from the repository root cover the same hidden content.
+hidden = true
+no_ignore = true
+include_fragments = "full"
+include_verbatim = true
+# Email values in task fixtures and contributor metadata are data, not
+# documentation destinations. There are no active Markdown `mailto:` links;
+# checking those values would create false failures for reserved addresses.
+include_mail = false
+glob_ignore_case = false
+
+# External checks must remain real checks. Do not accept 3xx/4xx/5xx status
+# codes globally, and do not add broad URL/path exclusions. These settings
+# bound retries and per-host traffic without weakening failures.
+max_retries = 2
+retry_wait_time = 2
+timeout = 20
+max_concurrency = 16
+host_concurrency = 2
+host_request_interval = "250ms"
+
+# Successful external results may be reused for at most one day. Local links and
+# fragments are still resolved from the current checkout. Transient failures
+# are never kept in the cache, so a rate-limit/server response cannot become a
+# durable pass.
+cache = true
+max_cache_age = "1d"
+cache_exclude_status = ["429", "500.."]

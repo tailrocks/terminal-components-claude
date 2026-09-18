@@ -23,7 +23,7 @@ Read before editing:
 - [docs/refactoring-plan/history.md](../../../../docs/refactoring-plan/history.md).
 - [docs/refactoring-plan/historical-obligations-canonical.tsv](../../../../docs/refactoring-plan/historical-obligations-canonical.tsv).
 - [docs/refactoring-plan/architecture.md](../../../../docs/refactoring-plan/architecture.md).
-- [tools/test-inventory/README.md](../../../../tools/test-inventory/README.md) (absent on this tree; archived at `origin/main:tools/test-inventory/README.md`).
++ [tools/test-inventory/README.md](../../../../tools/test-inventory/README.md) (current inventory contract; verify its contents against the current tree before execution).
 - [Pinned inline-test source scope](../../../../docs/refactoring-plan/inline-test-source-scope.md), including complete-discovery and no-production-mutation limits.
 - `trusted/source-obligations.tsv`: every mapped clause, remaining-work obligation and named test is binding under its requirement/acceptance/check IDs.
 - `trusted/obligations.md` and `../../../../docs/refactoring-plan/proof-contract.md`.
