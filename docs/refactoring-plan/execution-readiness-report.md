@@ -63,8 +63,9 @@ Relationships:
   history rooted there. Exact ahead-count is intentionally not used as a
   readiness claim; inspect the final commit graph at execution start.
 - merge-base(visual-baseline, refactor) = cc14dd6b.
-- Baseline has 77 commits absent from refactor.
-- Refactor has 809 commits absent from baseline.
+- The branches retain independent history; recompute exact absent-commit
+  counts at execution start rather than treating a historical count as
+  readiness evidence.
 - Baseline and refactor were never reconciled.
 
 Missing from the current branch:
