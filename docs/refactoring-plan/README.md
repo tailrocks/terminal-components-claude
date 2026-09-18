@@ -3,8 +3,8 @@
 Status: **NO-GO; preparation only; `.campaign/ledger.json` remains `armed: false`** (2026-09-19).
 
 This reconciliation is bound to preparation source HEAD
-`19f6d2ebd7ecc839e932b92ed76a592c2bee483c` and tree
-`c83a213b8e8b0eb8d262578f9a2adb2d9bd989ba`, observed before this bounded
+`f9801a89cbe0d154f38d184b007fca07d058f39b` and tree
+`550d22547254eb9eee2bd11a74d6e77505c5c913`, observed before this bounded
 docs-only update. This documentation commit changes the source tree again;
 source-bound proof receipts must bind the post-commit tree afresh. The current
 bounded results and blockers are indexed in the
@@ -49,12 +49,14 @@ validation passes with `error_count: 0`, and standalone taskfmt lint passes
 `73/73`. Preflight exits `1` at the explicit readiness-report **NO-GO** gate;
 the stale ledger has no current accepted verifier receipt, remains
 `armed: false`, and has no accepted task rows. Proof fixes landed in
-`8c9e050c`, `f4ce758e`, `4737da3c`, and `7639e7ae`; HEAD `19f6d2eb` is a
-further context-index repair. Its positive native-launch check is
-**UNVERIFIED/PENDING**; no independent verifier has run or accepted it. The
-fresh verifier evidence for historical candidate `4737da3c` is explicitly
-**REJECTED** and applies only to that candidate; no independent reviewer has
-accepted the current proof chain. The external
+`8c9e050c`, `f4ce758e`, `4737da3c`, `7639e7ae`, `19f6d2eb`, and
+`12ac27ff`. The proof parent `12ac27ff` has tree
+`8d66c95408d7e9e404eaf9019857b33659906e84`; current HEAD `f9801a89` is a
+docs-only commit on top of it. The current proof is
+**UNVERIFIED/PENDING** pending a fresh verifier; no independent verifier has
+run or accepted it. The fresh verifier evidence for historical candidate
+`4737da3c` is explicitly **REJECTED** and applies only to that candidate; no
+independent reviewer has accepted the current proof chain. The external
 corrected baseline config has SHA-256
 `bdbe0a8958a696e4b5108ae190a0c07089f2d7aea91c64a20d52e3346e7092da`.
 Its latest calibration selected 302 tests: 301 passed, 1 failed, and 2

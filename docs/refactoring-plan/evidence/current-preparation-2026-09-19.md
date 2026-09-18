@@ -8,16 +8,16 @@ acceptance, execution authorization, or GO decision.
 ## Binding identities
 
 The reviewed source payload was a clean worktree at the following identity,
-before this documentation-only commit. This file and the other owned
-documents change the tree; every source-bound receipt must be regenerated
-against the final clean commit/tree. No receipt may attest to this future
-documentation commit from inside that same commit.
+before this bounded documentation-only correction. This file and the other
+owned documents change the tree; every source-bound receipt must be
+regenerated against the final clean commit/tree. No receipt may attest to
+this future documentation commit from inside that same commit.
 
 | Item | Observed value |
 |---|---|
 | Branch | `refactor/holla-parity` |
-| HEAD | `19f6d2ebd7ecc839e932b92ed76a592c2bee483c` |
-| HEAD tree | `c83a213b8e8b0eb8d262578f9a2adb2d9bd989ba` |
+| HEAD | `f9801a89cbe0d154f38d184b007fca07d058f39b` |
+| HEAD tree | `550d22547254eb9eee2bd11a74d6e77505c5c913` |
 | `main` / `origin/main` | `7b27732a8c3c131760ec3438f641cb3c11343a42` |
 | Peeled `visual-baseline` tag | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
 | Snapshot tree at the tag | `3f0261c32849e26feda24d87697de4a7ce6b8375` |
@@ -61,8 +61,11 @@ Proof preparation changes landed in these commits:
 2. `f4ce758e` — native target paths, build receipt, and dispatcher binding.
 3. `4737da3c` — native proof ABI repair and bundled proof regeneration.
 4. `7639e7ae` — context-index ABI acceptance repair.
-5. `19f6d2eb` — context-index ABI alignment repair. Its positive native-launch
-   check is **UNVERIFIED/PENDING**; no independent verifier has run or
+5. `19f6d2eb` — context-index ABI alignment repair.
+6. `12ac27ff` — observer-provider descriptor closure repair; proof parent tree
+   `8d66c95408d7e9e404eaf9019857b33659906e84`. The current proof payload,
+   carried by docs-only HEAD `f9801a89`, has a positive native-launch check
+   that is **UNVERIFIED/PENDING**; no independent verifier has run or
    accepted it.
 
 Fresh verifier evidence is at:
@@ -85,8 +88,9 @@ Its explicit `VERDICT.md` result for historical candidate `4737da3c` is
   tests, comparator replay, and final protected-ref recheck were not executed.
 
 No independent verifier or reviewer has returned an acceptance for the current
-`19f6d2eb` chain. Therefore there is no current accepted verifier/reviewer
-receipt and the proof path is not dispatch-ready.
+`12ac27ff` proof payload or docs-only `f9801a89` tree. Therefore there is no
+current accepted verifier/reviewer receipt and the proof path is not
+dispatch-ready.
 
 ## Calibration
 

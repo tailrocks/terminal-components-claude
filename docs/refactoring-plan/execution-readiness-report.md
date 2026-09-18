@@ -9,8 +9,8 @@ It is a preparation audit, not execution authorization.
 
 `refactor/holla-parity` remains campaign/proof scaffolding, not completed
 refactor work. This report is reconciled against preparation source HEAD
-`19f6d2ebd7ecc839e932b92ed76a592c2bee483c` (tree
-`c83a213b8e8b0eb8d262578f9a2adb2d9bd989ba`) observed from a clean worktree
+`f9801a89cbe0d154f38d184b007fca07d058f39b` (tree
+`550d22547254eb9eee2bd11a74d6e77505c5c913`) observed from a clean worktree
 before this bounded documentation-only update. This documentation commit
 changes the source tree again; any source-bound execution receipt must bind the
 post-commit HEAD and tree afresh. The bounded raw outcomes are indexed in
@@ -31,12 +31,15 @@ No product parity or execution authorization follows from this reconciliation.
 - Frozen visual oracle is absent from this branch and its active gate; it
   remains available at the policy-protected `visual-baseline` tag.
 - Planning validator passes: all 211 frozen bootstrap asset bindings are present and hash-valid.
-- Proof fixes landed in `8c9e050c`, `f4ce758e`, `4737da3c`, and `7639e7ae`.
-  HEAD `19f6d2eb` is a further context-index repair, but its positive
-  native-launch check is **UNVERIFIED/PENDING**; no independent verifier has
-  run or accepted it. The fresh verifier for historical candidate `4737da3c`
-  returned **REJECTED** and applies only to that candidate; no independent
-  reviewer has accepted the current proof chain.
+- Proof fixes landed in `8c9e050c`, `f4ce758e`, `4737da3c`, `7639e7ae`,
+  `19f6d2eb`, and `12ac27ff`. The proof parent `12ac27ff` has tree
+  `8d66c95408d7e9e404eaf9019857b33659906e84`; current HEAD `f9801a89` has
+  tree `550d22547254eb9eee2bd11a74d6e77505c5c913` and is docs-only on top of
+  that proof payload. The current proof is **UNVERIFIED/PENDING** pending a
+  fresh verifier; no independent verifier has run or accepted it. The fresh
+  verifier for historical candidate `4737da3c` returned **REJECTED** and
+  applies only to that candidate; no independent reviewer has accepted the
+  current proof chain.
   The final documentation commit must leave the
   worktree clean; no accepted proof receipt is implied by a clean tree.
 
@@ -77,7 +80,7 @@ Validation:
 | Ref | Commit |
 |---|---|
 | main | 7b27732a |
-| refactor/holla-parity | `19f6d2ebd7ecc839e932b92ed76a592c2bee483c` (tree `c83a213b8e8b0eb8d262578f9a2adb2d9bd989ba`) |
+| refactor/holla-parity | `f9801a89cbe0d154f38d184b007fca07d058f39b` (tree `550d22547254eb9eee2bd11a74d6e77505c5c913`) |
 | visual-baseline branch | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
 | visual-baseline tag peel | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
 
@@ -267,8 +270,8 @@ Current tests cover much component behavior, but parity proof needs replayed sta
 locked offline Cargo build for the standalone native `tc-proof` comparator and
 writes a commit/path/hash receipt; taskfmt does not build it. The proof ABI and
 dispatcher were repaired in `8c9e050c`, `f4ce758e`, `4737da3c`, `7639e7ae`,
-and `19f6d2eb`, but the fresh verifier for historical candidate `4737da3c`
-rejected the positive bundled-worker
+`19f6d2eb`, and `12ac27ff`, but the fresh verifier for historical candidate
+`4737da3c` rejected the positive bundled-worker
 execution produced a rejected context-index result and no observer event.
 The context/index/result/observer path therefore remains unaccepted.
 
@@ -546,7 +549,8 @@ Not satisfied:
   policy-protected tag remains the source to import read-only.
 - Provider-enforced visual-baseline immutability is absent; local tag/release policy is the guard.
 - The fresh verifier evidence for historical candidate `4737da3c` exists at
-  the external run root but is **REJECTED**. The current `19f6d2eb` repair is
+  the external run root but is **REJECTED**. The current proof payload
+  `12ac27ff`, carried by docs-only HEAD `f9801a89`, is
   **UNVERIFIED/PENDING**; no independent reviewer acceptance exists for the
   current proof chain.
 - Campaign ledger is disarmed and has no accepted current task evidence.

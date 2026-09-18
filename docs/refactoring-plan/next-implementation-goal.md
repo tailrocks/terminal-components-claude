@@ -9,10 +9,10 @@ fresh readiness check returns **GO**.
 
 The source state reviewed by this preparation update is branch
 `refactor/holla-parity`, HEAD
-`19f6d2ebd7ecc839e932b92ed76a592c2bee483c`, tree
-`c83a213b8e8b0eb8d262578f9a2adb2d9bd989ba`. A subsequent documentation commit
-invalidates source-bound receipts; rebind them to the final clean tree before
-any readiness decision.
+`f9801a89cbe0d154f38d184b007fca07d058f39b`, tree
+`550d22547254eb9eee2bd11a74d6e77505c5c913`. This bounded documentation
+correction changes the tree; rebind source-bound receipts to the final clean
+tree before any readiness decision.
 
 The immutable oracle is the peeled tag commit
 `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`, snapshot tree
@@ -21,13 +21,16 @@ ANSI/plain/PNG/HTML artifacts. Qualified taskfmt is source revision
 `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, version `0.2.0`, executable
 SHA-256
 `f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de`.
-Proof repairs are in `8c9e050c`, `f4ce758e`, `4737da3c`, `7639e7ae`, and
-`19f6d2eb`. The HEAD repair's positive native-launch check remains
-**UNVERIFIED/PENDING**; no independent verifier has run or accepted it.
+Proof repairs are in `8c9e050c`, `f4ce758e`, `4737da3c`, `7639e7ae`,
+`19f6d2eb`, and `12ac27ff`. Proof parent `12ac27ff` has tree
+`8d66c95408d7e9e404eaf9019857b33659906e84`; current HEAD `f9801a89` is
+docs-only on top of that proof payload. The current proof's positive
+native-launch check remains **UNVERIFIED/PENDING** pending a fresh verifier;
+no independent verifier has run or accepted it.
 Historical fresh verifier evidence at
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-4737da3c`
 is **REJECTED** for candidate `4737da3c`; no current independent reviewer
-acceptance exists for the `19f6d2eb` proof chain.
+acceptance exists for the `12ac27ff`/`f9801a89` proof chain.
 Calibration evidence at
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/calibration-frozen-connections`
 has targeted `3/3` passing, but full `302` selected with `301` passed,
@@ -80,8 +83,8 @@ production task:
 - record independently reproducible positive and negative evidence, including
   rejection of every malformed, stale, mismatched, or mutated input.
 
-The three proof-fix commits do not close these blockers: current verifier
-evidence records a failed format check and a positive bundled-worker result
+The proof-fix chain through `12ac27ff` does not close these blockers: current
+verifier evidence records a failed format check and a positive bundled-worker result
 rejected for `CONTEXT_INDEX` with no observer event. The full calibration also
 remains failed. Do not reinterpret either result as product work or as a
 reason to weaken the gate.
