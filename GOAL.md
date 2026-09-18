@@ -6,6 +6,9 @@
 > which is **NO-GO**. This file states product intent; it is not a campaign
 > ledger, taskfmt pin, or execution approval.
 
+Nothing in this product-intent document authorizes campaign execution. The
+readiness report, current contracts, and `AGENTS.md` control execution.
+
 This is the canonical product-intent goal. It is not an execution prompt.
 Read the current readiness report and execution policy before acting. Treat
 older execution prompts as historical unless they agree with this contract.
@@ -24,10 +27,14 @@ look, geometry, copy, glyphs, spacing, colors, focus treatment, cursor
 placement, keyboard behavior, mouse behavior, scrolling, resizing, overlays,
 and state transitions are the contract. Do not redesign the products.
 
-Small approved additions are allowed: extra sections, extra state visibility,
-and minor product polish may remain when they do not displace or restyle the
-historical experience. Record every such addition. Everything else that
-differs from the historical evidence is a regression until proven otherwise.
+Small approved additions are allowed only when they do not alter any output
+covered by the frozen `visual-baseline` oracle. Extra sections, state
+visibility, or minor polish may remain outside that covered surface, but must
+be recorded. A proposed defect fix that changes a baseline-covered result
+requires independent evidence that the frozen oracle is invalid or does not
+cover the behavior; absent that evidence, the difference is a regression.
+Everything else that differs from the historical evidence is a regression
+until proven otherwise.
 
 ## Current facts
 

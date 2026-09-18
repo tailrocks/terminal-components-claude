@@ -2194,7 +2194,7 @@ Mapping of the seven "must keep working" facts from **[F]** APP §6:
 | `architecture::library_has_no_application_dependency` <!-- amended by §22 --> | `cargo metadata` from `xtask`: the dependency closure of `junie-tui` | `showcase`, `tablepro`, `jackin-preview`, and `holla` are absent; the only direct normal deps are `ratatui-core`, `ratatui-crossterm`, `unicode-width`, `unicode-segmentation`, `bitflags` (never `ratatui`, `ratatui-widgets`, `ratatui-macros`, `smallvec`, a direct `crossterm`) |
 | `architecture::applications_depend_only_on_the_library_facade` <!-- amended by §22 --> | `cargo tree -p <app> -e normal --depth 1` — a one-line assertion, because each app's only normal dependency is `junie-tui` and `junie-tui` re-exports every ratatui type the public API mentions (§22 §1.2); plus a source scan for `junie_tui::` paths | `cargo tree` prints `junie-tui` and nothing else; every path resolves under `junie_tui::` or `junie_tui::author::`; there is no `#[path]`, no `include!`, and no `pub(crate)` reachable from an app (guaranteed structurally — a separate crate cannot name a `pub(crate)` item, so the scan is a belt-and-braces report, not the enforcement) |
 | `architecture::examples_are_external_consumers` | `cargo build -p junie-tui --examples` in CI plus a check that no example uses `#[path]` | The 13 §17 examples compile against the public API only <!-- amended by §23 --> |
-| `architecture::all_examples_compile` | `cargo nextest run --workspace --doc` + `--examples` gate | goal §25.5 "all examples compile" <!-- historical §25 F12 named the then-missing state-override check; §72 replaces that obsolete boundary with the two reference-scope checks below --> |
+| `architecture::all_examples_compile` | `cargo build --workspace --examples` plus `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps` | goal §25.5's example/rustdoc surface <!-- historical §25 F12 named the then-missing state-override check; §72 replaces that obsolete boundary with the two reference-scope checks below --> |
 | `architecture::public_items_are_documented` | `#![deny(missing_docs)]` in `crates/tui/src/lib.rs` + `RUSTDOCFLAGS="-D warnings" cargo doc` | Every public item has rustdoc |
 | `architecture::no_unsafe` | `#![forbid(unsafe_code)]` in the library; `crates/tui-testing` carries the single documented `unsafe impl GlobalAlloc` with a safety comment | goal §26 |
 | `architecture::no_domain_vocabulary_in_the_library` | grep allow-list over `crates/tui/src/**` for `(?i)\b(sql|schema|primary key|nullable|foreign|references|not null|tablepro|jackin|workspace|instance|daemon|capsule|construct|catalog)\b`, with an allow-list file `crates/tui/tests/allow/domain.txt` (currently empty) <!-- amended by §25 §4(j): scans **code lines only**, deliberately — `\bworkspace\b` and `\binstance\b` appear in ordinary architectural prose ("per-instance patch") and a reflowed `///` line must not fire it --> | DOM §7 acceptance conditions 1 and 2 |
@@ -2318,7 +2318,7 @@ Mapping of the seven "must keep working" facts from **[F]** APP §6:
 
 ## 17. Representative usage examples
 
-Thirteen examples <!-- amended by §23: example 13 -->, one file each under `crates/tui/examples/`, built by `cargo build -p junie-tui --examples` (`-p junie-tui` during Slices 3–4) and gated by `architecture::all_examples_compile`. Every file is complete — a `main` or a `#[test]`, every `use` list exact — because Slice 2 acceptance condition 1 compiles them verbatim. They use only the public facade, so they are literal proof of the "external consumer" claim. Examples 1–10 are also condensed into rustdoc doctests on the corresponding types (`cargo nextest run --workspace --doc`).
+Thirteen examples <!-- amended by §23: example 13 -->, one file each under `crates/tui/examples/`, built by `cargo build -p junie-tui --examples` (`-p junie-tui` during Slices 3–4) and gated by `architecture::all_examples_compile`. Every file is complete — a `main` or a `#[test]`, every `use` list exact — because Slice 2 acceptance condition 1 compiles them verbatim. They use only the public facade, so they are literal proof of the "external consumer" claim. Examples 1–10 are also condensed into rustdoc doctests on the corresponding types; the current rustdoc gate is `RUSTDOCFLAGS="-D warnings" cargo doc`, while executable doctest coverage remains the explicit TASK-066 blocker.
 
 ### 17.0 API additions
 
@@ -4102,7 +4102,24 @@ These are **amendments to §3–§15**, not advice. Each folds a `docs/audit/per
 
 ### 20.10 Intentional visual changes
 
-Every item below changes rendered output relative to the reviewed baseline. Each is deliberate, is justified against `DESIGN.md` or a demonstrated defect (authority order, goal §3), and each names how it is reviewed. Nothing on this list may be regenerated into a baseline without an entry in `docs/visual-changes.md` (enforced by `xtask bless-guard`, §16.3).
+**Historical visual-change record.** This table preserves former
+classification and accounting evidence. It cannot authorize implementation,
+candidate acceptance, self-baseline updates, or mutation of the frozen
+`visual-baseline` oracle. Final acceptance must compare candidate output 1:1
+with the immutable frozen corpus.
+
+Verbs such as “authorizes,” “re-bless,” “re-blessed,” and “may be
+regenerated” below quote the former record. They are not executable
+instructions or current permission; no row can override `AGENTS.md`, the
+readiness verdict, current task contracts, or frozen-oracle immutability.
+
+Every item below records the former review's proposed or observed rendered
+changes, their rationale, and their former review mechanism. The former plan
+required a `docs/visual-changes.md` entry before any self-baseline update;
+that requirement is historical evidence, not current permission. Nothing in
+this table authorizes implementation, candidate-baseline blessing, or any
+mutation of the frozen oracle. Current task contracts, readiness gates,
+independent evidence, and the final 1:1 frozen-oracle comparison govern.
 
 | # | Change | Why | How it is reviewed |
 |---|---|---|---|
@@ -4121,12 +4138,12 @@ Every item below changes rendered output relative to the reviewed baseline. Each
 | 13 | **`Tabs`' strip window follows the logical first tab.** After an insert or reorder the visible window keeps showing the same tab, instead of the same index. | Scenario E; today both apps rescue `first` by hand across a full widget rebuild. | `conformance::tabs::item_identity_survives_reorder`; tablepro `tab_strip_overflow_and_tab_list` (retained); `t_tabs_overflow` captures before/after an insert at position 0 |
 | 14 | **New cell-exact baselines for TablePro and jackin.** Neither has one today (**[F]** APP §6, §9 risk 5); their regressions would be caught only by text-substring assertions. | goal §25.3 and §26 require inspecting actual rendered output; §20.10 items 8–11 all touch TablePro and jackin surfaces that nothing currently pins. | The first generation of `apps/tablepro/tests/baselines/tablepro.txt` and `apps/jackin-preview/tests/baselines/jackin.txt` is produced **on the pre-refactor tree** at the `perf/baseline` commit (Appendix A, WP‑0) so it is a genuine before-image, then re-generated once at the end of Slice 8 with every difference classified against this table |
 | 15 | **Focus-ring composition changes in migrated screens** <!-- amended by §21 item 33 -->. `Field` chrome, `NavList`, `scroll_region` parts and disabled-but-registered entries change the ring's size and order; tests such as showcase's `assert_eq!(seen.len(), 8)` will see a different count. | Not a defect: the ring is now built by the library from the same registration rules everywhere (§8.1). Ring size is an observable, so it is classified like a pixel. | Per affected test, an entry in `docs/visual-changes.md` (item 15) recording old count, new count and the reason **before** the expected value is edited; `Harness::ring().reachable()` listings attached; Slice 2 acceptance condition 8 |
-| 16 | **Display width follows `CellWidth::cell_width`, not raw `unicode-width`** <!-- amended by §22 -->. Any string containing U+FF9E/U+FF9F (halfwidth katakana sound marks) now measures one column wider per mark, so layout reserves exactly the columns `Buffer::set_stringn` consumes. | **[F]** MOD §2.3: today's `width()` (`ui/text.rs:6-8`) reports these as zero-width while the buffer paints them as one cell — an off-by-*k* overflow past the reserved rect, the R4/R5 class. | `text::width_matches_ratatui_cell_width`; the `render::components::*` and app digests re-blessed **with** a `docs/visual-changes.md` entry under this item (realistically zero cells change in the three apps' fixtures, which makes the diff a confirmation rather than a review burden) |
+| 16 | **Display width follows `CellWidth::cell_width`, not raw `unicode-width`** <!-- amended by §22 -->. Any string containing U+FF9E/U+FF9F (halfwidth katakana sound marks) now measures one column wider per mark, so layout reserves exactly the columns `Buffer::set_stringn` consumes. | **[F]** MOD §2.3: today's `width()` (`ui/text.rs:6-8`) reports these as zero-width while the buffer paints them as one cell — an off-by-*k* overflow past the reserved rect, the R4/R5 class. | `text::width_matches_ratatui_cell_width`; the former record paired any digest movement with a `docs/visual-changes.md` entry under this item (realistically zero cells change in the three apps' fixtures, which makes the diff a confirmation rather than a review burden) |
 
-| 17 | **`Anchor::Point` flips instead of covering the pointer** <!-- amended by §26 (Adjudication N1) -->. A tooltip or context menu opened near the bottom or right edge is placed **above** / **left of** the pointer when the content does not fit below/right, instead of sliding over it. `Anchor::Rect` already flipped; `Point` placed and clamped, so the overlay covered the cell the user was pointing at. | The flip was unreachable while every `LayerSpec` asked for the whole screen (`min_size: (0,0)` ⇒ the screen), so the defect was invisible; with `LayerSize::Fixed` the resolver has a real size and the two anchors must behave alike (§9.1 "one resolver"). | `layer::point_anchor_flips_instead_of_covering_the_pointer`; any tooltip/context-menu capture near a screen edge is re-blessed **with** a `docs/visual-changes.md` entry under this item |
+| 17 | **`Anchor::Point` flips instead of covering the pointer** <!-- amended by §26 (Adjudication N1) -->. A tooltip or context menu opened near the bottom or right edge is placed **above** / **left of** the pointer when the content does not fit below/right, instead of sliding over it. `Anchor::Rect` already flipped; `Point` placed and clamped, so the overlay covered the cell the user was pointing at. | The flip was unreachable while every `LayerSpec` asked for the whole screen (`min_size: (0,0)` ⇒ the screen), so the defect was invisible; with `LayerSize::Fixed` the resolver has a real size and the two anchors must behave alike (§9.1 "one resolver"). | `layer::point_anchor_flips_instead_of_covering_the_pointer`; the former record paired any edge capture with a `docs/visual-changes.md` entry under this item |
 
 
-| 18 | **Mono `DISABLED` gains `DIM` on `FIELD`/`TEXT` and stops tinting the foreground into the background** <!-- amended by §28 (Adjudication P6) -->. At `ColorLevel::Mono` the `DISABLED` rules add `DIM` (and remove every other modifier) on `LABEL`, `MARKER`, `FIELD` and `TEXT`, and set `fg = Role::Fg(Primary)` instead of `Role::Fg(Faint)`. `MONO_RULES_PER_FAMILY` went 16 → 18 → 19 and is now **20** after item 1's `ICON + LOADING` rule; that 20th rule is not part of this item's disabled movement. `TextInput` additionally paints `design.motion.spinner_frames[0]` in its trailing marker cell for `BUSY`/`LOADING` and declares `Part::ICON`. | Two defects in one place. (a) No mono rule reached the parts a *text control* paints (`FIELD`, `TEXT`), so a disabled `TextInput` was indistinguishable from an enabled one and `TextInputCase` narrowed `DISABLED` away rather than fail. (b) Worse, `Fg(Faint) #262626` and `disabled_fg #4d4d4d` both have `Y < 0.35`, which `mono()` maps to `Black` on a `Black` canvas under `Theme::junie()` — a disabled control was **invisible**, not merely colourless, and goal §29 asks for *readable*. `Theme::paper()` escaped only by landing in the `Reset` band. | `theme::mono_disabled_is_dim_and_readable`; `theme::mono_resolver_applies_once_without_recipe_storage` (**== 20**); `conformance::{text_input,button,field,list,tabs}::mono_states_are_distinguishable` with the un-narrowed state lists; the **mono half only** of `render::components::{text_input,field,list,button,tabs}::disabled` in `crates/tui/tests/baselines/components.txt` re-blessed in the fixed order **change → capture → classify → bless**, with a `docs/visual-changes.md` entry under this item before the bless. Item 1, not item 18, owns any separately measured `ICON + LOADING` output. <!-- amended by §72 --> |
+| 18 | **Mono `DISABLED` gains `DIM` on `FIELD`/`TEXT` and stops tinting the foreground into the background** <!-- amended by §28 (Adjudication P6) -->. At `ColorLevel::Mono` the `DISABLED` rules add `DIM` (and remove every other modifier) on `LABEL`, `MARKER`, `FIELD` and `TEXT`, and set `fg = Role::Fg(Primary)` instead of `Role::Fg(Faint)`. `MONO_RULES_PER_FAMILY` went 16 → 18 → 19 and is now **20** after item 1's `ICON + LOADING` rule; that 20th rule is not part of this item's disabled movement. `TextInput` additionally paints `design.motion.spinner_frames[0]` in its trailing marker cell for `BUSY`/`LOADING` and declares `Part::ICON`. | Two defects in one place. (a) No mono rule reached the parts a *text control* paints (`FIELD`, `TEXT`), so a disabled `TextInput` was indistinguishable from an enabled one and `TextInputCase` narrowed `DISABLED` away rather than fail. (b) Worse, `Fg(Faint) #262626` and `disabled_fg #4d4d4d` both have `Y < 0.35`, which `mono()` maps to `Black` on a `Black` canvas under `Theme::junie()` — a disabled control was **invisible**, not merely colourless, and goal §29 asks for *readable*. `Theme::paper()` escaped only by landing in the `Reset` band. | `theme::mono_disabled_is_dim_and_readable`; `theme::mono_resolver_applies_once_without_recipe_storage` (**== 20**); `conformance::{text_input,button,field,list,tabs}::mono_states_are_distinguishable` with the un-narrowed state lists; the former record paired the mono component frames with a `docs/visual-changes.md` entry under this item before any candidate-baseline decision. Item 1, not item 18, owns any separately measured `ICON + LOADING` output. <!-- amended by §72 --> |
 
 | 19 | **First-generation `render::components::*` digests for the Slice-4 component matrix** <!-- added by §36 -->. Fourteen components record their first digest lines — `text_area`, `select`, `radio_group`, `checkbox`, `toggle`, `chip_bar`, `status_bar`, `hint_bar`, `key_hint`, `progress_bar`, `spinner`, `meter`, `empty`, `brand` — 8 states × {junie, paper} × {truecolor, mono} × {120×40, 40×10} = 64 lines each, 896 in total. **Nothing moves**: the component did not exist in the reviewed tree, so no cell has a before-image and no cell is a difference from anything. This item covers **first generation only**. The second time one of these lines changes it classifies under items 1–18 or it is a regression, and this item may not be cited again for the same key. `{scope: first-generation}` | §16.3 requires one digest line per component × state × theme × colour × size, and Appendix A's Slice-4 amendment makes that digest one of the proofs a family package must produce, precisely because Slice-4 owners touch no application. Ten of the fourteen appear in no other item at all; the four named elsewhere are named for a *difference* — item 9 for `StatusBar`'s adopted drop order, item 10 for hint text derived from bindings, item 3 for `RadioGroup`'s cursor/value split — whose review mechanisms are application captures and a showcase digest that do not exist before Slice 5. Filing 896 lines under an item that describes neither the change nor a runnable review destroys the item→change mapping the guard's citation check depends on, and would attach them to item 1, whose stated mechanism §34.4 proved has never executed. | **A first-generation digest cannot be reviewed as a digest, and this item does not pretend that it can.** The hash is not inspectable and there is no before-image to diff, so what is reviewed is the *frame*, and only its glyph half. (1) The generating run prints the frame text of every unrecorded cell — the `Missing` branch of `Scene::assert_against` prints `text()` exactly as the `Mismatch` branch already does — and the dump is attached to the `docs/visual-changes.md` entry; a review mechanism that cannot be executed is decoration (§34.4). (2) A **fresh read-only `read-only analyst` visual reviewer, never the builder who generated the lines**, reads the `junie truecolor` and `junie mono` frames at 120×40 for all eight states of each component, and **rejects** on any of: a cell painted outside the component's own rect; an empty frame where the fixture supplies content; content in the `empty` state, or the empty affordance in a state that is not `empty`; truncation or an ellipsis at 120×40; a state textually identical to another under `mono` where §11.4 prescribes a distinguishing symbol and conformance case 9 does not already cover that pair; a glyph occupying no `GlyphSet` slot; or a label that is not the one the fixture supplies. (3) **The style half of the digest — `fg`, `bg`, `modifier` — is reviewed by nobody, and this item says so rather than implying otherwise.** It is asserted instead by the 20-case conformance matrix already registered for each of these components and by the `theme::*` contrast and mono-legibility tests. A first-generation line is therefore a **pin against future drift, not an approval of present appearance**; the first review of these components *as pictures* is the Slice-5 capture matrix. (4) No `shots/` capture exists or can exist: the matrix is headless — `Scene` draws into a `TestBackend` buffer and `tools/capture.sh` drives a terminal session — so the ledger's `- captures:` field records that fact and names the frame-text dump in its place (§16.3 as amended by §36). |
 
@@ -4138,7 +4155,7 @@ Every item below changes rendered output relative to the reviewed baseline. Each
 
 | 23 | **ChipBar applies §50's semantic identity and owned-patch contract.** Checked-set membership paints canonical `GlyphRole::Checked` in the existing one-cell marker; caller RowUi META survives; component patches reach only automatic CONTAINER/LABEL; NEW/`AddRequested` replaces fabricated add-item identity. Label, pad, close and overflow geometry remain fixed. `{scope: truecolor}` | The old tail refill erased caller-owned META and the old RowUi path left advertised ChipBar CONTAINER/LABEL instance patches inert. Shared CHOICE styling also resolved `CheckboxOn` for CHIP, clipping a multi-cell checkbox glyph into the one-cell chip marker; §50 requires `Checked`. | A fresh discarded scratch diff supplies the exact moved keys after correction; Junie 120×40 truecolor and mono frames require `✓Ada Lovelace`, trailing `engineer`, unchanged close/pad positions, no truncation, and no `CheckboxOn` glyph. Unit/conformance proofs cover Set/Inherit/Clear marker resolution, owner-vs-row patch isolation, `AddRequested` keyboard/mouse identity, and mono distinction. |
 
-| 24 | **First-generation TooSmall component digests.** TooSmall adds exactly 64 keys: 8 states × {junie,paper} × {truecolor,mono} × {120×40,40×10}. No key has a before-image; this row is first generation only and may not be cited for later movement. `{scope: first-generation}` | The closed item 19 set does not include TooSmall. §16.3 and the Slice-4 package gate require its public component matrix before app migration. This authorizes only new `render::components::too_small::*` keys and no legacy app-frame movement. | The item 19 no-BLESS frame-text mechanism plus a fresh visual review. Reject wrong copy/order/blank-row/centering, any out-of-area cell, or ACTIONS not faint in both built-in truecolor frames. Machine evidence: the dedicated-family isolation test, the component quit-cell tone test, and all 20 conformance cases. |
+| 24 | **First-generation TooSmall component digests.** TooSmall adds exactly 64 keys: 8 states × {junie,paper} × {truecolor,mono} × {120×40,40×10}. No key has a before-image; this row is first generation only and may not be cited for later movement. `{scope: first-generation}` | The closed item 19 set does not include TooSmall. The former package gate described these new `render::components::too_small::*` keys and no legacy app-frame movement. It is historical classification, not current authorization. | The former item 19 no-BLESS frame-text mechanism plus a fresh visual review. Reject wrong copy/order/blank-row/centering, any out-of-area cell, or ACTIONS not faint in both built-in truecolor frames. Machine evidence: the dedicated-family isolation test, the component quit-cell tone test, and all 20 conformance cases. |
 
 | 25 | **First-generation component digests for ScrollRegion, NavList, Steps and Grid.** The four components add exactly 256 keys: 8 states × {junie, paper} × {truecolor, mono} × {120×40, 40×10}, 64 per component. No key has a before-image; this row is first generation only and may not be cited for later movement. Item 21 additionally classifies the appearance of the four `scroll_region::pressed` mono keys inside this set; that overlap is not extra movement, and item 21 does not authorize their first generation. `{scope: first-generation}` | §16.3 and the Slice-4 package gate require the complete matrix. The closed sets in items 19, 22 and 24 omit these four components; item 21 specifies a ScrollRegion state correction, not authority to add baseline keys. | The same executable no-BLESS frame-text dump, fresh independent Junie 120×40 truecolor/mono review of all eight states, and common rejection conditions as item 19. Additionally reject: a non-empty ScrollRegion frame without the complete overflowing bar, or any cap/track/thumb geometry change beyond item 21's thumb-only mono BOLD; NavList section/order drift, loss of fixture label/icon/meta/badge, or a component-owned chosen marker outside its reserved marker cell; Steps lifecycle-order/glyph/label/meta drift or a fabricated selected affordance (Steps does not select); Grid header/row-order drift, loss of its focus gutter or empty affordance, a selected frame without exactly one state-owned selected row, or fabricated component-wide editing glyphs. Item 21's pressed-mono comparison remains independently mandatory. Style remains conformance/theme-test owned. |
 
@@ -4148,14 +4165,14 @@ Every item below changes rendered output relative to the reviewed baseline. Each
 
 | 28 | **Semantic selection is state-owned, never fabricated by a forced visual state.** Exactly 16 existing keys move: all eight theme/colour/size cells of `button::selected`, the four mono cells of `radio_group::pressed`, and the four mono cells of `select::selected`. List and Tabs remain hash-neutral because replacing the old forced-first stand-in with the same first stable semantic key preserves their pixels. No other key or colour is authorized. `{scope: truecolor}` | A forced state is a visual probe, not domain authority. Button checked presentation comes only from its controlled boolean prop, List selection from `ListState::chosen`, Tabs activation from `TabsState::active`, RadioGroup choice from its controlled value, and Select choice from `SelectState::value`; the fixture supplies those semantic values explicitly where required. The old mono Select selected frame fabricated a closed `›`; the corrected frame retains the value and restores the closed `▾`. | Fresh Junie 120×40 truecolor/mono frame review: Button selected gains the checked lane and gap (natural width +2) while retaining its label; List has exactly one chosen marker and Tabs exactly one active tab despite their hash-neutral transition; RadioGroup has exactly one chosen row plus the exact pressed target and no second chosen row; selected Select retains Ada Lovelace and exactly one closed `▾`. A dedicated open-popup proof requires exactly one `›` chosen marker on the value row and verifies the open/closed disclosure coordinates. Reject unrelated geometry/content drift or out-of-area paint. The four `select::pressed` mono movements remain item 1's FIELD inverse+BOLD and `[`/`]` bracket fallback, not semantic-selection movement. Machine proof: forced-selection unit tests, exact Select geometry tests, and the complete conformance suite. |
 
-| 29 | **Select owns vertical disclosure glyphs.** The closed field uses `GlyphRole::SelectClosed` (`▾`) and the open field uses `GlyphRole::SelectOpen` (`▴`); popup rows retain `GlyphRole::Chosen` (`›`) for the committed value. Instance marker `Set`/`Clear` remains authoritative and the field marker stays at `FIELD.right() - 2`. `{scope: truecolor}` | Reusing the generic collapsed-tree glyph made an open Select point sideways and conflated field disclosure with popup-row selection. Dedicated roles restore the intended vertical open/closed anatomy without moving geometry. | `select::select_disclosure_is_exact_for_both_themes_and_color_levels` plus focused Select and builtin-glyph unit tests verify closed/open glyphs, one-cell width, marker coordinates and exactly one popup chosen marker. The retained eight-state component matrix draws Select closed, so this item authorizes no moved or added baseline key and requires no hash. Reject any geometry change, extra marker, or retained-baseline movement. |
+| 29 | **Select owns vertical disclosure glyphs.** The closed field uses `GlyphRole::SelectClosed` (`▾`) and the open field uses `GlyphRole::SelectOpen` (`▴`); popup rows retain `GlyphRole::Chosen` (`›`) for the committed value. Instance marker `Set`/`Clear` remains authoritative and the field marker stays at `FIELD.right() - 2`. `{scope: truecolor}` | Reusing the generic collapsed-tree glyph made an open Select point sideways and conflated field disclosure with popup-row selection. Dedicated roles restore the intended vertical open/closed anatomy without moving geometry. | `select::select_disclosure_is_exact_for_both_themes_and_color_levels` plus focused Select and builtin-glyph unit tests verify closed/open glyphs, one-cell width, marker coordinates and exactly one popup chosen marker. The retained eight-state component matrix draws Select closed; this historical item records no moved or added baseline key and requires no hash. Reject any geometry change, extra marker, or retained-baseline movement. |
 
 | 30 | **Retained Dialog exact-target correction.** Reference states for a no-prompt Dialog target only its first enabled action; selected and editing are inert semantic/default references. Prompt focus/editing target only the prompt input. Root chrome and sibling actions receive no injected runtime flags. Exactly 28 retained Dialog keys move in the stabilized scratch comparison. `{scope: truecolor}` | A composite owns layout and orchestration, not one distributive visual state. Broadcasting a root reference state made every action appear focused or pressed. | The exact 28 old→new claims are recorded in `docs/visual-changes.md` against the stabilized scratch pair. Independent frame review must reject more than one changed action, root-border state injection, more than one mono bracket pair, prompt state on an action, registration output, or geometry/content drift. Accounting alone does not authorize a retained-baseline bless. |
 
-| 31 | **Reference rendering is one central exact-target scope.** Replace component-local `state_override`/`inherit_forced` propagation with `Ui::reference`: one optional exact component/item/part target receives runtime reference bits, while the complete subtree is inert. Semantic selected/editing/disabled/readiness data remains caller-owned. Exactly 177 retained keys move for this root-class correction in the stabilized scratch comparison. `{scope: truecolor}` | The old component-root propagation admitted a defect class: composite children, collection rows, scrollbars and callback/slot bodies could all inherit one synthetic state or remain live. Central scoping removes the enabling condition and makes arbitrary subtrees inert without distributing paint state. | `docs/visual-changes.md` records all 177 exact old→new claims. Accept only differences attributable to removing broadcast/leaked reference state or selecting the declared exact target. Reject default/live-runtime/semantic changes, multiple targets, registration output, geometry/content drift and every unaccounted key. Independent frame review and separate bless authorization remain required. |
+| 31 | **Reference rendering is one central exact-target scope.** Replace component-local `state_override`/`inherit_forced` propagation with `Ui::reference`: one optional exact component/item/part target receives runtime reference bits, while the complete subtree is inert. Semantic selected/editing/disabled/readiness data remains caller-owned. Exactly 177 retained keys move for this root-class correction in the stabilized scratch comparison. `{scope: truecolor}` | The old component-root propagation admitted a defect class: composite children, collection rows, scrollbars and callback/slot bodies could all inherit one synthetic state or remain live. Central scoping removes the enabling condition and makes arbitrary subtrees inert without distributing paint state. | `docs/visual-changes.md` records all 177 exact old→new claims. Accept only differences attributable to removing broadcast/leaked reference state or selecting the declared exact target. Reject default/live-runtime/semantic changes, multiple targets, registration output, geometry/content drift and every unaccounted key. Independent frame review and any candidate-baseline decision remain separate current gates. |
 | 32 | **First-generation per-app visual baselines.** Each migrated application owns a checked-in cell-exact baseline under `apps/<app>/tests/baselines/`. These keys are first-generation evidence for the application surfaces and are never treated as an implicit approval of future movement. `{scope: first-generation}` | Slice 5–7 application code must be reviewable as rendered output, not only by substring assertions. A fresh capture matrix and independent visual review compare the app frames with the matching frozen before evidence where one exists. | `xtask capture-matrix` artifacts under `shots/`, app visual tests, and a `docs/visual-changes.md` entry listing the exact generated key pattern and review disposition. A later movement cites the applicable defect/fix item or is a regression. |
 | 33 | **First-generation per-app performance baselines.** Each migrated application owns its measured rows under `apps/<app>/tests/perf_baseline.txt`; the frozen root performance file remains the before-image. `{scope: first-generation}` | Application performance must be measured through the shared allocator/timing harness after migration. Missing or empty per-app files are a failure, and a later allocation/byte increase is a regression. | `architecture::app_baselines_exist`, package-qualified perf targets with `PERF_BLESS=1`, CI's no-rebless diff, and the `PERF` lines uploaded as build artifacts. |
-| 34 | **Migrated app visual repair baselines.** Exactly 144 existing Showcase digest keys move after two demonstrated fixes: the Paper/ANSI16 foreground ladder is repaired for light surfaces (88 keys), and the shared Grid/Table geometry and header presentation are corrected (the remaining 56 Data grid and Tables keys across all themes and colour levels). `{scope: truecolor}` | The fresh visual audit found unreadable `#e5e5e5` labels on `#ffffff` in Paper/ANSI16 and stale shared grid/table output after the TablePro header/active-cell fixes. This row authorizes only the exact repaired cells below; it does not authorize unrelated app or component drift. | `apps/showcase/tests/visual.rs::showcase_visual_baseline`, a regenerated 112-cell `xtask capture-matrix`, and a fresh independent visual review of representative Paper/ANSI16, Grid/Table, TablePro and Jackin frames. Reject any unaccounted key, geometry/content drift, or remaining contrast defect. |
+| 34 | **Migrated app visual repair baselines.** Exactly 144 existing Showcase digest keys move after two demonstrated fixes: the Paper/ANSI16 foreground ladder is repaired for light surfaces (88 keys), and the shared Grid/Table geometry and header presentation are corrected (the remaining 56 Data grid and Tables keys across all themes and colour levels). `{scope: truecolor}` | The fresh visual audit found unreadable `#e5e5e5` labels on `#ffffff` in Paper/ANSI16 and stale shared grid/table output after the TablePro header/active-cell fixes. This historical row described only the exact repaired cells; it did not authorize unrelated app or component drift. | `apps/showcase/tests/visual.rs::showcase_visual_baseline`, a former 112-cell `xtask capture-matrix`, and a fresh independent visual review of representative Paper/ANSI16, Grid/Table, TablePro and Jackin frames. Reject any unaccounted key, geometry/content drift, or remaining contrast defect. |
 | 35 | **Empty regions inherit the owning style; hover lifts only the hovered row.** The empty branches of `List`, `Grid`, `FilterList`/`Picker` route through `EmptyState::draw_inherited`, so the owner's EMPTY-part style fills the whole empty rect; NavList's container/header fills add `StateFlags::HOVERED` to their difference masks and Junie's LIST row-hover plane moves to `HoverSurface`. Exactly 20 retained truecolor component keys move; frame text is identical before and after for every one of them. `{scope: truecolor}` | An empty component with unstyled blank cells and a hover tint that lifted gaps, headers and unrelated rows were demonstrated defects of the shared path; the corrections remove the enabling condition rather than patching call sites. | The no-BLESS frame-text dumps (byte-identical text, style-only movement), the sidebar contract `row_hover_does_not_lift_headers_gaps_or_other_rows`, and the `render::components::*::empty`/`nav_list::hovered` digests; the exact claims live in `docs/visual-changes.md` Item 35. Reject any text or geometry change on these keys. |
 | 36 | **Showcase: coverage expansion unified with the historical page flows, pinned to the Holla shell.** The merged 22 pages are the reviewed single-constructor coverage line plus the main line's historical flows, and two Holla production-parity corrections (Editor heading always `Code editor`; capability cluster needs two cells of clearance from the breadcrumb). Every retained Showcase cell moves for that union — exactly 672 keys (168 truecolor and 504 mono/ANSI16/ANSI256) — and the Editor page's 32 cells are recorded for the first time under its corrected `Code editor` name. `{scope: truecolor}` | Both source lines were reviewed separately; the union is the deliberate rendering, and the Holla reference fixtures turned two divergences from taste questions into measurable defects. | `holla-page-headings.tsv` (352 rows) and `holla-shell-headers.tsv` (355 rows) from the Holla 794b095 binary, `showcase_visual_baseline`, and the exact claims in `docs/visual-changes.md` Item 36; a refreshed capture matrix and independent review remain required. Reject unaccounted pages, dropped component coverage, or further reference-fixture divergence. |
 | 37 | **TablePro: the merged shell is the union of the recorded historical restoration and the branch's role-owned corrections, re-blessed.** Legacy tree gutters resolve `Role::OnSurfaceInverse`, the embedded Grid carries the detailed-gutter and full-height-track corrections, and item 35 flows through the embedded components. Exactly 168 retained TablePro keys move (84 truecolor and 84 mono/ANSI16/ANSI256). `{scope: truecolor}` | Two divergent lines of deliberate corrections were unified; the recorded cells must describe the merged rendering, not either parent's. | `tablepro_visual_baseline`, the tablepro unit and interaction suites, and the exact claims in `docs/visual-changes.md` Item 37; refreshed captures and independent review remain required. Reject any surface whose movement is not explained by the union. |
@@ -4170,7 +4187,18 @@ The TextViewport exact-layout adjudication changes no pixels: it corrects cache 
 
 ## Appendix A — Slice plan
 
+**Historical plan only.** This appendix preserves the former slice/work-package
+plan as architecture evidence. It is not the current task DAG, ownership
+contract, command set, or authorization source. Current task contracts and the
+readiness report govern all work; while readiness is **NO-GO**, no item here
+may start.
+
 Maps goal §27 slices 3–8 onto work packages with **disjoint file ownership**, so `builder` agents can run in parallel without integration conflict. A package's owner is the only agent that writes its files during that slice. Files not listed are owned by nobody and must not be touched.
+
+All parallel-builder, wave-order, concurrent-slice, and package-schedule
+language below is quoted historical planning evidence. Do not execute it
+outside the current task contracts, dependency receipts, and readiness **GO**
+gate; the current readiness is **NO-GO**.
 
 **Amendment to goal §27 (recorded, with justification).** Goal §27 Slice 4 says "migrate coherent families, continuously updating showcase pages and tests". Continuous showcase updates would make every Slice-4 owner write into `apps/showcase/`, destroying disjointness. Instead: **Slice 4 owners do not touch any application.** Each family package proves itself with unit tests, a `Conformance` registration (which runs the full 20-case matrix), a `render::components::*` digest, and one `crates/tui/examples/` file. Showcase migration is entirely Slice 5. The review cadence goal §27 asks for is preserved: a fresh read-only `read-only analyst` reviews API consistency after **each** family package lands, before the next depends on it.
 
@@ -4232,7 +4260,6 @@ ledger so a resumed or compacted session did not "correct" the temporary name):
   cargo fmt --all --check
   cargo clippy -p junie-tui -p junie-tui-testing --all-targets --all-features -- -D warnings
   cargo nextest run -p junie-tui -p junie-tui-testing --all-targets --all-features
-  cargo nextest run -p junie-tui --doc
   RUSTDOCFLAGS="-D warnings" cargo doc -p junie-tui --all-features --no-deps
   cargo build -p junie-tui --examples
   cargo nextest run -p junie-tui --test architecture
@@ -4274,7 +4301,7 @@ Shared, contended files are handled by convention rather than by ownership: `com
   cargo nextest run -p junie-tui --test conformance
   cargo nextest run -p junie-tui --test render --test render_components   # both targets; --test render alone runs half the matrix (§16.3, §28)
   cargo nextest run -p junie-tui --test architecture
-  cargo nextest run -p junie-tui --doc
+  RUSTDOCFLAGS="-D warnings" cargo doc -p junie-tui --all-features --no-deps
   cargo build -p junie-tui --examples
   cargo nextest run -p junie-tui --test perf --test perf_collections --release -- --test-threads=1
   cargo run -p xtask -- doc-check                   # §21 item 34
@@ -4311,7 +4338,6 @@ Shared, contended files are handled by convention rather than by ownership: `com
   cargo fmt --all --check
   cargo clippy --workspace --all-targets --all-features -- -D warnings
   cargo nextest run --workspace --all-targets --all-features
-  cargo nextest run --workspace --doc
   RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
   cargo build --workspace --all-targets --all-features
   cargo nextest run --workspace --test perf --test perf_collections --release -- --test-threads=1
@@ -4329,6 +4355,12 @@ Shared, contended files are handled by convention rather than by ownership: `com
 ---
 
 ## Appendix B — Package layout and crate naming (Adjudication F)
+
+**Historical target-layout record.** The layout and rename decisions below are
+architecture evidence from the former campaign plan. Current task contracts and
+the regenerated task graph own implementation order and ownership; this
+appendix cannot authorize dispatch, candidate acceptance, or mutation of the
+frozen oracle. Readiness is **NO-GO**.
 
 ### B.1 Decision — the repository becomes a Cargo workspace; the library keeps the name `junie-tui`
 
@@ -4363,7 +4395,7 @@ Cargo.toml                                  # [workspace] members + [workspace.p
 rust-toolchain.toml                         # pinned for the PERF_STRICT job
 README.md  DESIGN.md  COMPONENT_ARCHITECTURE.md  GOAL.md
 docs/audit/*.md                             # the five Slice-1 audits, unchanged
-docs/visual-changes.md                      # §20.10 ledger; xtask bless-guard reads it
+docs/visual-changes.md                      # historical §20.10 change record; xtask bless-guard reads it
 docs/guides/{quickstart.md, theming.md, overrides.md, authoring.md, migration.md}
 shots/                                      # capture artefacts
 tools/{capture.sh, ansi2png.py, ansi2html.py}
@@ -4663,7 +4695,7 @@ What is deliberately **not** in `author`: `Runtime`, `run`, `TerminalSession`, `
 ### B.5 Examples and capture tooling
 
 * The thirteen §17 examples live in `crates/tui/examples/` and are built by `cargo build -p junie-tui --examples` in every slice gate. Because Cargo compiles examples as separate crates linked against `junie_tui`, they see exactly the public API and nothing else — the "external-style consumer" requirement of goal §21 is satisfied structurally, not by convention.
-* Doctests carry the condensed forms of examples 1–10 on the corresponding types and run under `cargo nextest run --workspace --doc`.
+* Doctests carry the condensed forms of examples 1–10 on the corresponding types. `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps` is the current rustdoc gate; executable doctest coverage remains the explicit TASK-066 blocker.
 * `tools/capture.sh` requires `BIN` explicitly and accepts the exact application argv after `--`; `--theme {junie|paper}` and `--color {truecolor|256|16|none}` are passed as separate arguments so the §20.10 review matrix is scriptable without shell interpolation. Each run has its own state/session identity and records binary, Git, environment, and tool provenance. `xtask capture-matrix` drives it over the full size × theme × colour × app grid and writes into `shots/`, so the visual reviewer receives a complete, reproducible set rather than ad-hoc screenshots.
 
 ---
@@ -4672,7 +4704,12 @@ What is deliberately **not** in `author`: `Runtime`, `run`, `TerminalSession`, `
 
 **Status:** Accepted. Source: `docs/reviews/slice2-architecture-review.md` (fresh read-only `read-only analyst`, goal §27 Slice 2). The review's verdict — *not ready as written; ready after the ordered edits* — and every finding in it (B1–B16, M1–M31, F1–F10, P1–P8, A1–A17, the §3 recommendations and the §7 staging adjudication) are accepted as-is. This section is the numbered changelog the review's §9(a) asked for: each item names the finding(s), the section(s) it amends, and the resulting normative text. Where an earlier section is edited inline, the edit carries `<!-- amended by §21 item N -->`. Nothing here reopens Adjudications A–I or Appendix B's workspace decision; three items (1–3) are narrow amendments to the accepted model and are labelled as such.
 
-**Ordering.** Items 1–10 are the hard gate: Slice 3 does not start until Groups 1–2 are recorded here and mirrored in `REFACTORING_STATE.md`. Groups 3–6 land before the Slice 3 owner reaches the corresponding subsystem, and all of them before Slice 4 begins.
+**Historical ordering record.** The former Slice 2 review required Groups 1–2 to
+be recorded here and mirrored in the then coordinator-owned state ledger. It
+also described Groups 3–6 as preceding the corresponding Slice 3 subsystems
+and Slice 4. The ledger and that schedule are retired; this paragraph is
+provenance only. The current task graph and task contracts govern ordering, and
+the readiness report governs authorization; current readiness is **NO-GO**.
 
 ### Group 1 — Adjudicated amendments
 
@@ -4952,7 +4989,7 @@ so it moves and adds no baseline key.
 
 **Item 31 — B16, review §7, M30: staging.** Amends Appendix A (WP‑0, Slice 3, Slice 4 gates), Appendix B.1/B.2, §16.6.
 
-The coordinator's `junie-tui-legacy` rename proposal is rejected (doc-target collision on `junie_tui` under `RUSTDOCFLAGS="-D warnings"`; duplicate `showcase`/`tablepro`/`jackin-preview` bin names making `cargo run --bin` and `target/debug/<bin>` ambiguous in the slices where visual comparison matters; `default-run` resolving to the legacy showcase). Accepted plan: the root package stays `junie-tui` untouched and becomes the workspace root; the new library at `crates/tui` is temporarily `junie-tui`/`junie_tui` during Slices 3–4; one scripted rename to `junie-tui`/`junie_tui` at the start of Slice 5 when root `src/`, `src/bin/*`, `[lib]`, `default-run` and the `[[bin]]`s are removed. Appendix A records the plan, the five risks and WP‑0's actual landed paths (commit `07cb2c9`: `tests/perf.rs`, `tests/perf_common.rs`, `tests/perf_baseline.txt`, `src/bin/{showcase,tablepro,jackin_preview}/perf_tests.rs`); the legacy test command `cargo nextest run --all-targets` at the repository root is added to the Slice 3 and Slice 4 gates. `REFACTORING_STATE.md` must carry the same five risks (coordinator-owned; not part of this edit).
+The coordinator's `junie-tui-legacy` rename proposal is rejected (doc-target collision on `junie_tui` under `RUSTDOCFLAGS="-D warnings"`; duplicate `showcase`/`tablepro`/`jackin-preview` bin names making `cargo run --bin` and `target/debug/<bin>` ambiguous in the slices where visual comparison matters; `default-run` resolving to the legacy showcase). Accepted plan: the root package stays `junie-tui` untouched and becomes the workspace root; the new library at `crates/tui` is temporarily `junie-tui`/`junie_tui` during Slices 3–4; one scripted rename to `junie-tui`/`junie_tui` at the start of Slice 5 when root `src/`, `src/bin/*`, `[lib]`, `default-run` and the `[[bin]]`s are removed. Appendix A records the plan, the five risks and WP‑0's actual landed paths (commit `07cb2c9`: `tests/perf.rs`, `tests/perf_common.rs`, `tests/perf_baseline.txt`, `src/bin/{showcase,tablepro,jackin_preview}/perf_tests.rs`); the former root `cargo nextest run --all-targets` command was part of the historical Slice 3 and Slice 4 gates. The five risks are retained as historical architecture evidence. Current task contracts and the DAG own implementation and acceptance; the readiness report owns authorization and is **NO-GO**.
 
 **Item 32 — M12: jackin's request bus `Jx` and the `Msg` channel.** Amends §3.4, §17.0 A1, §18.3 #22.
 
@@ -5047,7 +5084,7 @@ Each item names the exact modern primitive; the `Ui` signatures are in §17.0 A2
 
 * `#![forbid(unsafe_code)]` in `crates/tui/src/lib.rs` and every app crate root. **`crates/tui-testing` uses `#![deny(unsafe_code)]`**, not `forbid` (`forbid` cannot be overridden; that crate carries the documented `unsafe impl GlobalAlloc`, §16.6, under a local `#[expect(unsafe_code, reason = "counting allocator; see SAFETY")]` plus a `// SAFETY:` comment). Correspondingly `[workspace.lints.rust] unsafe_code = "deny"`, tightened to `forbid` at the `crates/tui` root; `forbid` at workspace level would make `tui-testing` uncompilable.
 * `#![deny(missing_docs)]` in `crates/tui` (§16.5) plus `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps` in CI (goal §26).
-* **`#![doc = include_str!("../README.md")]`** at the top of `crates/tui/src/lib.rs`, so `cargo nextest run --workspace --doc` compile-checks every README example — the cheapest way to satisfy goal §24 + §25.5 "all examples compile" for the quick-start. Caveat: every README code fence must be valid Rust or tagged ```` ```text ````/```` ```ignore ````.
+* **`#![doc = include_str!("../README.md")]`** at the top of `crates/tui/src/lib.rs`, so `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps` checks the README rustdoc surface — the cheapest way to satisfy the documented quick-start surface. Executable doctest coverage remains the explicit TASK-066 blocker; every README code fence must be valid Rust or tagged ```` ```text ````/```` ```ignore ````.
 * **Doctests hide setup only.** `#`-hidden lines hold fixture construction (`# let mut ui = junie_tui::testing::ui();`); never hide a `use` a real downstream caller would need — a doctest that compiles only because a hidden line imports a private path is a false proof of §17's "external consumer" claim.
 * **`#[non_exhaustive]` — apply narrowly.** Yes on types the runtime produces and the caller only matches, which will grow: `Diagnostic`, `Intent`, `Phase`, `FocusVia`, `LayerEvent`, `DismissReason`, `Status`, `ColorLevel`, `RegionKind`, plus the already-marked `LayerSpec` and `LayoutFacts` (applied inline in §6.1, §9.1, §17.0 A8/A9, B.3 item 4). **No** on `ColorTokens` (§17 example 2: a new token must be a compile error for downstream themes; `map_colors`'s exhaustive destructure depends on it), `StylePatch`, `RowDecor`, `CellDecor`, `Insets`, `Headroom` — all constructed by users with struct literals. Trade-off stated: `#[non_exhaustive]` on an enum forces a wildcard arm downstream and destroys the "adding a variant is a compile error" property; apply only where downstream exhaustiveness is not wanted.
 * **No process-global state in `crates/tui/src`.** `LazyLock`, `OnceLock`, `static mut`, `thread_local!` are forbidden (rule 18). The `Runtime` owns all state (§4); a global would break `Harness` isolation and `--test-threads=1`-free testing. This is a second, independent reason `ratatui-core/layout-cache` stays off — it *is* such a global.
@@ -5065,7 +5102,7 @@ Each item names the exact modern primitive; the `Ui` signatures are in §17.0 A2
 
 ### 22.5 MSRV — `rust-version = "1.88"` held, and verified (MOD §5)
 
-**[F]** Every direct dependency declares `rust-version = "1.88.0"`; 1.88 is the ecosystem floor. Every capability the architecture depends on is available at 1.88 (table in §22.3); the only capability that would materially change the design — const trait support / `const fn` in traits, which would let `StylePatch::merge` and a fully `const` `Overlay` evaluate at compile time — is not stable in any released Rust up to and including the 1.98 toolchain in use, so no bump reaches it. Raising the MSRV would exceed every dependency's own floor and buy no feature, which goal §21 forbids. **But the pin is a declaration, not a fact:** `msrv_and_edition_are_unchanged` reads `cargo metadata` and proves the *field*, not that the code compiles on 1.88. Closed by the blocking CI job `msrv`: `cargo +1.88.0 check --workspace --all-targets --all-features` (or `cargo-msrv verify`); optionally a `rust-toolchain.toml` `channel = "1.88.0"` verification profile, keeping the **primary** CI job on stable so new diagnostics are seen early. The MSRV was re-examined during the refactor and deliberately held, with MOD §5 as the justification (to be mirrored in `REFACTORING_STATE.md`, coordinator-owned).
+**[F]** Every direct dependency declares `rust-version = "1.88.0"`; 1.88 is the ecosystem floor. Every capability the architecture depends on is available at 1.88 (table in §22.3); the only capability that would materially change the design — const trait support / `const fn` in traits, which would let `StylePatch::merge` and a fully `const` `Overlay` evaluate at compile time — is not stable in any released Rust up to and including the 1.98 toolchain in use, so no bump reaches it. Raising the MSRV would exceed every dependency's own floor and buy no feature, which goal §21 forbids. **But the pin is a declaration, not a fact:** `msrv_and_edition_are_unchanged` reads `cargo metadata` and proves the *field*, not that the code compiles on 1.88. The former review closed this with a blocking `msrv` job (`cargo +1.88.0 check --workspace --all-targets --all-features` or `cargo-msrv verify`) and optional toolchain profile; that rationale is historical. Current MSRV ownership and acceptance follow TASK-069, CI, and the readiness report, which governs the current gate status.
 
 ### 22.6 Binding rules for builders (MOD §6.1)
 
@@ -5127,7 +5164,7 @@ New test in `crates/tui/tests/architecture.rs`, driven from `xtask` (it reads th
 | 27 <!-- amended by §25 (adjudication 1, D‑1) --> | `CrosstermBackend\|ratatui_crossterm::(?!crossterm::event)` | `crates/tui/src/runtime/session.rs` | the mechanical proof that the backend is confined to one file. `cargo check --no-default-features` cannot prove it — `ratatui-crossterm` is a normal, non-optional dependency (§22.1) — so this rule, together with `architecture::ratatui_crossterm_is_named_in_exactly_two_files`, is what makes the backend-independence claim true instead of theatre |
 | 27a <!-- amended by §25 F2 (BL‑2) --> | `loop\s*\{[^}]*spin_loop` (a `loop {` whose body calls `core::hint::spin_loop`) | nowhere in `crates/tui/src/**` | an "unreachable" arm that **hangs** the process is strictly worse than a panic: `TerminalSession`'s chained hook restores the terminal on a panic, while a livelock with raw mode on and the alternate screen entered leaves the user with an unusable terminal and no stack. The two occurrences existed only to satisfy `clippy::panic`/`expect_used` at deny; the correct form is one documented `#[expect(clippy::expect_used, reason = "Vec::insert(i, _) makes get_mut(i) infallible")]`, or a restructure that returns the reference from the insert branch. Test `architecture::no_unreachable_spin_loops` |
 
-**Companion check `architecture::dependency_graph_is_exactly_the_declared_set`** (`xtask`, `cargo metadata`): (1) `junie-tui`'s direct normal dependencies are exactly `{ratatui-core, ratatui-crossterm, unicode-width, unicode-segmentation, bitflags}`; (2) <!-- amended by §25 (adjudication 5) --> split into four parts, because "`smallvec` is absent from the normal closure" was simply **false** — it arrives through `ratatui-crossterm → crossterm → parking_lot → smallvec`, and `ratatui-crossterm` is mandatory (§22.1). Pruning the crossterm subtree makes the check pass but silently deletes a whole subtree without asserting anything about it. **(2a)** `ratatui`, `ratatui-widgets` and `ratatui-macros` are absent from `junie-tui`'s **entire** normal closure. **(2b)** `critical-section` and `palette` are absent from the **entire** (unpruned) closure — they can only arrive through `ratatui-core` features we disable. **(2c)** `smallvec`, `parking_lot`, `parking_lot_core`, `lock_api`, `scopeguard`, `libc`, `mio` and `signal-hook*` may appear **only beneath `ratatui-crossterm`**: asserted positively with `cargo tree -p junie-tui -e normal --invert <crate>` for each of the eight names, requiring `ratatui-crossterm` on every printed path. They are crossterm's internals, not a choice of ours; §22.4's decision is about *our* containers and is enforced by forbidden-pattern rule 26 over our source. The pruned subtree is printed once on success so the exception is visible in CI output. **(2d)** `junie-tui`'s **direct** normal dependencies contain no `smallvec` and no direct `crossterm`; (3) each app's direct normal dependencies are exactly `{junie-tui}`; (4) `unicode-width`, `unicode-segmentation` and `bitflags` each resolve to **one** version in the graph; (5) enabled features on `ratatui-core` are exactly `{std, underline-color}`. **Companion CI gates** (beyond goal §26's list): `cargo check -p junie-tui --no-default-features`; `cargo +1.88.0 check --workspace --all-targets --all-features`; `cargo nextest run --workspace --doc` with the README included. All three are in §16.5 and Appendix A's gates.
+**Companion check `architecture::dependency_graph_is_exactly_the_declared_set`** (`xtask`, `cargo metadata`): (1) `junie-tui`'s direct normal dependencies are exactly `{ratatui-core, ratatui-crossterm, unicode-width, unicode-segmentation, bitflags}`; (2) <!-- amended by §25 (adjudication 5) --> split into four parts, because "`smallvec` is absent from the normal closure" was simply **false** — it arrives through `ratatui-crossterm → crossterm → parking_lot → smallvec`, and `ratatui-crossterm` is mandatory (§22.1). Pruning the crossterm subtree makes the check pass but silently deletes a whole subtree without asserting anything about it. **(2a)** `ratatui`, `ratatui-widgets` and `ratatui-macros` are absent from `junie-tui`'s **entire** normal closure. **(2b)** `critical-section` and `palette` are absent from the **entire** (unpruned) closure — they can only arrive through `ratatui-core` features we disable. **(2c)** `smallvec`, `parking_lot`, `parking_lot_core`, `lock_api`, `scopeguard`, `libc`, `mio` and `signal-hook*` may appear **only beneath `ratatui-crossterm`**: asserted positively with `cargo tree -p junie-tui -e normal --invert <crate>` for each of the eight names, requiring `ratatui-crossterm` on every printed path. They are crossterm's internals, not a choice of ours; §22.4's decision is about *our* containers and is enforced by forbidden-pattern rule 26 over our source. The pruned subtree is printed once on success so the exception is visible in CI output. **(2d)** `junie-tui`'s **direct** normal dependencies contain no `smallvec` and no direct `crossterm`; (3) each app's direct normal dependencies are exactly `{junie-tui}`; (4) `unicode-width`, `unicode-segmentation` and `bitflags` each resolve to **one** version in the graph; (5) enabled features on `ratatui-core` are exactly `{std, underline-color}`. **Companion CI gates** (beyond goal §26's list): `cargo check -p junie-tui --no-default-features`; `cargo +1.88.0 check --workspace --all-targets --all-features`; `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps` with the README included. All three are in §16.5 and Appendix A's gates.
 
 ### 22.8 Risks (MOD §7)
 
@@ -5146,7 +5183,6 @@ cargo check -p junie-tui --no-default-features                      # core is ba
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo nextest run  --workspace --all-targets --all-features
-cargo nextest run  --workspace --doc                                       # README + §17 examples compile
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
 cargo nextest run  --workspace --test architecture                         # incl. the two new checks below
 cargo tree  -p showcase -e normal --depth 1                         # => junie-tui, and nothing else
@@ -5249,9 +5285,9 @@ Named tests (in §16.1 / §16.2 / §16.4 / §16.5): `grid::read_only_update_take
 1. **A model that later becomes editable changes call site, not type.** A screen upgrading a grid from read-only to editable switches `update` → `update_editable` and holds `&mut`. This is the intended, visible cost; a defaulted-refusal design hides it and lets a half-implemented editor ship.
 2. **Two entry points means two `GridAction` paths to keep in sync.** Mitigated structurally: `update_editable` is `update`'s body plus the edit arms over one private `fn navigate(…)`, and conformance runs the whole matrix through both.
 3. **`GridModel` widens to 9 methods (5 defaulted).** Acceptable — the shape §12.3 already chose for `row_decor`/`cell_decor`/`total`/`has_more` — and the only way `draw` can render either.
-4. **`GridCellActions` deletion is a documented API change** relative to the pre-K2 §12.3 and DOM §1.5 (`docs/audit/domain-boundary-audit.md:147-149`). Recorded as an amendment in §12.3 and §18.2; must be mirrored in `REFACTORING_STATE.md` (coordinator-owned) before work package 4I starts, per the change-control rule at the top of this document.
+4. **`GridCellActions` deletion is a documented API change** relative to the pre-K2 §12.3 and DOM §1.5 (`docs/audit/domain-boundary-audit.md:147-149`). Recorded as an amendment in §12.3 and §18.2. The former change-control rule required a mirror in the retired coordinator state ledger before historical work package 4I; that schedule is provenance only. Current ownership and acceptance follow TASK-022/TASK-068 and the current task graph/contracts; the readiness report controls authorization and is **NO-GO**.
 
-**Sequencing.** Neither decision blocks Slice 3 (§21 item 1 already records this for K2). K1 blocks **4F**, K2 blocks **4I** — both wave 2 (Appendix A). Both are mirrored in `REFACTORING_STATE.md` before wave 2 begins.
+**Historical sequencing record.** The former review described K1 as blocking 4F and K2 as blocking 4I in wave 2, after Slice 3. Those work-package labels and the ledger mirror are provenance only. The current task graph/contracts own sequencing; the readiness report owns authorization and is **NO-GO**.
 
 ## 24. Adjudication M — re-exports, ASCII border set, `FieldKind`
 
@@ -5458,7 +5494,6 @@ Re-running the self-check over §17 examples 1–13 after the amendments found n
 cargo check -p junie-tui --no-default-features
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo nextest run  --workspace --all-targets --all-features
-cargo nextest run  --workspace --doc
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
 cargo build -p junie-tui --examples                     # examples 2 and 13 compile as amended
 cargo tree  -p showcase -e normal --depth 1             # => junie-tui, and nothing else
@@ -5495,7 +5530,7 @@ Pass condition: all commands succeed, the four `!`-prefixed greps return no matc
 2. **`author::raw` re-exports a second `Span`.** Mitigated by module qualification (`raw::Span`, never a flat `use`) and by `Ui::paint_spans`, which removes the only realistic reason to reach for it. If `raw::Span` starts appearing in components, that is a signal `paint_spans` is under-specified — not a naming problem.
 3. **`border::ASCII` themes still get unicode `GlyphSet` glyphs.** Stated in the const's rustdoc and above as the deferred root cause. `theme::ascii_theme_renders_without_box_drawing_glyphs` scans only the border range, deliberately, so it does not create a false impression of full ASCII safety.
 4. **`FormData` widens to seven methods (five defaulted).** Same shape §12.3 chose for `GridModel` and §23 K2 reinforced. `value_and_options`'s default is correct for every kind except the three choice kinds, so a data type that forgets to override it renders an empty option list — visible immediately in `form::select_field_options_come_from_form_data` and in the first frame, not a silent wrong answer.
-5. **Example 13 and §17.0 A7/A10 change text.** Both are gated by `xtask doc-check` (§21 item 34) and `architecture::all_examples_compile`, so the amendment is verified rather than asserted; `REFACTORING_STATE.md` (coordinator-owned) must mirror the three decisions before work packages 4A/4B/4F/4G start, per the change-control rule at the top of this document.
+5. **Example 13 and §17.0 A7/A10 change text.** Both are gated by `xtask doc-check` (§21 item 34) and `architecture::all_examples_compile`, so the amendment is verified rather than asserted. The former review required the three decisions before historical work packages 4A/4B/4F/4G; that schedule and its ledger mirror are provenance only. Current task contracts/DAG own implementation and acceptance; the readiness report owns authorization and is **NO-GO**.
 
 **Sequencing.** M1 and M2 land in Slice 3 (`lib.rs`, `author.rs`, `text/span.rs`, `theme/border.rs`, `ui/paint.rs` are foundation files); M3 blocks **4B** (`select.rs`), **4A** (`choice.rs`, `chip.rs`) and **4F** (`form.rs`), all of which are already sequenced after Slice 3 (Appendix A).
 
@@ -5543,7 +5578,7 @@ The old name survives only as a `#[cfg(debug_assertions)]`-only assertion that a
 
 **Decision: revert `nearest_16` to the legacy categorical metric, verbatim.** Four reasons, in order of weight.
 
-1. **Authority.** The order at the top of this document is `GOAL.md › DESIGN.md › existing rendered output/tests › current source`. `DESIGN.md:320` states *"At 16 colours the accent is LightGreen and error is LightRed"* and the legacy test pins it. §21 item 29's "CIE76" is implementation spec, which is subordinate, and §20.10 lists no 16-colour change — so CIE76 is a **regression** by this document's own definition, not a decision.
+1. **Historical authority claim.** At the time of this adjudication, its local order was `GOAL.md › DESIGN.md › existing rendered output/tests › current source`. `DESIGN.md:320` states *"At 16 colours the accent is LightGreen and error is LightRed"* and the legacy test pins it. §21 item 29's "CIE76" is implementation spec, which is subordinate, and §20.10 lists no 16-colour change — so CIE76 was a **regression** by this document's own historical definition, not a decision. This ordering is not current campaign authority; use `AGENTS.md` and the current source-of-truth hierarchy above.
 2. **The metric answers the wrong question.** A 16-colour downgrade must preserve *hue identity and brightness class*, not minimise perceptual distance. ΔE minimisation demonstrably loses both: it maps Junie's accent and error into the **dark** half, so "the accent is the brightest signal on screen" — the property the whole accent system rests on — is gone, and `danger_soft` `#d98a8a`, which the legacy metric keeps as `LightRed`, lands on `DarkGray` *(<!-- amended by §27 (Adjudication O3) --> re-derived, not estimated: `#d98a8a` is L\*a\*b\* (65.6, 30.2, 12.7); CIE76 ΔE **35.0** to `DarkGray` against **62.6** to `Red`, 75.1 to `LightRed`, 41.4 to `Gray` and 47.5 to `White`, so `DarkGray` is the minimum and the conclusion holds — the earlier ~~≈ 30~~/~~≈ 61~~ were hand arithmetic)*, so a destructive label at rest stops being red at all.
 3. Both `#48e054` and `#e44545` genuinely minimise ΔE against the dark primaries *(<!-- amended by §27 (Adjudication O3) --> re-derived: L\* **79.2** for `#48e054` against **72.0** for `Green` and **87.7** for `LightGreen`; full ΔE **17.8** to `Green` against **34.9** to `LightGreen` — the dark primary wins by nearly 2×, wider than the earlier ~~≈ 78 vs 72/88~~ estimate suggested)*, so no tie-break or bias recovers `DESIGN.md`'s answer while keeping ΔE. The metric must change, not be tuned.
 4. The legacy metric is exact integer arithmetic, `const`-friendly, and already has a blessed baseline.
@@ -5700,7 +5735,7 @@ Serial; each step independently testable. F1–F7 are the blockers. These are **
 | **F23** | **MA‑14 — `doc-check` misses §24 and is a heuristic, not rustdoc-json.** Its range stopped at §23, so §24's `SelectAction`, `RadioGroupAction`, `ChipBarAction`, `border::ASCII`, `FormData::options` and the example‑13 rewrite were unchecked; the earlier heuristic had treated deleted row/gutter/interaction names as foreign API. The stale suppressions are now removed; only pending app/test-harness names remain in explicit `doc_check_allow.txt`. | `xtask doc-check` |
 | **F24** | **MI‑9 — layer sizing** must be decided before 4F starts, and the decision recorded in §9.1 | **Discharged by §26 N1** (`LayerSize`, `Cx::resize_layer`, `Dialog::layer`) |
 | **F25** | The remaining MINORs: **MI‑1** `FocusRing::innermost_scope` uses `.rev().max_by(layer)`, returning the **earliest** scope on the highest layer while the doc says "latest" (harmless today with one scope per layer; fix the code or the doc — §16.1 records "latest"). **MI‑2** `FocusRing::reconcile` appends `.or_else(|| self.reachable().next())` beyond §3.3 step 14's `(d) None` — better behaviour, recorded as step 14 (d)/(e) rather than left undeclared. **MI‑3** `focus::click_only_entries_are_never_reachable`, `focus::read_only_entries_stay_in_the_ring`, `focus::restore_target_receives_keys_before_the_next_draw` and `hit::inert_below_registers_nothing` exercise none of the mechanism their names claim (it lives in `Ui::register_entry` and `Runtime`); move them to runtime-level tests. **MI‑4** `Runtime::handle` calls `keymap().conflicts()` on **every** input, an O(n²) scan per event; compute once per keymap change or under `debug_assertions`. **MI‑5** wheel routing is not layer-filtered — a wheel over the page below a **popover** scrolls the page; deliver only when `hit_scroll(...).layer == top_layer`, matching `deliverable()`. **MI‑6** `dismiss_top` enqueues `Intent::Cancel` for *every* dismissal reason while §6.1 defines `Cancel` as "Esc reached this owner after layer dismissal"; gate it on `DismissReason::Esc`. **MI‑8** `RowUi::columns` silently truncates past `MAX_COLUMNS = 16`; the cap is documented in §12.2. **MI‑10** `fuzzy` allocates three `Vec`s per call — fine at Slice 3, 300 k allocations for a 100 k-item `Picker` filter; flagged for 4F. **MI‑12** `Theme::fingerprint` formats the whole theme into a `String` on a public path; hash the tokens structurally or move it behind `testing`. **MI‑13** `apply_mono_fallbacks` appends to `recipe.parts` only, never to variant maps (recorded in §11.4). **MI‑14** `PERF_TARGET` folded into `PERF_STRICT`. **MI‑16** `Measure` cannot resolve styles | **MI‑16 discharged by §26 N2**; the rest are ordinary corrections with the tests already named in §16.1 |
-| **F26** | Apply every document amendment in the review's §2 and §3 to `COMPONENT_ARCHITECTURE.md` (**this section and its inline markers**) and mirror the adjudications in `REFACTORING_STATE.md`, per the change-control rule at the top of this document | `rg -n 'Slice 3 foundations review' REFACTORING_STATE.md` |
+| **F26** | At the time of the review, apply every document amendment in §2 and §3 to `COMPONENT_ARCHITECTURE.md` (**this section and its inline markers**) and mirror the adjudications in the coordinator-owned state ledger. That ledger is retired; this requirement is provenance only. Current execution status follows the readiness report. | `git show 03697429:REFACTORING_STATE.md` (historical mirror source) |
 
 ### 25.11 Independent API review — what is confirmed, and the two ceremony costs
 
@@ -5752,11 +5787,12 @@ cargo tree -p junie-tui -e normal --invert smallvec    # every path passes throu
 # F18: the perf contract, re-blessed in the same commit as the code change
 PERF_STRICT=1 cargo nextest run -p junie-tui --test perf --release -- --test-threads=1
 git diff --exit-code crates/tui/tests/perf_baseline.txt
-# F26: the document and the state ledger carry the adjudications
-rg -n 'Slice 3 foundations review' COMPONENT_ARCHITECTURE.md REFACTORING_STATE.md
+# F26 historical evidence: inspect the old mirror from Git; the retired file
+# is not a current checkout input or execution gate.
+git show 03697429:REFACTORING_STATE.md | rg -n 'Slice 3 foundations review'
 ```
 
-**Gate pass condition.** Every command exits 0; `crates/tui/tests/allow/legacy_api.txt` and `crates/tui/tests/allow/domain.txt` are empty; `xtask boundary` prints `ok` for every check including the three new ones; `every_named_test_exists` reports no missing name from §16.1, §16.2's suite-level list and §16.4; and this document carries the amendments to §6.1, §7.1, §9.1, §10, §11.1 A3, §11.2, §11.3, §11.4, §16.1, §16.2, §16.5, §16.6, §17.0 A1/A2/A5, §17 example 9, §18.1, §20.9‑1/‑2, §21 items 4/11/29/30, §22.1, §22.2, §22.7, §24.5 and Appendix B.2/B.3/B.4, each mirrored in `REFACTORING_STATE.md`. **Then, and only then, Slice 4 wave 1 (4A, 4B, 4C, 4E, 4G) may start.** F24 (MI‑9) additionally had to be decided before 4F was scheduled and F25's MI‑16 before 4A — both are discharged by §26.
+**Historical gate record.** The former review required every command to exit 0, the listed allow-lists to remain empty, the named tests to exist, and the amendments to be present in this document and the then state ledger. The ledger-mirror condition is provenance only and cannot authorize Slice 4. Current task contracts and the DAG govern implementation/acceptance; the readiness report governs authorization and is **NO-GO**. F24 (MI‑9) and F25's MI‑16 were historical decisions recorded by §26.
 
 ---
 
@@ -6133,18 +6169,18 @@ cargo nextest run -p junie-tui --test perf --release -- --test-threads=1 measure
 # the inventory and the document agree
 cargo nextest run --workspace --test architecture every_named_test_exists
 cargo run -p xtask -- doc-check
-rg -n 'Adjudication N' COMPONENT_ARCHITECTURE.md REFACTORING_STATE.md
+git show 03697429:REFACTORING_STATE.md | rg -n 'Adjudication N'
 ```
 
 In this document `min_size` survives **only** as struck historical prose in §21 item 20 and in the two places where the false name is named in order to be retired (§9.1's `LayerSpec.size` comment and §17.0 A6); `App::min_size` is an unrelated and unchanged name.
 
-**Gate.** Every command exits 0; the §9.1 / §9.2 / §10 / §11.1 A3 / §11.3 / §11.5 / §16.1 / §16.2 / §17.0 A2·A6·A7 / §17 examples 9–10 / §18.1 / §20.10 item 17 / §21 item 20 amendments above are applied and mirrored in `REFACTORING_STATE.md`. On that condition **4A may start** (N2 unblocks `Button::measure`) and **4F may be scheduled** (N1 unblocks `Dialog`, `Select`'s popup, `Picker` and `ContextMenu`).
+**Historical gate record.** The former review required the commands to exit 0 and the listed amendments to be applied in this architecture record, then concluded that N2 unblocked historical 4A and N1 unblocked historical 4F. Those package labels and conclusions are provenance only. Current task contracts and the DAG govern implementation/acceptance; the readiness report governs authorization and is **NO-GO**.
 
 ---
 
 ## 27. Adjudication O — Slice 3 foundations follow-ups
 
-**Source.** `docs/reviews/adjudication-o-foundations-followups.md`, adjudicating the four research requests the Slice 3 foundations correction pass (F1–F26 + Adjudication N) returned. Each was a conflict between two already-accepted statements; each item decides only **which side moves**. Nothing here reopens Adjudications A–N. **Accepted as written.** Every earlier section it changes carries an inline `<!-- amended by §27 -->` marker: §11.2, §16.1, §16.6 (three rows), §20.9‑1, §20.9‑2, §21 item 6, §24.2 (three places), §25.3 (three places), §25.6, §25.8 (two rows). Arithmetic marked **[derived]** was recomputed from the checked-in token values; the review's `(estimate)` figures are corrected where they were wrong. `REFACTORING_STATE.md` (coordinator-owned) mirrors the four decisions per the change-control rule at the top of this document.
+**Source.** `docs/reviews/adjudication-o-foundations-followups.md`, adjudicating the four research requests the Slice 3 foundations correction pass (F1–F26 + Adjudication N) returned. Each was a conflict between two already-accepted statements; each item decides only **which side moves**. Nothing here reopens Adjudications A–N. **Accepted as written.** Every earlier section it changes carries an inline `<!-- amended by §27 -->` marker: §11.2, §16.1, §16.6 (three rows), §20.9‑1, §20.9‑2, §21 item 6, §24.2 (three places), §25.3 (three places), §25.6, §25.8 (two rows). Arithmetic marked **[derived]** was recomputed from the checked-in token values; the review's `(estimate)` figures are corrected where they were wrong. The former state-ledger mirror is historical provenance only. Current execution status follows the readiness report and current campaign contracts; readiness is **NO-GO**.
 
 ### 27.1 O1 — the style memo is **two-way set-associative**, not one-way; ≥ 90 % is re-purposed
 
@@ -6342,20 +6378,26 @@ rg -n 'style_resolve_per_frame' COMPONENT_ARCHITECTURE.md   # names Slice 5 + fr
 ### 27.5 Gate
 
 ```bash
-rg -n 'Adjudication O' COMPONENT_ARCHITECTURE.md REFACTORING_STATE.md
+git show 03697429:REFACTORING_STATE.md | rg -n 'Adjudication O'
 cargo run -p xtask -- doc-check
 cargo nextest run --workspace --test architecture every_named_test_exists
 ```
 
-Every command in §27.1–§27.4 exits 0; `crates/tui/tests/perf_baseline.txt` changes only in its `#` header (O1's recorded hit rate, O4a's baseline-free note) unless `ascii_glyphs()` moves an allocation count; `every_named_test_exists` reports no missing name once `theme::ascii_glyph_set_has_no_box_drawing`, `theme::builder::ascii_glyphs_is_idempotent_and_glyph_overrides_it` and `theme::cache_generation_wrap_does_not_serve_a_stale_entry` — all three named in §16.1 — exist in the sources; and the amendments to §11.2, §16.1, §16.6, §20.9‑1/‑2, §21 item 6, §24.2, §25.3, §25.6 and §25.8 are applied and mirrored in `REFACTORING_STATE.md`.
+**Historical gate record.** Every command in §27.1–§27.4 was required to exit 0; the baseline and named-test conditions and the listed amendments were the former review's acceptance record. The former review also concluded that Slice 4 wave 1 was not blocked by those four decisions. That conclusion is provenance only, not current authorization. Current task contracts/DAG govern implementation and acceptance; the readiness report governs authorization and is **NO-GO**.
 
-**Slice 4 wave 1 is not blocked by any of the four.** O2's whole-set swap must land before **4E** (`ScrollRegion` paints `scrollbar.begin`/`.end`); the full `GlyphSet` ASCII table is scheduled **with** 4E; O4a's ≤ 5 % share is reinstated in **Slice 5**.
+**Historical scheduling conclusion.** The former review concluded that Slice 4
+wave 1 was not blocked by those four decisions: O2's whole-set swap preceded
+historical 4E, the full `GlyphSet` ASCII table was paired with that work, and
+O4a's ≤ 5 % share was reinstated in historical Slice 5. Those labels and
+sequencing conclusions are provenance only. Current task contracts and the DAG
+govern implementation/acceptance; the readiness report governs authorization
+and is **NO-GO**.
 
 ---
 
 ## 28. Adjudication P — prototype decisions
 
-**Source.** `docs/reviews/adjudication-p-prototype-decisions.md`, adjudicating the six decisions the Slice 2/3 prototype builder returned. **Accepted as written.** Two of the six premises handed to the adjudicator were **wrong as stated**, and both corrections are load-bearing: the corrected version is what is recorded here, not the original claim (P3 in full; half of P6's narrowing claim). Every earlier section this changes carries an inline `<!-- amended by §28 -->` marker: §3.3 step 9, §11.4 (two rows), §12.1, §13, §16.1 (four lists), §16.2 case 9 and its suite-level bullets, §16.3 (plus §16's "Where tests live" runner cell, the bless command, §15.1's acceptance block, Appendix A's Slice 3 and Slice 4 gates, §25.12 and §27.5's render lines), §17 example 11, §17.0 A7, §18.3 #4, §20.10 item 18, §26.1. `REFACTORING_STATE.md` (coordinator-owned) mirrors the six decisions and P1's Slice-5 obligation per the change-control rule at the top of this document.
+**Source.** `docs/reviews/adjudication-p-prototype-decisions.md`, adjudicating the six decisions the Slice 2/3 prototype builder returned. **Accepted as written.** Two of the six premises handed to the adjudicator were **wrong as stated**, and both corrections are load-bearing: the corrected version is what is recorded here, not the original claim (P3 in full; half of P6's narrowing claim). Every earlier section this changes carries an inline `<!-- amended by §28 -->` marker: §3.3 step 9, §11.4 (two rows), §12.1, §13, §16.1 (four lists), §16.2 case 9 and its suite-level bullets, §16.3 (plus §16's "Where tests live" runner cell, the bless command, §15.1's acceptance block, Appendix A's Slice 3 and Slice 4 gates, §25.12 and §27.5's render lines), §17 example 11, §17.0 A7, §18.3 #4, §20.10 item 18, §26.1. This architecture record carries the six decisions and P1's former Slice-5 obligation; the schedule and state-ledger mirror are historical provenance only. Current execution status follows the readiness report and current campaign contracts; readiness is **NO-GO**.
 
 **Facts the six rest on**, read from the tree at `HEAD 8ec40c1`: the 13 + 3 mono rules reach `GUTTER`, `MARKER` and `LABEL` for `DISABLED` and nothing else (`theme/downgrade.rs`, `MONO_RULES_PER_FAMILY = 16`); `TextInput::PARTS` is `[FIELD, TEXT, PLACEHOLDER, MARKER, GUTTER]` and never `LABEL`; an unset slot binds to `None` and `Buffer::set_stringn` patches only `Some` fields, so a `TEXT` style that says nothing inherits the `FIELD` fill's colour **and modifiers** per cell; `mono()` maps `Y < 0.35 → Black`, and Junie's `disabled_fg #4d4d4d`, `Fg(Faint) #262626` and `surfaces[0] #000000` all land there; `Fixture` carries no `status`; `mono_states_required_by` is an `if/else if` chain; `Dialog` registers only `Decorative` regions for its own id while `Registry::delivers_to` requires `Control` or `Part`; `Tabs` reaches `ACTIVE` only through forced `SELECTED`; `state_override_is_used_only_in_apps_and_fixtures` scans `crates/tui/examples/**`.
 
@@ -6367,7 +6409,7 @@ Every command in §27.1–§27.4 exits 0; `crates/tui/tests/perf_baseline.txt` c
 
 **Rejected.** Widen to `crates/tui/examples/**` (applies the exemption to twelve files with no claim to it and makes "A11 is showcase/fixture-only" unenforceable for the rest of the refactor). Widen to `crates/tui/examples/showcase_*.rs` (costs the matrix's assertions for the same one slice and leaves an allow-list entry a later reader must remember to delete). Move the page to `crates/tui/tests/fixtures/` (a fixture is not runnable; goal §29's "the showcase demonstrates every public component" is not satisfied by a file nobody can start).
 
-**Tests.** `cargo run -p xtask -- boundary --check state_override_is_used_only_in_apps_and_fixtures` exits 0 **with no allow-list**; `cargo nextest run -p junie-tui --test showcase_buttons` keeps asserting `b.area_of(MATRIX.index(0).index(0)).is_none()`; `cargo build -p junie-tui --example showcase_buttons` still builds the page. **Slice-5 obligation** (recorded in `REFACTORING_STATE.md`, and the whole mitigation for the risk that a convention-only deviation becomes permanent): *the two halves become one file under `apps/showcase`, and §18.3 #4's deviation paragraph is struck.*
+**Tests.** `cargo run -p xtask -- boundary --check state_override_is_used_only_in_apps_and_fixtures` exits 0 **with no allow-list**; `cargo nextest run -p junie-tui --test showcase_buttons` keeps asserting `b.area_of(MATRIX.index(0).index(0)).is_none()`; `cargo build -p junie-tui --example showcase_buttons` still builds the page. **Historical Slice-5 obligation** (retained here as architecture evidence; current ownership is TASK-033/TASK-039; readiness controls authorization and is **NO-GO**): *the two halves become one file under `apps/showcase`, and §18.3 #4's deviation paragraph is struck.*
 
 ### 28.2 P2 — `render::components::*` file placement
 
@@ -6455,7 +6497,7 @@ This is the one item of the six that is a **goal §29 defect**, not a placement 
 1. **Baseline movement (P6).** The **mono half only** of `crates/tui/tests/baselines/components.txt` moves for `text_input`, `field`, `list`, `button` and `tabs`; truecolor lines are untouched, because mono rules are appended only at `ColorLevel::Mono`. §16.3's order is binding — **change → capture → classify → bless** — with the §20.10 item 18 entry in `docs/visual-changes.md` written before the bless or `xtask bless-guard` fails.
 2. **`inherit_forced` on `FieldControl` (P5)** is a public-trait change with a defaulted method: additive for the trait, inert unless `TextInput`'s impl forwards it.
 3. **Widening the diagnostic (P3)** may surface `UndeliveredIntent` in code that "works" today by silently dropping a `FocusOut`. That is the point, but it can turn `*::no_diagnostics_are_emitted_during_the_journey` red in Slice 4 for reasons unrelated to the slice; run it **before** the slice opens.
-4. **P1's split expires by convention, not by a gate.** If the Slice-5 obligation is not carried in `REFACTORING_STATE.md`, the two halves stay split forever. That ledger entry is the whole mitigation.
+4. **P1's split expires by convention, not by a gate.** The former review required the Slice-5 obligation in its coordinator ledger; that ledger is retired. Current ownership is TASK-033/TASK-039 and the current task graph/contracts. If the obligation is absent there, it is a blocker, not authorization to proceed.
 5. **P2's two-target split fails open** if any gate command names `--test render` without also naming `--test render_components`; the §16.3/§16 amendments are the mitigation and must land in the same commit.
 6. **P3's premise correction is inferred, not executed.** Verify with the first acceptance command below **before** editing the prototype's `FINDING` comment.
 
@@ -6509,7 +6551,7 @@ cargo run -p xtask -- boundary --check state_override_is_used_only_in_apps_and_f
 cargo run -p xtask -- boundary --check state_override_is_used_only_in_apps_and_fixtures   # unchanged allow-list
 cargo nextest run -p junie-tui --test showcase_buttons                         # the matrix stays asserted
 cargo build -p junie-tui --example showcase_buttons                     # the page still runs
-rg -n 'apps/showcase' REFACTORING_STATE.md                             # the Slice-5 obligation is recorded
+rg -n 'apps/showcase|Slice.?5 obligation' COMPONENT_ARCHITECTURE.md # historical obligation is recorded here
 
 # ── P2 ──
 cargo nextest run -p junie-tui --test render --test render_components
@@ -6672,7 +6714,7 @@ The following nine amendments from `docs/reviews/adjudication-q-residuals.md` ar
 6. **§28.8:** remove the old grep gate; use the Q2 privacy/accessor checks and Q3 case-9/symbol-presence checks. <!-- amended by §29 -->
 7. **§20.10 item 18:** include `render::components::button::pressed`'s mono digest if the Button bracket moves out of the text run; no new visual-change item is created. <!-- amended by §29 -->
 8. **§16.1 component tests:** add `button::mono_pressed_does_not_truncate_the_label`, `tabs::mono_pressed_brackets_the_reserved_pad_cells`, `brand::mono_pressed_brand_keeps_the_lockup_padding` and `menu::mono_pressed_menu_title_keeps_both_reserved_pads`. The former `choice::mono_pressed_choice_keeps_the_label_geometry` name is not present in the current source; Choice remains an explicit unresolved §29.7 obligation. <!-- amended by §29; Slice A3 -->
-9. **New §29:** this adjudication record carries Q1/Q2/Q3, the corrected live A4/`Slot` contract, the nine amendment markers, and the unresolved questions. It is mirrored in `REFACTORING_STATE.md` under the change-control rule at line 3. <!-- amended by §29 -->
+9. **New §29:** this adjudication record carries Q1/Q2/Q3, the corrected live A4/`Slot` contract, the nine amendment markers, and the unresolved questions. The former change-control mirror is historical provenance; current execution status follows the readiness report and current task contracts. <!-- amended by §29 -->
 
 ### §29.5 Corrected acceptance conditions <!-- amended by §29 -->
 
@@ -6982,7 +7024,7 @@ Underneath sits a real contradiction with §11.4, which says "A component with n
 
 ### §32.5 Change-control gaps <!-- amended by §32 -->
 
-§29.3's table enumerates required dropped-state names for **9** implementations while **23** are registered. A hand-maintained duplicate of a machine-checked property will drift again; its disposition is folded into §32.4's open adjudication. §30 was not mirrored in `REFACTORING_STATE.md` although its own header invokes the line-3 rule; that is corrected in the ledger. The eight §29 citation sites all resolve to real content, but their line numbers have drifted as §29–§32 were appended; `CONTINUE_PROMPT.md`'s claims that "§29 does not exist" and that "A4 fails as written" are both stale and are struck in the ledger.
+§29.3's table enumerates required dropped-state names for **9** implementations while **23** are registered. A hand-maintained duplicate of a machine-checked property will drift again; its disposition is folded into §32.4's open adjudication. §30's former state-ledger mirror requirement is historical provenance only; current status follows the readiness report and current task contracts. The eight §29 citation sites all resolve to real content, but their line numbers have drifted as §29–§32 were appended; the deleted continuation prompt's claims that "§29 does not exist" and that "A4 fails as written" are stale historical assertions, not current guidance.
 
 ## §33 Adjudication — `PARTS` is a styling contract, not an override surface <!-- amended by §33 -->
 
@@ -7042,7 +7084,7 @@ Rejected: patching every part in turn and asserting at least one moves the diges
 
 §26.2 N2 claimed `Ui::style` / `Ui::style_patched` "remain the only queries that record roles **or styled parts**". They record roles. They do **not** record styled parts: recording is an opt-in `Ui::note_styled` call with exactly four call sites. A component drawing on the bare `author` surface therefore records nothing and its parts check passes **vacuously** — and two such components exist, `ProbeCase` and `examples/12`'s `Segmented`, the latter being this document's own authoring template.
 
-Closing it properly needs an owner scope on `Ui` (`ui.with_owner(id, …)`), which touches every component's `draw` and is out of scope here. The interim guard is that the registry check asserts each case records **at least one** resolution — which catches the zero case but not partial under-recording. **This obligation must be carried in the ledger or `Ui::style`'s missing owner survives forever.**
+Closing it properly needs an owner scope on `Ui` (`ui.with_owner(id, …)`), which touches every component's `draw` and is out of scope here. The interim guard is that the registry check asserts each case records **at least one** resolution — which catches the zero case but not partial under-recording. **Historical wording:** the former review required this obligation in the coordinator ledger. That state ledger is retired; current task contracts must bind the obligation, and its absence remains a blocker rather than permission to proceed.
 
 ## §34 Adjudication — capability detection belongs to `run`, and the mono review has never executed <!-- amended by §34 -->
 
@@ -7174,7 +7216,7 @@ This is a *truthful weak gate*, and it is strictly better than what items 1, 9, 
 
 ### §36.5 Ordering, completeness, and a gate that does not exist <!-- amended by §36 -->
 
-Ordering is **not** machine-checkable and never will be: a committed tree is a state, not a history. Co-presence — "a baseline changed and *an* entry exists" — is checkable and nearly worthless, since one sentence satisfies it beside 896 unaccounted lines. **Completeness** is checkable and is the right substitute: the set of keys the ledger accounts for must **equal** the set the diff moved and added. Plus one unconditional refusal: a commit that *moves* a key whose colour field is `truecolor` fails outright, because §20.10's closing clause already makes it a regression rather than something to classify.
+Ordering is **not** machine-checkable and never will be: a committed tree is a state, not a history. Co-presence — "a baseline changed and *an* entry exists" — is checkable and nearly worthless, since one sentence satisfies it beside 896 unaccounted lines. **Completeness** is checkable and is the right substitute: the set of keys the historical change record accounts for must **equal** the set the diff moved and added. Plus one unconditional refusal: a commit that *moves* a key whose colour field is `truecolor` fails outright, because §20.10's closing clause already makes it a regression rather than something to classify.
 
 `xtask bless-guard` **does not exist**. §16.3's "enforced mechanically" was false when written and is corrected in place; the guard is recorded as owed with its three checks — item citation, key-set completeness, truecolor refusal — as its specification. This is the third property in this refactor asserted and not held, after §28.6's doc comments and §32.4's reason strings, and it is recorded as an obligation rather than closed with a sentence.
 
@@ -7257,7 +7299,14 @@ The root cause is that `mono_states()` **conflates two properties and only one i
 
 ## §39 Adjudication — forcing substitutes for the runtime, never for the props <!-- amended by §39 -->
 
-**Status: accepted and implemented. Unblocks the §36 first-generation correction — see §39.4 and §49.** Fresh read-only `read-only analyst` adjudication. Change control at line 3 is engaged three times: it changes the exact type of `PartStyle::flags`, adds an invariant to §12.1's A11 clause, and changes the exact type of `Fixture::forced` in §16.2. <!-- implementation completed in Session 5: the two-half operator, `Option<StateFlags>` fixture contract, Empty forwarding, and Progress done-rule proof -->
+**Historical adjudication record.** The former status called this “accepted and
+implemented” and said it unblocked the §36 first-generation correction. That
+wording is provenance only; the implementation evidence below does not
+authorize a baseline update or campaign execution. Current task contracts,
+readiness, and the frozen-oracle policy govern. Fresh read-only `read-only
+analyst` adjudication. Change control at line 3 is engaged three times: it
+changes the exact type of `PartStyle::flags`, adds an invariant to §12.1's A11
+clause, and changes the exact type of `Fixture::forced` in §16.2. <!-- implementation completed in Session 5: the two-half operator, `Option<StateFlags>` fixture contract, Empty forwarding, and Progress done-rule proof -->
 
 ### §39.0 Corrections to the finding that prompted it <!-- amended by §39 -->
 
@@ -7331,7 +7380,7 @@ The stale/duplicate allow-list premise in that historical snapshot is corrected 
 The following historical wording was corrected in place above; it remains here so the pattern is visible as one thing rather than three.
 
 - **Historical §29.8 wording:** it stated "`DialogCase` gains `TRAPS_FOCUS`" and "the driver now refuses that state". At that snapshot, `DialogCase` still declared `ACTIVATES | FOCUSABLE | OVERLAY`, the driver had none of the three modifications, and **case 14's trap half had still never executed**. The two acceptance tests §29.8 named could not have been produced, and the assertion message it quoted appeared nowhere.
-- **Historical §33 wording:** it stated the `extra` escape hatch "is deleted". At that snapshot it was not; the parameter and its one use were both present. The ledger correctly said "code pending"; the section's own prose did not.
+- **Historical §33 wording:** it stated the `extra` escape hatch "is deleted". At that snapshot it was not; the parameter and its one use were both present. The former ledger correctly said "code pending"; the section's own prose did not.
 - **Historical §34.4 wording:** it stated that `tools/capture.sh` strips `NO_COLOR` and has no colour-level parameter. **Both claims were later corrected** — the script gained a `COLOR` parameter whose `mono` arm sets `NO_COLOR=1` and deliberately keeps `COLORTERM=truecolor` so the precedence is proved rather than hidden.
 
 **The historical failure mode was not bad engineering.** The fixes it produced were correct, well-argued and properly instrumented. The problem was that **seven adjudications were written in a region of the document no gate read**, and three of them drifted from the code within hours of being written.
@@ -7346,7 +7395,7 @@ That is the enabling condition for a red that is permanently explained away. Eac
 
 - `MONO_RULES_PER_FAMILY` is **19**. The document said 18 in five places and §20.10 item 18 named its own review as "== 18". Corrected. The 19th rule — `(THUMB, PRESSED)` — still has **no numbered §20.10 item**, and §20.10's closing clause makes anything not on the list a regression by construction.
 - ~~**22 components are registered, not 23.**~~ — **corrected by §45: it is 23.** `select` was registered while §40 was being written. §32.4, §32.5, §33.4, §33.5 and §33.6 all rest on a tree that briefly had `Select` registered.
-- **Conformance is 467 = 22 × 21 + 5**, derived structurally. The ledger's explanation — that the 488→467 drop was partly the removed guards — is **wrong**: removing a guard from inside a case body changes pass/fail, never the count. The entire delta is −21, **exactly one component's worth**, all of it `Select`.
+- **Conformance is 467 = 22 × 21 + 5**, derived structurally. The former ledger's explanation — that the 488→467 drop was partly the removed guards — is **wrong**: removing a guard from inside a case body changes pass/fail, never the count. The entire delta is −21, **exactly one component's worth**, all of it `Select`.
 - §16.6's "Before" column is in better shape than reported: **six** rows carry correction markers and every one matches the root baseline exactly, and the wrong-file naming is fixed. Two rows remain unit-ambiguous. The "nine wrong rows" claim is itself now the stale artefact.
 
 ### §40.5 The blocker for the pending bless <!-- amended by §40 -->
@@ -7411,6 +7460,12 @@ Its own doc comment states why it matters: if `inherit_forced` becomes public ou
 
 ## §42 Record — Slice 8 scoping, and three more findings in the gate the deliverable rests on <!-- amended by §42 -->
 
+**Historical audit record.** This section preserves findings from the former
+plan. Its slice dependencies, “before/after” language, and gates do not
+schedule current work or authorize acceptance. Current ownership and
+sequencing come from current task contracts and the regenerated task graph;
+readiness is **NO-GO**.
+
 **Status: recorded.** A read-only Slice 8 audit. Two premises it was handed were stale and it said so; three of its findings change scope rather than adding work.
 
 ### §42.1 "Exactly two modules are `pub` by decision" is false <!-- amended by §42 -->
@@ -7431,7 +7486,7 @@ The consequence is exactly the one B.3's reason exists to prevent: every compone
 
 The historical audit counted ~167 unique `doc_check_allow.txt` entries, five duplicate pairs and at least 45 already-satisfied entries; that snapshot predates the current 35-entry file. Today the file is a one-name-per-line list of pending app/test-harness references, and `doc-check` rejects duplicate entries plus entries that suppress no unresolved reference. It still has no explicit kind, owner or expiry metadata, so that remains open design work. The historical warning about bare entries such as `Self`, `Runtime` and `Registry` still describes a parser capability, even though those names are no longer in the current list.
 
-**Consequence for the ledger:** "rustdoc-json upgrades for `doc-check`" is recorded as a Slice 8 *nice-to-have*. It is not an upgrade — the visibility blindness is **the reason the gate is decorative**, and it belongs in the gate-audit package as a correction.
+**Consequence for the former planning record:** "rustdoc-json upgrades for `doc-check`" was recorded as a Slice 8 *nice-to-have*. It is not an upgrade — the visibility blindness is **the reason the gate is decorative**, and it belongs in the gate-audit package as a correction.
 
 ### §42.3 The one Slice 8 item that cannot wait <!-- amended by §42 -->
 
@@ -7439,11 +7494,13 @@ The historical audit counted ~167 unique `doc_check_allow.txt` entries, five dup
 
 Slice 5 deletes the root `src/`. When it does, those tests vanish with no record — **and the evidence needed to write that record is destroyed by the deletion itself.** An aggregate argument ("the new suite has 288 where the old had 76") is exactly the shape of reasoning this session has spent its time discrediting.
 
-This is therefore **a Slice 5 prerequisite, not a Slice 8 cleanup step**, and it is in flight.
+The historical audit classified this as a Slice 5 prerequisite and recorded it
+as in flight at that snapshot. That statement is provenance only; current task
+contracts, the DAG, and readiness govern scheduling.
 
 ### §42.4 Two blockers nobody had recorded <!-- amended by §42 -->
 
-- **Deleting the legacy tree breaks `bless-guard`.** Four baseline files are classified `Frozen` — "any change fails, and the remedy is `git checkout --`, not a ledger entry". Slices 5–7 delete their producers, and **a deletion is a change**. The guard will fail with no documented remedy. Needs adjudication before Slice 5 writes code: either frozen evidence survives producerless, or the guard gains a deletion rule.
+- **Deleting the legacy tree breaks `bless-guard`.** Four baseline files are classified `Frozen` — "any change fails, and the remedy is `git checkout --`, not a change-record escape". Slices 5–7 delete their producers, and **a deletion is a change**. The guard will fail with no documented remedy. The historical audit said adjudication was needed before the former Slice-5 plan; that statement does not schedule current code. Current task contracts and readiness govern.
 - **`DESIGN.md` says both binaries accept `--color truecolor|256|16|none`, and §34 decides narrowing-never-widening with no `run_with`.** `--color truecolor` on a 16-colour terminal **is** a widening. **`DESIGN.md` outranks this document in the authority order**, so this is a conflict §34 does not get to win by default, and Slice 5 writes the showcase's `main` that resolves it.
 
 ### §42.5 `DESIGN.md` has not been touched by this refactor <!-- amended by §42 -->
@@ -7602,6 +7659,11 @@ So it has **no ordering constraint of its own**, and it lands *after* §39 — b
 
 ## §46 Record — Slice 5 cannot run as Appendix A specifies it <!-- amended by §46 -->
 
+**Historical audit record.** This section preserves the former Slice-5 audit.
+Its migration sequence and “cannot run” conclusions are provenance, not a
+current dispatch plan or authorization. Current task contracts, source, and
+readiness govern the work; readiness is **NO-GO**.
+
 **Status: recorded. Contains a blocker that needs adjudication before any Slice 5 code is written.** A read-only planning audit produced an executable Slice 5 plan and, in doing so, found that the slice's stated shape does not resolve.
 
 ### §46.1 The rename produces a workspace cargo cannot resolve <!-- amended by §46 -->
@@ -7647,11 +7709,24 @@ The full partition closes at Slice 8, not Slice 5. **Anyone who tries to close i
 
 ### §46.6 Documented artefacts Slice 5 depends on that do not exist <!-- amended by §46 -->
 
-Beyond `bless-guard` (now built) and `capture-matrix` (still absent and still asserted in the present indicative): **three architecture tests named in Appendix B as guarding the `apps/` boundary do not exist** — `binary_names_are_preserved`, `app_libs_are_not_published_and_are_not_depended_on_by_the_library`, and `applications_depend_only_on_the_library_facade`. Nothing pins the three binary names across the package split, which goal §21 requires.
+Beyond `bless-guard` (now built), the historical snapshot below recorded
+`capture-matrix` as absent; current §74.2 records the later implemented
+command/boundary contract. The same snapshot recorded **three architecture
+tests named in Appendix B as guarding the `apps/` boundary as absent** —
+`binary_names_are_preserved`,
+`app_libs_are_not_published_and_are_not_depended_on_by_the_library`, and
+`applications_depend_only_on_the_library_facade`. Nothing pins the three
+binary names across the package split, which goal §21 required at that time.
+This is historical evidence, not a current acceptance or scheduling claim.
 
 Six CI steps also run `cargo nextest run --release --bin <name>`, and **all six break the moment the root binaries go**. Appendix A does not mention them.
 
 ## §47 Record — GAP-2's pin found a second defect, and a convention standing in for a guarantee <!-- amended by §47 -->
+
+**Historical audit record.** The invariants and evidence below remain useful
+architecture provenance, but the former sequencing and gate language cannot
+schedule current work or authorize acceptance. Current task contracts and the
+regenerated task graph own implementation order; readiness is **NO-GO**.
 
 **Status: recorded.** Three of §44's fourteen gaps are closed. Two findings came out of closing them.
 
@@ -7691,7 +7766,18 @@ Seven deliberate breaks; every test seen red before being trusted. The right-ali
 
 ## §47 Adjudication — the rename is deferred past Slice 7 <!-- amended by §47 -->
 
-**Status: accepted. Unblocks Slice 5.** Change control at line 3 is engaged four times: it strikes two clauses of Appendix A's Slice 3 rejection, replaces Appendix A's Slice 5 row, replaces Appendix B.1's staging paragraph, and adds four checkable invariants.
+**Historical adjudication record.** The architectural constraints below may
+inform current task contracts. The former “unblocks” and Slice-5/7 schedule
+are provenance only; this section cannot authorize dispatch, candidate
+acceptance, or frozen-oracle mutation. Current sequencing is task-contract/DAG
+owned and readiness is **NO-GO**.
+
+The former status called this accepted and said it unblocked Slice 5. That
+wording is provenance only; it cannot authorize dispatch, candidate
+acceptance, or frozen-oracle mutation. Change control at line 3 is engaged four
+times: it strikes two clauses of Appendix A's Slice 3 rejection, replaces
+Appendix A's Slice 5 row, replaces Appendix B.1's staging paragraph, and adds
+four checkable invariants.
 
 ### §47.1 Verdict <!-- amended by §47 -->
 
@@ -7732,7 +7818,7 @@ That is not three missing tests. It is a blind spot covering every §16.5 bounda
 
 ### §47.6 A move that the bless-guard refuses outright <!-- amended by §47 -->
 
-Appendix B.1 item 6 says `tests/showcase_baseline.txt` moves into `apps/` at Slice 5. **It cannot.** That file is classified frozen pre-refactor evidence; a rename puts its *source* path into git's touched set, and any touched frozen path is an **unconditional refusal** with the remedy "revert, do not classify" and **no ledger escape**. The guard's own comment believes rename detection handles it — it handles the digest half, not the frozen source.
+Appendix B.1 item 6 says `tests/showcase_baseline.txt` moves into `apps/` at Slice 5. **It cannot.** That file is classified frozen pre-refactor evidence; a rename puts its *source* path into git's touched set, and any touched frozen path is an **unconditional refusal** with the remedy "revert, do not classify" and **no accounting escape**. The guard's own comment believes rename detection handles it — it handles the digest half, not the frozen source.
 
 **The plan changes, not the guard.** The frozen file stays as the before-image; the Slice-5 baseline is a **new** file whose keys are first-generation additions under §20.10 item 19.
 
@@ -7808,7 +7894,12 @@ A `boundary` run failed `no_domain_vocabulary_in_the_library` **with an empty er
 
 ## §49 Adjudication — the first generation counts, and the guard's refusal does not say what it means <!-- amended by §49 -->
 
-**Status: accepted. Unblocks the §39 re-bless.** Change control at line 3 is engaged four times: a numbered §20.10 item, a restatement of §36.5's refusal, two new checks, and a CI base correction.
+**Historical adjudication record.** The former status called this accepted and
+said it unblocked the §39 re-bless. That wording is provenance only and cannot
+authorize candidate acceptance, baseline mutation, or campaign execution.
+Current task contracts, readiness, and the frozen-oracle policy govern. Change
+control at line 3 is engaged four times: a numbered §20.10 item, a restatement
+of §36.5's refusal, two new checks, and a CI base correction.
 
 ### §49.1 The blessed values are wrong on the file's own evidence <!-- amended by §49 -->
 
@@ -7820,7 +7911,7 @@ A `boundary` run failed `no_domain_vocabulary_in_the_library` **with an empty er
 
 The blast radius is three components and is **derivable**: only four components receive the status prop, and `StatusBar` re-adds the props half by hand while `Empty` re-derives its own flags. `status_bar::disabled` is indeed distinct from its default at every truecolor key.
 
-**A correction to §39.4 while adopting it:** "24 keys, 12 truecolor" is the cell set of the three failing tests, **not the measured moved set** — the assertion panics on the first failing cell of eight, so three failing tests establish three known-moved cells and **twenty-one unevaluated ones**. That is §36.3's own correction, repeated. The ledger's `- moved:` field is read from a discarded scratch bless and from nothing else.
+**A correction to §39.4 while adopting it:** "24 keys, 12 truecolor" is the cell set of the three failing tests, **not the measured moved set** — the assertion panics on the first failing cell of eight, so three failing tests establish three known-moved cells and **twenty-one unevaluated ones**. That is §36.3's own correction, repeated. The former ledger's `- moved:` field is read from a discarded scratch bless and from nothing else.
 
 ### §49.2 Item 19 is spent for these keys <!-- amended by §49 -->
 
@@ -8521,6 +8612,11 @@ and `SelectOpen` to `^`; this package does not widen that conversion early.
 
 ## 72. Central exact-target reference rendering — accepted
 
+**Current architecture contract; historical scheduling context only.** The
+reference-rendering boundary is a current design requirement, but the visual
+ownership and former work-package language later in this section cannot
+authorize baseline mutation or campaign execution. Readiness is **NO-GO**.
+
 This section supersedes §28 P5, §29 Q2 and §39 wherever those historical adjudication records
 describe component-local `state_override` or `inherit_forced`. Their text remains intact as the
 decision history; it is not the current API.
@@ -8548,15 +8644,21 @@ Two boundary checks make the migration structural:
 
 Visual ownership stays separate from implementation. §20.10 item 27 owns the 576 first-generation
 Slice-4F keys and item 30 owns the pre-existing Dialog correction; neither has been blessed.
-Item 31 authorizes only root-class corrections measured from the fresh discarded scratch baseline:
-177 exact movements, recorded old→new in the visual ledger. Item 30 owns 28 Dialog movements; the
+This is a historical visual-ownership record only. Item 31 was described as
+covering root-class corrections measured from a fresh discarded scratch
+baseline:
+177 exact movements, recorded old→new in the historical visual-change record. Item 30 owns 28 Dialog movements; the
 other accepted items own the remaining 75 movements and 1,280 first-generation additions.
-Independent frame review and separate bless authorization remain required. No retained baseline
-change is authorized by this records migration.
+Independent frame review and any candidate-baseline decision remain separate
+current gates. No retained baseline change is authorized by this historical
+record.
 
 ## 73. Disabled pointer, shared Props, and inert registration — accepted
 
-**Status:** accepted/binding for Slice 4 and later. §74 is independent; its preamble already says §73 is not a dependency.
+**Status:** current architecture contract for applicable tasks; the former
+Slice-4/later label is historical scheduling context. Current task contracts
+and readiness govern authorization; readiness is **NO-GO**. §74 is independent;
+its preamble already says §73 is not a dependency.
 
 ### D1 — Disabled pointer absorbs; no fall-through
 
@@ -8610,11 +8712,15 @@ All public registration APIs are centrally suppression-safe: components may guar
 
 ## 74. Slice 5 decisions D1, D2, D3 — accepted
 
-**Status: accepted. Binding on Slice 5 and on every slice that adds an `apps/*` package.** These
-three decisions come out of the read-only Slice 5 audit. They sit on top of §46 and §47 and change
-none of §47's verdict or invariants; D3 corrects one citation inside §47.6. Section 73 records the
-separate Slice-4 disabled-pointer and props-constructor adjudication and is not a dependency of
-anything here.
+**Status: accepted architecture contract for applicable current tasks.** The
+former Slice-5 label is provenance; current ownership, sequencing, and
+acceptance come from task contracts and the regenerated task graph. This
+section cannot authorize dispatch, candidate acceptance, or frozen-oracle
+mutation; readiness is **NO-GO**. These three decisions come out of the
+read-only Slice-5 audit. They sit on top of §46 and §47 and change none of
+§47's verdict or invariants; D3 corrects one citation inside §47.6. Section 73
+records the separate Slice-4 disabled-pointer and props-constructor
+adjudication and is not a dependency of anything here.
 
 ### 74.1 D1 — `--color` is a ceiling, never a floor
 
@@ -8678,10 +8784,12 @@ those components as pictures. That promise is currently owed to an `xtask` subco
 **Superseded:** the command and its boundary contract now exist; the table and acceptance text below
 describe the live obligation.
 
-**Accepted, as an obligation with an order.** `xtask capture-matrix` **exists and passes before**
-any Slice 5 visual review is conducted and before any Slice 5 baseline is blessed. Not after, and
-not "manually for now": a review mechanism that cannot be executed is decoration (§34.4), and this
-is the seventh recorded instance of that class.
+**Historical acceptance order.** The former record required `xtask
+capture-matrix` to exist and pass before its Slice-5 visual review or
+candidate-baseline decision. This describes historical sequencing only; any
+current visual acceptance must follow current task contracts, readiness, and
+the frozen-oracle gate. A missing or failed matrix remains a blocker, never
+permission to proceed.
 
 It drives `tools/capture.sh` over the complete **size × theme × colour × app** grid and writes into
 `shots/`, so a visual reviewer receives a reproducible set rather than ad-hoc screenshots. It
@@ -8692,7 +8800,8 @@ stops defaulting to a path that names the legacy binary, and `--theme {junie|pap
 documented pass-through so the theme axis is scriptable. The `COLOR` parameter and its deliberate
 `COLORTERM=truecolor` retention under `mono` are unchanged.
 
-**No Slice 5 baseline may be blessed from a capture the matrix did not produce.** The ledger's
+**No candidate baseline may be accepted from a capture the matrix did not
+produce.** The former ledger's
 `- captures:` field names paths under `shots/`; a path that no reproducible command regenerates is
 not evidence.
 
@@ -8715,11 +8824,16 @@ also reads `tools/capture.sh` and requires explicit `BIN`, explicit argv, `COLOR
 owned run/session identity, tmux dimensions/pane capture and the `ansi2png.py` conversion. The harness rejects the
 legacy implicit showcase binary, so a capture cannot silently use the wrong owner.
 
-### 74.3 D3 — per-app baselines have declared locations, and two new ledger items
+### 74.3 D3 — per-app baselines have declared locations, and two historical accounting items
+
+This section does not authorize candidate baseline blessing or mutation of the
+frozen oracle. The per-app files described here are diagnostic or
+first-generation records until current task contracts and final gates accept
+them; they are not replacements for the frozen product oracle.
 
 **The defect.** §47.6 established that the frozen pre-refactor evidence cannot move: a rename puts a
 frozen path into git's touched set and `bless-guard` refuses unconditionally, with the remedy
-"revert, do not classify" and no ledger escape. It drew the right conclusion for the visual baseline
+"revert, do not classify" and no accounting escape. It drew the right conclusion for the visual baseline
 — the frozen file stays as the before-image and Slice 5 writes a **new** file — and it named the
 same problem for the perf rows: *"the moved application benchmark rows have nowhere legal to land"*,
 because the root `perf_baseline.txt` is frozen and any edit to it is refused.
@@ -8760,7 +8874,7 @@ item 19 itself was created to avoid.
   classifies under items 1–18 or it is a regression.
 - **Item 33 — first-generation per-app perf baseline rows.** Every hit-count row in
   `apps/<app>/tests/perf_baseline.txt` at the commit that creates it. These are numeric, not
-  visual: no capture exists and none is required, and the ledger entry records the measured counts
+  visual: no capture exists and none is required, and the historical accounting record stores the measured counts
   and the corresponding rows of the frozen root `perf_baseline.txt` side by side. A per-app row that
   is **worse** than its frozen root counterpart is a **regression** and is not blessed; equality or
   improvement is *intended*. `{scope: first-generation}`.
@@ -8776,12 +8890,13 @@ citation for application baselines is rejected rather than silently accepted.
 product baselines or authorize campaign execution; its acceptance conditions
 below must be satisfied independently.
 
-The user-authorized main-based integration task and independent review recorded
+The historical main-based integration task and independent review recorded
 in [the historical regeneration approval](docs/historical-regeneration-approval.md)
-authorize one narrow exception to the blanket frozen-addition refusal in §16.3,
-§36 and §49. Exactly 499 HTML and 499 PNG renderings may be added only where the
-comparison base has no blob and the installed bytes match the immutable reviewed
-manifest from generator commit c051c8fa61c2fd67eb06e122dd91fd2553c8c810. The
+described one narrow exception to the blanket frozen-addition refusal in §16.3,
+§36 and §49. The historical record described exactly 499 HTML and 499 PNG
+renderings as eligible for addition only where the comparison base has no blob
+and the installed bytes match the immutable reviewed manifest from generator
+commit c051c8fa61c2fd67eb06e122dd91fd2553c8c810. The
 manifest SHA-256 is e2dcdb2952e5cbd283b841ce055962c4d961dfa967d43c879bdbc49a5abdb6cb.
 
 Every existing original artifact remains immutable. Existing blobs, including

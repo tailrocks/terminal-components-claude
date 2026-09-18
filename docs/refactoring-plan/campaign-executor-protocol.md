@@ -72,6 +72,12 @@ subagent. The subagent may write only the paths declared by that task.
 7. Coordinator integrates only after verifier and reviewer both pass. The
    coordinator reruns branch-level gates after serial integration.
 
+This sequence is contingent on a **GO** readiness verdict. While the current
+report is **NO-GO**, do not create task worktrees, spawn implementers, run
+task-owned verification, or integrate commits. **GO** is necessary but not
+sufficient; DAG dependencies, receipt binding, verifier evidence, reviewer
+approval, branch gates, and final visual/behavioral gates remain mandatory.
+
 ## Verification result
 
 The verifier records:

@@ -165,8 +165,8 @@ The implementer, verifier, and reviewer subagents own this task. The coordinator
 All execution is host-local. Use `$TASK_DIR` for this package, `$WORKTREE` for the isolated repository, `$RUN_DIR` for evidence and logs, and `$SCOPE_BASE` for the recorded parent. Run the latest standalone taskfmt only for this package:
 
 ```text
-taskfmt lint "$TASK_DIR"
-taskfmt verify --root "$WORKTREE" --task-dir "$TASK_DIR" \
+"$TASKFMT" lint "$TASK_DIR"
+"$TASKFMT" verify --root "$WORKTREE" --task-dir "$TASK_DIR" \
   --base "$SCOPE_BASE" --progress "" \
   --log-dir "$RUN_DIR/taskfmt-logs"
 ```

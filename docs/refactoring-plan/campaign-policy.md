@@ -9,7 +9,7 @@
 | **`refs/heads/refactor/holla-parity`** | Only advancing branch for all 73 tasks |
 | **`main` @ `7b27732a8c3c131760ec3438f641cb3c11343a42`** | Architectural parent at campaign start; untouched until final authorized merge |
 | **Tag `visual-baseline` (peeled `4a79c0a2`)** | Frozen oracle pin — never move, retarget, or recreate |
-| **Branch `visual-baseline` / `prep-wave1-verify`** | Planning archive — record catalog SHA, then stop advancing |
+| **Branch `visual-baseline` / `prep-wave1-verify`** | Read-only planning/archive refs — record their catalog SHA in current campaign docs or ledger only, then stop advancing; never write, retarget, or advance the baseline branch/tag |
 
 Retired as long-lived targets: `task-001-bootstrap`, open PR #3/#4/#5 merge strategy.
 
@@ -29,8 +29,8 @@ Default campaign worktree: `.worktrees/campaign` (created by [`scripts/campaign-
 Every task is implemented and verified by isolated host-local subagents:
 
 ```sh
-taskfmt lint "$TASK_DIR"
-taskfmt verify --root "$WORKTREE" --task-dir "$TASK_DIR" \
+"$TASKFMT" lint "$TASK_DIR"
+"$TASKFMT" verify --root "$WORKTREE" --task-dir "$TASK_DIR" \
   --base "$PARENT_SHA" --progress "" --log-dir "$RUN_DIR/taskfmt-logs"
 ```
 
@@ -40,6 +40,10 @@ taskfmt lifecycle command participates in this workflow.
 
 ## What this policy does not authorize
 
+- While the readiness report is **NO-GO**, creating task worktrees, spawning
+  implementers, running task-owned verification, or integrating task commits.
+  A future **GO** is necessary but not sufficient; receipts, reviewers, branch
+  gates, and final visual/behavioral gates remain mandatory.
 - Arming `/goal` or starting TASK-002+ production dispatch
 - Merging or pushing to `main`
 - Moving the `visual-baseline` tag or writing `snapshots/`

@@ -151,7 +151,7 @@ All inspection is host-local. Use `$TASK_DIR` for this package and run only the
 latest standalone taskfmt lint:
 
 ```text
-taskfmt lint "$TASK_DIR"
+"$TASKFMT" lint "$TASK_DIR"
 ```
 
 Taskfmt is validation only. No containers, images, mounts, lifecycle commands,

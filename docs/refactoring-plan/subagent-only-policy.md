@@ -16,8 +16,8 @@
   `/Users/donbeave/Projects/taskfmt/task-format` at the pinned current
   revision.
 - `taskfmt` is a task gate only. The only allowed project invocations are:
-  - `taskfmt lint <one-task-package>` — validate that task package.
-  - `taskfmt verify --root <subagent-worktree> --task-dir <one-task-package> --base <scope-base> --progress "" --log-dir <external-run-dir>` — verify that task.
+  - `"$TASKFMT" lint <one-task-package>` — validate that task package.
+  - `"$TASKFMT" verify --root <subagent-worktree> --task-dir <one-task-package> --base <scope-base> --progress "" --log-dir <external-run-dir>` — verify that task.
 - Do not use `taskfmt init`, `taskfmt status`, `taskfmt-host`,
   `taskfmt-runtime`, `taskfmt run`, `taskfmt monitor`, `taskfmt promote`, or
   any command that starts or supervises execution infrastructure.
@@ -60,3 +60,11 @@ preconditions pass. Taskfmt never creates contexts or proof infrastructure.
 The `visual-baseline` tag, release, and oracle store must remain unchanged by
 policy. Their current pointers are recorded in the readiness report; provider
 enforcement is not assumed.
+
+## Readiness stop
+
+If the current readiness report is not **GO**, stop. Do not create task
+worktrees, spawn implementers, run task-owned verification, or integrate task
+commits. **GO** is necessary but not sufficient: the coordinator must still
+confirm DAG dependencies, receipt binding, verifier evidence, reviewer approval,
+branch gates, and the final visual/behavioral gates.

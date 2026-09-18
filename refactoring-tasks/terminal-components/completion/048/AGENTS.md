@@ -54,8 +54,8 @@ metadata, not Cucumber feature files, and have no runtime step definitions.
 7. When implementation leaves are complete, the verifier subagent runs:
 
    ```text
-   taskfmt lint "$TASK_DIR"
-   taskfmt verify --root "$WORKTREE" --task-dir "$TASK_DIR" \
+   "$TASKFMT" lint "$TASK_DIR"
+   "$TASKFMT" verify --root "$WORKTREE" --task-dir "$TASK_DIR" \
      --base "$SCOPE_BASE" --progress "" \
      --log-dir "$RUN_DIR/taskfmt-logs"
    ```
@@ -112,7 +112,7 @@ SUMMARY: <what changed, or why execution stopped and what was tried>
 ACCEPTANCE:
 - AC-001: PASS | FAIL | NOT_RUN — <command and observed result>
 - AC-002: ...
-VERIFY: command=taskfmt verify exit=<n|NOT_RUN> last_line=<DONE|other|NOT_RUN>
+VERIFY: command="$TASKFMT" verify exit=<n|NOT_RUN> last_line=<DONE|other|NOT_RUN>
 CHANGED:
 <verbatim `git diff --no-renames --name-status $SCOPE_BASE`, then the untracked lines of `git status --porcelain --untracked-files=all`; not recall>
 DEVIATIONS: none | <list>

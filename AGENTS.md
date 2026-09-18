@@ -54,6 +54,9 @@ The current campaign contracts are:
   for the campaign ledger shape;
 - [`docs/refactoring-plan/task-format.md`](docs/refactoring-plan/task-format.md)
   for the current taskfmt identity and command surface;
+- [`docs/refactoring-plan/task-graph.json`](docs/refactoring-plan/task-graph.json)
+  is generated structural dependency data only. It contains no task status,
+  acceptance result, or execution authorization and cannot override a NO-GO.
 - [`refactoring-tasks/visual-validation.md`](refactoring-tasks/visual-validation.md)
   for the visual comparison contract.
 
@@ -217,6 +220,11 @@ Each task uses isolated host-local roles:
 - serial coordinator: DAG scheduling, compare-and-swap integration, and final
   campaign gates.
 
+Task-owned implementation, focused tests, and per-task verification are
+subagent responsibilities. The coordinator may run only branch-level
+integration and final gates after accepted subagent evidence; coordinator
+checks never substitute for task-owned verifier or reviewer evidence.
+
 No two roles share writable worktrees, build directories, snapshot stores, or
 run directories. Candidate outputs remain untrusted in the external run
 directory until the verifier records complete evidence and the reviewer
@@ -328,7 +336,7 @@ Run the same native local check from the repository root:
 ```sh
 INPUTS="$(mktemp)"
 git ls-files -z | tr '\0' '\n' | awk 'tolower($0) ~ /\.(md|mkd|mdx|mdown|mdwn|mkdn|mkdown|markdown|mdc)$/ { print }' > "$INPUTS"
-lychee --config lychee.toml --root-dir "$PWD" --files-from "$INPUTS"
+mise exec lychee@0.24.2 -- lychee --config lychee.toml --root-dir "$PWD" --files-from "$INPUTS"
 rm "$INPUTS"
 ```
 

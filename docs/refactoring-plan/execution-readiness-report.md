@@ -15,17 +15,18 @@ campaign-policy documentation update and does not claim product parity.
 - Audit snapshot `main..a34a1cff`: 27 commits, zero apps/ or crates/ product-source changes.
 - The reconciled branch remains campaign/proof scaffolding; production
   implementation behavior remains unchanged. `apps/` and `crates/` differ from
-  `main` only in two Rust performance-test documentation command examples
-  migrated from `cargo test` to `cargo nextest`. The reconciliation adds only
-  docs, task contracts, scripts, and verification tooling; no product parity
-  claim follows from these changes.
+  `main` in four Rust files: two performance-test documentation command
+  examples migrated from `cargo test` to `cargo nextest`, plus two comment-only
+  removals of retired-document references. The reconciliation adds only docs,
+  task contracts, scripts, and verification tooling; no product parity claim
+  follows from these changes.
 - All 73 task manifests remain pending.
 - Shared architecture is substantial, but consumers still contain compatibility painters, duplicate state, and historical renderers.
 - Frozen visual oracle is absent from this branch and its active gate; it
   remains available at the policy-protected `visual-baseline` tag.
 - Planning validator passes: all 211 frozen bootstrap asset bindings are present and hash-valid.
-- After these reconciliation commits, the only intentionally preserved dirty files are
-  pre-existing proof artifacts:
+- Outside the tracked reconciliation changes, the only intentionally preserved
+  dirty files are pre-existing proof artifacts:
   - tools/refactor-proof/architecture/source.py
   - tools/refactor-proof/bin/tc-proof
 
@@ -323,8 +324,9 @@ binary identity is checked by exact `--version` output and executable SHA-256.
 Allowed:
 
 ~~~text
-taskfmt lint /absolute/catalog/terminal-components/completion/NNN
-taskfmt verify --root /absolute/subagent-worktree \
+TASKFMT=/absolute/path/to/qualified/taskfmt
+"$TASKFMT" lint /absolute/catalog/terminal-components/completion/NNN
+"$TASKFMT" verify --root /absolute/subagent-worktree \
   --task-dir /absolute/catalog/terminal-components/completion/NNN \
   --base "$SCOPE_BASE" --progress "" --log-dir "$RUN_DIR/taskfmt-logs"
 ~~~
@@ -371,6 +373,12 @@ Hard blockers:
 - test(store_integrity) has no active test.
 - `.campaign/ledger.json` is disarmed; no accepted current subagent
   verification evidence exists.
+- `campaign-preflight.sh` previously looked for schema-invalid
+  `status=accepted`/`verifier_verdict=PASS` rows. Its acceptance predicate is
+  now aligned with the schema's `verified`/`VERIFIED` vocabulary; the current
+  ledger remains blocked and no receipt is being manufactured by this fix.
+  `scripts/test_campaign_ledger.py` proves the accepted and rejected row
+  combinations deterministically.
 - No accepted current verifier-subagent evidence exists for any task.
 - The migrated task checks are not dispatch-ready until fresh verifier runs
   prove their referenced host-local inputs and outputs.
@@ -409,6 +417,14 @@ Hard blockers:
 
 ## M. Final long-running /goal execution plan
 
+This is a contingent plan, not an executable prompt. While this report is
+**NO-GO**, perform only non-authorizing catalog, preflight, taskfmt, proof, and
+documentation checks. Do not create task worktrees, spawn implementers, run
+task-owned verification, or integrate task commits. A future **GO** verdict is
+necessary but not sufficient: dependency receipts, verifier evidence, reviewer
+approval, branch gates, and the complete visual/behavioral gates remain
+mandatory.
+
 ### Preparation gate
 
 1. Freeze current branch SHA and preserve the two dirty proof files as explicit inputs.
@@ -429,6 +445,11 @@ Hard blockers:
 Stop if any preparation gate fails.
 
 ### Implementation waves
+
+**Conditional future DAG only.** These waves are descriptive planning, not
+dispatch authority. While this report is **NO-GO**, no wave or task may start.
+Dispatch requires readiness/dependency preflight and the accepted verifier
+receipts required by `AGENTS.md` and the current task contracts.
 
 - Wave 1: 001 → 070 → 071 → 072.
 - Wave 2: 002, 003, 004, 005, 007 in isolated worktrees.
@@ -520,7 +541,7 @@ The current audit nevertheless reconciled the requested high-risk topics:
 
 | Topic | Disposition | Current evidence |
 |---|---|---|
-| Branch/baseline relationship | Integrated into this report | Final HEAD contains this reconciliation; cleanup ancestor is `c9eef7bd`; `main` is `7b27732a`; frozen tag peel is `4a79c0a2`; 30,200 frozen files and the PTY suite remain absent from HEAD. |
+| Branch/baseline relationship | Integrated into this report | The reconciliation records the current branch relationship; prior cleanup ancestor is `c9eef7bd`; `main` is `7b27732a`; frozen tag peel is `4a79c0a2`; 30,200 frozen files and the PTY suite remain absent from HEAD. |
 | Missing planning archive | Fixed from reviewed bytes | `docs/refactoring-plan/evidence/main-source.tar.gz` now matches the tracked TASK-072 trusted source and manifest hash; validator and all seven asset groups pass. |
 | Latest taskfmt | Already correct; revalidated | Local source is clean at `afd3b575`; version `0.2.0`; executable hash matches; 73/73 lints pass. |
 | Containers/taskfmt orchestration | Already fixed and retained | Active scripts and task contracts allow only standalone per-task `lint`/`verify`; historical host/container fixtures are non-authoritative. |
@@ -530,7 +551,7 @@ The current audit nevertheless reconciled the requested high-risk topics:
 | Documentation links | Integrated and requalified | Lychee 0.24.2 and the native semantic/path audit cover every tracked Markdown-formatted input; current results and the one narrow mail-data setting are recorded in §Q. |
 | Proof compile/dispatcher consistency | Partially integrated; blocker retained | The plural `checks` parser, exact context-file set, external run directory, explicit scope base, clean worktree, and native binary receipt checks are now fail-closed. A native build helper records commit/path/hash. No trusted per-check context/result/observer launcher exists yet. |
 | Scripts and package rebundling | Integrated | Obsolete container/taskfmt lifecycle paths are not execution authority; alternate Python rebundlers now fail closed instead of overwriting the dispatcher. Useful nextest/inventory checks remain. |
-| DAG and task acceptance | Integrated; acceptance still absent | The current graph is acyclic and regenerated from current metadata; stale graph/title/context bindings were reconciled. Task metadata remains `pending`; only accepted verifier receipts and integrated ancestry can establish completion. |
+| DAG and task acceptance | Integrated; acceptance still absent | The current graph is acyclic and regenerated from current metadata; stale graph/title/context bindings were reconciled. Task metadata remains `pending`; only schema-valid `verified`/`VERIFIED` verifier receipts and integrated ancestry can establish completion. |
 | macOS-native execution | Partially integrated; blocker retained | Native host build and receipt tooling is present, with no container path. Context provisioning, observer transport, result ABI, and the frozen-oracle read-only import still require an independently tested verifier launcher. |
 | Visual-baseline immutability | Integrated as policy | Local/remote tag pointers are unchanged. Provider enforcement is not assumed because the tag is unsigned, release immutability is false, and branch protection is absent. |
 
@@ -547,13 +568,15 @@ This documentation pass was completed against the current tree on 2026-09-18.
 The inventory contains **745 tracked Markdown-formatted inputs** (`.md`, `.mkd`,
 `.mdx`, `.mdown`, `.mdwn`, `.mkdn`, `.mkdown`, `.markdown`, and `.mdc`),
 including hidden, task, historical, and contributor documents. Lychee
-`0.24.2` parsed 605 destinations in the native offline qualification run:
-511 successes, 94 execution-mode exclusions, zero errors, zero timeouts, zero
+`0.24.2` parsed 607 destinations in the native offline qualification run:
+513 successes, 94 network exclusions, zero errors, zero timeouts, zero
 unknowns, and zero unsupported destinations. The local resolver found no
 missing repository file, directory, or fragment destination. The same complete
-input set passed a live Lychee run: 597 successful destinations, four
-redirects, eight execution-mode exclusions, and zero errors, timeouts,
-unknowns, or unsupported destinations.
+input set passed a fresh live Lychee run with `--cache=false`: 599 successful
+destinations, four redirect occurrences, eight narrow mail-data exclusions,
+and zero errors, timeouts, unknowns, or unsupported destinations. Cache-enabled
+runs may report zero redirects because successful responses are reused as
+`200` results; the cache does not weaken local or fragment checks.
 
 The offline run necessarily did not exercise network destinations; its
 exclusions are execution-mode output, not a repository allowlist. The live run
@@ -575,7 +598,16 @@ stage contract's future target paths (`domain/cleanup.rs` and `sim/fs.rs`)
 without falsely claiming those files exist today; current path normalization is
 `apps/holla/src/domain/disk.rs`. It corrected the refactoring-plan authority
 pointer, demoted stale plan/report findings, and reviewed the duplicated task
-contracts. No obsolete document was restored and no placeholder was created.
+contracts. The architecture appendix's former state-ledger mirror requirements
+and continuation-prompt references are explicitly historical provenance, not
+active authority; exact ledger evidence remains recoverable from Git at the
+cited commit. Current execution status routes through this readiness report,
+the current task graph, task contracts, and `AGENTS.md`. The architecture
+appendix's invalid `cargo nextest --doc` examples were also replaced with the
+qualified `cargo build`/`cargo doc` workflow. Retained audit and review records
+keep their original commands only as historical evidence and explicitly do not
+authorize replay. No obsolete document was restored and no placeholder was
+created.
 
 The independent review also found legacy `taskfmt init` probes in the retained
 host-bootstrap fixture copies for TASK-001/070/071/072. History review

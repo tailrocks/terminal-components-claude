@@ -212,7 +212,11 @@ class Audit:
                     self.require(position < len(tokens) and tokens[position] in {"070", "071", "072"}, f"Invalid runner qualification group: {task_id}:{check_id}")
             protocol = (package / "AGENTS.md").read_bytes()
             normalized = re.sub(rb"TASK-\d{3}", b"TASK-000", protocol)
-            self.require(hashlib.sha256(normalized).hexdigest() == "86bbf024a51aa62f6bc739a0ed46d54faab76cf87ffe918c682dfbc453b964de", f"Canonical execution protocol drift: {task_id}")
+            # The canonical protocol binds the latest standalone taskfmt
+            # executable through $TASKFMT; lifecycle/container commands are
+            # forbidden. Keep this digest in lockstep with the shared task
+            # AGENTS.md template.
+            self.require(hashlib.sha256(normalized).hexdigest() == "49f9d104c059fba7c52c0237d5c88e93c22f562da393a9a27b03c005327da91c", f"Canonical execution protocol drift: {task_id}")
             self.require("source-obligations.tsv" in readme, f"Historical payload not bound by README: {task_id}")
             read_before = readme.split("Read before editing:", 1)
             self.require(len(read_before) == 2, f"Missing Read before editing section: {task_id}")

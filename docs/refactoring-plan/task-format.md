@@ -29,11 +29,12 @@ validation and verification. It does not install or invoke `taskfmt-host` or
 container. The source also exposes lifecycle/progress helpers, but this
 project policy forbids them.
 
-Use these commands:
+Use these commands with `TASKFMT` bound to the qualified standalone binary:
 
 ```sh
-taskfmt lint /absolute/catalog/terminal-components/completion/NNN
-taskfmt verify --root /absolute/subagent-worktree \
+TASKFMT=/absolute/path/to/qualified/taskfmt
+"$TASKFMT" lint /absolute/catalog/terminal-components/completion/NNN
+"$TASKFMT" verify --root /absolute/subagent-worktree \
   --task-dir /absolute/catalog/terminal-components/completion/NNN \
   --base RECORDED_SCOPE_BASE_COMMIT --progress "" \
   --log-dir <RUN_DIR>/taskfmt-logs
@@ -64,8 +65,9 @@ TASKFMT_SRC=/Users/donbeave/Projects/taskfmt/task-format
 CARGO_TARGET_DIR=/tmp/taskfmt-latest-target cargo install --locked --path "$TASKFMT_SRC/crates/taskfmt" --root /tmp/taskfmt-latest-install --bin taskfmt
 git -C "$TASKFMT_SRC" status --short --branch
 git -C "$TASKFMT_SRC" rev-parse HEAD
-/tmp/taskfmt-latest-install/bin/taskfmt --version
-/tmp/taskfmt-latest-install/bin/taskfmt lint refactoring-tasks/terminal-components/completion/NNN
+TASKFMT=/tmp/taskfmt-latest-install/bin/taskfmt
+"$TASKFMT" --version
+"$TASKFMT" lint refactoring-tasks/terminal-components/completion/NNN
 ```
 
 Rust validation for the task-format source uses `cargo nextest` only:

@@ -8,6 +8,7 @@ TAG_PEELED_EXPECT="${TAG_PEELED_EXPECT:-4a79c0a2d40fca46fc406b77157ce3b3f12ec16b
 TASKFMT_REV="afd3b575dbcc7044620bec4b9493a74eca3e5ef2"
 TASKFMT_SHA256="f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de"
 TASKFMT_SOURCE="/Users/donbeave/Projects/taskfmt/task-format"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 repo_root() {
   git -C "${BASH_SOURCE[0]%/*}/.." rev-parse --show-toplevel
@@ -66,19 +67,13 @@ check_ledger() {
   root="$(repo_root)"
   ledger="$root/.campaign/ledger.json"
   [[ -f "$ledger" ]] || fail "missing $ledger (run campaign-init.sh)"
-  python3 - "$ledger" "$INTEGRATION_BRANCH" <<'PY' || fail "ledger invalid"
+  PYTHONPATH="$SCRIPT_DIR" python3 - "$ledger" "$INTEGRATION_BRANCH" <<'PY' || fail "ledger invalid"
 import json, sys
-p = sys.argv[1]
-with open(p) as f:
-    d = json.load(f)
-assert d.get("schema") == "campaign-ledger/v1"
-expected_ref = "refs/heads/" + sys.argv[2]
-assert d.get("integration_ref") == expected_ref, (d.get("integration_ref"), expected_ref)
-assert d.get("armed") is False, "ledger shows armed=true — do not arm /goal via preflight"
-assert d["catalog"]["commit"] != "REPLACE_AT_INIT", "catalog commit not recorded"
-accepted = [row for row in d.get("tasks", [])
-            if row.get("status") == "accepted" and row.get("verifier_verdict") == "PASS"]
-assert accepted, "no current accepted verifier receipt exists"
+from campaign_ledger import validate_preflight_ledger
+
+with open(sys.argv[1], encoding="utf-8") as f:
+    ledger = json.load(f)
+validate_preflight_ledger(ledger, sys.argv[2])
 print("ledger schema OK; armed=false; catalog recorded")
 PY
   local head

@@ -24,8 +24,8 @@ Use only the standalone latest taskfmt `0.2.0` at revision
 `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`:
 
 ```sh
-taskfmt lint "$TASK_DIR"
-taskfmt verify --root "$WORKTREE" --task-dir "$TASK_DIR" \
+"$TASKFMT" lint "$TASK_DIR"
+"$TASKFMT" verify --root "$WORKTREE" --task-dir "$TASK_DIR" \
   --base "$SCOPE_BASE" --progress "" --log-dir "$RUN_DIR/taskfmt-logs"
 ```
 
