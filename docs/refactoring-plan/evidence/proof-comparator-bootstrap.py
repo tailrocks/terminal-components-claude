@@ -332,6 +332,13 @@ def invoke(runner, root, vectors, case, timeout):
     context_before = context_path.read_bytes()
     environment = {key: value for key, value in os.environ.items()
                    if key in ("PATH", "SYSTEMROOT", "WINDIR", "TMPDIR")}
+    # The native comparator is built and bound by the verifier outside the
+    # candidate worktree. Preserve only that verifier-owned binding across the
+    # reduced worker environment; the submitted runner still validates the
+    # absolute path, link topology, executable type, and provenance.
+    native_binary = os.environ.get("TC_PROOF_NATIVE_BINARY")
+    if native_binary is not None:
+        environment["TC_PROOF_NATIVE_BINARY"] = native_binary
     environment.update({"LANG": "C.UTF-8", "TZ": "UTC"})
     if case["operation"] == "blessing-environment":
         environment.update({"UPDATE_SNAPSHOTS": "1", "INSTA_UPDATE": "always",

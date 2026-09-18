@@ -265,6 +265,9 @@ def _native_comparator_path(context_path: Path) -> Path:
         selected_value = str(target / "debug" / "tc-proof")
 
     selected = _validated_executable(selected_value, "native comparator")
+    candidate_root = Path(__file__).resolve().parent.parent.parent.parent
+    if selected == candidate_root or candidate_root in selected.parents:
+        raise RuntimeError("native comparator must be external to the candidate worktree")
     if trusted is not None:
         trusted_path, trusted_hash = trusted
         if selected != trusted_path:

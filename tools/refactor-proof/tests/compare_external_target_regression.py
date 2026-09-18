@@ -156,6 +156,10 @@ def main() -> None:
         ambiguous["TC_PROOF_NATIVE_LAUNCHER"] = str(forged)
         require_rejected(bundle, direct_context, cwd=source, env=ambiguous, reason="ambiguous override")
 
+        inside = dict(environment)
+        inside["TC_PROOF_NATIVE_BINARY"] = str(source / "tools/refactor-proof/bin/tc-proof")
+        require_rejected(bundle, direct_context, cwd=source, env=inside, reason="candidate-worktree override")
+
         defaulted = dict(environment)
         defaulted.pop("TC_PROOF_NATIVE_BINARY", None)
         defaulted.pop("TC_PROOF_NATIVE_LAUNCHER", None)
@@ -171,6 +175,7 @@ def main() -> None:
             "symlink",
             "unbound",
             "ambiguous",
+            "candidate-worktree",
             "shared-cache-default",
         ],
     }, sort_keys=True))
