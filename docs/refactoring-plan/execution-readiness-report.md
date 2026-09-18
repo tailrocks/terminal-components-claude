@@ -520,7 +520,7 @@ The current audit nevertheless reconciled the requested high-risk topics:
 
 | Topic | Disposition | Current evidence |
 |---|---|---|
-| Branch/baseline relationship | Integrated into this report | Final HEAD contains this reconciliation (parent `c9eef7bd`); `main` is `7b27732a`; frozen tag peel is `4a79c0a2`; 30,200 frozen files and the PTY suite remain absent from HEAD. |
+| Branch/baseline relationship | Integrated into this report | Final HEAD contains this reconciliation; cleanup ancestor is `c9eef7bd`; `main` is `7b27732a`; frozen tag peel is `4a79c0a2`; 30,200 frozen files and the PTY suite remain absent from HEAD. |
 | Missing planning archive | Fixed from reviewed bytes | `docs/refactoring-plan/evidence/main-source.tar.gz` now matches the tracked TASK-072 trusted source and manifest hash; validator and all seven asset groups pass. |
 | Latest taskfmt | Already correct; revalidated | Local source is clean at `afd3b575`; version `0.2.0`; executable hash matches; 73/73 lints pass. |
 | Containers/taskfmt orchestration | Already fixed and retained | Active scripts and task contracts allow only standalone per-task `lint`/`verify`; historical host/container fixtures are non-authoritative. |
