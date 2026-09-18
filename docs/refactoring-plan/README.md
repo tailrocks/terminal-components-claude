@@ -1,13 +1,14 @@
 # Refactoring plan navigation
 
-Status: **NO-GO; preparation only; `.campaign/ledger.json` remains `armed: false`** (2026-09-18).
+Status: **NO-GO; preparation only; `.campaign/ledger.json` remains `armed: false`** (2026-09-19).
 
 This reconciliation is bound to preparation source HEAD
-`6ec1c83b9123c5fc531468449ef259e2927b6604` and tree
-`698cf69e073ca85826617cc641d7149a376e0996`, observed from a clean worktree
-before this docs-only commit. Source-bound evidence must be rebound to the
-post-commit tree. The bounded command results and remaining blockers are
-indexed in the [current preparation evidence](evidence/current-preparation-2026-09-18.md).
+`19f6d2ebd7ecc839e932b92ed76a592c2bee483c` and tree
+`c83a213b8e8b0eb8d262578f9a2adb2d9bd989ba`, observed before this bounded
+docs-only update. This documentation commit changes the source tree again;
+source-bound proof receipts must bind the post-commit tree afresh. The current
+bounded results and blockers are indexed in the
+[current preparation evidence](evidence/current-preparation-2026-09-19.md).
 
 ## Current authority
 
@@ -45,16 +46,22 @@ revisions, fingerprints, and receipts are not valid execution inputs.
 Current preparation facts: the qualified binary SHA-256 is
 `f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de`, plan
 validation passes with `error_count: 0`, and standalone taskfmt lint passes
-`73/73`. Preflight exits `1` at the readiness-report **NO-GO** gate; proof
-preparation exits `1` because the external run directory/receipt is absent;
-the ledger remains `armed: false` with no accepted task rows. The external
+`73/73`. Preflight exits `1` at the explicit readiness-report **NO-GO** gate;
+the stale ledger has no current accepted verifier receipt, remains
+`armed: false`, and has no accepted task rows. Proof fixes landed in
+`8c9e050c`, `f4ce758e`, `4737da3c`, and `7639e7ae`; HEAD `19f6d2eb` is a
+further context-index repair. Its positive native-launch check is
+**UNVERIFIED/PENDING**; no independent verifier has run or accepted it. The
+fresh verifier evidence for historical candidate `4737da3c` is explicitly
+**REJECTED** and applies only to that candidate; no independent reviewer has
+accepted the current proof chain. The external
 corrected baseline config has SHA-256
 `bdbe0a8958a696e4b5108ae190a0c07089f2d7aea91c64a20d52e3346e7092da`.
-Its replay ran 302 tests: 300 passed, 2 failed, and 2 skipped. Holla's timing
-failure passed an isolated rerun; TablePro `form_advanced` still fails 23/25
-cells. The independent Darwin verifier and reviewer both returned **REJECTED**.
-Baseline refs/store and snapshots remain unchanged. These facts do not
-authorize arming, dispatch, or execution.
+Its latest calibration selected 302 tests: 301 passed, 1 failed, and 2
+skipped; the targeted calibration passed 3/3. The failure is
+`tablepro_connections_form_advanced_120x40_truecolor` with 76/100 artifacts
+mismatching. Baseline refs/store and snapshots remain unchanged. These facts
+do not authorize arming, dispatch, or execution.
 
 ## Historical evidence
 

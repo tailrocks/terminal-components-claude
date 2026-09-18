@@ -1,6 +1,6 @@
 # Terminal Components Refactor — Execution-Readiness Report
 
-**Current authority:** This is the sole current readiness report (2026-09-18).
+**Current authority:** This is the sole current readiness report (2026-09-19).
 It is a preparation audit, not execution authorization.
 
 ## A. Current-state verdict
@@ -9,12 +9,12 @@ It is a preparation audit, not execution authorization.
 
 `refactor/holla-parity` remains campaign/proof scaffolding, not completed
 refactor work. This report is reconciled against preparation source HEAD
-`6ec1c83b9123c5fc531468449ef259e2927b6604` (tree
-`698cf69e073ca85826617cc641d7149a376e0996`) observed from a clean worktree
-before this documentation-only reconciliation. The documentation commit
-changes documentation only; any source-bound execution receipt must bind the
+`19f6d2ebd7ecc839e932b92ed76a592c2bee483c` (tree
+`c83a213b8e8b0eb8d262578f9a2adb2d9bd989ba`) observed from a clean worktree
+before this bounded documentation-only update. This documentation commit
+changes the source tree again; any source-bound execution receipt must bind the
 post-commit HEAD and tree afresh. The bounded raw outcomes are indexed in
-[`evidence/current-preparation-2026-09-18.md`](evidence/current-preparation-2026-09-18.md).
+[`evidence/current-preparation-2026-09-19.md`](evidence/current-preparation-2026-09-19.md).
 No product parity or execution authorization follows from this reconciliation.
 
 - The preparation commits contain no product-behavior refactor. Product-source
@@ -31,9 +31,14 @@ No product parity or execution authorization follows from this reconciliation.
 - Frozen visual oracle is absent from this branch and its active gate; it
   remains available at the policy-protected `visual-baseline` tag.
 - Planning validator passes: all 211 frozen bootstrap asset bindings are present and hash-valid.
-- The campaign worktree was clean during the verifier/reviewer evidence
-  collection. The final documentation commit must leave it clean; no clean
-  candidate or accepted proof receipt is implied by that fact.
+- Proof fixes landed in `8c9e050c`, `f4ce758e`, `4737da3c`, and `7639e7ae`.
+  HEAD `19f6d2eb` is a further context-index repair, but its positive
+  native-launch check is **UNVERIFIED/PENDING**; no independent verifier has
+  run or accepted it. The fresh verifier for historical candidate `4737da3c`
+  returned **REJECTED** and applies only to that candidate; no independent
+  reviewer has accepted the current proof chain.
+  The final documentation commit must leave the
+  worktree clean; no accepted proof receipt is implied by a clean tree.
 
 `CLAUDE.md -> AGENTS.md` is correct. The current peeled `visual-baseline` tag
 remains `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`; the local tag pointer and
@@ -51,22 +56,35 @@ Validation:
   `ab9568812e86e3c8e18c1d945886d4b2387b1e175ad61ba4d60750b5d6f98119`.
 - Readiness preflight exits `1` at the explicit report **NO-GO** gate; proof
   preparation exits `1` without an external run directory/receipt.
-- `cargo nextest run --locked --no-fail-fast -p refactor-proof` passes 11 tests
-  with 1 leaky-test warning. This is focused code evidence, not accepted
+- The fresh verifier's locked offline
+  `cargo nextest run --locked --no-fail-fast -p refactor-proof` passed 26 tests
+  with no failed or skipped tests. This is focused code evidence, not accepted
   campaign verification.
-- The external corrected baseline configuration was used for the complete
-  available replay: 302 tests, 300 passed, 2 failed, and 2 skipped. Holla's
-  timing failure passed an isolated rerun; TablePro `form_advanced` still
-  fails 23/25 cells. No calibration acceptance is claimed.
+- The fresh verifier rejected `4737da3c`: `cargo fmt --all -- --check`
+  failed; the positive bundled-worker run produced a rejected context-index
+  result and no observer event; the original positive-launch recorder was
+  interrupted before its tuple was emitted. The direct-child bypass,
+  adversarial matrix, dispatcher lint/verify, ledger tests, comparator replay,
+  and final protected-ref recheck were not executed.
+- The external corrected baseline configuration was used for the latest
+  calibration: targeted `3/3` passed; the full run selected `302` tests with
+  `301` passed, `1` failed, and `2` skipped. The failed case is
+  `tablepro_connections_form_advanced_120x40_truecolor`; `76/100` artifacts
+  mismatch. No calibration acceptance is claimed.
 
 ## B. Branch reconciliation
 
 | Ref | Commit |
 |---|---|
 | main | 7b27732a |
-| refactor/holla-parity | `6ec1c83b9123c5fc531468449ef259e2927b6604` (tree `698cf69e073ca85826617cc641d7149a376e0996`) |
+| refactor/holla-parity | `19f6d2ebd7ecc839e932b92ed76a592c2bee483c` (tree `c83a213b8e8b0eb8d262578f9a2adb2d9bd989ba`) |
 | visual-baseline branch | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
 | visual-baseline tag peel | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
+
+The tag-derived snapshot tree is
+`3f0261c32849e26feda24d87697de4a7ce6b8375`. It contains the authoritative
+`30,200` artifacts for `7,550` matrix keys. The tag, snapshot tree, grouped
+store, fixtures, and expected artifacts remain read-only and unchanged.
 
 Relationships:
 
@@ -247,9 +265,12 @@ Current tests cover much component behavior, but parity proof needs replayed sta
 
 `campaign-build-proof.sh` is a separate host-local preparation helper. It runs
 locked offline Cargo build for the standalone native `tc-proof` comparator and
-writes a commit/path/hash receipt; taskfmt does not build it. The current
-dispatcher validates the receipt and context filenames, but no trusted helper
-yet materializes the per-check context/index/result/observer ABI.
+writes a commit/path/hash receipt; taskfmt does not build it. The proof ABI and
+dispatcher were repaired in `8c9e050c`, `f4ce758e`, `4737da3c`, `7639e7ae`,
+and `19f6d2eb`, but the fresh verifier for historical candidate `4737da3c`
+rejected the positive bundled-worker
+execution produced a rejected context-index result and no observer event.
+The context/index/result/observer path therefore remains unaccepted.
 
 No script directly runs `tuisnap accept`. All Bash scripts pass syntax checks.
 
@@ -392,21 +413,28 @@ Hard blockers:
 - No accepted current verifier-subagent evidence exists for any task.
 - The migrated task checks are not dispatch-ready until fresh verifier runs
   prove their referenced host-local inputs and outputs.
-- Native preparation code exists, but the independent Darwin verifier and
-  reviewer rejected it. It does not yet bind
-  `TC_PROOF_CONTEXT_SHA256`, run/task/check IDs, source tree, oracle commit,
-  result path, observer FDs/nonce, and context-index identity end-to-end.
-  Positive prepare/launch checks passed; negative binding, ABI, observer, and
-  side-effect checks did not.
+- Native preparation code exists and was changed by `8c9e050c`, `f4ce758e`,
+  and `4737da3c`, but the fresh Darwin verifier for `4737da3c` returned
+  **REJECTED**. Its positive bundled-worker run emitted a rejected
+  `tc-proof-runner-result/v1` with `CONTEXT_INDEX` and no observer event;
+  formatting also failed. No independent reviewer has accepted the current
+  candidate, so context/index/result/observer binding remains unqualified.
 - The standalone native comparator is now fail-closed behind
   `campaign-build-proof.sh` and a commit/path/hash receipt. A local ignored
   binary/receipt exists, but no accepted verifier receipt exists for the
   current tree or any current task.
 - No reviewed verifier receipt binds the current branch, and the proof-worker
   identity is not accepted for campaign use.
-- The full replay was attempted with an external corrected config. It failed
-  two cases: Holla's timing failure was non-reproducible in isolation, while
-  TablePro `connections/form_advanced` remained a 23/25-cell mismatch.
+- The latest calibration used an external corrected config. Targeted `3/3`
+  passed. The full selected run produced `301 passed, 1 failed, 2 skipped`
+  from `302` tests; `tablepro_connections_form_advanced_120x40_truecolor`
+  failed with `76/100` artifact mismatches. The structural history split is
+  recorded in the current evidence: `3570a2ed23444dddf1eddcdcc49b654b169038fe`
+  supplies the responsive form-ownership overlay, while
+  `89218626011f2f82c4e87c4dfd5868a4c5f3e284` supplies the later responsive
+  rendering source. The frozen expected output shows list+form for `form_new`
+  and full-pane form ownership for `form_advanced`; no source or oracle was
+  mutated.
 - The tag's checked-in nextest config remains read-only and is not accepted by
   the installed nextest parser for its `binary(visual_baseline)` override.
 - Recorded remote performance CI for the pre-cleanup candidate failed three
@@ -517,10 +545,14 @@ Not satisfied:
 - Frozen visual authority is unavailable on the current branch; the
   policy-protected tag remains the source to import read-only.
 - Provider-enforced visual-baseline immutability is absent; local tag/release policy is the guard.
-- Subagent verification evidence is absent.
+- The fresh verifier evidence for historical candidate `4737da3c` exists at
+  the external run root but is **REJECTED**. The current `19f6d2eb` repair is
+  **UNVERIFIED/PENDING**; no independent reviewer acceptance exists for the
+  current proof chain.
 - Campaign ledger is disarmed and has no accepted current task evidence.
-- Proof preparation is unaccepted; the campaign worktree is currently clean.
-- The current proof worker is not bound to a reviewed subagent run.
+- Proof preparation is unaccepted; the campaign worktree is currently clean,
+  but the post-documentation commit must rebind all source-bound evidence.
+- The current proof worker is not bound to a reviewed, accepted subagent run.
 - Consumer migration is incomplete.
 - Compatibility renderers remain.
 - Behavior and performance parity are not fully proven.
@@ -538,10 +570,9 @@ materializer end-to-end: exact contexts/index, task/check/run/source/oracle
 binding, observer supervision and transport, result ABI, nonce/request
 binding, exact result paths, and commit/hash receipts. Then make a read-only
 import of the frozen suite, configuration, and grouped oracle store from
-`refs/tags/visual-baseline`. Before any final replay, supply an external
-corrected nextest config for the tag parser's rejected binary override and
-resolve the persistent TablePro mismatch. Do not dispatch a refactoring task
-yet. The
+`refs/tags/visual-baseline`. Before any final replay, keep the external
+corrected nextest config bound to its hash and resolve the TablePro source
+split without changing the oracle. Do not dispatch a refactoring task yet. The
 execution workflow remains **Grok Build → isolated subagents → implementation
 → latest standalone taskfmt `lint`/`verify` → visual/behavioral gates → serial
 integration**, with no containers and no taskfmt orchestration.

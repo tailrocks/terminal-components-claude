@@ -5,6 +5,36 @@ current readiness verdict is **NO-GO**. Do not arm `.campaign/ledger.json`,
 dispatch a task, create task worktrees, or start product refactoring until a
 fresh readiness check returns **GO**.
 
+## Current preparation binding
+
+The source state reviewed by this preparation update is branch
+`refactor/holla-parity`, HEAD
+`19f6d2ebd7ecc839e932b92ed76a592c2bee483c`, tree
+`c83a213b8e8b0eb8d262578f9a2adb2d9bd989ba`. A subsequent documentation commit
+invalidates source-bound receipts; rebind them to the final clean tree before
+any readiness decision.
+
+The immutable oracle is the peeled tag commit
+`4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`, snapshot tree
+`3f0261c32849e26feda24d87697de4a7ce6b8375`, with `7,550` keys and `30,200`
+ANSI/plain/PNG/HTML artifacts. Qualified taskfmt is source revision
+`afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, version `0.2.0`, executable
+SHA-256
+`f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de`.
+Proof repairs are in `8c9e050c`, `f4ce758e`, `4737da3c`, `7639e7ae`, and
+`19f6d2eb`. The HEAD repair's positive native-launch check remains
+**UNVERIFIED/PENDING**; no independent verifier has run or accepted it.
+Historical fresh verifier evidence at
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-4737da3c`
+is **REJECTED** for candidate `4737da3c`; no current independent reviewer
+acceptance exists for the `19f6d2eb` proof chain.
+Calibration evidence at
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/calibration-frozen-connections`
+has targeted `3/3` passing, but full `302` selected with `301` passed,
+`1` failed, and `2` skipped. The failure is
+`tablepro_connections_form_advanced_120x40_truecolor`, with `76/100`
+artifacts mismatching. The ledger remains `armed: false`.
+
 ## Objective
 
 Prepare and then complete the `refactor/holla-parity` campaign without changing
@@ -50,14 +80,47 @@ production task:
 - record independently reproducible positive and negative evidence, including
   rejection of every malformed, stale, mismatched, or mutated input.
 
+The three proof-fix commits do not close these blockers: current verifier
+evidence records a failed format check and a positive bundled-worker result
+rejected for `CONTEXT_INDEX` with no observer event. The full calibration also
+remains failed. Do not reinterpret either result as product work or as a
+reason to weaken the gate.
+
+## Exact commands still required before authorization
+
+Run from the final clean campaign worktree, with external verifier-owned
+`RUN_DIR` and target paths:
+
+```sh
+scripts/campaign-preflight.sh
+python3 docs/refactoring-plan/evidence/validate-plan.py --summary
+"$TASKFMT" lint "$TASK_DIR"
+"$TASKFMT" verify --root "$WORKTREE" --task-dir "$TASK_DIR" \
+  --base "$SCOPE_BASE" --progress "" --log-dir "$RUN_DIR/taskfmt-logs"
+scripts/campaign-build-proof.sh
+cargo nextest run --locked --workspace --no-fail-fast
+```
+
+The verifier must also run the complete native proof positive/adversarial
+matrix, then the tag-derived calibration and final visual gate. A failed,
+unknown, stale, or unreviewed result stops authorization. Do not run a
+taskfmt lifecycle command, `cargo test`, a baseline acceptance command, or a
+reduced final matrix.
+
 Import the exact frozen suite, checked-in configuration, and grouped store from
 the read-only tag. If the installed nextest rejects the tag's binary override,
 use only a separately hashed external compatibility config; never edit the
 tag. Re-run all 7,550 keys and 30,200 artifacts: ANSI, plain text, PNG, and
 HTML across five sizes and five color modes, including PTY setup, cleanup,
-resize, input, and settled-frame transitions. Explain Holla timing drift and
-the persistent TablePro `connections/form_advanced` mismatch. Never bless,
-rewrite, delete, filter, or weaken an expected artifact.
+resize, input, and settled-frame transitions. The latest targeted Holla case
+passed; the remaining calibration failure is structural TablePro drift. The
+historical split is explicit: `3570a2ed23444dddf1eddcdcc49b654b169038fe`
+supplies responsive form ownership, while
+`89218626011f2f82c4e87c4dfd5868a4c5f3e284` supplies the later responsive
+rendering source; frozen expected output requires list+form for `form_new` and
+full-pane form ownership for `form_advanced`. Resolve that source question
+without changing the oracle. Never bless, rewrite, delete, filter, or weaken
+an expected artifact.
 
 ## Roles and execution loop
 
