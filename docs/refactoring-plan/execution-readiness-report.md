@@ -583,30 +583,19 @@ removed rather than rewritten into false current results.
 
 ## Q. Documentation and link-integrity audit
 
-This documentation pass was completed against the current tree on 2026-09-18.
-The staged reconciliation tree contains **746 tracked Markdown-formatted
-inputs**. The exact native Lychee `0.24.2` run over that input set completed
-with 611 destinations: 603 successful, eight narrow mail-data exclusions, and
-zero redirects, errors, timeouts, unknowns, or unsupported destinations. The
-new evidence index is included in that checked input set.
+This documentation pass was completed against the final tree on 2026-09-18.
+The complete inventory contains **747 tracked Markdown-formatted inputs**
+(`.md`, `.mkd`, `.mdx`, `.mdown`, `.mdwn`, `.mkdn`, `.mkdown`, `.markdown`,
+and `.mdc`), including hidden, task, historical, contributor, and newly
+generated-goal documents. The exact native Lychee `0.24.2` run completed with
+613 destinations: 604 successful, nine narrow mail-data exclusions, and zero
+redirects, errors, timeouts, unknowns, or unsupported destinations. The local
+resolver found no missing repository file, directory, or fragment destination.
 
-The complete inventory contains **746 tracked Markdown-formatted inputs** (`.md`, `.mkd`,
-`.mdx`, `.mdown`, `.mdwn`, `.mkdn`, `.mkdown`, `.markdown`, and `.mdc`),
-including hidden, task, historical, and contributor documents. Lychee
-`0.24.2` parsed 607 destinations in the native offline qualification run:
-513 successes, 94 network exclusions, zero errors, zero timeouts, zero
-unknowns, and zero unsupported destinations. The local resolver found no
-missing repository file, directory, or fragment destination. The same complete
-input set passed a fresh live Lychee run with `--cache=false`: 599 successful
-destinations, four redirect occurrences, eight narrow mail-data exclusions,
-and zero errors, timeouts, unknowns, or unsupported destinations. Cache-enabled
-runs may report zero redirects because successful responses are reused as
-`200` results; the cache does not weaken local or fragment checks.
-
-The offline run necessarily did not exercise network destinations; its
-exclusions are execution-mode output, not a repository allowlist. The live run
-exercised the checkable external HTTP/HTTPS destinations and completed without
-an error. CI retains the same live Lychee checks with no URL/path exclusions.
+The run exercised the checkable external HTTP/HTTPS destinations available to
+the configured Lychee invocation. Mail exclusions are category output, not a
+repository allowlist; CI retains the same live link checks with no URL/path
+exclusions. Cache reuse does not weaken local or fragment checks.
 
 The only intentional Lychee category setting is `include_mail = false`: email
 values in campaign metadata and reserved `example.test` fixtures are not
