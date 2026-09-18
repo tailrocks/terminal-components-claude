@@ -14,6 +14,7 @@ from typing import Any
 import ast
 import base64
 import re
+import socket
 import subprocess
 
 # ----- json_util.py -----
@@ -66,21 +67,34 @@ class ObserverError(Exception):
 
 
 class ObserverClient:
-    def __init__(self, nonce: str, request_fd: int, response_fd: int) -> None:
+    def __init__(self, nonce: str, request_fd=None, response_fd=None, socket_path=None) -> None:
         self.nonce = nonce
-        self._request = os.fdopen(request_fd, "wb")
-        self._response = os.fdopen(response_fd, "rb")
+        self._socket = None
+        if socket_path is not None:
+            connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            connection.connect(socket_path)
+            self._socket = connection
+            self._request = connection.makefile("wb")
+            self._response = connection.makefile("rb")
+        elif request_fd is not None and response_fd is not None:
+            self._request = os.fdopen(request_fd, "wb")
+            self._response = os.fdopen(response_fd, "rb")
+        else:
+            raise ObserverError("observer transport unavailable")
 
     @classmethod
     def from_env(cls) -> ObserverClient:
         nonce = os.environ.get("TC_PROOF_OBSERVER_NONCE")
         request_fd = os.environ.get("TC_PROOF_OBSERVER_REQUEST_FD")
         response_fd = os.environ.get("TC_PROOF_OBSERVER_RESPONSE_FD")
-        if not nonce or request_fd is None or response_fd is None:
+        socket_path = os.environ.get("TC_PROOF_OBSERVER_SOCKET")
+        if not nonce or ((request_fd is None or response_fd is None) and socket_path is None):
             raise ObserverError("observer transport unavailable")
         try:
+            if socket_path is not None and (request_fd is None or response_fd is None):
+                return cls(nonce, socket_path=socket_path)
             return cls(nonce, int(request_fd), int(response_fd))
-        except OSError as error:
+        except (OSError, ValueError) as error:
             raise ObserverError(str(error)) from error
 
     def request(self, operation: str, source_commit: str, tree: str) -> dict[str, Any]:
@@ -193,6 +207,7 @@ ALLOWED_V1_KEYS = {
     "qualification",
 }
 V2_EXTRA_KEYS = {"task_id", "check_id"}
+OPTIONAL_EXTENSION_KEYS = {"architecture_profile", "branch_host_projection"}
 
 
 class Reject(Exception):
@@ -230,7 +245,7 @@ def bind_context(context: dict[str, Any], raw_hash: str) -> None:
 def validate_schema(context: dict[str, Any]) -> None:
     schema = context.get("schema")
     keys = set(context)
-    optional = {"qualification"}
+    optional = {"qualification"} | OPTIONAL_EXTENSION_KEYS
     if schema == V1_SCHEMA:
         required = ALLOWED_V1_KEYS - optional
     elif schema == V2_SCHEMA:
@@ -467,16 +482,20 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
     if index["tree"] != context["tree"]:
         raise Reject("CONTEXT_INDEX")
     members = index["members"]
-    if len(members) != 4:
+    if not isinstance(members, list) or not members:
         raise Reject("CONTEXT_INDEX")
-    if len({member["output_id"] for member in members}) != 4:
+    if any(not isinstance(member, dict) for member in members):
+        raise Reject("CONTEXT_INDEX")
+    check_ids = [member.get("check_id") for member in members]
+    output_ids = [member.get("output_id") for member in members]
+    if len(set(check_ids)) != len(members) or len(set(output_ids)) != len(members):
         raise Reject("CONTEXT_INDEX")
     contexts_dir = Path(members[0]["context_path"]).parent
     expected_files = {member["check_id"] + ".json" for member in members}
     if not contexts_dir.is_dir() or {path.name for path in contexts_dir.iterdir()} != expected_files:
         raise Reject("CONTEXT_INDEX")
     check_id = os.environ.get("TC_PROOF_CHECK_ID")
-    optional = {"qualification"}
+    optional = {"qualification", "architecture_profile", "branch_host_projection"}
     required_child = (ALLOWED_V1_KEYS | V2_EXTRA_KEYS) - optional
     member_fields = {
         "check_id",
@@ -2322,11 +2341,14 @@ def _reported_hash(context_hash: str) -> str:
 
 def _validate_architecture_context(context: dict[str, Any]) -> None:
     profile = context.pop("architecture_profile", None)
+    branch_host_projection = context.pop("branch_host_projection", None)
     try:
         validate_schema(context)
     finally:
         if profile is not None:
             context["architecture_profile"] = profile
+        if branch_host_projection is not None:
+            context["branch_host_projection"] = branch_host_projection
 
 
 def _validate_event(event: dict[str, Any], context: dict[str, Any], profile: dict[str, Any] | None) -> None:
@@ -2407,6 +2429,44 @@ def run_architecture(context_path: Path) -> int:
         return finish("rejected", "ARCHITECTURE", {}, digests, operation, reported)
 
 
+def bind_native_environment(context_path):
+    """Bind the selected context to the native launch/index ABI."""
+    context, _, context_hash = load_context(context_path)
+    if context.get("schema") != V2_SCHEMA:
+        return
+    check_id = context.get("check_id")
+    if not isinstance(check_id, str) or context_path.name != f"{check_id}.json":
+        raise RuntimeError("context filename/check identity mismatch")
+    os.environ["TC_PROOF_CHECK_ID"] = check_id
+    os.environ["TC_PROOF_CONTEXT_SHA256"] = context_hash
+    os.environ.setdefault("TC_PROOF_RUN_ID", str(context["run_id"]))
+    qualification = context.get("qualification") or {}
+    common = qualification.get("common") or {}
+    if isinstance(common, dict):
+        oracle = common.get("oracle") or {}
+        observer = common.get("observer") or {}
+        os.environ.setdefault("TC_PROOF_SOURCE_TREE", str(context["tree"]))
+        if isinstance(oracle, dict) and oracle.get("commit"):
+            os.environ.setdefault("TC_PROOF_ORACLE_COMMIT", str(oracle["commit"]))
+        if isinstance(observer, dict):
+            if observer.get("nonce"):
+                os.environ.setdefault("TC_PROOF_OBSERVER_NONCE", str(observer["nonce"]))
+            if observer.get("socket"):
+                os.environ.setdefault("TC_PROOF_OBSERVER_SOCKET", str(observer["socket"]))
+    index_path = os.environ.get("TC_PROOF_CONTEXT_INDEX")
+    if not index_path:
+        return
+    index, _ = load_index()
+    selected = next((member for member in index["members"] if member.get("check_id") == check_id), None)
+    if selected is None or Path(selected["context_path"]).resolve() != context_path.resolve():
+        raise RuntimeError("context/index selection mismatch")
+    result_path = Path(index_path).resolve().parent / selected["output_id"]
+    bound_result = os.environ.get("TC_PROOF_RESULT")
+    if bound_result and Path(bound_result).resolve() != result_path:
+        raise RuntimeError("result path was already bound differently")
+    os.environ["TC_PROOF_RESULT"] = str(result_path)
+
+
 def parse_args(argv):
     parser = argparse.ArgumentParser(prog="tc-proof")
     parser.add_argument("operation")
@@ -2418,6 +2478,11 @@ def parse_args(argv):
 
 def main(argv=None):
     args = parse_args(argv or sys.argv[1:])
+    if args.operation in {"preflight", "required", "oracle", "capture", "account-tests", "architecture", "close"}:
+        try:
+            bind_native_environment(args.context)
+        except (RuntimeError, ValueError, OSError, KeyError):
+            return finish("rejected", "CONTEXT_INDEX", {}, [], args.operation, os.environ.get("TC_PROOF_CONTEXT_SHA256", "0" * 64))
     if args.approve:
         return finish("rejected", "PROTOCOL", {}, [], args.operation, os.environ.get("TC_PROOF_CONTEXT_SHA256", "0" * 64))
     if args.operation == "compare":

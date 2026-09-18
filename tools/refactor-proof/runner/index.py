@@ -36,16 +36,20 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
     if index["tree"] != context["tree"]:
         raise Reject("CONTEXT_INDEX")
     members = index["members"]
-    if len(members) != 4:
+    if not members or not isinstance(members, list):
         raise Reject("CONTEXT_INDEX")
-    if len({member["output_id"] for member in members}) != 4:
+    if any(not isinstance(member, dict) for member in members):
+        raise Reject("CONTEXT_INDEX")
+    check_ids = [member.get("check_id") for member in members]
+    output_ids = [member.get("output_id") for member in members]
+    if len(set(check_ids)) != len(members) or len(set(output_ids)) != len(members):
         raise Reject("CONTEXT_INDEX")
     contexts_dir = Path(members[0]["context_path"]).parent
     expected_files = {member["check_id"] + ".json" for member in members}
     if not contexts_dir.is_dir() or {path.name for path in contexts_dir.iterdir()} != expected_files:
         raise Reject("CONTEXT_INDEX")
     check_id = os.environ.get("TC_PROOF_CHECK_ID")
-    optional = {"qualification"}
+    optional = {"qualification", "architecture_profile", "branch_host_projection"}
     required_child = (ALLOWED_V1_KEYS | V2_EXTRA_KEYS) - optional
     member_fields = {
         "check_id",

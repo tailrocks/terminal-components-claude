@@ -33,6 +33,7 @@ ALLOWED_V1_KEYS = {
     "qualification",
 }
 V2_EXTRA_KEYS = {"task_id", "check_id"}
+OPTIONAL_EXTENSION_KEYS = {"architecture_profile", "branch_host_projection"}
 
 
 class Reject(Exception):
@@ -70,7 +71,7 @@ def bind_context(context: dict[str, Any], raw_hash: str) -> None:
 def validate_schema(context: dict[str, Any]) -> None:
     schema = context.get("schema")
     keys = set(context)
-    optional = {"qualification"}
+    optional = {"qualification"} | OPTIONAL_EXTENSION_KEYS
     if schema == V1_SCHEMA:
         required = ALLOWED_V1_KEYS - optional
     elif schema == V2_SCHEMA:

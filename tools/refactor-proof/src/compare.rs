@@ -1,5 +1,10 @@
 //! tc-proof compare implementation (Phase 1).
 
+#![expect(
+    clippy::print_stderr,
+    reason = "comparator reports malformed proof input on stderr"
+)]
+
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io;
@@ -10,9 +15,9 @@ use serde_json::Value;
 use tuisnap::Frame;
 
 use crate::json_util::{
-    as_object_map, duplicate_values, get_str, is_safe_relative_path,
-    parse_json_bytes_strict, parse_json_strict, require_str, require_str_array, require_u64,
-    sha256_bytes, sha256_canonical, values_equal,
+    as_object_map, duplicate_values, get_str, is_safe_relative_path, parse_json_bytes_strict,
+    parse_json_strict, require_str, require_str_array, require_u64, sha256_bytes, sha256_canonical,
+    values_equal,
 };
 
 const CONTEXT_SCHEMA: &str = "tc-proof-compare-context/v1";
@@ -49,7 +54,6 @@ impl FailureCode {
             Self::StateMismatch => "STATE_MISMATCH",
         }
     }
-
 }
 
 #[derive(Debug)]
@@ -168,7 +172,7 @@ fn parse_context(raw_bytes: &[u8]) -> Result<CompareContext, String> {
 fn compare_roots(context: &CompareContext) -> CompareOutcome {
     if context.required_ids.is_empty()
         || context.required_count as usize != context.required_ids.len()
-        || duplicate_values(&context.required_ids).len() != 0
+        || !duplicate_values(&context.required_ids).is_empty()
     {
         return CompareOutcome::Global(FailureCode::Integrity);
     }
@@ -295,7 +299,7 @@ fn verify_manifest(
         })
         .collect::<Result<Vec<_>, _>>()?;
 
-    if duplicate_values(&scenario_ids).len() != 0 {
+    if !duplicate_values(&scenario_ids).is_empty() {
         return Err(FailureCode::RequiredSet);
     }
     if scenario_ids != required_ids {
@@ -328,7 +332,7 @@ fn verify_manifest(
         files.push((path.to_owned(), size, hash.to_owned()));
     }
 
-    if duplicate_values(&paths).len() != 0 {
+    if !duplicate_values(&paths).is_empty() {
         return Err(FailureCode::RequiredSet);
     }
 
@@ -599,8 +603,7 @@ fn check_provenance(
         if require_str(&value, "run_id").map_err(|_| FailureCode::Provenance)? != context.run_id {
             return Err(FailureCode::Provenance);
         }
-        if require_str(&value, "task_id").map_err(|_| FailureCode::Provenance)? != context.task_id
-        {
+        if require_str(&value, "task_id").map_err(|_| FailureCode::Provenance)? != context.task_id {
             return Err(FailureCode::Provenance);
         }
     }
@@ -623,8 +626,7 @@ fn check_provenance(
 
 fn compare_frames(oracle_path: &Path, candidate_path: &Path) -> Result<bool, FailureCode> {
     let oracle_text = fs::read_to_string(oracle_path).map_err(|_| FailureCode::Integrity)?;
-    let candidate_text =
-        fs::read_to_string(candidate_path).map_err(|_| FailureCode::Integrity)?;
+    let candidate_text = fs::read_to_string(candidate_path).map_err(|_| FailureCode::Integrity)?;
 
     if parse_json_strict(&candidate_text).is_err() {
         return Err(FailureCode::FrameInvalid);

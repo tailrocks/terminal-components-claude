@@ -9,7 +9,10 @@ use serde_json::{Map, Value};
 /// Serialize JSON with sorted object keys and compact separators (no trailing newline).
 pub fn canonical_json(value: &Value) -> String {
     let sorted = sort_value(value);
-    serde_json::to_string(&sorted).expect("canonical JSON serialization")
+    match serde_json::to_string(&sorted) {
+        Ok(serialized) => serialized,
+        Err(_) => "null".to_string(),
+    }
 }
 
 fn sort_value(value: &Value) -> Value {
@@ -208,9 +211,9 @@ pub fn require_str_array(value: &Value, key: &str) -> Result<Vec<String>, String
 
 /// Exact top-level key set check.
 pub fn has_exact_keys(value: &Value, keys: &[&str]) -> bool {
-    value.as_object().is_some_and(|map| {
-        map.len() == keys.len() && keys.iter().all(|key| map.contains_key(*key))
-    })
+    value
+        .as_object()
+        .is_some_and(|map| map.len() == keys.len() && keys.iter().all(|key| map.contains_key(*key)))
 }
 
 /// Build a map from a JSON object for keyed lookup.

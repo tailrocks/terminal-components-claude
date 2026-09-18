@@ -6,9 +6,11 @@ TASKFMT_REV="afd3b575dbcc7044620bec4b9493a74eca3e5ef2"
 TASKFMT_SHA256="f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de"
 TASKFMT_SOURCE="/Users/donbeave/Projects/taskfmt/task-format"
 TASKFMT="${TC_TASKFMT:-/tmp/taskfmt-latest-install/bin/taskfmt}"
+ORACLE_TAG="refs/tags/visual-baseline"
+ORACLE_COMMIT="4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 CATALOG_ROOT="${TC_CATALOG_ROOT:-$REPO_ROOT/refactoring-tasks/terminal-components/completion}"
-WORKTREE="${TC_TASK_WORKTREE:-$REPO_ROOT}"
+WORKTREE="${TC_TASK_WORKTREE:-}"
 RUN_DIR="${TC_TASK_RUN_DIR:-}"
 BASE="${TC_TASK_BASE:-}"
 
@@ -22,7 +24,7 @@ Required:
 Optional:
   TC_TASKFMT               Path to the exact pinned standalone taskfmt executable.
   TC_CATALOG_ROOT          Catalog root (default: refactoring-tasks/terminal-components/completion).
-  TC_TASK_WORKTREE         Isolated subagent worktree (default: current directory).
+  TC_TASK_WORKTREE         Required isolated subagent worktree for verify.
   TC_TASK_RUN_DIR          Required for verify; unique external run/log directory.
   TC_TASK_BASE             Immutable task scope base commit.
 
@@ -38,7 +40,6 @@ die() {
 
 require_absolute_paths() {
   [[ "$CATALOG_ROOT" = /* ]] || die "catalog root must be absolute: $CATALOG_ROOT"
-  [[ "$WORKTREE" = /* ]] || die "subagent worktree must be absolute: $WORKTREE"
   [[ "$TASKFMT_SOURCE" = /* ]] || die "taskfmt source must be absolute: $TASKFMT_SOURCE"
 }
 
@@ -82,52 +83,6 @@ if value.get("binary") != str(Path(binary).resolve()):
 actual = hashlib.sha256(Path(binary).read_bytes()).hexdigest()
 if value.get("binary_sha256") != actual:
     raise SystemExit("native comparator hash mismatch")
-PY
-}
-
-require_contexts() {
-  local dir="$1"
-  python3 - "$dir/verify.toml" "$RUN_DIR" <<'PY' || die "immutable verifier contexts are missing or unsafe"
-import json
-import re
-import shlex
-import sys
-import tomllib
-from pathlib import Path
-
-verify_path = Path(sys.argv[1])
-run_dir = Path(sys.argv[2])
-with verify_path.open("rb") as stream:
-    document = tomllib.load(stream)
-
-references = set()
-for check in document.get("checks", []):
-    command = check.get("shell")
-    if command is None:
-        command = " ".join(shlex.quote(str(value)) for value in check.get("argv", []))
-    references.update(re.findall(r"\$RUN_DIR/contexts/(CHK-[0-9]{3}\.json)", command))
-if not references:
-    raise SystemExit("task has no external proof contexts")
-
-context_dir = run_dir / "contexts"
-if not context_dir.is_dir() or context_dir.is_symlink():
-    raise SystemExit("context directory is absent or symlinked")
-actual = {path.name for path in context_dir.iterdir()}
-if actual != references:
-    raise SystemExit(f"context set mismatch: expected {sorted(references)}, got {sorted(actual)}")
-for name in sorted(references):
-    path = context_dir / name
-    if path.is_symlink() or not path.is_file():
-        raise SystemExit(f"unsafe context file: {path}")
-    with path.open() as stream:
-        value = json.load(stream)
-    if not isinstance(value, dict):
-        raise SystemExit(f"context is not a JSON object: {path}")
-    if not isinstance(value.get("run_id"), str) or not value["run_id"]:
-        raise SystemExit(f"context has no run_id: {path}")
-run_ids = {json.loads((context_dir / name).read_text())["run_id"] for name in references}
-if len(run_ids) != 1:
-    raise SystemExit("contexts are not bound to one verifier run")
 PY
 }
 
@@ -179,6 +134,34 @@ require_taskfmt() {
     || die "taskfmt source is not latest $TASKFMT_REV"
 }
 
+prepare_native_contexts() {
+  local dir="$1"
+  local binary
+  binary="$(proof_binary)"
+  local -a command=(
+    "$binary" prepare
+    --task-dir "$dir"
+    --run-dir "$RUN_DIR"
+    --worktree "$WORKTREE"
+    --scope-base "$BASE"
+    --oracle-tag "$ORACLE_TAG"
+    --oracle-commit "$ORACLE_COMMIT"
+    --tool "$WORKTREE/tools/refactor-proof/bin/tc-proof"
+    --comparator "$binary"
+    --taskfmt "$TASKFMT"
+  )
+  if [[ -n "${TC_TASK_DEPENDENCY_RECEIPTS:-}" ]]; then
+    local receipt
+    local -a receipts
+    IFS=: read -r -a receipts <<< "$TC_TASK_DEPENDENCY_RECEIPTS"
+    for receipt in "${receipts[@]}"; do
+      [[ -n "$receipt" ]] || die "dependency receipt list contains an empty path"
+      command+=(--dependency-receipt "$receipt")
+    done
+  fi
+  "${command[@]}" >/dev/null || die "native verifier preparation failed"
+}
+
 cmd_lint() {
   require_taskfmt
   local dir
@@ -191,6 +174,8 @@ cmd_verify() {
   require_taskfmt
   local dir
   dir="$(task_dir)"
+  [[ -n "$WORKTREE" && "$WORKTREE" = /* ]] \
+    || die "set TC_TASK_WORKTREE to an absolute isolated worktree"
   [[ -d "$WORKTREE" ]] || die "subagent worktree missing: $WORKTREE"
   [[ -n "$RUN_DIR" && "$RUN_DIR" = /* ]] \
     || die "set TC_TASK_RUN_DIR to a unique absolute verifier run directory"
@@ -198,7 +183,9 @@ cmd_verify() {
   require_external_run_dir
   require_clean_worktree
   require_native_proof
-  require_contexts "$dir"
+  prepare_native_contexts "$dir"
+  export TC_PROOF_CONTEXT_INDEX="$RUN_DIR/context-index.json"
+  export TC_PROOF_CONTEXT_INDEX_SHA256="$(shasum -a 256 "$TC_PROOF_CONTEXT_INDEX" | awk '{print $1}')"
   [[ ! -e "$RUN_DIR/taskfmt-logs" ]] \
     || die "taskfmt log directory already exists; verifier run is not fresh"
   mkdir "$RUN_DIR/taskfmt-logs"

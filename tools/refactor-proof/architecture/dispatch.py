@@ -23,11 +23,14 @@ def _reported_hash(context_hash: str) -> str:
 
 def _validate_architecture_context(context: dict[str, Any]) -> None:
     profile = context.pop("architecture_profile", None)
+    branch_host_projection = context.pop("branch_host_projection", None)
     try:
         validate_schema(context)
     finally:
         if profile is not None:
             context["architecture_profile"] = profile
+        if branch_host_projection is not None:
+            context["branch_host_projection"] = branch_host_projection
 
 
 def _validate_event(event: dict[str, Any], context: dict[str, Any], profile: dict[str, Any] | None) -> None:
