@@ -898,49 +898,48 @@ fn start_observer_supervisor(
     let tree = prepared.candidate_tree.clone();
     let nonce = nonce.to_owned();
     let oracle_commit = oracle_commit.to_owned();
-    let supervisor = thread::spawn(move || {
-        let mut child = Command::new(&provider)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::null())
-            .env_remove(OBSERVER_PROVIDER_ENV)
-            .spawn()
-            .map_err(|error| {
-                VerifierError::new(format!("observer response provider launch failed: {error}"))
+    let supervisor =
+        thread::spawn(move || {
+            let mut child = Command::new(&provider)
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::null())
+                .env_remove(OBSERVER_PROVIDER_ENV)
+                .spawn()
+                .map_err(|error| {
+                    VerifierError::new(format!("observer response provider launch failed: {error}"))
+                })?;
+            let stdin = child.stdin.take().ok_or_else(|| {
+                VerifierError::new("observer response provider stdin unavailable")
             })?;
-        let stdin = child
-            .stdin
-            .take()
-            .ok_or_else(|| VerifierError::new("observer response provider stdin unavailable"))?;
-        let stdout = child
-            .stdout
-            .take()
-            .ok_or_else(|| VerifierError::new("observer response provider stdout unavailable"))?;
-        let mut provider = PipeObserverProvider {
-            request: BufWriter::new(stdin),
-            response: BufReader::new(stdout),
-        };
-        let result = observe_worker(
-            request_read,
-            response_write,
-            &mut provider,
-            &run_id,
-            &task_id,
-            &check_id,
-            &operation,
-            &tree,
-            &oracle_commit,
-            &nonce,
-        );
-        drop(provider);
-        let status = finish_observer_provider(&mut child, result.is_err())?;
-        if !status.success() {
-            return Err(VerifierError::new(
-                "observer response provider exited unsuccessfully",
-            ));
-        }
-        result
-    });
+            let stdout = child.stdout.take().ok_or_else(|| {
+                VerifierError::new("observer response provider stdout unavailable")
+            })?;
+            let mut provider = PipeObserverProvider {
+                request: BufWriter::new(stdin),
+                response: BufReader::new(stdout),
+            };
+            let result = observe_worker(
+                request_read,
+                response_write,
+                &mut provider,
+                &run_id,
+                &task_id,
+                &check_id,
+                &operation,
+                &tree,
+                &oracle_commit,
+                &nonce,
+            );
+            drop(provider);
+            let status = finish_observer_provider(&mut child, result.is_err())?;
+            if !status.success() {
+                return Err(VerifierError::new(
+                    "observer response provider exited unsuccessfully",
+                ));
+            }
+            result
+        });
     Ok((request_write, response_read, supervisor))
 }
 
@@ -1105,8 +1104,7 @@ fn validate_observer_response(
         ],
         "observer response",
     )?;
-    if response.get("schema")
-        != Some(&Value::String("tc-proof-observation/v1".to_string()))
+    if response.get("schema") != Some(&Value::String("tc-proof-observation/v1".to_string()))
         || required_string(response, "nonce")? != nonce
         || required_string(response, "run_id")? != run_id
         || required_string(response, "task_id")? != task_id
@@ -1143,11 +1141,10 @@ fn validate_observer_response(
         .and_then(Value::as_array)
         .filter(|records| !records.is_empty())
         .ok_or_else(|| VerifierError::new("observer response records are empty or invalid"))?;
-    if records.iter().any(|record| {
-        record
-            .as_object()
-            .is_none_or(|record| record.is_empty())
-    }) {
+    if records
+        .iter()
+        .any(|record| record.as_object().is_none_or(|record| record.is_empty()))
+    {
         return Err(VerifierError::new(
             "observer response contains an invalid record",
         ));
@@ -3113,10 +3110,10 @@ mod tests {
         let (response_read, response_write) = make_pipe().expect("response pipe");
         let source_commit = "a".repeat(40);
         let tree = "b".repeat(40);
-    let supervisor = thread::spawn({
-        let source_commit = source_commit.clone();
-        let tree = tree.clone();
-        move || {
+        let supervisor = thread::spawn({
+            let source_commit = source_commit.clone();
+            let tree = tree.clone();
+            move || {
                 let mut provider = FailingProvider;
                 observe_worker(
                     request_read,

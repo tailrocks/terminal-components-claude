@@ -8,7 +8,7 @@ import stat
 from pathlib import Path
 from typing import Any
 
-from .context import ALLOWED_V1_KEYS, Reject, V2_EXTRA_KEYS, V2_SCHEMA, load_context
+from .context import ALLOWED_V1_KEYS, Reject, V1_SCHEMA, V2_EXTRA_KEYS, load_context
 from .json_util import load_path, sha256_bytes
 
 
@@ -153,11 +153,7 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
         child_keys = set(child)
         if child_keys - required_child - optional or required_child - child_keys:
             raise Reject("CONTEXT_INDEX")
-        if (
-            child.get("schema") != V2_SCHEMA
-            or member.get("schema") != V2_SCHEMA
-            or child.get("schema") != member.get("schema")
-        ):
+        if child.get("schema") != V1_SCHEMA:
             raise Reject("CONTEXT_INDEX")
         bindings = {
             "run_id": index["run_id"],

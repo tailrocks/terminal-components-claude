@@ -938,11 +938,7 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
         child_keys = set(child)
         if child_keys - required_child - optional or required_child - child_keys:
             raise Reject("CONTEXT_INDEX")
-        if (
-            child.get("schema") != V2_SCHEMA
-            or member.get("schema") != V2_SCHEMA
-            or child.get("schema") != member.get("schema")
-        ):
+        if child.get("schema") != V1_SCHEMA:
             raise Reject("CONTEXT_INDEX")
         bindings = {
             "run_id": index["run_id"],

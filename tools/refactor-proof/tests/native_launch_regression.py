@@ -108,6 +108,9 @@ def prepare_fixture(native: Path, source: Path, root: Path) -> tuple[Path, dict[
     if prepared.returncode != 0:
         raise SystemExit(f"native preparation failed:\n{prepared.stderr}")
     index = json.loads((run_dir / "context-index.json").read_text(encoding="utf-8"))
+    member_keys = {"check_id", "path", "sha256"}
+    if any(set(member) != member_keys for member in index["contexts"] + index["results"]):
+        raise SystemExit("native context index member ABI is not canonical")
     contexts = {member["check_id"]: member for member in index["contexts"]}
     return run_dir, contexts
 
