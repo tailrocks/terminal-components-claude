@@ -8,9 +8,12 @@ It is a preparation audit, not execution authorization.
 **NO-GO.**
 
 `refactor/holla-parity` remains campaign/proof scaffolding, not completed
-refactor work. The pre-cleanup audit snapshot was `a34a1cff`; the cleanup
-parent was `c9eef7bd`. The current branch includes the reconciliation and
-campaign-policy documentation update and does not claim product parity.
+refactor work. This report is reconciled against source HEAD
+`f5013f609aed1ba32ce60352b38fd0b1b11b063c` (tree
+`e08a965702a4674e9e61970fb1c3923e05e1dec7`) observed before this docs-only
+commit. The bounded raw outcomes are indexed in
+[`evidence/current-preparation-2026-09-18.md`](evidence/current-preparation-2026-09-18.md).
+No product parity or execution authorization follows from this reconciliation.
 
 - Audit snapshot `main..a34a1cff`: 27 commits, zero apps/ or crates/ product-source changes.
 - The reconciled branch remains campaign/proof scaffolding; production
@@ -25,13 +28,15 @@ campaign-policy documentation update and does not claim product parity.
 - Frozen visual oracle is absent from this branch and its active gate; it
   remains available at the policy-protected `visual-baseline` tag.
 - Planning validator passes: all 211 frozen bootstrap asset bindings are present and hash-valid.
-- Outside the tracked reconciliation changes, the only intentionally preserved
-  dirty files are pre-existing proof artifacts:
-  - tools/refactor-proof/architecture/source.py
-  - tools/refactor-proof/bin/tc-proof
+- The worktree was not clean during this evidence collection. Preserved,
+  out-of-scope changes were present in `baseline/before/MANIFEST.md`,
+  `tools/refactor-proof/Cargo.toml`, and `tools/refactor-proof/src/lib.rs`.
+  This documentation task did not stage or modify them. No clean-candidate
+  proof is claimed.
 
 `CLAUDE.md -> AGENTS.md` is correct. The current peeled `visual-baseline` tag
-remains `4a79c0a2`; the local tag pointer and remote pointer are unchanged.
+remains `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`; the local tag pointer and
+remote pointer are unchanged.
 The tag is unsigned, GitHub reports the release as `immutable: false`, and the
 branch has no provider protection, so immutability is currently a repository
 policy boundary, not a provider-enforced guarantee. No mutation is authorized.
@@ -43,20 +48,27 @@ Validation:
 - Plan validator: passes with `error_count: 0`; the exact reviewed
   `main-source.tar.gz` projection is present at SHA-256
   `ab9568812e86e3c8e18c1d945886d4b2387b1e175ad61ba4d60750b5d6f98119`.
-- Existing pre-cleanup workspace nextest audit: **3,350 passed**, 154
-  binaries, 761.956 seconds. It is retained as historical evidence, not a
-  post-retirement proof claim.
-- Current post-retirement `cargo nextest` gate for `refactor-proof`:
-  **3 passed**.
+- Pre-arm preflight exits `1` at ledger validation with `no current accepted
+  verifier receipt exists`; the tag, branch, and worktree checks pass first.
+- Current focused `NEXTEST_USER_CONFIG_FILE=none cargo nextest run --locked
+  -p refactor-proof` exits `102` before tests because the preserved dirty
+  proof dependency change would require a `Cargo.lock` update. An earlier
+  same-day diagnostic reported `3 passed (2 binaries, 0.021s)` before those
+  dirty proof changes appeared; it has no clean-tree receipt and is not an
+  accepted gate.
+- Baseline calibration has only a passing control. The full `7,550`-key /
+  `30,200`-artifact replay is pending; the tag nextest parser rejects its
+  `binary(visual_baseline)` override, so the replay requires an external
+  corrected config. No calibration acceptance is claimed.
 
 ## B. Branch reconciliation
 
 | Ref | Commit |
 |---|---|
 | main | 7b27732a |
-| refactor/holla-parity | current campaign tree (cleanup parent `c9eef7bd`; `a34a1cff` was the audit snapshot) |
-| visual-baseline branch | 4a79c0a2 |
-| visual-baseline tag peel | 4a79c0a2 |
+| refactor/holla-parity | `f5013f609aed1ba32ce60352b38fd0b1b11b063c` (tree `e08a965702a4674e9e61970fb1c3923e05e1dec7`) |
+| visual-baseline branch | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
+| visual-baseline tag peel | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
 
 Relationships:
 
@@ -388,14 +400,18 @@ Hard blockers:
   The dispatcher currently checks the exact context filenames, JSON object
   shape, and common `run_id`; that is necessary but not sufficient.
 - The standalone native comparator is now fail-closed behind
-  `campaign-build-proof.sh` and a commit/path/hash receipt, but no accepted
-  receipt exists for the reconciled tree because the two pre-existing proof
-  files remain dirty and are intentionally excluded from this commit.
+  `campaign-build-proof.sh` and a commit/path/hash receipt. A local ignored
+  binary/receipt exists, but no accepted verifier receipt exists for the
+  current tree or any current task.
 - Ledger candidate tree hash `4d3501a6` is not current HEAD; no reviewed
   subagent evidence binds the current branch.
 - Current proof-worker identity is not yet bound to a reviewed subagent run.
-- Two pre-existing proof artifacts remain intentionally dirty and are not part
-  of this cleanup commit.
+- The observed out-of-scope dirty files are intentionally excluded from this
+  documentation commit: `baseline/before/MANIFEST.md`,
+  `tools/refactor-proof/Cargo.toml`, and `tools/refactor-proof/src/lib.rs`.
+- The full baseline calibration remains pending. Its control passed, but the
+  tag nextest parser rejected the `binary(visual_baseline)` override; an
+  external corrected config is required before the full replay.
 - Recorded remote performance CI for the pre-cleanup candidate failed three
   Jackin allocation-budget tests; no fresh performance qualification was run
   by this documentation/tooling cleanup.
@@ -427,7 +443,7 @@ mandatory.
 
 ### Preparation gate
 
-1. Freeze current branch SHA and preserve the two dirty proof files as explicit inputs.
+1. Freeze current branch SHA/tree and preserve all observed out-of-scope dirty files as explicit inputs.
 2. Reconcile .campaign ledger, stale receipts, disarmed state, and current HEAD.
 3. Confirm the restored `main-source.tar.gz` and all 211 frozen planning asset bindings remain byte/hash exact.
 4. Make the frozen suite/config/store available read-only from tag-derived bytes.
@@ -522,7 +538,9 @@ Implement and independently test the trusted native per-check launcher and
 materializer end-to-end: exact contexts/index, task/check/run/source/oracle
 binding, observer transport, result ABI, and commit/hash receipts. Then make a
 read-only import of the frozen suite, configuration, and grouped oracle store
-from `refs/tags/visual-baseline`. Do not dispatch a refactoring task yet. The
+from `refs/tags/visual-baseline`. Before any full replay, supply an external
+corrected nextest config for the tag parser's rejected binary override. Do not
+dispatch a refactoring task yet. The
 execution workflow remains **Grok Build → isolated subagents → implementation
 → latest standalone taskfmt `lint`/`verify` → visual/behavioral gates → serial
 integration**, with no containers and no taskfmt orchestration.
@@ -565,7 +583,13 @@ removed rather than rewritten into false current results.
 ## Q. Documentation and link-integrity audit
 
 This documentation pass was completed against the current tree on 2026-09-18.
-The inventory contains **745 tracked Markdown-formatted inputs** (`.md`, `.mkd`,
+The staged reconciliation tree contains **746 tracked Markdown-formatted
+inputs**. The exact native Lychee `0.24.2` run over that input set completed
+with 611 destinations: 603 successful, eight narrow mail-data exclusions, and
+zero redirects, errors, timeouts, unknowns, or unsupported destinations. The
+new evidence index is included in that checked input set.
+
+The complete inventory contains **746 tracked Markdown-formatted inputs** (`.md`, `.mkd`,
 `.mdx`, `.mdown`, `.mdwn`, `.mkdn`, `.mkdown`, `.markdown`, and `.mdc`),
 including hidden, task, historical, and contributor documents. Lychee
 `0.24.2` parsed 607 destinations in the native offline qualification run:

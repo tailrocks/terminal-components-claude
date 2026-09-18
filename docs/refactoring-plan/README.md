@@ -1,6 +1,12 @@
 # Refactoring plan navigation
 
-Status: **current preparation state is NO-GO** (2026-09-18).
+Status: **NO-GO; preparation only; `.campaign/ledger.json` remains `armed: false`** (2026-09-18).
+
+This reconciliation is bound to source HEAD
+`f5013f609aed1ba32ce60352b38fd0b1b11b063c` and tree
+`e08a965702a4674e9e61970fb1c3923e05e1dec7`, observed before this docs-only
+commit. The bounded command results and remaining blockers are indexed in the
+[current preparation evidence](evidence/current-preparation-2026-09-18.md).
 
 ## Current authority
 
@@ -31,6 +37,15 @@ Use only taskfmt `0.2.0` at revision
 `/Users/donbeave/Projects/taskfmt/task-format`. Older taskfmt commands,
 revisions, fingerprints, and receipts are not valid execution inputs.
 
+Current preparation facts: the qualified binary SHA-256 is
+`f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de`, plan
+validation passes with `error_count: 0`, and standalone taskfmt lint passes
+`73/73`. Preflight still exits nonzero because no current accepted verifier
+receipt exists. Baseline calibration has only a passing control; the full
+`7,550`-key / `30,200`-artifact replay remains pending and needs an external
+corrected nextest configuration because the tag parser rejects its binary
+override. These facts do not authorize arming or execution.
+
 ## Historical evidence
 
 Retired dated reports, prompts, wave plans, readiness stubs, and TASK-001
@@ -53,8 +68,10 @@ architecture/design references; retired goal, handoff, state, coordination,
 prompt, and report files are absent from the current tree and recoverable only
 from Git history.
 
-The frozen `visual-baseline` tag remains the policy-protected oracle reference.
-Its local and remote pointers are unchanged, but provider-enforced tag/release
+The frozen `visual-baseline` tag remains the policy-protected oracle reference
+at peeled commit
+`4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`. Its local and remote pointers are
+unchanged, but provider-enforced tag/release
 immutability is not established. Never move, retarget, recreate, or write to
 its tag, release, or oracle store.
 
