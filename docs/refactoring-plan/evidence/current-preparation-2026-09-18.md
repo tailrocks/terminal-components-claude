@@ -7,25 +7,23 @@ acceptance, execution authorization, or a GO decision.
 
 ## Binding identities
 
-The source tree under review was observed before this documentation-only
-reconciliation commit:
+The preparation source tree was observed from a clean worktree before this
+documentation-only reconciliation commit. This evidence is not automatically
+valid for the post-commit tree; source-bound receipts must be rebound.
 
 | Item | Observed value |
 | --- | --- |
 | Branch | `refactor/holla-parity` |
-| HEAD | `f5013f609aed1ba32ce60352b38fd0b1b11b063c` |
-| HEAD tree | `e08a965702a4674e9e61970fb1c3923e05e1dec7` |
+| HEAD | `6ec1c83b9123c5fc531468449ef259e2927b6604` |
+| HEAD tree | `698cf69e073ca85826617cc641d7149a376e0996` |
 | Peeled local `visual-baseline` tag | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
 | Peeled remote `visual-baseline` ref | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
-| Campaign ledger | `armed: false`; ignored working-tree file; not changed |
-| Ledger `integration_head` | `a34a1cffc17b2572fc6b42d31e433166d04658ff` (not current HEAD) |
-| Ledger candidate tree | `4d3501a6abc32ebd5999ddcdad55acfa6434bd17` (not current HEAD) |
+| Campaign ledger | `armed: false`; ignored working-tree file; no accepted task rows; not changed |
 
-The worktree was not clean during evidence collection. Unscoped changes were
-preserved in `baseline/before/MANIFEST.md`,
-`tools/refactor-proof/Cargo.toml`, and `tools/refactor-proof/src/lib.rs`.
-This reconciliation did not stage or modify them. No clean-candidate or
-proof-tree receipt is claimed.
+The worktree was clean during evidence collection. This reconciliation is
+scoped to canonical documentation only; no product, proof, task, ledger,
+baseline, tag, snapshot, or expected artifact was changed. The final committed
+worktree must remain clean.
 
 ## Frozen-oracle inventory
 
@@ -38,9 +36,10 @@ The peeled tag contains:
 - eight files under `tests/visual_baseline/`; and
 - the tag `.config/nextest.toml`.
 
-The current HEAD contains none of `snapshots/`, `tests/visual_baseline/`,
+The preparation HEAD contains none of `snapshots/`, `tests/visual_baseline/`,
 `.config/nextest.toml`, or `docs/baseline/`. The tag-derived corpus is
-read-only input. No baseline, tag, snapshot, or expected artifact was changed.
+read-only input. The baseline refs and grouped store remained unchanged; no
+baseline, tag, snapshot, or expected artifact was changed.
 
 The preparation catalog contains `73` numbered task packages and `211` frozen
 bootstrap asset bindings. The plan audit reports a maximum dependency depth of
@@ -69,31 +68,40 @@ All outcomes below are preparation observations only.
 | Preflight | `scripts/campaign-preflight.sh` exited `1`. Tag, branch, and worktree checks passed; ledger validation then failed with `no current accepted verifier receipt exists`. It did not authorize arming or dispatch. |
 | Plan audit | `python3 docs/refactoring-plan/evidence/validate-plan.py --summary` exited `0`; `passed: true`, `error_count: 0`, `task-index.tsv: 73`, `bootstrap-assets.tsv: 211`, maximum dependency depth `35`. |
 | Taskfmt lint | The qualified binary linted all numbered packages: `73/73 passed`. |
-| Focused nextest, current dirty tree | `NEXTEST_USER_CONFIG_FILE=none cargo nextest run --locked -p refactor-proof` exited `102` before tests because Cargo would need to update `Cargo.lock` for the unscoped dirty `toml = 1.1.5` dependency change. This is not a passing gate. |
-| Earlier focused diagnostic | Before those dirty proof changes appeared, the same focused command reported `3 passed (2 binaries, 0.021s)`. It has no clean-tree receipt and is retained only as a superseded diagnostic, not accepted evidence. |
+| Readiness preflight | Exited `1` at the readiness-report **NO-GO** gate. The ledger remains `armed: false` with no accepted task rows; no arming or dispatch was authorized. |
+| Proof preparation | Exited `1` because the external run directory/receipt was absent. |
+| Native Darwin verifier | **REJECTED** for verifier commit `6ec1c83b9123c5fc531468449ef259e2927b6604`: `cargo nextest` ran 11 tests, 11 passed with 1 leaky test; positive prepare/launch passed, but `validate` was absent and observer binding/socket/result side-effect checks failed. No accepted verifier receipt exists. |
+| Independent reviewer | **REJECTED**: compare ABI mismatch, dispatcher bypass, no observer supervisor, and weak result/nonce/oracle/report binding. |
+| Baseline replay | Using the external corrected config SHA-256 `bdbe0a8958a696e4b5108ae190a0c07089f2d7aea91c64a20d52e3346e7092da` and the logical target path: `302` tests, `300` passed, `2` failed, `2` skipped. Holla timing passed isolated rerun; TablePro `form_advanced` failed isolated rerun with `23/25` cells. |
 
 ## Baseline calibration status
 
-The calibration has only a control result so far: **control passed**. The full
-`7,550`-key / `30,200`-artifact replay is **pending**. The tag's checked-in
-nextest configuration contains a `binary(visual_baseline)` profile override;
-the calibration attempt hit a parser rejection for that binary override. The
-next run therefore requires a corrected **external** nextest configuration.
-The tag configuration must remain read-only. No full-run result, comparison
-receipt, blessing, or visual acceptance is claimed.
+The full available baseline replay used the read-only tag-derived suite with
+the external corrected nextest configuration above and the logical target path.
+It ran `302` tests: `300` passed, `2` failed, and `2` skipped. The Holla timing
+failure passed an isolated rerun. TablePro `connections/form_advanced` still
+failed its isolated rerun: `23/25` matrix cells differed. This is failed
+evidence, not calibration acceptance; the complete final parity gate remains
+unproven. Never bless or modify snapshots. The tag config, baseline refs, and
+grouped store remain read-only and unchanged.
+
+Raw baseline logs/config and copied native-verifier logs are retained under
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-18/`.
+That external directory is evidence only, not an accepted campaign receipt.
 
 ## Remaining blockers
 
 - The ledger remains disarmed and has no current accepted verifier receipt;
-  its recorded integration head/tree do not bind the current HEAD/tree.
+  it has no accepted task rows.
 - The frozen suite/config/grouped store is absent from HEAD and still needs a
   read-only tag-derived import and complete replay.
-- The full baseline calibration is pending and needs the external corrected
-  nextest configuration described above.
+- The baseline replay failed two cases; Holla needs root-cause disposition and
+  rerun evidence, while TablePro `form_advanced` still fails `23/25` cells.
 - No trusted native per-check context/index/result/observer materializer has
-  produced accepted current subagent evidence.
-- The worktree contains preserved out-of-scope changes, so clean-tree and
-  locked nextest gates are not currently proven.
+  produced accepted current subagent evidence; proof preparation lacks its
+  external run directory/receipt.
+- The native Darwin verifier and independent reviewer both returned
+  **REJECTED** for the failures recorded above.
 - Consumer migration, ownership cleanup, behavioral parity, performance
   parity, and independent verifier/reviewer evidence remain incomplete.
 

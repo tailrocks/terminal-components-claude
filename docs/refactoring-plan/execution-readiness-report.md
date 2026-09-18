@@ -8,14 +8,17 @@ It is a preparation audit, not execution authorization.
 **NO-GO.**
 
 `refactor/holla-parity` remains campaign/proof scaffolding, not completed
-refactor work. This report is reconciled against source HEAD
-`f5013f609aed1ba32ce60352b38fd0b1b11b063c` (tree
-`e08a965702a4674e9e61970fb1c3923e05e1dec7`) observed before this docs-only
-commit. The bounded raw outcomes are indexed in
+refactor work. This report is reconciled against preparation source HEAD
+`6ec1c83b9123c5fc531468449ef259e2927b6604` (tree
+`698cf69e073ca85826617cc641d7149a376e0996`) observed from a clean worktree
+before this documentation-only reconciliation. The documentation commit
+changes documentation only; any source-bound execution receipt must bind the
+post-commit HEAD and tree afresh. The bounded raw outcomes are indexed in
 [`evidence/current-preparation-2026-09-18.md`](evidence/current-preparation-2026-09-18.md).
 No product parity or execution authorization follows from this reconciliation.
 
-- Audit snapshot `main..a34a1cff`: 27 commits, zero apps/ or crates/ product-source changes.
+- The preparation commits contain no product-behavior refactor. Product-source
+  parity remains unproven and the implementation campaign has not started.
 - The reconciled branch remains campaign/proof scaffolding; production
   implementation behavior remains unchanged. `apps/` and `crates/` differ from
   `main` in four Rust files: two performance-test documentation command
@@ -28,11 +31,9 @@ No product parity or execution authorization follows from this reconciliation.
 - Frozen visual oracle is absent from this branch and its active gate; it
   remains available at the policy-protected `visual-baseline` tag.
 - Planning validator passes: all 211 frozen bootstrap asset bindings are present and hash-valid.
-- The worktree was not clean during this evidence collection. Preserved,
-  out-of-scope changes were present in `baseline/before/MANIFEST.md`,
-  `tools/refactor-proof/Cargo.toml`, and `tools/refactor-proof/src/lib.rs`.
-  This documentation task did not stage or modify them. No clean-candidate
-  proof is claimed.
+- The campaign worktree was clean during the verifier/reviewer evidence
+  collection. The final documentation commit must leave it clean; no clean
+  candidate or accepted proof receipt is implied by that fact.
 
 `CLAUDE.md -> AGENTS.md` is correct. The current peeled `visual-baseline` tag
 remains `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`; the local tag pointer and
@@ -48,25 +49,22 @@ Validation:
 - Plan validator: passes with `error_count: 0`; the exact reviewed
   `main-source.tar.gz` projection is present at SHA-256
   `ab9568812e86e3c8e18c1d945886d4b2387b1e175ad61ba4d60750b5d6f98119`.
-- Pre-arm preflight exits `1` at ledger validation with `no current accepted
-  verifier receipt exists`; the tag, branch, and worktree checks pass first.
-- Current focused `NEXTEST_USER_CONFIG_FILE=none cargo nextest run --locked
-  -p refactor-proof` exits `102` before tests because the preserved dirty
-  proof dependency change would require a `Cargo.lock` update. An earlier
-  same-day diagnostic reported `3 passed (2 binaries, 0.021s)` before those
-  dirty proof changes appeared; it has no clean-tree receipt and is not an
-  accepted gate.
-- Baseline calibration has only a passing control. The full `7,550`-key /
-  `30,200`-artifact replay is pending; the tag nextest parser rejects its
-  `binary(visual_baseline)` override, so the replay requires an external
-  corrected config. No calibration acceptance is claimed.
+- Readiness preflight exits `1` at the explicit report **NO-GO** gate; proof
+  preparation exits `1` without an external run directory/receipt.
+- `cargo nextest run --locked --no-fail-fast -p refactor-proof` passes 11 tests
+  with 1 leaky-test warning. This is focused code evidence, not accepted
+  campaign verification.
+- The external corrected baseline configuration was used for the complete
+  available replay: 302 tests, 300 passed, 2 failed, and 2 skipped. Holla's
+  timing failure passed an isolated rerun; TablePro `form_advanced` still
+  fails 23/25 cells. No calibration acceptance is claimed.
 
 ## B. Branch reconciliation
 
 | Ref | Commit |
 |---|---|
 | main | 7b27732a |
-| refactor/holla-parity | `f5013f609aed1ba32ce60352b38fd0b1b11b063c` (tree `e08a965702a4674e9e61970fb1c3923e05e1dec7`) |
+| refactor/holla-parity | `6ec1c83b9123c5fc531468449ef259e2927b6604` (tree `698cf69e073ca85826617cc641d7149a376e0996`) |
 | visual-baseline branch | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
 | visual-baseline tag peel | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
 
@@ -394,24 +392,23 @@ Hard blockers:
 - No accepted current verifier-subagent evidence exists for any task.
 - The migrated task checks are not dispatch-ready until fresh verifier runs
   prove their referenced host-local inputs and outputs.
-- No trusted per-check native launcher/materializer currently binds
+- Native preparation code exists, but the independent Darwin verifier and
+  reviewer rejected it. It does not yet bind
   `TC_PROOF_CONTEXT_SHA256`, run/task/check IDs, source tree, oracle commit,
   result path, observer FDs/nonce, and context-index identity end-to-end.
-  The dispatcher currently checks the exact context filenames, JSON object
-  shape, and common `run_id`; that is necessary but not sufficient.
+  Positive prepare/launch checks passed; negative binding, ABI, observer, and
+  side-effect checks did not.
 - The standalone native comparator is now fail-closed behind
   `campaign-build-proof.sh` and a commit/path/hash receipt. A local ignored
   binary/receipt exists, but no accepted verifier receipt exists for the
   current tree or any current task.
-- Ledger candidate tree hash `4d3501a6` is not current HEAD; no reviewed
-  subagent evidence binds the current branch.
-- Current proof-worker identity is not yet bound to a reviewed subagent run.
-- The observed out-of-scope dirty files are intentionally excluded from this
-  documentation commit: `baseline/before/MANIFEST.md`,
-  `tools/refactor-proof/Cargo.toml`, and `tools/refactor-proof/src/lib.rs`.
-- The full baseline calibration remains pending. Its control passed, but the
-  tag nextest parser rejected the `binary(visual_baseline)` override; an
-  external corrected config is required before the full replay.
+- No reviewed verifier receipt binds the current branch, and the proof-worker
+  identity is not accepted for campaign use.
+- The full replay was attempted with an external corrected config. It failed
+  two cases: Holla's timing failure was non-reproducible in isolation, while
+  TablePro `connections/form_advanced` remained a 23/25-cell mismatch.
+- The tag's checked-in nextest config remains read-only and is not accepted by
+  the installed nextest parser for its `binary(visual_baseline)` override.
 - Recorded remote performance CI for the pre-cleanup candidate failed three
   Jackin allocation-budget tests; no fresh performance qualification was run
   by this documentation/tooling cleanup.
@@ -443,15 +440,17 @@ mandatory.
 
 ### Preparation gate
 
-1. Freeze current branch SHA/tree and preserve all observed out-of-scope dirty files as explicit inputs.
+1. Freeze the current clean branch SHA/tree and record every external evidence
+   directory and protected-oracle identity as explicit inputs.
 2. Reconcile .campaign ledger, stale receipts, disarmed state, and current HEAD.
 3. Confirm the restored `main-source.tar.gz` and all 211 frozen planning asset bindings remain byte/hash exact.
 4. Make the frozen suite/config/store available read-only from tag-derived bytes.
 5. Add the grouped visual suite without importing old product architecture.
 6. Confirm every task `verify.toml` remains host-local and legacy namespaces stay rejected.
-7. Implement and independently test the trusted native per-check context/result
-   launcher, observer binding, and context-index receipt in a clean host-local
-   verifier worktree.
+7. Repair and independently test the rejected native per-check
+   context/result/observer launcher in a clean host-local verifier worktree.
+   Prove the compare ABI, nonce/request binding, exact result paths, observer
+   supervision, oracle manifest, context index, and dispatcher integration.
 8. Spawn subagent implementer/verifier/reviewer lanes with disjoint worktrees
    and run directories.
 9. Keep CI and hidden test generation on nextest-only commands.
@@ -520,7 +519,7 @@ Not satisfied:
 - Provider-enforced visual-baseline immutability is absent; local tag/release policy is the guard.
 - Subagent verification evidence is absent.
 - Campaign ledger is disarmed and has no accepted current task evidence.
-- Proof tree is dirty.
+- Proof preparation is unaccepted; the campaign worktree is currently clean.
 - The current proof worker is not bound to a reviewed subagent run.
 - Consumer migration is incomplete.
 - Compatibility renderers remain.
@@ -534,13 +533,15 @@ Until that goal passes, do not launch the autonomous 73-task implementation camp
 
 ## O. Next step after this cleanup
 
-Implement and independently test the trusted native per-check launcher and
+Repair and independently test the rejected native per-check launcher and
 materializer end-to-end: exact contexts/index, task/check/run/source/oracle
-binding, observer transport, result ABI, and commit/hash receipts. Then make a
-read-only import of the frozen suite, configuration, and grouped oracle store
-from `refs/tags/visual-baseline`. Before any full replay, supply an external
-corrected nextest config for the tag parser's rejected binary override. Do not
-dispatch a refactoring task yet. The
+binding, observer supervision and transport, result ABI, nonce/request
+binding, exact result paths, and commit/hash receipts. Then make a read-only
+import of the frozen suite, configuration, and grouped oracle store from
+`refs/tags/visual-baseline`. Before any final replay, supply an external
+corrected nextest config for the tag parser's rejected binary override and
+resolve the persistent TablePro mismatch. Do not dispatch a refactoring task
+yet. The
 execution workflow remains **Grok Build → isolated subagents → implementation
 → latest standalone taskfmt `lint`/`verify` → visual/behavioral gates → serial
 integration**, with no containers and no taskfmt orchestration.
@@ -567,10 +568,10 @@ The current audit nevertheless reconciled the requested high-risk topics:
 | CI and performance | Integrated, blocker retained | Active CI/perf commands use nextest with corrected thread-flag placement; rustdoc remains a compile gate because nextest 0.9.143 has no doctest runner. Recorded normal Jackin allocation budgets still fail for capsule, manager, and key movement; no fresh qualification was claimed. |
 | Stale goals/reports/runbooks | Integrated | `GOAL.md` is product intent only; obsolete root goals, handoffs, state/coordination files, superseded plans, reports, prompts, and runbooks were removed from this branch. Git history is recovery-only. Remaining source-bound historical evidence is non-authoritative and is retained only where current task contracts or machine ledgers require it. Current docs route through this report and the subagent-only contracts. |
 | Documentation links | Integrated and requalified | Lychee 0.24.2 and the native semantic/path audit cover every tracked Markdown-formatted input; current results and the one narrow mail-data setting are recorded in §Q. |
-| Proof compile/dispatcher consistency | Partially integrated; blocker retained | The plural `checks` parser, exact context-file set, external run directory, explicit scope base, clean worktree, and native binary receipt checks are now fail-closed. A native build helper records commit/path/hash. No trusted per-check context/result/observer launcher exists yet. |
+| Proof compile/dispatcher consistency | Rejected; blocker retained | The native build helper and preparation CLI exist, but independent evidence found a compare ABI mismatch, dispatcher bypass, absent observer supervisor, weak nonce/result/report binding, and incomplete oracle provenance. No trusted per-check context/result/observer launcher is accepted. |
 | Scripts and package rebundling | Integrated | Obsolete container/taskfmt lifecycle paths are not execution authority; alternate Python rebundlers now fail closed instead of overwriting the dispatcher. Useful nextest/inventory checks remain. |
 | DAG and task acceptance | Integrated; acceptance still absent | The current graph is acyclic and regenerated from current metadata; stale graph/title/context bindings were reconciled. Task metadata remains `pending`; only schema-valid `verified`/`VERIFIED` verifier receipts and integrated ancestry can establish completion. |
-| macOS-native execution | Partially integrated; blocker retained | Native host build and receipt tooling is present, with no container path. Context provisioning, observer transport, result ABI, and the frozen-oracle read-only import still require an independently tested verifier launcher. |
+| macOS-native execution | Rejected; blocker retained | Native host build and receipt tooling is present, with no container path. Context provisioning, observer supervision, result ABI, and frozen-oracle provenance still require a repaired and independently accepted verifier launcher. |
 | Visual-baseline immutability | Integrated as policy | Local/remote tag pointers are unchanged. Provider enforcement is not assumed because the tag is unsigned, release immutability is false, and branch protection is absent. |
 
 The visual-baseline row records the current policy result; provider

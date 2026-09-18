@@ -2,17 +2,22 @@
 
 Status: **NO-GO; preparation only; `.campaign/ledger.json` remains `armed: false`** (2026-09-18).
 
-This reconciliation is bound to source HEAD
-`f5013f609aed1ba32ce60352b38fd0b1b11b063c` and tree
-`e08a965702a4674e9e61970fb1c3923e05e1dec7`, observed before this docs-only
-commit. The bounded command results and remaining blockers are indexed in the
-[current preparation evidence](evidence/current-preparation-2026-09-18.md).
+This reconciliation is bound to preparation source HEAD
+`6ec1c83b9123c5fc531468449ef259e2927b6604` and tree
+`698cf69e073ca85826617cc641d7149a376e0996`, observed from a clean worktree
+before this docs-only commit. Source-bound evidence must be rebound to the
+post-commit tree. The bounded command results and remaining blockers are
+indexed in the [current preparation evidence](evidence/current-preparation-2026-09-18.md).
 
 ## Current authority
 
 [`execution-readiness-report.md`](execution-readiness-report.md) is the sole
 current readiness report. It governs whether the `refactor/holla-parity`
 campaign may be armed or executed.
+
+[`next-implementation-goal.md`](next-implementation-goal.md) is the generated
+`/goal` startup prompt. It is **NOT AUTHORIZED FOR EXECUTION** while readiness
+is **NO-GO**.
 
 Current operational contracts:
 
@@ -40,11 +45,16 @@ revisions, fingerprints, and receipts are not valid execution inputs.
 Current preparation facts: the qualified binary SHA-256 is
 `f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de`, plan
 validation passes with `error_count: 0`, and standalone taskfmt lint passes
-`73/73`. Preflight still exits nonzero because no current accepted verifier
-receipt exists. Baseline calibration has only a passing control; the full
-`7,550`-key / `30,200`-artifact replay remains pending and needs an external
-corrected nextest configuration because the tag parser rejects its binary
-override. These facts do not authorize arming or execution.
+`73/73`. Preflight exits `1` at the readiness-report **NO-GO** gate; proof
+preparation exits `1` because the external run directory/receipt is absent;
+the ledger remains `armed: false` with no accepted task rows. The external
+corrected baseline config has SHA-256
+`bdbe0a8958a696e4b5108ae190a0c07089f2d7aea91c64a20d52e3346e7092da`.
+Its replay ran 302 tests: 300 passed, 2 failed, and 2 skipped. Holla's timing
+failure passed an isolated rerun; TablePro `form_advanced` still fails 23/25
+cells. The independent Darwin verifier and reviewer both returned **REJECTED**.
+Baseline refs/store and snapshots remain unchanged. These facts do not
+authorize arming, dispatch, or execution.
 
 ## Historical evidence
 
