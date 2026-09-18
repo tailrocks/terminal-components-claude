@@ -18,6 +18,9 @@ use std::process::{Child, ChildStdin, ChildStdout, Command, ExitStatus, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
 
+#[cfg(unix)]
+use std::os::unix::process::CommandExt;
+
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 
@@ -891,6 +894,66 @@ fn start_observer_supervisor(
     regular_file(&provider, "observer response provider")?;
     let (request_read, request_write) = make_pipe()?;
     let (response_read, response_write) = make_pipe()?;
+    // The provider is a separate host process. Spawn it before the worker
+    // handoff exists, and close every observer-pipe endpoint in its child.
+    // Otherwise it can retain the worker-facing writer and make the
+    // supervisor's completion read wait forever after a successful worker.
+    #[cfg(unix)]
+    let observer_fds = [
+        request_read.as_raw_fd(),
+        request_write.as_raw_fd(),
+        response_read.as_raw_fd(),
+        response_write.as_raw_fd(),
+    ];
+    let mut child = {
+        let mut command = Command::new(&provider);
+        command
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .env_remove(OBSERVER_PROVIDER_ENV);
+        #[cfg(unix)]
+        // SAFETY: the pre-exec hook only closes inherited file descriptors;
+        // close is async-signal-safe and the descriptors are owned by this
+        // launcher process.
+        unsafe {
+            command.pre_exec(move || {
+                for fd in observer_fds {
+                    if fd > 2 && libc::close(fd) == -1 {
+                        return Err(io::Error::last_os_error());
+                    }
+                }
+                Ok(())
+            });
+        }
+        command.spawn().map_err(|error| {
+            VerifierError::new(format!("observer response provider launch failed: {error}"))
+        })?
+    };
+    let stdin = match child.stdin.take() {
+        Some(stdin) => stdin,
+        None => {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(VerifierError::new(
+                "observer response provider stdin unavailable",
+            ));
+        }
+    };
+    let stdout = match child.stdout.take() {
+        Some(stdout) => stdout,
+        None => {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(VerifierError::new(
+                "observer response provider stdout unavailable",
+            ));
+        }
+    };
+    let mut provider = PipeObserverProvider {
+        request: BufWriter::new(stdin),
+        response: BufReader::new(stdout),
+    };
     let run_id = prepared.run_id.clone();
     let task_id = prepared.task_id.clone();
     let check_id = member.check_id.clone();
@@ -898,48 +961,28 @@ fn start_observer_supervisor(
     let tree = prepared.candidate_tree.clone();
     let nonce = nonce.to_owned();
     let oracle_commit = oracle_commit.to_owned();
-    let supervisor =
-        thread::spawn(move || {
-            let mut child = Command::new(&provider)
-                .stdin(Stdio::piped())
-                .stdout(Stdio::piped())
-                .stderr(Stdio::null())
-                .env_remove(OBSERVER_PROVIDER_ENV)
-                .spawn()
-                .map_err(|error| {
-                    VerifierError::new(format!("observer response provider launch failed: {error}"))
-                })?;
-            let stdin = child.stdin.take().ok_or_else(|| {
-                VerifierError::new("observer response provider stdin unavailable")
-            })?;
-            let stdout = child.stdout.take().ok_or_else(|| {
-                VerifierError::new("observer response provider stdout unavailable")
-            })?;
-            let mut provider = PipeObserverProvider {
-                request: BufWriter::new(stdin),
-                response: BufReader::new(stdout),
-            };
-            let result = observe_worker(
-                request_read,
-                response_write,
-                &mut provider,
-                &run_id,
-                &task_id,
-                &check_id,
-                &operation,
-                &tree,
-                &oracle_commit,
-                &nonce,
-            );
-            drop(provider);
-            let status = finish_observer_provider(&mut child, result.is_err())?;
-            if !status.success() {
-                return Err(VerifierError::new(
-                    "observer response provider exited unsuccessfully",
-                ));
-            }
-            result
-        });
+    let supervisor = thread::spawn(move || {
+        let result = observe_worker(
+            request_read,
+            response_write,
+            &mut provider,
+            &run_id,
+            &task_id,
+            &check_id,
+            &operation,
+            &tree,
+            &oracle_commit,
+            &nonce,
+        );
+        drop(provider);
+        let status = finish_observer_provider(&mut child, result.is_err())?;
+        if !status.success() {
+            return Err(VerifierError::new(
+                "observer response provider exited unsuccessfully",
+            ));
+        }
+        result
+    });
     Ok((request_write, response_read, supervisor))
 }
 

@@ -20,9 +20,24 @@ def digest(path: Path) -> str:
 
 
 def run(
-    command: list[str], *, cwd: Path, env: dict[str, str] | None = None
+    command: list[str],
+    *,
+    cwd: Path,
+    env: dict[str, str] | None = None,
+    timeout: float | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(command, cwd=cwd, env=env, capture_output=True, text=True, check=False)
+    try:
+        return subprocess.run(
+            command,
+            cwd=cwd,
+            env=env,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise SystemExit(f"command timed out after {timeout}s: {command}") from error
 
 
 def write_provider(path: Path) -> None:
@@ -136,6 +151,7 @@ def invoke(bundle: Path, context: Path, *, cwd: Path, environment: dict[str, str
         [str(bundle), "preflight", "--context", str(context)],
         cwd=cwd,
         env=environment,
+        timeout=15.0,
     )
 
 
