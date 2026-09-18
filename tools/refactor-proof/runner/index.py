@@ -48,8 +48,11 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
         raise Reject("CONTEXT_INDEX")
     if not isinstance(index.get("task_id"), str) or not isinstance(index.get("run_id"), str):
         raise Reject("CONTEXT_INDEX")
-    index_root = Path(index_path).parent
-    if index["run_id"] != context["run_id"] or Path(index["run_id"]) != index_root:
+    index_path = os.environ.get("TC_PROOF_CONTEXT_INDEX")
+    if not index_path:
+        raise Reject("CONTEXT_INDEX")
+    index_root = Path(index_path).resolve().parent
+    if index["run_id"] != context["run_id"] or Path(index["run_id"]).resolve() != index_root:
         raise Reject("CONTEXT_INDEX")
     if index["task_id"] != os.environ.get("TC_PROOF_TASK_ID"):
         raise Reject("CONTEXT_INDEX")

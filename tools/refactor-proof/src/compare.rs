@@ -159,11 +159,11 @@ fn parse_compare_value(
     raw_bytes: &[u8],
     host_report_path: Option<PathBuf>,
 ) -> Result<CompareContext, String> {
-    let oracle_root = PathBuf::from(require_str(value, "oracle_root")?);
-    let candidate_root = PathBuf::from(require_str(value, "candidate_root")?);
+    let oracle_root = qualify_input_root(&PathBuf::from(require_str(value, "oracle_root")?))?;
+    let candidate_root = qualify_input_root(&PathBuf::from(require_str(value, "candidate_root")?))?;
     let report_path = match host_report_path {
-        Some(path) => path,
-        None => PathBuf::from(require_str(value, "report_path")?),
+        Some(path) => qualify_report_path(&path)?,
+        None => qualify_report_path(&PathBuf::from(require_str(value, "report_path")?))?,
     };
     validate_report_path(&report_path, &oracle_root, &candidate_root, None)?;
     Ok(CompareContext {
@@ -219,29 +219,30 @@ fn parse_runner_value(value: &Value, raw_bytes: &[u8]) -> Result<CompareContext,
     {
         return Err("runner comparator context identity mismatch".to_string());
     }
-    let report_path = PathBuf::from(
+    let report_path = qualify_report_path(&PathBuf::from(
         comparator
             .get("report_path")
             .and_then(Value::as_str)
             .ok_or_else(|| "runner comparator report_path is missing".to_string())?,
-    );
-    if require_str(nested, "report_path")? != report_path.to_string_lossy() {
+    ))?;
+    if qualify_report_path(&PathBuf::from(require_str(nested, "report_path")?))? != report_path {
         return Err("runner comparator report path mismatch".to_string());
     }
     let common = qualification
         .get("common")
         .and_then(Value::as_object)
         .ok_or_else(|| "runner context common binding is missing".to_string())?;
-    let runtime = PathBuf::from(
+    let runtime = qualify_runtime_root(&PathBuf::from(
         common
             .get("outputs")
             .and_then(Value::as_object)
             .and_then(|outputs| outputs.get("runtime"))
             .and_then(Value::as_str)
             .ok_or_else(|| "runner runtime output binding is missing".to_string())?,
-    );
-    let oracle_root = PathBuf::from(require_str(nested, "oracle_root")?);
-    let candidate_root = PathBuf::from(require_str(nested, "candidate_root")?);
+    ))?;
+    let oracle_root = qualify_input_root(&PathBuf::from(require_str(nested, "oracle_root")?))?;
+    let candidate_root =
+        qualify_input_root(&PathBuf::from(require_str(nested, "candidate_root")?))?;
     validate_report_path(&report_path, &oracle_root, &candidate_root, Some(&runtime))?;
     let expected_report_name = format!("{check_id}.compare.json");
     if report_path.file_name().and_then(|name| name.to_str()) != Some(expected_report_name.as_str())
@@ -282,6 +283,65 @@ fn validate_report_path(
         }
     }
     Ok(())
+}
+
+/// Resolve an existing report parent before applying containment checks.
+///
+/// macOS exposes temporary directories through `/var` symlink ancestry. The
+/// qualified path is used only for the report parent; descendant oracle and
+/// candidate symlinks remain rejected by the tree scans below.
+fn qualify_report_path(path: &Path) -> Result<PathBuf, String> {
+    if !path.is_absolute() {
+        return Err("report path is not an external absolute path".to_string());
+    }
+    let parent = path
+        .parent()
+        .ok_or_else(|| "report path has no parent".to_string())?;
+    let Some(file_name) = path.file_name() else {
+        return Err("report path has no filename".to_string());
+    };
+    if parent.exists() {
+        let qualified_parent = parent
+            .canonicalize()
+            .map_err(|error| format!("report parent realpath failed: {error}"))?;
+        if !qualified_parent.is_dir() {
+            return Err("report parent is not a directory".to_string());
+        }
+        return Ok(qualified_parent.join(file_name));
+    }
+    Ok(path.to_path_buf())
+}
+
+fn qualify_input_root(path: &Path) -> Result<PathBuf, String> {
+    if !path.is_absolute() {
+        return Err("comparison input root must be absolute".to_string());
+    }
+    if path.exists() {
+        let qualified = path
+            .canonicalize()
+            .map_err(|error| format!("comparison input realpath failed: {error}"))?;
+        if !qualified.is_dir() {
+            return Err("comparison input root is not a directory".to_string());
+        }
+        return Ok(qualified);
+    }
+    Ok(path.to_path_buf())
+}
+
+fn qualify_runtime_root(path: &Path) -> Result<PathBuf, String> {
+    if !path.is_absolute() {
+        return Err("runtime output must be an absolute directory".to_string());
+    }
+    if path.exists() {
+        let qualified = path
+            .canonicalize()
+            .map_err(|error| format!("runtime output realpath failed: {error}"))?;
+        if !qualified.is_dir() {
+            return Err("runtime output is not a directory".to_string());
+        }
+        return Ok(qualified);
+    }
+    Ok(path.to_path_buf())
 }
 
 fn compare_roots(context: &CompareContext) -> CompareOutcome {
@@ -940,6 +1000,28 @@ fn ensure_real_directory(path: &Path) -> io::Result<()> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[cfg(unix)]
+    #[test]
+    fn report_path_qualifies_symlinked_temporary_ancestry() {
+        use std::os::unix::fs::symlink;
+
+        let temporary = tempfile::tempdir().expect("temporary directory");
+        let real_root = temporary.path().join("real-run");
+        fs::create_dir_all(real_root.join("outputs")).expect("real run root");
+        let aliased_root = temporary.path().join("var-link");
+        symlink(&real_root, &aliased_root).expect("symlinked run root");
+
+        let qualified = qualify_report_path(&aliased_root.join("outputs/report.json"))
+            .expect("qualified report path");
+        assert_eq!(
+            qualified,
+            real_root
+                .canonicalize()
+                .expect("real run root realpath")
+                .join("outputs/report.json")
+        );
+    }
 
     fn old_compare_context(report_path: &str) -> Value {
         json!({

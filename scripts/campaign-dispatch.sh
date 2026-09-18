@@ -172,8 +172,9 @@ cmd_lint() {
 
 cmd_verify() {
   require_taskfmt
-  local dir
+  local dir binary
   dir="$(task_dir)"
+  binary="$(proof_binary)"
   [[ -n "$WORKTREE" && "$WORKTREE" = /* ]] \
     || die "set TC_TASK_WORKTREE to an absolute isolated worktree"
   [[ -d "$WORKTREE" ]] || die "subagent worktree missing: $WORKTREE"
@@ -189,6 +190,7 @@ cmd_verify() {
   export RUN_DIR TC_TASKFMT="$TASKFMT" TC_TASKFMT_SOURCE="$TASKFMT_SOURCE"
   export TC_PROOF_NATIVE_LAUNCH=1
   export TC_PROOF_NATIVE_LAUNCHER="$binary"
+  export TC_PROOF_NATIVE_CHILD=0
   export TC_PROOF_NATIVE_TIMEOUT_MS="${TC_PROOF_NATIVE_TIMEOUT_MS:-600000}"
 
   local taskfmt_status=0

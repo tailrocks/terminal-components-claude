@@ -10,12 +10,15 @@ use std::io::{self, BufRead, BufReader, BufWriter, Write};
 
 use base64::Engine as _;
 
+use crate::json_util::parse_json_strict;
+
 use super::ipc::{
     OBSERVER_STEP_ORDER, ObserverEnv, ObserverObservation, ObserverRequest, ObserverRequestSchema,
     ObserverResponse, ObserverStep,
 };
 
-const MAX_LINE_BYTES: usize = 4096;
+const MAX_REQUEST_BYTES: usize = 4096;
+const MAX_RESPONSE_BYTES: usize = 10_000_000;
 
 /// Observer transport is unavailable or the host is not running under the planner observer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -193,7 +196,7 @@ fn encode_request_line(
         tree: tree.to_owned(),
     };
     let line = serde_json::to_string(&request).map_err(io::Error::other)?;
-    if line.len() >= MAX_LINE_BYTES {
+    if line.len() >= MAX_REQUEST_BYTES {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             "observer request exceeds 4096-byte bound",
@@ -211,7 +214,7 @@ fn read_response_line(reader: &mut impl BufRead) -> io::Result<String> {
             "observer response ended before newline",
         ));
     }
-    if buffer.len() > MAX_LINE_BYTES {
+    if buffer.len() > MAX_RESPONSE_BYTES {
         return Err(io::Error::new(
             io::ErrorKind::InvalidData,
             "observer response exceeds 4096-byte bound",
@@ -224,9 +227,23 @@ fn read_response_line(reader: &mut impl BufRead) -> io::Result<String> {
 }
 
 fn parse_observation(line: &str) -> Result<ObserverObservation, ObserverUnavailable> {
-    let response: ObserverResponse = serde_json::from_str(line).map_err(|_| ObserverUnavailable)?;
+    let value = parse_json_strict(line).map_err(|_| ObserverUnavailable)?;
+    let response: ObserverResponse =
+        serde_json::from_value(value).map_err(|_| ObserverUnavailable)?;
     match response {
-        ObserverResponse::Observation(observation) => Ok(observation),
+        ObserverResponse::Observation(observation) => {
+            if observation.exit != 0
+                || !observation.payload.is_object()
+                || observation
+                    .payload
+                    .as_object()
+                    .is_some_and(|payload| payload.is_empty())
+                || observation.records.is_empty()
+            {
+                return Err(ObserverUnavailable);
+            }
+            Ok(observation)
+        }
         ObserverResponse::Error(_) => Err(ObserverUnavailable),
     }
 }
@@ -308,6 +325,74 @@ mod tests {
     }
 
     #[test]
+    fn empty_observation_payload_and_records_are_rejected() {
+        let observation = ObserverObservation {
+            nonce: "nonce".to_string(),
+            run_id: "/run".to_string(),
+            task_id: "TASK-001".to_string(),
+            check_id: "CHK-001".to_string(),
+            request_id: 0,
+            operation: "capture".to_string(),
+            source_commit: "source".to_string(),
+            tree: "tree".to_string(),
+            exit: 0,
+            stdout: String::new(),
+            stderr: String::new(),
+            files: BTreeMap::new(),
+            payload: Value::Object(Default::default()),
+            records: Vec::new(),
+        };
+        let line = serde_json::to_string(&ObserverResponse::Observation(observation))
+            .expect("encode observation");
+        assert!(parse_observation(&line).is_err());
+    }
+
+    #[test]
+    fn forged_observation_binding_is_rejected() {
+        let (request_read, request_write) = pipe_pair().expect("request pipe");
+        let (response_read, mut response_write) = pipe_pair().expect("response pipe");
+        let server = thread::spawn(move || {
+            let mut requests = BufReader::new(request_read);
+            let line = read_response_line(&mut requests).expect("request");
+            let request: ObserverRequest = serde_json::from_str(&line).expect("parse request");
+            let observation = ObserverObservation {
+                nonce: "forged-nonce".to_string(),
+                run_id: request.run_id,
+                task_id: request.task_id,
+                check_id: request.check_id,
+                request_id: request.request_id,
+                operation: request.operation,
+                source_commit: request.source_commit,
+                tree: request.tree,
+                exit: 0,
+                stdout: String::new(),
+                stderr: String::new(),
+                files: BTreeMap::new(),
+                payload: serde_json::json!({"observed": true}),
+                records: vec![serde_json::json!({"observed": true})],
+            };
+            let line = serde_json::to_string(&ObserverResponse::Observation(observation))
+                .expect("encode observation");
+            response_write
+                .write_all(format!("{line}\n").as_bytes())
+                .expect("response");
+            response_write.flush().expect("flush response");
+        });
+        let mut client = ObserverClient::with_io(
+            "nonce",
+            "/run",
+            "TASK-001",
+            "CHK-001",
+            "source",
+            "tree",
+            request_write,
+            response_read,
+        );
+        assert!(client.execute_step(ObserverStep::Test).is_err());
+        server.join().expect("join server");
+    }
+
+    #[test]
     fn round_trip_verify_sequence_over_pipe_pair() {
         let (request_read, request_write) = pipe_pair().expect("request pipe");
         let (response_read, response_write) = pipe_pair().expect("response pipe");
@@ -340,8 +425,8 @@ mod tests {
                     stdout: String::new(),
                     stderr: String::new(),
                     files: BTreeMap::new(),
-                    payload: Value::Object(Default::default()),
-                    records: Vec::new(),
+                    payload: serde_json::json!({"observed": true}),
+                    records: vec![serde_json::json!({"request_id": request.request_id})],
                 };
                 let payload = serde_json::to_string(&ObserverResponse::Observation(observation))
                     .expect("encode observation");

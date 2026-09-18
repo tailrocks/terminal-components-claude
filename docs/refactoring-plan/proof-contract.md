@@ -99,10 +99,14 @@ the allowed runtime output directory.
 
 The observer request/response transport is one inherited-pipe protocol. Each
 message binds run, task, check, nonce, request order, operation, source
-commit, and source tree. Missing, replayed, truncated, alternate-transport,
-or incomplete-close evidence fails closed. The protocol is an integrity and
-execution-observation control for the native same-user threat model; it does
-not claim arbitrary filesystem isolation from a hostile process running as the
+commit, and source tree. An accepted response must use the exact schema,
+report successful execution, and contain non-empty payload and records;
+missing, replayed, truncated, empty, forged, alternate-transport, or
+incomplete-close evidence fails closed. The native Rust launcher never
+fabricates an observation. If an independent observer response provider is
+not attached, the launch is rejected rather than accepting a worker-written
+passed result. The protocol is an integrity and execution-observation control
+for the native same-user threat model; it does not claim arbitrary filesystem isolation from a hostile process running as the
 same user. Seatbelt or container isolation is not part of this contract.
 
 ## Evidence ownership

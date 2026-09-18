@@ -14,6 +14,7 @@ from typing import Any
 import ast
 import base64
 import re
+import stat
 import subprocess
 
 # ----- json_util.py -----
@@ -71,7 +72,24 @@ def save_path(path, value: Any) -> None:
 
 
 MAX_REQUEST_BYTES = 4096
-MAX_RESPONSE_BYTES = 30_000_000
+MAX_RESPONSE_BYTES = 10_000_000
+OBSERVATION_KEYS = {
+    "schema",
+    "nonce",
+    "run_id",
+    "task_id",
+    "check_id",
+    "request_id",
+    "operation",
+    "source_commit",
+    "tree",
+    "exit",
+    "stdout",
+    "stderr",
+    "files",
+    "payload",
+    "records",
+}
 
 
 class ObserverError(Exception):
@@ -132,7 +150,11 @@ class ObserverClient:
         if len(raw) > MAX_RESPONSE_BYTES:
             raise ObserverError("observer response exceeds maximum bound")
         event = load_bytes(raw[:-1])
-        if not isinstance(event, dict) or event.get("schema") != "tc-proof-observation/v1":
+        if (
+            not isinstance(event, dict)
+            or set(event) != OBSERVATION_KEYS
+            or event.get("schema") != "tc-proof-observation/v1"
+        ):
             raise ObserverError("observer response schema mismatch")
         for key, expected in {
             "nonce": self.nonce,
@@ -146,7 +168,22 @@ class ObserverClient:
         }.items():
             if event.get(key) != expected:
                 raise ObserverError(f"observer response binding mismatch: {key}")
-        if not isinstance(event.get("payload"), dict) or not isinstance(event.get("records"), list):
+        if event.get("exit") != 0:
+            raise ObserverError("observer response reports a failed observation")
+        if not isinstance(event.get("stdout"), str) or not isinstance(event.get("stderr"), str):
+            raise ObserverError("observer response streams are invalid")
+        files = event.get("files")
+        if not isinstance(files, dict) or any(
+            not isinstance(name, str) or not isinstance(value, str)
+            for name, value in files.items()
+        ):
+            raise ObserverError("observer response files are invalid")
+        if (
+            not isinstance(event.get("payload"), dict)
+            or not event["payload"]
+            or not isinstance(event.get("records"), list)
+            or not event["records"]
+        ):
             raise ObserverError("observer response payload is invalid")
         self.request_id += 1
         return event
@@ -527,8 +564,11 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
         raise Reject("CONTEXT_INDEX")
     if not isinstance(index.get("task_id"), str) or not isinstance(index.get("run_id"), str):
         raise Reject("CONTEXT_INDEX")
-    index_root = Path(index_path).parent
-    if index["run_id"] != context["run_id"] or Path(index["run_id"]) != index_root:
+    index_path = os.environ.get("TC_PROOF_CONTEXT_INDEX")
+    if not index_path:
+        raise Reject("CONTEXT_INDEX")
+    index_root = Path(index_path).resolve().parent
+    if index["run_id"] != context["run_id"] or Path(index["run_id"]).resolve() != index_root:
         raise Reject("CONTEXT_INDEX")
     if index["task_id"] != os.environ.get("TC_PROOF_TASK_ID"):
         raise Reject("CONTEXT_INDEX")
@@ -2572,61 +2612,116 @@ def run_architecture(context_path: Path) -> int:
     except ObserverError:
         return finish("rejected", "ARCHITECTURE", {}, digests, operation, reported)
 
+# ----- runner/__main__.py -----
+#!/usr/bin/env python3
+
+
+
+
+RUNNER_OPS = {"preflight", "required", "oracle", "capture", "account-tests", "architecture", "close"}
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(prog="tc-proof")
+    parser.add_argument("operation")
+    parser.add_argument("--context", type=Path, required=True)
+    parser.add_argument("--namespace")
+    parser.add_argument("--lane")
+    parser.add_argument("--approve", action="store_true")
+    return parser.parse_args(argv)
+
+
+def _bind_environment(name: str, value: str) -> None:
+    existing = os.environ.get(name)
+    if existing is not None and existing != value:
+        raise RuntimeError(f"native environment binding mismatch: {name}")
+    os.environ[name] = value
+
 
 def bind_native_environment(context_path: Path) -> None:
-    """Bind one worker invocation to the host-selected context and result."""
+    """Bind the selected context to the native launch/index ABI."""
     context, _, context_hash = load_context(context_path)
     if context.get("schema") != "tc-proof-context/v1":
         raise RuntimeError("worker context is not tc-proof-context/v1")
+    if not context_path.is_absolute():
+        raise RuntimeError("worker context path is not absolute")
     check_id = context.get("check_id")
     if not isinstance(check_id, str) or context_path.name != f"{check_id}.json":
         raise RuntimeError("context filename/check identity mismatch")
     if context_path.is_symlink() or not context_path.is_file() or context_path.stat().st_nlink != 1:
         raise RuntimeError("context path is not a host-owned regular file")
+
     index_path = os.environ.get("TC_PROOF_CONTEXT_INDEX")
     if not index_path:
         raise RuntimeError("native context index is missing")
-    index = load_path(Path(index_path))
-    if not isinstance(index, dict) or index.get("schema") != "tc-proof-context-index/v1":
-        raise RuntimeError("native context index schema mismatch")
-    if index.get("task_id") != context.get("task_id") or index.get("run_id") != context.get("run_id"):
+    index, _ = load_index()
+    index_root = Path(index_path).resolve().parent
+    if (
+        index.get("schema") != "tc-proof-context-index/v1"
+        or index.get("task_id") != context.get("task_id")
+        or index.get("run_id") != context.get("run_id")
+        or Path(str(index.get("run_id", ""))).resolve() != index_root
+        or index.get("worktree_commit") != context.get("worktree_commit")
+        or index.get("scope_base") != context.get("scope_base")
+    ):
         raise RuntimeError("native context index identity mismatch")
     selected = next(
-        (member for member in index.get("contexts", [])
-         if isinstance(member, dict) and member.get("check_id") == check_id),
+        (
+            member
+            for member in index.get("contexts", [])
+            if isinstance(member, dict) and member.get("check_id") == check_id
+        ),
         None,
     )
     if not isinstance(selected, dict):
         raise RuntimeError("selected context is not in native index")
-    if Path(selected.get("path", "")) != context_path:
+    if Path(str(selected.get("path", ""))) != context_path:
         raise RuntimeError("selected context path is not host-bound")
     if selected.get("sha256") != context_hash:
         raise RuntimeError("selected context digest is not host-bound")
-    run_dir = Path(index_path).resolve().parent
-    result_path = run_dir / "outputs" / f"{check_id}.result.json"
+
+    qualification = context.get("qualification")
+    common = qualification.get("common") if isinstance(qualification, dict) else None
+    if not isinstance(common, dict):
+        raise RuntimeError("trusted native common binding is missing")
+    oracle = common.get("oracle")
+    observer = common.get("observer")
+    comparator = common.get("comparator")
+    tool = common.get("tool")
+    if not all(isinstance(value, dict) for value in (oracle, observer, comparator, tool)):
+        raise RuntimeError("trusted native identity binding is incomplete")
+    if context.get("tree") != common.get("candidate_tree"):
+        raise RuntimeError("context source tree is not bound to trusted candidate tree")
+    if context.get("oracle_commit") != oracle.get("commit"):
+        raise RuntimeError("context oracle commit is not bound to trusted oracle")
+    if context.get("oracle_tree") != oracle.get("tree"):
+        raise RuntimeError("context oracle tree is not bound to trusted oracle")
+    if context.get("tool") != tool:
+        raise RuntimeError("context tool identity is not bound to trusted tool")
+    if observer.get("transport") != "inherited-pipe/v1":
+        raise RuntimeError("observer transport is not inherited-pipe/v1")
+    if os.environ.get("TC_PROOF_NATIVE_CHILD") != "1":
+        launcher = os.environ.get("TC_PROOF_NATIVE_LAUNCHER")
+        if not launcher or Path(launcher) != Path(str(comparator.get("path", ""))):
+            raise RuntimeError("native launcher is not the trusted comparator")
+
+    _bind_environment("TC_PROOF_RUN_ID", str(context["run_id"]))
+    _bind_environment("TC_PROOF_TASK_ID", str(context["task_id"]))
+    _bind_environment("TC_PROOF_CHECK_ID", check_id)
+    _bind_environment("TC_PROOF_CONTEXT_SHA256", context_hash)
+    _bind_environment("TC_PROOF_SOURCE_TREE", str(common["candidate_tree"]))
+    _bind_environment("TC_PROOF_ORACLE_COMMIT", str(oracle["commit"]))
+    _bind_environment("TC_PROOF_OBSERVER_NONCE", str(observer["nonce"]))
+
+    result_path = index_root / "outputs" / f"{check_id}.result.json"
     bound_result = os.environ.get("TC_PROOF_RESULT")
     if bound_result and Path(bound_result) != result_path:
         raise RuntimeError("result path was already bound differently")
-    qualification = context.get("qualification") or {}
-    common = qualification.get("common") or {}
-    observer = common.get("observer") or {}
-    if observer.get("transport") != "inherited-pipe/v1":
-        raise RuntimeError("observer transport is not inherited-pipe/v1")
-    os.environ.update(
-        {
-            "TC_PROOF_RUN_ID": str(context["run_id"]),
-            "TC_PROOF_TASK_ID": str(context["task_id"]),
-            "TC_PROOF_CHECK_ID": check_id,
-            "TC_PROOF_CONTEXT_SHA256": context_hash,
-            "TC_PROOF_RESULT": str(result_path),
-            "TC_PROOF_SOURCE_TREE": str(context["tree"]),
-            "TC_PROOF_ORACLE_COMMIT": str(context["oracle_commit"]),
-        }
-    )
+    os.environ["TC_PROOF_RESULT"] = str(result_path)
 
 
 def launch_native_worker(args: argparse.Namespace) -> int:
-    """Re-enter this worker under the Rust host supervisor."""
+    """Re-enter this worker only through the trusted Rust launcher."""
     bind_native_environment(args.context)
     launcher = os.environ.get("TC_PROOF_NATIVE_LAUNCHER")
     index_path = os.environ.get("TC_PROOF_CONTEXT_INDEX")
@@ -2653,36 +2748,44 @@ def launch_native_worker(args: argparse.Namespace) -> int:
     return subprocess.run(command, env=child_environment, check=False).returncode
 
 
-def parse_args(argv):
-    parser = argparse.ArgumentParser(prog="tc-proof")
-    parser.add_argument("operation")
-    parser.add_argument("--context", type=Path, required=True)
-    parser.add_argument("--namespace")
-    parser.add_argument("--lane")
-    parser.add_argument("--approve", action="store_true")
-    return parser.parse_args(argv)
-
-def main(argv=None):
+def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv or sys.argv[1:])
-    if args.approve:
-        return finish("rejected", "PROTOCOL", {}, [], args.operation, os.environ.get("TC_PROOF_CONTEXT_SHA256", "0" * 64))
-    runner_ops = {"preflight", "required", "oracle", "capture", "account-tests", "architecture", "close"}
-    if (
-        args.operation in runner_ops
-        and os.environ.get("TC_PROOF_NATIVE_LAUNCH") == "1"
-        and os.environ.get("TC_PROOF_NATIVE_CHILD") != "1"
-    ):
+    if args.operation in RUNNER_OPS and os.environ.get("TC_PROOF_NATIVE_CHILD") != "1":
+        if os.environ.get("TC_PROOF_NATIVE_LAUNCH") != "1":
+            print("tc-proof: native launch binding is missing", file=sys.stderr)
+            return 1
         try:
             return launch_native_worker(args)
-        except (RuntimeError, OSError, ValueError, KeyError) as error:
+        except (RuntimeError, ValueError, OSError, KeyError) as error:
             print(f"tc-proof: native launch rejected: {error}", file=sys.stderr)
             return 1
+    if args.operation in RUNNER_OPS:
+        try:
+            bind_native_environment(args.context)
+        except (RuntimeError, ValueError, OSError, KeyError):
+            return finish(
+                "rejected",
+                "CONTEXT_INDEX",
+                {},
+                [],
+                args.operation,
+                os.environ.get("TC_PROOF_CONTEXT_SHA256", "0" * 64),
+            )
+    if args.approve:
+        return finish(
+            "rejected",
+            "PROTOCOL",
+            {},
+            [],
+            args.operation,
+            os.environ.get("TC_PROOF_CONTEXT_SHA256", "0" * 64),
+        )
     if args.operation == "compare":
-        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        workspace = os.path.dirname(os.path.dirname(root))
-        rust = os.path.join(workspace, "target", "debug", "tc-proof")
-        os.execv(rust, [rust, "compare", *sys.argv[2:]])
-    if args.operation not in runner_ops:
+        root = Path(__file__).resolve().parent.parent
+        workspace = root.parent.parent
+        rust = workspace / "target" / "debug" / "tc-proof"
+        os.execv(str(rust), [str(rust), "compare", *[str(a) for a in sys.argv[2:]]])
+    if args.operation not in RUNNER_OPS:
         print(f"tc-proof: unknown command: {args.operation}", file=sys.stderr)
         return 2
     dispatch = {
@@ -2696,8 +2799,6 @@ def main(argv=None):
     }
     return dispatch[args.operation]()
 
-def _dispatch():
-    return main()
 
 if __name__ == "__main__":
-    raise SystemExit(_dispatch())
+    raise SystemExit(main())

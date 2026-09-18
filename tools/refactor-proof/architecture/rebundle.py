@@ -11,6 +11,7 @@ RUNNER = ROOT / "runner"
 ACCOUNTING = ROOT / "accounting"
 ARCHITECTURE = ROOT / "architecture"
 BIN = ROOT / "bin" / "tc-proof"
+ENTRYPOINT = RUNNER / "__main__.py"
 RUNNER_MODULES = [
     "json_util.py",
     "observer.py",
@@ -40,6 +41,7 @@ ARCHITECTURE_HEADER_IMPORTS = (
     "import ast\n"
     "import base64\n"
     "import re\n"
+    "import stat\n"
     "import subprocess\n"
 )
 
@@ -83,11 +85,6 @@ def bundle() -> None:
     parts = [header]
     for name in RUNNER_MODULES:
         content = strip_imports_and_docstring((RUNNER / name).read_text())
-        if name == "observer.py":
-            content = content.replace(
-                "MAX_RESPONSE_BYTES = 10_000_000",
-                "MAX_RESPONSE_BYTES = 30_000_000",
-            )
         parts.append(f"# ----- {name} -----\n{content}\n\n")
     for name in ACCOUNTING_MODULES:
         parts.append(
@@ -99,50 +96,11 @@ def bundle() -> None:
             f"# ----- architecture/{name} -----\n"
             f"{strip_imports_and_docstring((ARCHITECTURE / name).read_text())}\n\n"
         )
-
     parts.append(
-        """
-def parse_args(argv):
-    parser = argparse.ArgumentParser(prog="tc-proof")
-    parser.add_argument("operation")
-    parser.add_argument("--context", type=Path, required=True)
-    parser.add_argument("--namespace")
-    parser.add_argument("--lane")
-    parser.add_argument("--approve", action="store_true")
-    return parser.parse_args(argv)
-
-def main(argv=None):
-    args = parse_args(argv or sys.argv[1:])
-    if args.approve:
-        return finish("rejected", "PROTOCOL", {}, [], args.operation, os.environ.get("TC_PROOF_CONTEXT_SHA256", "0" * 64))
-    if args.operation == "compare":
-        root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        workspace = os.path.dirname(os.path.dirname(root))
-        rust = os.path.join(workspace, "target", "debug", "tc-proof")
-        os.execv(rust, [rust, "compare", *sys.argv[2:]])
-    runner_ops = {"preflight", "required", "oracle", "capture", "account-tests", "architecture", "close"}
-    if args.operation not in runner_ops:
-        print(f"tc-proof: unknown command: {args.operation}", file=sys.stderr)
-        return 2
-    dispatch = {
-        "preflight": lambda: run_preflight(args.context),
-        "required": lambda: run_required(args.context),
-        "oracle": lambda: run_oracle(args.context, args.namespace),
-        "capture": lambda: run_capture(args.context, args.lane),
-        "account-tests": lambda: run_account_tests(args.context),
-        "architecture": lambda: run_architecture(args.context),
-        "close": lambda: run_close(args.context),
-    }
-    return dispatch[args.operation]()
-
-def _dispatch():
-    return main()
-
-if __name__ == "__main__":
-    raise SystemExit(_dispatch())
-"""
+        f"# ----- runner/__main__.py -----\n"
+        f"{strip_imports_and_docstring(ENTRYPOINT.read_text())}\n\n"
     )
-    BIN.write_text("".join(parts))
+    BIN.write_text("".join(parts).rstrip() + "\n")
     BIN.chmod(0o755)
 
 

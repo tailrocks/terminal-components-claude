@@ -1190,9 +1190,30 @@ def _validate_preparation_file(
     if _file_sha256(observer_path, "observer") != observer["sha256"]:
         _reject("observer capability hash mismatch")
     observer_record = _read_json(observer_path, "observer")
+    _unknown(
+        observer_record,
+        {
+            "schema",
+            "task_id",
+            "run_id",
+            "worktree_commit",
+            "scope_base",
+            "transport",
+            "nonce_sha256",
+        },
+        "observer",
+    )
     _required(
         observer_record,
-        ("schema", "task_id", "run_id", "worktree_commit", "scope_base"),
+        (
+            "schema",
+            "task_id",
+            "run_id",
+            "worktree_commit",
+            "scope_base",
+            "transport",
+            "nonce_sha256",
+        ),
         "observer",
     )
     if observer_record["schema"] != OBSERVER_SCHEMA:
@@ -1204,6 +1225,9 @@ def _validate_preparation_file(
         or observer_record["scope_base"] != preparation["scope_base"]
     ):
         _reject("observer capability identity mismatch")
+    if observer_record["transport"] != "inherited-pipe/v1":
+        _reject("observer capability transport mismatch")
+    _sha256(observer_record["nonce_sha256"], "observer.nonce_sha256")
 
 
 def validate_proof_preparation(

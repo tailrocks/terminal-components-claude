@@ -272,6 +272,17 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
     require_clean_candidate(&worktree)?;
     let oracle = oracle_identity(&worktree, &options.oracle_tag, &options.oracle_commit)?;
 
+    let expected_tool = regular_file(
+        &worktree.join("tools/refactor-proof/bin/tc-proof"),
+        "candidate proof tool",
+    )?
+    .canonicalize()?;
+    let requested_tool = regular_file(&options.tool, "proof tool")?.canonicalize()?;
+    if requested_tool != expected_tool {
+        return Err(VerifierError::new(
+            "proof tool is not the candidate worktree worker",
+        ));
+    }
     let tool = executable_identity(&options.tool, "proof tool")?;
     let comparator = executable_identity(&options.comparator, "native comparator")?;
     let taskfmt = options
@@ -751,16 +762,16 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
     };
     let stdout = join_output(stdout_thread)?;
     let stderr = join_output(stderr_thread)?;
-    let observer = observer_thread
+    let observed_digests = observer_thread
         .join()
         .map_err(|_| VerifierError::new("observer supervisor panicked"))?;
-    observer?;
+    let observed_digests = observed_digests?;
     let exit = successful_exit(status)?;
     if !regular_path_exists(&member.result_path)? {
         return Err(VerifierError::new("child produced no result"));
     }
     let result_raw = fs::read(&member.result_path)?;
-    validate_result(member, &prepared, &result_raw)?;
+    validate_result(member, &prepared, &result_raw, &observed_digests)?;
     let after = validate_run(&prepared.run_dir)?;
     let after_member = after
         .members
@@ -817,7 +828,7 @@ fn start_observer_supervisor(
     member: &PreparedMember,
     nonce: &str,
     oracle_commit: &str,
-) -> Result<(File, File, thread::JoinHandle<Result<()>>)> {
+) -> Result<(File, File, thread::JoinHandle<Result<Vec<String>>>)> {
     let (request_read, request_write) = make_pipe()?;
     let (response_read, response_write) = make_pipe()?;
     let run_id = prepared.run_id.clone();
@@ -845,7 +856,7 @@ fn start_observer_supervisor(
 
 fn observe_worker(
     request_read: File,
-    response_write: File,
+    _response_write: File,
     run_id: &str,
     task_id: &str,
     check_id: &str,
@@ -853,14 +864,15 @@ fn observe_worker(
     tree: &str,
     oracle_commit: &str,
     nonce: &str,
-) -> Result<()> {
+) -> Result<Vec<String>> {
     let expected = match operation {
         "oracle" => 2,
-        "capture" | "account-tests" | "architecture" | "close" => 1,
-        _ => 0,
+        "preflight" | "required" | "capture" | "account-tests" | "architecture" | "close"
+        | "external" => 1,
+        _ => 1,
     };
     let mut reader = io::BufReader::new(request_read);
-    let mut writer = io::BufWriter::new(response_write);
+    let mut writer = io::BufWriter::new(_response_write);
     for request_id in 0..expected {
         let mut line = String::new();
         let count = reader.read_line(&mut line)?;
@@ -899,21 +911,8 @@ fn observe_worker(
             ));
         }
         let response = json!({
-            "schema": "tc-proof-observation/v1",
-            "nonce": nonce,
-            "run_id": run_id,
-            "task_id": task_id,
-            "check_id": check_id,
-            "request_id": request_id,
-            "operation": operation,
-            "source_commit": oracle_commit,
-            "tree": tree,
-            "exit": 0,
-            "stdout": "",
-            "stderr": "",
-            "files": {},
-            "payload": {},
-            "records": [],
+            "schema": "tc-proof-observer-error/v1",
+            "error": "independent observer response is unavailable",
         });
         writer.write_all(canonical_json(&response).as_bytes())?;
         writer.write_all(b"\n")?;
@@ -923,7 +922,9 @@ fn observe_worker(
     if reader.read(&mut extra)? != 0 {
         return Err(VerifierError::new("observer replay or incomplete close"));
     }
-    Ok(())
+    Err(VerifierError::new(
+        "independent observer response is unavailable",
+    ))
 }
 
 fn discover_checks(verify: &VerifyFile) -> Result<Vec<CheckSpec>> {
@@ -1573,6 +1574,7 @@ fn validate_context(
         .get("tool")
         .and_then(Value::as_object)
         .ok_or_else(|| VerifierError::new("context tool missing"))?;
+    exact_keys(tool, &["path", "sha256"], "context tool")?;
     let tool_path = PathBuf::from(required_string(tool, "path")?);
     let actual_tool_hash = hash_file(&regular_file(&tool_path, "context tool")?)?;
     if Some(actual_tool_hash.as_str()) != tool.get("sha256").and_then(Value::as_str) {
@@ -1589,6 +1591,30 @@ fn validate_context(
         || required_string(common, "candidate_commit")? != worktree_commit
     {
         return Err(VerifierError::new("context common identity mismatch"));
+    }
+    if required_hex(context, "tree", 40)? != required_string(common, "candidate_tree")? {
+        return Err(VerifierError::new(
+            "context source tree is not bound to trusted candidate tree",
+        ));
+    }
+    let oracle = common
+        .get("oracle")
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("context common oracle binding is missing"))?;
+    if required_hex(context, "oracle_commit", 40)? != required_string(oracle, "commit")? {
+        return Err(VerifierError::new(
+            "context oracle commit is not bound to trusted oracle",
+        ));
+    }
+    if required_hex(context, "oracle_tree", 40)? != required_string(oracle, "tree")? {
+        return Err(VerifierError::new(
+            "context oracle tree is not bound to trusted oracle",
+        ));
+    }
+    if context.get("tool") != common.get("tool") {
+        return Err(VerifierError::new(
+            "context tool identity is not bound to trusted tool",
+        ));
     }
     if required_string(common, "run_dir")? != run_id {
         return Err(VerifierError::new("context run directory mismatch"));
@@ -1685,6 +1711,7 @@ fn validate_trust_inputs(
             validate_bound_file(templates, key)?;
         }
     }
+    validate_candidate_tool_binding(common, &worktree)?;
     validate_identity_hash(common, "tool", "tool")?;
     validate_identity_hash(common, "comparator", "comparator")?;
     if !common.get("taskfmt").is_some_and(Value::is_null) {
@@ -1751,6 +1778,27 @@ fn validate_identity_hash(common: &Map<String, Value>, key: &str, label: &str) -
     Ok(())
 }
 
+fn validate_candidate_tool_binding(common: &Map<String, Value>, worktree: &Path) -> Result<()> {
+    let expected = regular_file(
+        &worktree.join("tools/refactor-proof/bin/tc-proof"),
+        "candidate proof tool",
+    )?
+    .canonicalize()?;
+    let tool = common
+        .get("tool")
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("tool binding missing"))?;
+    exact_keys(tool, &["path", "sha256"], "tool binding")?;
+    let actual =
+        regular_file(Path::new(required_string(tool, "path")?.as_str()), "tool")?.canonicalize()?;
+    if actual != expected {
+        return Err(VerifierError::new(
+            "trusted proof tool is not the candidate worktree worker",
+        ));
+    }
+    Ok(())
+}
+
 fn validate_dependency_bindings(common: &Map<String, Value>, worktree: &Path) -> Result<()> {
     let dependencies = common
         .get("dependencies")
@@ -1798,12 +1846,17 @@ fn validate_result_if_present(
     require_passed: bool,
 ) -> Result<()> {
     let path = regular_file(&member.result_path, "result")?;
-    validate_result_fields(member, run_id, &fs::read(path)?, require_passed)?;
+    validate_result_fields(member, run_id, &fs::read(path)?, require_passed, None)?;
     set_readonly_file(&member.result_path)
 }
 
-fn validate_result(member: &PreparedMember, prepared: &PreparedRun, raw: &[u8]) -> Result<()> {
-    validate_result_fields(member, &prepared.run_id, raw, true)?;
+fn validate_result(
+    member: &PreparedMember,
+    prepared: &PreparedRun,
+    raw: &[u8],
+    observed_digests: &[String],
+) -> Result<()> {
+    validate_result_fields(member, &prepared.run_id, raw, true, Some(observed_digests))?;
     set_readonly_file(&member.result_path)
 }
 
@@ -1812,6 +1865,7 @@ fn validate_result_fields(
     run_id: &str,
     raw: &[u8],
     require_passed: bool,
+    observed_digests: Option<&[String]>,
 ) -> Result<()> {
     if raw.is_empty() || raw.len() > MAX_CHILD_OUTPUT_BYTES || !raw.ends_with(b"}") {
         return Err(VerifierError::new("result is missing or truncated"));
@@ -1859,6 +1913,20 @@ fn validate_result_fields(
         .any(|digest| digest.as_str().is_none_or(|value| !is_hex(value, 64)))
     {
         return Err(VerifierError::new("result observation digest is invalid"));
+    }
+    if status == Some("passed") && digests.is_empty() {
+        return Err(VerifierError::new("passed result has no observed events"));
+    }
+    if let Some(observed_digests) = observed_digests
+        && digests
+            != &observed_digests
+                .iter()
+                .map(|digest| Value::String(digest.clone()))
+                .collect::<Vec<_>>()
+    {
+        return Err(VerifierError::new(
+            "result observations are not bound to native observer events",
+        ));
     }
     Ok(())
 }
@@ -2469,6 +2537,7 @@ mod tests {
             git_output(&candidate, &["rev-parse", "HEAD"]).map_err(|error| error.to_string())?;
         let run_dir = root.path().join("run");
         fs::create_dir(&run_dir).map_err(|error| error.to_string())?;
+        let worker = candidate.join("tools/refactor-proof/bin/tc-proof");
         let options = PrepareOptions {
             task_dir: candidate.join("refactoring-tasks/terminal-components/completion/001"),
             run_dir: run_dir.clone(),
@@ -2476,7 +2545,7 @@ mod tests {
             scope_base: scope,
             oracle_tag: "refs/tags/visual-baseline".to_string(),
             oracle_commit: EXPECTED_ORACLE_COMMIT.to_string(),
-            tool: PathBuf::from("/usr/bin/true"),
+            tool: worker,
             comparator: PathBuf::from("/usr/bin/true"),
             taskfmt: None,
             dependency_receipts: Vec::new(),
@@ -2618,8 +2687,105 @@ mod tests {
         assert!(validate_run(&fixture.run_dir).is_err());
     }
 
+    fn mutate_first_context_and_rebind_hashes(
+        fixture: &Fixture,
+        mutate: impl FnOnce(&mut Map<String, Value>),
+    ) -> VerifierError {
+        let index_path = fixture.run_dir.join("context-index.json");
+        let contexts_dir = fixture.run_dir.join("contexts");
+        let results_dir = fixture.run_dir.join("results");
+        let mut directory_permissions = fs::metadata(&contexts_dir)
+            .expect("contexts metadata")
+            .permissions();
+        directory_permissions.set_mode(0o755);
+        fs::set_permissions(&contexts_dir, directory_permissions.clone())
+            .expect("make contexts writable");
+        fs::set_permissions(&results_dir, directory_permissions).expect("make results writable");
+        let mut index_permissions = fs::metadata(&index_path)
+            .expect("index metadata")
+            .permissions();
+        index_permissions.set_mode(0o644);
+        fs::set_permissions(&index_path, index_permissions).expect("make index writable");
+
+        let mut index = parse_json_object(&fs::read(&index_path).expect("index"), "index")
+            .expect("parse index");
+        let context_path =
+            PathBuf::from(index["contexts"][0]["path"].as_str().expect("context path"));
+        let result_path = PathBuf::from(index["results"][0]["path"].as_str().expect("result path"));
+        let mut context = parse_json_object(&fs::read(&context_path).expect("context"), "context")
+            .expect("parse context");
+        let mut context_permissions = fs::metadata(&context_path)
+            .expect("context metadata")
+            .permissions();
+        context_permissions.set_mode(0o644);
+        fs::set_permissions(&context_path, context_permissions.clone())
+            .expect("make context writable");
+        let mut result_permissions = fs::metadata(&result_path)
+            .expect("result metadata")
+            .permissions();
+        result_permissions.set_mode(0o644);
+        fs::set_permissions(&result_path, result_permissions).expect("make result writable");
+
+        mutate(&mut context);
+        let context_raw = canonical_json(&Value::Object(context)).into_bytes();
+        fs::write(&context_path, &context_raw).expect("rewrite context");
+        let context_hash = sha256_bytes(&context_raw);
+        index["contexts"][0]["sha256"] = Value::String(context_hash.clone());
+
+        let mut preparation =
+            parse_json_object(&fs::read(&result_path).expect("preparation"), "preparation")
+                .expect("parse preparation");
+        preparation["context_sha256"] = Value::String(context_hash);
+        let preparation_raw = canonical_json(&Value::Object(preparation)).into_bytes();
+        fs::write(&result_path, &preparation_raw).expect("rewrite preparation");
+        index["results"][0]["sha256"] = Value::String(sha256_bytes(&preparation_raw));
+        let index_raw = canonical_json(&Value::Object(index)).into_bytes();
+        fs::write(&index_path, &index_raw).expect("rewrite index");
+
+        set_readonly_file(&context_path).expect("restore context readonly");
+        set_readonly_file(&result_path).expect("restore result readonly");
+        set_readonly_file(&index_path).expect("restore index readonly");
+        set_readonly_dir(&contexts_dir).expect("restore contexts readonly");
+        set_readonly_dir(&results_dir).expect("restore results readonly");
+
+        validate_run(&fixture.run_dir).expect_err("mutated context was accepted")
+    }
+
     #[test]
-    fn subprocess_observation_collects_bound_result() {
+    fn recheck_rejects_wrong_source_tree_after_context_rebinding() {
+        let (fixture, _) = fixture().expect("fixture");
+        let error = mutate_first_context_and_rebind_hashes(&fixture, |context| {
+            context["tree"] = Value::String("f".repeat(40));
+        });
+        assert!(error.to_string().contains("source tree"));
+    }
+
+    #[test]
+    fn recheck_rejects_wrong_oracle_commit_after_context_rebinding() {
+        let (fixture, _) = fixture().expect("fixture");
+        let error = mutate_first_context_and_rebind_hashes(&fixture, |context| {
+            context["oracle_commit"] = Value::String("f".repeat(40));
+        });
+        assert!(error.to_string().contains("oracle commit"));
+    }
+
+    #[test]
+    fn recheck_rejects_wrong_tool_after_context_rebinding() {
+        let fixture_result = fixture();
+        let (fixture, _) = fixture_result.expect("fixture");
+        let wrong_tool = Path::new("/bin/sh");
+        let wrong_hash = sha256_bytes(&fs::read(wrong_tool).expect("wrong tool"));
+        let error = mutate_first_context_and_rebind_hashes(&fixture, |context| {
+            context["tool"] = json!({
+                "path": wrong_tool,
+                "sha256": wrong_hash,
+            });
+        });
+        assert!(error.to_string().contains("tool identity"));
+    }
+
+    #[test]
+    fn worker_passed_result_without_observer_is_rejected() {
         let (fixture, prepared) = fixture().expect("fixture");
         let member = prepared.members.first().expect("first member");
         let script = r###"printf '{"category":null,"context_sha256":"%s","observation_digests":[],"operation":"external","outputs":{},"run_id":"%s","schema":"tc-proof-runner-result/v1","status":"passed"}' "$TC_PROOF_CONTEXT_SHA256" "$TC_PROOF_RUN_ID" > "$TC_PROOF_RESULT""###;
@@ -2631,20 +2797,8 @@ mod tests {
             program: PathBuf::from("/bin/sh"),
             args: vec!["-c".to_string(), script.to_string()],
         });
-        assert!(record.is_ok());
-        let metadata = fs::symlink_metadata(&member.result_path).expect("result metadata");
-        assert!(permissions_are_readonly(&metadata));
-        assert!(
-            launch(&LaunchOptions {
-                run_dir: fixture.run_dir.clone(),
-                check_id: member.check_id.clone(),
-                observer_socket: None,
-                timeout: Duration::from_secs(5),
-                program: PathBuf::from("/bin/sh"),
-                args: vec!["-c".to_string(), script.to_string()],
-            })
-            .is_err()
-        );
+        let error = record.expect_err("worker result without an observation");
+        assert!(error.to_string().contains("observer"));
     }
 
     #[test]
@@ -2688,10 +2842,9 @@ mod tests {
     }
 
     #[test]
-    fn observer_protocol_accepts_bound_request_and_complete_close() {
+    fn observer_protocol_rejects_missing_independent_response() {
         let (request_read, mut request_write) = make_pipe().expect("request pipe");
         let (response_read, response_write) = make_pipe().expect("response pipe");
-        let mut response_read = BufReader::new(response_read);
         let source_commit = "a".repeat(40);
         let tree = "b".repeat(40);
         let supervisor = thread::spawn({
@@ -2715,16 +2868,12 @@ mod tests {
             .write_all(observer_request("nonce", 0, "capture", &source_commit, &tree).as_bytes())
             .expect("request");
         request_write.flush().expect("flush request");
-        let mut response = String::new();
-        response_read
-            .read_line(&mut response)
-            .expect("response line");
-        let response = parse_json_object(response.trim_end().as_bytes(), "observer response")
-            .expect("response JSON");
-        assert_eq!(response["schema"], "tc-proof-observation/v1");
-        assert_eq!(response["request_id"], 0);
         drop(request_write);
-        assert!(supervisor.join().expect("supervisor join").is_ok());
+        let error = supervisor
+            .join()
+            .expect("supervisor join")
+            .expect_err("missing independent response");
+        assert!(error.to_string().contains("independent observer response"));
     }
 
     #[test]

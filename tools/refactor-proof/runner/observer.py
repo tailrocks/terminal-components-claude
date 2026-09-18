@@ -9,6 +9,23 @@ from .json_util import canonical, load_bytes, sha256_canonical
 
 MAX_REQUEST_BYTES = 4096
 MAX_RESPONSE_BYTES = 10_000_000
+OBSERVATION_KEYS = {
+    "schema",
+    "nonce",
+    "run_id",
+    "task_id",
+    "check_id",
+    "request_id",
+    "operation",
+    "source_commit",
+    "tree",
+    "exit",
+    "stdout",
+    "stderr",
+    "files",
+    "payload",
+    "records",
+}
 
 
 class ObserverError(Exception):
@@ -69,7 +86,11 @@ class ObserverClient:
         if len(raw) > MAX_RESPONSE_BYTES:
             raise ObserverError("observer response exceeds maximum bound")
         event = load_bytes(raw[:-1])
-        if not isinstance(event, dict) or event.get("schema") != "tc-proof-observation/v1":
+        if (
+            not isinstance(event, dict)
+            or set(event) != OBSERVATION_KEYS
+            or event.get("schema") != "tc-proof-observation/v1"
+        ):
             raise ObserverError("observer response schema mismatch")
         for key, expected in {
             "nonce": self.nonce,
@@ -83,7 +104,22 @@ class ObserverClient:
         }.items():
             if event.get(key) != expected:
                 raise ObserverError(f"observer response binding mismatch: {key}")
-        if not isinstance(event.get("payload"), dict) or not isinstance(event.get("records"), list):
+        if event.get("exit") != 0:
+            raise ObserverError("observer response reports a failed observation")
+        if not isinstance(event.get("stdout"), str) or not isinstance(event.get("stderr"), str):
+            raise ObserverError("observer response streams are invalid")
+        files = event.get("files")
+        if not isinstance(files, dict) or any(
+            not isinstance(name, str) or not isinstance(value, str)
+            for name, value in files.items()
+        ):
+            raise ObserverError("observer response files are invalid")
+        if (
+            not isinstance(event.get("payload"), dict)
+            or not event["payload"]
+            or not isinstance(event.get("records"), list)
+            or not event["records"]
+        ):
             raise ObserverError("observer response payload is invalid")
         self.request_id += 1
         return event

@@ -53,6 +53,7 @@ pub enum ObserverRequestSchema {
 
 /// Newline-terminated host request. All binding fields are mandatory.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ObserverRequest {
     pub schema: ObserverRequestSchema,
     pub nonce: String,
@@ -76,6 +77,7 @@ pub enum ObserverResponse {
 
 /// Independently captured process evidence returned by the observer.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ObserverObservation {
     pub nonce: String,
     pub run_id: String,
@@ -95,6 +97,7 @@ pub struct ObserverObservation {
 
 /// Protocol violation reported instead of fabricated success.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ObserverError {
     pub error: String,
 }

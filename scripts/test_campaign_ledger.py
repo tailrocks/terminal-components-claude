@@ -223,6 +223,8 @@ def make_preparation(root: Path) -> tuple[dict[str, Any], Path, Path]:
         "run_id": str(run),
         "worktree_commit": SHA,
         "scope_base": BASE,
+        "transport": "inherited-pipe/v1",
+        "nonce_sha256": "e" * 64,
     }
     write_json(observer_path, observer)
     index = {

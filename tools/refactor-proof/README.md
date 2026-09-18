@@ -43,6 +43,19 @@ not the standalone comparator. Build that executable natively with
 The verifier must also supply immutable external contexts and the reviewed
 observer/result environment; taskfmt does not provision either one.
 
+Runner operations require the dispatcher environment and the native Rust
+launcher. Invoking the Python bundle directly, or omitting the native launch
+binding, fails closed. The inherited-pipe observer ABI requires an exact
+request/response identity match, a successful exit, non-empty schema-valid
+`payload` and `records`, and a result digest for every accepted observation.
+The Rust preparation launcher never synthesizes an empty success event; until
+an independent observer response provider is attached, a launch is rejected.
+
+Comparator roots and report parents use their qualified real paths before
+containment checks. This permits documented macOS `/var` temporary-directory
+symlink ancestry while still rejecting symlink or hardlink descendants and
+unsafe report leaves.
+
 ## Removed implementation
 
 The former `tc-proof-host` install/prepare/freeze/verify/seal/integrate service
