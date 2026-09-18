@@ -142,7 +142,11 @@ def invoke(bundle: Path, context: Path, *, cwd: Path, environment: dict[str, str
 def main() -> None:
     source = Path(__file__).resolve().parents[3]
     bundle = source / "tools/refactor-proof/bin/tc-proof"
-    native = source / "target/debug/tc-proof"
+    native = (
+        Path(os.environ["TC_PROOF_NATIVE_BINARY"])
+        if os.environ.get("TC_PROOF_NATIVE_BINARY")
+        else source / "target/debug/tc-proof"
+    )
     if not bundle.is_file() or not os.access(bundle, os.X_OK):
         raise SystemExit(f"tracked proof bundle is not executable: {bundle}")
     if not native.is_file() or not os.access(native, os.X_OK):
