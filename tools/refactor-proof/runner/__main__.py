@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import subprocess
 import sys
@@ -36,7 +37,58 @@ def _bind_environment(name: str, value: str) -> None:
     os.environ[name] = value
 
 
-def bind_native_environment(context_path: Path) -> None:
+def consume_native_handoff(context_path: Path, operation: str) -> None:
+    """Consume the one-shot descriptor written by the Rust launcher."""
+    descriptor = os.environ.get("TC_PROOF_NATIVE_HANDOFF_FD")
+    if descriptor is None:
+        raise RuntimeError("native launch handoff is missing")
+    try:
+        fd = int(descriptor)
+        if fd < 0:
+            raise ValueError
+        with os.fdopen(fd, "rb", closefd=True) as stream:
+            raw = stream.read(4097)
+    except (OSError, ValueError) as error:
+        raise RuntimeError("native launch handoff is unavailable") from error
+    finally:
+        os.environ.pop("TC_PROOF_NATIVE_HANDOFF_FD", None)
+    if len(raw) > 4096 or raw.count(b"\n") != 1 or not raw.endswith(b"\n"):
+        raise RuntimeError("native launch handoff is malformed")
+    try:
+        handoff = json.loads(raw[:-1].decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as error:
+        raise RuntimeError("native launch handoff is not JSON") from error
+    if not isinstance(handoff, dict) or set(handoff) != {
+        "schema",
+        "run_id",
+        "task_id",
+        "check_id",
+        "operation",
+        "context_sha256",
+        "index_sha256",
+        "token",
+    }:
+        raise RuntimeError("native launch handoff schema mismatch")
+    context, _, context_hash = load_context(context_path)
+    expected = {
+        "schema": "tc-proof-native-handoff/v1",
+        "run_id": context.get("run_id"),
+        "task_id": context.get("task_id"),
+        "check_id": context.get("check_id"),
+        "operation": context.get("operation"),
+        "context_sha256": context_hash,
+        "index_sha256": os.environ.get("TC_PROOF_CONTEXT_INDEX_SHA256"),
+    }
+    if any(handoff.get(key) != value for key, value in expected.items()) or operation not in RUNNER_OPS:
+        raise RuntimeError("native launch handoff binding mismatch")
+    token = handoff.get("token")
+    if not isinstance(token, str) or len(token) != 64 or any(
+        character not in "0123456789abcdef" for character in token
+    ):
+        raise RuntimeError("native launch handoff token is invalid")
+
+
+def bind_native_environment(context_path: Path, *, require_launcher: bool = False) -> None:
     """Bind the selected context to the native launch/index ABI."""
     context, _, context_hash = load_context(context_path)
     if context.get("schema") != "tc-proof-context/v1":
@@ -98,7 +150,7 @@ def bind_native_environment(context_path: Path) -> None:
         raise RuntimeError("context tool identity is not bound to trusted tool")
     if observer.get("transport") != "inherited-pipe/v1":
         raise RuntimeError("observer transport is not inherited-pipe/v1")
-    if os.environ.get("TC_PROOF_NATIVE_CHILD") != "1":
+    if require_launcher:
         launcher = os.environ.get("TC_PROOF_NATIVE_LAUNCHER")
         if not launcher or Path(launcher) != Path(str(comparator.get("path", ""))):
             raise RuntimeError("native launcher is not the trusted comparator")
@@ -120,13 +172,12 @@ def bind_native_environment(context_path: Path) -> None:
 
 def launch_native_worker(args: argparse.Namespace) -> int:
     """Re-enter this worker only through the trusted Rust launcher."""
-    bind_native_environment(args.context)
+    bind_native_environment(args.context, require_launcher=True)
     launcher = os.environ.get("TC_PROOF_NATIVE_LAUNCHER")
     index_path = os.environ.get("TC_PROOF_CONTEXT_INDEX")
     if not launcher or not index_path:
         raise RuntimeError("native launcher binding is missing")
     child_environment = os.environ.copy()
-    child_environment["TC_PROOF_NATIVE_CHILD"] = "1"
     child_environment["TC_PROOF_NATIVE_LAUNCH"] = "0"
     timeout_ms = os.environ.get("TC_PROOF_NATIVE_TIMEOUT_MS", "600000")
     command = [
@@ -148,27 +199,18 @@ def launch_native_worker(args: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv or sys.argv[1:])
-    if args.operation in RUNNER_OPS and os.environ.get("TC_PROOF_NATIVE_CHILD") != "1":
-        if os.environ.get("TC_PROOF_NATIVE_LAUNCH") != "1":
-            print("tc-proof: native launch binding is missing", file=sys.stderr)
-            return 1
+    if args.operation in RUNNER_OPS:
         try:
-            return launch_native_worker(args)
+            if os.environ.get("TC_PROOF_NATIVE_HANDOFF_FD") is None:
+                if os.environ.get("TC_PROOF_NATIVE_LAUNCH") != "1":
+                    print("tc-proof: native launch handoff is missing", file=sys.stderr)
+                    return 1
+                return launch_native_worker(args)
+            consume_native_handoff(args.context, args.operation)
+            bind_native_environment(args.context)
         except (RuntimeError, ValueError, OSError, KeyError) as error:
             print(f"tc-proof: native launch rejected: {error}", file=sys.stderr)
             return 1
-    if args.operation in RUNNER_OPS:
-        try:
-            bind_native_environment(args.context)
-        except (RuntimeError, ValueError, OSError, KeyError):
-            return finish(
-                "rejected",
-                "CONTEXT_INDEX",
-                {},
-                [],
-                args.operation,
-                os.environ.get("TC_PROOF_CONTEXT_SHA256", "0" * 64),
-            )
     if args.approve:
         return finish(
             "rejected",

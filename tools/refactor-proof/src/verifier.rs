@@ -11,10 +11,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::fs::{self, File, OpenOptions};
-use std::io::{self, BufRead, Read, Write};
+use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
 use std::os::fd::{AsRawFd, FromRawFd};
 use std::path::{Path, PathBuf};
-use std::process::{Command, ExitStatus, Stdio};
+use std::process::{Child, ChildStdin, ChildStdout, Command, ExitStatus, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -31,6 +31,8 @@ const INDEX_SCHEMA: &str = "tc-proof-context-index/v1";
 const RESULT_SCHEMA: &str = "tc-proof-runner-result/v1";
 const PREPARATION_RESULT_SCHEMA: &str = "tc-proof-preparation-result/v1";
 const OBSERVER_SCHEMA: &str = "tc-proof-observer-capability/v1";
+const NATIVE_HANDOFF_SCHEMA: &str = "tc-proof-native-handoff/v1";
+const OBSERVER_PROVIDER_ENV: &str = "TC_PROOF_OBSERVER_PROVIDER";
 const EXPECTED_ORACLE_COMMIT: &str = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b";
 const MAX_LAUNCH_TIMEOUT_MS: u64 = 600_000;
 const MAX_CHILD_OUTPUT_BYTES: usize = 32 * 1024 * 1024;
@@ -704,6 +706,21 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
     )?;
     let (request_write, response_read, observer_thread) =
         start_observer_supervisor(&prepared, member, &nonce, &oracle_commit)?;
+    let (handoff_read, mut handoff_write) = make_handoff_pipe()?;
+    let handoff = json!({
+        "schema": NATIVE_HANDOFF_SCHEMA,
+        "run_id": prepared.run_id.clone(),
+        "task_id": prepared.task_id.clone(),
+        "check_id": member.check_id.clone(),
+        "operation": member.operation.clone(),
+        "context_sha256": member.context_sha256.clone(),
+        "index_sha256": prepared.index_sha256.clone(),
+        "token": random_hex(32),
+    });
+    handoff_write.write_all(canonical_json(&handoff).as_bytes())?;
+    handoff_write.write_all(b"\n")?;
+    handoff_write.flush()?;
+    let handoff_fd = handoff_read.as_raw_fd();
     let request_fd = request_write.as_raw_fd();
     let response_fd = response_read.as_raw_fd();
     let mut command = Command::new(&options.program);
@@ -728,12 +745,23 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
         .env("TC_PROOF_OBSERVER_NONCE", &nonce)
         .env("TC_PROOF_OBSERVER_REQUEST_FD", request_fd.to_string())
         .env("TC_PROOF_OBSERVER_RESPONSE_FD", response_fd.to_string())
+        .env("TC_PROOF_NATIVE_HANDOFF_FD", handoff_fd.to_string())
         .env_remove("TC_PROOF_OBSERVER_SOCKET");
-    let mut child = command
-        .spawn()
-        .map_err(|error| VerifierError::new(format!("launch failed: {error}")))?;
+    let mut child = match command.spawn() {
+        Ok(child) => child,
+        Err(error) => {
+            drop(request_write);
+            drop(response_read);
+            drop(handoff_read);
+            drop(handoff_write);
+            let _ = observer_thread.join();
+            return Err(VerifierError::new(format!("launch failed: {error}")));
+        }
+    };
     drop(request_write);
     drop(response_read);
+    drop(handoff_read);
+    drop(handoff_write);
     let stdout = child
         .stdout
         .take()
@@ -816,6 +844,29 @@ fn make_pipe() -> Result<(File, File)> {
     Ok(unsafe { (File::from_raw_fd(fds[0]), File::from_raw_fd(fds[1])) })
 }
 
+#[cfg(unix)]
+fn make_handoff_pipe() -> Result<(File, File)> {
+    let (read, write) = make_pipe()?;
+    // The worker receives only the read end. Without this close-on-exec bit,
+    // its inherited write end would prevent the one-shot read from reaching
+    // EOF and would turn the handoff into a reusable environment convention.
+    // SAFETY: the descriptor is owned by `write` and remains valid here.
+    if unsafe { libc::fcntl(write.as_raw_fd(), libc::F_SETFD, libc::FD_CLOEXEC) } == -1 {
+        return Err(VerifierError::new(format!(
+            "native handoff inheritance failed: {}",
+            io::Error::last_os_error()
+        )));
+    }
+    Ok((read, write))
+}
+
+#[cfg(not(unix))]
+fn make_handoff_pipe() -> Result<(File, File)> {
+    Err(VerifierError::new(
+        "native launch handoff requires Unix file descriptors",
+    ))
+}
+
 #[cfg(not(unix))]
 fn make_pipe() -> Result<(File, File)> {
     Err(VerifierError::new(
@@ -829,6 +880,15 @@ fn start_observer_supervisor(
     nonce: &str,
     oracle_commit: &str,
 ) -> Result<(File, File, thread::JoinHandle<Result<Vec<String>>>)> {
+    let provider = std::env::var_os(OBSERVER_PROVIDER_ENV)
+        .map(PathBuf::from)
+        .filter(|path| !path.as_os_str().is_empty())
+        .ok_or_else(|| {
+            VerifierError::new(
+                "independent observer response provider is unavailable; launch rejected",
+            )
+        })?;
+    regular_file(&provider, "observer response provider")?;
     let (request_read, request_write) = make_pipe()?;
     let (response_read, response_write) = make_pipe()?;
     let run_id = prepared.run_id.clone();
@@ -839,9 +899,31 @@ fn start_observer_supervisor(
     let nonce = nonce.to_owned();
     let oracle_commit = oracle_commit.to_owned();
     let supervisor = thread::spawn(move || {
-        observe_worker(
+        let mut child = Command::new(&provider)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .env_remove(OBSERVER_PROVIDER_ENV)
+            .spawn()
+            .map_err(|error| {
+                VerifierError::new(format!("observer response provider launch failed: {error}"))
+            })?;
+        let stdin = child
+            .stdin
+            .take()
+            .ok_or_else(|| VerifierError::new("observer response provider stdin unavailable"))?;
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| VerifierError::new("observer response provider stdout unavailable"))?;
+        let mut provider = PipeObserverProvider {
+            request: BufWriter::new(stdin),
+            response: BufReader::new(stdout),
+        };
+        let result = observe_worker(
             request_read,
             response_write,
+            &mut provider,
             &run_id,
             &task_id,
             &check_id,
@@ -849,14 +931,69 @@ fn start_observer_supervisor(
             &tree,
             &oracle_commit,
             &nonce,
-        )
+        );
+        drop(provider);
+        let status = finish_observer_provider(&mut child, result.is_err())?;
+        if !status.success() {
+            return Err(VerifierError::new(
+                "observer response provider exited unsuccessfully",
+            ));
+        }
+        result
     });
     Ok((request_write, response_read, supervisor))
 }
 
-fn observe_worker(
+trait ObserverProvider {
+    fn observe(&mut self, request: &Map<String, Value>) -> Result<Map<String, Value>>;
+}
+
+struct PipeObserverProvider {
+    request: io::BufWriter<ChildStdin>,
+    response: io::BufReader<ChildStdout>,
+}
+
+impl ObserverProvider for PipeObserverProvider {
+    fn observe(&mut self, request: &Map<String, Value>) -> Result<Map<String, Value>> {
+        self.request
+            .write_all(canonical_json(&Value::Object(request.clone())).as_bytes())?;
+        self.request.write_all(b"\n")?;
+        self.request.flush()?;
+        let mut line = String::new();
+        let count = self.response.read_line(&mut line)?;
+        if count == 0 || !line.ends_with('\n') || line.len() > MAX_CHILD_OUTPUT_BYTES {
+            return Err(VerifierError::new(
+                "independent observer response truncated or missing",
+            ));
+        }
+        parse_json_object(line.trim_end_matches('\n').as_bytes(), "observer response")
+    }
+}
+
+fn finish_observer_provider(child: &mut Child, kill: bool) -> Result<ExitStatus> {
+    if kill {
+        let _ = child.kill();
+    }
+    let deadline = Instant::now() + Duration::from_secs(5);
+    loop {
+        if let Some(status) = child.try_wait()? {
+            return Ok(status);
+        }
+        if Instant::now() >= deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(VerifierError::new(
+                "observer response provider did not terminate",
+            ));
+        }
+        thread::sleep(Duration::from_millis(5));
+    }
+}
+
+fn observe_worker<P: ObserverProvider>(
     request_read: File,
-    _response_write: File,
+    response_write: File,
+    provider: &mut P,
     run_id: &str,
     task_id: &str,
     check_id: &str,
@@ -872,7 +1009,8 @@ fn observe_worker(
         _ => 1,
     };
     let mut reader = io::BufReader::new(request_read);
-    let mut writer = io::BufWriter::new(_response_write);
+    let mut writer = io::BufWriter::new(response_write);
+    let mut observed_digests = Vec::with_capacity(expected);
     for request_id in 0..expected {
         let mut line = String::new();
         let count = reader.read_line(&mut line)?;
@@ -910,10 +1048,20 @@ fn observe_worker(
                 "observer request binding mismatch or replay",
             ));
         }
-        let response = json!({
-            "schema": "tc-proof-observer-error/v1",
-            "error": "independent observer response is unavailable",
-        });
+        let response = provider.observe(&request)?;
+        validate_observer_response(
+            &response,
+            run_id,
+            task_id,
+            check_id,
+            request_id as u64,
+            operation,
+            oracle_commit,
+            tree,
+            nonce,
+        )?;
+        let response = Value::Object(response);
+        observed_digests.push(sha256_canonical(&response));
         writer.write_all(canonical_json(&response).as_bytes())?;
         writer.write_all(b"\n")?;
         writer.flush()?;
@@ -922,9 +1070,90 @@ fn observe_worker(
     if reader.read(&mut extra)? != 0 {
         return Err(VerifierError::new("observer replay or incomplete close"));
     }
-    Err(VerifierError::new(
-        "independent observer response is unavailable",
-    ))
+    Ok(observed_digests)
+}
+
+fn validate_observer_response(
+    response: &Map<String, Value>,
+    run_id: &str,
+    task_id: &str,
+    check_id: &str,
+    request_id: u64,
+    operation: &str,
+    oracle_commit: &str,
+    tree: &str,
+    nonce: &str,
+) -> Result<()> {
+    exact_keys(
+        response,
+        &[
+            "schema",
+            "nonce",
+            "run_id",
+            "task_id",
+            "check_id",
+            "request_id",
+            "operation",
+            "source_commit",
+            "tree",
+            "exit",
+            "stdout",
+            "stderr",
+            "files",
+            "payload",
+            "records",
+        ],
+        "observer response",
+    )?;
+    if response.get("schema")
+        != Some(&Value::String("tc-proof-observation/v1".to_string()))
+        || required_string(response, "nonce")? != nonce
+        || required_string(response, "run_id")? != run_id
+        || required_string(response, "task_id")? != task_id
+        || required_string(response, "check_id")? != check_id
+        || response.get("request_id").and_then(Value::as_u64) != Some(request_id)
+        || required_string(response, "operation")? != operation
+        || required_string(response, "source_commit")? != oracle_commit
+        || required_string(response, "tree")? != tree
+        || response.get("exit").and_then(Value::as_i64) != Some(0)
+        || response.get("stdout").and_then(Value::as_str).is_none()
+        || response.get("stderr").and_then(Value::as_str).is_none()
+    {
+        return Err(VerifierError::new(
+            "observer response binding, status, or stream mismatch",
+        ));
+    }
+    let files = response
+        .get("files")
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("observer response files are invalid"))?;
+    if files
+        .iter()
+        .any(|(name, value)| name.is_empty() || value.as_str().is_none())
+    {
+        return Err(VerifierError::new("observer response files are invalid"));
+    }
+    let payload = response
+        .get("payload")
+        .and_then(Value::as_object)
+        .filter(|payload| !payload.is_empty())
+        .ok_or_else(|| VerifierError::new("observer response payload is empty or invalid"))?;
+    let records = response
+        .get("records")
+        .and_then(Value::as_array)
+        .filter(|records| !records.is_empty())
+        .ok_or_else(|| VerifierError::new("observer response records are empty or invalid"))?;
+    if records.iter().any(|record| {
+        record
+            .as_object()
+            .is_none_or(|record| record.is_empty())
+    }) {
+        return Err(VerifierError::new(
+            "observer response contains an invalid record",
+        ));
+    }
+    let _ = payload;
+    Ok(())
 }
 
 fn discover_checks(verify: &VerifyFile) -> Result<Vec<CheckSpec>> {
@@ -1442,7 +1671,7 @@ fn validate_tree_paths(root: &Path, label: &str) -> Result<()> {
         let entry = entry?;
         let path = entry.path();
         let metadata = fs::symlink_metadata(&path)?;
-        if metadata.file_type().is_symlink() || link_count(&metadata) != 1 {
+        if metadata.file_type().is_symlink() {
             return Err(VerifierError::new(format!(
                 "{label} contains an unsafe link"
             )));
@@ -2480,6 +2709,43 @@ mod tests {
         })) + "\n"
     }
 
+    struct FailingProvider;
+
+    impl ObserverProvider for FailingProvider {
+        fn observe(&mut self, _request: &Map<String, Value>) -> Result<Map<String, Value>> {
+            Err(VerifierError::new(
+                "independent observer response is unavailable",
+            ))
+        }
+    }
+
+    struct ValidProvider;
+
+    impl ObserverProvider for ValidProvider {
+        fn observe(&mut self, request: &Map<String, Value>) -> Result<Map<String, Value>> {
+            Ok(json!({
+                "schema": "tc-proof-observation/v1",
+                "nonce": request["nonce"].clone(),
+                "run_id": request["run_id"].clone(),
+                "task_id": request["task_id"].clone(),
+                "check_id": request["check_id"].clone(),
+                "request_id": request["request_id"].clone(),
+                "operation": request["operation"].clone(),
+                "source_commit": request["source_commit"].clone(),
+                "tree": request["tree"].clone(),
+                "exit": 0,
+                "stdout": "host-observer",
+                "stderr": "",
+                "files": {},
+                "payload": {"schema": "tc-proof-host-event/v1"},
+                "records": [{"schema": "tc-proof-host-record/v1"}],
+            })
+            .as_object()
+            .cloned()
+            .ok_or_else(|| VerifierError::new("test provider response is not an object"))?)
+        }
+    }
+
     #[test]
     fn context_reference_requires_matching_check() {
         let error = discover_context_reference(
@@ -2847,13 +3113,15 @@ mod tests {
         let (response_read, response_write) = make_pipe().expect("response pipe");
         let source_commit = "a".repeat(40);
         let tree = "b".repeat(40);
-        let supervisor = thread::spawn({
-            let source_commit = source_commit.clone();
-            let tree = tree.clone();
-            move || {
+    let supervisor = thread::spawn({
+        let source_commit = source_commit.clone();
+        let tree = tree.clone();
+        move || {
+                let mut provider = FailingProvider;
                 observe_worker(
                     request_read,
                     response_write,
+                    &mut provider,
                     "/run",
                     "TASK-001",
                     "CHK-001",
@@ -2886,9 +3154,11 @@ mod tests {
             let source_commit = source_commit.clone();
             let tree = tree.clone();
             move || {
+                let mut provider = FailingProvider;
                 observe_worker(
                     request_read,
                     response_write,
+                    &mut provider,
                     "/run",
                     "TASK-001",
                     "CHK-001",
@@ -2917,9 +3187,11 @@ mod tests {
         let (request_read, mut request_write) = make_pipe().expect("request pipe");
         let (response_read, response_write) = make_pipe().expect("response pipe");
         let supervisor = thread::spawn(move || {
+            let mut provider = FailingProvider;
             observe_worker(
                 request_read,
                 response_write,
+                &mut provider,
                 "/run",
                 "TASK-001",
                 "CHK-001",
@@ -2949,9 +3221,11 @@ mod tests {
             let source_commit = source_commit.clone();
             let tree = tree.clone();
             move || {
+                let mut provider = ValidProvider;
                 observe_worker(
                     request_read,
                     response_write,
+                    &mut provider,
                     "/run",
                     "TASK-001",
                     "CHK-001",

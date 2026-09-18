@@ -10,7 +10,6 @@ from .context import (
     Reject,
     bind_context,
     load_context,
-    validate_close_evidence,
     validate_dependencies,
     validate_required_members,
     validate_schema,
@@ -23,7 +22,6 @@ from .result import finish
 from .index import load_index
 from .validate import (
     validate_capture_payload,
-    validate_close_records,
     validate_index_close_outputs,
     validate_native_extension,
     validate_oracle_repeat,
@@ -49,6 +47,28 @@ def _load_or_reject(context_path: Path, default_operation: str) -> tuple[dict[st
     return context, context_hash, context.get("operation", default_operation)
 
 
+def _request_observation(
+    client: ObserverClient,
+    *,
+    operation: str,
+    source_commit: str,
+    tree: str,
+) -> dict[str, Any]:
+    """Require an independently supplied, nonempty observation record set."""
+    event = client.request(operation, source_commit, tree)
+    payload = event.get("payload")
+    records = event.get("records")
+    if (
+        not isinstance(payload, dict)
+        or not payload
+        or not isinstance(records, list)
+        or not records
+        or any(not isinstance(record, dict) or not record for record in records)
+    ):
+        raise ObserverError("observer response payload or records are invalid")
+    return event
+
+
 def run_preflight(context_path: Path) -> int:
     loaded = _load_or_reject(context_path, "preflight")
     if isinstance(loaded, Reject):
@@ -62,9 +82,19 @@ def run_preflight(context_path: Path) -> int:
         validate_dependencies(context)
         if context.get("candidate_success"):
             raise Reject("CLOSURE")
-        return finish("passed", None, {"validated": True}, [], operation, reported)
+        client = ObserverClient.from_env()
+        event = _request_observation(
+            client,
+            operation=operation,
+            source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
+            tree=os.environ["TC_PROOF_SOURCE_TREE"],
+        )
+        digest = client.digest(event)
+        return finish("passed", None, {"validated": True, "observations": [event]}, [digest], operation, reported)
     except Reject as error:
         return finish("rejected", error.category, {}, [], operation, reported)
+    except ObserverError:
+        return finish("rejected", "EXECUTION", {}, [], operation, reported)
 
 
 def run_required(context_path: Path) -> int:
@@ -77,9 +107,26 @@ def run_required(context_path: Path) -> int:
         _guard_context(context, context_hash)
         validate_schema(context)
         members = validate_required_members(context)
-        return finish("passed", None, {"members": members}, [], operation, reported)
+        client = ObserverClient.from_env()
+        event = _request_observation(
+            client,
+            operation=operation,
+            source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
+            tree=os.environ["TC_PROOF_SOURCE_TREE"],
+        )
+        digest = client.digest(event)
+        return finish(
+            "passed",
+            None,
+            {"members": members, "observations": [event]},
+            [digest],
+            operation,
+            reported,
+        )
     except Reject as error:
         return finish("rejected", error.category, {}, [], operation, reported)
+    except ObserverError:
+        return finish("rejected", "EXECUTION", {}, [], operation, reported)
 
 
 def _collect_observations(
@@ -92,7 +139,14 @@ def _collect_observations(
 ) -> list[dict[str, Any]]:
     events = []
     for _ in range(count):
-        events.append(client.request(operation, source_commit, tree))
+        events.append(
+            _request_observation(
+                client,
+                operation=operation,
+                source_commit=source_commit,
+                tree=tree,
+            )
+        )
     return events
 
 
@@ -215,21 +269,10 @@ def run_close(context_path: Path) -> int:
                 count=1,
             )
             digests = [client.digest(event) for event in events]
-            validate_close_records(events[0])
             output_dir = Path(os.environ["TC_PROOF_RESULT"]).parent
-            validate_index_close_outputs(events[0], index, output_dir)
+            validate_index_close_outputs(events[0], index, output_dir, context["check_id"])
             return finish("passed", None, {"observations": events}, digests, operation, reported)
-        validate_close_evidence(context)
-        client = ObserverClient.from_env()
-        events = _collect_observations(
-            client,
-            operation=operation,
-            source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
-            tree=os.environ["TC_PROOF_SOURCE_TREE"],
-            count=1,
-        )
-        digests = [client.digest(event) for event in events]
-        return finish("passed", None, {"observations": events}, digests, operation, reported)
+        raise Reject("CONTEXT_INDEX")
     except Reject as error:
         return finish("rejected", error.category, {}, digests, operation, reported)
     except ObserverError:

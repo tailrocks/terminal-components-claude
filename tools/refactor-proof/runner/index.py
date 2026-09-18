@@ -15,7 +15,7 @@ from .json_util import load_path, sha256_bytes
 def load_index() -> tuple[dict[str, Any], str]:
     index_path = os.environ.get("TC_PROOF_CONTEXT_INDEX")
     index_hash = os.environ.get("TC_PROOF_CONTEXT_INDEX_SHA256")
-    if not index_path or not index_hash:
+    if not index_path or not index_hash or not re.fullmatch(r"[0-9a-f]{64}", index_hash):
         raise Reject("CONTEXT_INDEX")
     path = Path(index_path)
     try:
@@ -79,7 +79,7 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
     for directory in (contexts_dir, results_dir, outputs_dir, logs_dir):
         try:
             metadata = directory.lstat()
-            if directory.is_symlink() or metadata.st_nlink != 1 or not stat.S_ISDIR(metadata.st_mode):
+            if directory.is_symlink() or not stat.S_ISDIR(metadata.st_mode):
                 raise Reject("CONTEXT_INDEX")
         except OSError:
             raise Reject("CONTEXT_INDEX") from None
