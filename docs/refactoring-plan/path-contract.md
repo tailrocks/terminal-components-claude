@@ -64,6 +64,24 @@ worktree commit and binary hash. Context contents must bind the task, check,
 run, scope base, and provenance. Taskfmt does not discover, generate, or bind
 these proof inputs.
 
+The native comparator target is verifier-owned and host-local. Set
+`TC_PROOF_TARGET_DIR` to an existing absolute directory outside the candidate
+worktree before running the build helper. An empty `CARGO_TARGET_DIR` is
+ignored; a non-empty `CARGO_TARGET_DIR` is accepted only when it resolves to
+the same root as `TC_PROOF_TARGET_DIR`. If neither variable is set, the helper
+inspects `$WORKTREE/target` and fails closed when that default is missing,
+inside the worktree, or a symlink into a shared cache. The selected root and
+its `debug/tc-proof` child must be regular host paths; the helper does not
+create or follow a target-root symlink.
+
+The helper builds with `CARGO_TARGET_DIR` bound to the selected real path and
+writes `debug/tc-proof.build.json`. That receipt binds the resolved worktree,
+source `HEAD` and tree, exact comparator path, selected Cargo target root, and
+SHA-256 of the executable. A missing, linked, stale, or mismatched binary or
+receipt is a failed precondition. The dispatcher resolves the same target root
+and revalidates the complete receipt before native preparation or standalone
+`taskfmt verify`; `taskfmt lint` remains taskfmt-only.
+
 ## Worktree contract
 
 | Phase | Owner | Location |

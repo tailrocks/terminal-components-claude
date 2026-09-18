@@ -27,6 +27,7 @@ Optional:
   TC_TASK_WORKTREE         Required isolated subagent worktree for verify.
   TC_TASK_RUN_DIR          Required for verify; unique external run/log directory.
   TC_TASK_BASE             Immutable task scope base commit.
+  TC_PROOF_TARGET_DIR      Existing external native-proof Cargo target directory.
 
 Only the standalone taskfmt lint and verify commands are allowed. This script
 never starts containers, invokes taskfmt lifecycle binaries, or integrates refs.
@@ -49,35 +50,98 @@ task_dir() {
   echo "$CATALOG_ROOT/$task"
 }
 
+resolve_target_dir() {
+  local worktree_root="$1"
+  local tc_target_dir="${TC_PROOF_TARGET_DIR:-}"
+  local cargo_target="${CARGO_TARGET_DIR:-}"
+  python3 - "$worktree_root" "$tc_target_dir" "$cargo_target" <<'PY'
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1]).resolve()
+tc_raw, cargo_raw = sys.argv[2:]
+
+def checked_path(raw: str, name: str) -> Path:
+    path = Path(raw)
+    if not path.is_absolute():
+        raise SystemExit(f"{name} must be an absolute path: {raw or '<empty>'}")
+    if path.is_symlink():
+        raise SystemExit(f"{name} must not be a symlink: {path}")
+    return path
+
+if tc_raw and cargo_raw:
+    tc_path = checked_path(tc_raw, "TC_PROOF_TARGET_DIR")
+    cargo_path = checked_path(cargo_raw, "CARGO_TARGET_DIR")
+    if tc_path.resolve() != cargo_path.resolve():
+        raise SystemExit(
+            "TC_PROOF_TARGET_DIR and CARGO_TARGET_DIR select ambiguous target roots"
+        )
+    selected = tc_path
+elif tc_raw:
+    selected = checked_path(tc_raw, "TC_PROOF_TARGET_DIR")
+elif cargo_raw:
+    selected = checked_path(cargo_raw, "CARGO_TARGET_DIR")
+else:
+    selected = root / "target"
+
+if selected.is_symlink():
+    raise SystemExit(f"proof target directory must not be a symlink: {selected}")
+if not selected.exists():
+    raise SystemExit(f"proof target directory is missing: {selected}")
+if not selected.is_dir():
+    raise SystemExit(f"proof target path is not a directory: {selected}")
+
+resolved = selected.resolve()
+if resolved == root or root in resolved.parents:
+    raise SystemExit("proof target directory must be external to the worktree")
+print(resolved)
+PY
+}
+
 proof_binary() {
-  echo "$WORKTREE/target/debug/tc-proof"
+  local target_dir="$1"
+  echo "$target_dir/debug/tc-proof"
 }
 
 require_native_proof() {
-  local binary receipt commit
-  binary="$(proof_binary)"
+  local worktree_root="$1"
+  local target_dir="$2"
+  local binary="$3"
+  local receipt commit tree
+  [[ -d "$target_dir" && ! -L "$target_dir" ]] \
+    || die "native proof target directory missing or linked: $target_dir"
+  [[ -d "$target_dir/debug" && ! -L "$target_dir/debug" ]] \
+    || die "native proof debug target directory missing or linked: $target_dir/debug"
   [[ -f "$binary" && ! -L "$binary" && -x "$binary" ]] \
-    || die "native tc-proof comparator missing: $binary (run scripts/campaign-build-proof.sh in this worktree)"
-  receipt="$binary.build.json"
+    || die "native tc-proof comparator missing: $binary (run scripts/campaign-build-proof.sh with TC_PROOF_TARGET_DIR)"
+  receipt="$target_dir/debug/tc-proof.build.json"
   [[ -f "$receipt" && ! -L "$receipt" ]] \
     || die "native tc-proof build receipt missing: $receipt (run scripts/campaign-build-proof.sh)"
-  commit="$(git -C "$WORKTREE" rev-parse HEAD)"
-  python3 - "$receipt" "$WORKTREE" "$commit" "$binary" <<'PY' \
-    || die "native tc-proof build receipt does not match this worktree"
+  commit="$(git -C "$worktree_root" rev-parse HEAD)"
+  tree="$(git -C "$worktree_root" rev-parse 'HEAD^{tree}')"
+  python3 - "$receipt" "$worktree_root" "$target_dir" "$commit" "$tree" "$binary" <<'PY' \
+    || die "native tc-proof build receipt does not match this worktree/target"
 import hashlib
 import json
 import sys
 from pathlib import Path
 
-receipt, worktree, commit, binary = sys.argv[1:]
-with Path(receipt).open() as stream:
-    value = json.load(stream)
+receipt, worktree, target, commit, tree, binary = sys.argv[1:]
+try:
+    with Path(receipt).open(encoding="utf-8") as stream:
+        value = json.load(stream)
+except (OSError, ValueError) as error:
+    raise SystemExit(f"invalid proof build receipt: {error}") from error
+
 if value.get("schema") != "tc-proof-native-build/v1":
     raise SystemExit("wrong build receipt schema")
 if value.get("worktree") != str(Path(worktree).resolve()):
     raise SystemExit("wrong build worktree")
-if value.get("commit") != commit:
-    raise SystemExit("wrong build commit")
+expected_target = str(Path(target).resolve())
+if value.get("target_dir") != expected_target or value.get("cargo_target_dir") != expected_target:
+    raise SystemExit("wrong build target")
+if value.get("commit") != commit or value.get("tree") != tree:
+    raise SystemExit("wrong build source binding")
 if value.get("binary") != str(Path(binary).resolve()):
     raise SystemExit("wrong build binary")
 actual = hashlib.sha256(Path(binary).read_bytes()).hexdigest()
@@ -136,8 +200,7 @@ require_taskfmt() {
 
 prepare_native_contexts() {
   local dir="$1"
-  local binary
-  binary="$(proof_binary)"
+  local binary="$2"
   local -a command=(
     "$binary" prepare
     --task-dir "$dir"
@@ -172,25 +235,31 @@ cmd_lint() {
 
 cmd_verify() {
   require_taskfmt
-  local dir binary
+  local dir binary target_dir worktree_root
   dir="$(task_dir)"
-  binary="$(proof_binary)"
   [[ -n "$WORKTREE" && "$WORKTREE" = /* ]] \
     || die "set TC_TASK_WORKTREE to an absolute isolated worktree"
   [[ -d "$WORKTREE" ]] || die "subagent worktree missing: $WORKTREE"
   [[ -n "$RUN_DIR" && "$RUN_DIR" = /* ]] \
     || die "set TC_TASK_RUN_DIR to a unique absolute verifier run directory"
+  worktree_root="$(git -C "$WORKTREE" rev-parse --show-toplevel)" \
+    || die "candidate worktree is not a Git worktree: $WORKTREE"
   require_scope_base
   require_external_run_dir
   require_clean_worktree
-  require_native_proof
-  prepare_native_contexts "$dir"
+  target_dir="$(resolve_target_dir "$worktree_root")" \
+    || die "native proof target directory is invalid"
+  binary="$(proof_binary "$target_dir")"
+  export TC_PROOF_TARGET_DIR="$target_dir" CARGO_TARGET_DIR="$target_dir"
+  require_native_proof "$worktree_root" "$target_dir" "$binary"
+  prepare_native_contexts "$dir" "$binary"
   export TC_PROOF_CONTEXT_INDEX="$RUN_DIR/context-index.json"
-  export TC_PROOF_CONTEXT_INDEX_SHA256="$(shasum -a 256 "$TC_PROOF_CONTEXT_INDEX" | awk '{print $1}')"
+  local context_index_sha256
+  context_index_sha256="$(shasum -a 256 "$TC_PROOF_CONTEXT_INDEX" | awk '{print $1}')"
+  export TC_PROOF_CONTEXT_INDEX_SHA256="$context_index_sha256"
   export RUN_DIR TC_TASKFMT="$TASKFMT" TC_TASKFMT_SOURCE="$TASKFMT_SOURCE"
   export TC_PROOF_NATIVE_LAUNCH=1
   export TC_PROOF_NATIVE_LAUNCHER="$binary"
-  export TC_PROOF_NATIVE_CHILD=0
   export TC_PROOF_NATIVE_TIMEOUT_MS="${TC_PROOF_NATIVE_TIMEOUT_MS:-600000}"
 
   local taskfmt_status=0
