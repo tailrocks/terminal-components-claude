@@ -6,18 +6,24 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import stat
 import subprocess
 import sys
 from pathlib import Path
 
 from ..accounting import run_account_tests
 from ..architecture import run_architecture
-from .context import load_context
+from .context import Reject, load_context
 from .index import load_index
+from .json_util import sha256_bytes
 from .operations import run_capture, run_close, run_oracle, run_preflight, run_required
 from .result import finish
 
 RUNNER_OPS = {"preflight", "required", "oracle", "capture", "account-tests", "architecture", "close"}
+RUNNER_CONTEXT_SCHEMA = "tc-proof-context/v1"
+COMPARE_CONTEXT_SCHEMA = "tc-proof-compare-context/v1"
+NATIVE_BINARY_ENV = "TC_PROOF_NATIVE_BINARY"
+NATIVE_LAUNCHER_ENV = "TC_PROOF_NATIVE_LAUNCHER"
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -170,6 +176,108 @@ def bind_native_environment(context_path: Path, *, require_launcher: bool = Fals
     os.environ["TC_PROOF_RESULT"] = str(result_path)
 
 
+def _validated_executable(value: object, label: str) -> Path:
+    if not isinstance(value, str) or not value:
+        raise RuntimeError(f"{label} path is missing")
+    path = Path(value)
+    if not path.is_absolute():
+        raise RuntimeError(f"{label} path must be absolute")
+
+    current = path
+    while True:
+        try:
+            metadata = current.lstat()
+        except OSError as error:
+            raise RuntimeError(f"{label} path is unavailable: {current}") from error
+        if stat.S_ISLNK(metadata.st_mode):
+            raise RuntimeError(f"{label} path contains a symlink: {current}")
+        if current == current.parent:
+            break
+        current = current.parent
+
+    metadata = path.lstat()
+    if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+        raise RuntimeError(f"{label} is not a regular single-link file")
+    if not os.access(path, os.X_OK):
+        raise RuntimeError(f"{label} is not executable")
+    return path
+
+
+def _trusted_comparator(context: dict[str, object]) -> tuple[Path, str] | None:
+    if context.get("schema") != RUNNER_CONTEXT_SCHEMA:
+        return None
+    qualification = context.get("qualification")
+    common = qualification.get("common") if isinstance(qualification, dict) else None
+    comparator = common.get("comparator") if isinstance(common, dict) else None
+    if not isinstance(common, dict) or not isinstance(comparator, dict):
+        raise RuntimeError("trusted native comparator binding is missing")
+    if set(comparator) != {"path", "sha256"}:
+        raise RuntimeError("trusted native comparator binding is ambiguous")
+    worktree = common.get("worktree")
+    if not isinstance(worktree, str) or not Path(worktree).is_absolute():
+        raise RuntimeError("trusted candidate worktree binding is invalid")
+    path = _validated_executable(comparator.get("path"), "trusted native comparator")
+    worktree_path = Path(worktree)
+    if path == worktree_path or worktree_path in path.parents:
+        raise RuntimeError("trusted native comparator is inside the candidate worktree")
+    expected_hash = comparator.get("sha256")
+    if (
+        not isinstance(expected_hash, str)
+        or len(expected_hash) != 64
+        or any(character not in "0123456789abcdef" for character in expected_hash)
+    ):
+        raise RuntimeError("trusted native comparator hash is invalid")
+    try:
+        actual_hash = sha256_bytes(path.read_bytes())
+    except OSError as error:
+        raise RuntimeError("trusted native comparator cannot be hashed") from error
+    if actual_hash != expected_hash:
+        raise RuntimeError("trusted native comparator provenance mismatch")
+    return path, expected_hash
+
+
+def _native_comparator_path(context_path: Path) -> Path:
+    try:
+        context, _, _ = load_context(context_path)
+    except (OSError, Reject, ValueError) as error:
+        raise RuntimeError("compare context cannot be loaded") from error
+    schema = context.get("schema")
+    if not isinstance(schema, str) or schema not in {RUNNER_CONTEXT_SCHEMA, COMPARE_CONTEXT_SCHEMA}:
+        raise RuntimeError("compare context schema is not supported")
+    trusted = _trusted_comparator(context)
+
+    override = os.environ.get(NATIVE_BINARY_ENV)
+    launcher = os.environ.get(NATIVE_LAUNCHER_ENV)
+    if override == "" or launcher == "":
+        raise RuntimeError("native comparator path is empty")
+    if override is not None and launcher is not None and override != launcher:
+        raise RuntimeError("native comparator paths are ambiguous")
+
+    selected_value = override or launcher
+    if selected_value is None and trusted is not None:
+        selected_value = str(trusted[0])
+    if selected_value is None:
+        root = Path(__file__).resolve().parent.parent
+        workspace = root.parent.parent
+        target = workspace / "target"
+        if target.is_symlink():
+            raise RuntimeError("default native comparator target is a symlink")
+        selected_value = str(target / "debug" / "tc-proof")
+
+    selected = _validated_executable(selected_value, "native comparator")
+    if trusted is not None:
+        trusted_path, trusted_hash = trusted
+        if selected != trusted_path:
+            raise RuntimeError("selected native comparator is not verifier-bound")
+        try:
+            selected_hash = sha256_bytes(selected.read_bytes())
+        except OSError as error:
+            raise RuntimeError("selected native comparator cannot be hashed") from error
+        if selected_hash != trusted_hash:
+            raise RuntimeError("selected native comparator provenance mismatch")
+    return selected
+
+
 def launch_native_worker(args: argparse.Namespace) -> int:
     """Re-enter this worker only through the trusted Rust launcher."""
     bind_native_environment(args.context, require_launcher=True)
@@ -221,10 +329,12 @@ def main(argv: list[str] | None = None) -> int:
             os.environ.get("TC_PROOF_CONTEXT_SHA256", "0" * 64),
         )
     if args.operation == "compare":
-        root = Path(__file__).resolve().parent.parent
-        workspace = root.parent.parent
-        rust = workspace / "target" / "debug" / "tc-proof"
-        os.execv(str(rust), [str(rust), "compare", *[str(a) for a in sys.argv[2:]]])
+        try:
+            rust = _native_comparator_path(args.context)
+            os.execv(str(rust), [str(rust), "compare", *[str(a) for a in sys.argv[2:]]])
+        except (OSError, RuntimeError, ValueError) as error:
+            print(f"tc-proof: native comparator rejected: {error}", file=sys.stderr)
+            return 1
     if args.operation not in RUNNER_OPS:
         print(f"tc-proof: unknown command: {args.operation}", file=sys.stderr)
         return 2
