@@ -1,9 +1,8 @@
-"""Observer IPC client for tc-proof-runner-observe/v1."""
+"""Observer IPC client for the host-supervised inherited-pipe ABI."""
 
 from __future__ import annotations
 
 import os
-import socket
 from typing import Any
 
 from .json_util import canonical, load_bytes, sha256_canonical
@@ -17,33 +16,33 @@ class ObserverError(Exception):
 
 
 class ObserverClient:
-    def __init__(self, nonce: str, request_fd: int | None = None, response_fd: int | None = None, socket_path: str | None = None) -> None:
+    def __init__(self, nonce: str, run_id: str, task_id: str, check_id: str, request_fd: int, response_fd: int) -> None:
         self.nonce = nonce
-        self._socket: socket.socket | None = None
-        if socket_path is not None:
-            connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            connection.connect(socket_path)
-            self._socket = connection
-            self._request = connection.makefile("wb")
-            self._response = connection.makefile("rb")
-        elif request_fd is not None and response_fd is not None:
-            self._request = os.fdopen(request_fd, "wb")
-            self._response = os.fdopen(response_fd, "rb")
-        else:
-            raise ObserverError("observer transport unavailable")
+        self.run_id = run_id
+        self.task_id = task_id
+        self.check_id = check_id
+        self.request_id = 0
+        self._request = os.fdopen(request_fd, "wb")
+        self._response = os.fdopen(response_fd, "rb")
 
     @classmethod
     def from_env(cls) -> ObserverClient:
         nonce = os.environ.get("TC_PROOF_OBSERVER_NONCE")
         request_fd = os.environ.get("TC_PROOF_OBSERVER_REQUEST_FD")
         response_fd = os.environ.get("TC_PROOF_OBSERVER_RESPONSE_FD")
-        socket_path = os.environ.get("TC_PROOF_OBSERVER_SOCKET")
-        if not nonce or ((request_fd is None or response_fd is None) and socket_path is None):
+        if not nonce or request_fd is None or response_fd is None:
             raise ObserverError("observer transport unavailable")
+        if os.environ.get("TC_PROOF_OBSERVER_SOCKET"):
+            raise ObserverError("observer socket transport is retired")
         try:
-            if socket_path is not None and (request_fd is None or response_fd is None):
-                return cls(nonce, socket_path=socket_path)
-            return cls(nonce, int(request_fd), int(response_fd))
+            return cls(
+                nonce,
+                os.environ["TC_PROOF_RUN_ID"],
+                os.environ["TC_PROOF_TASK_ID"],
+                os.environ["TC_PROOF_CHECK_ID"],
+                int(request_fd),
+                int(response_fd),
+            )
         except (OSError, ValueError) as error:
             raise ObserverError(str(error)) from error
 
@@ -51,6 +50,10 @@ class ObserverClient:
         payload = {
             "schema": "tc-proof-runner-observe/v1",
             "nonce": self.nonce,
+            "run_id": self.run_id,
+            "task_id": self.task_id,
+            "check_id": self.check_id,
+            "request_id": self.request_id,
             "operation": operation,
             "source_commit": source_commit,
             "tree": tree,
@@ -66,8 +69,23 @@ class ObserverClient:
         if len(raw) > MAX_RESPONSE_BYTES:
             raise ObserverError("observer response exceeds maximum bound")
         event = load_bytes(raw[:-1])
-        if "error" in event:
-            raise ObserverError(event["error"])
+        if not isinstance(event, dict) or event.get("schema") != "tc-proof-observation/v1":
+            raise ObserverError("observer response schema mismatch")
+        for key, expected in {
+            "nonce": self.nonce,
+            "run_id": self.run_id,
+            "task_id": self.task_id,
+            "check_id": self.check_id,
+            "request_id": self.request_id,
+            "operation": operation,
+            "source_commit": source_commit,
+            "tree": tree,
+        }.items():
+            if event.get(key) != expected:
+                raise ObserverError(f"observer response binding mismatch: {key}")
+        if not isinstance(event.get("payload"), dict) or not isinstance(event.get("records"), list):
+            raise ObserverError("observer response payload is invalid")
+        self.request_id += 1
         return event
 
     def digest(self, event: dict[str, Any]) -> str:

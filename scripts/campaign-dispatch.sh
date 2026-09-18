@@ -186,16 +186,26 @@ cmd_verify() {
   prepare_native_contexts "$dir"
   export TC_PROOF_CONTEXT_INDEX="$RUN_DIR/context-index.json"
   export TC_PROOF_CONTEXT_INDEX_SHA256="$(shasum -a 256 "$TC_PROOF_CONTEXT_INDEX" | awk '{print $1}')"
-  [[ ! -e "$RUN_DIR/taskfmt-logs" ]] \
-    || die "taskfmt log directory already exists; verifier run is not fresh"
-  mkdir "$RUN_DIR/taskfmt-logs"
   export RUN_DIR TC_TASKFMT="$TASKFMT" TC_TASKFMT_SOURCE="$TASKFMT_SOURCE"
+  export TC_PROOF_NATIVE_LAUNCH=1
+  export TC_PROOF_NATIVE_LAUNCHER="$binary"
+  export TC_PROOF_NATIVE_TIMEOUT_MS="${TC_PROOF_NATIVE_TIMEOUT_MS:-600000}"
+
+  local taskfmt_status=0
   "$TASKFMT" verify \
     --root "$WORKTREE" \
     --task-dir "$dir" \
     --base "$BASE" \
     --progress "" \
-    --log-dir "$RUN_DIR/taskfmt-logs"
+    --log-dir "$RUN_DIR/taskfmt-logs" \
+    || taskfmt_status=$?
+
+  local validate_status=0
+  "$binary" validate --run-dir "$RUN_DIR" || validate_status=$?
+  if (( taskfmt_status != 0 )); then
+    return "$taskfmt_status"
+  fi
+  (( validate_status == 0 )) || die "native proof validation failed after taskfmt"
 }
 
 main() {

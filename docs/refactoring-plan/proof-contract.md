@@ -10,7 +10,8 @@ to subagents; the coordinator integrates only reviewed task commits.
 
 ## Fixed inputs
 
-- Product/source oracle: `02f5294bfdbf38004cc49130d0aff1d01f31434c`.
+- Product/source oracle: peeled `visual-baseline` commit
+  `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`.
 - Architectural parent: `7b27732a8c3c131760ec3438f641cb3c11343a42`.
 - Latest taskfmt source:
   `/Users/donbeave/Projects/taskfmt/task-format`.
@@ -66,17 +67,43 @@ Each context binds task ID, worktree commit, scope base, operation, required
 outputs, and expected provenance. Missing, extra, substituted, cross-run, or
 mutated contexts fail verification.
 
-Before invoking taskfmt, the verifier subagent must perform the native proof
+Before invoking taskfmt, the verifier subagent must perform native proof
 preparation in the isolated worktree: run
 `scripts/campaign-build-proof.sh`, materialize the exact context set and
-context index under the external `RUN_DIR`, and provide the per-check result,
-source/oracle, and observer capabilities required by the proof worker. The
-campaign dispatcher validates that the standalone `target/debug/tc-proof`
-binary and every referenced JSON context exist before it calls taskfmt. It
-does not synthesize contexts, start an observer, or build through taskfmt.
-Until that native preparation contract is implemented and independently
-reviewed, taskfmt verification is correctly blocked rather than treated as a
-passing smoke test.
+context index under the external `RUN_DIR`, and bind the per-check
+preparation results, source/oracle, comparator, and observer capability. The
+Rust `tc-proof` launcher then supervises each proof worker. The dispatcher
+invokes only standalone taskfmt `lint`/`verify`, passes the explicit
+`RUN_DIR/taskfmt-logs` path, invokes `tc-proof validate --run-dir` afterward,
+and preserves a nonzero taskfmt status. No observer socket is created inside
+the run directory or selected through a worker-controlled default.
+
+The preparation ABI is intentionally shared with
+`scripts/campaign_ledger.py`:
+
+- `context-index.json`: `tc-proof-context-index/v1`, with `task_id`,
+  `run_id`, `worktree_commit`, `scope_base`, `contexts`, `results`, and
+  `observer`.
+- `contexts/CHK-NNN.json`: `tc-proof-context/v1`.
+- `results/CHK-NNN.json`: `tc-proof-preparation-result/v1`, status `ready`.
+- `observer.json`: `tc-proof-observer-capability/v1`, transport
+  `inherited-pipe/v1`.
+
+Worker results are a separate host-selected artifact under
+`RUN_DIR/outputs/CHK-NNN.result.json` using
+`tc-proof-runner-result/v1`; they are not substituted for preparation
+results. A task-specific comparator retains `tc-proof-compare-context/v1` as
+the nested `qualification.comparator.context`, while the immutable runner
+context binds its identity and exact `CHK-NNN.compare.json` report path under
+the allowed runtime output directory.
+
+The observer request/response transport is one inherited-pipe protocol. Each
+message binds run, task, check, nonce, request order, operation, source
+commit, and source tree. Missing, replayed, truncated, alternate-transport,
+or incomplete-close evidence fails closed. The protocol is an integrity and
+execution-observation control for the native same-user threat model; it does
+not claim arbitrary filesystem isolation from a hostile process running as the
+same user. Seatbelt or container isolation is not part of this contract.
 
 ## Evidence ownership
 

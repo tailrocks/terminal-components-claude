@@ -18,8 +18,8 @@ tc-proof prepare --task-dir PATH --run-dir PATH --worktree PATH --scope-base COM
   --oracle-tag refs/tags/visual-baseline --oracle-commit COMMIT --tool PATH --comparator PATH \
   [--taskfmt PATH] [--dependency-receipt PATH] [--run-id ID] [--observer-nonce NONCE] \
   [--observer-socket PATH]
-tc-proof launch --run-dir PATH --check-id CHK-NNN [--observer-socket PATH] \
-  [--timeout-ms N] -- PROGRAM [ARGS...]
+tc-proof validate --run-dir PATH
+tc-proof launch --run-dir PATH --check-id CHK-NNN [--timeout-ms N] -- PROGRAM [ARGS...]
 ";
 
 fn usage() -> ! {
@@ -204,6 +204,22 @@ fn parse_launch_args(args: &[String]) -> Result<verifier::LaunchOptions, String>
     })
 }
 
+fn parse_validate_args(args: &[String]) -> Result<PathBuf, String> {
+    let mut run_dir = None;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--run-dir" => {
+                run_dir = Some(PathBuf::from(value_after(args, &mut index, "--run-dir")?))
+            }
+            "--help" | "-h" => return Err(HELP.to_string()),
+            option => return Err(format!("unknown validate option: {option}")),
+        }
+        index += 1;
+    }
+    run_dir.ok_or_else(|| "missing --run-dir".to_string())
+}
+
 fn print_json<T: serde::Serialize>(value: &T) -> Result<(), String> {
     let value = serde_json::to_value(value).map_err(|error| error.to_string())?;
     println!("{}", canonical_json(&value));
@@ -233,6 +249,16 @@ fn main() -> ExitCode {
             Ok(()) => ExitCode::SUCCESS,
             Err(error) => {
                 eprintln!("tc-proof prepare: {error}");
+                ExitCode::from(1)
+            }
+        },
+        "validate" => match parse_validate_args(&args)
+            .and_then(|run_dir| verifier::validate_run(&run_dir).map_err(|error| error.to_string()))
+            .and_then(|run| print_json(&run))
+        {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(error) => {
+                eprintln!("tc-proof validate: {error}");
                 ExitCode::from(1)
             }
         },

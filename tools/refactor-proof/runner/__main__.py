@@ -8,12 +8,14 @@ import os
 import sys
 from pathlib import Path
 
+from ..accounting import run_account_tests
+from ..architecture import run_architecture
 from .context import load_context
 from .index import load_index
 from .operations import run_capture, run_close, run_oracle, run_preflight, run_required
 from .result import finish
 
-RUNNER_OPS = {"preflight", "required", "oracle", "capture", "close"}
+RUNNER_OPS = {"preflight", "required", "oracle", "capture", "account-tests", "architecture", "close"}
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -29,7 +31,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 def bind_native_environment(context_path: Path) -> None:
     """Bind the selected context to the native launch/index ABI."""
     context, _, context_hash = load_context(context_path)
-    if context.get("schema") != "tc-proof-runner-context/v2":
+    if context.get("schema") != "tc-proof-context/v1":
         return
     check_id = context.get("check_id")
     if not isinstance(check_id, str) or context_path.name != f"{check_id}.json":
@@ -48,18 +50,20 @@ def bind_native_environment(context_path: Path) -> None:
         if isinstance(observer, dict):
             if observer.get("nonce"):
                 os.environ.setdefault("TC_PROOF_OBSERVER_NONCE", str(observer["nonce"]))
-            if observer.get("socket"):
-                os.environ.setdefault("TC_PROOF_OBSERVER_SOCKET", str(observer["socket"]))
+            if observer.get("transport") != "inherited-pipe/v1":
+                raise RuntimeError("observer transport is not inherited-pipe/v1")
     index_path = os.environ.get("TC_PROOF_CONTEXT_INDEX")
     if not index_path:
         return
     index, _ = load_index()
-    selected = next((member for member in index["members"] if member.get("check_id") == check_id), None)
-    if selected is None or Path(selected["context_path"]).resolve() != context_path.resolve():
+    selected = next((member for member in index["contexts"] if member.get("check_id") == check_id), None)
+    if selected is None or Path(selected["path"]) != context_path:
         raise RuntimeError("context/index selection mismatch")
-    result_path = Path(index_path).resolve().parent / selected["output_id"]
+    if context_path.is_symlink() or not context_path.is_file() or context_path.stat().st_nlink != 1:
+        raise RuntimeError("context path is not a host-owned regular file")
+    result_path = Path(index_path).resolve().parent / "outputs" / f"{check_id}.result.json"
     bound_result = os.environ.get("TC_PROOF_RESULT")
-    if bound_result and Path(bound_result).resolve() != result_path:
+    if bound_result and Path(bound_result) != result_path:
         raise RuntimeError("result path was already bound differently")
     os.environ["TC_PROOF_RESULT"] = str(result_path)
 
@@ -100,6 +104,8 @@ def main(argv: list[str] | None = None) -> int:
         "required": lambda: run_required(args.context),
         "oracle": lambda: run_oracle(args.context, args.namespace),
         "capture": lambda: run_capture(args.context, args.lane),
+        "account-tests": lambda: run_account_tests(args.context),
+        "architecture": lambda: run_architecture(args.context),
         "close": lambda: run_close(args.context),
     }
     return dispatch[args.operation]()

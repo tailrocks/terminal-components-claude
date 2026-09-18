@@ -14,7 +14,6 @@ from typing import Any
 import ast
 import base64
 import re
-import socket
 import subprocess
 
 # ----- json_util.py -----
@@ -51,7 +50,20 @@ def load_path(path) -> Any:
 
 
 def save_path(path, value: Any) -> None:
-    Path(path).write_bytes(canonical(value))
+    payload = canonical(value)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    descriptor = os.open(str(Path(path)), flags, 0o444)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            descriptor = -1
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+    finally:
+        if descriptor != -1:
+            os.close(descriptor)
 
 # ----- observer.py -----
 
@@ -67,33 +79,33 @@ class ObserverError(Exception):
 
 
 class ObserverClient:
-    def __init__(self, nonce: str, request_fd=None, response_fd=None, socket_path=None) -> None:
+    def __init__(self, nonce: str, run_id: str, task_id: str, check_id: str, request_fd: int, response_fd: int) -> None:
         self.nonce = nonce
-        self._socket = None
-        if socket_path is not None:
-            connection = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            connection.connect(socket_path)
-            self._socket = connection
-            self._request = connection.makefile("wb")
-            self._response = connection.makefile("rb")
-        elif request_fd is not None and response_fd is not None:
-            self._request = os.fdopen(request_fd, "wb")
-            self._response = os.fdopen(response_fd, "rb")
-        else:
-            raise ObserverError("observer transport unavailable")
+        self.run_id = run_id
+        self.task_id = task_id
+        self.check_id = check_id
+        self.request_id = 0
+        self._request = os.fdopen(request_fd, "wb")
+        self._response = os.fdopen(response_fd, "rb")
 
     @classmethod
     def from_env(cls) -> ObserverClient:
         nonce = os.environ.get("TC_PROOF_OBSERVER_NONCE")
         request_fd = os.environ.get("TC_PROOF_OBSERVER_REQUEST_FD")
         response_fd = os.environ.get("TC_PROOF_OBSERVER_RESPONSE_FD")
-        socket_path = os.environ.get("TC_PROOF_OBSERVER_SOCKET")
-        if not nonce or ((request_fd is None or response_fd is None) and socket_path is None):
+        if not nonce or request_fd is None or response_fd is None:
             raise ObserverError("observer transport unavailable")
+        if os.environ.get("TC_PROOF_OBSERVER_SOCKET"):
+            raise ObserverError("observer socket transport is retired")
         try:
-            if socket_path is not None and (request_fd is None or response_fd is None):
-                return cls(nonce, socket_path=socket_path)
-            return cls(nonce, int(request_fd), int(response_fd))
+            return cls(
+                nonce,
+                os.environ["TC_PROOF_RUN_ID"],
+                os.environ["TC_PROOF_TASK_ID"],
+                os.environ["TC_PROOF_CHECK_ID"],
+                int(request_fd),
+                int(response_fd),
+            )
         except (OSError, ValueError) as error:
             raise ObserverError(str(error)) from error
 
@@ -101,6 +113,10 @@ class ObserverClient:
         payload = {
             "schema": "tc-proof-runner-observe/v1",
             "nonce": self.nonce,
+            "run_id": self.run_id,
+            "task_id": self.task_id,
+            "check_id": self.check_id,
+            "request_id": self.request_id,
             "operation": operation,
             "source_commit": source_commit,
             "tree": tree,
@@ -116,8 +132,23 @@ class ObserverClient:
         if len(raw) > MAX_RESPONSE_BYTES:
             raise ObserverError("observer response exceeds maximum bound")
         event = load_bytes(raw[:-1])
-        if "error" in event:
-            raise ObserverError(event["error"])
+        if not isinstance(event, dict) or event.get("schema") != "tc-proof-observation/v1":
+            raise ObserverError("observer response schema mismatch")
+        for key, expected in {
+            "nonce": self.nonce,
+            "run_id": self.run_id,
+            "task_id": self.task_id,
+            "check_id": self.check_id,
+            "request_id": self.request_id,
+            "operation": operation,
+            "source_commit": source_commit,
+            "tree": tree,
+        }.items():
+            if event.get(key) != expected:
+                raise ObserverError(f"observer response binding mismatch: {key}")
+        if not isinstance(event.get("payload"), dict) or not isinstance(event.get("records"), list):
+            raise ObserverError("observer response payload is invalid")
+        self.request_id += 1
         return event
 
     def digest(self, event: dict[str, Any]) -> str:
@@ -184,11 +215,17 @@ def finish(status: str, category: str | None, outputs: dict[str, Any], digests: 
 
 
 
-V1_SCHEMA = "tc-proof-runner-context/v1"
-V2_SCHEMA = "tc-proof-runner-context/v2"
+V1_SCHEMA = "tc-proof-context/v1"
+# Kept as a source-level alias while callers migrate; it is not a second
+# serialized ABI.
+V2_SCHEMA = V1_SCHEMA
 ALLOWED_V1_KEYS = {
     "schema",
     "run_id",
+    "task_id",
+    "check_id",
+    "worktree_commit",
+    "scope_base",
     "operation",
     "tree",
     "oracle_commit",
@@ -206,7 +243,7 @@ ALLOWED_V1_KEYS = {
     "configuration",
     "qualification",
 }
-V2_EXTRA_KEYS = {"task_id", "check_id"}
+V2_EXTRA_KEYS = set()
 OPTIONAL_EXTENSION_KEYS = {"architecture_profile", "branch_host_projection"}
 
 
@@ -247,8 +284,6 @@ def validate_schema(context: dict[str, Any]) -> None:
     keys = set(context)
     optional = {"qualification"} | OPTIONAL_EXTENSION_KEYS
     if schema == V1_SCHEMA:
-        required = ALLOWED_V1_KEYS - optional
-    elif schema == V2_SCHEMA:
         required = (ALLOWED_V1_KEYS | V2_EXTRA_KEYS) - optional
     else:
         raise Reject("INTEGRITY")
@@ -462,7 +497,13 @@ def load_index() -> tuple[dict[str, Any], str]:
     if not index_path or not index_hash:
         raise Reject("CONTEXT_INDEX")
     path = Path(index_path)
-    raw = path.read_bytes()
+    try:
+        metadata = path.lstat()
+        if path.is_symlink() or metadata.st_nlink != 1 or not stat.S_ISREG(metadata.st_mode):
+            raise Reject("CONTEXT_INDEX")
+        raw = path.read_bytes()
+    except OSError:
+        raise Reject("CONTEXT_INDEX") from None
     if sha256_bytes(raw) != index_hash:
         raise Reject("CONTEXT_INDEX")
     index = load_path(path)
@@ -471,52 +512,115 @@ def load_index() -> tuple[dict[str, Any], str]:
 
 def validate_index(context: dict[str, Any], context_hash: str) -> None:
     index, index_hash = load_index()
-    if set(index) != {"schema", "run_id", "task_id", "tree", "trust_sha256", "members"}:
+    if set(index) != {
+        "schema",
+        "task_id",
+        "run_id",
+        "worktree_commit",
+        "scope_base",
+        "contexts",
+        "results",
+        "observer",
+    }:
         raise Reject("CONTEXT_INDEX")
     if index["schema"] != "tc-proof-context-index/v1":
         raise Reject("CONTEXT_INDEX")
-    if index["run_id"] != context["run_id"]:
+    if not isinstance(index.get("task_id"), str) or not isinstance(index.get("run_id"), str):
+        raise Reject("CONTEXT_INDEX")
+    index_root = Path(index_path).parent
+    if index["run_id"] != context["run_id"] or Path(index["run_id"]) != index_root:
         raise Reject("CONTEXT_INDEX")
     if index["task_id"] != os.environ.get("TC_PROOF_TASK_ID"):
         raise Reject("CONTEXT_INDEX")
-    if index["tree"] != context["tree"]:
+    if index["worktree_commit"] != context["worktree_commit"]:
         raise Reject("CONTEXT_INDEX")
-    members = index["members"]
-    if not isinstance(members, list) or not members:
+    if index["scope_base"] != context["scope_base"]:
         raise Reject("CONTEXT_INDEX")
-    if any(not isinstance(member, dict) for member in members):
+    contexts = index["contexts"]
+    results = index["results"]
+    if not isinstance(contexts, list) or not contexts or not isinstance(results, list):
         raise Reject("CONTEXT_INDEX")
-    check_ids = [member.get("check_id") for member in members]
-    output_ids = [member.get("output_id") for member in members]
-    if len(set(check_ids)) != len(members) or len(set(output_ids)) != len(members):
+    if len(contexts) != len(results) or any(not isinstance(member, dict) for member in contexts + results):
         raise Reject("CONTEXT_INDEX")
-    contexts_dir = Path(members[0]["context_path"]).parent
-    expected_files = {member["check_id"] + ".json" for member in members}
-    if not contexts_dir.is_dir() or {path.name for path in contexts_dir.iterdir()} != expected_files:
+    check_ids = [member.get("check_id") for member in contexts]
+    result_ids = [member.get("check_id") for member in results]
+    if any(not isinstance(check_id, str) or re.fullmatch(r"CHK-[0-9]{3}", check_id) is None for check_id in check_ids):
+        raise Reject("CONTEXT_INDEX")
+    if len(set(check_ids)) != len(contexts) or sorted(check_ids) != sorted(result_ids):
+        raise Reject("CONTEXT_INDEX")
+    contexts_dir = index_root / "contexts"
+    results_dir = index_root / "results"
+    outputs_dir = index_root / "outputs"
+    logs_dir = index_root / "taskfmt-logs"
+    for directory in (contexts_dir, results_dir, outputs_dir, logs_dir):
+        try:
+            metadata = directory.lstat()
+            if directory.is_symlink() or metadata.st_nlink != 1 or not stat.S_ISDIR(metadata.st_mode):
+                raise Reject("CONTEXT_INDEX")
+        except OSError:
+            raise Reject("CONTEXT_INDEX") from None
+    expected_files = {member["check_id"] + ".json" for member in contexts}
+    if {path.name for path in contexts_dir.iterdir()} != expected_files:
+        raise Reject("CONTEXT_INDEX")
+    if {path.name for path in results_dir.iterdir()} != expected_files:
         raise Reject("CONTEXT_INDEX")
     check_id = os.environ.get("TC_PROOF_CHECK_ID")
     optional = {"qualification", "architecture_profile", "branch_host_projection"}
     required_child = (ALLOWED_V1_KEYS | V2_EXTRA_KEYS) - optional
     member_fields = {
         "check_id",
-        "context_path",
-        "context_sha256",
-        "schema",
-        "operation",
-        "lane",
-        "namespace",
-        "required_ids",
-        "output_id",
+        "path",
+        "sha256",
     }
+    result_map = {member.get("check_id"): member for member in results}
     selected = None
-    for member in members:
+    for member in contexts:
         if set(member) != member_fields:
             raise Reject("CONTEXT_INDEX")
-        child_path = Path(member["context_path"])
+        child_path = Path(member["path"])
+        if child_path.parent != contexts_dir or child_path.name != member["check_id"] + ".json":
+            raise Reject("CONTEXT_INDEX")
+        result = result_map.get(member["check_id"])
+        if result is None or set(result) != member_fields:
+            raise Reject("CONTEXT_INDEX")
+        result_path = Path(result["path"])
+        if result_path.parent != results_dir or result_path.name != member["check_id"] + ".json":
+            raise Reject("CONTEXT_INDEX")
+        if result_path.is_symlink() or not result_path.is_file() or result_path.stat().st_nlink != 1:
+            raise Reject("CONTEXT_INDEX")
+        try:
+            preparation = load_path(result_path)
+        except (OSError, ValueError):
+            raise Reject("CONTEXT_INDEX") from None
+        if (
+            not isinstance(preparation, dict)
+            or set(preparation)
+            != {
+                "schema",
+                "task_id",
+                "check_id",
+                "run_id",
+                "worktree_commit",
+                "scope_base",
+                "context_sha256",
+                "status",
+            }
+            or preparation.get("schema") != "tc-proof-preparation-result/v1"
+            or preparation.get("task_id") != index["task_id"]
+            or preparation.get("check_id") != member["check_id"]
+            or preparation.get("run_id") != index["run_id"]
+            or preparation.get("worktree_commit") != index["worktree_commit"]
+            or preparation.get("scope_base") != index["scope_base"]
+            or preparation.get("context_sha256") != member["sha256"]
+            or preparation.get("status") != "ready"
+        ):
+            raise Reject("CONTEXT_INDEX")
+        if sha256_bytes(result_path.read_bytes()) != result["sha256"]:
+            raise Reject("CONTEXT_INDEX")
         if not child_path.is_file() or child_path.is_symlink() or child_path.stat().st_nlink != 1:
             raise Reject("CONTEXT_INDEX")
         child_raw = child_path.read_bytes()
-        if sha256_bytes(child_raw) != member["context_sha256"]:
+        if sha256_bytes(child_raw) != member["sha256"]:
             raise Reject("CONTEXT_INDEX")
         try:
             child = load_path(child_path)
@@ -533,20 +637,60 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
             raise Reject("CONTEXT_INDEX")
         bindings = {
             "run_id": index["run_id"],
-            "tree": index["tree"],
             "task_id": index["task_id"],
+            "worktree_commit": index["worktree_commit"],
+            "scope_base": index["scope_base"],
             "check_id": member["check_id"],
-            "operation": member["operation"],
         }
         if any(child.get(key) != value for key, value in bindings.items()):
-            raise Reject("CONTEXT_INDEX")
-        if member["operation"] == "capture" and child.get("lane") != member["lane"]:
             raise Reject("CONTEXT_INDEX")
         if member["check_id"] == check_id:
             selected = member
     if selected is None:
         raise Reject("CONTEXT_INDEX")
-    if context_hash != selected["context_sha256"]:
+    if context_hash != selected["sha256"]:
+        raise Reject("CONTEXT_INDEX")
+    observer = index.get("observer")
+    if not isinstance(observer, dict) or set(observer) != {"path", "sha256"}:
+        raise Reject("CONTEXT_INDEX")
+    observer_path = Path(observer["path"])
+    if observer_path.parent != index_root or observer_path.name != "observer.json":
+        raise Reject("CONTEXT_INDEX")
+    if observer_path.is_symlink() or not observer_path.is_file() or observer_path.stat().st_nlink != 1:
+        raise Reject("CONTEXT_INDEX")
+    try:
+        capability = load_path(observer_path)
+    except (OSError, ValueError):
+        raise Reject("CONTEXT_INDEX") from None
+    if (
+        not isinstance(capability, dict)
+        or set(capability)
+        != {
+            "schema",
+            "task_id",
+            "run_id",
+            "worktree_commit",
+            "scope_base",
+            "transport",
+            "nonce_sha256",
+        }
+        or capability.get("schema") != "tc-proof-observer-capability/v1"
+        or capability.get("task_id") != index["task_id"]
+        or capability.get("run_id") != index["run_id"]
+        or capability.get("worktree_commit") != index["worktree_commit"]
+        or capability.get("scope_base") != index["scope_base"]
+        or capability.get("transport") != "inherited-pipe/v1"
+        or not isinstance(capability.get("nonce_sha256"), str)
+        or re.fullmatch(r"[0-9a-f]{64}", capability["nonce_sha256"]) is None
+        or sha256_bytes(observer_path.read_bytes()) != observer["sha256"]
+    ):
+        raise Reject("CONTEXT_INDEX")
+    expected_root = {"contexts", "results", "outputs", "taskfmt-logs", "observer.json", "context-index.json"}
+    if {path.name for path in index_root.iterdir()} != expected_root:
+        raise Reject("CONTEXT_INDEX")
+    expected_result = outputs_dir / f"{check_id}.result.json"
+    bound_result = os.environ.get("TC_PROOF_RESULT")
+    if bound_result and Path(bound_result) != expected_result:
         raise Reject("CONTEXT_INDEX")
     _ = index_hash
 
@@ -2429,42 +2573,84 @@ def run_architecture(context_path: Path) -> int:
         return finish("rejected", "ARCHITECTURE", {}, digests, operation, reported)
 
 
-def bind_native_environment(context_path):
-    """Bind the selected context to the native launch/index ABI."""
+def bind_native_environment(context_path: Path) -> None:
+    """Bind one worker invocation to the host-selected context and result."""
     context, _, context_hash = load_context(context_path)
-    if context.get("schema") != V2_SCHEMA:
-        return
+    if context.get("schema") != "tc-proof-context/v1":
+        raise RuntimeError("worker context is not tc-proof-context/v1")
     check_id = context.get("check_id")
     if not isinstance(check_id, str) or context_path.name != f"{check_id}.json":
         raise RuntimeError("context filename/check identity mismatch")
-    os.environ["TC_PROOF_CHECK_ID"] = check_id
-    os.environ["TC_PROOF_CONTEXT_SHA256"] = context_hash
-    os.environ.setdefault("TC_PROOF_RUN_ID", str(context["run_id"]))
-    qualification = context.get("qualification") or {}
-    common = qualification.get("common") or {}
-    if isinstance(common, dict):
-        oracle = common.get("oracle") or {}
-        observer = common.get("observer") or {}
-        os.environ.setdefault("TC_PROOF_SOURCE_TREE", str(context["tree"]))
-        if isinstance(oracle, dict) and oracle.get("commit"):
-            os.environ.setdefault("TC_PROOF_ORACLE_COMMIT", str(oracle["commit"]))
-        if isinstance(observer, dict):
-            if observer.get("nonce"):
-                os.environ.setdefault("TC_PROOF_OBSERVER_NONCE", str(observer["nonce"]))
-            if observer.get("socket"):
-                os.environ.setdefault("TC_PROOF_OBSERVER_SOCKET", str(observer["socket"]))
+    if context_path.is_symlink() or not context_path.is_file() or context_path.stat().st_nlink != 1:
+        raise RuntimeError("context path is not a host-owned regular file")
     index_path = os.environ.get("TC_PROOF_CONTEXT_INDEX")
     if not index_path:
-        return
-    index, _ = load_index()
-    selected = next((member for member in index["members"] if member.get("check_id") == check_id), None)
-    if selected is None or Path(selected["context_path"]).resolve() != context_path.resolve():
-        raise RuntimeError("context/index selection mismatch")
-    result_path = Path(index_path).resolve().parent / selected["output_id"]
+        raise RuntimeError("native context index is missing")
+    index = load_path(Path(index_path))
+    if not isinstance(index, dict) or index.get("schema") != "tc-proof-context-index/v1":
+        raise RuntimeError("native context index schema mismatch")
+    if index.get("task_id") != context.get("task_id") or index.get("run_id") != context.get("run_id"):
+        raise RuntimeError("native context index identity mismatch")
+    selected = next(
+        (member for member in index.get("contexts", [])
+         if isinstance(member, dict) and member.get("check_id") == check_id),
+        None,
+    )
+    if not isinstance(selected, dict):
+        raise RuntimeError("selected context is not in native index")
+    if Path(selected.get("path", "")) != context_path:
+        raise RuntimeError("selected context path is not host-bound")
+    if selected.get("sha256") != context_hash:
+        raise RuntimeError("selected context digest is not host-bound")
+    run_dir = Path(index_path).resolve().parent
+    result_path = run_dir / "outputs" / f"{check_id}.result.json"
     bound_result = os.environ.get("TC_PROOF_RESULT")
-    if bound_result and Path(bound_result).resolve() != result_path:
+    if bound_result and Path(bound_result) != result_path:
         raise RuntimeError("result path was already bound differently")
-    os.environ["TC_PROOF_RESULT"] = str(result_path)
+    qualification = context.get("qualification") or {}
+    common = qualification.get("common") or {}
+    observer = common.get("observer") or {}
+    if observer.get("transport") != "inherited-pipe/v1":
+        raise RuntimeError("observer transport is not inherited-pipe/v1")
+    os.environ.update(
+        {
+            "TC_PROOF_RUN_ID": str(context["run_id"]),
+            "TC_PROOF_TASK_ID": str(context["task_id"]),
+            "TC_PROOF_CHECK_ID": check_id,
+            "TC_PROOF_CONTEXT_SHA256": context_hash,
+            "TC_PROOF_RESULT": str(result_path),
+            "TC_PROOF_SOURCE_TREE": str(context["tree"]),
+            "TC_PROOF_ORACLE_COMMIT": str(context["oracle_commit"]),
+        }
+    )
+
+
+def launch_native_worker(args: argparse.Namespace) -> int:
+    """Re-enter this worker under the Rust host supervisor."""
+    bind_native_environment(args.context)
+    launcher = os.environ.get("TC_PROOF_NATIVE_LAUNCHER")
+    index_path = os.environ.get("TC_PROOF_CONTEXT_INDEX")
+    if not launcher or not index_path:
+        raise RuntimeError("native launcher binding is missing")
+    child_environment = os.environ.copy()
+    child_environment["TC_PROOF_NATIVE_CHILD"] = "1"
+    child_environment["TC_PROOF_NATIVE_LAUNCH"] = "0"
+    timeout_ms = os.environ.get("TC_PROOF_NATIVE_TIMEOUT_MS", "600000")
+    command = [
+        launcher,
+        "launch",
+        "--run-dir",
+        str(Path(index_path).resolve().parent),
+        "--check-id",
+        args.context.stem,
+        "--timeout-ms",
+        timeout_ms,
+        "--",
+        sys.executable,
+        str(Path(__file__).resolve()),
+        *sys.argv[1:],
+    ]
+    return subprocess.run(command, env=child_environment, check=False).returncode
 
 
 def parse_args(argv):
@@ -2478,19 +2664,24 @@ def parse_args(argv):
 
 def main(argv=None):
     args = parse_args(argv or sys.argv[1:])
-    if args.operation in {"preflight", "required", "oracle", "capture", "account-tests", "architecture", "close"}:
-        try:
-            bind_native_environment(args.context)
-        except (RuntimeError, ValueError, OSError, KeyError):
-            return finish("rejected", "CONTEXT_INDEX", {}, [], args.operation, os.environ.get("TC_PROOF_CONTEXT_SHA256", "0" * 64))
     if args.approve:
         return finish("rejected", "PROTOCOL", {}, [], args.operation, os.environ.get("TC_PROOF_CONTEXT_SHA256", "0" * 64))
+    runner_ops = {"preflight", "required", "oracle", "capture", "account-tests", "architecture", "close"}
+    if (
+        args.operation in runner_ops
+        and os.environ.get("TC_PROOF_NATIVE_LAUNCH") == "1"
+        and os.environ.get("TC_PROOF_NATIVE_CHILD") != "1"
+    ):
+        try:
+            return launch_native_worker(args)
+        except (RuntimeError, OSError, ValueError, KeyError) as error:
+            print(f"tc-proof: native launch rejected: {error}", file=sys.stderr)
+            return 1
     if args.operation == "compare":
         root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         workspace = os.path.dirname(os.path.dirname(root))
         rust = os.path.join(workspace, "target", "debug", "tc-proof")
         os.execv(rust, [rust, "compare", *sys.argv[2:]])
-    runner_ops = {"preflight", "required", "oracle", "capture", "account-tests", "architecture", "close"}
     if args.operation not in runner_ops:
         print(f"tc-proof: unknown command: {args.operation}", file=sys.stderr)
         return 2

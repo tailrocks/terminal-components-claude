@@ -371,6 +371,32 @@ def main() -> None:
         else:
             raise RuntimeError("stale proof-preparation receipt was accepted")
 
+        legacy_index = {
+            "schema": CONTEXT_INDEX_SCHEMA,
+            "task_id": "TASK-001",
+            "run_id": str(run),
+            "tree": SHA,
+            "trust_sha256": "e" * 64,
+            "members": [],
+        }
+        index_path = run / "context-index.json"
+        write_json(index_path, legacy_index)
+        legacy = copy.deepcopy(preparation)
+        legacy["context_index"]["sha256"] = file_sha256(index_path)
+        try:
+            validate_proof_preparation(
+                legacy,
+                worktree=worktree,
+                current_head=SHA,
+                run_dir=run,
+                expected_taskfmt=TASKFMT,
+            )
+        except LedgerValidationError as error:
+            if "context_index" not in str(error):
+                raise RuntimeError(f"legacy ABI: wrong rejection: {error}") from error
+        else:
+            raise RuntimeError("legacy Rust runner index ABI was accepted")
+
     print("campaign ledger authority and proof-preparation contracts: PASS")
 
 

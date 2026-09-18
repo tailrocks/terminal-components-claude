@@ -10,11 +10,17 @@ from typing import Any
 
 from .json_util import load_path, sha256_bytes
 
-V1_SCHEMA = "tc-proof-runner-context/v1"
-V2_SCHEMA = "tc-proof-runner-context/v2"
+V1_SCHEMA = "tc-proof-context/v1"
+# Kept as a source-level alias while callers migrate; it is not a second
+# serialized ABI.
+V2_SCHEMA = V1_SCHEMA
 ALLOWED_V1_KEYS = {
     "schema",
     "run_id",
+    "task_id",
+    "check_id",
+    "worktree_commit",
+    "scope_base",
     "operation",
     "tree",
     "oracle_commit",
@@ -32,7 +38,7 @@ ALLOWED_V1_KEYS = {
     "configuration",
     "qualification",
 }
-V2_EXTRA_KEYS = {"task_id", "check_id"}
+V2_EXTRA_KEYS = set()
 OPTIONAL_EXTENSION_KEYS = {"architecture_profile", "branch_host_projection"}
 
 
@@ -73,8 +79,6 @@ def validate_schema(context: dict[str, Any]) -> None:
     keys = set(context)
     optional = {"qualification"} | OPTIONAL_EXTENSION_KEYS
     if schema == V1_SCHEMA:
-        required = ALLOWED_V1_KEYS - optional
-    elif schema == V2_SCHEMA:
         required = (ALLOWED_V1_KEYS | V2_EXTRA_KEYS) - optional
     else:
         raise Reject("INTEGRITY")

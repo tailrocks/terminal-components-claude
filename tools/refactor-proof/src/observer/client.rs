@@ -11,7 +11,7 @@ use std::io::{self, BufRead, BufReader, BufWriter, Write};
 use base64::Engine as _;
 
 use super::ipc::{
-    OBSERVER_STEP_ORDER, ObserverObservation, ObserverRequest, ObserverRequestSchema,
+    OBSERVER_STEP_ORDER, ObserverEnv, ObserverObservation, ObserverRequest, ObserverRequestSchema,
     ObserverResponse, ObserverStep,
 };
 
@@ -39,6 +39,12 @@ impl From<ObserverUnavailable> for io::Error {
 #[derive(Debug)]
 pub struct ObserverClient {
     nonce: String,
+    run_id: String,
+    task_id: String,
+    check_id: String,
+    source_commit: String,
+    tree: String,
+    request_id: u64,
     request: BufWriter<File>,
     response: BufReader<File>,
 }
@@ -46,21 +52,25 @@ pub struct ObserverClient {
 impl ObserverClient {
     /// Open a client from observer-supplied environment.
     pub fn from_env() -> Result<Self, ObserverUnavailable> {
-        let request_fd = std::env::var(super::ipc::ObserverEnv::REQUEST_FD)
+        let request_fd = std::env::var(ObserverEnv::REQUEST_FD)
             .map_err(|_| ObserverUnavailable)?
             .parse::<i32>()
             .map_err(|_| ObserverUnavailable)?;
-        let response_fd = std::env::var(super::ipc::ObserverEnv::RESPONSE_FD)
+        let response_fd = std::env::var(ObserverEnv::RESPONSE_FD)
             .map_err(|_| ObserverUnavailable)?
             .parse::<i32>()
             .map_err(|_| ObserverUnavailable)?;
-        let nonce =
-            std::env::var(super::ipc::ObserverEnv::NONCE).map_err(|_| ObserverUnavailable)?;
-        if nonce.is_empty() {
+        if std::env::var_os(ObserverEnv::SOCKET).is_some() {
             return Err(ObserverUnavailable);
         }
         Ok(Self {
-            nonce,
+            nonce: required_env(ObserverEnv::NONCE)?,
+            run_id: required_env(ObserverEnv::RUN_ID)?,
+            task_id: required_env(ObserverEnv::TASK_ID)?,
+            check_id: required_env(ObserverEnv::CHECK_ID)?,
+            source_commit: required_env(ObserverEnv::SOURCE_COMMIT)?,
+            tree: required_env(ObserverEnv::SOURCE_TREE)?,
+            request_id: 0,
             request: BufWriter::new(open_inherited_fd(request_fd)?),
             response: BufReader::new(open_inherited_fd(response_fd)?),
         })
@@ -76,9 +86,18 @@ impl ObserverClient {
         &self.nonce
     }
 
-    /// Encode one bounded request line for the observer.
+    /// Encode one bounded request line for the shared observer ABI.
     pub fn encode_request(&self, step: ObserverStep) -> io::Result<String> {
-        encode_request_line(&self.nonce, step)
+        encode_request_line(
+            &self.nonce,
+            &self.run_id,
+            &self.task_id,
+            &self.check_id,
+            self.request_id,
+            step.as_str(),
+            &self.source_commit,
+            &self.tree,
+        )
     }
 
     /// Issue one observer request and return the captured observation.
@@ -93,7 +112,20 @@ impl ObserverClient {
             .map_err(|_| ObserverUnavailable)?;
         let response_line =
             read_response_line(&mut self.response).map_err(|_| ObserverUnavailable)?;
-        parse_observation(&response_line)
+        let observation = parse_observation(&response_line)?;
+        if observation.nonce != self.nonce
+            || observation.run_id != self.run_id
+            || observation.task_id != self.task_id
+            || observation.check_id != self.check_id
+            || observation.request_id != self.request_id
+            || observation.operation != step.as_str()
+            || observation.source_commit != self.source_commit
+            || observation.tree != self.tree
+        {
+            return Err(ObserverUnavailable);
+        }
+        self.request_id += 1;
+        Ok(observation)
     }
 
     /// Issue the fixed verify sequence: build, test, taskfmt.
@@ -108,20 +140,57 @@ impl ObserverClient {
     }
 
     #[cfg(test)]
-    fn with_io(nonce: impl Into<String>, request: File, response: File) -> Self {
+    fn with_io(
+        nonce: impl Into<String>,
+        run_id: impl Into<String>,
+        task_id: impl Into<String>,
+        check_id: impl Into<String>,
+        source_commit: impl Into<String>,
+        tree: impl Into<String>,
+        request: File,
+        response: File,
+    ) -> Self {
         Self {
             nonce: nonce.into(),
+            run_id: run_id.into(),
+            task_id: task_id.into(),
+            check_id: check_id.into(),
+            source_commit: source_commit.into(),
+            tree: tree.into(),
+            request_id: 0,
             request: BufWriter::new(request),
             response: BufReader::new(response),
         }
     }
 }
 
-fn encode_request_line(nonce: &str, step: ObserverStep) -> io::Result<String> {
+fn required_env(key: &str) -> Result<String, ObserverUnavailable> {
+    std::env::var(key)
+        .ok()
+        .filter(|value| !value.is_empty())
+        .ok_or(ObserverUnavailable)
+}
+
+fn encode_request_line(
+    nonce: &str,
+    run_id: &str,
+    task_id: &str,
+    check_id: &str,
+    request_id: u64,
+    operation: &str,
+    source_commit: &str,
+    tree: &str,
+) -> io::Result<String> {
     let request = ObserverRequest {
         schema: ObserverRequestSchema::V1,
         nonce: nonce.to_owned(),
-        step,
+        run_id: run_id.to_owned(),
+        task_id: task_id.to_owned(),
+        check_id: check_id.to_owned(),
+        request_id,
+        operation: operation.to_owned(),
+        source_commit: source_commit.to_owned(),
+        tree: tree.to_owned(),
     };
     let line = serde_json::to_string(&request).map_err(io::Error::other)?;
     if line.len() >= MAX_LINE_BYTES {
@@ -158,10 +227,7 @@ fn parse_observation(line: &str) -> Result<ObserverObservation, ObserverUnavaila
     let response: ObserverResponse = serde_json::from_str(line).map_err(|_| ObserverUnavailable)?;
     match response {
         ObserverResponse::Observation(observation) => Ok(observation),
-        ObserverResponse::Error(error) => {
-            let _ = error;
-            Err(ObserverUnavailable)
-        }
+        ObserverResponse::Error(_) => Err(ObserverUnavailable),
     }
 }
 
@@ -188,38 +254,50 @@ fn open_inherited_fd(_fd: i32) -> Result<File, ObserverUnavailable> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::observer::ipc::OBSERVER_STEP_ORDER;
-    use std::io::Write;
+    use serde_json::Value;
+    use std::collections::BTreeMap;
+    use std::io::{BufReader, BufWriter};
     use std::os::fd::FromRawFd;
     use std::sync::mpsc;
     use std::thread;
 
     fn pipe_pair() -> io::Result<(File, File)> {
         let mut fds = [0_i32; 2];
+        // SAFETY: libc fills two owned descriptors; both are immediately wrapped.
         let result = unsafe { libc::pipe(fds.as_mut_ptr()) };
         if result != 0 {
             return Err(io::Error::last_os_error());
         }
+        // SAFETY: each descriptor is transferred exactly once to a File.
         Ok((unsafe { File::from_raw_fd(fds[0]) }, unsafe {
             File::from_raw_fd(fds[1])
         }))
     }
 
     #[test]
-    fn request_encoding_respects_step_order_contract() {
-        for step in OBSERVER_STEP_ORDER {
-            let line = encode_request_line("test-nonce", step).expect("encode request");
-            assert!(line.ends_with('\n'));
-            assert!(line.len() <= MAX_LINE_BYTES);
-        }
+    fn request_encoding_uses_shared_binding_schema() {
+        let line = encode_request_line(
+            "test-nonce",
+            "/run",
+            "TASK-001",
+            "CHK-001",
+            0,
+            "oracle",
+            "source",
+            "tree",
+        )
+        .expect("encode request");
+        let request: ObserverRequest = serde_json::from_str(line.trim()).expect("parse request");
+        assert_eq!(request.schema, ObserverRequestSchema::V1);
+        assert_eq!(request.operation, "oracle");
     }
 
     #[test]
     fn from_env_fails_closed_without_observer() {
         let has_observer_env = [
-            super::super::ipc::ObserverEnv::REQUEST_FD,
-            super::super::ipc::ObserverEnv::RESPONSE_FD,
-            super::super::ipc::ObserverEnv::NONCE,
+            ObserverEnv::REQUEST_FD,
+            ObserverEnv::RESPONSE_FD,
+            ObserverEnv::NONCE,
         ]
         .into_iter()
         .any(|key| std::env::var(key).is_ok());
@@ -240,22 +318,30 @@ mod tests {
             let mut requests = BufReader::new(request_read);
             let mut responses = BufWriter::new(response_write);
             ready_tx.send(()).expect("ready");
-            for step in OBSERVER_STEP_ORDER {
+            for (request_id, step) in OBSERVER_STEP_ORDER.into_iter().enumerate() {
                 let line = read_response_line(&mut requests).expect("read request");
                 let request: ObserverRequest = serde_json::from_str(&line).expect("parse request");
                 assert_eq!(request.nonce, server_nonce);
-                assert_eq!(request.step, step);
+                assert_eq!(request.run_id, "/run");
+                assert_eq!(request.task_id, "TASK-001");
+                assert_eq!(request.check_id, "CHK-001");
+                assert_eq!(request.request_id, request_id as u64);
+                assert_eq!(request.operation, step.as_str());
                 let observation = ObserverObservation {
-                    step,
-                    tree: "abc123".into(),
-                    argv: vec!["fixture".into()],
+                    nonce: request.nonce,
+                    run_id: request.run_id,
+                    task_id: request.task_id,
+                    check_id: request.check_id,
+                    request_id: request.request_id,
+                    operation: request.operation,
+                    source_commit: request.source_commit,
+                    tree: request.tree,
                     exit: 0,
-                    stdout: base64::engine::general_purpose::STANDARD.encode(b"stdout"),
+                    stdout: String::new(),
                     stderr: String::new(),
-                    files: std::collections::BTreeMap::from([(
-                        format!("{}.json", step.as_str()),
-                        base64::engine::general_purpose::STANDARD.encode(b"{}"),
-                    )]),
+                    files: BTreeMap::new(),
+                    payload: Value::Object(Default::default()),
+                    records: Vec::new(),
                 };
                 let payload = serde_json::to_string(&ObserverResponse::Observation(observation))
                     .expect("encode observation");
@@ -266,7 +352,16 @@ mod tests {
             }
         });
         ready_rx.recv().expect("server ready");
-        let mut client = ObserverClient::with_io(nonce.clone(), request_write, response_read);
+        let mut client = ObserverClient::with_io(
+            nonce,
+            "/run",
+            "TASK-001",
+            "CHK-001",
+            "source",
+            "tree",
+            request_write,
+            response_read,
+        );
         let observations = client.execute_verify_sequence().expect("verify sequence");
         assert_eq!(observations.len(), 3);
         server.join().expect("join server");

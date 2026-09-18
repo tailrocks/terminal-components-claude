@@ -6,8 +6,8 @@
 )]
 
 use std::collections::{HashMap, HashSet};
-use std::fs;
-use std::io;
+use std::fs::{self, OpenOptions};
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
@@ -21,6 +21,7 @@ use crate::json_util::{
 };
 
 const CONTEXT_SCHEMA: &str = "tc-proof-compare-context/v1";
+const RUNNER_CONTEXT_SCHEMA: &str = "tc-proof-context/v1";
 const COMPARISON_SCHEMA: &str = "tc-proof-comparison/v1";
 const ARTIFACTS_SCHEMA: &str = "tc-proof-artifacts/v1";
 const REQUIRED_SCHEMA: &str = "tc-proof-required/v1";
@@ -144,18 +145,35 @@ pub fn run_compare(context_path: &Path) -> io::Result<i32> {
 fn parse_context(raw_bytes: &[u8]) -> Result<CompareContext, String> {
     let text = std::str::from_utf8(raw_bytes).map_err(|error| error.to_string())?;
     let value = parse_json_strict(text)?;
-    if get_str(&value, "schema") != Some(CONTEXT_SCHEMA) {
-        return Err(format!("schema must be {CONTEXT_SCHEMA}"));
+    match get_str(&value, "schema") {
+        Some(CONTEXT_SCHEMA) => parse_compare_value(&value, raw_bytes, None),
+        Some(RUNNER_CONTEXT_SCHEMA) => parse_runner_value(&value, raw_bytes),
+        _ => Err(format!(
+            "schema must be {CONTEXT_SCHEMA} or {RUNNER_CONTEXT_SCHEMA}"
+        )),
     }
+}
 
+fn parse_compare_value(
+    value: &Value,
+    raw_bytes: &[u8],
+    host_report_path: Option<PathBuf>,
+) -> Result<CompareContext, String> {
+    let oracle_root = PathBuf::from(require_str(value, "oracle_root")?);
+    let candidate_root = PathBuf::from(require_str(value, "candidate_root")?);
+    let report_path = match host_report_path {
+        Some(path) => path,
+        None => PathBuf::from(require_str(value, "report_path")?),
+    };
+    validate_report_path(&report_path, &oracle_root, &candidate_root, None)?;
     Ok(CompareContext {
         raw_bytes: raw_bytes.to_vec(),
         run_id: require_str(&value, "run_id")?,
         task_id: require_str(&value, "task_id")?,
         oracle_commit: require_str(&value, "oracle_commit")?,
         candidate_source_tree: require_str(&value, "candidate_source_tree")?,
-        oracle_root: PathBuf::from(require_str(&value, "oracle_root")?),
-        candidate_root: PathBuf::from(require_str(&value, "candidate_root")?),
+        oracle_root,
+        candidate_root,
         oracle_manifest_sha256: require_str(&value, "oracle_manifest_sha256")?,
         candidate_manifest_sha256: require_str(&value, "candidate_manifest_sha256")?,
         required_sha256: require_str(&value, "required_sha256")?,
@@ -165,8 +183,105 @@ fn parse_context(raw_bytes: &[u8]) -> Result<CompareContext, String> {
         tool_sha256: require_str(&value, "tool_sha256")?,
         oracle_adapter_sha256: require_str(&value, "oracle_adapter_sha256")?,
         candidate_adapter_sha256: require_str(&value, "candidate_adapter_sha256")?,
-        report_path: PathBuf::from(require_str(&value, "report_path")?),
+        report_path,
     })
+}
+
+fn parse_runner_value(value: &Value, raw_bytes: &[u8]) -> Result<CompareContext, String> {
+    let run_id = require_str(value, "run_id")?;
+    let task_id = require_str(value, "task_id")?;
+    let check_id = require_str(value, "check_id")?;
+    let oracle_commit = require_str(value, "oracle_commit")?;
+    let candidate_source_tree = require_str(value, "tree")?;
+    let qualification = value
+        .get("qualification")
+        .and_then(Value::as_object)
+        .ok_or_else(|| "runner context qualification is missing".to_string())?;
+    let comparator = qualification
+        .get("comparator")
+        .and_then(Value::as_object)
+        .ok_or_else(|| "runner context comparator binding is missing".to_string())?;
+    if get_str(&Value::Object(comparator.clone()), "schema") != Some(CONTEXT_SCHEMA) {
+        return Err("runner comparator schema mismatch".to_string());
+    }
+    let nested = comparator
+        .get("context")
+        .ok_or_else(|| "runner comparator context is missing".to_string())?;
+    nested
+        .as_object()
+        .ok_or_else(|| "runner comparator context is not an object".to_string())?;
+    if get_str(nested, "schema") != Some(CONTEXT_SCHEMA)
+        || get_str(nested, "run_id") != Some(run_id.as_str())
+        || get_str(nested, "task_id") != Some(task_id.as_str())
+        || get_str(nested, "check_id") != Some(check_id.as_str())
+        || get_str(nested, "oracle_commit") != Some(oracle_commit.as_str())
+        || get_str(nested, "candidate_source_tree") != Some(candidate_source_tree.as_str())
+    {
+        return Err("runner comparator context identity mismatch".to_string());
+    }
+    let report_path = PathBuf::from(
+        comparator
+            .get("report_path")
+            .and_then(Value::as_str)
+            .ok_or_else(|| "runner comparator report_path is missing".to_string())?,
+    );
+    if require_str(nested, "report_path")? != report_path.to_string_lossy() {
+        return Err("runner comparator report path mismatch".to_string());
+    }
+    let common = qualification
+        .get("common")
+        .and_then(Value::as_object)
+        .ok_or_else(|| "runner context common binding is missing".to_string())?;
+    let runtime = PathBuf::from(
+        common
+            .get("outputs")
+            .and_then(Value::as_object)
+            .and_then(|outputs| outputs.get("runtime"))
+            .and_then(Value::as_str)
+            .ok_or_else(|| "runner runtime output binding is missing".to_string())?,
+    );
+    let oracle_root = PathBuf::from(require_str(nested, "oracle_root")?);
+    let candidate_root = PathBuf::from(require_str(nested, "candidate_root")?);
+    validate_report_path(&report_path, &oracle_root, &candidate_root, Some(&runtime))?;
+    let expected_report_name = format!("{check_id}.compare.json");
+    if report_path.file_name().and_then(|name| name.to_str()) != Some(expected_report_name.as_str())
+    {
+        return Err("runner comparator report filename is not host-bound".to_string());
+    }
+    let mut context = parse_compare_value(nested, raw_bytes, Some(report_path))?;
+    context.run_id = run_id;
+    context.task_id = task_id;
+    context.oracle_commit = oracle_commit;
+    context.candidate_source_tree = candidate_source_tree;
+    Ok(context)
+}
+
+fn validate_report_path(
+    report_path: &Path,
+    oracle_root: &Path,
+    candidate_root: &Path,
+    runtime_root: Option<&Path>,
+) -> Result<(), String> {
+    if !report_path.is_absolute()
+        || report_path == oracle_root
+        || report_path == candidate_root
+        || report_path.starts_with(oracle_root)
+        || report_path.starts_with(candidate_root)
+    {
+        return Err("report path is not an external absolute path".to_string());
+    }
+    if let Some(runtime_root) = runtime_root {
+        if report_path.parent() != Some(runtime_root)
+            || !runtime_root.is_absolute()
+            || runtime_root == oracle_root
+            || runtime_root == candidate_root
+            || runtime_root.starts_with(oracle_root)
+            || runtime_root.starts_with(candidate_root)
+        {
+            return Err("report path is outside the host-selected runtime output".to_string());
+        }
+    }
+    Ok(())
 }
 
 fn compare_roots(context: &CompareContext) -> CompareOutcome {
@@ -781,9 +896,123 @@ fn build_report(context: &CompareContext, outcome: CompareOutcome) -> (i32, Comp
 }
 
 fn write_report(path: &Path, report: &ComparisonReport) -> io::Result<()> {
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)?;
-    }
+    let parent = path
+        .parent()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "report has no parent"))?;
+    ensure_real_directory(parent)?;
     let json = serde_json::to_string(report).map_err(io::Error::other)?;
-    fs::write(path, format!("{json}\n"))
+    let mut options = OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        options.custom_flags(libc::O_NOFOLLOW);
+    }
+    let mut file = options.open(path)?;
+    file.write_all(format!("{json}\n").as_bytes())?;
+    file.sync_all()
+}
+
+fn ensure_real_directory(path: &Path) -> io::Result<()> {
+    if !path.is_absolute() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "report parent must be absolute",
+        ));
+    }
+    let mut current = PathBuf::from("/");
+    for component in path.components() {
+        if let std::path::Component::Normal(part) = component {
+            current.push(part);
+            let metadata = fs::symlink_metadata(&current)?;
+            if metadata.file_type().is_symlink() || !metadata.is_dir() {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "report parent contains an unsafe path component",
+                ));
+            }
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn old_compare_context(report_path: &str) -> Value {
+        json!({
+            "schema": CONTEXT_SCHEMA,
+            "run_id": "/run",
+            "task_id": "TASK-001",
+            "check_id": "CHK-001",
+            "oracle_commit": "a".repeat(40),
+            "candidate_source_tree": "b".repeat(40),
+            "oracle_root": "/oracle",
+            "candidate_root": "/candidate",
+            "oracle_manifest_sha256": "c".repeat(64),
+            "candidate_manifest_sha256": "d".repeat(64),
+            "required_sha256": "e".repeat(64),
+            "actions_sha256": "f".repeat(64),
+            "required_ids": ["case-001"],
+            "required_count": 1,
+            "tool_sha256": "0".repeat(64),
+            "oracle_adapter_sha256": "1".repeat(64),
+            "candidate_adapter_sha256": "2".repeat(64),
+            "report_path": report_path,
+        })
+    }
+
+    #[test]
+    fn runner_context_preserves_nested_comparator_schema_and_host_output() {
+        let nested = old_compare_context("/run/outputs/CHK-001.compare.json");
+        let runner = json!({
+            "schema": RUNNER_CONTEXT_SCHEMA,
+            "run_id": "/run",
+            "task_id": "TASK-001",
+            "check_id": "CHK-001",
+            "tree": "b".repeat(40),
+            "oracle_commit": "a".repeat(40),
+            "qualification": {
+                "common": {"outputs": {"runtime": "/run/outputs"}},
+                "comparator": {
+                    "schema": CONTEXT_SCHEMA,
+                    "context": nested,
+                    "report_path": "/run/outputs/CHK-001.compare.json",
+                },
+            },
+        });
+        let raw = serde_json::to_vec(&runner).expect("runner context");
+        let parsed = parse_context(&raw).expect("parse runner context");
+        assert_eq!(
+            parsed.report_path,
+            PathBuf::from("/run/outputs/CHK-001.compare.json")
+        );
+        assert_eq!(parsed.candidate_source_tree, "b".repeat(40));
+    }
+
+    #[test]
+    fn runner_context_rejects_comparator_report_outside_runtime_outputs() {
+        let mut nested = old_compare_context("/run/outputs/CHK-001.compare.json");
+        nested["report_path"] = Value::String("/oracle/forged.json".to_string());
+        let runner = json!({
+            "schema": RUNNER_CONTEXT_SCHEMA,
+            "run_id": "/run",
+            "task_id": "TASK-001",
+            "check_id": "CHK-001",
+            "tree": "b".repeat(40),
+            "oracle_commit": "a".repeat(40),
+            "qualification": {
+                "common": {"outputs": {"runtime": "/run/outputs"}},
+                "comparator": {
+                    "schema": CONTEXT_SCHEMA,
+                    "context": nested,
+                    "report_path": "/oracle/forged.json",
+                },
+            },
+        });
+        let raw = serde_json::to_vec(&runner).expect("runner context");
+        assert!(parse_context(&raw).is_err());
+    }
 }

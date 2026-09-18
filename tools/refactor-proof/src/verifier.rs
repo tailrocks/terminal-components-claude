@@ -3,10 +3,16 @@
 //! This module owns only verifier-run state.  It does not create worktrees,
 //! mutate refs, invoke taskfmt lifecycle commands, or write campaign state.
 
+#![expect(
+    unsafe_code,
+    reason = "native inherited-pipe transport wraps POSIX descriptors"
+)]
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 use std::fs::{self, File, OpenOptions};
-use std::io::{self, Read, Write};
+use std::io::{self, BufRead, Read, Write};
+use std::os::fd::{AsRawFd, FromRawFd};
 use std::path::{Path, PathBuf};
 use std::process::{Command, ExitStatus, Stdio};
 use std::thread;
@@ -17,9 +23,14 @@ use serde_json::{Map, Value, json};
 
 use crate::json_util::{canonical_json, parse_json_bytes_strict, sha256_bytes, sha256_canonical};
 
-const CONTEXT_SCHEMA: &str = "tc-proof-runner-context/v2";
+/// The ledger-owned preparation ABI.  Runner-specific fields live below this
+/// envelope; the index, contexts, preparation results, and observer capability
+/// all use this same binding.
+const CONTEXT_SCHEMA: &str = "tc-proof-context/v1";
 const INDEX_SCHEMA: &str = "tc-proof-context-index/v1";
 const RESULT_SCHEMA: &str = "tc-proof-runner-result/v1";
+const PREPARATION_RESULT_SCHEMA: &str = "tc-proof-preparation-result/v1";
+const OBSERVER_SCHEMA: &str = "tc-proof-observer-capability/v1";
 const EXPECTED_ORACLE_COMMIT: &str = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b";
 const MAX_LAUNCH_TIMEOUT_MS: u64 = 600_000;
 const MAX_CHILD_OUTPUT_BYTES: usize = 32 * 1024 * 1024;
@@ -62,7 +73,7 @@ pub struct LaunchOptions {
     pub run_dir: PathBuf,
     /// Check selected from context-index.json.
     pub check_id: String,
-    /// External observer socket.  Runner operations require it to exist.
+    /// Retained only to reject the retired socket transport explicitly.
     pub observer_socket: Option<PathBuf>,
     /// Maximum child lifetime.
     pub timeout: Duration,
@@ -174,7 +185,9 @@ struct PreparedMember {
     operation: String,
     context_path: PathBuf,
     context_sha256: String,
+    preparation_result_path: PathBuf,
     result_path: PathBuf,
+    comparator_report_path: Option<PathBuf>,
 }
 
 /// Prepared run identity returned by validation.
@@ -207,9 +220,14 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
         ));
     }
     ensure_empty_dir(&run_dir, "run directory")?;
-    require_safe_id(options.run_id.as_deref().unwrap_or("run"), "run_id")?;
-    let run_id = options.run_id.clone().unwrap_or_else(|| random_hex(16));
-    require_safe_id(&run_id, "run_id")?;
+    let run_id = path_string(&run_dir);
+    if let Some(requested) = options.run_id.as_deref()
+        && requested != run_id
+    {
+        return Err(VerifierError::new(
+            "run_id must be the canonical external run-directory path",
+        ));
+    }
     let observer_nonce = options
         .observer_nonce
         .clone()
@@ -269,11 +287,11 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
     )?;
 
     let template_map = discover_templates(&task_dir, &checks)?;
-    let observer_socket = options
-        .observer_socket
-        .clone()
-        .unwrap_or_else(|| run_dir.join("observer.sock"));
-    let observer_socket = absolute_path(&observer_socket, "observer socket")?;
+    if options.observer_socket.is_some() {
+        return Err(VerifierError::new(
+            "Unix-socket observer transport is retired; use inherited pipes",
+        ));
+    }
 
     let file_bindings = json!({
         "task_readme": {"path": path_string(&readme_path), "sha256": readme_hash},
@@ -304,7 +322,15 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
         "tool": tool,
         "comparator": comparator,
         "taskfmt": taskfmt,
-        "observer": {"socket": path_string(&observer_socket), "nonce": observer_nonce},
+        "observer": {
+            "transport": "inherited-pipe/v1",
+            "nonce": observer_nonce,
+            "capability": path_string(&run_dir.join("observer.json")),
+        },
+        "outputs": {
+            "runtime": path_string(&run_dir.join("outputs")),
+            "taskfmt_logs": path_string(&run_dir.join("taskfmt-logs")),
+        },
     });
     let trust_manifest = json!({
         "schema": "tc-proof-trust-manifest/v1",
@@ -322,7 +348,13 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
     let trust_sha256 = sha256_canonical(&trust_manifest);
 
     let contexts_dir = run_dir.join("contexts");
+    let preparation_results_dir = run_dir.join("results");
+    let outputs_dir = run_dir.join("outputs");
+    let taskfmt_logs_dir = run_dir.join("taskfmt-logs");
     fs::create_dir(&contexts_dir)?;
+    fs::create_dir(&preparation_results_dir)?;
+    fs::create_dir(&outputs_dir)?;
+    fs::create_dir(&taskfmt_logs_dir)?;
     let mut members = Vec::with_capacity(checks.len());
     let context_inputs = ContextInputs {
         common: &common,
@@ -337,40 +369,85 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
         let context = build_context(check, template, &context_inputs)?;
         let context_path = contexts_dir.join(format!("{}.json", check.id));
         let context_sha256 = write_json_new(&context_path, &context, "context")?;
-        let result_path = run_dir.join(format!("{}.result.json", check.id));
+        let preparation_result_path = preparation_results_dir.join(format!("{}.json", check.id));
+        let result_path = outputs_dir.join(format!("{}.result.json", check.id));
+        let preparation_result = json!({
+            "schema": PREPARATION_RESULT_SCHEMA,
+            "task_id": verify.task_id,
+            "check_id": check.id,
+            "run_id": run_id,
+            "worktree_commit": candidate_commit,
+            "scope_base": scope_base,
+            "context_sha256": context_sha256,
+            "status": "ready",
+        });
+        write_json_new(
+            &preparation_result_path,
+            &preparation_result,
+            "preparation result",
+        )?;
         members.push(PreparedMember {
             check_id: check.id.clone(),
             operation: check.operation.clone(),
             context_path,
             context_sha256,
+            preparation_result_path,
             result_path,
+            comparator_report_path: None,
         });
     }
     set_readonly_dir(&contexts_dir)?;
+    set_readonly_dir(&preparation_results_dir)?;
+
+    let observer_path = run_dir.join("observer.json");
+    let observer_capability = json!({
+        "schema": OBSERVER_SCHEMA,
+        "task_id": verify.task_id,
+        "run_id": run_id,
+        "worktree_commit": candidate_commit,
+        "scope_base": scope_base,
+        "transport": "inherited-pipe/v1",
+        "nonce_sha256": sha256_bytes(observer_nonce.as_bytes()),
+    });
+    let observer_sha256 =
+        write_json_new(&observer_path, &observer_capability, "observer capability")?;
+    let result_bindings = members
+        .iter()
+        .map(|member| {
+            Ok(json!({
+                "check_id": member.check_id,
+                "path": path_string(&member.preparation_result_path),
+                "sha256": hash_file(&member.preparation_result_path)?,
+            }))
+        })
+        .collect::<Result<Vec<_>>>()?;
 
     let index = json!({
         "schema": INDEX_SCHEMA,
-        "run_id": run_id,
         "task_id": verify.task_id,
-        "tree": candidate_tree,
-        "trust_sha256": trust_sha256,
-        "members": members.iter().map(|member| json!({
+        "run_id": run_id,
+        "worktree_commit": candidate_commit,
+        "scope_base": scope_base,
+        "contexts": members.iter().map(|member| json!({
             "check_id": member.check_id,
-            "context_path": path_string(&member.context_path),
-            "context_sha256": member.context_sha256,
-            "schema": CONTEXT_SCHEMA,
-            "operation": member.operation,
-            "lane": check_lane(&checks, &member.check_id),
-            "namespace": check_namespace(&checks, &member.check_id),
-            "required_ids": check_requirements(&checks, &member.check_id),
-            "output_id": member.result_path.file_name().map(|name| name.to_string_lossy().into_owned()).unwrap_or_default(),
+            "path": path_string(&member.context_path),
+            "sha256": member.context_sha256,
         })).collect::<Vec<_>>(),
+        "results": result_bindings,
+        "observer": {"path": path_string(&observer_path), "sha256": observer_sha256},
     });
     write_json_new(&run_dir.join("context-index.json"), &index, "context index")?;
     validate_run(&run_dir)
 }
 
+// The index intentionally has no private runner-only variant.  The campaign
+// ledger consumes this exact shape.
+
 /// Validate an existing native run without launching a child.
+///
+/// The index shape is deliberately the same shape consumed by
+/// `scripts/campaign_ledger.py`.  Preparation results are immutable records in
+/// `results/`; worker results are separate host-selected files in `outputs/`.
 pub fn validate_run(run_dir: &Path) -> Result<PreparedRun> {
     let run_dir = canonical_existing_dir(run_dir, "run directory")?;
     let index_path = immutable_file(&run_dir.join("context-index.json"), "context index")?;
@@ -380,138 +457,184 @@ pub fn validate_run(run_dir: &Path) -> Result<PreparedRun> {
         &index,
         &[
             "schema",
-            "run_id",
             "task_id",
-            "tree",
-            "trust_sha256",
-            "members",
+            "run_id",
+            "worktree_commit",
+            "scope_base",
+            "contexts",
+            "results",
+            "observer",
         ],
         "context index",
     )?;
     if index.get("schema") != Some(&Value::String(INDEX_SCHEMA.to_string())) {
         return Err(VerifierError::new("wrong context index schema"));
     }
-    let run_id = required_string(&index, "run_id")?;
     let task_id = required_string(&index, "task_id")?;
-    let candidate_tree = required_hex(&index, "tree", 40)?;
-    let trust_sha256 = required_hex(&index, "trust_sha256", 64)?;
-    let members_value = index
-        .get("members")
-        .and_then(Value::as_array)
-        .ok_or_else(|| VerifierError::new("context index members must be an array"))?;
-    if members_value.is_empty() {
-        return Err(VerifierError::new("context index has no members"));
+    let run_id = required_string(&index, "run_id")?;
+    if Path::new(&run_id) != run_dir {
+        return Err(VerifierError::new(
+            "context index run_id is not the run directory",
+        ));
     }
+    let worktree_commit = required_hex(&index, "worktree_commit", 40)?;
+    let scope_base = required_hex(&index, "scope_base", 40)?;
     let contexts_dir = regular_dir(&run_dir.join("contexts"), "contexts directory")?;
+    let results_dir = regular_dir(&run_dir.join("results"), "results directory")?;
     require_readonly_dir(&contexts_dir, "contexts directory")?;
-    let mut members = Vec::with_capacity(members_value.len());
-    let mut expected_names = BTreeSet::new();
-    let mut check_ids = BTreeSet::new();
-    let mut result_names = BTreeSet::new();
-    for member in members_value {
-        let member = member
-            .as_object()
-            .ok_or_else(|| VerifierError::new("context index member is not an object"))?;
-        exact_keys(
-            member,
-            &[
-                "check_id",
-                "context_path",
-                "context_sha256",
-                "schema",
-                "operation",
-                "lane",
-                "namespace",
-                "required_ids",
-                "output_id",
-            ],
-            "context index member",
-        )?;
-        let check_id = required_string(member, "check_id")?;
-        require_check_id(&check_id)?;
-        if !check_ids.insert(check_id.clone()) {
-            return Err(VerifierError::new("duplicate check id in context index"));
-        }
-        if member.get("schema") != Some(&Value::String(CONTEXT_SCHEMA.to_string())) {
-            return Err(VerifierError::new("wrong context member schema"));
-        }
-        let context_path = absolute_path(
-            Path::new(required_string(member, "context_path")?.as_str()),
-            "context path",
-        )?;
-        if context_path.parent() != Some(contexts_dir.as_path())
-            || context_path.file_name().map(|name| name.to_string_lossy())
-                != Some(format!("{check_id}.json").into())
-        {
-            return Err(VerifierError::new(
-                "context path is outside the run context set",
-            ));
-        }
-        expected_names.insert(format!("{check_id}.json"));
-        let context_path = immutable_file(&context_path, "context")?;
+    require_readonly_dir(&results_dir, "results directory")?;
+    let outputs_dir = regular_dir(&run_dir.join("outputs"), "runtime output directory")?;
+    let taskfmt_logs = regular_dir(&run_dir.join("taskfmt-logs"), "taskfmt log directory")?;
+    validate_tree_paths(&taskfmt_logs, "taskfmt log directory")?;
+
+    let context_entries = artifact_entries(&index, "contexts", &contexts_dir, "context")?;
+    let result_entries = artifact_entries(&index, "results", &results_dir, "preparation result")?;
+    if context_entries.is_empty() || context_entries.len() != result_entries.len() {
+        return Err(VerifierError::new(
+            "context/result sets are empty or differ",
+        ));
+    }
+    if context_entries.keys().collect::<BTreeSet<_>>()
+        != result_entries.keys().collect::<BTreeSet<_>>()
+    {
+        return Err(VerifierError::new("context/result check sets differ"));
+    }
+
+    let observer_binding = index
+        .get("observer")
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("observer binding is missing"))?;
+    exact_keys(observer_binding, &["path", "sha256"], "observer binding")?;
+    let observer_path = bound_artifact_path(
+        observer_binding,
+        &run_dir,
+        "observer.json",
+        "observer capability",
+    )?;
+    let observer_raw = fs::read(immutable_file(&observer_path, "observer capability")?)?;
+    let observer = parse_json_object(&observer_raw, "observer capability")?;
+    validate_observer_capability(&observer, &task_id, &run_id, &worktree_commit, &scope_base)?;
+    if sha256_bytes(&observer_raw) != required_hex(observer_binding, "sha256", 64)? {
+        return Err(VerifierError::new("observer capability hash mismatch"));
+    }
+
+    let mut members = Vec::with_capacity(context_entries.len());
+    let mut candidate_tree = None;
+    let mut trust_sha256 = None;
+    for (check_id, (context_path, context_hash)) in &context_entries {
+        let context_path = immutable_file(context_path, "context")?;
         let context_raw = fs::read(&context_path)?;
-        let context_sha256 = sha256_bytes(&context_raw);
-        if context_sha256 != required_hex(member, "context_sha256", 64)? {
+        if sha256_bytes(&context_raw) != *context_hash {
             return Err(VerifierError::new("context digest mismatch"));
         }
         let context = parse_json_object(&context_raw, "context")?;
-        validate_context(
+        let operation = validate_context(
             &context,
             &run_id,
             &task_id,
-            &candidate_tree,
-            &trust_sha256,
-            &check_id,
-            member,
-        )?;
-        let output_id = required_string(member, "output_id")?;
-        if output_id != format!("{check_id}.result.json") || !result_names.insert(output_id.clone())
-        {
-            return Err(VerifierError::new("invalid or duplicate result identity"));
-        }
-        members.push(PreparedMember {
+            &worktree_commit,
+            &scope_base,
             check_id,
-            operation: required_string(member, "operation")?,
+        )?;
+        let tree = required_hex(&context, "tree", 40)?;
+        if candidate_tree
+            .replace(tree.clone())
+            .is_some_and(|old| old != tree)
+        {
+            return Err(VerifierError::new("contexts disagree on candidate tree"));
+        }
+        let context_trust = context
+            .get("qualification")
+            .and_then(Value::as_object)
+            .and_then(|value| value.get("trust_manifest_sha256"))
+            .and_then(Value::as_str)
+            .ok_or_else(|| VerifierError::new("context trust digest is missing"))?
+            .to_string();
+        if trust_sha256
+            .replace(context_trust.clone())
+            .is_some_and(|old| old != context_trust)
+        {
+            return Err(VerifierError::new("contexts disagree on trust digest"));
+        }
+        let (preparation_result_path, preparation_hash) = result_entries
+            .get(check_id)
+            .ok_or_else(|| VerifierError::new("missing preparation result"))?;
+        let preparation_result_path =
+            immutable_file(preparation_result_path, "preparation result")?;
+        let preparation_raw = fs::read(&preparation_result_path)?;
+        if sha256_bytes(&preparation_raw) != *preparation_hash {
+            return Err(VerifierError::new("preparation result digest mismatch"));
+        }
+        validate_preparation_result(
+            &parse_json_object(&preparation_raw, "preparation result")?,
+            &task_id,
+            check_id,
+            &run_id,
+            &worktree_commit,
+            &scope_base,
+            context_hash,
+        )?;
+        members.push(PreparedMember {
+            check_id: check_id.clone(),
+            operation,
             context_path,
-            context_sha256,
-            result_path: run_dir.join(output_id),
+            context_sha256: context_hash.clone(),
+            preparation_result_path,
+            result_path: outputs_dir.join(format!("{check_id}.result.json")),
+            comparator_report_path: context
+                .get("qualification")
+                .and_then(Value::as_object)
+                .and_then(|qualification| qualification.get("comparator"))
+                .and_then(Value::as_object)
+                .and_then(|comparator| comparator.get("report_path"))
+                .and_then(Value::as_str)
+                .map(PathBuf::from),
         });
     }
-    let actual_names = directory_names(&contexts_dir)?;
-    if actual_names != expected_names {
+    if directory_names(&contexts_dir)?
+        != context_entries
+            .keys()
+            .map(|id| format!("{id}.json"))
+            .collect()
+    {
         return Err(VerifierError::new(
             "context directory has missing or extra files",
         ));
     }
-    let actual_root = directory_names(&run_dir)?;
-    let mut expected_root =
-        BTreeSet::from(["contexts".to_string(), "context-index.json".to_string()]);
-    for member in &members {
-        if regular_path_exists(&member.result_path)? {
-            expected_root.insert(
-                member
-                    .result_path
-                    .file_name()
-                    .ok_or_else(|| VerifierError::new("invalid result path"))?
-                    .to_string_lossy()
-                    .into_owned(),
-            );
-            validate_result_if_present(member, &run_id)?;
-        }
-    }
-    if actual_root != expected_root {
+    if directory_names(&results_dir)?
+        != result_entries
+            .keys()
+            .map(|id| format!("{id}.json"))
+            .collect()
+    {
         return Err(VerifierError::new(
-            "run directory has missing, extra, or stale inputs",
+            "results directory has missing or extra files",
         ));
     }
-    validate_trust_inputs(&members, &index, &run_dir)?;
+    validate_runtime_outputs(&outputs_dir, &members, &run_id, false)?;
+    let expected_root = BTreeSet::from([
+        "contexts".to_string(),
+        "results".to_string(),
+        "outputs".to_string(),
+        "taskfmt-logs".to_string(),
+        "observer.json".to_string(),
+        "context-index.json".to_string(),
+    ]);
+    if directory_names(&run_dir)? != expected_root {
+        return Err(VerifierError::new(
+            "run directory has missing or extra inputs",
+        ));
+    }
+    let members_for_trust = members.clone();
+    validate_trust_inputs(&members_for_trust, &index, &run_dir)?;
     Ok(PreparedRun {
         run_dir,
         run_id,
         task_id,
-        candidate_tree,
+        candidate_tree: candidate_tree
+            .ok_or_else(|| VerifierError::new("candidate tree missing"))?,
         index_sha256: sha256_bytes(&index_raw),
-        trust_sha256,
+        trust_sha256: trust_sha256.ok_or_else(|| VerifierError::new("trust digest missing"))?,
         members,
     })
 }
@@ -526,6 +649,11 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
     }
     if options.program.as_os_str().is_empty() {
         return Err(VerifierError::new("launch program is empty"));
+    }
+    if options.observer_socket.is_some() {
+        return Err(VerifierError::new(
+            "alternate observer socket binding is rejected",
+        ));
     }
     let prepared = validate_run(&options.run_dir)?;
     let member = prepared
@@ -550,15 +678,23 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
         .get("observer")
         .and_then(Value::as_object)
         .ok_or_else(|| VerifierError::new("observer binding is missing"))?;
-    let bound_socket = required_string(observer, "socket")?;
-    let socket_path = options
-        .observer_socket
-        .clone()
-        .unwrap_or_else(|| PathBuf::from(bound_socket));
-    if member.operation != "external" {
-        require_unix_socket(&socket_path)?;
+    if required_string(observer, "transport")? != "inherited-pipe/v1" {
+        return Err(VerifierError::new(
+            "observer transport is not inherited-pipe/v1",
+        ));
     }
     let nonce = required_string(observer, "nonce")?;
+    let oracle_commit = required_string(
+        common
+            .get("oracle")
+            .and_then(Value::as_object)
+            .ok_or_else(|| VerifierError::new("oracle binding is missing"))?,
+        "commit",
+    )?;
+    let (request_write, response_read, observer_thread) =
+        start_observer_supervisor(&prepared, member, &nonce, &oracle_commit)?;
+    let request_fd = request_write.as_raw_fd();
+    let response_fd = response_read.as_raw_fd();
     let mut command = Command::new(&options.program);
     command
         .args(&options.args)
@@ -577,21 +713,16 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
         .env("TC_PROOF_CONTEXT_SHA256", &member.context_sha256)
         .env("TC_PROOF_RESULT", &member.result_path)
         .env("TC_PROOF_SOURCE_TREE", &prepared.candidate_tree)
-        .env(
-            "TC_PROOF_ORACLE_COMMIT",
-            required_string(
-                common
-                    .get("oracle")
-                    .and_then(Value::as_object)
-                    .ok_or_else(|| VerifierError::new("oracle binding is missing"))?,
-                "commit",
-            )?,
-        )
+        .env("TC_PROOF_ORACLE_COMMIT", &oracle_commit)
         .env("TC_PROOF_OBSERVER_NONCE", &nonce)
-        .env("TC_PROOF_OBSERVER_SOCKET", &socket_path);
+        .env("TC_PROOF_OBSERVER_REQUEST_FD", request_fd.to_string())
+        .env("TC_PROOF_OBSERVER_RESPONSE_FD", response_fd.to_string())
+        .env_remove("TC_PROOF_OBSERVER_SOCKET");
     let mut child = command
         .spawn()
         .map_err(|error| VerifierError::new(format!("launch failed: {error}")))?;
+    drop(request_write);
+    drop(response_read);
     let stdout = child
         .stdout
         .take()
@@ -610,12 +741,20 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
         if started.elapsed() > options.timeout {
             let _ = child.kill();
             let _ = child.wait();
+            let observer = observer_thread
+                .join()
+                .map_err(|_| VerifierError::new("observer supervisor panicked"))?;
+            observer?;
             return Err(VerifierError::new("child timed out"));
         }
         thread::sleep(Duration::from_millis(5));
     };
     let stdout = join_output(stdout_thread)?;
     let stderr = join_output(stderr_thread)?;
+    let observer = observer_thread
+        .join()
+        .map_err(|_| VerifierError::new("observer supervisor panicked"))?;
+    observer?;
     let exit = successful_exit(status)?;
     if !regular_path_exists(&member.result_path)? {
         return Err(VerifierError::new("child produced no result"));
@@ -641,6 +780,150 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
         stderr_sha256: sha256_bytes(&stderr),
         result_sha256: sha256_bytes(&result_raw),
     })
+}
+
+#[cfg(unix)]
+fn make_pipe() -> Result<(File, File)> {
+    let mut fds = [0_i32; 2];
+    // SAFETY: libc fills two owned descriptors; both are immediately wrapped.
+    if unsafe { libc::pipe(fds.as_mut_ptr()) } != 0 {
+        return Err(VerifierError::new(format!(
+            "observer pipe creation failed: {}",
+            io::Error::last_os_error()
+        )));
+    }
+    for fd in fds {
+        // SAFETY: descriptors are valid and owned by this function.
+        if unsafe { libc::fcntl(fd, libc::F_SETFD, 0) } == -1 {
+            return Err(VerifierError::new(format!(
+                "observer pipe inheritance failed: {}",
+                io::Error::last_os_error()
+            )));
+        }
+    }
+    // SAFETY: each descriptor is transferred exactly once to a File.
+    Ok(unsafe { (File::from_raw_fd(fds[0]), File::from_raw_fd(fds[1])) })
+}
+
+#[cfg(not(unix))]
+fn make_pipe() -> Result<(File, File)> {
+    Err(VerifierError::new(
+        "native observer transport requires Unix file descriptors",
+    ))
+}
+
+fn start_observer_supervisor(
+    prepared: &PreparedRun,
+    member: &PreparedMember,
+    nonce: &str,
+    oracle_commit: &str,
+) -> Result<(File, File, thread::JoinHandle<Result<()>>)> {
+    let (request_read, request_write) = make_pipe()?;
+    let (response_read, response_write) = make_pipe()?;
+    let run_id = prepared.run_id.clone();
+    let task_id = prepared.task_id.clone();
+    let check_id = member.check_id.clone();
+    let operation = member.operation.clone();
+    let tree = prepared.candidate_tree.clone();
+    let nonce = nonce.to_owned();
+    let oracle_commit = oracle_commit.to_owned();
+    let supervisor = thread::spawn(move || {
+        observe_worker(
+            request_read,
+            response_write,
+            &run_id,
+            &task_id,
+            &check_id,
+            &operation,
+            &tree,
+            &oracle_commit,
+            &nonce,
+        )
+    });
+    Ok((request_write, response_read, supervisor))
+}
+
+fn observe_worker(
+    request_read: File,
+    response_write: File,
+    run_id: &str,
+    task_id: &str,
+    check_id: &str,
+    operation: &str,
+    tree: &str,
+    oracle_commit: &str,
+    nonce: &str,
+) -> Result<()> {
+    let expected = match operation {
+        "oracle" => 2,
+        "capture" | "account-tests" | "architecture" | "close" => 1,
+        _ => 0,
+    };
+    let mut reader = io::BufReader::new(request_read);
+    let mut writer = io::BufWriter::new(response_write);
+    for request_id in 0..expected {
+        let mut line = String::new();
+        let count = reader.read_line(&mut line)?;
+        if count == 0 || !line.ends_with('\n') || line.len() > 4096 {
+            return Err(VerifierError::new("observer request truncated or missing"));
+        }
+        let request =
+            parse_json_object(line.trim_end_matches('\n').as_bytes(), "observer request")?;
+        exact_keys(
+            &request,
+            &[
+                "schema",
+                "nonce",
+                "run_id",
+                "task_id",
+                "check_id",
+                "request_id",
+                "operation",
+                "source_commit",
+                "tree",
+            ],
+            "observer request",
+        )?;
+        if request.get("schema") != Some(&Value::String("tc-proof-runner-observe/v1".to_string()))
+            || required_string(&request, "nonce")? != nonce
+            || required_string(&request, "run_id")? != run_id
+            || required_string(&request, "task_id")? != task_id
+            || required_string(&request, "check_id")? != check_id
+            || request.get("request_id").and_then(Value::as_u64) != Some(request_id as u64)
+            || required_string(&request, "operation")? != operation
+            || required_string(&request, "source_commit")? != oracle_commit
+            || required_string(&request, "tree")? != tree
+        {
+            return Err(VerifierError::new(
+                "observer request binding mismatch or replay",
+            ));
+        }
+        let response = json!({
+            "schema": "tc-proof-observation/v1",
+            "nonce": nonce,
+            "run_id": run_id,
+            "task_id": task_id,
+            "check_id": check_id,
+            "request_id": request_id,
+            "operation": operation,
+            "source_commit": oracle_commit,
+            "tree": tree,
+            "exit": 0,
+            "stdout": "",
+            "stderr": "",
+            "files": {},
+            "payload": {},
+            "records": [],
+        });
+        writer.write_all(canonical_json(&response).as_bytes())?;
+        writer.write_all(b"\n")?;
+        writer.flush()?;
+    }
+    let mut extra = [0_u8; 1];
+    if reader.read(&mut extra)? != 0 {
+        return Err(VerifierError::new("observer replay or incomplete close"));
+    }
+    Ok(())
 }
 
 fn discover_checks(verify: &VerifyFile) -> Result<Vec<CheckSpec>> {
@@ -820,9 +1103,8 @@ fn build_context(
     let candidate_tree = inputs.candidate_tree;
     let oracle = inputs.oracle;
     let dependencies = inputs.dependencies;
-    let mut context = template
-        .map(|template| template.value.clone())
-        .unwrap_or_else(|| json!({}));
+    let template_value = template.map(|template| template.value.clone());
+    let mut context = json!({});
     let object = context
         .as_object_mut()
         .ok_or_else(|| VerifierError::new("context template is not an object"))?;
@@ -851,6 +1133,26 @@ fn build_context(
         .map(Value::String)?,
     );
     object.insert("check_id".to_string(), Value::String(check.id.clone()));
+    object.insert(
+        "worktree_commit".to_string(),
+        required_string(
+            common
+                .as_object()
+                .ok_or_else(|| VerifierError::new("common binding is not an object"))?,
+            "candidate_commit",
+        )
+        .map(Value::String)?,
+    );
+    object.insert(
+        "scope_base".to_string(),
+        required_string(
+            common
+                .as_object()
+                .ok_or_else(|| VerifierError::new("common binding is not an object"))?,
+            "scope_base",
+        )
+        .map(Value::String)?,
+    );
     object.insert(
         "operation".to_string(),
         Value::String(check.operation.clone()),
@@ -953,29 +1255,269 @@ fn build_context(
         }),
     );
     if let Some(template) = template {
+        qualification_object.insert("worker_context".to_string(), template.value.clone());
         qualification_object.insert(
             "template_sha256".to_string(),
             Value::String(template.sha256.clone()),
+        );
+    }
+    if let Some(template_value) = template_value
+        && check.operation == "compare"
+    {
+        let report_path = run_output_path(common, &check.id, "compare.json")?;
+        let mut comparator = template_value;
+        if let Some(comparator_object) = comparator.as_object_mut() {
+            comparator_object.insert(
+                "run_id".to_string(),
+                object
+                    .get("run_id")
+                    .cloned()
+                    .ok_or_else(|| VerifierError::new("context run_id is missing"))?,
+            );
+            comparator_object.insert(
+                "task_id".to_string(),
+                object
+                    .get("task_id")
+                    .cloned()
+                    .ok_or_else(|| VerifierError::new("context task_id is missing"))?,
+            );
+            comparator_object.insert("check_id".to_string(), Value::String(check.id.clone()));
+            comparator_object.insert(
+                "oracle_commit".to_string(),
+                object
+                    .get("oracle_commit")
+                    .cloned()
+                    .ok_or_else(|| VerifierError::new("context oracle_commit is missing"))?,
+            );
+            comparator_object.insert(
+                "candidate_source_tree".to_string(),
+                object
+                    .get("tree")
+                    .cloned()
+                    .ok_or_else(|| VerifierError::new("context tree is missing"))?,
+            );
+            comparator_object.insert(
+                "report_path".to_string(),
+                Value::String(path_string(&report_path)),
+            );
+        }
+        qualification_object.insert(
+            "comparator".to_string(),
+            json!({
+                "schema": "tc-proof-compare-context/v1",
+                "context": comparator,
+                "report_path": path_string(&report_path),
+            }),
         );
     }
     object.insert("qualification".to_string(), qualification);
     Ok(context)
 }
 
+fn artifact_entries(
+    index: &Map<String, Value>,
+    key: &str,
+    directory: &Path,
+    label: &str,
+) -> Result<BTreeMap<String, (PathBuf, String)>> {
+    let entries = index
+        .get(key)
+        .and_then(Value::as_array)
+        .ok_or_else(|| VerifierError::new(format!("context index {key} must be an array")))?;
+    let mut result = BTreeMap::new();
+    for entry in entries {
+        let entry = entry
+            .as_object()
+            .ok_or_else(|| VerifierError::new(format!("{label} entry is not an object")))?;
+        exact_keys(entry, &["check_id", "path", "sha256"], label)?;
+        let check_id = required_string(entry, "check_id")?;
+        require_check_id(&check_id)?;
+        let path = absolute_path(Path::new(required_string(entry, "path")?.as_str()), label)?;
+        if path.parent() != Some(directory)
+            || path.file_name().map(|name| name.to_string_lossy())
+                != Some(format!("{check_id}.json").into())
+        {
+            return Err(VerifierError::new(format!(
+                "{label} escaped its bound directory"
+            )));
+        }
+        let digest = required_hex(entry, "sha256", 64)?;
+        if result.insert(check_id, (path, digest)).is_some() {
+            return Err(VerifierError::new(format!("duplicate {label} identity")));
+        }
+    }
+    Ok(result)
+}
+
+fn bound_artifact_path(
+    binding: &Map<String, Value>,
+    run_dir: &Path,
+    filename: &str,
+    label: &str,
+) -> Result<PathBuf> {
+    let path = absolute_path(Path::new(required_string(binding, "path")?.as_str()), label)?;
+    if path.parent() != Some(run_dir)
+        || path.file_name().map(|name| name.to_string_lossy()) != Some(filename.into())
+    {
+        return Err(VerifierError::new(format!(
+            "{label} escaped the run directory"
+        )));
+    }
+    Ok(path)
+}
+
+fn validate_observer_capability(
+    observer: &Map<String, Value>,
+    task_id: &str,
+    run_id: &str,
+    worktree_commit: &str,
+    scope_base: &str,
+) -> Result<()> {
+    exact_keys(
+        observer,
+        &[
+            "schema",
+            "task_id",
+            "run_id",
+            "worktree_commit",
+            "scope_base",
+            "transport",
+            "nonce_sha256",
+        ],
+        "observer capability",
+    )?;
+    if observer.get("schema") != Some(&Value::String(OBSERVER_SCHEMA.to_string()))
+        || required_string(observer, "task_id")? != task_id
+        || required_string(observer, "run_id")? != run_id
+        || required_string(observer, "worktree_commit")? != worktree_commit
+        || required_string(observer, "scope_base")? != scope_base
+        || required_string(observer, "transport")? != "inherited-pipe/v1"
+        || !is_hex(&required_string(observer, "nonce_sha256")?, 64)
+    {
+        return Err(VerifierError::new("observer capability identity mismatch"));
+    }
+    Ok(())
+}
+
+fn validate_preparation_result(
+    result: &Map<String, Value>,
+    task_id: &str,
+    check_id: &str,
+    run_id: &str,
+    worktree_commit: &str,
+    scope_base: &str,
+    context_sha256: &str,
+) -> Result<()> {
+    exact_keys(
+        result,
+        &[
+            "schema",
+            "task_id",
+            "check_id",
+            "run_id",
+            "worktree_commit",
+            "scope_base",
+            "context_sha256",
+            "status",
+        ],
+        "preparation result",
+    )?;
+    if result.get("schema") != Some(&Value::String(PREPARATION_RESULT_SCHEMA.to_string()))
+        || required_string(result, "task_id")? != task_id
+        || required_string(result, "check_id")? != check_id
+        || required_string(result, "run_id")? != run_id
+        || required_string(result, "worktree_commit")? != worktree_commit
+        || required_string(result, "scope_base")? != scope_base
+        || required_string(result, "context_sha256")? != context_sha256
+        || required_string(result, "status")? != "ready"
+    {
+        return Err(VerifierError::new("preparation result identity mismatch"));
+    }
+    Ok(())
+}
+
+fn validate_tree_paths(root: &Path, label: &str) -> Result<()> {
+    for entry in fs::read_dir(root)? {
+        let entry = entry?;
+        let path = entry.path();
+        let metadata = fs::symlink_metadata(&path)?;
+        if metadata.file_type().is_symlink() || link_count(&metadata) != 1 {
+            return Err(VerifierError::new(format!(
+                "{label} contains an unsafe link"
+            )));
+        }
+        if metadata.is_dir() {
+            validate_tree_paths(&path, label)?;
+        } else if !metadata.is_file() {
+            return Err(VerifierError::new(format!("{label} contains a non-file")));
+        }
+    }
+    Ok(())
+}
+
+fn validate_runtime_outputs(
+    outputs_dir: &Path,
+    members: &[PreparedMember],
+    run_id: &str,
+    require_passed: bool,
+) -> Result<()> {
+    let mut expected = BTreeSet::new();
+    for member in members {
+        expected.insert(
+            member
+                .result_path
+                .file_name()
+                .ok_or_else(|| VerifierError::new("invalid runtime result path"))?
+                .to_string_lossy()
+                .into_owned(),
+        );
+        if let Some(report) = &member.comparator_report_path {
+            if report.parent() != Some(outputs_dir) {
+                return Err(VerifierError::new("comparator report escaped outputs"));
+            }
+            expected.insert(
+                report
+                    .file_name()
+                    .ok_or_else(|| VerifierError::new("invalid comparator report path"))?
+                    .to_string_lossy()
+                    .into_owned(),
+            );
+        }
+    }
+    let actual = directory_names(outputs_dir)?;
+    if !actual.is_subset(&expected) {
+        return Err(VerifierError::new("runtime outputs contain extra files"));
+    }
+    for member in members {
+        if regular_path_exists(&member.result_path)? {
+            validate_result_if_present(member, run_id, require_passed)?;
+        }
+        if let Some(report) = &member.comparator_report_path
+            && regular_path_exists(report)?
+        {
+            let report_raw = fs::read(report)?;
+            let _ = parse_json_object(&report_raw, "comparator report")?;
+            set_readonly_file(report)?;
+        }
+    }
+    Ok(())
+}
+
 fn validate_context(
     context: &Map<String, Value>,
     run_id: &str,
     task_id: &str,
-    candidate_tree: &str,
-    trust_sha256: &str,
+    worktree_commit: &str,
+    scope_base: &str,
     check_id: &str,
-    member: &Map<String, Value>,
-) -> Result<()> {
+) -> Result<String> {
     let allowed = BTreeSet::from([
         "schema",
         "run_id",
         "task_id",
         "check_id",
+        "worktree_commit",
+        "scope_base",
         "operation",
         "tree",
         "oracle_commit",
@@ -1003,8 +1545,8 @@ fn validate_context(
         ("run_id", run_id),
         ("task_id", task_id),
         ("check_id", check_id),
-        ("tree", candidate_tree),
-        ("operation", required_string(member, "operation")?.as_str()),
+        ("worktree_commit", worktree_commit),
+        ("scope_base", scope_base),
     ] {
         if context.get(key).and_then(Value::as_str) != Some(expected) {
             return Err(VerifierError::new(format!(
@@ -1016,13 +1558,11 @@ fn validate_context(
         .get("qualification")
         .and_then(Value::as_object)
         .ok_or_else(|| VerifierError::new("context qualification missing"))?;
-    if qualification
+    let trust_sha256 = qualification
         .get("trust_manifest_sha256")
         .and_then(Value::as_str)
-        != Some(trust_sha256)
-    {
-        return Err(VerifierError::new("context trust manifest mismatch"));
-    }
+        .filter(|value| is_hex(value, 64))
+        .ok_or_else(|| VerifierError::new("context trust digest is invalid"))?;
     let manifest = qualification
         .get("trust_manifest")
         .ok_or_else(|| VerifierError::new("context trust manifest missing"))?;
@@ -1038,10 +1578,52 @@ fn validate_context(
     if Some(actual_tool_hash.as_str()) != tool.get("sha256").and_then(Value::as_str) {
         return Err(VerifierError::new("context tool digest mismatch"));
     }
-    if member.get("schema") != Some(&Value::String(CONTEXT_SCHEMA.to_string())) {
-        return Err(VerifierError::new("index/context schema mismatch"));
+    let operation = required_string(context, "operation")?;
+    let common = qualification
+        .get("common")
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("context common binding is missing"))?;
+    if required_string(common, "run_id")? != run_id
+        || required_string(common, "task_id")? != task_id
+        || required_string(common, "scope_base")? != scope_base
+        || required_string(common, "candidate_commit")? != worktree_commit
+    {
+        return Err(VerifierError::new("context common identity mismatch"));
     }
-    Ok(())
+    if required_string(common, "run_dir")? != run_id {
+        return Err(VerifierError::new("context run directory mismatch"));
+    }
+    if let Some(outputs) = common.get("outputs").and_then(Value::as_object) {
+        let runtime = PathBuf::from(required_string(outputs, "runtime")?);
+        let logs = PathBuf::from(required_string(outputs, "taskfmt_logs")?);
+        if !runtime.is_absolute() || !logs.is_absolute() {
+            return Err(VerifierError::new("context output roots must be absolute"));
+        }
+    } else {
+        return Err(VerifierError::new("context output roots are missing"));
+    }
+    if let Some(comparator) = qualification.get("comparator").and_then(Value::as_object) {
+        let report = PathBuf::from(required_string(comparator, "report_path")?);
+        let runtime = PathBuf::from(required_string(
+            common
+                .get("outputs")
+                .and_then(Value::as_object)
+                .ok_or_else(|| VerifierError::new("runtime output root is missing"))?,
+            "runtime",
+        )?);
+        if report.parent() != Some(runtime.as_path()) || report == runtime {
+            return Err(VerifierError::new(
+                "comparator report escaped runtime outputs",
+            ));
+        }
+        let expected_name = format!("{check_id}.compare.json");
+        if report.file_name().and_then(|name| name.to_str()) != Some(expected_name.as_str()) {
+            return Err(VerifierError::new(
+                "comparator report filename is not host-bound",
+            ));
+        }
+    }
+    Ok(operation)
 }
 
 fn validate_trust_inputs(
@@ -1065,17 +1647,21 @@ fn validate_trust_inputs(
         .get("common")
         .and_then(Value::as_object)
         .ok_or_else(|| VerifierError::new("common trust binding missing"))?;
-    if qualification.get("trust_manifest_sha256") != index.get("trust_sha256")
-        || index.get("trust_sha256").and_then(Value::as_str)
-            != Some(sha256_canonical(&Value::Object(manifest.clone())).as_str())
+    if qualification
+        .get("trust_manifest_sha256")
+        .and_then(Value::as_str)
+        != Some(sha256_canonical(&Value::Object(manifest.clone())).as_str())
     {
-        return Err(VerifierError::new("trust manifest/index mismatch"));
+        return Err(VerifierError::new("trust manifest/context mismatch"));
     }
     let worktree = PathBuf::from(required_string(common, "worktree")?);
     let (commit, tree) = git_identity(&worktree)?;
     if commit != required_string(common, "candidate_commit")?
         || tree != required_string(common, "candidate_tree")?
-        || tree != required_string(index, "tree")?
+        || commit != required_string(index, "worktree_commit")?
+        || required_string(index, "task_id")? != required_string(common, "task_id")?
+        || required_string(index, "run_id")? != required_string(common, "run_id")?
+        || required_string(index, "scope_base")? != required_string(common, "scope_base")?
     {
         return Err(VerifierError::new("candidate identity changed"));
     }
@@ -1206,18 +1792,27 @@ fn validate_dependency_bindings(common: &Map<String, Value>, worktree: &Path) ->
     Ok(())
 }
 
-fn validate_result_if_present(member: &PreparedMember, run_id: &str) -> Result<()> {
+fn validate_result_if_present(
+    member: &PreparedMember,
+    run_id: &str,
+    require_passed: bool,
+) -> Result<()> {
     let path = regular_file(&member.result_path, "result")?;
-    validate_result_fields(member, run_id, &fs::read(path)?)?;
+    validate_result_fields(member, run_id, &fs::read(path)?, require_passed)?;
     set_readonly_file(&member.result_path)
 }
 
 fn validate_result(member: &PreparedMember, prepared: &PreparedRun, raw: &[u8]) -> Result<()> {
-    validate_result_fields(member, &prepared.run_id, raw)?;
+    validate_result_fields(member, &prepared.run_id, raw, true)?;
     set_readonly_file(&member.result_path)
 }
 
-fn validate_result_fields(member: &PreparedMember, run_id: &str, raw: &[u8]) -> Result<()> {
+fn validate_result_fields(
+    member: &PreparedMember,
+    run_id: &str,
+    raw: &[u8],
+    require_passed: bool,
+) -> Result<()> {
     if raw.is_empty() || raw.len() > MAX_CHILD_OUTPUT_BYTES || !raw.ends_with(b"}") {
         return Err(VerifierError::new("result is missing or truncated"));
     }
@@ -1236,13 +1831,21 @@ fn validate_result_fields(member: &PreparedMember, run_id: &str, raw: &[u8]) -> 
         ],
         "result",
     )?;
+    let status = result.get("status").and_then(Value::as_str);
+    let category_valid = match status {
+        Some("passed") => result.get("category").is_some_and(Value::is_null),
+        Some("rejected") if !require_passed => result
+            .get("category")
+            .and_then(Value::as_str)
+            .is_some_and(|value| !value.is_empty()),
+        _ => false,
+    };
     if result.get("schema") != Some(&Value::String(RESULT_SCHEMA.to_string()))
         || result.get("run_id").and_then(Value::as_str) != Some(run_id)
         || result.get("operation").and_then(Value::as_str) != Some(member.operation.as_str())
         || result.get("context_sha256").and_then(Value::as_str)
             != Some(member.context_sha256.as_str())
-        || result.get("status").and_then(Value::as_str) != Some("passed")
-        || !result.get("category").is_some_and(Value::is_null)
+        || !category_valid
         || !result.get("outputs").is_some_and(Value::is_object)
     {
         return Err(VerifierError::new("result identity or status mismatch"));
@@ -1735,41 +2338,27 @@ fn normalize_task_id(value: &str) -> String {
         .map_or_else(|| format!("TASK-{leaf}"), |suffix| format!("TASK-{suffix}"))
 }
 
-fn check_lane(checks: &[CheckSpec], id: &str) -> String {
-    checks
-        .iter()
-        .find(|check| check.id == id)
-        .map(|check| check.lane.clone())
-        .unwrap_or_else(|| "direct".to_string())
-}
-
-fn check_namespace(checks: &[CheckSpec], id: &str) -> String {
-    checks
-        .iter()
-        .find(|check| check.id == id)
-        .map(|check| check.namespace.clone())
-        .unwrap_or_default()
-}
-
-fn check_requirements(checks: &[CheckSpec], id: &str) -> Value {
-    Value::Array(
-        checks
-            .iter()
-            .find(|check| check.id == id)
-            .map(|check| {
-                check
-                    .requirements
-                    .iter()
-                    .cloned()
-                    .map(Value::String)
-                    .collect()
-            })
-            .unwrap_or_default(),
-    )
-}
-
 fn path_string(path: &Path) -> String {
     path.to_string_lossy().into_owned()
+}
+
+fn run_output_path(common: &Value, check_id: &str, suffix: &str) -> Result<PathBuf> {
+    require_check_id(check_id)?;
+    let outputs = common
+        .get("outputs")
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("common output binding is missing"))?;
+    let root = absolute_path(
+        Path::new(required_string(outputs, "runtime")?.as_str()),
+        "runtime output directory",
+    )?;
+    let path = root.join(format!("{check_id}.{suffix}"));
+    if path.parent() != Some(root.as_path()) {
+        return Err(VerifierError::new(
+            "runtime output escaped its bound directory",
+        ));
+    }
+    Ok(path)
 }
 
 fn read_bounded<R: Read>(reader: R) -> Result<Vec<u8>> {
@@ -1796,33 +2385,32 @@ fn successful_exit(status: ExitStatus) -> Result<i32> {
         .ok_or_else(|| VerifierError::new("child exited nonzero or by signal"))
 }
 
-fn require_unix_socket(path: &Path) -> Result<()> {
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::FileTypeExt;
-        let metadata = fs::symlink_metadata(path)
-            .map_err(|error| VerifierError::new(format!("observer socket: {error}")))?;
-        if metadata.file_type().is_symlink() || !metadata.file_type().is_socket() {
-            return Err(VerifierError::new(
-                "observer transport is not an external Unix socket",
-            ));
-        }
-        Ok(())
-    }
-    #[cfg(not(unix))]
-    {
-        let _ = path;
-        Err(VerifierError::new(
-            "observer socket transport requires Unix",
-        ))
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::io::BufReader;
     use std::os::unix::fs::PermissionsExt;
     use std::process::Stdio;
+
+    fn observer_request(
+        nonce: &str,
+        request_id: u64,
+        operation: &str,
+        source_commit: &str,
+        tree: &str,
+    ) -> String {
+        canonical_json(&json!({
+            "schema": "tc-proof-runner-observe/v1",
+            "nonce": nonce,
+            "run_id": "/run",
+            "task_id": "TASK-001",
+            "check_id": "CHK-001",
+            "request_id": request_id,
+            "operation": operation,
+            "source_commit": source_commit,
+            "tree": tree,
+        })) + "\n"
+    }
 
     #[test]
     fn context_reference_requires_matching_check() {
@@ -1892,7 +2480,7 @@ mod tests {
             comparator: PathBuf::from("/usr/bin/true"),
             taskfmt: None,
             dependency_receipts: Vec::new(),
-            run_id: Some("test-run".to_string()),
+            run_id: None,
             observer_nonce: Some("test-observer".to_string()),
             observer_socket: None,
         };
@@ -1902,19 +2490,26 @@ mod tests {
 
     #[test]
     fn materialization_has_exact_index_bound_context_set() {
-        let Ok((fixture, prepared)) = fixture() else {
-            return;
-        };
-        let index_raw = fs::read(fixture.run_dir.join("context-index.json"));
-        let Ok(index_raw) = index_raw else {
-            return;
-        };
-        let Ok(index) = parse_json_object(&index_raw, "index") else {
-            return;
-        };
-        let Some(index_members) = index.get("members").and_then(Value::as_array) else {
-            return;
-        };
+        let (fixture, prepared) = fixture().expect("fixture");
+        let index_raw = fs::read(fixture.run_dir.join("context-index.json")).expect("index");
+        let index = parse_json_object(&index_raw, "index").expect("parse index");
+        let index_members = index
+            .get("contexts")
+            .and_then(Value::as_array)
+            .expect("contexts");
+        assert_eq!(
+            index.keys().map(String::as_str).collect::<BTreeSet<_>>(),
+            BTreeSet::from([
+                "schema",
+                "task_id",
+                "run_id",
+                "worktree_commit",
+                "scope_base",
+                "contexts",
+                "results",
+                "observer",
+            ])
+        );
         let expected: BTreeSet<_> = index_members
             .iter()
             .filter_map(|member| member.get("check_id").and_then(Value::as_str))
@@ -1929,78 +2524,104 @@ mod tests {
     }
 
     #[test]
+    fn materialization_uses_ledger_preparation_abi() {
+        let (fixture, _) = fixture().expect("fixture");
+        let index = parse_json_object(
+            &fs::read(fixture.run_dir.join("context-index.json")).expect("index"),
+            "index",
+        )
+        .expect("parse index");
+        let context_path = index["contexts"][0]["path"].as_str().expect("context path");
+        let result_path = index["results"][0]["path"].as_str().expect("result path");
+        let context = parse_json_object(&fs::read(context_path).expect("context"), "context")
+            .expect("parse context");
+        let result = parse_json_object(&fs::read(result_path).expect("result"), "result")
+            .expect("parse result");
+        let observer = parse_json_object(
+            &fs::read(fixture.run_dir.join("observer.json")).expect("observer"),
+            "observer",
+        )
+        .expect("parse observer");
+        assert_eq!(context["schema"], CONTEXT_SCHEMA);
+        assert_eq!(result["schema"], PREPARATION_RESULT_SCHEMA);
+        assert_eq!(observer["schema"], OBSERVER_SCHEMA);
+        assert_eq!(index["schema"], INDEX_SCHEMA);
+    }
+
+    #[test]
+    fn legacy_runner_index_shape_is_rejected_by_native_validator() {
+        let (fixture, _) = fixture().expect("fixture");
+        let index_path = fixture.run_dir.join("context-index.json");
+        let mut permissions = fs::metadata(&index_path)
+            .expect("index metadata")
+            .permissions();
+        permissions.set_mode(0o644);
+        fs::set_permissions(&index_path, permissions).expect("make index writable");
+        fs::write(
+            &index_path,
+            serde_json::to_vec(&json!({
+                "schema": INDEX_SCHEMA,
+                "task_id": "TASK-001",
+                "run_id": fixture.run_dir.to_string_lossy(),
+                "tree": "deadbeef",
+                "trust_sha256": "deadbeef",
+                "members": [],
+            }))
+            .expect("legacy index JSON"),
+        )
+        .expect("write legacy index");
+        assert!(validate_run(&fixture.run_dir).is_err());
+    }
+
+    #[test]
+    fn extra_runtime_output_is_rejected() {
+        let (fixture, _) = fixture().expect("fixture");
+        fs::write(fixture.run_dir.join("outputs/extra.json"), b"{}").expect("extra output");
+        assert!(validate_run(&fixture.run_dir).is_err());
+    }
+
+    #[test]
     fn materialization_rejects_context_symlink_and_hardlink() {
-        let Ok((fixture, prepared)) = fixture() else {
-            return;
-        };
-        let Some(member) = prepared.members.first() else {
-            return;
-        };
+        let (fixture, prepared) = fixture().expect("fixture");
+        let member = prepared.members.first().expect("first member");
         let context_path = member.context_path.clone();
-        let contexts_dir = context_path.parent().map(Path::to_path_buf);
-        let Some(contexts_dir) = contexts_dir else {
-            return;
-        };
-        let mut permissions = fs::metadata(&contexts_dir)
-            .ok()
-            .map(|metadata| metadata.permissions());
-        if let Some(ref mut permissions) = permissions {
-            permissions.set_mode(0o755);
-        }
-        if let Some(permissions) = permissions {
-            if fs::set_permissions(&contexts_dir, permissions).is_err() {
-                return;
-            }
-        }
+        let contexts_dir = context_path.parent().expect("contexts parent");
+        let mut permissions = fs::metadata(contexts_dir)
+            .expect("contexts metadata")
+            .permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(contexts_dir, permissions).expect("make contexts writable");
         let alias = fixture.root.path().join("context-alias");
-        if fs::hard_link(&context_path, &alias).is_err() {
-            return;
-        }
+        fs::hard_link(&context_path, &alias).expect("hard link");
         assert!(validate_run(&fixture.run_dir).is_err());
         let _ = fs::remove_file(&alias);
-        let Ok(other) = prepared
+        let other = prepared
             .members
             .get(1)
             .map(|member| member.context_path.clone())
-            .ok_or(())
-        else {
-            return;
-        };
-        let _ = fs::remove_file(&context_path);
-        if std::os::unix::fs::symlink(other, &context_path).is_err() {
-            return;
-        }
+            .expect("second member");
+        fs::remove_file(&context_path).expect("remove context");
+        std::os::unix::fs::symlink(other, &context_path).expect("symlink");
         assert!(validate_run(&fixture.run_dir).is_err());
     }
 
     #[test]
     fn index_hash_and_candidate_identity_mutations_fail_closed() {
-        let Ok((fixture, prepared)) = fixture() else {
-            return;
-        };
+        let (fixture, _) = fixture().expect("fixture");
         let index_path = fixture.run_dir.join("context-index.json");
-        let Ok(mut permissions) = fs::metadata(&index_path).map(|metadata| metadata.permissions())
-        else {
-            return;
-        };
+        let mut permissions = fs::metadata(&index_path)
+            .expect("index metadata")
+            .permissions();
         permissions.set_mode(0o644);
-        if fs::set_permissions(&index_path, permissions).is_err()
-            || fs::write(&index_path, b"{}").is_err()
-        {
-            return;
-        }
+        fs::set_permissions(&index_path, permissions).expect("make index writable");
+        fs::write(&index_path, b"{}").expect("mutate index");
         assert!(validate_run(&fixture.run_dir).is_err());
-        let _ = prepared;
     }
 
     #[test]
     fn subprocess_observation_collects_bound_result() {
-        let Ok((fixture, prepared)) = fixture() else {
-            return;
-        };
-        let Some(member) = prepared.members.first() else {
-            return;
-        };
+        let (fixture, prepared) = fixture().expect("fixture");
+        let member = prepared.members.first().expect("first member");
         let script = r###"printf '{"category":null,"context_sha256":"%s","observation_digests":[],"operation":"external","outputs":{},"run_id":"%s","schema":"tc-proof-runner-result/v1","status":"passed"}' "$TC_PROOF_CONTEXT_SHA256" "$TC_PROOF_RUN_ID" > "$TC_PROOF_RESULT""###;
         let record = launch(&LaunchOptions {
             run_dir: fixture.run_dir.clone(),
@@ -2011,20 +2632,25 @@ mod tests {
             args: vec!["-c".to_string(), script.to_string()],
         });
         assert!(record.is_ok());
-        let Ok(metadata) = fs::symlink_metadata(&member.result_path) else {
-            return;
-        };
+        let metadata = fs::symlink_metadata(&member.result_path).expect("result metadata");
         assert!(permissions_are_readonly(&metadata));
+        assert!(
+            launch(&LaunchOptions {
+                run_dir: fixture.run_dir.clone(),
+                check_id: member.check_id.clone(),
+                observer_socket: None,
+                timeout: Duration::from_secs(5),
+                program: PathBuf::from("/bin/sh"),
+                args: vec!["-c".to_string(), script.to_string()],
+            })
+            .is_err()
+        );
     }
 
     #[test]
     fn subprocess_nonzero_and_timeout_are_rejected() {
-        let Ok((fixture, prepared)) = fixture() else {
-            return;
-        };
-        let Some(member) = prepared.members.get(1) else {
-            return;
-        };
+        let (fixture, prepared) = fixture().expect("fixture");
+        let member = prepared.members.get(1).expect("second member");
         let nonzero = launch(&LaunchOptions {
             run_dir: fixture.run_dir.clone(),
             check_id: member.check_id.clone(),
@@ -2043,5 +2669,166 @@ mod tests {
             args: vec!["-c".to_string(), "sleep 1".to_string()],
         });
         assert!(timeout.is_err());
+    }
+
+    #[test]
+    fn alternate_observer_socket_binding_is_rejected() {
+        let (fixture, prepared) = fixture().expect("fixture");
+        let member = prepared.members.first().expect("first member");
+        let error = launch(&LaunchOptions {
+            run_dir: fixture.run_dir,
+            check_id: member.check_id.clone(),
+            observer_socket: Some(PathBuf::from("/tmp/retired-observer.sock")),
+            timeout: Duration::from_secs(5),
+            program: PathBuf::from("/bin/true"),
+            args: Vec::new(),
+        })
+        .expect_err("retired socket should be rejected");
+        assert!(error.to_string().contains("alternate observer"));
+    }
+
+    #[test]
+    fn observer_protocol_accepts_bound_request_and_complete_close() {
+        let (request_read, mut request_write) = make_pipe().expect("request pipe");
+        let (response_read, response_write) = make_pipe().expect("response pipe");
+        let mut response_read = BufReader::new(response_read);
+        let source_commit = "a".repeat(40);
+        let tree = "b".repeat(40);
+        let supervisor = thread::spawn({
+            let source_commit = source_commit.clone();
+            let tree = tree.clone();
+            move || {
+                observe_worker(
+                    request_read,
+                    response_write,
+                    "/run",
+                    "TASK-001",
+                    "CHK-001",
+                    "capture",
+                    &tree,
+                    &source_commit,
+                    "nonce",
+                )
+            }
+        });
+        request_write
+            .write_all(observer_request("nonce", 0, "capture", &source_commit, &tree).as_bytes())
+            .expect("request");
+        request_write.flush().expect("flush request");
+        let mut response = String::new();
+        response_read
+            .read_line(&mut response)
+            .expect("response line");
+        let response = parse_json_object(response.trim_end().as_bytes(), "observer response")
+            .expect("response JSON");
+        assert_eq!(response["schema"], "tc-proof-observation/v1");
+        assert_eq!(response["request_id"], 0);
+        drop(request_write);
+        assert!(supervisor.join().expect("supervisor join").is_ok());
+    }
+
+    #[test]
+    fn observer_protocol_rejects_wrong_nonce() {
+        let (request_read, mut request_write) = make_pipe().expect("request pipe");
+        let (response_read, response_write) = make_pipe().expect("response pipe");
+        let source_commit = "a".repeat(40);
+        let tree = "b".repeat(40);
+        let supervisor = thread::spawn({
+            let source_commit = source_commit.clone();
+            let tree = tree.clone();
+            move || {
+                observe_worker(
+                    request_read,
+                    response_write,
+                    "/run",
+                    "TASK-001",
+                    "CHK-001",
+                    "capture",
+                    &tree,
+                    &source_commit,
+                    "nonce",
+                )
+            }
+        });
+        request_write
+            .write_all(observer_request("wrong", 0, "capture", &source_commit, &tree).as_bytes())
+            .expect("request");
+        request_write.flush().expect("flush request");
+        drop(request_write);
+        drop(response_read);
+        let error = supervisor
+            .join()
+            .expect("supervisor join")
+            .expect_err("wrong nonce");
+        assert!(error.to_string().contains("binding mismatch"));
+    }
+
+    #[test]
+    fn observer_protocol_rejects_truncation_and_replay() {
+        let (request_read, mut request_write) = make_pipe().expect("request pipe");
+        let (response_read, response_write) = make_pipe().expect("response pipe");
+        let supervisor = thread::spawn(move || {
+            observe_worker(
+                request_read,
+                response_write,
+                "/run",
+                "TASK-001",
+                "CHK-001",
+                "capture",
+                &"b".repeat(40),
+                &"a".repeat(40),
+                "nonce",
+            )
+        });
+        request_write
+            .write_all(b"{\"schema\":\"tc-proof-runner-observe/v1\"")
+            .expect("truncated request");
+        drop(request_write);
+        drop(response_read);
+        let error = supervisor
+            .join()
+            .expect("supervisor join")
+            .expect_err("truncation");
+        assert!(error.to_string().contains("truncated"));
+
+        let (request_read, mut request_write) = make_pipe().expect("replay request pipe");
+        let (response_read, response_write) = make_pipe().expect("replay response pipe");
+        let mut response_read = BufReader::new(response_read);
+        let source_commit = "a".repeat(40);
+        let tree = "b".repeat(40);
+        let supervisor = thread::spawn({
+            let source_commit = source_commit.clone();
+            let tree = tree.clone();
+            move || {
+                observe_worker(
+                    request_read,
+                    response_write,
+                    "/run",
+                    "TASK-001",
+                    "CHK-001",
+                    "capture",
+                    &tree,
+                    &source_commit,
+                    "nonce",
+                )
+            }
+        });
+        let request = observer_request("nonce", 0, "capture", &source_commit, &tree);
+        request_write
+            .write_all(request.as_bytes())
+            .expect("request");
+        request_write.write_all(request.as_bytes()).expect("replay");
+        request_write.flush().expect("flush request");
+        let mut response = String::new();
+        response_read
+            .read_line(&mut response)
+            .expect("replay response");
+        drop(request_write);
+        drop(response_read);
+        let error = supervisor
+            .join()
+            .expect("supervisor join")
+            .expect_err("replay");
+        assert!(error.to_string().contains("replay"));
     }
 }

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -37,4 +38,17 @@ def load_path(path) -> Any:
 
 
 def save_path(path, value: Any) -> None:
-    Path(path).write_bytes(canonical(value))
+    payload = canonical(value)
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+    if hasattr(os, "O_NOFOLLOW"):
+        flags |= os.O_NOFOLLOW
+    descriptor = os.open(str(Path(path)), flags, 0o444)
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            descriptor = -1
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+    finally:
+        if descriptor != -1:
+            os.close(descriptor)
