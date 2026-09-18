@@ -1,17 +1,36 @@
 #!/usr/bin/env bash
 # Pre-arm readiness checks. Does NOT arm /goal or dispatch tasks.
+#
+# `proof-preparation` is deliberately separate: it qualifies verifier-owned
+# native inputs while the campaign is NO-GO, but it never reads or changes the
+# campaign ledger and never authorizes a task.
 set -euo pipefail
 
 INTEGRATION_BRANCH="${INTEGRATION_BRANCH:-refactor/holla-parity}"
 WORKTREE_PATH="${TC_CAMPAIGN_WORKTREE:-.}"
 TAG_PEELED_EXPECT="${TAG_PEELED_EXPECT:-4a79c0a2d40fca46fc406b77157ce3b3f12ec16b}"
 TASKFMT_REV="afd3b575dbcc7044620bec4b9493a74eca3e5ef2"
+TASKFMT_VERSION="0.2.0"
 TASKFMT_SHA256="f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de"
 TASKFMT_SOURCE="/Users/donbeave/Projects/taskfmt/task-format"
+TASKFMT_BIN="${TC_TASKFMT:-/tmp/taskfmt-latest-install/bin/taskfmt}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+usage() {
+  cat <<'EOF'
+Usage: scripts/campaign-preflight.sh [preflight|proof-preparation]
+
+preflight             Authorizing readiness gate. Fails while the report is
+                      NO-GO or any ledger/evidence binding is stale.
+proof-preparation     Non-authorizing native verifier-input qualification.
+                      Requires TC_PROOF_RUN_DIR and optionally
+                      TC_PROOF_PREPARATION_RECEIPT; never reads or mutates
+                      .campaign/ledger.json.
+EOF
+}
+
 repo_root() {
-  git -C "${BASH_SOURCE[0]%/*}/.." rev-parse --show-toplevel
+  git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel
 }
 
 fail() {
@@ -50,65 +69,101 @@ check_branch() {
 }
 
 check_worktree() {
-  local wt
+  local wt wt_branch branch_head wt_head
   wt="$(campaign_worktree)"
   [[ -d "$wt" ]] || fail "missing worktree $wt"
-  local wt_branch
   wt_branch="$(git -C "$wt" branch --show-current 2>/dev/null || echo detached)"
   if [[ "$wt_branch" != "$INTEGRATION_BRANCH" ]]; then
     fail "worktree on '$wt_branch' (expected $INTEGRATION_BRANCH)"
-  else
-    pass "worktree $wt on $INTEGRATION_BRANCH"
   fi
+  branch_head="$(git rev-parse "$INTEGRATION_BRANCH")"
+  wt_head="$(git -C "$wt" rev-parse HEAD)"
+  [[ "$wt_head" == "$branch_head" ]] \
+    || fail "worktree HEAD $wt_head is not current branch HEAD $branch_head"
+  pass "worktree $wt on $INTEGRATION_BRANCH @ ${wt_head:0:12}"
+}
+
+check_readiness_gate() {
+  local report
+  report="$(repo_root)/docs/refactoring-plan/execution-readiness-report.md"
+  [[ -f "$report" ]] || fail "readiness report missing: $report"
+  if grep -Eq '^\*\*NO-GO\.\*\*$' "$report"; then
+    fail "readiness report is NO-GO; preflight cannot authorize campaign work"
+  fi
+  grep -Eq '^\*\*GO\.\*\*$' "$report" \
+    || fail "readiness report has no exact GO verdict"
+  pass "readiness report is GO"
 }
 
 check_ledger() {
-  local root ledger
+  local root ledger graph wt current_head
   root="$(repo_root)"
   ledger="$root/.campaign/ledger.json"
+  graph="$root/docs/refactoring-plan/task-graph.json"
+  wt="$(campaign_worktree)"
+  current_head="$(git -C "$wt" rev-parse HEAD)"
   [[ -f "$ledger" ]] || fail "missing $ledger (run campaign-init.sh)"
-  PYTHONPATH="$SCRIPT_DIR" python3 - "$ledger" "$INTEGRATION_BRANCH" <<'PY' || fail "ledger invalid"
-import json, sys
+  [[ -f "$graph" ]] || fail "missing dependency graph: $graph"
+  PYTHONPATH="$SCRIPT_DIR" python3 - "$ledger" "$INTEGRATION_BRANCH" \
+    "$current_head" "$graph" "$root" "$TASKFMT_REV" "$TASKFMT_VERSION" \
+    "$TASKFMT_SHA256" "$TASKFMT_SOURCE" "$TASKFMT_BIN" <<'PY' \
+    || fail "ledger invalid or stale"
+import json
+import sys
+from pathlib import Path
+
 from campaign_ledger import validate_preflight_ledger
 
-with open(sys.argv[1], encoding="utf-8") as f:
-    ledger = json.load(f)
-validate_preflight_ledger(ledger, sys.argv[2])
-print("ledger schema OK; armed=false; catalog recorded")
+ledger_path, branch, current_head, graph_path, root, revision, version, digest, source, binary = sys.argv[1:]
+with Path(ledger_path).open(encoding="utf-8") as stream:
+    ledger = json.load(stream)
+with Path(graph_path).open(encoding="utf-8") as stream:
+    graph = json.load(stream)
+expected_taskfmt = {
+    "taskfmt_revision": revision,
+    "taskfmt_version": version,
+    "taskfmt_sha256": digest,
+    "taskfmt_source": source,
+    "taskfmt_path": str(Path(binary).resolve()),
+}
+validate_preflight_ledger(
+    ledger,
+    branch,
+    current_head=current_head,
+    expected_taskfmt=expected_taskfmt,
+    dependency_graph=graph,
+    repository_root=root,
+)
+print("ledger schema/receipt/head/taskfmt/dependency/result/reviewer bindings: OK")
 PY
-  local head
-  head="$(git rev-parse HEAD)"
-  python3 - "$ledger" "$head" <<'PY' || fail "ledger integration_head is not an ancestor of HEAD"
-import json, sys
-with open(sys.argv[1]) as f:
-    d = json.load(f)
-import subprocess
-result = subprocess.run(["git", "merge-base", "--is-ancestor", d["integration_head"], sys.argv[2]])
-assert result.returncode == 0, "integration_head is not an ancestor of HEAD"
-PY
-  pass "ledger.json valid (armed=false; integration head is an ancestor)"
+  pass "ledger valid, disarmed, and bound to current HEAD"
 }
 
-check_taskfmt() {
-  local bin="${TC_TASKFMT:-/tmp/taskfmt-latest-install/bin/taskfmt}"
-  [[ -d "$TASKFMT_SOURCE/.git" ]] || fail "taskfmt source is not a git checkout: $TASKFMT_SOURCE"
+check_taskfmt_identity() {
+  [[ "$TASKFMT_BIN" = /* ]] || fail "taskfmt path must be absolute: $TASKFMT_BIN"
+  [[ -d "$TASKFMT_SOURCE/.git" ]] \
+    || fail "taskfmt source is not a git checkout: $TASKFMT_SOURCE"
   [[ -z "$(git -C "$TASKFMT_SOURCE" status --porcelain)" ]] \
     || fail "taskfmt source is dirty: $TASKFMT_SOURCE"
   [[ "$(git -C "$TASKFMT_SOURCE" rev-parse HEAD)" == "$TASKFMT_REV" ]] \
     || fail "taskfmt source is not latest $TASKFMT_REV"
-  [[ -x "$bin" ]] || fail "taskfmt not at $bin (run campaign-install-taskfmt.sh)"
-  pass "taskfmt @ $bin"
+  [[ -f "$TASKFMT_BIN" && ! -L "$TASKFMT_BIN" && -x "$TASKFMT_BIN" ]] \
+    || fail "taskfmt is not a regular executable: $TASKFMT_BIN"
   local actual_sha
-  actual_sha="$(shasum -a 256 "$bin" | awk '{print $1}')"
+  actual_sha="$(shasum -a 256 "$TASKFMT_BIN" | awk '{print $1}')"
   [[ "$actual_sha" == "$TASKFMT_SHA256" ]] \
     || fail "taskfmt SHA-256 is $actual_sha; expected $TASKFMT_SHA256"
-  "$bin" --version | grep -Fq "git $TASKFMT_REV" \
+  "$TASKFMT_BIN" --version | grep -Fq "git $TASKFMT_REV" \
     || fail "taskfmt is not latest $TASKFMT_REV"
-  local catalog
+  pass "current taskfmt identity @ $TASKFMT_BIN"
+}
+
+check_taskfmt() {
+  check_taskfmt_identity
+  local catalog task
   catalog="$(repo_root)/refactoring-tasks/terminal-components/completion"
-  local task
   for task in "$catalog"/[0-9][0-9][0-9]; do
-    "$bin" lint "$task" >/dev/null \
+    "$TASKFMT_BIN" lint "$task" >/dev/null \
       || fail "latest taskfmt lint failed: $task"
   done
   pass "latest taskfmt lint passed for every numbered package"
@@ -144,19 +199,20 @@ check_native_proof() {
   wt="$(campaign_worktree)"
   binary="$wt/target/debug/tc-proof"
   [[ -f "$binary" && ! -L "$binary" && -x "$binary" ]] \
-    || fail "native tc-proof comparator missing: $binary (run scripts/campaign-build-proof.sh in this worktree)"
+    || fail "native tc-proof comparator missing: $binary (run campaign-build-proof.sh in this worktree)"
   receipt="$binary.build.json"
   [[ -f "$receipt" && ! -L "$receipt" ]] \
-    || fail "native tc-proof build receipt missing: $receipt (run scripts/campaign-build-proof.sh)"
+    || fail "native tc-proof build receipt missing: $receipt (run campaign-build-proof.sh)"
   commit="$(git -C "$wt" rev-parse HEAD)"
-  python3 - "$receipt" "$wt" "$commit" "$binary" <<'PY' || fail "native tc-proof build receipt does not match this worktree"
+  PYTHONPATH="$SCRIPT_DIR" python3 - "$receipt" "$wt" "$commit" "$binary" <<'PY' \
+    || fail "native tc-proof build receipt does not match this worktree"
 import hashlib
 import json
 import sys
 from pathlib import Path
 
 receipt, worktree, commit, binary = sys.argv[1:]
-with Path(receipt).open() as stream:
+with Path(receipt).open(encoding="utf-8") as stream:
     value = json.load(stream)
 if value.get("schema") != "tc-proof-native-build/v1":
     raise SystemExit("wrong build receipt schema")
@@ -188,22 +244,94 @@ check_validate_plan() {
   fi
 }
 
-main() {
-  local root
+check_proof_preparation() {
+  local root wt run receipt current_head
   root="$(repo_root)"
-  cd "$root"
-  echo "==> Pre-arm preflight (does not arm /goal)"
-  check_tag
-  check_branch
-  check_worktree
-  check_ledger
-  check_taskfmt
-  check_host_local_task_paths
-  check_harness
+  wt="$(campaign_worktree)"
+  run="${TC_PROOF_RUN_DIR:-}"
+  receipt="${TC_PROOF_PREPARATION_RECEIPT:-}"
+  [[ -n "$run" && "$run" = /* ]] \
+    || fail "set TC_PROOF_RUN_DIR to an external absolute preparation directory"
+  if [[ -z "$receipt" ]]; then
+    receipt="$run/proof-preparation.json"
+  fi
+  [[ "$receipt" = /* ]] || fail "proof preparation receipt must be absolute: $receipt"
+  [[ -f "$receipt" && ! -L "$receipt" ]] \
+    || fail "proof preparation receipt missing or symlinked: $receipt"
+  [[ -z "$(git -C "$wt" status --porcelain)" ]] \
+    || fail "proof preparation worktree is dirty"
+  current_head="$(git -C "$wt" rev-parse HEAD)"
+  check_taskfmt_identity
   check_native_proof
-  check_validate_plan
-  echo ""
-  echo "Preflight complete. See docs/refactoring-plan/execution-readiness-report.md for remaining blockers."
+  PYTHONPATH="$SCRIPT_DIR" python3 - "$receipt" "$wt" "$current_head" "$run" \
+    "$TASKFMT_REV" "$TASKFMT_VERSION" "$TASKFMT_SHA256" "$TASKFMT_SOURCE" \
+    "$TASKFMT_BIN" <<'PY' \
+    || fail "proof preparation is not bound, complete, and current"
+import json
+import sys
+from pathlib import Path
+
+from campaign_ledger import validate_proof_preparation
+
+receipt_path, worktree, current_head, run_dir, revision, version, digest, source, binary = sys.argv[1:]
+with Path(receipt_path).open(encoding="utf-8") as stream:
+    preparation = json.load(stream)
+expected_taskfmt = {
+    "taskfmt_revision": revision,
+    "taskfmt_version": version,
+    "taskfmt_sha256": digest,
+    "taskfmt_source": source,
+    "taskfmt_path": str(Path(binary).resolve()),
+}
+validate_proof_preparation(
+    preparation,
+    worktree=worktree,
+    current_head=current_head,
+    run_dir=run_dir,
+    expected_taskfmt=expected_taskfmt,
+)
+print("proof preparation context/index/result/observer bindings: OK")
+PY
+  pass "proof preparation qualified; non-authorizing (ledger and tasks unchanged)"
+}
+
+main() {
+  local mode="${1:-preflight}"
+  case "$mode" in
+    proof-preparation|proof-prep|qualify-proof-preparation)
+      root="$(repo_root)"
+      cd "$root"
+      echo "==> Native proof-preparation qualification (non-authorizing)"
+      check_branch
+      check_worktree
+      check_proof_preparation
+      ;;
+    preflight|--preflight)
+      [[ "$#" -le 1 ]] || { usage >&2; fail "unknown preflight arguments"; }
+      root="$(repo_root)"
+      cd "$root"
+      echo "==> Pre-arm preflight (does not arm /goal)"
+      check_tag
+      check_branch
+      check_worktree
+      check_readiness_gate
+      check_ledger
+      check_taskfmt
+      check_host_local_task_paths
+      check_harness
+      check_native_proof
+      check_validate_plan
+      echo ""
+      echo "Preflight complete. No task dispatch or integration is performed."
+      ;;
+    help|-h|--help)
+      usage
+      ;;
+    *)
+      usage >&2
+      fail "unknown mode: $mode"
+      ;;
+  esac
 }
 
 main "$@"
