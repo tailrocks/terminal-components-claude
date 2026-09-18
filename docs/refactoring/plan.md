@@ -8,7 +8,8 @@ Current references:
 
 - Product and architecture intent: [`../../GOAL.md`](../../GOAL.md),
   [`../../COMPONENT_ARCHITECTURE.md`](../../COMPONENT_ARCHITECTURE.md), and [`../../DESIGN.md`](../../DESIGN.md).
-  Historical consolidated pointer: [`goal.md`](goal.md), retained for provenance only.
+  Retired goal/state snapshots are absent from this branch; recover their
+  historical bytes from Git history only.
 - Campaign policy: [`../refactoring-plan/campaign-policy.md`](../refactoring-plan/campaign-policy.md).
 - Subagent-only execution: [`../refactoring-plan/subagent-only-policy.md`](../refactoring-plan/subagent-only-policy.md),
   [`../refactoring-plan/campaign-executor-protocol.md`](../refactoring-plan/campaign-executor-protocol.md),
@@ -20,6 +21,7 @@ historical taskfmt pins are retired. Do not replay commands from archived
 reports. Task work uses isolated host-local subagent worktrees; standalone
 taskfmt is limited to per-task `lint` and `verify` validation.
 
-Historical planning evidence remains under [`../refactoring-plan/`](../refactoring-plan/)
-and is explicitly non-authoritative unless the current readiness report links
-to it.
+Source-bound historical evidence remains under [`../refactoring-plan/`](../refactoring-plan/)
+and is explicitly non-authoritative unless a current task contract, machine
+ledger, or readiness report links to it. Retired plans, prompts, reports, and
+runbooks are absent from this branch.

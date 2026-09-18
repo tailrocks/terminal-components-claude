@@ -1676,7 +1676,6 @@
       "title": "Close public API documentation and obsolete deferrals",
       "writable_paths": [
         "COMPONENT_ARCHITECTURE.md",
-        "REFACTORING_STATE.md",
         "crates/tui/src/lib.rs",
         "crates/tui/src/author.rs",
         "crates/tui/examples",

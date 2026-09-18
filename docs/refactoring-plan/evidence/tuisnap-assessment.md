@@ -79,7 +79,7 @@ PTY transport proof does not claim application action semantics. The application
 
 ## Publication status
 
-Published dependency: [donbeave/tui-snap PR #1](https://github.com/donbeave/tui-snap/pull/1), branch `codex/qualification-repairs`, head `883d03f19d890bbbf27468798db78b04e85297ac`, tree `dadbaa70facc317cfabb52f0374c1f3cdceb46a1`, base `5036cf87e621e6beb66deffe3224abdbefc955cb`. **Amendment 2026-09-15:** PR merged; terminal-components campaign pin is now `0a2e490802b7b048cd96349c6af860f8a3a05c3d` on main (includes this reviewed head plus tiered grouped checks). Pin the catalog rev for capture gates; do not follow an unpinned branch. Fresh review is recorded in [tuisnap-review.md](../tuisnap-review.md).
+Published dependency: [donbeave/tui-snap PR #1](https://github.com/donbeave/tui-snap/pull/1), branch `codex/qualification-repairs`, head `883d03f19d890bbbf27468798db78b04e85297ac`, tree `dadbaa70facc317cfabb52f0374c1f3cdceb46a1`, base `5036cf87e621e6beb66deffe3224abdbefc955cb`. **Amendment 2026-09-15:** PR merged; terminal-components campaign pin is now `0a2e490802b7b048cd96349c6af860f8a3a05c3d` on main (includes this reviewed head plus tiered grouped checks). Pin the catalog rev for capture gates; do not follow an unpinned branch. The review is retained in Git history; this assessment and the pinned dependency are the current evidence.
 
 ## Independent-review corrections
 

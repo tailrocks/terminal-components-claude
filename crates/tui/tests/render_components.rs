@@ -1793,8 +1793,8 @@ mod theme {
 
     /// The check can fail in both of its directions, on inputs built here.
     ///
-    /// COORDINATION.md: a check that has never been observed red is not
-    /// evidence. The inverted exemption is the half that is easy to get wrong,
+    /// A check that has never been observed red is not evidence. The inverted
+    /// exemption is the half that is easy to get wrong,
     /// because a stale entry silently stops the gate looking at a real pair.
     #[test]
     fn readiness_distinctness_fails_on_a_collision_and_on_a_stale_exemption() {

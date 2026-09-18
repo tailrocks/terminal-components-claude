@@ -22,8 +22,8 @@ Read before editing:
 - `CAMPAIGN_AGENTS.md`: repository scope and integration constraints; this task-local AGENTS.md defines subagent execution and verification.
 - [docs/refactoring-plan/components.md](../../../../docs/refactoring-plan/components.md).
 - [docs/refactoring-plan/component-parity.tsv](../../../../docs/refactoring-plan/component-parity.tsv).
-- [docs/refactoring-plan/parity-synthesis.md](../../../../docs/refactoring-plan/parity-synthesis.md).
-- [docs/refactoring-plan/verification.md](../../../../docs/refactoring-plan/verification.md).
+- [docs/refactoring-plan/components.md](../../../../docs/refactoring-plan/components.md).
+- [refactoring-tasks/visual-validation.md](../../../../refactoring-tasks/visual-validation.md).
 - `trusted/source-obligations.tsv`: every mapped clause, remaining-work obligation and named test is binding under its requirement/acceptance/check IDs.
 - `trusted/obligations.md` and `../../../../docs/refactoring-plan/proof-contract.md`.
 

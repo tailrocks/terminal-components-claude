@@ -5863,7 +5863,8 @@ fn first_facade_line(text: &str, segment: &str) -> usize {
 /// **Honest statement of what is vacuous today.** `apps/` does not exist, so
 /// the path scan and the `#[path]`/`include!` prohibition have no input and
 /// are **vacuous until Slice 5**; they were demonstrated red on a scratch
-/// `apps/showcase` tree outside the repository, per `COORDINATION.md`. What is
+/// `apps/showcase` tree outside the repository, per the campaign proof
+/// contract. What is
 /// not vacuous today is the due-set assertion: an application whose root
 /// `[[bin]]` has been dropped must have an `apps/<app>/src` that this scan
 /// actually read, so the check cannot pass by scanning nothing.
@@ -10053,7 +10054,7 @@ captures / classification: `(pending — filled when the change lands)`
         )]
     }
 
-    /// The red half of the COORDINATION.md demonstration: a moved key with no
+    /// The red half of the campaign proof demonstration: a moved key with no
     /// ledger entry accounting for it must fail. A guard hard-wired to `Ok(())`
     /// fails this test.
     #[test]

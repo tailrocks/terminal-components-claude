@@ -4,7 +4,20 @@
 > its commands, branch/pin/model/merge/container instructions. Reconcile this
 > record against the current readiness report and current contracts.
 
-This is a source audit for planning, not a report that the refactor passes. The immutable oracle used here is `02f5294bfdbf38004cc49130d0aff1d01f31434c` (historical freeze, formerly tagged `holla-fable-2026-09-10`; live tag `visual-baseline` is `5e533943`). The candidate source is main `7b27732a8c3c131760ec3438f641cb3c11343a42`. References below use `O:path:line` and `M:path:line` for those exact trees. Paths without a line identify the complete module. The companion [component-parity.tsv](component-parity.tsv) is the exhaustive family ledger. Owner names are bounded work streams for the task planner to map to canonical task IDs; they are not task packages.
+This is a source audit for planning, not a report that the refactor passes.
+Its `O:` and `M:` citations intentionally preserve the historical trees that
+were audited: oracle `02f5294bfdbf38004cc49130d0aff1d01f31434c` and candidate
+main `7b27732a8c3c131760ec3438f641cb3c11343a42`. Those identifiers are
+evidence boundaries, not the current visual oracle or execution base. The
+current visual oracle is the peeled `visual-baseline` tag commit
+`4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`; current status and acceptance are
+governed by [`execution-readiness-report.md`](execution-readiness-report.md),
+[`architecture-adjudication.md`](architecture-adjudication.md), and the
+current task contracts. References below use `O:path:line` and `M:path:line`
+for those exact historical trees. Paths without a line identify the complete
+module. The companion [component-parity.tsv](component-parity.tsv) is the
+exhaustive family ledger. Owner names are bounded work streams for the task
+planner to map to canonical task IDs; they are not task packages.
 
 ## Evidence rules
 
@@ -104,7 +117,7 @@ Each matrix row inherits CP-COMMON: exact oracle geometry and cells at 120×40 a
 
 Keep style resolution and replacement-slot painting distinct. ADJ-04 retains the accepted TextArea covered FIELD exception: its actual component-owned selected resolution changes while sibling/theme remain unchanged, even when later composition covers the affected paint. This exact source-backed style exception does not exempt documented SlotFn replacements from changing intended painted cells, permit measurement-only fake queries, or waive complete oracle frame equality.
 
-The current `render_components.rs` states 40 components × eight states × two themes × truecolor/mono × two sizes = 2,560 digest lines. That is useful current regression coverage, but it lacks ANSI256/ANSI16 and the new oracle's interaction/fade/retention states. `conformance.rs` is capability-based and a case can omit behaviors by omitting a capability. Enumerate actual family/capability membership and supplement explicit oracle scenarios. Main baselines are never proof of equality to `02f5294b`.
+The current `render_components.rs` states 40 components × eight states × two themes × truecolor/mono × two sizes = 2,560 digest lines. That is useful current regression coverage, but it lacks ANSI256/ANSI16 and the new oracle's interaction/fade/retention states. `conformance.rs` is capability-based and a case can omit behaviors by omitting a capability. Enumerate actual family/capability membership and supplement explicit oracle scenarios. Main baselines are never proof of equality to the frozen `visual-baseline` corpus.
 
 Final completion requires every matrix family to have canonical owning task IDs, scenario IDs and executed evidence. The production implementations used by all four apps and the component tests must be the same reusable public APIs. No old `src/widgets` compatibility library, candidate-baseline regeneration, test-only alternate painter, copied per-app fade/editor/list implementation, or family part that resolves style without painting it can satisfy this ledger.
 

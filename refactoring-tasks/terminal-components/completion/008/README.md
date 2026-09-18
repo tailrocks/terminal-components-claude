@@ -21,7 +21,7 @@ Read before editing:
 
 - `CAMPAIGN_AGENTS.md`: repository scope and integration constraints; this task-local AGENTS.md defines subagent execution and verification.
 - [docs/refactoring-plan/proof-contract.md](../../../../docs/refactoring-plan/proof-contract.md).
-- [docs/refactoring-plan/decomposition-proposal.md](../../../../docs/refactoring-plan/decomposition-proposal.md).
+- [docs/refactoring-plan/task-graph.md](../../../../docs/refactoring-plan/task-graph.md).
 - [docs/refactoring-plan/holla.md](../../../../docs/refactoring-plan/holla.md).
 - [docs/refactoring-plan/showcase.md](../../../../docs/refactoring-plan/showcase.md).
 - [docs/refactoring-plan/tablepro.md](../../../../docs/refactoring-plan/tablepro.md).

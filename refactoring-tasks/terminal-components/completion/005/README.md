@@ -24,7 +24,7 @@ Read before editing:
 
 - [docs/refactoring-plan/tablepro.md](../../../../docs/refactoring-plan/tablepro.md).
 - [docs/refactoring-plan/tablepro-scenarios.tsv](../../../../docs/refactoring-plan/tablepro-scenarios.tsv).
-- [docs/refactoring-plan/verification.md](../../../../docs/refactoring-plan/verification.md).
+- [refactoring-tasks/visual-validation.md](../../../../refactoring-tasks/visual-validation.md).
 - `trusted/source-obligations.tsv`: every mapped clause, remaining-work obligation and named test is binding under its requirement/acceptance/check IDs.
 - `trusted/obligations.md` and `../../../../docs/refactoring-plan/proof-contract.md`.
 

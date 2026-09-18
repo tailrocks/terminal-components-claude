@@ -20,7 +20,7 @@ This is a later execution task. The current planning goal only creates this immu
 Read before editing:
 
 - `CAMPAIGN_AGENTS.md`: repository scope and integration constraints; this task-local AGENTS.md defines subagent execution and verification.
-- [docs/refactoring-plan/history.md](../../../../docs/refactoring-plan/history.md).
+- [docs/refactoring-plan/execution-readiness-report.md](../../../../docs/refactoring-plan/execution-readiness-report.md).
 - [docs/refactoring-plan/historical-obligations-canonical.tsv](../../../../docs/refactoring-plan/historical-obligations-canonical.tsv).
 - [docs/refactoring-plan/architecture.md](../../../../docs/refactoring-plan/architecture.md).
 + [tools/test-inventory/README.md](../../../../tools/test-inventory/README.md) (current inventory contract; verify its contents against the current tree before execution).

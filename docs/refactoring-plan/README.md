@@ -33,11 +33,13 @@ revisions, fingerprints, and receipts are not valid execution inputs.
 
 ## Historical evidence
 
-The dated reports, reviews, prompts, wave plans, and TASK-001 runbooks in this
-directory are retained for provenance. They are not active instructions and
-may describe superseded branches, tool versions, or failed experiments. Do
-not replay their commands. Reconcile any disagreement against the current
-readiness report and the current contracts above.
+Retired dated reports, prompts, wave plans, readiness stubs, and TASK-001
+runbooks were removed from this branch. Git history is the provenance source
+for them. The remaining dated reports, reviews, and audits are retained only
+when current task contracts or machine ledgers bind their source evidence.
+They are never active instructions; they may describe superseded branches,
+tool versions, or failed experiments. Do not replay their commands. Reconcile
+any disagreement against the current readiness report and contracts above.
 
 Archived records may mention `docs/sources/PLANNING_GOAL.md`. That path is not
 a current-checkout document: where the historical source is still material,
@@ -47,8 +49,9 @@ Do not restore that deleted path merely to satisfy an archived reference.
 
 Root-level goal and coordination files follow the same rule: `GOAL.md` is the
 active product goal; `COMPONENT_ARCHITECTURE.md` and `DESIGN.md` are active
-architecture/design references; the remaining old goal, handoff, state, and
-coordination files are historical context.
+architecture/design references; retired goal, handoff, state, coordination,
+prompt, and report files are absent from the current tree and recoverable only
+from Git history.
 
 The frozen `visual-baseline` tag remains the policy-protected oracle reference.
 Its local and remote pointers are unchanged, but provider-enforced tag/release

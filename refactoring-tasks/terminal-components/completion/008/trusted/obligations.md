@@ -19,7 +19,7 @@ Normative under R-001/R-002/R-003 and CHK-004/005/006. The protected `branch-tes
 Source requirements:
 
 - [docs/refactoring-plan/proof-contract.md](../../../../../docs/refactoring-plan/proof-contract.md).
-- [docs/refactoring-plan/decomposition-proposal.md](../../../../../docs/refactoring-plan/decomposition-proposal.md).
+- [docs/refactoring-plan/task-graph.md](../../../../../docs/refactoring-plan/task-graph.md).
 - [docs/refactoring-plan/holla.md](../../../../../docs/refactoring-plan/holla.md).
 - [docs/refactoring-plan/showcase.md](../../../../../docs/refactoring-plan/showcase.md).
 - [docs/refactoring-plan/tablepro.md](../../../../../docs/refactoring-plan/tablepro.md).

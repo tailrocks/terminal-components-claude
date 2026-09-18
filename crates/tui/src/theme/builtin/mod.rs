@@ -741,8 +741,8 @@ mod tests {
 
     /// The set is neither empty nor allowed to lose the three parts the
     /// property matters most on, so neither ordering test below can pass by
-    /// enumerating nothing (`COORDINATION.md`: a gate that cannot fail is not
-    /// evidence).
+    /// enumerating nothing (the campaign proof rule: a gate that cannot fail
+    /// is not evidence).
     #[test]
     fn hovered_and_disabled_are_declared_together_on_the_parts_that_matter() {
         let found = hovered_and_disabled_parts();

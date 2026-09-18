@@ -18,7 +18,7 @@
 | Coordinator projection (5 handoff bullets) | **Integrated** — [`branch-diff-components-b-coordinator-projection.tsv`](branch-diff-components-b-coordinator-projection.tsv) |
 | TASK-008 disposition bindings | **Integrated** — [`branch-diff-components-b-test-disposition-bindings.tsv`](branch-diff-components-b-test-disposition-bindings.tsv) |
 | Closure-partition unread rows (56 paths) | **Disposition bound** — [`branch-diff-tooling-closure-disposition.tsv`](branch-diff-tooling-closure-disposition.tsv) |
-| Independent components-B repair rereview | **Witnessed** — §22.17 @ [`review-readiness-final.md`](review-readiness-final.md); READINESS-01–03 track trusted-package projection gaps |
+| Independent components-B repair rereview | **Witnessed** — §22.17 at historical commit `3213fce2`; READINESS-01–03 track trusted-package projection gaps |
 
 ---
 
@@ -80,4 +80,4 @@ python3 docs/refactoring-plan/evidence/freeze-bootstrap-assets.py --check --grou
 
 - No second independent semantic reread of all 35 components-B source blobs in this witness (prior [`reaudit-components-b-branch-repairs-ledger.md`](reaudit-components-b-branch-repairs-ledger.md) byte ledger stands).
 - No TASK-031/008/025 **execution** receipts — only planning projection bindings.
-- §22.17 fresh witness recorded @ `3213fce2` in [`review-readiness-final.md`](review-readiness-final.md); READINESS-01–03 address coordinator projection gaps found by that witness.
+- §22.17 fresh witness was recorded at historical commit `3213fce2` in the retired readiness review; READINESS-01–03 address coordinator projection gaps found by that witness.

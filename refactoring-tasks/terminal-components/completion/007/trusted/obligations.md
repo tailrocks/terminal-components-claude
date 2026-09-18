@@ -12,7 +12,7 @@ Exercise strict inventory parsing, missing/duplicate/renamed target rejection, f
 
 Source requirements:
 
-- [docs/refactoring-plan/history.md](../../../../../docs/refactoring-plan/history.md).
+- [docs/refactoring-plan/execution-readiness-report.md](../../../../../docs/refactoring-plan/execution-readiness-report.md).
 - [docs/refactoring-plan/historical-obligations-canonical.tsv](../../../../../docs/refactoring-plan/historical-obligations-canonical.tsv).
 - [docs/refactoring-plan/architecture.md](../../../../../docs/refactoring-plan/architecture.md).
 - [tools/test-inventory/README.md](../../../../../tools/test-inventory/README.md).

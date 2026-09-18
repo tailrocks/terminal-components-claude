@@ -8,10 +8,10 @@ Tree indexing, Jackin timing/status/dimming, and closure-bearing containers. <!-
 
 **Authority:** [`AGENTS.md`](AGENTS.md) for campaign policy and verification › the frozen [`visual-baseline/snapshots`](https://github.com/donbeave/terminal-components-claude/tree/visual-baseline/snapshots) corpus for product output › current source, tests, task contracts and deterministic proof for implementation facts › this document for accepted architecture decisions › [`GOAL.md`](GOAL.md) for product intent and [`DESIGN.md`](DESIGN.md) for visual language. Where the Slice‑1 audits conflict, the adjudications in §3–§15 below are final; the rejected alternative and the reason are stated with each. Historical references to `REFACTORING_GOAL.md` and `REFACTORING_STATE.md` are provenance, not active instructions.
 
-Any section that asks an old coordinator to update `REFACTORING_STATE.md`,
-follow a retired slice order, or use a historical execution protocol is
-provenance only. Current status, review, and execution policy live in the
-current readiness report and subagent-only policy linked above.
+Any section that asks an old coordinator to update a retired state file, follow
+a retired slice order, or use a historical execution protocol is provenance
+only. Current status, review, and execution policy live in the current
+readiness report and subagent-only policy linked above.
 
 **Execution note (2026-09-18):** This document remains authoritative for
 accepted architecture decisions and their source-qualified rationale. Commands,
@@ -4217,7 +4217,8 @@ Maps goal §27 slices 3–8 onto work packages with **disjoint file ownership**,
 
   **Rejected staging** (review §7): renaming the root package to `junie-tui-legacy` inside one workspace — (1) doc-target collision: two crates with `[lib] name = "junie_tui"` both write `target/doc/junie_tui/`, fatal under `RUSTDOCFLAGS="-D warnings"`, and ~~avoiding it by renaming the legacy lib rewrites every `use junie_tui::` in 55K lines of apps twice~~ — **struck by §47: that premise is false.** Slices 5–7 rewrite every one of those call sites as part of migration under *every* plan, so the throwaway rewrite is discarded by the very slices cited as its cost; the marginal cost is one scripted `sed`. **The rejection stands on reason (1) alone, which is structural.** Reasons (2) and (3) below are **contingent and do not discriminate** — they arise under *every* plan that adds `apps/X` while the root still declares `[[bin]] X`, and both are removed by §47's binding obligation: **a root `[[bin]] X` and any `default-run` naming it are dropped in the same commit that adds `apps/X`**; (2) duplicate `showcase`/`tablepro`/`jackin-preview` bin names from Slice 5 make `cargo run --bin showcase` ambiguous and `target/debug/showcase` whichever package built last, silently corrupting `tools/capture.sh`; (3) `default-run` is a package key with no workspace equivalent, so `cargo run` at the root would resolve to the legacy showcase for Slices 3–7. ~~Also rejected: keeping `junie-tui` on the new crate and renaming the root package's lib — … so that rename also rewrites all three apps twice.~~ — **struck by §47 for the same false premise.** The alternative is rejected instead on Appendix B.1(d): it front-loads a scripted rewrite of code **scheduled for deletion** into the same commit as the showcase migration and the crate rename, which is exactly the diff-classification cost B.1(d) already refuses.
 
-  **Five recorded risks** (mirror them in `REFACTORING_STATE.md` so a resumed or compacted session does not "correct" the temporary name):
+**Five recorded risks** (the historical record once mirrored them in a state
+ledger so a resumed or compacted session did not "correct" the temporary name):
   1. The name `junie-tui` is deliberate and temporary; the rename is a scheduled Slice-5 step, not a defect.
   2. Appendix B.4's `junie_tui::author` paths and every `architecture::*` test name are written against the final name; during Slices 3–4 they read `junie_tui::author`. One-line mapping: `junie_tui` ⇢ `junie_tui`, `-p junie-tui` ⇢ `-p junie-tui`, until the Slice-5 rename commit.
   3. `xtask` and `crates/tui-testing` depend on the temporary name and their dependency lines are rewritten in the same commit.
@@ -4323,7 +4324,7 @@ Shared, contended files are handled by convention rather than by ownership: `com
   tools/capture.sh   # the full matrix, reviewed
   ```
 
-**Dependency summary.** WP‑0 → Slice 3 → {4A,4B,4C,4E,4G} → {4D,4F,4H,4I} → Slice 5 → {Slice 6, Slice 7 — parallel, disjoint app trees} → Slice 8. Slices 6 and 7 may run concurrently because their file trees are disjoint and both depend only on the frozen library surface; if either needs a library change, the slice pauses, a fresh `read-only analyst` adjudicates, the decision is recorded in this document and `REFACTORING_STATE.md`, and the change lands as a small serial amendment before both resume.
+**Dependency summary.** WP‑0 → Slice 3 → {4A,4B,4C,4E,4G} → {4D,4F,4H,4I} → Slice 5 → {Slice 6, Slice 7 — parallel, disjoint app trees} → Slice 8. Slices 6 and 7 may run concurrently because their file trees are disjoint and both depend only on the frozen library surface; if either needs a library change, the slice pauses, a fresh `read-only analyst` adjudicates, the decision is recorded in this document and the current readiness record, and the change lands as a small serial amendment before both resume.
 
 ---
 
@@ -4335,7 +4336,7 @@ Shared, contended files are handled by convention rather than by ownership: `com
 
 **Crate name: keep `junie-tui` (package) / `junie_tui` (lib).** Considered and rejected: renaming to a theme-neutral name such as `tui-components`.
 
-**Staging of the name (§21 item 31, review §7).** During Slices 3–4 the package at `crates/tui` is **temporarily** `junie-tui` / `junie_tui`, because the root package keeps `junie-tui` / `junie_tui` (with `default-run`, its three `[[bin]]`s, `src/` and all 198 tests) so the repository stays compiling and tested throughout. The rename to the final name is one scripted commit at the start of Slice 5, when the root package's library and binaries are removed. The five risks of the temporary name are recorded in Appendix A (Slice 3) and mirrored in `REFACTORING_STATE.md`. Everything below describes the **final** layout (Slice 5 onward). <!-- amended by §21 item 31 -->
+**Staging of the name (§21 item 31, review §7).** During Slices 3–4 the package at `crates/tui` is **temporarily** `junie-tui` / `junie_tui`, because the root package keeps `junie-tui` / `junie_tui` (with `default-run`, its three `[[bin]]`s, `src/` and all 198 tests) so the repository stays compiling and tested throughout. The rename to the final name is one scripted commit at the start of Slice 5, when the root package's library and binaries are removed. The five risks of the temporary name are recorded in Appendix A (Slice 3) and were historically mirrored in a state ledger. Everything below describes the **final** layout (Slice 5 onward). <!-- amended by §21 item 31 -->
 
 *Why keep it.* (a) §13, which is accepted, already fixes the public paths `junie_tui::*` and `junie_tui::author::*` as the two documented API layers; changing them is a change to an accepted decision and would require a fresh adjudication for a naming preference, not for an invariant. (b) "Junie" names the *design language*, not an application domain. G8 and `architecture::no_domain_vocabulary_in_the_library` forbid TablePro and Jackin vocabulary; a theme name is neither. (c) The neutrality the rename would buy is bought instead by structure: `Theme::junie()` and `Theme::paper()` are peers under `junie_tui::theme::builtin`, no component references Junie, and `architecture::palette_literals_are_confined_to_theme_builtins` proves it. (d) The rename cost is entirely non-architectural churn — `tools/capture.sh`, `README.md`, `Cargo.toml`, every test import, the baseline fixture path — landing in the middle of a refactor that already changes every one of those files for real reasons, which makes classification of the resulting diffs harder, not easier.
 
@@ -4360,7 +4361,7 @@ Shared, contended files are handled by convention rather than by ownership: `com
 ```
 Cargo.toml                                  # [workspace] members + [workspace.package] + [workspace.dependencies]
 rust-toolchain.toml                         # pinned for the PERF_STRICT job
-README.md  DESIGN.md  COMPONENT_ARCHITECTURE.md  REFACTORING_GOAL.md  REFACTORING_STATE.md
+README.md  DESIGN.md  COMPONENT_ARCHITECTURE.md  GOAL.md
 docs/audit/*.md                             # the five Slice-1 audits, unchanged
 docs/visual-changes.md                      # §20.10 ledger; xtask bless-guard reads it
 docs/guides/{quickstart.md, theming.md, overrides.md, authoring.md, migration.md}
@@ -5542,7 +5543,7 @@ The old name survives only as a `#[cfg(debug_assertions)]`-only assertion that a
 
 **Decision: revert `nearest_16` to the legacy categorical metric, verbatim.** Four reasons, in order of weight.
 
-1. **Authority.** The order at the top of this document is `REFACTORING_GOAL.md › DESIGN.md › existing rendered output/tests › current source`. `DESIGN.md:320` states *"At 16 colours the accent is LightGreen and error is LightRed"* and the legacy test pins it. §21 item 29's "CIE76" is implementation spec, which is subordinate, and §20.10 lists no 16-colour change — so CIE76 is a **regression** by this document's own definition, not a decision.
+1. **Authority.** The order at the top of this document is `GOAL.md › DESIGN.md › existing rendered output/tests › current source`. `DESIGN.md:320` states *"At 16 colours the accent is LightGreen and error is LightRed"* and the legacy test pins it. §21 item 29's "CIE76" is implementation spec, which is subordinate, and §20.10 lists no 16-colour change — so CIE76 is a **regression** by this document's own definition, not a decision.
 2. **The metric answers the wrong question.** A 16-colour downgrade must preserve *hue identity and brightness class*, not minimise perceptual distance. ΔE minimisation demonstrably loses both: it maps Junie's accent and error into the **dark** half, so "the accent is the brightest signal on screen" — the property the whole accent system rests on — is gone, and `danger_soft` `#d98a8a`, which the legacy metric keeps as `LightRed`, lands on `DarkGray` *(<!-- amended by §27 (Adjudication O3) --> re-derived, not estimated: `#d98a8a` is L\*a\*b\* (65.6, 30.2, 12.7); CIE76 ΔE **35.0** to `DarkGray` against **62.6** to `Red`, 75.1 to `LightRed`, 41.4 to `Gray` and 47.5 to `White`, so `DarkGray` is the minimum and the conclusion holds — the earlier ~~≈ 30~~/~~≈ 61~~ were hand arithmetic)*, so a destructive label at rest stops being red at all.
 3. Both `#48e054` and `#e44545` genuinely minimise ΔE against the dark primaries *(<!-- amended by §27 (Adjudication O3) --> re-derived: L\* **79.2** for `#48e054` against **72.0** for `Green` and **87.7** for `LightGreen`; full ΔE **17.8** to `Green` against **34.9** to `LightGreen` — the dark primary wins by nearly 2×, wider than the earlier ~~≈ 78 vs 72/88~~ estimate suggested)*, so no tie-break or bias recovers `DESIGN.md`'s answer while keeping ΔE. The metric must change, not be tuned.
 4. The legacy metric is exact integer arithmetic, `const`-friendly, and already has a blessed baseline.
@@ -7187,7 +7188,7 @@ And if item 19's review does not actually happen — if the dump is not produced
 
 ## §37 Record — the gate audit, and two gates still unfixed <!-- amended by §37 -->
 
-**Status: recorded, not an adjudication.** An `xtask` builder audited every whole-file substring search in the checker crate after §32.2, §35.2 and the `conformance_covers_every_public_component` false green established the pattern. Four were of the same class and are fixed to the standard `COORDINATION.md` now requires — each demonstrated **red on a deliberately broken input and green on the fixed one**, with the demonstration recorded:
+**Status: recorded, not an adjudication.** An `xtask` builder audited every whole-file substring search in the checker crate after §32.2, §35.2 and the `conformance_covers_every_public_component` false green established the pattern. Four were of the same class and are fixed to the current campaign proof rule — each demonstrated **red on a deliberately broken input and green on the fixed one**, with the demonstration recorded:
 
 - `conformance_covers_every_public_component` searched the file text for the case name, so a commented-out registration passed while the name appeared in prose nine times. Now parses the `conformance_suite!` invocation with `syn`; comments are not tokens.
 - `no_unsafe` searched for the **text** of an inner attribute, so a crate that mentioned `#![forbid(unsafe_code)]` only in a comment passed. Demonstrated by commenting the real attribute out and watching the old form stay green.
@@ -7453,7 +7454,7 @@ So the Slice 8 `DESIGN.md` work is not a prose pass: it is a new section, a conf
 
 ### §42.6 How to keep the Slice 8 architecture review from rubber-stamping <!-- amended by §42 -->
 
-A review that reads this document and confirms the code matches it **will** rubber-stamp, because the document has been amended to match the code twelve times. The review must be given **falsifiable, pre-registered questions with stated rejection conditions**, and — per `COORDINATION.md`'s rule — must demonstrate each finding red on a broken input. The sharpest question to hand it, because it has already paid twice:
+A review that reads this document and confirms the code matches it **will** rubber-stamp, because the document has been amended to match the code twelve times. The review must be given **falsifiable, pre-registered questions with stated rejection conditions**, and — per the current campaign proof rule — must demonstrate each finding red on a broken input. The sharpest question to hand it, because it has already paid twice:
 
 > **Which invariant is asserted by a mechanism that shares the defect's enabling condition?**
 

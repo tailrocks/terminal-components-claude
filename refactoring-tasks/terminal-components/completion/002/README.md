@@ -22,7 +22,7 @@ Read before editing:
 - `CAMPAIGN_AGENTS.md`: repository scope and integration constraints; this task-local AGENTS.md defines subagent execution and verification.
 - [docs/refactoring-plan/showcase.md](../../../../docs/refactoring-plan/showcase.md).
 - [docs/refactoring-plan/showcase-scenarios.tsv](../../../../docs/refactoring-plan/showcase-scenarios.tsv).
-- [docs/refactoring-plan/verification.md](../../../../docs/refactoring-plan/verification.md).
+- [refactoring-tasks/visual-validation.md](../../../../refactoring-tasks/visual-validation.md).
 - `trusted/source-obligations.tsv`: every mapped clause, remaining-work obligation and named test is binding under its requirement/acceptance/check IDs.
 - `trusted/shell-contributions.tsv` and `trusted/shell-frame-contributions.tsv`: record their exact source-qualified semantic contribution and nonempty complete-frame checkpoint membership before candidate repairs. A semantic contribution does not close its mismatching parent frame.
 - `trusted/obligations.md` and `../../../../docs/refactoring-plan/proof-contract.md`.

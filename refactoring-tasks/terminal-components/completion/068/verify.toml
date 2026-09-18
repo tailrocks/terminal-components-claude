@@ -1,6 +1,6 @@
 schema = "verify/v2"
 task_id = "TASK-068"
-writable_paths = ["COMPONENT_ARCHITECTURE.md","REFACTORING_STATE.md","crates/tui/src/lib.rs","crates/tui/src/author.rs","crates/tui/examples","xtask/doc_check_allow.txt","xtask/named_tests_allow.txt","xtask/src"]
+writable_paths = ["COMPONENT_ARCHITECTURE.md","crates/tui/src/lib.rs","crates/tui/src/author.rs","crates/tui/examples","xtask/doc_check_allow.txt","xtask/named_tests_allow.txt","xtask/src"]
 forbidden_paths = ["docs/refactoring-plan","refactoring-tasks","tools/refactor-proof","tools/refactor-proof-adapters","tools/test-disposition","baseline","shots", "snapshots","parity","Cargo.lock","AGENTS.md","CLAUDE.md"]
 
 [[checks]]

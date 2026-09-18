@@ -382,14 +382,11 @@ Stop only when all are proven with fresh evidence:
 
 `COMPONENT_ARCHITECTURE.md` and `DESIGN.md` remain active architecture/design
 references. They do not override this parity-first execution order.
-`REFACTORING_GOAL.md`, `GOAL2.md`, `REFACTORING_STATE.md`, `COORDINATION.md`,
-and `HANDOFF_SLICE4_WAVE1.md` are historical context, not active execution
-instructions or proof.
-
-`docs/REFACTORING_AUDIT_REPORT.md` is historical and redirects to this file.
-The superseded prompt stubs `docs/REFACTORING_EXECUTION_GOAL_PROMPT.md`,
-`CONTINUE_PROMPT.md`, and `RESUME_PROMPT.md` are removed. Do not leave
-contradictory active instructions or obsolete model-routing rules.
+Retired root goals, handoffs, state/coordination files, superseded reports,
+and continuation prompts were removed from this branch. Git history preserves
+their historical bytes if provenance must be inspected; they are not active
+instructions or proof. Current policy, status, and execution contracts live
+under `AGENTS.md` and `docs/refactoring-plan/`.
 
 ## Final handoff
 

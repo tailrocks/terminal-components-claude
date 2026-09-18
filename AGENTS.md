@@ -59,11 +59,13 @@ The current campaign contracts are:
 
 Root [`GOAL.md`](GOAL.md), [`COMPONENT_ARCHITECTURE.md`](COMPONENT_ARCHITECTURE.md),
 and [`DESIGN.md`](DESIGN.md) are active product/architecture references only;
-the current report and contracts above govern campaign execution. Other old
-goals, coordination files, handoffs, state dumps, continuation prompts, plans,
-and reports are historical evidence only unless a current contract explicitly
-links them. A historical record cannot authorize execution or override current
-source, tests, task contracts, deterministic proof, or the frozen visual oracle.
+the current report and contracts above govern campaign execution. Retired
+goals, coordination files, handoffs, state dumps, continuation prompts,
+superseded plans, and old reports are removed from this branch; Git history is
+their recovery source. Remaining historical evidence is retained only when a
+current contract or machine ledger explicitly binds it. A historical record
+cannot authorize execution or override current source, tests, task contracts,
+deterministic proof, or the frozen visual oracle.
 
 The current NO-GO facts are binding: the frozen suite/store is absent from the
 active branch gate; no trusted native per-check context/result/observer

@@ -526,7 +526,7 @@ The current audit nevertheless reconciled the requested high-risk topics:
 | Containers/taskfmt orchestration | Already fixed and retained | Active scripts and task contracts allow only standalone per-task `lint`/`verify`; historical host/container fixtures are non-authoritative. |
 | Snapshot and behavioral parity | Still valid blockers | Static/current self-baselines do not replace the 30,200-file grouped store, PTY transitions, cursor/focus/hit ownership, or real component routes. Compatibility painters remain an ownership risk. |
 | CI and performance | Integrated, blocker retained | Active CI/perf commands use nextest with corrected thread-flag placement; rustdoc remains a compile gate because nextest 0.9.143 has no doctest runner. Recorded normal Jackin allocation budgets still fail for capsule, manager, and key movement; no fresh qualification was claimed. |
-| Stale goals/reports/runbooks | Integrated | `GOAL.md` is product intent only; obsolete root goals, handoffs, state/coordination files, old plans, reports, and runbooks are either retired pointers or evidence-only banners. Current docs route through this report and the subagent-only contracts. |
+| Stale goals/reports/runbooks | Integrated | `GOAL.md` is product intent only; obsolete root goals, handoffs, state/coordination files, superseded plans, reports, prompts, and runbooks were removed from this branch. Git history is recovery-only. Remaining source-bound historical evidence is non-authoritative and is retained only where current task contracts or machine ledgers require it. Current docs route through this report and the subagent-only contracts. |
 | Documentation links | Integrated and requalified | Lychee 0.24.2 and the native semantic/path audit cover every tracked Markdown-formatted input; current results and the one narrow mail-data setting are recorded in §Q. |
 | Proof compile/dispatcher consistency | Partially integrated; blocker retained | The plural `checks` parser, exact context-file set, external run directory, explicit scope base, clean worktree, and native binary receipt checks are now fail-closed. A native build helper records commit/path/hash. No trusted per-check context/result/observer launcher exists yet. |
 | Scripts and package rebundling | Integrated | Obsolete container/taskfmt lifecycle paths are not execution authority; alternate Python rebundlers now fail closed instead of overwriting the dispatcher. Useful nextest/inventory checks remain. |
@@ -535,32 +535,30 @@ The current audit nevertheless reconciled the requested high-risk topics:
 | Visual-baseline immutability | Integrated as policy | Local/remote tag pointers are unchanged. Provider enforcement is not assumed because the tag is unsigned, release immutability is false, and branch protection is absent. |
 
 The visual-baseline row records the current policy result; provider
-enforcement is deliberately not assumed. Historical
-reports that mention old taskfmt pins, old oracle tags, old commands, or old
-execution authorities remain evidence only and are routed through the current
-README. They were not rewritten into false current results.
+enforcement is deliberately not assumed. Remaining historical reports that
+mention old taskfmt pins, old oracle tags, old commands, or old execution
+authorities remain source evidence only and are routed through the current
+README. Retired plans, prompts, runbooks, and duplicate readiness reports were
+removed rather than rewritten into false current results.
 
 ## Q. Documentation and link-integrity audit
 
 This documentation pass was completed against the current tree on 2026-09-18.
-The inventory contains **792 tracked Markdown-formatted inputs** (`.md`, `.mkd`,
+The inventory contains **745 tracked Markdown-formatted inputs** (`.md`, `.mkd`,
 `.mdx`, `.mdown`, `.mdwn`, `.mkdn`, `.mkdown`, `.markdown`, and `.mdc`),
 including hidden, task, historical, and contributor documents. Lychee
-`0.24.2` parsed 723 destinations in the native offline qualification run:
-624 local successes, zero errors, zero timeouts, zero unknowns, and zero
-unsupported destinations. The local resolver found no missing repository file,
-directory, or fragment destination.
+`0.24.2` parsed 605 destinations in the native offline qualification run:
+511 successes, 94 execution-mode exclusions, zero errors, zero timeouts, zero
+unknowns, and zero unsupported destinations. The local resolver found no
+missing repository file, directory, or fragment destination. The same complete
+input set passed a live Lychee run: 597 successful destinations, four
+redirects, eight execution-mode exclusions, and zero errors, timeouts,
+unknowns, or unsupported destinations.
 
-The offline run necessarily did not exercise network destinations. It exposed
-91 external-link occurrences and eight email occurrences as offline exclusions;
-that is execution-mode output, not a repository allowlist. The 91 occurrences
-collapse to 79 unique HTTPS URLs. An independent bounded `curl` sweep checked
-all 79 and received HTTP 200 for all 79. A full live Lychee run on this host
-was inconclusive because Lychee's HTTP client repeatedly timed out on a GitHub
-destination and then aborted its queue; direct `curl` to that same URL returned
-HTTP 200. This is an environment/tool-client qualification limitation, not a
-link suppression or a claimed Lychee pass. CI retains real live Lychee checks
-with no URL/path exclusions.
+The offline run necessarily did not exercise network destinations; its
+exclusions are execution-mode output, not a repository allowlist. The live run
+exercised the checkable external HTTP/HTTPS destinations and completed without
+an error. CI retains the same live Lychee checks with no URL/path exclusions.
 
 The only intentional Lychee category setting is `include_mail = false`: email
 values in campaign metadata and reserved `example.test` fixtures are not
