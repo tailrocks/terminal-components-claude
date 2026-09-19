@@ -10,14 +10,14 @@ ORACLE_SNAPSHOTS_TREE="3f0261c32849e26feda24d87697de4a7ce6b8375"
 PREFERRED_SOURCE="/private/tmp/campaign-baseline-source"
 # Exact string frozen in HTML provenance.argv[0]. Do not realpath.
 FROZEN_TARGET_DIR="/Users/donbeave/Projects/terminal-components-claude/target"
-RUSTUP_CARGO_BIN="/Users/donbeave/.rustup/toolchains/1.88.0-aarch64-apple-darwin/bin"
+RUSTUP_CARGO_BIN="/Users/donbeave/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin"
 DEFAULT_FILTER="binary(visual_baseline)"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CAMPAIGN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # mbx cargo remaps CARGO_TARGET_DIR to ~/Library/Caches/mbx/targets/v1/<hash>,
-# which breaks frozen HTML argv[0]. Prefer rustup 1.88 cargo, then ~/.cargo/bin
+# which breaks frozen HTML argv[0]. Prefer rustup 1.98.1 cargo (tag needs >=1.97), then ~/.cargo/bin
 # (cargo-nextest), then the rest of PATH.
 export PATH="${RUSTUP_CARGO_BIN}:/Users/donbeave/.cargo/bin:$PATH"
 
@@ -40,7 +40,7 @@ Env:
 
 Always:
   CARGO_TARGET_DIR=/Users/donbeave/Projects/terminal-components-claude/target
-  rustup 1.88 cargo before mbx on PATH
+  rustup 1.98.1 cargo before mbx on PATH (tag needs >=1.97)
   uses source .config/nextest.toml pty group
   rtk proxy if rtk exists (full log; rtk cargo nextest is failures-only)
   records $OUT/exit.code and $OUT/visual-nextest.log
@@ -118,10 +118,10 @@ refuse_forbidden_env() {
 pin_rustup_cargo() {
 	local cargo_bin
 	[[ -x "$RUSTUP_CARGO_BIN/cargo" ]] ||
-		die "missing rustup 1.88 cargo: $RUSTUP_CARGO_BIN/cargo"
+		die "missing rustup 1.98.1 cargo: $RUSTUP_CARGO_BIN/cargo"
 	cargo_bin="$(command -v cargo)"
 	[[ "$cargo_bin" == "$RUSTUP_CARGO_BIN/cargo" ]] ||
-		die "cargo is $cargo_bin; rustup 1.88 must precede mbx on PATH"
+		die "cargo is $cargo_bin; rustup 1.98.1 must precede mbx on PATH"
 }
 
 locate_source() {
