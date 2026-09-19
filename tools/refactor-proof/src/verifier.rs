@@ -33,8 +33,11 @@ const CONTEXT_SCHEMA: &str = "tc-proof-context/v1";
 const INDEX_SCHEMA: &str = "tc-proof-context-index/v1";
 const RESULT_SCHEMA: &str = "tc-proof-runner-result/v1";
 const PREPARATION_RESULT_SCHEMA: &str = "tc-proof-preparation-result/v1";
+const PREPARATION_RECEIPT_SCHEMA: &str = "campaign-proof-preparation/v1";
 const OBSERVER_SCHEMA: &str = "tc-proof-observer-capability/v1";
 const NATIVE_HANDOFF_SCHEMA: &str = "tc-proof-native-handoff/v1";
+const NATIVE_BUILD_SCHEMA: &str = "tc-proof-native-build/v1";
+const PREPARATION_RECEIPT_FILE: &str = "proof-preparation.json";
 const OBSERVER_PROVIDER_ENV: &str = "TC_PROOF_OBSERVER_PROVIDER";
 const EXPECTED_ORACLE_COMMIT: &str = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b";
 const MAX_LAUNCH_TIMEOUT_MS: u64 = 600_000;
@@ -61,6 +64,16 @@ pub struct PrepareOptions {
     pub comparator: PathBuf,
     /// Qualified standalone taskfmt path, when used by the task.
     pub taskfmt: Option<PathBuf>,
+    /// Native build receipt produced by campaign-build-proof.sh.
+    pub native_build_receipt: PathBuf,
+    /// Clean source checkout for the qualified standalone taskfmt.
+    pub taskfmt_source: PathBuf,
+    /// Full taskfmt source revision.
+    pub taskfmt_revision: String,
+    /// Qualified taskfmt version.
+    pub taskfmt_version: String,
+    /// Qualified taskfmt executable SHA-256.
+    pub taskfmt_sha256: String,
     /// Accepted dependency receipt paths.
     pub dependency_receipts: Vec<PathBuf>,
     /// Stable run identity, or a random value when absent.
@@ -245,7 +258,8 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
             "run directory must be external to worktree",
         ));
     }
-    ensure_empty_dir(&run_dir, "run directory")?;
+    let native_target = native_target_from_receipt_path(&options.native_build_receipt, &run_dir)?;
+    ensure_run_directory_for_preparation(&run_dir, &native_target)?;
     let run_id = path_string(&run_dir);
     if let Some(requested) = options.run_id.as_deref()
         && requested != run_id
@@ -474,7 +488,511 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
         "observer": {"path": path_string(&observer_path), "sha256": observer_sha256},
     });
     write_json_new(&run_dir.join("context-index.json"), &index, "context index")?;
-    validate_run(&run_dir)
+    // Validate the complete materialized set before publishing the external
+    // preparation receipt.  The receipt is evidence about this already
+    // validated run; it cannot make an invalid run valid.
+    let prepared = validate_run_inner(&run_dir, false, Some(&native_target))?;
+    write_preparation_receipt(options, &prepared)?;
+    validate_run_inner(&run_dir, true, None)
+}
+
+#[expect(
+    clippy::too_many_lines,
+    reason = "receipt construction keeps all schema bindings in one fail-closed boundary"
+)]
+fn write_preparation_receipt(options: &PrepareOptions, prepared: &PreparedRun) -> Result<()> {
+    let index_path = immutable_file(
+        &prepared.run_dir.join("context-index.json"),
+        "context index",
+    )?;
+    let index_raw = fs::read(&index_path)?;
+    let index = parse_json_object(&index_raw, "context index")?;
+    let candidate_commit = required_hex(&index, "worktree_commit", 40)?;
+    let scope_base = required_hex(&index, "scope_base", 40)?;
+    let context_entries = index
+        .get("contexts")
+        .and_then(Value::as_array)
+        .ok_or_else(|| VerifierError::new("context index contexts are missing"))?;
+    let first_context = context_entries
+        .first()
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("context index has no context"))?;
+    let first_context_path = bound_artifact_path(
+        first_context,
+        &prepared.run_dir.join("contexts"),
+        &format!("{}.json", required_string(first_context, "check_id")?),
+        "context",
+    )?;
+    let context = parse_json_object(&fs::read(&first_context_path)?, "context")?;
+    let common = context
+        .get("qualification")
+        .and_then(Value::as_object)
+        .and_then(|qualification| qualification.get("common"))
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("context common binding is missing"))?;
+    let worktree = canonical_input_dir(
+        Path::new(required_string(common, "worktree")?.as_str()),
+        "candidate worktree",
+    )?;
+    let expected_worktree = canonical_input_dir(&options.worktree, "candidate worktree")?;
+    if worktree != expected_worktree {
+        return Err(VerifierError::new(
+            "preparation context worktree differs from requested worktree",
+        ));
+    }
+    let (current_commit, current_tree) = git_identity(&worktree)?;
+    if candidate_commit != current_commit || prepared.candidate_tree != current_tree {
+        return Err(VerifierError::new(
+            "preparation candidate identity changed before receipt publication",
+        ));
+    }
+    let comparator = common
+        .get("comparator")
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("context comparator binding is missing"))?;
+    let comparator_path = regular_file(
+        Path::new(required_string(comparator, "path")?.as_str()),
+        "native comparator",
+    )?
+    .canonicalize()?;
+    let requested_comparator =
+        regular_file(&options.comparator, "native comparator")?.canonicalize()?;
+    if comparator_path != requested_comparator {
+        return Err(VerifierError::new(
+            "preparation comparator differs from context comparator",
+        ));
+    }
+    let native_build = native_build_binding(
+        &options.native_build_receipt,
+        &prepared.run_dir,
+        &worktree,
+        &candidate_commit,
+        &prepared.candidate_tree,
+        &comparator_path,
+    )?;
+    let taskfmt = taskfmt_provenance(options)?;
+    let context_index = json!({
+        "path": path_string(&index_path),
+        "sha256": sha256_bytes(&index_raw),
+    });
+    let contexts = Value::Array(context_entries.clone());
+    let results = index
+        .get("results")
+        .cloned()
+        .ok_or_else(|| VerifierError::new("context index results are missing"))?;
+    let observer = index
+        .get("observer")
+        .cloned()
+        .ok_or_else(|| VerifierError::new("context index observer is missing"))?;
+    let receipt = json!({
+        "schema": PREPARATION_RECEIPT_SCHEMA,
+        "task_id": prepared.task_id,
+        "worktree": path_string(&worktree),
+        "commit": candidate_commit,
+        "scope_base": scope_base,
+        "run_id": prepared.run_id,
+        "native_build": native_build,
+        "taskfmt": taskfmt,
+        "context_index": context_index,
+        "contexts": contexts,
+        "results": results,
+        "observer": observer,
+    });
+    write_json_atomic_new(
+        &prepared.run_dir.join(PREPARATION_RECEIPT_FILE),
+        &receipt,
+        "proof preparation receipt",
+    )?;
+    Ok(())
+}
+
+fn taskfmt_provenance(options: &PrepareOptions) -> Result<Value> {
+    let taskfmt_path = options
+        .taskfmt
+        .as_ref()
+        .ok_or_else(|| VerifierError::new("taskfmt is required for proof preparation"))?;
+    let taskfmt_path = regular_file(taskfmt_path, "taskfmt")?.canonicalize()?;
+    if !is_executable(&taskfmt_path)? {
+        return Err(VerifierError::new("taskfmt is not executable"));
+    }
+    if !is_hex(&options.taskfmt_revision, 40)
+        || options.taskfmt_version.is_empty()
+        || !is_hex(&options.taskfmt_sha256, 64)
+    {
+        return Err(VerifierError::new("taskfmt provenance is malformed"));
+    }
+    let source = canonical_input_dir(&options.taskfmt_source, "taskfmt source")?;
+    let (revision, _) = git_identity(&source)?;
+    if revision != options.taskfmt_revision {
+        return Err(VerifierError::new("taskfmt source revision mismatch"));
+    }
+    require_clean_candidate(&source)?;
+    let actual_hash = hash_file(&taskfmt_path)?;
+    if actual_hash != options.taskfmt_sha256 {
+        return Err(VerifierError::new("taskfmt executable hash mismatch"));
+    }
+    Ok(json!({
+        "taskfmt_revision": options.taskfmt_revision,
+        "taskfmt_version": options.taskfmt_version,
+        "taskfmt_sha256": actual_hash,
+        "taskfmt_source": path_string(&source),
+        "taskfmt_path": path_string(&taskfmt_path),
+    }))
+}
+
+fn native_build_binding(
+    receipt_path: &Path,
+    run_dir: &Path,
+    worktree: &Path,
+    candidate_commit: &str,
+    candidate_tree: &str,
+    comparator_path: &Path,
+) -> Result<Value> {
+    let receipt_path = regular_file(receipt_path, "native build receipt")?.canonicalize()?;
+    let debug_dir = receipt_path
+        .parent()
+        .ok_or_else(|| VerifierError::new("native build receipt has no parent"))?;
+    let target_dir = canonical_existing_dir(
+        debug_dir
+            .parent()
+            .ok_or_else(|| VerifierError::new("native build receipt has no target parent"))?,
+        "native build target",
+    )?;
+    if target_dir == *run_dir || !target_dir.starts_with(run_dir) {
+        return Err(VerifierError::new(
+            "native build target must be inside the external run directory",
+        ));
+    }
+    if receipt_path != target_dir.join("debug/tc-proof.build.json") {
+        return Err(VerifierError::new(
+            "native build receipt is not target/debug/tc-proof.build.json",
+        ));
+    }
+    let raw = fs::read(&receipt_path)?;
+    let build = parse_json_object(&raw, "native build receipt")?;
+    exact_keys(
+        &build,
+        &[
+            "schema",
+            "worktree",
+            "target_dir",
+            "cargo_target_dir",
+            "commit",
+            "tree",
+            "binary",
+            "binary_sha256",
+            "command",
+        ],
+        "native build receipt",
+    )?;
+    if required_string(&build, "schema")? != NATIVE_BUILD_SCHEMA {
+        return Err(VerifierError::new("native build receipt schema mismatch"));
+    }
+    let build_worktree = canonical_input_dir(
+        Path::new(required_string(&build, "worktree")?.as_str()),
+        "native build worktree",
+    )?;
+    let build_commit = required_string(&build, "commit")?;
+    let build_tree = required_string(&build, "tree")?;
+    let build_target = required_string(&build, "target_dir")?;
+    let build_cargo_target = required_string(&build, "cargo_target_dir")?;
+    if build_worktree != *worktree
+        || build_commit != candidate_commit
+        || build_tree != candidate_tree
+        || build_target != path_string(&target_dir)
+        || build_cargo_target != path_string(&target_dir)
+    {
+        return Err(VerifierError::new(format!(
+            "native build receipt identity mismatch: worktree={}/{}, commit={build_commit}/{candidate_commit}, tree={build_tree}/{candidate_tree}, target={build_target}/{target}, cargo_target={build_cargo_target}/{target}",
+            build_worktree.display(),
+            worktree.display(),
+            target = path_string(&target_dir),
+        )));
+    }
+    let binary_path = regular_file(
+        Path::new(required_string(&build, "binary")?.as_str()),
+        "native proof binary",
+    )?
+    .canonicalize()?;
+    let expected_binary = target_dir.join("debug/tc-proof");
+    if binary_path != expected_binary || binary_path != *comparator_path {
+        return Err(VerifierError::new(
+            "native build binary does not match comparator",
+        ));
+    }
+    if !is_executable(&binary_path)? {
+        return Err(VerifierError::new("native proof binary is not executable"));
+    }
+    let binary_sha256 = hash_file(&binary_path)?;
+    if required_string(&build, "binary_sha256")? != binary_sha256 {
+        return Err(VerifierError::new("native proof binary hash mismatch"));
+    }
+    Ok(json!({
+        "receipt": path_string(&receipt_path),
+        "receipt_sha256": sha256_bytes(&raw),
+        "binary": path_string(&binary_path),
+        "binary_sha256": binary_sha256,
+    }))
+}
+
+#[expect(
+    clippy::too_many_lines,
+    reason = "receipt validation is one complete fail-closed boundary"
+)]
+fn validate_preparation_receipt(prepared: &PreparedRun) -> Result<()> {
+    let receipt_path = immutable_file(
+        &prepared.run_dir.join(PREPARATION_RECEIPT_FILE),
+        "proof preparation receipt",
+    )?;
+    let receipt = parse_json_object(&fs::read(&receipt_path)?, "proof preparation receipt")?;
+    exact_keys(
+        &receipt,
+        &[
+            "schema",
+            "task_id",
+            "worktree",
+            "commit",
+            "scope_base",
+            "run_id",
+            "native_build",
+            "taskfmt",
+            "context_index",
+            "contexts",
+            "results",
+            "observer",
+        ],
+        "proof preparation receipt",
+    )?;
+    if required_string(&receipt, "schema")? != PREPARATION_RECEIPT_SCHEMA
+        || required_string(&receipt, "task_id")? != prepared.task_id
+        || required_string(&receipt, "run_id")? != prepared.run_id
+    {
+        return Err(VerifierError::new(
+            "proof preparation receipt identity mismatch",
+        ));
+    }
+    let index_path = immutable_file(
+        &prepared.run_dir.join("context-index.json"),
+        "context index",
+    )?;
+    let index_raw = fs::read(&index_path)?;
+    let index = parse_json_object(&index_raw, "context index")?;
+    let first_member = prepared
+        .members
+        .first()
+        .ok_or_else(|| VerifierError::new("proof preparation has no members"))?;
+    let context = parse_json_object(&fs::read(&first_member.context_path)?, "context")?;
+    let common = context
+        .get("qualification")
+        .and_then(Value::as_object)
+        .and_then(|qualification| qualification.get("common"))
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("proof preparation common binding is missing"))?;
+    if required_string(&receipt, "worktree")? != required_string(common, "worktree")?
+        || required_string(&receipt, "commit")? != required_string(&index, "worktree_commit")?
+        || required_string(&receipt, "scope_base")? != required_string(&index, "scope_base")?
+    {
+        return Err(VerifierError::new(
+            "proof preparation receipt source binding mismatch",
+        ));
+    }
+    let index_reference = json!({
+        "path": path_string(&index_path),
+        "sha256": sha256_bytes(&index_raw),
+    });
+    if receipt.get("context_index") != Some(&index_reference) {
+        return Err(VerifierError::new(
+            "proof preparation context index reference mismatch",
+        ));
+    }
+    let (_, context_paths) = preparation_artifact_maps(
+        receipt.get("contexts"),
+        index.get("contexts"),
+        &prepared.run_dir.join("contexts"),
+        "context",
+    )?;
+    let (_, result_paths) = preparation_artifact_maps(
+        receipt.get("results"),
+        index.get("results"),
+        &prepared.run_dir.join("results"),
+        "preparation result",
+    )?;
+    if context_paths.len() != prepared.members.len() || result_paths.len() != prepared.members.len()
+    {
+        return Err(VerifierError::new(
+            "proof preparation receipt member count mismatch",
+        ));
+    }
+    let observer = receipt
+        .get("observer")
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("proof preparation observer is missing"))?;
+    exact_keys(observer, &["path", "sha256"], "proof preparation observer")?;
+    if index.get("observer") != Some(&Value::Object(observer.clone())) {
+        return Err(VerifierError::new(
+            "proof preparation observer reference mismatch",
+        ));
+    }
+    let observer_path = bound_artifact_path(
+        observer,
+        &prepared.run_dir,
+        "observer.json",
+        "observer capability",
+    )?;
+    if sha256_bytes(&fs::read(immutable_file(
+        &observer_path,
+        "observer capability",
+    )?)?)
+        != required_hex(observer, "sha256", 64)?
+    {
+        return Err(VerifierError::new(
+            "proof preparation observer hash mismatch",
+        ));
+    }
+    let comparator = common
+        .get("comparator")
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("proof preparation comparator is missing"))?;
+    let comparator_path = regular_file(
+        Path::new(required_string(comparator, "path")?.as_str()),
+        "native comparator",
+    )?
+    .canonicalize()?;
+    let native = receipt
+        .get("native_build")
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("native build binding is missing"))?;
+    let expected_native = native_build_binding(
+        Path::new(required_string(native, "receipt")?.as_str()),
+        &prepared.run_dir,
+        Path::new(required_string(common, "worktree")?.as_str()),
+        required_string(&receipt, "commit")?.as_str(),
+        &prepared.candidate_tree,
+        &comparator_path,
+    )?;
+    if receipt.get("native_build") != Some(&expected_native) {
+        return Err(VerifierError::new(
+            "proof preparation native build binding mismatch",
+        ));
+    }
+    let taskfmt = receipt
+        .get("taskfmt")
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("proof preparation taskfmt is missing"))?;
+    validate_taskfmt_receipt(taskfmt, common.get("taskfmt"))?;
+    Ok(())
+}
+
+fn validate_taskfmt_receipt(
+    taskfmt: &Map<String, Value>,
+    context_taskfmt: Option<&Value>,
+) -> Result<()> {
+    exact_keys(
+        taskfmt,
+        &[
+            "taskfmt_revision",
+            "taskfmt_version",
+            "taskfmt_sha256",
+            "taskfmt_source",
+            "taskfmt_path",
+        ],
+        "proof preparation taskfmt",
+    )?;
+    let revision = required_hex(taskfmt, "taskfmt_revision", 40)?;
+    if required_string(taskfmt, "taskfmt_version")?.is_empty() {
+        return Err(VerifierError::new("taskfmt version is empty"));
+    }
+    let source = canonical_input_dir(
+        Path::new(required_string(taskfmt, "taskfmt_source")?.as_str()),
+        "taskfmt source",
+    )?;
+    if git_identity(&source)?.0 != revision {
+        return Err(VerifierError::new("taskfmt receipt source is stale"));
+    }
+    require_clean_candidate(&source)?;
+    let path = regular_file(
+        Path::new(required_string(taskfmt, "taskfmt_path")?.as_str()),
+        "taskfmt",
+    )?
+    .canonicalize()?;
+    if !is_executable(&path)? || hash_file(&path)? != required_hex(taskfmt, "taskfmt_sha256", 64)? {
+        return Err(VerifierError::new("taskfmt receipt executable mismatch"));
+    }
+    let context_taskfmt = context_taskfmt
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("context taskfmt binding is missing"))?;
+    exact_keys(context_taskfmt, &["path", "sha256"], "context taskfmt")?;
+    if Path::new(required_string(context_taskfmt, "path")?.as_str()).canonicalize()? != path
+        || required_string(context_taskfmt, "sha256")?
+            != required_string(taskfmt, "taskfmt_sha256")?
+    {
+        return Err(VerifierError::new(
+            "taskfmt receipt is not bound to context taskfmt",
+        ));
+    }
+    Ok(())
+}
+
+#[expect(
+    clippy::type_complexity,
+    reason = "paired reference maps and path sets prevent cross-category path reuse"
+)]
+fn preparation_artifact_maps(
+    receipt_value: Option<&Value>,
+    index_value: Option<&Value>,
+    directory: &Path,
+    label: &str,
+) -> Result<(BTreeMap<String, Map<String, Value>>, BTreeSet<PathBuf>)> {
+    let receipt = preparation_artifact_map(receipt_value, label)?;
+    let index = preparation_artifact_map(index_value, &format!("context index {label}"))?;
+    if receipt != index {
+        return Err(VerifierError::new(format!(
+            "proof preparation {label} references differ from context index"
+        )));
+    }
+    let mut paths = BTreeSet::new();
+    for (check_id, reference) in &receipt {
+        let path = bound_artifact_path(reference, directory, &format!("{check_id}.json"), label)?;
+        let path = immutable_file(&path, label)?;
+        if !paths.insert(path.clone()) {
+            return Err(VerifierError::new(format!(
+                "proof preparation {label} contains a duplicate path"
+            )));
+        }
+        if sha256_bytes(&fs::read(&path)?) != required_hex(reference, "sha256", 64)? {
+            return Err(VerifierError::new(format!(
+                "proof preparation {label} hash mismatch"
+            )));
+        }
+    }
+    Ok((receipt, paths))
+}
+
+fn preparation_artifact_map(
+    value: Option<&Value>,
+    label: &str,
+) -> Result<BTreeMap<String, Map<String, Value>>> {
+    let entries = value
+        .and_then(Value::as_array)
+        .ok_or_else(|| VerifierError::new(format!("{label} references are missing")))?;
+    if entries.is_empty() {
+        return Err(VerifierError::new(format!("{label} references are empty")));
+    }
+    let mut result = BTreeMap::new();
+    for entry in entries {
+        let entry = entry
+            .as_object()
+            .ok_or_else(|| VerifierError::new(format!("{label} reference is not an object")))?;
+        exact_keys(entry, &["check_id", "path", "sha256"], label)?;
+        let check_id = required_string(entry, "check_id")?;
+        require_check_id(&check_id)?;
+        let _ = absolute_path(Path::new(required_string(entry, "path")?.as_str()), label)?;
+        let _ = required_hex(entry, "sha256", 64)?;
+        if result.insert(check_id, entry.clone()).is_some() {
+            return Err(VerifierError::new(format!("duplicate {label} reference")));
+        }
+    }
+    Ok(result)
 }
 
 // The index intentionally has no private runner-only variant.  The campaign
@@ -490,11 +1008,19 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
 ///
 /// Returns a verifier error when the run index, bound artifacts, or directory
 /// contents fail validation.
+pub fn validate_run(run_dir: &Path) -> Result<PreparedRun> {
+    validate_run_inner(run_dir, true, None)
+}
+
 #[expect(
     clippy::too_many_lines,
     reason = "one fail-closed validation boundary checks the complete run contract"
 )]
-pub fn validate_run(run_dir: &Path) -> Result<PreparedRun> {
+fn validate_run_inner(
+    run_dir: &Path,
+    require_preparation_receipt: bool,
+    native_target: Option<&Path>,
+) -> Result<PreparedRun> {
     let run_dir = canonical_existing_dir(run_dir, "run directory")?;
     let index_path = immutable_file(&run_dir.join("context-index.json"), "context index")?;
     let index_raw = fs::read(&index_path)?;
@@ -532,6 +1058,11 @@ pub fn validate_run(run_dir: &Path) -> Result<PreparedRun> {
     let outputs_dir = regular_dir(&run_dir.join("outputs"), "runtime output directory")?;
     let taskfmt_logs = regular_dir(&run_dir.join("taskfmt-logs"), "taskfmt log directory")?;
     validate_tree_paths(&taskfmt_logs, "taskfmt log directory")?;
+    let preparation_receipt_path = run_dir.join(PREPARATION_RECEIPT_FILE);
+    let preparation_receipt_present = regular_path_exists(&preparation_receipt_path)?;
+    if require_preparation_receipt && !preparation_receipt_present {
+        return Err(VerifierError::new("proof preparation receipt is missing"));
+    }
 
     let context_entries = artifact_entries(&index, "contexts", &contexts_dir, "context")?;
     let result_entries = artifact_entries(&index, "results", &results_dir, "preparation result")?;
@@ -658,7 +1189,7 @@ pub fn validate_run(run_dir: &Path) -> Result<PreparedRun> {
         ));
     }
     validate_runtime_outputs(&outputs_dir, &members, &run_id, false)?;
-    let expected_root = BTreeSet::from([
+    let mut expected_root = BTreeSet::from([
         "contexts".to_string(),
         "results".to_string(),
         "outputs".to_string(),
@@ -666,6 +1197,47 @@ pub fn validate_run(run_dir: &Path) -> Result<PreparedRun> {
         "observer.json".to_string(),
         "context-index.json".to_string(),
     ]);
+    if let Some(target) = native_target {
+        if target.parent() != Some(run_dir.as_path()) {
+            return Err(VerifierError::new(
+                "native build target must be a direct run-directory member",
+            ));
+        }
+        regular_dir(target, "native build target")?;
+        expected_root.insert(
+            target
+                .file_name()
+                .ok_or_else(|| VerifierError::new("native build target has no name"))?
+                .to_string_lossy()
+                .into_owned(),
+        );
+    } else if preparation_receipt_present {
+        let receipt = parse_json_object(
+            &fs::read(immutable_file(
+                &preparation_receipt_path,
+                "proof preparation receipt",
+            )?)?,
+            "proof preparation receipt",
+        )?;
+        let native_build = receipt
+            .get("native_build")
+            .and_then(Value::as_object)
+            .ok_or_else(|| VerifierError::new("native build binding is missing"))?;
+        let target = native_target_from_receipt_path(
+            Path::new(required_string(native_build, "receipt")?.as_str()),
+            &run_dir,
+        )?;
+        expected_root.insert(
+            target
+                .file_name()
+                .ok_or_else(|| VerifierError::new("native build target has no name"))?
+                .to_string_lossy()
+                .into_owned(),
+        );
+    }
+    if preparation_receipt_present {
+        expected_root.insert(PREPARATION_RECEIPT_FILE.to_string());
+    }
     if directory_names(&run_dir)? != expected_root {
         return Err(VerifierError::new(
             "run directory has missing or extra inputs",
@@ -673,7 +1245,7 @@ pub fn validate_run(run_dir: &Path) -> Result<PreparedRun> {
     }
     let members_for_trust = members.clone();
     validate_trust_inputs(&members_for_trust, &index, &run_dir)?;
-    Ok(PreparedRun {
+    let prepared = PreparedRun {
         run_dir,
         run_id,
         task_id,
@@ -682,7 +1254,11 @@ pub fn validate_run(run_dir: &Path) -> Result<PreparedRun> {
         index_sha256: sha256_bytes(&index_raw),
         trust_sha256: trust_sha256.ok_or_else(|| VerifierError::new("trust digest missing"))?,
         members,
-    })
+    };
+    if require_preparation_receipt {
+        validate_preparation_receipt(&prepared)?;
+    }
+    Ok(prepared)
 }
 
 /// Launch one bounded child and accept only a complete, bound result artifact.
@@ -2568,12 +3144,42 @@ fn directory_names(path: &Path) -> Result<BTreeSet<String>> {
         .collect()
 }
 
-fn ensure_empty_dir(path: &Path, label: &str) -> Result<()> {
-    if directory_names(path)?.is_empty() {
-        Ok(())
-    } else {
-        Err(VerifierError::new(format!("{label} is not fresh")))
+fn native_target_from_receipt_path(receipt_path: &Path, run_dir: &Path) -> Result<PathBuf> {
+    let receipt_path = regular_file(receipt_path, "native build receipt")?.canonicalize()?;
+    let debug_dir = receipt_path
+        .parent()
+        .ok_or_else(|| VerifierError::new("native build receipt has no parent"))?;
+    let target = canonical_existing_dir(
+        debug_dir
+            .parent()
+            .ok_or_else(|| VerifierError::new("native build receipt has no target parent"))?,
+        "native build target",
+    )?;
+    if target.parent() != Some(run_dir) {
+        return Err(VerifierError::new(
+            "native build target must be a direct run-directory member",
+        ));
     }
+    Ok(target)
+}
+
+fn ensure_run_directory_for_preparation(run_dir: &Path, native_target: &Path) -> Result<()> {
+    if native_target.parent() != Some(run_dir) {
+        return Err(VerifierError::new(
+            "native build target must be a direct run-directory member",
+        ));
+    }
+    let expected = BTreeSet::from([native_target
+        .file_name()
+        .ok_or_else(|| VerifierError::new("native build target has no name"))?
+        .to_string_lossy()
+        .into_owned()]);
+    if directory_names(run_dir)? != expected {
+        return Err(VerifierError::new(
+            "run directory must contain only the verifier-owned native target before preparation",
+        ));
+    }
+    Ok(())
 }
 
 fn set_readonly_file(path: &Path) -> Result<()> {
@@ -2632,6 +3238,61 @@ fn write_json_new(path: &Path, value: &Value, label: &str) -> Result<String> {
     drop(file);
     set_readonly_file(path)?;
     Ok(sha256_bytes(&raw))
+}
+
+fn write_json_atomic_new(path: &Path, value: &Value, label: &str) -> Result<String> {
+    let raw = canonical_json(value).into_bytes();
+    let parent = path
+        .parent()
+        .ok_or_else(|| VerifierError::new(format!("{label} has no parent")))?;
+    let parent = canonical_existing_dir(parent, &format!("{label} parent"))?;
+    if fs::symlink_metadata(path).is_ok() {
+        return Err(VerifierError::new(format!(
+            "{label} already exists; replay rejected"
+        )));
+    }
+    let temporary = parent.join(format!(
+        ".{PREPARATION_RECEIPT_FILE}.tmp-{}",
+        random_hex(16)
+    ));
+    let result = (|| {
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)
+            .map_err(|error| VerifierError::new(format!("write {label}: {error}")))?;
+        file.write_all(&raw)?;
+        file.sync_all()?;
+        drop(file);
+        set_readonly_file(&temporary)?;
+        let metadata = fs::symlink_metadata(&temporary)?;
+        if metadata.file_type().is_symlink() || link_count(&metadata) != 1 {
+            return Err(VerifierError::new(format!(
+                "{label} temporary output is not a single-link regular file"
+            )));
+        }
+        #[cfg(unix)]
+        {
+            // hard_link fails when the destination already exists, unlike
+            // rename, so publication cannot overwrite a prior receipt.
+            fs::hard_link(&temporary, path)?;
+            fs::remove_file(&temporary)?;
+        }
+        #[cfg(not(unix))]
+        fs::rename(&temporary, path)?;
+        File::open(parent)?.sync_all()?;
+        let published = immutable_file(path, label)?;
+        if sha256_bytes(&fs::read(&published)?) != sha256_bytes(&raw) {
+            return Err(VerifierError::new(format!(
+                "{label} changed during publication"
+            )));
+        }
+        Ok(sha256_bytes(&raw))
+    })();
+    if result.is_err() {
+        let _ = fs::remove_file(&temporary);
+    }
+    result
 }
 
 fn hash_file(path: &Path) -> Result<String> {
@@ -2938,7 +3599,7 @@ mod tests {
     macro_rules! require_ok {
         ($expression:expr, $message:expr) => {{
             let result = $expression;
-            assert!(result.is_ok(), "{}", $message);
+            assert!(result.is_ok(), "{}: {:?}", $message, result.as_ref().err());
             let Ok(value) = result else { return };
             value
         }};
@@ -3195,6 +3856,12 @@ mod tests {
     }
 
     fn fixture() -> std::result::Result<(Fixture, PreparedRun), String> {
+        let (fixture, options) = fixture_options()?;
+        let prepared = prepare(&options).map_err(|error| error.to_string())?;
+        Ok((fixture, prepared))
+    }
+
+    fn fixture_options() -> std::result::Result<(Fixture, PrepareOptions), String> {
         let root = tempfile::tempdir().map_err(|error| error.to_string())?;
         let source = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../..")
@@ -3214,26 +3881,64 @@ mod tests {
         }
         let scope =
             git_output(&candidate, &["rev-parse", "HEAD"]).map_err(|error| error.to_string())?;
+        let tree = git_output(&candidate, &["rev-parse", "HEAD^{tree}"])
+            .map_err(|error| error.to_string())?;
         let run_dir = root.path().join("run");
         fs::create_dir(&run_dir).map_err(|error| error.to_string())?;
+        let run_dir = run_dir.canonicalize().map_err(|error| error.to_string())?;
+        let target_debug = run_dir.join("target/debug");
+        fs::create_dir_all(&target_debug).map_err(|error| error.to_string())?;
+        let current_exe = std::env::current_exe().map_err(|error| error.to_string())?;
+        let comparator = target_debug.join("tc-proof");
+        fs::copy(&current_exe, &comparator).map_err(|error| error.to_string())?;
+        let mut permissions = fs::metadata(&comparator)
+            .map_err(|error| error.to_string())?
+            .permissions();
+        permissions.set_mode(permissions.mode() | 0o111);
+        fs::set_permissions(&comparator, permissions).map_err(|error| error.to_string())?;
+        let build_receipt = target_debug.join("tc-proof.build.json");
+        let build = json!({
+            "schema": NATIVE_BUILD_SCHEMA,
+            "worktree": candidate.to_string_lossy(),
+            "target_dir": run_dir.join("target").to_string_lossy(),
+            "cargo_target_dir": run_dir.join("target").to_string_lossy(),
+            "commit": scope,
+            "tree": tree,
+            "binary": comparator.to_string_lossy(),
+            "binary_sha256": hash_file(&comparator).map_err(|error| error.to_string())?,
+            "command": ["fixture"],
+        });
+        fs::write(&build_receipt, canonical_json(&build)).map_err(|error| error.to_string())?;
+        let taskfmt = root.path().join("taskfmt");
+        fs::copy(&current_exe, &taskfmt).map_err(|error| error.to_string())?;
+        let mut permissions = fs::metadata(&taskfmt)
+            .map_err(|error| error.to_string())?
+            .permissions();
+        permissions.set_mode(permissions.mode() | 0o111);
+        fs::set_permissions(&taskfmt, permissions).map_err(|error| error.to_string())?;
         let worker = candidate.join("tools/refactor-proof/bin/tc-proof");
         let options = PrepareOptions {
             task_dir: candidate.join("refactoring-tasks/terminal-components/completion/001"),
             run_dir: run_dir.clone(),
-            worktree: candidate,
+            worktree: candidate.clone(),
             scope_base: scope,
             oracle_tag: "refs/tags/visual-baseline".to_string(),
             oracle_commit: EXPECTED_ORACLE_COMMIT.to_string(),
             tool: worker,
-            comparator: PathBuf::from("/usr/bin/true"),
-            taskfmt: None,
+            comparator,
+            taskfmt: Some(taskfmt.clone()),
+            native_build_receipt: build_receipt,
+            taskfmt_source: candidate.clone(),
+            taskfmt_revision: git_output(&candidate, &["rev-parse", "HEAD"])
+                .map_err(|error| error.to_string())?,
+            taskfmt_version: "fixture".to_string(),
+            taskfmt_sha256: hash_file(&taskfmt).map_err(|error| error.to_string())?,
             dependency_receipts: Vec::new(),
             run_id: None,
             observer_nonce: Some("test-observer".to_string()),
             observer_socket: None,
         };
-        let prepared = prepare(&options).map_err(|error| error.to_string())?;
-        Ok((Fixture { root, run_dir }, prepared))
+        Ok((Fixture { root, run_dir }, options))
     }
 
     #[test]
@@ -3327,6 +4032,166 @@ mod tests {
             index.get("schema").and_then(Value::as_str),
             Some(INDEX_SCHEMA)
         );
+    }
+
+    #[test]
+    fn preparation_receipt_is_immutable_and_binds_exact_run_members() {
+        let (fixture, prepared) = require_ok!(fixture(), "fixture");
+        let receipt_path = fixture.run_dir.join(PREPARATION_RECEIPT_FILE);
+        let metadata = require_ok!(fs::symlink_metadata(&receipt_path), "receipt metadata");
+        assert_eq!(link_count(&metadata), 1);
+        assert!(permissions_are_readonly(&metadata));
+        let receipt = require_ok!(
+            parse_json_object(
+                &require_ok!(fs::read(&receipt_path), "receipt bytes"),
+                "receipt",
+            ),
+            "receipt JSON"
+        );
+        assert_eq!(
+            receipt.keys().map(String::as_str).collect::<BTreeSet<_>>(),
+            BTreeSet::from([
+                "schema",
+                "task_id",
+                "worktree",
+                "commit",
+                "scope_base",
+                "run_id",
+                "native_build",
+                "taskfmt",
+                "context_index",
+                "contexts",
+                "results",
+                "observer",
+            ])
+        );
+        assert_eq!(
+            receipt.get("schema").and_then(Value::as_str),
+            Some(PREPARATION_RECEIPT_SCHEMA)
+        );
+        assert!(validate_run(&fixture.run_dir).is_ok());
+        assert!(validate_preparation_receipt(&prepared).is_ok());
+        let root_names = require_ok!(directory_names(&fixture.run_dir), "run root names");
+        assert_eq!(
+            root_names,
+            BTreeSet::from([
+                "contexts".to_string(),
+                "results".to_string(),
+                "outputs".to_string(),
+                "taskfmt-logs".to_string(),
+                "target".to_string(),
+                "observer.json".to_string(),
+                "context-index.json".to_string(),
+                PREPARATION_RECEIPT_FILE.to_string(),
+            ])
+        );
+    }
+
+    #[test]
+    fn preparation_receipt_mutation_is_rejected() {
+        let (fixture, _) = require_ok!(fixture(), "fixture");
+        let receipt_path = fixture.run_dir.join(PREPARATION_RECEIPT_FILE);
+        let mut permissions =
+            require_ok!(fs::metadata(&receipt_path), "receipt metadata").permissions();
+        permissions.set_mode(0o644);
+        require_ok!(
+            fs::set_permissions(&receipt_path, permissions),
+            "make receipt writable"
+        );
+        let mut receipt = require_ok!(
+            parse_json_object(
+                &require_ok!(fs::read(&receipt_path), "receipt bytes"),
+                "receipt",
+            ),
+            "receipt JSON"
+        );
+        receipt.insert("scope_base".to_string(), Value::String("0".repeat(40)));
+        require_ok!(
+            fs::write(&receipt_path, canonical_json(&Value::Object(receipt))),
+            "mutate receipt"
+        );
+        require_ok!(set_readonly_file(&receipt_path), "restore receipt readonly");
+        assert!(validate_run(&fixture.run_dir).is_err());
+    }
+
+    #[test]
+    fn preparation_receipt_deletion_is_rejected() {
+        let (fixture, _) = require_ok!(fixture(), "fixture");
+        require_ok!(
+            fs::remove_file(fixture.run_dir.join(PREPARATION_RECEIPT_FILE)),
+            "delete receipt"
+        );
+        let error = require_err!(validate_run(&fixture.run_dir), "missing receipt");
+        assert!(error.to_string().contains("receipt"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn preparation_receipt_symlink_and_hardlink_substitution_are_rejected() {
+        use std::os::unix::fs::symlink;
+
+        let (symlink_fixture, _) = require_ok!(fixture(), "fixture");
+        let receipt_path = symlink_fixture.run_dir.join(PREPARATION_RECEIPT_FILE);
+        let symlink_target = symlink_fixture.root.path().join("receipt-copy.json");
+        require_ok!(
+            fs::copy(&receipt_path, &symlink_target),
+            "copy receipt for symlink"
+        );
+        require_ok!(fs::remove_file(&receipt_path), "remove receipt");
+        require_ok!(
+            symlink(&symlink_target, &receipt_path),
+            "replace receipt with symlink"
+        );
+        assert!(validate_run(&symlink_fixture.run_dir).is_err());
+
+        let (hardlink_fixture, _) = require_ok!(fixture(), "hardlink fixture");
+        let receipt_path = hardlink_fixture.run_dir.join(PREPARATION_RECEIPT_FILE);
+        let hardlink = hardlink_fixture.root.path().join("receipt-hardlink.json");
+        require_ok!(fs::hard_link(&receipt_path, &hardlink), "hardlink receipt");
+        assert!(validate_run(&hardlink_fixture.run_dir).is_err());
+    }
+
+    #[test]
+    fn taskfmt_provenance_mutation_is_rejected() {
+        let (fixture, _) = require_ok!(fixture(), "fixture");
+        let receipt_path = fixture.run_dir.join(PREPARATION_RECEIPT_FILE);
+        let mut permissions =
+            require_ok!(fs::metadata(&receipt_path), "receipt metadata").permissions();
+        permissions.set_mode(0o644);
+        require_ok!(
+            fs::set_permissions(&receipt_path, permissions),
+            "make receipt writable"
+        );
+        let mut receipt = require_ok!(
+            parse_json_object(
+                &require_ok!(fs::read(&receipt_path), "receipt bytes"),
+                "receipt",
+            ),
+            "receipt JSON"
+        );
+        let taskfmt = require_some!(
+            receipt.get_mut("taskfmt").and_then(Value::as_object_mut),
+            "taskfmt object"
+        );
+        taskfmt.insert("taskfmt_sha256".to_string(), Value::String("0".repeat(64)));
+        require_ok!(
+            fs::write(&receipt_path, canonical_json(&Value::Object(receipt))),
+            "mutate taskfmt provenance"
+        );
+        require_ok!(set_readonly_file(&receipt_path), "restore receipt readonly");
+        assert!(validate_run(&fixture.run_dir).is_err());
+    }
+
+    #[test]
+    fn preparation_failure_does_not_publish_receipt() {
+        let (fixture, options) = require_ok!(fixture_options(), "fixture options");
+        require_ok!(
+            fs::remove_file(&options.native_build_receipt),
+            "remove native build receipt"
+        );
+        let error = require_err!(prepare(&options), "preparation failure");
+        assert!(error.to_string().contains("native build receipt"));
+        assert!(!fixture.run_dir.join(PREPARATION_RECEIPT_FILE).exists());
     }
 
     #[test]

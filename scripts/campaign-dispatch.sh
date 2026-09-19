@@ -709,7 +709,12 @@ prepare_native_contexts() {
 		--oracle-commit "$ORACLE_COMMIT"
 		--tool "$WORKTREE/tools/refactor-proof/bin/tc-proof"
 		--comparator "$binary"
+		--native-build-receipt "$(dirname "$binary")/tc-proof.build.json"
 		--taskfmt "$TASKFMT"
+		--taskfmt-source "$TASKFMT_SOURCE"
+		--taskfmt-revision "$TASKFMT_REV"
+		--taskfmt-version "$TASKFMT_VERSION"
+		--taskfmt-sha256 "$TASKFMT_SHA256"
 	)
 	if [[ -n "${TC_TASK_DEPENDENCY_RECEIPTS:-}" ]]; then
 		local receipt

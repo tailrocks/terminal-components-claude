@@ -16,7 +16,9 @@ use refactor_proof::{canonical_json, compare, verifier};
 const HELP: &str = "tc-proof compare --context PATH
 tc-proof prepare --task-dir PATH --run-dir PATH --worktree PATH --scope-base COMMIT \
   --oracle-tag refs/tags/visual-baseline --oracle-commit COMMIT --tool PATH --comparator PATH \
-  [--taskfmt PATH] [--dependency-receipt PATH] [--run-id ID] [--observer-nonce NONCE] \
+  --native-build-receipt PATH --taskfmt PATH --taskfmt-source PATH \
+  --taskfmt-revision COMMIT --taskfmt-version VERSION --taskfmt-sha256 SHA256 \
+  [--dependency-receipt PATH] [--run-id ID] [--observer-nonce NONCE] \
   [--observer-socket PATH]
 tc-proof validate --run-dir PATH
 tc-proof launch --run-dir PATH --check-id CHK-NNN [--timeout-ms N] -- PROGRAM [ARGS...]
@@ -61,6 +63,10 @@ fn value_after(args: &[String], index: &mut usize, option: &str) -> Result<Strin
         .ok_or_else(|| format!("{option} requires a value"))
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "the CLI parser keeps every preparation binding explicit"
+)]
 fn parse_prepare_args(args: &[String]) -> Result<verifier::PrepareOptions, String> {
     let mut task_dir = None;
     let mut run_dir = None;
@@ -71,6 +77,11 @@ fn parse_prepare_args(args: &[String]) -> Result<verifier::PrepareOptions, Strin
     let mut tool = None;
     let mut comparator = None;
     let mut taskfmt = None;
+    let mut native_build_receipt = None;
+    let mut taskfmt_source = None;
+    let mut taskfmt_revision = None;
+    let mut taskfmt_version = None;
+    let mut taskfmt_sha256 = None;
     let mut dependency_receipts = Vec::new();
     let mut run_id = None;
     let mut observer_nonce = None;
@@ -106,6 +117,29 @@ fn parse_prepare_args(args: &[String]) -> Result<verifier::PrepareOptions, Strin
             "--taskfmt" => {
                 taskfmt = Some(PathBuf::from(value_after(args, &mut index, "--taskfmt")?));
             }
+            "--native-build-receipt" => {
+                native_build_receipt = Some(PathBuf::from(value_after(
+                    args,
+                    &mut index,
+                    "--native-build-receipt",
+                )?));
+            }
+            "--taskfmt-source" => {
+                taskfmt_source = Some(PathBuf::from(value_after(
+                    args,
+                    &mut index,
+                    "--taskfmt-source",
+                )?));
+            }
+            "--taskfmt-revision" => {
+                taskfmt_revision = Some(value_after(args, &mut index, "--taskfmt-revision")?);
+            }
+            "--taskfmt-version" => {
+                taskfmt_version = Some(value_after(args, &mut index, "--taskfmt-version")?);
+            }
+            "--taskfmt-sha256" => {
+                taskfmt_sha256 = Some(value_after(args, &mut index, "--taskfmt-sha256")?);
+            }
             "--dependency-receipt" => dependency_receipts.push(PathBuf::from(value_after(
                 args,
                 &mut index,
@@ -137,6 +171,13 @@ fn parse_prepare_args(args: &[String]) -> Result<verifier::PrepareOptions, Strin
         tool: tool.ok_or_else(|| "missing --tool".to_string())?,
         comparator: comparator.ok_or_else(|| "missing --comparator".to_string())?,
         taskfmt,
+        native_build_receipt: native_build_receipt
+            .ok_or_else(|| "missing --native-build-receipt".to_string())?,
+        taskfmt_source: taskfmt_source.ok_or_else(|| "missing --taskfmt-source".to_string())?,
+        taskfmt_revision: taskfmt_revision
+            .ok_or_else(|| "missing --taskfmt-revision".to_string())?,
+        taskfmt_version: taskfmt_version.ok_or_else(|| "missing --taskfmt-version".to_string())?,
+        taskfmt_sha256: taskfmt_sha256.ok_or_else(|| "missing --taskfmt-sha256".to_string())?,
         dependency_receipts,
         run_id,
         observer_nonce,
