@@ -2,407 +2,181 @@
 
 **Verdict: NO-GO.**
 
-This is the sole current readiness authority for `refactor/holla-parity`.
-It is a preparation gate, not an implementation prompt. The campaign ledger
-must remain `armed: false`; no production task may be dispatched while this
-verdict is NO-GO.
+This is the sole current readiness authority for `refactor/holla-parity`. It
+is a preparation gate, not an implementation prompt. Keep the campaign ledger
+`armed = false`; do not dispatch production refactoring tasks.
 
-## 1. Exact candidate, reports, and Git truth
+## 1. Exact source and branch truth
 
-The last exact candidate independently sealed before this documentation repair
-is the commit/tree below:
+The tested preparation payload before this documentation-only commit is:
 
-| field | value |
-| --- | --- |
-| branch | `refactor/holla-parity` |
-| audited commit | `dd26d2e7cc4ebbf1d8f1af4c54e7081744549382` |
-| audited tree | `ed1525875021c613fa9265239ad2f4835f9e1785` |
-| audited parent | `a80c790e2ebba15e4a00e7cff4296eab2a5bccc5` |
+```text
+branch: refactor/holla-parity
+commit: a3701d8bb7bcdc491d35397be698ecf86c8d2d9d
+tree:   9ef02188b96aa4e6915c378b9eca344812a8494b
+parent: de2f1295c26e1968d598782e7dd304eae93b75bd
+```
 
-Actual final exact-tree reports binding that payload:
+Git facts independently read from refs:
 
-- verifier: `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md`
-  SHA-256 `a3390e74bd0dc85ca3e0ba62a62bb9c7b139851a952c4203781bde4c57462bc0`
-- reviewer: `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md`
-  SHA-256 `57051451aabf2a31fa1de31cddb4ee3c27f24c281df41755d3846769011fc46d`
+```text
+refs/heads/main:                  7b27732a8c3c131760ec3438f641cb3c11343a42
+refs/remotes/origin/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
+refs/remotes/origin/refactor/...  f5013f609aed1ba32ce60352b38fd0b1b11b063c
+merge-base campaign/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
+local commits ahead of remote campaign: 53
+```
 
-Both bind `dd26d2e7` / `ed152587` / parent `a80c790e` and return
-**REJECTED / NO-GO**. They are external audit reports, not
-acceptance receipts and not authorization for dispatch, arming, merge, or
-product acceptance. The earlier `a80c790e` / `d7654291` / `2c74b88b` reports
-are historical rejected evidence only; they do not describe this sealed
-payload.
-
-This bounded repair changes only metadata and the evidence index in the four
-canonical documents. It does not change code, scripts, task contracts, the
-ledger, refs, the protected baseline, or product behavior. The repair creates
-a new Git commit/tree after the tested payload and invalidates affected
-evidence after that commit. A fresh verifier/reviewer seal must bind the exact
-post-refresh HEAD/tree before acceptance or dispatch. Any further
-relevant source, documentation, contract, tool, oracle, or environment change
-invalidates affected evidence. The post-refresh final seal is predetermined
-at these external locations:
+The final verifier must recompute these values after this documentation
+commit. Any relevant edit invalidates affected evidence. Final exact-tree
+reports must be external and must bind the post-documentation commit/tree;
+their paths are:
 
 ```text
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md
 ```
 
-The older `a80c790e` / `d7654291` / `2c74b88b` audit is historical provenance
-only. The pre-documentation inspection identity `bb574d84` / `6e464830` and
-its branch/ref/merge-base observations remain historical provenance only. No
-protected ref was moved, rewritten, pruned, or force-pushed.
+No accepted preparation receipt exists. Historical report hashes and prior
+NO-GO identities are not current bindings.
 
-The tracked
-[`evidence/current-preparation-2026-09-18.md`](evidence/current-preparation-2026-09-18.md)
-is explicitly superseded by the 2026-09-19 evidence index. It remains
-unchanged for provenance, including its original bindings and raw evidence
-root; it does not authorize or describe the current sealed payload.
+## 2. Immutable baseline and exact corpus
 
-The semantic three-way comparison is:
+```text
+tag peel:       4a79c0a2d40fca46fc406b77157ce3b3f12ec16b
+tag tree:       0b1f13431fdfd6060cf9f45a114afa5a99cc6c26
+snapshots tree: 3f0261c32849e26feda24d87697de4a7ce6b8375
+keys:           7,550
+artifacts:      30,200 (ANSI/plain/PNG/HTML: 7,550 each)
+```
 
-- **Baseline ↔ main:** the frozen baseline is the older single-package
-  `junie-tui` product; `main` contains the physical workspace/library/test
-  refactor and four applications. This is a large architectural change, not
-  proof of behavioral equivalence.
-- **Baseline ↔ campaign:** campaign inherits the current refactor branch and
-  adds preparation/proof infrastructure. The preparation commits do not
-  authorize product output changes. The frozen baseline remains the product
-  oracle.
-- **Main ↔ campaign:** the preparation commits modify proof code, scripts,
-  ledger/preflight/dispatch authority, and documentation. The known product
-  ownership/rendering gaps remain; they were not hidden or accepted by this
-  preparation lane.
+Read-only import:
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/oracle-import-2026-09-19`
 
-Relevant semantic findings are recorded in `architecture.md`,
-`branch-diff-foundation.md`, `branch-diff-holla.md`,
-`branch-diff-showcase.md`, and `branch-diff-jackin-tablepro.md`. File-count or
-diff similarity is not treated as parity proof.
+Manifest:
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/oracle-import-manifest-2026-09-19/sha256.manifest`
 
-The independent Bernoulli review (`gpt-5.6-luna`, max) rejected the preceding
-tree `21f875318f61c30f55bf0a47b8daa4326d48540a7` for accepting taskfmt final /
-parent aliases and Rust verifier symlinked parent trust paths. The taskfmt
-defect is repaired by `8e783592afd0a2c2f08076858a386a091a35e712`; the Rust
-defect is repaired by `bb574d84bf25ff9179b42e951fca52068f2ab623`. Raw review
-evidence is `/tmp/campaign-review-evidence-21f87531.7EkYOO/`. These repairs
-close the reported defects, not the final independent readiness review.
+Manifest SHA-256:
+`95e1f38220bd2fd09da44d3b98590543d1f03837b50e0069bf53bd1f73893637`.
+The import was derived from the peeled tag, has zero symlinks, and was not
+used as a candidate-generated baseline. Protected refs and artifacts are
+unchanged.
 
-## 2. Immutable visual authority
+## 3. Catalog and executable DAG
 
-The only protected visual authority is the peeled tag:
+The validated structural graph contains 73 direct packages, 77 recursive
+contracts, 506 direct checks, 526 recursive checks, 276 dependency edges,
+depth 35, 193 file-conflict pairs, 0 serialization pairs, 1,174 source
+obligations, and 3,256 traceability rows. Plan validation and graph derivation
+both exit 0; graph output contains no status or acceptance field.
 
-| identity | value |
+Disposition:
+
+- `TASK-001`, `TASK-070`: retired lifecycle/bootstrap contracts; fail closed;
+  not dispatchable.
+- `TASK-071`, `TASK-072`: qualification prerequisites; blocked until fresh
+  accepted evidence exists.
+- `TASK-002`–`TASK-069`, `TASK-073`: remaining valid implementation work.
+- accepted production tasks: 0.
+
+The graph is acyclic and machine-checkable. It encodes dependencies, shared
+interfaces, file conflicts, migration boundaries, and verification waves; it
+does not encode completion or authorization. Every task must receive
+independent verifier and reviewer evidence after safe serial integration.
+
+## 4. Preparation qualification
+
+Qualified taskfmt:
+
+```text
+source:   /Users/donbeave/Projects/taskfmt/task-format
+revision: afd3b575dbcc7044620bec4b9493a74eca3e5ef2
+tree:     b7d90bd8adbe6c341a08fc485099ee8cf1584431
+version:  0.2.0
+binary:   /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/taskfmt-qualified-2026-09-19/install/bin/taskfmt
+SHA-256:  f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
+```
+
+Current package-lint run:
+`taskfmt-lints-de2f1295/summary.tsv`: 73/73 passed, 0 failed. Lint validates
+contract format only; it does not accept implementation.
+
+Native proof runs:
+
+| run | command/result |
 | --- | --- |
-| tag peel | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
-| tag commit tree | `0b1f13431fdfd6060cf9f45a114afa5a99cc6c26` |
-| `snapshots/` tree | `3f0261c32849e26feda24d87697de4a7ce6b8375` |
-| keys | 7,550 |
-| artifacts | 30,200: ANSI, plain text, PNG, HTML, 7,550 each |
+| `proof-full-a3701d8b` | `cargo fmt --check` exit 0; `cargo nextest` 38 passed, 0 skipped |
+| `native-preparation-a3701d8b` | `scripts/campaign-build-proof.sh` exit 0; external binary/receipt bound to current payload |
+| `native-launch-regression-a3701d8b` | positive launch, direct-injection rejection, wrong-nonce rejection; exit 0 |
+| `target-invariant-verify` | adversarial non-`target` run-member rejection; nextest 1 passed, 37 skipped |
 
-The exact read-only import and independent manifest are:
+The native protocol is non-circular: pin source/tools/contracts/oracle and
+prerequisite receipts, materialize contexts, start the observer, execute the
+declared operation, validate observed results, then review and seal evidence.
+It rejects missing/extra/duplicate contexts, wrong IDs/scope/tree/oracle/tool,
+mutations, links, stale/cross-run results, wrong hashes/nonces, replay,
+truncation, incomplete close, missing outputs, nonzero/signal/timeout,
+observer/taskfmt failure, invalid dependencies, and trust-input mutation.
 
-```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/oracle-import-2026-09-19
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/oracle-import-manifest-2026-09-19
-```
+The native threat model is honest: same-user hostile processes are outside the
+isolation claim. Hashes, regular-file checks, path checks, read-only inputs,
+observer evidence, and independent exit observation provide integrity and
+detection controls.
 
-The import records the tag-derived tree and SHA-256 manifest; its key lists
-agree and its symlink inventory is empty. The protected branch, tag, release,
-snapshots, grouped store, fixtures, and expected artifacts were not changed.
+## 5. Frozen calibration and parity blocker
 
-The source used to identify the complete snapshot-producing corpus is
-`89218626011f2f82c4e87c4dfd5868a4c5f3e284`, tree
-`6fccf997cd742071ebcff0e0a00e89404ef95ca8`, with snapshot tree
-`3f0261c32849e26feda24d87697de4a7ce6b8375`. Its external control source is
-under:
+The exact peeled-tag source was executed against the pre-existing read-only
+oracle in external run
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/baseline-tag-control-4a79-2026-09-19`.
+The log records all 302 matrix tests failing; all 7,550 keys were exercised,
+with 7,549 observed ANSI/TXT/PNG/HTML artifacts each. The missing observed key
+is `tablepro/query/results/160x50/nocolor`. HTML also differs in the embedded
+absolute compiled executable path: expected path uses the protected checkout
+target; the external verifier target path appears in actual output. The raw
+log SHA-256 is
+`c4128ac22c6b99da3e2dee865c6fae2cafb8c3d1f2f9bfc60657a423460e5168`.
+The wrapper did not persist a numeric exit file; the log ends with
+`error: test run failed`. No normalization, mask, threshold, snapshot bless,
+fixture change, or expected-artifact replacement was used.
 
-```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/baseline-control-892-2026-09-19
-```
+A separate complete control from source `89218626011f2f82c4e87c4dfd5868a4c5f3e284`
+ran 302 cases: 298 pass, 4 fail, 2 skipped, 1 leaky, exit 100. It is not a
+clean calibration. These failures are preparation blockers because the gate
+cannot yet prove a known-good source against the complete immutable oracle.
 
-This identity is separate from the artifact tag and from architecture/source
-oracle `02f5294bfdbf38004cc49130d0aff1d01f31434c` (tree
-`efa2b409b77077caf5c639f7f4c6154cbadbce5`). The previously cited
-`3570a2ed23444dddf1eddcdcc49b654b169038fe` source is not authoritative: its
-tree `77d6a559536d6a1d733b52d3b78b5b49112315cb` contains only 28,580 artifacts
-and 7,145 keys.
+## 6. Product obligations, scripts, and platform state
 
-## 3. Catalog, architecture, and remaining scope
+The campaign product remains incomplete: consumer migration and ownership
+cleanup, duplicate/compatibility renderer removal, Holla/Showcase/Jackin/
+TablePro application integration, focus/hover/input/scroll/resize/PTY and
+lifecycle behavior, exact visual parity, performance/allocation budgets, API,
+workspace/static/documentation, and platform gates remain implementation
+obligations. They are not accepted by the preparation suite.
 
-The machine-checked catalog contains:
+Current macOS-native preparation checks are recorded under the external run
+root. Current shell syntax/ShellCheck/actionlint evidence is pass. Required
+Linux execution is unavailable in this environment and therefore is not
+claimed. CI is supplementary and cannot substitute for native macOS/Linux
+evidence. No Docker, Podman, container, image, mount, firmlink, namespace, or
+retired lifecycle path was used by this campaign.
 
-| measure | result |
-| --- | --- |
-| direct task packages | 73 (`001`–`073`) |
-| recursive `verify.toml` files | 77, including four nested bootstrap fixtures |
-| direct checks | 506: 27 `argv`, 479 `shell` |
-| recursive checks | 526 |
-| dependency edges | 276 |
-| maximum dependency depth | 35 |
-| source obligations | 1,174 |
-| traceability rows | 3,256 |
-| plan/DAG structural errors | 0 |
-| taskfmt standalone lints | 73/73 passed in the pre-refresh qualification run |
-| accepted production tasks | 0 |
+## 7. Blocker register and decision
 
-Disposition is explicit. `TASK-001` and `TASK-070` are retired/non-qualifying
-fail-closed lifecycle tasks, not dispatchable work. `TASK-071` and `TASK-072`
-remain blocked qualification prerequisites. `TASK-002` through `TASK-069` and
-`TASK-073` retain the valid component, application, ownership, behavior,
-visual, performance, API, and closure work. The generated graph is structural;
-it does not mark any node complete or authorize dispatch.
-
-The target architecture remains caller-owned state, borrowed props, read-only
-draw, runtime-owned routing/focus/layers/pointer/cursor, and one reusable
-implementation per component family. Current source still exhibits the known
-obligations: Showcase compatibility paint-over and fixed grid text, Jackin
-historical projections, TablePro legacy painters, reduced Holla route/scenario
-coverage, and component-level behavioral risks documented in the branch-diff
-reports. No compatibility painter may be retained as a final solution.
-
-## 4. Preparation infrastructure and checks
-
-The preparation commits are:
-
-- `e8c4950928b0ab6cc1268777dbed6f96cb0309ba` — strict proof-code Clippy and
-  rustdoc repair; tree `ea5edaaeddb3c5e5d5b5906a00c998d25375d3d4`.
-- `f6f94dc995f5b6451800d739174d7f23802a40c3` — shell/preparation guard
-  repair; tree `61563f7b48d0fe7b8e5bdddae57072e96f6a6f12`.
-- `8e783592afd0a2c2f08076858a386a091a35e712` — taskfmt final/parent
-  symlink-alias repair and adversarial shell coverage; tree
-  `e2867345caf658d339deaecd7f8fa13d04e7c008`.
-- `bb574d84bf25ff9179b42e951fca52068f2ab623` — Rust verifier symlinked-parent
-  trust-path repair; tree `6e464830897f7c39014b12a79219d6cde8b56549`.
-
-The native proof changes are preparation infrastructure only. The detailed
-exact-candidate raw evidence from before this documentation refresh is under:
-
-```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-a80c79-2026-09-19
-```
-
-Use `$RUN` below for that pre-refresh verifier root. Its qualified tool and
-check identities are:
-
-| check | root and result |
-| --- | --- |
-| taskfmt | source `/Users/donbeave/Projects/taskfmt/task-format`, revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, source tree `b7d90bd8`, version `0.2.0`, binary `/tmp/taskfmt-latest-install/bin/taskfmt`, SHA-256 `f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de`; `$RUN/taskfmt-qualification.log` and `$RUN/taskfmt-lints-summary.txt` / `.exit`; 73/73 standalone lints, exit 0 |
-| proof build | `$RUN/proof-build-target`; `tc-proof-native-build/v1` receipt binds commit `a80c790e` / tree `d7654291`; binary SHA-256 `192423f5c5175cdf1eca9bc963b8e732eff02c39c4dd404c380a0285effbba20` |
-| proof nextest | `$RUN/proof-nextest.log` / `.exit`; `cargo nextest` 28 passed, exit 0 |
-| static | `$RUN/fmt.*`, `$RUN/clippy.*`, `$RUN/rustdoc.*`, `$RUN/bash-n.*`, `$RUN/shellcheck.*`, `$RUN/shfmt.*`; all exit 0 |
-| catalog | `$RUN/plan-validator.*`, `$RUN/rebundle.*`, and taskfmt lint artifacts; 73 tasks, 1,174 source obligations, 3,256 traceability rows, depth 35; exits 0 |
-| documentation | `$RUN/actionlint.*`, `$RUN/lychee.*`; Lychee 0.24.2: 612 total, 604 successful, 8 excluded, 0 errors; exit 0 |
-| expected gate failures | `$RUN/preflight.log` / `.exit`: exit 1 because readiness is not exact GO; `$RUN/boundary.log` / `.exit`: exit 1 because `parity/evidence.tsv` is missing |
-
-These are raw observations, not an accepted preparation receipt. Affected
-evidence is invalid after this documentation commit. Native proof is
-integrity/control evidence, not same-user hostile process isolation; the
-supported threat model and limitations remain in `proof-contract.md`.
-
-The qualified taskfmt checkout contains an upstream-only, opt-in Docker
-integration at revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2` / tree
-`b7d90bd8adbe6c341a08fc485099ee8cf1584431`. The exact source evidence is
-`harness/tests/docker_itest.rs`, `harness/tests/run_docker_itest.sh`,
-`harness/README.md`, and `docs/monitoring.md`: the runner sets
-`TASKFMT_ITEST_DOCKER=1`, invokes `cargo test`, and requires a live Docker
-daemon and harness image. `/tmp/taskfmt-platform-audit.log` records the full
-taskfmt workspace nextest stopping at test-list creation on
-`docker_itest: SKIP` (exit 104); `/tmp/taskfmt-platform-audit-native.log`
-records native taskfmt crates at 268 passed, 7 binaries, exit 0. Docker was
-not run, and no upstream Docker qualification is claimed. Campaign policy
-excludes this upstream path, so it is not a preparation blocker or acceptance
-input; campaign qualification remains the standalone `taskfmt lint`/`verify`
-surface above.
-
-The exact final-tree workspace result is recorded at:
-
-```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-final-dd26-2026-09-19/result-summary.txt
-SHA-256: 6971f496cfc91b097a5ec677ad128dc48e7d55e83aebb7ab09af1df8804c8143
-binds: dd26d2e7cc4ebbf1d8f1af4c54e7081744549382 / ed1525875021c613fa9265239ad2f4835f9e1785 / parent a80c790e2ebba15e4a00e7cff4296eab2a5bccc5
-result: cargo nextest 3342 passed (139 binaries, exit 0)
-```
-
-It is supporting evidence only, not a preparation receipt, visual-oracle
-comparison, or product acceptance. It binds the exact `dd26d2e7` payload;
-this documentation repair creates a new tree and invalidates affected evidence,
-so the predetermined final seal must rebind it.
-
-The following paths remain useful only as historical or superseded provenance:
-the old proof-nextest logs reporting `27/27` and `27 passed`, proof build
-`proof-preparation-final-2026-09-19` with binary SHA-256
-`f85400a16dc131fe0f59bfc90b5ec22cadf97de02833a216ed81385bf70a1b44`,
-`static-final-2026-09-19`, `shell-final-current-2026-09-19`,
-`docs-final-current-retry-2026-09-19`, and
-`taskfmt-lints-final-retry-2026-09-19`. They are historical, not current
-final-payload evidence. The TASK-071/TASK-072 preparation attempt still fails closed because
-dependency receipts are absent; no task was accepted. The boundary run still
-fails on missing `parity/evidence.tsv`, and native Linux is unavailable. The
-upstream Docker-only taskfmt path is policy-excluded/upstream-only, was not
-run, and is not claimed as qualified. The ledger remains `armed=false`.
-
-## 5. Calibration and parity status
-
-The complete gate must execute the independently materialized `892` source,
-not copy expected files and not use `3570` as a substitute. The full 892 run
-did execute all 302 cases and produced the complete artifact counts, but it is
-not a clean calibration:
-
-```text
-source commit: 89218626011f2f82c4e87c4dfd5868a4c5f3e284
-source tree:   6fccf997cd742071ebcff0e0a00e89404ef95ca8
-snapshot tree: 3f0261c32849e26feda24d87697de4a7ce6b8375
-test cases: 302; passed 298; failed 4; skipped 2; leaky 1; exit 100
-ANSI/plain/PNG/HTML: 7,550 each; diff files: 17
-```
-
-Raw summary:
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/baseline-control-892-2026-09-19/logs/final-direct-matrix-summary-v2-2026-09-19.txt`
-(SHA-256 `33034862cfb3d7ae2676bbe01269db5ac0c1af6d3cf6e61896f408c36eb14d3c`).
-The failures are:
-
-- Holla `task_input_cancelled`: `nocolor` timing is `0 s` where frozen output
-  records `1 s` at `80x24` and `120x40`;
-- pointer `tablepro_resize_workbench_grown`;
-- TablePro `ack_gate`;
-- TablePro `connections/form_advanced`.
-
-No normalization or blessing was applied. This is evidence of complete matrix
-execution coverage, not a calibration pass. The available control evidence is
-therefore insufficient:
-
-- `baseline-control-892-2026-09-19/logs/source-identity.txt` records the
-  correct 892 commit/tree and 30,200-source-artifact inventory. The complete
-  run above is retained as failed raw evidence, not an accepted replay.
-- `baseline-control-3570-2026-09-19/logs/full-rtk.log` stops at 151/302 with
-  baseline-approval failures and is invalid for the complete corpus. Its
-  source corpus is only 28,580 artifacts.
-- The older mixed/dirty calibration
-  `calibration-frozen-connections/full-run-1` is `302 selected, 301 passed,
-  1 failed, 2 skipped`, exit `100`; it used an invalid source/target mix and
-  is not acceptance evidence.
-- The exact-tag control under `calibration-baseline-4a79c0a2` also did not
-  establish a clean complete pass. No candidate output has been blessed and
-  no mismatch has been normalized away.
-
-### Exact-tag HTML provenance blocker (Galileo audit)
-
-Galileo's independent exact-tag calibration audit found a path-dependent HTML
-provenance blocker, not a product conclusion. The frozen HTML from tag
-`4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` / tree
-`0b1f13431fdfd6060cf9f45a114afa5a99cc6c26` embeds
-`/Users/donbeave/Projects/terminal-components-claude/target/debug/<bin>`.
-The external verifier-owned real target in
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/calibration-baseline-4a79c0a2`
-embeds `RUN/target/debug/<bin>`. This compile-time path difference makes the
-HTML comparison unqualified; it is not evidence of a product regression.
-
-The tag's `tests/visual_baseline/support.rs` lines 35–38 use
-`env!("CARGO_BIN_EXE_*")`, and lines 423–438 construct the executable argv.
-The tag suite's `tuisnap` PTY/frame/render/grouped path preserves grouped
-artifacts and uses byte comparison, so broad normalization is not permitted.
-`exec -a`, environment changes, and wrapper processes cannot change the
-compile-time path embedded by `env!`. The historical baseline checkout's
-`target` is a protected shared-cache symlink to
-`/Users/donbeave/Library/Caches/mbx/targets/v1/8ebb271f62cb4d1ddf4b4e663c9a473e6cc42793d9dfc918efefcd0a8b9ea8e3`; the path contract forbids using it as the verifier target.
-
-The exact-tag run root is
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/calibration-baseline-4a79c0a2`.
-That run is incomplete/failed; Galileo observed an HTML byte mismatch and the
-run did not establish exact-tag calibration. No output was normalized or
-blessed. Closure requires a reviewed exact-safe provenance strategy or an
-explicitly authorized external path, then a clean exact-tag rerun with the
-frozen HTML compared byte-for-byte. Until that evidence exists, this remains a
-preparation blocker and the report remains **NO-GO**.
-
-The final parity gate must prove exact equality for ANSI, plain text, PNG, and
-HTML across every key, terminal size, color mode, application, fixture, route,
-interaction checkpoint, PTY setup/resize/settled transition, exit, and cleanup.
-It must also prove negative-control rejection of altered visual and behavioral
-outputs. Static frames, broad image tolerances, masks, copied snapshots, or
-arbitrary sleeps are not substitutes.
-
-## 6. Blocker register
-
-| blocker | classification | closure condition |
+| blocker | owner | closure condition |
 | --- | --- | --- |
-| final-tree binding | preparation | commit payload, then external verifier/reviewer manifests bind exact post-commit HEAD/tree/parent; rerun affected checks |
-| native proof/receipt qualification | preparation | positive and adversarial matrix passes with independent observed termination, outputs, contexts, nonce, hashes, and receipts; the two repaired trust-path defects must still be requalified on the final tree |
-| exact-tag HTML executable provenance | preparation | qualify a reviewed exact-safe provenance strategy or explicitly authorized external path; rerun the exact tag and require byte-equal HTML without normalization or blessing |
-| complete 892 control | preparation | clean external run covers all 7,550 keys and 30,200 artifacts, deterministic rerun, and altered-output rejection; current run covers the matrix but has four failures and one leak |
-| current task verification | preparation | standalone taskfmt `verify` plus native evidence for every accepted task; lint alone is insufficient |
-| `parity/evidence.tsv` / boundary contract | preparation | restore a truthful executable parity evidence path and pass `xtask boundary` |
-| full workspace reliability/static/doc gates | preparation | qualified nextest/static/API/documentation/CI checks pass on the final tree |
-| Linux | external mandatory evidence | run required native Linux lane; no container substitute exists |
-| current product regressions | implementation | reconcile valid tasks, remove duplicate painters, restore behavior and prove parity; do not mark preparation accepted |
-| independent final verifier/reviewer | preparation | separate read-only verifier and reviewer each return `VERIFIED` for the same final tree |
+| exact-tag known-good matrix fails | next implementation / proof owner | independently execute all 7,550 keys and 30,200 artifacts with exact-safe executable provenance and zero unexplained mismatch |
+| observed corpus misses one key and HTML path differs | visual harness owner | repair source/harness provenance without normalization or oracle mutation; rerun complete tag control |
+| no accepted current preparation receipt | verifier/reviewer | final clean tree gets independent `VERIFIED` verifier and separate reviewer evidence; no fabricated receipt |
+| Linux native evidence unavailable | platform owner | execute required native Linux lane or keep NO-GO |
+| product migration/ownership/parity incomplete | implementation goal | complete reconciled DAG and final architecture/product gates |
+| ledger must stay disarmed | coordinator | preserve `armed=false` until separate explicit dispatch authorization after fresh readiness recheck |
 
-Preparation defects are fixed only in preparation code/contracts/docs. Product
-obligations remain assigned to the implementation DAG. No condition is closed
-by a stale report, an ancestor receipt, a copied artifact, or a documentation
-claim.
+Resolved preparation defects include stale task graph status metadata, stale
+taskfmt path/version enforcement, missing native receipt binding, incomplete
+worker launch fixture provenance, unbounded observer-provider teardown, and
+noncanonical native target names. Their current code evidence is not a final
+GO because calibration remains failed.
 
-## 7. Evidence sealing and decision
-
-The non-circular protocol is:
-
-1. Freeze and commit the preparation payload.
-2. Build the proof tool in a verifier-owned external target and bind source,
-   tree, build inputs, binary hash, taskfmt, comparator, and oracle.
-3. Materialize exact contexts/results/observer capabilities outside the
-   worktree; execute only standalone taskfmt `lint`/`verify` plus declared
-   native checks.
-4. Collect independent observations and immutable raw evidence.
-5. Have a separate verifier and reviewer inspect the exact same final tree.
-6. Record a receipt only after both return `VERIFIED`.
-
-Any relevant source, task contract, schema, command, tool, comparator, oracle,
-environment, or documentation change invalidates affected evidence. A receipt
-cannot attest to a future commit containing itself. The ignored runtime ledger
-must remain schema-valid, current, and `armed=false`; it cannot replace the
-external seal.
-
-The latest exact-tree reports for the sealed `dd26d2e7` payload are:
-
-```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md
-SHA-256: a3390e74bd0dc85ca3e0ba62a62bb9c7b139851a952c4203781bde4c57462bc0
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md
-SHA-256: 57051451aabf2a31fa1de31cddb4ee3c27f24c281df41755d3846769011fc46d
-```
-
-Both bind `dd26d2e7` / `ed152587` / parent `a80c790e` and return
-**REJECTED / NO-GO**. They are not acceptance receipts. The refreshed ledger
-observed by the reports is schema-valid, bound to
-`refs/heads/refactor/holla-parity` with
-`integration_head=dd26d2e7`, `armed=false`, and no preparation receipt. This
-docs-only repair creates a new tree, so that state and all affected evidence
-must be freshly revalidated after the commit.
-
-The earlier `a80c790e` / `d7654291` / `2c74b88b` reports and their
-`final-verifier-refresh-a80c79-2026-09-19` / `final-reviewer-refresh-a80c79-2026-09-19`
-paths are historical rejected evidence only. They are superseded by the
-exact reports above. The final post-repair seal remains reserved at:
-
-```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md
-```
-
-Rejected historical roots are also preserved in the evidence index:
-
-```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-proof-requal-b20ca5c6
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/reviewer-final-proof-requal-b20ca5c6
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-211c29ad-independent
-```
-
-They are not receipts for this source. Bernoulli's prior rejection is recorded
-above and its two findings are repaired. The pre-refresh reports reject
-readiness; no independent verifier/reviewer has returned `VERIFIED` for the
-post-refresh documentation tree.
-
-**Final decision: NO-GO.** The report must remain NO-GO until every blocker
-above has fresh, exact-tree, independently reviewed evidence. This decision
-does not declare the product refactoring complete and does not authorize the
-next goal.
+**Decision: NO-GO.** The failed exact-tag calibration, absent accepted receipt,
+unavailable Linux evidence, and unfinished product obligations prohibit GO.
+The next implementation prompt is explicitly not authorized.

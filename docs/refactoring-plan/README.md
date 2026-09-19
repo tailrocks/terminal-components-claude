@@ -1,333 +1,189 @@
-# Refactoring plan navigation
+# Refactoring preparation authority
 
-Status: **NO-GO. Preparation only. The campaign ledger remains `armed: false`.**
+Status: **NO-GO.** Preparation only. The ledger must remain `armed: false`.
+No production task may be dispatched, and this branch must not be merged into
+`main`, while the readiness report is NO-GO.
 
-This directory is the canonical preparation package for `refactor/holla-parity`.
-It does not authorize the implementation `/goal`, production task dispatch,
-ledger arming, a push, or a merge. The sole readiness authority is
-[`execution-readiness-report.md`](execution-readiness-report.md). A NO-GO in
-that report is fail-closed.
+This directory is the canonical preparation package for
+`refactor/holla-parity`. The authority order is:
 
-## Exact candidate, rejected reports, and final seal
+1. repository policy and the user’s preparation boundary;
+2. the immutable `visual-baseline` oracle;
+3. current source, tests, contracts, Git history, and executable evidence;
+4. [`execution-readiness-report.md`](execution-readiness-report.md);
+5. task descriptions and historical reports.
 
-The last exact candidate independently sealed before this documentation repair
-was:
+Historical evidence never authorizes execution. The generated structural graph
+contains no status, acceptance result, or dispatch authority.
 
-| item | identity |
-| --- | --- |
-| branch | `refactor/holla-parity` |
-| audited commit | `dd26d2e7cc4ebbf1d8f1af4c54e7081744549382` |
-| audited tree | `ed1525875021c613fa9265239ad2f4835f9e1785` |
-| audited parent | `a80c790e2ebba15e4a00e7cff4296eab2a5bccc5` |
+## Current candidate and branch truth
 
-The actual final exact-tree reports for that payload are:
-
-- verifier: `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md`
-  SHA-256 `a3390e74bd0dc85ca3e0ba62a62bb9c7b139851a952c4203781bde4c57462bc0`
-- reviewer: `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md`
-  SHA-256 `57051451aabf2a31fa1de31cddb4ee3c27f24c281df41755d3846769011fc46d`
-
-Both bind `dd26d2e7` / `ed152587` / parent `a80c790e` and return
-**REJECTED / NO-GO**. They are
-external audit reports, not acceptance receipts, and do not authorize
-dispatch, arming, merge, or product acceptance. The earlier
-`a80c790e` / `d7654291` / `2c74b88b` reports are historical rejected evidence
-only; they do not describe the sealed `dd26d2e7` payload.
-
-This bounded repair changes only metadata and the evidence index in these four
-canonical documents. It does not change code, scripts, task contracts, the
-ledger, refs, the protected baseline, or product behavior. This docs-only
-commit creates a new Git commit/tree after the sealed payload and therefore
-invalidates affected evidence after the commit. A fresh exact-tree
-verifier/reviewer seal must bind the post-commit HEAD/tree before any
-acceptance or dispatch. The final seal uses these predetermined external
-locations, so recording the evidence does not require another source edit:
+The latest tested preparation payload before this documentation-only freeze is:
 
 ```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md
+branch:   refactor/holla-parity
+commit:   a3701d8bb7bcdc491d35397be698ecf86c8d2d9d
+tree:     9ef02188b96aa4e6915c378b9eca344812a8494b
+parent:   de2f1295c26e1968d598782e7dd304eae93b75bd
+local main:   7b27732a8c3c131760ec3438f641cb3c11343a42
+remote main:  7b27732a8c3c131760ec3438f641cb3c11343a42
+remote campaign tip: f5013f609aed1ba32ce60352b38fd0b1b11b063c
+merge-base with main: 7b27732a8c3c131760ec3438f641cb3c11343a42
+campaign commits ahead of origin/refactor/holla-parity: 53
 ```
 
-Any further relevant source, documentation, contract, tool, oracle, or
-environment change invalidates affected evidence.
+The campaign is a descendant of actual local and remote `main`; the remote
+campaign ref is stale relative to this local preparation branch. No ref was
+reset, rewritten, force-pushed, pruned, or moved. The directory name
+`.worktrees/main` was not used to identify `main`.
 
-The earlier `a80c790e2ebba15e4a00e7cff4296eab2a5bccc5` / tree
-`d765429108cd14109d420faf96ae481e1eae11e1` / parent `2c74b88b9fbfb4568911dc7d57a303a3cb5991cb`
-audit and its `final-verifier-refresh-a80c79-2026-09-19` and
-`final-reviewer-refresh-a80c79-2026-09-19` reports are historical provenance
-only. They are superseded by the exact `dd26d2e7` reports above.
-
-The pre-documentation inspection at `bb574d84` / `6e464830` and the
-`74e4ec45` preparation roots are historical provenance only.
-
-## Trust-path repair and independent review
-
-Bernoulli (`gpt-5.6-luna`, max reasoning effort) independently rejected the
-prior preparation tree `21f875318f61c30f55bf0a47b8daa4326d48540a7` after
-reproducing two trust defects: taskfmt accepted a symlinked final or parent
-alias, and the Rust verifier accepted symlinked parent components. Raw review
-evidence is retained at:
+The four canonical documents are source-controlled preparation metadata. Their
+commit changes the tested payload, so the final verifier must bind the exact
+post-documentation HEAD/tree. Evidence is invalidated by any relevant source,
+documentation, task contract, schema, script, tool, oracle, environment, or
+generated-output change. The evidence-sealing protocol is therefore:
 
 ```text
-/tmp/campaign-review-evidence-21f87531.7EkYOO/
+commit preparation payload
+→ commit canonical documentation
+→ freeze the final tree
+→ generate external verifier/reviewer reports for that exact tree
+→ record their paths and hashes without another tracked edit
 ```
 
-The defects were repaired, but this historical repair evidence is not
-final-payload approval:
+## Frozen visual authority
 
-- `8e783592afd0a2c2f08076858a386a091a35e712` rejects taskfmt final and parent
-  aliases in preflight/dispatch and adds adversarial coverage. Evidence:
-  /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/taskfmt-path-repair-2026-09-19.
-- `bb574d84bf25ff9179b42e951fca52068f2ab623` rejects symlinked Rust verifier
-  trust-path parents while preserving the documented macOS system symlinks.
-  Evidence:
-  /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/symlink-parent-repair-2026-09-19.
-  `final-identity.txt` binds that repair to `bb574d84` and tree `6e464830`;
-  sealed nextest, Clippy, and rustdoc exit files are all zero.
+The protected oracle is the peeled tag, not a branch or release label:
 
-The independent rejection is closed as a preparation defect only. The
-verifier and reviewer reports above reject the audited exact candidate; a
-fresh verifier and reviewer must still evaluate the exact post-refresh tree
-and return `VERIFIED`. No accepted receipt exists.
-
-## Authority and navigation
-
-Resolve conflict in this order: repository policy and user scope; the frozen
-visual oracle; current source, tests, contracts, and Git evidence; this report
-and the campaign contracts; historical notes. Historical evidence cannot
-override current source or authorize execution.
-
-- [`execution-readiness-report.md`](execution-readiness-report.md) — current
-  verdict, blockers, and acceptance gate.
-- [`evidence/current-preparation-2026-09-19.md`](evidence/current-preparation-2026-09-19.md)
-  — command/evidence index and provenance ledger.
-- [`next-implementation-goal.md`](next-implementation-goal.md) — complete
-  future prompt, explicitly **NOT AUTHORIZED FOR EXECUTION** while this report
-  is NO-GO.
-- [`campaign-policy.md`](campaign-policy.md) — branch, scope, and protected
-  ref rules.
-- [`subagent-only-policy.md`](subagent-only-policy.md) and
-  [`campaign-executor-protocol.md`](campaign-executor-protocol.md) — native
-  roles, isolation, integration, and evidence sequence.
-- [`path-contract.md`](path-contract.md) and
-  [`proof-contract.md`](proof-contract.md) — native paths, trust inputs, and
-  result/receipt binding.
-- [`campaign-ledger.schema.json`](campaign-ledger.schema.json) — ledger shape.
-- [`task-graph.json`](task-graph.json) — generated structure only; it contains
-  no authorization or acceptance result.
-- [`task-graph.md`](task-graph.md) and [`task-index.tsv`](task-index.tsv) —
-  reconciled catalog and dependencies.
-- [`../../refactoring-tasks/visual-validation.md`](../../refactoring-tasks/visual-validation.md)
-  — exact visual/behavioral comparison contract.
-- [`architecture.md`](architecture.md), the branch-diff reports, and the root
-  architecture documents — product and target-architecture obligations.
-
-## Frozen baseline and oracle
-
-The protected identity is the peeled tag, not a branch name or release label:
-
-| artifact | immutable identity |
+| identity | value |
 | --- | --- |
 | `refs/tags/visual-baseline^{commit}` | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
-| baseline commit tree | `0b1f13431fdfd6060cf9f45a114afa5a99cc6c26` |
+| tag commit tree | `0b1f13431fdfd6060cf9f45a114afa5a99cc6c26` |
 | `snapshots/` tree | `3f0261c32849e26feda24d87697de4a7ce6b8375` |
 | matrix keys | 7,550 |
-| artifacts | 30,200: 7,550 each ANSI, plain text, PNG, HTML |
+| artifacts | 30,200: 7,550 ANSI, 7,550 plain, 7,550 PNG, 7,550 HTML |
 
-The exact read-only import and its independent manifest are external:
+The exact read-only import is
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/oracle-import-2026-09-19`.
+Its independent manifest is
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/oracle-import-manifest-2026-09-19/sha256.manifest`;
+SHA-256:
+`95e1f38220bd2fd09da44d3b98590543d1f03837b50e0069bf53bd1f73893637`.
+The import has no symlinks. Protected refs, snapshots, grouped stores,
+fixtures, and expected artifacts were not changed.
 
-```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/oracle-import-2026-09-19
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/oracle-import-manifest-2026-09-19
-```
+The complete snapshot-producing source is commit
+`89218626011f2f82c4e87c4dfd5868a4c5f3e284`, tree
+`6fccf997cd742071ebcff0e0a00e89404ef95ca8`, with the same snapshot tree.
+Its control run is
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/baseline-control-892-2026-09-19`.
+That run executed 302 cases and produced the complete count, but was not
+clean: 298 passed, 4 failed, 2 skipped, 1 leaky, exit 100. No output was
+blessed or normalized.
 
-The import records the tag commit/tree, snapshot tree, 30,200-file hash
-manifest, four 7,550-key lists, and zero symlinks. It is read-only. No
-candidate output has been used as an expected artifact.
+Parity is exact at cells/styles/layout/ANSI/plain/PNG/HTML and interactive
+state transitions. PTY checks must include setup, input, resize, settled state,
+exit, restoration, and cleanup. A compatibility painter, copied oracle frame,
+or duplicate renderer cannot satisfy the gate.
 
-Three identities must not be conflated:
+## Catalog, architecture, and remaining product scope
 
-1. `4a79c0a2` is the protected artifact/oracle commit.
-2. `89218626011f2f82c4e87c4dfd5868a4c5f3e284`, tree
-   `6fccf997cd742071ebcff0e0a00e89404ef95ca8`, is the Git source identified
-   as the snapshot producer. Its `snapshots/` tree is the same
-   `3f0261c32849e26feda24d87697de4a7ce6b8375`, with all 30,200 artifacts. Its
-   external control root is
-   `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/baseline-control-892-2026-09-19`.
-3. `02f5294bfdbf38004cc49130d0aff1d01f31434c` (tree
-   `efa2b409b77077caf5c639f7f4c6154cbadbce5`) remains the distinct
-   architecture/source oracle. It is not the visual artifact tag.
+Machine-checked catalog at the tested payload:
 
-The earlier `3570a2ed23444dddf1eddcdcc49b654b169038fe` claim is corrected, not
-authoritative: its tree is `77d6a559536d6a1d733b52d3b78b5b49112315cb` and its
-snapshot corpus is only 28,580 artifacts / 7,145 keys. It cannot calibrate the
-complete gate.
+| measure | value |
+| --- | ---: |
+| direct task packages | 73 |
+| recursive `verify.toml` files | 77 |
+| direct checks | 506: 27 argv, 479 shell |
+| recursive checks | 526 |
+| dependency edges | 276 |
+| maximum dependency depth | 35 |
+| file-conflict pairs | 193 |
+| serialization pairs | 0 |
+| source obligations | 1,174 |
+| traceability rows | 3,256 |
+| accepted production tasks | 0 |
 
-## Qualified tools and checks
-
-The only qualified standalone taskfmt is:
-
-```text
-source: /Users/donbeave/Projects/taskfmt/task-format
-revision: afd3b575dbcc7044620bec4b9493a74eca3e5ef2
-version: 0.2.0
-binary: /tmp/taskfmt-latest-install/bin/taskfmt
-binary SHA-256: f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
-```
-
-Only `taskfmt lint "$TASK_DIR"` and the documented standalone `taskfmt verify`
-form are permitted. Taskfmt is not an orchestrator, workspace manager, ref
-manager, container launcher, or acceptance authority.
-
-The qualified taskfmt checkout also contains an upstream-only, opt-in Docker
-integration. At revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2` / tree
-`b7d90bd8adbe6c341a08fc485099ee8cf1584431`, its exact source evidence is
-`harness/tests/docker_itest.rs`, `harness/tests/run_docker_itest.sh`,
-`harness/README.md`, and `docs/monitoring.md`. The runner requires
-`TASKFMT_ITEST_DOCKER=1`, invokes `cargo test`, and requires a live Docker
-daemon and harness image. The platform audit evidence is
-`/tmp/taskfmt-platform-audit.log` (full taskfmt workspace nextest stopped at
-test-list creation with `docker_itest: SKIP`; exit 104) and
-`/tmp/taskfmt-platform-audit-native.log` (native taskfmt crates: 268 passed,
-7 binaries, exit 0). This campaign did not run Docker and makes no claim that
-the upstream Docker integration passed. Campaign policy excludes that path;
-it is upstream-only provenance, not a campaign blocker or acceptance input.
-
-### Exact-tag HTML provenance blocker (Galileo audit)
-
-Galileo's independent exact-tag calibration audit identified a
-path-dependent HTML provenance blocker, not a product conclusion. The frozen
-HTML from tag `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` / tree
-`0b1f13431fdfd6060cf9f45a114afa5a99cc6c26` embeds the literal executable
-provenance `/Users/donbeave/Projects/terminal-components-claude/target/debug/<bin>`.
-The verifier-owned real target in the exact-tag run root
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/calibration-baseline-4a79c0a2`
-embeds `RUN/target/debug/<bin>` instead. HTML is therefore not yet a
-qualified exact comparison between those builds.
-
-The tag's `tests/visual_baseline/support.rs` uses compile-time
-`env!("CARGO_BIN_EXE_*")` at lines 35–38 and builds case argv at lines
-423–438. Its `tuisnap` PTY/frame/render/grouped path preserves grouped
-expected/actual/diff/report artifacts and performs byte comparisons. Because
-the executable path is compiled into the binary, `exec -a`, environment
-changes, or a wrapper process cannot repair this provenance after build. The
-historical baseline checkout's `target` is a protected shared-cache symlink to
-`/Users/donbeave/Library/Caches/mbx/targets/v1/8ebb271f62cb4d1ddf4b4e663c9a473e6cc42793d9dfc918efefcd0a8b9ea8e3`; the path contract forbids using that symlink as the verifier target.
-
-The exact-tag run was incomplete/failed; its raw evidence remains under the
-run root above. Galileo observed an HTML byte mismatch during the tag control,
-and no output was normalized or blessed. This is a preparation/provenance
-blocker, not product acceptance or a product regression. Closure requires a
-reviewed exact-safe provenance strategy or an explicitly authorized external
-path that makes the frozen and verifier executable identities comparable,
-followed by a clean exact-tag rerun and byte comparison. Until then the
-preparation remains **NO-GO**.
-
-The detailed exact-candidate audit evidence before this documentation refresh
-is raw and rejected, not an accepted receipt for this documentation tree.
-Report root:
-
-```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-a80c79-2026-09-19
-```
-
-Historical tool and pre-refresh evidence identities recorded under that root:
-
-| check | historical evidence and result |
-| --- | --- |
-| taskfmt | source `/Users/donbeave/Projects/taskfmt/task-format`, revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, source tree `b7d90bd8`, version `0.2.0`, binary `/tmp/taskfmt-latest-install/bin/taskfmt`, SHA-256 `f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de`; `taskfmt-lints-summary.txt` and `taskfmt-lints.exit` record 73/73 standalone lints, exit 0 |
-| proof | `proof-build-target`; `tc-proof-native-build/v1` receipt binds commit `a80c790e` / tree `d7654291`; binary SHA-256 `192423f5c5175cdf1eca9bc963b8e732eff02c39c4dd404c380a0285effbba20`; `proof-nextest.log` / `.exit` record 28 passed, exit 0 |
-| static | `fmt.*`, `clippy.*`, `rustdoc.*`, `bash-n.*`, `shellcheck.*`, and `shfmt.*`; all qualified checks exit 0 |
-| catalog | `plan-validator.*` and `rebundle.*`; 73 direct task packages, 77 recursive `verify.toml` files, 506 direct checks, 526 recursive checks, 1,174 source obligations, 3,256 traceability rows, 276 edges, depth 35; exits 0 |
-| docs | `actionlint.*` and `lychee.*`; Lychee 0.24.2 reports 612 total, 604 successful, 8 excluded, 0 errors; exit 0 |
-| expected gate failures | `preflight.log` / `.exit`: exit 1 because readiness is not exact GO; `boundary.log` / `.exit`: exit 1 because `parity/evidence.tsv` is missing |
-
-These passing observations do not override the rejected reports or prove
-acceptance. Their affected evidence is invalid after this docs-only commit;
-the predetermined final seal must rerun and rebind what it uses.
-
-The preceding `$RUN` table is historical evidence bound to the superseded
-`a80c790e` / `d7654291` payload; it is not current exact-tree evidence.
-Superseded pre-documentation paths remain useful only as historical provenance:
-the old `27/27` and `27 passed` proof-nextest logs, proof build
-`proof-preparation-final-2026-09-19` with binary SHA-256
-`f85400a16dc131fe0f59bfc90b5ec22cadf97de02833a216ed81385bf70a1b44`,
-`static-final-2026-09-19`, `shell-final-current-2026-09-19`,
-`docs-final-current-retry-2026-09-19`, and
-`taskfmt-lints-final-retry-2026-09-19` are not current evidence. Native Linux
-evidence is unavailable. The current exact-tree workspace support result is:
-
-```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-final-dd26-2026-09-19/result-summary.txt
-SHA-256: 6971f496cfc91b097a5ec677ad128dc48e7d55e83aebb7ab09af1df8804c8143
-binds: dd26d2e7cc4ebbf1d8f1af4c54e7081744549382 / ed1525875021c613fa9265239ad2f4835f9e1785 / parent a80c790e2ebba15e4a00e7cff4296eab2a5bccc5
-result: cargo nextest 3342 passed (139 binaries, exit 0)
-```
-
-This is supporting Rust workspace evidence only, not a preparation receipt or
-parity acceptance. `xtask boundary` still fails because `parity/evidence.tsv`
-is missing.
-
-## Task and architecture state
-
-The generated catalog has 73 direct task packages (`001`–`073`) and 77
-recursive `verify.toml` files, including four nested bootstrap fixtures. It has
-506 direct checks (27 `argv`, 479 `shell`) and 526 recursive checks, 276
-dependency edges, and maximum dependency depth 35. Plan validation reports
-1,174 source obligations, 3,256 traceability rows, and zero structural errors.
-All package lints passed; no production task is accepted.
-
-- `TASK-001` and `TASK-070` are retired/non-qualifying fail-closed historical
-  lifecycle tasks. They are not dispatchable implementation work.
-- `TASK-071` and `TASK-072` remain blocked qualification prerequisites until
-  fresh, independently reviewed receipts exist.
-- `TASK-002`–`TASK-069` and `TASK-073` contain the remaining implementation,
-  ownership, behavior, visual, performance, and closure obligations.
+`TASK-001` and `TASK-070` are retired fail-closed lifecycle/bootstrap
+contracts. `TASK-071` and `TASK-072` remain qualification prerequisites.
+`TASK-002`–`TASK-069` and `TASK-073` remain valid implementation obligations,
+subject to fresh reconciliation by the next goal.
 
 The target architecture is caller-owned state, borrowed props, read-only draw,
-runtime-owned routing/focus/layers/pointer/cursor, and one reusable owner per
-component family. The current product still has duplicate/compatibility
-painters and missing application behavior. Examples are the Showcase grid and
-chrome, Jackin projections, and TablePro tree/filter/frame painters. These are
-future implementation obligations, not preparation changes.
+runtime-owned routing/focus/layers/pointer/cursor, and one reusable
+implementation per component family. Remaining obligations include Showcase
+compatibility painting and fixed-grid text, Jackin projections, TablePro
+legacy painters, reduced Holla route/scenario coverage, ownership migration,
+application integration, behavior, visual parity, performance, and API/static
+closure. Preparation did not implement product refactoring.
 
-## Evidence and blockers
+## Native proof and tools
 
-The evidence index preserves raw paths, the latest exact-tree rejected
-verifier/reviewer reports, calibration roots, and invalidation rules. The
-latest exact-tree rejected reports are:
+Qualified standalone taskfmt:
+
+```text
+source:   /Users/donbeave/Projects/taskfmt/task-format
+revision: afd3b575dbcc7044620bec4b9493a74eca3e5ef2
+tree:     b7d90bd8adbe6c341a08fc485099ee8cf1584431
+version:  0.2.0
+binary:   /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/taskfmt-qualified-2026-09-19/install/bin/taskfmt
+SHA-256:  f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
+```
+
+Only standalone `taskfmt lint "$TASK_DIR"` and the documented standalone
+`taskfmt verify --root ... --task-dir ... --base ... --progress "" --log-dir ...`
+are allowed. Taskfmt is not an orchestrator, workspace manager, ref manager,
+container launcher, or acceptance authority.
+
+The native Rust launcher/materializer now binds task/check/run/source/tree,
+scope base, dependency receipts, oracle, contracts, comparator/tool hashes,
+environment, observer nonce/FD transport, result locations, and immutable
+receipts. It rejects forged, stale, duplicate, missing, symlinked, hard-linked,
+mutated, cross-run, wrong-tree, wrong-tool, wrong-oracle, wrong-nonce, and
+incomplete inputs. Observer shutdown is bounded; canonical native targets are
+named `target`. The supported threat model detects integrity substitution but
+does not claim isolation from a hostile same-user process.
+
+Current qualification evidence:
+
+- `proof-full-a3701d8b`: `cargo fmt --check` exit 0; `cargo nextest` 38
+  passed, 0 skipped.
+- `native-preparation-a3701d8b`: audited native build helper exit 0; build
+  receipt and binary are external, regular, single-link files.
+- `native-launch-regression-a3701d8b`: positive native launch plus direct-child
+  injection and wrong-nonce rejection, exit 0.
+- `taskfmt-lints-de2f1295`: 73/73 package lints passed, 0 failed.
+
+Raw runs are under
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19`.
+They are supporting evidence, not acceptance receipts.
+
+## Readiness and navigation
+
+- [`execution-readiness-report.md`](execution-readiness-report.md) — sole
+  current verdict and blocker register.
+- [`evidence/current-preparation-2026-09-19.md`](evidence/current-preparation-2026-09-19.md)
+  — command, identity, oracle, calibration, and evidence index.
+- [`next-implementation-goal.md`](next-implementation-goal.md) — complete
+  future prompt, explicitly **NOT AUTHORIZED FOR EXECUTION**.
+- [`task-graph.json`](task-graph.json), [`task-graph.md`](task-graph.md), and
+  [`task-index.tsv`](task-index.tsv) — structural catalog only.
+- [`campaign-policy.md`](campaign-policy.md), [`path-contract.md`](path-contract.md),
+  [`proof-contract.md`](proof-contract.md), and
+  [`../../refactoring-tasks/visual-validation.md`](../../refactoring-tasks/visual-validation.md)
+  — execution, trust, and parity contracts.
+- [`architecture.md`](architecture.md), `COMPONENT_ARCHITECTURE.md`, `DESIGN.md`,
+  `GOAL.md` — architecture/product obligations, not execution authority.
+
+The final independent verifier and separate reviewer must inspect the clean
+post-documentation tree, rerun decisive checks, inspect raw evidence, and
+return explicit decisions. Their predetermined external paths are:
 
 ```text
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md
-SHA-256: a3390e74bd0dc85ca3e0ba62a62bb9c7b139851a952c4203781bde4c57462bc0
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md
-SHA-256: 57051451aabf2a31fa1de31cddb4ee3c27f24c281df41755d3846769011fc46d
 ```
 
-They bind `dd26d2e7` / `ed152587` / parent `a80c790e` and return
-**REJECTED / NO-GO**. They are rejected evidence only: they do not issue a
-receipt or authorize GO. The a80/d765 reports are historical and superseded;
-this docs-only repair creates a new tree, so the predetermined final seal must
-bind that post-commit tree. No accepted receipt exists.
-
-The tracked
-[`current-preparation-2026-09-18.md`](evidence/current-preparation-2026-09-18.md)
-is explicitly superseded by this 2026-09-19 index. It remains unchanged as
-historical provenance, including its original bindings and raw evidence root;
-its observations do not authorize the current tree.
-
-Preparation blockers remain: clean post-refresh verifier/reviewer
-sealing; complete native proof/result/receipt qualification; path-dependent
-HTML provenance for the exact-tag calibration; a clean deterministic
-892-source calibration; the missing `parity/evidence.tsv`; full
-visual/behavioral/product parity; unavailable native Linux; absent
-`TASK-071`/`TASK-072` dependency receipts; and no accepted preparation
-receipt. The upstream Docker-only taskfmt path is policy-excluded and is not a
-campaign blocker; it was not run and is not claimed as qualified. The 892 control is 298/302
-passed with 4 failures, 2 skipped, 1 leaky, exit 100, 7,550
-ANSI/plain/PNG/HTML artifacts each (30,200 total), and 17 diff files. This is
-coverage evidence, not a calibration pass. The final preparation remains
-NO-GO, the refreshed ledger is disarmed, and the next goal remains **NOT
-AUTHORIZED FOR EXECUTION**.
-
-**Decision: NO-GO.**
+Because exact-tag calibration fails, no honest preparation receipt or GO can
+exist in this goal. The next goal must revalidate readiness before any
+authorization or arming operation.
