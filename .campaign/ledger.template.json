@@ -15,7 +15,7 @@
   },
   "toolchain": {
     "architectural_main": "7b27732a8c3c131760ec3438f641cb3c11343a42",
-    "oracle_commit": "02f5294bfdbf38004cc49130d0aff1d01f31434c",
+    "oracle_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
     "visual_baseline_tag_peeled": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
     "taskfmt_revision": "afd3b575dbcc7044620bec4b9493a74eca3e5ef2",
     "taskfmt_version": "0.2.0",
