@@ -372,6 +372,7 @@ PY
 import hashlib
 import json
 import os
+import re
 import stat
 import sys
 from pathlib import Path
@@ -676,6 +677,30 @@ def external_file(value: object, field: str) -> tuple[Path, str]:
     return resolved, actual
 
 
+def external_check_file(value: object, field: str) -> tuple[str, Path, str]:
+    if not isinstance(value, dict) or set(value) != {"check_id", "path", "sha256"}:
+        reject(f"{field} reference shape is invalid")
+    check_id = value["check_id"]
+    if not isinstance(check_id, str) or re.fullmatch(r"CHK-[0-9]{3}", check_id) is None:
+        reject(f"{field} check_id is invalid")
+    path, digest = external_file(
+        {"path": value["path"], "sha256": value["sha256"]}, field
+    )
+    return check_id, path, digest
+
+
+def external_check_map(entries: object, field: str) -> dict[str, tuple[Path, str]]:
+    if not isinstance(entries, list) or not entries:
+        reject(f"{field} are missing")
+    result: dict[str, tuple[Path, str]] = {}
+    for index, entry in enumerate(entries):
+        check_id, path, digest = external_check_file(entry, f"{field}[{index}]")
+        if check_id in result:
+            reject(f"{field} contains duplicate check_id {check_id}")
+        result[check_id] = (path, digest)
+    return result
+
+
 def load(path: Path, field: str) -> dict:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
@@ -733,20 +758,22 @@ if build.get("cargo_target_dir") != str(target.resolve()):
 
 external_file(preparation.get("context_index"), "context index")
 external_file(preparation.get("observer"), "observer capability")
-for name in ("contexts", "results"):
-    entries = preparation.get(name)
-    if not isinstance(entries, list) or not entries:
-        reject(f"proof preparation {name} are missing")
-    for index, entry in enumerate(entries):
-        external_file(entry, f"proof preparation {name}[{index}]")
+preparation_members = {
+    name: external_check_map(preparation.get(name), f"proof preparation {name}")
+    for name in ("contexts", "results")
+}
 
 index = load(Path(preparation["context_index"]["path"]), "context index")
+index_members = {
+    name: external_check_map(index.get(name), f"context index {name}")
+    for name in ("contexts", "results")
+}
 for name in ("contexts", "results"):
-    entries = index.get(name)
-    if not isinstance(entries, list) or not entries:
-        reject(f"context index {name} are missing")
-    for index_number, entry in enumerate(entries):
-        external_file(entry, f"context index {name}[{index_number}]")
+    if set(preparation_members[name]) != set(index_members[name]):
+        reject(f"proof preparation and context index {name} check sets differ")
+    for check_id in preparation_members[name]:
+        if preparation_members[name][check_id] != index_members[name][check_id]:
+            reject(f"proof preparation and context index {name} binding differs for {check_id}")
 print("external proof preparation paths, hashes, hardlinks, and source tree: OK")
 PY
 		fail "proof preparation contains an unsafe or stale external artifact"
