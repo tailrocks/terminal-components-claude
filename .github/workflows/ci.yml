@@ -44,10 +44,14 @@ name: CI
 #   cargo nextest run --workspace --all-targets --all-features --no-run --exclude visual-baseline
 #       on the pinned 1.88.0 leg. §16.5 `architecture::msrv_and_edition_are_unchanged` +
 #       §22.5: `cargo metadata` proves the FIELD, this job proves the product compiles on
-#       the floor. `visual-baseline` is excluded only here: tuisnap 2d43458 → termpane
-#       0.1.0 declares rust-version 1.97 and may use 1.97 language. Stable still compiles
+#       the floor. tuisnap 2d43458 → termpane 0.1.0 declares rust-version 1.97 and may
+#       use 1.97 language; do not --ignore-rust-version on 1.88. Stable still compiles
 #       product + visual suite. Without the 1.88.0 product compile, a builder could use a
 #       1.95 API on a 1.98 toolchain and every other gate would pass.
+#   cargo nextest run --workspace --all-targets --all-features --exclude visual-baseline
+#       on stable Test (§26, primary). store_integrity requires VISUAL_BASELINE_STORE;
+#       the default workspace gate is not the visual matrix. 1.88.0 Test already excludes
+#       visual-baseline for the rust-version reason above.
 #
 # Naming note (§47.1): `junie-tui` / `junie_tui` is the final package/lib name.
 # All four application packages live under `apps/` and consume the public facade.
@@ -75,8 +79,10 @@ jobs:
   # Two legs, both blocking. `1.88.0` is the §22.5 `msrv` job — pinned to the exact
   # declared `rust-version`, never a floating "1.88". `stable` is the §22.5 PRIMARY
   # job, kept so new compiler and clippy diagnostics are seen early.
-  # On 1.88.0 only, `--workspace` compile/test/doc/clippy commands exclude
+  # On 1.88.0, `--workspace` compile/test/doc/clippy commands exclude
   # `visual-baseline` (tuisnap 2d43458 → termpane 0.1.0, rust-version 1.97).
+  # Stable still compiles/docs/clippies the visual suite. Stable Test also
+  # excludes it so store_integrity is not run without the external oracle.
   gates:
     name: gates (${{ matrix.toolchain }})
     if: github.event_name != 'schedule'
@@ -155,9 +161,11 @@ jobs:
         if: matrix.toolchain == '1.88.0'
         run: cargo nextest run --locked --workspace --all-targets --all-features --exclude visual-baseline -- --skip architecture::compile_fail_cases_hold
 
+      # store_integrity requires VISUAL_BASELINE_STORE; this is not the visual
+      # matrix. Keep 1.88.0 --exclude visual-baseline; do not --ignore-rust-version.
       - name: Test (§26, primary)
         if: matrix.toolchain == 'stable'
-        run: cargo nextest run --locked --workspace --all-targets --all-features
+        run: cargo nextest run --locked --workspace --all-targets --all-features --exclude visual-baseline
 
       # §16.3 + §28 P2: BOTH render targets, or the gate runs half the matrix.
       - name: Render matrix, both targets (§16.3)

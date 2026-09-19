@@ -20,6 +20,11 @@
 # captures starved boot needles and tripped 15s-class timeouts under load.
 # Cap at 2 (matches the known-good control's NEXTEST_TEST_THREADS default).
 pty = { max-threads = 2 }
+# Verifier tests spawn observer/provider processes. Workspace nextest under
+# CI contention let provider_hang cleanup exceed the 4s bound (12.62s).
+# Serialize the package (matches local `-j 1 --package refactor-proof`).
+# Applied on profile.default: CI does not set NEXTEST_PROFILE=ci.
+refactor-proof = { max-threads = 1 }
 
 [profile.default]
 fail-fast = false
@@ -45,6 +50,10 @@ filter = '''
   or test(docker_done)
 '''
 threads-required = 2
+
+[[profile.default.overrides]]
+filter = "package(refactor-proof)"
+test-group = "refactor-proof"
 
 [profile.ci]
 fail-fast = false
