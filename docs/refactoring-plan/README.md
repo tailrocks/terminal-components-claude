@@ -9,14 +9,14 @@ implementation work, ledger arming, push, or merge.
 
 The current source candidate at the start of this documentation repair is:
 
-- HEAD `8da4c2b89084085b6712c61f6d64f1a438f1bd98`;
-- tree `58f3360f9a334ecafc9b17849408f24975ff48b9`;
-- parent `211c29adca147d42f8bfce428af1394f0213a22d`.
+- HEAD `b20ca5c6511b2cd6ba751658f4fbe3af8f4f726d`;
+- tree `6d784f09ac06dc3af5765bc2e5f6e8579bed01d6`;
+- parent `8da4c2b89084085b6712c61f6d64f1a438f1bd98`.
 
-This candidate contains the `211c29ad` proof lifecycle fix. The external
-verifier and independent reviewer below bind this exact candidate. This repair
-is a later documentation commit, so neither this file nor the other canonical
-documents self-attest the post-edit HEAD/tree.
+This candidate contains the `211c29ad` proof lifecycle fix and the prior
+preparation-doc package. The fresh external proof-tool requalification is
+bound below. This repair is a later documentation commit, so neither this file
+nor the other canonical documents self-attest the post-edit HEAD/tree.
 
 ## Two-layer sealing protocol
 
@@ -44,18 +44,18 @@ that preceding candidate and is invalid after `211c29ad`:
 
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed`
 
-The candidate-bound external final-verifier run is:
+The candidate-bound external final-verifier run before this repair is:
 
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-211c29ad`
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-8da4c2b8`
 
 Its `VERDICT.md` and `MANIFEST.md` bind HEAD
-`8da4c2b89084085b6712c61f6d64f1a438f1bd98`, tree
-`58f3360f9a334ecafc9b17849408f24975ff48b9`, and parent
-`211c29adca147d42f8bfce428af1394f0213a22d`; the verifier verdict is
+`b20ca5c6511b2cd6ba751658f4fbe3af8f4f726d`, tree
+`6d784f09ac06dc3af5765bc2e5f6e8579bed01d6`, and parent
+`8da4c2b89084085b6712c61f6d64f1a438f1bd98`; the verifier verdict is
 **REJECTED**. Independent review is also **REJECTED** and says preparation GO
 is not authorized at:
 
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/reviewer-final-8da4c2b8`
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/reviewer-final-b20ca5c6`
 
 These are rejected external evidence only. They are not receipts, task
 acceptance, or GO authorization. This documentation repair invalidates the
@@ -63,10 +63,14 @@ candidate-bound final-sealing run; preserve that root as stale evidence only.
 
 Fresh final sealing is predeclared at:
 
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-8da4c2b8`
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-proof-requal-b20ca5c6`
 
-That run must bind the exact post-edit HEAD/tree, parent, branch, clean
-worktree, contracts, tool/oracle identities, and its own raw evidence. This
+The independent review root is predeclared at:
+
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/reviewer-final-proof-requal-b20ca5c6`
+
+Those runs must bind the exact post-edit HEAD/tree, parent, branch, clean
+worktree, contracts, tool/oracle identities, and their own raw evidence. This
 docs package does not self-attest the post-edit tree.
 
 The complete evidence index is
@@ -129,6 +133,26 @@ with 0 failures, all 7 external-binding negative controls, native observer
 launch/validate, plan/DAG/path/freeze checks, and 73/73 taskfmt lints. Those
 passes do not override the Layer-1 **REJECTED** verdict or seal Layer 2.
 
+The fresh current-candidate proof-tool requalification is external,
+source-bound, and non-authorizing:
+
+- run root `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-requalify-b20ca5c6`;
+- receipt `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-requalify-b20ca5c6/target/debug/tc-proof.build.json`;
+- schema `tc-proof-native-build/v1`;
+- commit `b20ca5c6511b2cd6ba751658f4fbe3af8f4f726d`, tree
+  `6d784f09ac06dc3af5765bc2e5f6e8579bed01d6`, parent
+  `8da4c2b89084085b6712c61f6d64f1a438f1bd98`;
+- binary SHA-256
+  `f05e5b62021f555627225c42775e31a51498ea893d88998d5c91a4bb23773bcf`;
+- external target is not a symlink; `COMMANDS-AND-RESULTS.txt`,
+  `build-proof.log`, `fmt-check.log`, and `nextest.log` record build exit 0,
+  fmt exit 0, and 27 passed nextest tests.
+
+The old worktree-shared `target` is stale and must not be trusted. This fresh
+external build is current candidate-bound proof-tool input, not an acceptance
+receipt; no task is accepted, no dispatch is authorized, and the ledger stays
+`armed: false`.
+
 ## Current supplemental evidence — not receipts
 
 Popper’s supplemental closeout for the prior `211c29ad` candidate remains
@@ -163,12 +187,16 @@ or readiness blocker. The old-root raw evidence is supplemental only.
 
 - TASK-001 dispatcher verify exits `1` (`RESULT FAIL`) on scope/forbidden-path
   checks and the intentional NO-GO checks; preflight exits `1` fail-closed.
-- The candidate-bound `verifier-final-sealed-211c29ad` run is **REJECTED** and
+- The candidate-bound `verifier-final-sealed-8da4c2b8` run is **REJECTED** and
   stale after this documentation edit. It is not a receipt; the fresh
-  post-edit final-sealing root is predeclared at
-  `verifier-final-sealed-8da4c2b8`.
+  post-edit final-sealing and review roots are predeclared at
+  `verifier-final-sealed-proof-requal-b20ca5c6` and
+  `reviewer-final-proof-requal-b20ca5c6`.
 - Current taskfmt `verify` and current accepted receipts remain **UNKNOWN**;
   taskfmt lint or passing subchecks do not change that status.
+- The fresh external proof-tool requalification is source-bound to b20 and
+  records build/fmt/27-test success, but is not an acceptance receipt. The
+  old worktree-shared `target` and its stale receipt remain untrusted.
 - The copied TASK-072 style-timing runner self-test remains a visible,
   unqualified, auxiliary retired/out-of-scope diagnostic. It is not hidden or
   counted as a pass, and it is not a readiness blocker.

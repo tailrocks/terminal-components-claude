@@ -29,29 +29,31 @@ Layer 2 is this evidence-only docs package. Its package parent is commit
 `3b79d3403d52ededca087d62dccb9ad4474c105b` with tree
 `d6b85e1feb8e89f25cae6db360b92f071a4c4f43`. The current source candidate at
 the start of this documentation repair is HEAD
-`8da4c2b89084085b6712c61f6d64f1a438f1bd98`, tree
-`58f3360f9a334ecafc9b17849408f24975ff48b9`, parent
-`211c29adca147d42f8bfce428af1394f0213a22d`. The preceding final-sealed
+`b20ca5c6511b2cd6ba751658f4fbe3af8f4f726d`, tree
+`6d784f09ac06dc3af5765bc2e5f6e8579bed01d6`, parent
+`8da4c2b89084085b6712c61f6d64f1a438f1bd98`. The preceding final-sealed
 candidate was `6a57d2b0bf461a520d22bc0b840ab17dc6ad52f8` with tree
 `1ef2734ebb58b65fba670dfdd460bf189ce15cfa`; its old run root is stale and
 invalid after `211c29ad`:
 
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed`
 
-The candidate-bound external final-verifier run is
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-211c29ad`.
+The candidate-bound external final-verifier run before this repair is
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-8da4c2b8`.
 Its manifest binds the exact candidate HEAD/tree above and its verdict is
 **REJECTED**. Independent review at
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/reviewer-final-8da4c2b8`
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/reviewer-final-b20ca5c6`
 is also **REJECTED** and says preparation GO is not authorized. These are
 rejected external evidence only, not receipts, task acceptance, or GO.
 
 This documentation repair invalidates that candidate-bound final-sealing run;
 preserve it as stale evidence only. Fresh final sealing is predeclared at
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-8da4c2b8`.
-The fresh verifier must bind the exact post-edit HEAD/tree, parent, branch,
-clean worktree, contracts, tool/oracle identities, and raw evidence. This
-report does not self-attest final tree identity.
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-proof-requal-b20ca5c6`, with independent
+review at
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/reviewer-final-proof-requal-b20ca5c6`.
+The fresh verifier and reviewer must bind the exact post-edit HEAD/tree,
+parent, branch, clean worktree, contracts, tool/oracle identities, and raw
+evidence. This report does not self-attest final tree identity.
 
 Therefore no accepted verifier/reviewer receipt, ledger arm, dispatch, push,
 merge, or GO decision exists.
@@ -62,11 +64,12 @@ merge, or GO decision exists.
 |---|---|
 | Layer-1 tested payload | commit `14aa8ed0469219ff8f6570be7824e5ade39240cc`; tree `f3ef0f6badd01161bc24cdfef5161db55ba5d579`; parent `96c6c475b5d22193b7539565fa5b4612a88ea007`; historical/tested only |
 | Layer-2 docs package parent | commit `3b79d3403d52ededca087d62dccb9ad4474c105b`; tree `d6b85e1feb8e89f25cae6db360b92f071a4c4f43`; evidence-only |
-| Current source candidate at repair start | HEAD `8da4c2b89084085b6712c61f6d64f1a438f1bd98`; tree `58f3360f9a334ecafc9b17849408f24975ff48b9`; parent `211c29adca147d42f8bfce428af1394f0213a22d`; current proof lifecycle fix plus prior preparation docs |
+| Current source candidate at repair start | HEAD `b20ca5c6511b2cd6ba751658f4fbe3af8f4f726d`; tree `6d784f09ac06dc3af5765bc2e5f6e8579bed01d6`; parent `8da4c2b89084085b6712c61f6d64f1a438f1bd98`; current proof lifecycle fix plus prior preparation docs |
 | Prior final-seal root | `.../verifier-final-sealed`; binds `6a57d2b0bf461a520d22bc0b840ab17dc6ad52f8` / `1ef2734ebb58b65fba670dfdd460bf189ce15cfa`; stale and invalid after `211c29ad` |
-| Candidate-bound final verifier | `.../verifier-final-sealed-211c29ad`; exact `8da4c2b8` / `58f3360f`; **REJECTED**, stale after this documentation edit, not a receipt |
-| Candidate-bound independent reviewer | `.../reviewer-final-8da4c2b8`; exact `8da4c2b8` / `58f3360f`; **REJECTED**, GO not authorized, not a receipt |
-| Next final-seal root | `.../verifier-final-sealed-8da4c2b8`; predeclared and must bind the post-edit HEAD/tree |
+| Candidate-bound final verifier | `.../verifier-final-sealed-8da4c2b8`; exact `b20ca5c6` / `6d784f09`; **REJECTED**, stale after this documentation edit, not a receipt |
+| Candidate-bound independent reviewer | `.../reviewer-final-b20ca5c6`; exact `b20ca5c6` / `6d784f09`; **REJECTED**, GO not authorized, not a receipt |
+| Next final-seal root | `.../verifier-final-sealed-proof-requal-b20ca5c6`; predeclared and must bind the post-edit HEAD/tree |
+| Next independent-review root | `.../reviewer-final-proof-requal-b20ca5c6`; predeclared and must bind the post-edit HEAD/tree |
 | Current-candidate independent closeout | `.../verifier-211c29ad-independent/VERDICT.md`; **REJECTED** |
 | Protected oracle tag object | `1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5` |
 | Peeled `visual-baseline` commit | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
@@ -75,7 +78,8 @@ merge, or GO decision exists.
 | Oracle inventory | 7,550 keys; 30,200 artifacts; 7,550 each ANSI/plain/PNG/HTML; no other files |
 | Taskfmt source | `/Users/donbeave/Projects/taskfmt/task-format` |
 | Taskfmt | revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`; version `0.2.0`; binary `/tmp/taskfmt-latest-install/bin/taskfmt`; SHA-256 `f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de` |
-| Native proof | historical/tested Layer-1 schema `tc-proof-native-build/v1`; verifier binary SHA-256 `a3b7712ab7c3ea22940ffe915a2328d25767d35e5253e9df82776db0d3b70fcc`; no accepted current receipt |
+| Historical native proof | Layer-1 schema `tc-proof-native-build/v1`; verifier binary SHA-256 `a3b7712ab7c3ea22940ffe915a2328d25767d35e5253e9df82776db0d3b70fcc`; historical/tested only |
+| Current external proof requalification | Run `.../proof-requalify-b20ca5c6`; receipt `.../target/debug/tc-proof.build.json`; schema `tc-proof-native-build/v1`; exact b20/tree/parent binding; binary SHA-256 `f05e5b62021f555627225c42775e31a51498ea893d88998d5c91a4bb23773bcf`; external target non-symlink; build/fmt exit 0; nextest 27 passed; qualification input only, not an acceptance receipt |
 | Ledger | `.campaign/ledger.json`, `campaign-ledger/v1`, 4 rows, `armed=false` |
 
 The oracle tag, branch, release, grouped store, fixtures, snapshots, and
@@ -302,10 +306,18 @@ The readiness report stays NO-GO until all of these are closed with fresh,
 independent, source-bound evidence:
 
 - Layer-1 historical/tested verdict **REJECTED** and no reviewer acceptance;
-- the candidate-bound `verifier-final-sealed-211c29ad` manifest binds
-  `8da4c2b8` / `58f3360f` but is **REJECTED** and stale after this edit; no
+- the candidate-bound `verifier-final-sealed-8da4c2b8` manifest binds
+  `b20ca5c6` / `6d784f09` but is **REJECTED** and stale after this edit; no
   accepted post-edit final-sealing manifest exists, and the fresh
-  `verifier-final-sealed-8da4c2b8` root must bind the post-edit HEAD/tree;
+  `verifier-final-sealed-proof-requal-b20ca5c6` root must bind the post-edit
+  HEAD/tree;
+- the fresh external proof requalification at
+  `.../proof-requalify-b20ca5c6` binds b20/tree/parent, schema
+  `tc-proof-native-build/v1`, binary SHA-256
+  `f05e5b62021f555627225c42775e31a51498ea893d88998d5c91a4bb23773bcf`, a
+  non-symlink target, build/fmt exit 0, and 27 passed nextest tests. It is
+  source-bound qualification evidence only, not an acceptance receipt; the
+  old worktree-shared target and its stale receipt must not be trusted;
 - dispatcher TASK-001 verify failure and preflight NO-GO exit;
 - calibration is 301/302 with one failure and two skips, including the mixed
   frozen-oracle history;

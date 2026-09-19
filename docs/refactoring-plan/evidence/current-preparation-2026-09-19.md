@@ -13,10 +13,10 @@ The current clean candidate before this documentation repair is:
 | Item | Exact value |
 |---|---|
 | Branch | `refactor/holla-parity` |
-| HEAD | `8da4c2b89084085b6712c61f6d64f1a438f1bd98` |
-| Tree | `58f3360f9a334ecafc9b17849408f24975ff48b9` |
-| Parent | `211c29adca147d42f8bfce428af1394f0213a22d` |
-| Source change | candidate includes the proof lifecycle fix; `211c29ad..HEAD` is five preparation/readiness documents only |
+| HEAD | `b20ca5c6511b2cd6ba751658f4fbe3af8f4f726d` |
+| Tree | `6d784f09ac06dc3af5765bc2e5f6e8579bed01d6` |
+| Parent | `8da4c2b89084085b6712c61f6d64f1a438f1bd98` |
+| Source change | candidate includes the proof lifecycle fix and prior preparation-doc package; `8da4c2b8..HEAD` is five preparation artifacts only |
 
 This repair creates a later documentation commit. The identities above are
 the source candidate being reconciled, not a self-attested final seal.
@@ -53,27 +53,31 @@ invalid after `211c29ad`:
 
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed`
 
-The candidate-bound external final-verifier run is:
+The candidate-bound external final-verifier run before this repair is:
 
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-211c29ad`
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-8da4c2b8`
 
-Its manifest binds HEAD `8da4c2b89084085b6712c61f6d64f1a438f1bd98`, tree
-`58f3360f9a334ecafc9b17849408f24975ff48b9`, and parent
-`211c29adca147d42f8bfce428af1394f0213a22d`; its final verifier verdict is
+Its manifest binds HEAD `b20ca5c6511b2cd6ba751658f4fbe3af8f4f726d`, tree
+`6d784f09ac06dc3af5765bc2e5f6e8579bed01d6`, and parent
+`8da4c2b89084085b6712c61f6d64f1a438f1bd98`; its final verifier verdict is
 **REJECTED**. The independent review at
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/reviewer-final-8da4c2b8`
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/reviewer-final-b20ca5c6`
 is also **REJECTED** and says preparation GO is not authorized. These are
 rejected external evidence only, not receipts, task acceptance, or GO.
 
 This documentation repair invalidates the candidate-bound final-sealing run;
 preserve it as stale evidence only. Fresh final sealing is predeclared at:
 
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-8da4c2b8`
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-proof-requal-b20ca5c6`
 
-The fresh verifier must bind the exact post-edit HEAD/tree, parent, branch,
-clean worktree, contracts, tool/oracle identities, and raw evidence. This docs
-package does not self-attest final tree identity. No final sealing receipt is
-claimed here.
+The independent review root is predeclared at:
+
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/reviewer-final-proof-requal-b20ca5c6`
+
+The fresh verifier and reviewer must bind the exact post-edit HEAD/tree,
+parent, branch, clean worktree, contracts, tool/oracle identities, and raw
+evidence. This docs package does not self-attest final tree identity. No final
+sealing receipt is claimed here.
 
 The ledger remains `.campaign/ledger.json`, schema `campaign-ledger/v1`, with
 4 rows and `armed=false`; dispatch, accepted receipt, push, and merge remain
@@ -82,11 +86,32 @@ none.
 ### Candidate-bound final closeout — rejected, not receipts
 
 The final verifier root above contains `VERDICT.md` and `MANIFEST.md` for the
-exact `8da4c2b8` / `58f3360f` candidate. The independent reviewer root contains
+exact `b20ca5c6` / `6d784f09` candidate. The independent reviewer root contains
 `REVIEW.md` for that same candidate. Both results are preserved as rejected
 evidence only; neither is a receipt or authorization for GO.
 
-## 2. Current supplemental investigations — not receipts
+## 2. Current-candidate proof-tool requalification — not acceptance
+
+The fresh native proof-tool qualification is bound to the current candidate,
+but it is not a task acceptance receipt or a preparation GO:
+
+| Item | Exact value |
+|---|---|
+| Run root | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-requalify-b20ca5c6` |
+| Build receipt | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-requalify-b20ca5c6/target/debug/tc-proof.build.json` |
+| Schema | `tc-proof-native-build/v1` |
+| Source | commit `b20ca5c6511b2cd6ba751658f4fbe3af8f4f726d`; tree `6d784f09ac06dc3af5765bc2e5f6e8579bed01d6`; parent `8da4c2b89084085b6712c61f6d64f1a438f1bd98` |
+| Binary | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-requalify-b20ca5c6/target/debug/tc-proof`; SHA-256 `f05e5b62021f555627225c42775e31a51498ea893d88998d5c91a4bb23773bcf` |
+| Target integrity | External target is not a symlink; receipt and binary are not symlinks |
+| Results | Build exit 0; `cargo fmt --all -- --check` exit 0; locked offline `cargo nextest` 27 passed, exit 0 |
+| Raw evidence | `COMMANDS-AND-RESULTS.txt`, `build-proof.log`, `fmt-check.log`, `nextest.log`, receipt-validation logs under the run root |
+
+The old worktree-shared `target` and its stale receipt must not be trusted.
+This external build is current candidate-bound proof-tool input only. It does
+not create an acceptance receipt, clear NO-GO, accept a task, dispatch work, or
+arm the ledger.
+
+## 3. Current supplemental investigations — not receipts
 
 Popper’s independent closeout for the prior `211c29ad` candidate is explicitly
 **REJECTED**:
@@ -122,7 +147,7 @@ is not a pass. This is an auxiliary retired/out-of-scope diagnostic, not a
 TASK-072 check or readiness blocker. These Hume observations are supplemental
 and do not create an acceptance receipt.
 
-## 3. Protected oracle identity
+## 4. Protected oracle identity
 
 | Item | Exact value |
 |---|---|
@@ -137,7 +162,7 @@ The tag, branch, release, grouped store, fixtures, snapshots, and expected
 artifacts were observed unchanged. They are read-only policy inputs. No
 candidate output was blessed or substituted.
 
-## 4. Layer-1 proof and taskfmt identities — historical/tested only
+## 5. Layer-1 proof and taskfmt identities — historical/tested only
 
 | Item | Exact value |
 |---|---|
@@ -158,7 +183,7 @@ Layer-1 payload commit/tree. The external comparator binding passes with
 historical/tested payload evidence, never a binding for the final docs tree
 and never campaign acceptance.
 
-## 5. Layer-1 verifier result — historical/tested payload
+## 6. Layer-1 verifier result — historical/tested payload
 
 The Layer-1 verifier’s exact conclusion is **REJECTED**. It is not a current
 final-tree receipt or authorization. The following qualification subchecks
@@ -216,7 +241,7 @@ failure and is not converted to a pass.
 The canonical runner self-tests passed; this copied-runner diagnostic is not
 campaign acceptance.
 
-## 6. Calibration and mixed-oracle finding
+## 7. Calibration and mixed-oracle finding
 
 No product full matrix was run by the Layer-1 verifier. Existing independent
 calibration evidence is cited, not reused as a fresh pass:
@@ -250,7 +275,7 @@ current accepted receipts remain **UNKNOWN**; taskfmt lint and passing
 subchecks do not substitute for either. No task was dispatched, and no push or
 merge occurred.
 
-## 7. Catalog and remaining product obligations
+## 8. Catalog and remaining product obligations
 
 The current generated catalog contains 73 task packages, 506 checks, 276
 dependency edges, and maximum DAG depth 35. All task manifests remain
@@ -267,14 +292,16 @@ resize and lifecycle behavior, real PTY setup/cleanup/input/settled-frame
 transitions, strict performance budgets, public API/static/documentation
 checks, native platform checks, and complete oracle parity.
 
-## 8. Required final sealing evidence
+## 9. Required final sealing evidence
 
 The final verifier must use the predeclared external run root
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-8da4c2b8`.
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-proof-requal-b20ca5c6`.
+The independent reviewer must use the corresponding
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/reviewer-final-proof-requal-b20ca5c6` root.
 It must bind the actual clean HEAD/tree at run time, plus task contracts,
 tool/oracle identities, contexts, results, and receipts. Do not copy the
 Layer-1 payload, stale `6a57d2b` identity, or rejected
-`verifier-final-sealed-211c29ad` result into the new final manifest.
+`verifier-final-sealed-8da4c2b8` result into the new final manifest.
 
 From that clean native macOS worktree, with verifier-owned external target and
 run directories:
