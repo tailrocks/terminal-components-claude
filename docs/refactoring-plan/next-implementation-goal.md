@@ -6,6 +6,17 @@ NO-GO, the current ledger must remain `armed=false`, and no production task may
 be dispatched. The prompt becomes eligible only after a separate readiness
 revalidation and explicit authorization.
 
+The current external verifier and reviewer reports exist, bind the tested
+pre-repair payload below, and both return **REJECTED / NO-GO**. They are not
+acceptance receipts. This four-file docs-only repair changes metadata and the
+evidence index only; it creates a new tree and requires another fresh seal
+after the commit.
+
+```text
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-2c74b88-2026-09-19/final-verifier-report.md
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-reviewer-2c74b88-2026-09-19/final-reviewer-report.md
+```
+
 ## Objective
 
 On `refactor/holla-parity`, complete every valid reconciled refactoring task,
@@ -25,11 +36,11 @@ the visual validation contract. Then require these identities to be freshly
 revalidated; the values below are preparation references, not permission:
 
 ```text
-current final source payload before this documentation-only reconciliation:
+tested pre-repair payload bound by the rejected reports:
   branch refactor/holla-parity
-  commit 74e4ec458e2d8b41257232900bdf511bfa335730
-  tree f14b129677ccc493de52cca25d85d14c0f413823
-  parent 4a95fcdeedb8f7a3a132162e536ca28c2404b823
+  commit 2c74b88b9fbfb4568911dc7d57a303a3cb5991cb
+  tree 74a29e7c99a0bb4134eefd7bff1ce26651aaf340
+  parent 74e4ec458e2d8b41257232900bdf511bfa335730
 
 protected visual tag:
   refs/tags/visual-baseline^{commit}
@@ -54,30 +65,30 @@ qualified taskfmt:
   binary /tmp/taskfmt-latest-install/bin/taskfmt
   SHA-256 f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
 
-fresh final-payload preparation evidence references (not authorization):
-  proof build root /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-final-74e4ec45-2026-09-19
-  proof binary SHA-256 88c5340476e1fbaa2e424d97db75b4c323735f4bf3bde7dea1d915b940d6c012
-  proof receipt SHA-256 98e6fe9d090391c9cb28b8cb6fb710ac5c94d2120a2bf39190b143fcb064a86f
-  proof nextest root /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-nextest-74e4ec45-2026-09-19
-    28 passed (2 binaries, 21.527s), exit 0; identity binds final payload
-  static root /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/static-74e4ec45-2026-09-19
-    fmt, Clippy, rustdoc exit 0; identity binds final payload
-  shell root /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/shell-74e4ec45-2026-09-19
-    Bash syntax, ShellCheck, shfmt, preparation/proof-path/dispatch guards exit 0
-  catalog root /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/catalog-74e4ec45-2026-09-19
-    plan exit 0; 73 qualified taskfmt lints, zero failures; rebundle exit 0
-  docs root /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/docs-74e4ec45-2026-09-19
-    actionlint and Lychee exit 0; identity binds final payload
-  workspace root /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-sealed-final-2026-09-19
-    3,342 passed, exit 0; raw evidence only, identity is previous 4a95/f98 tree
+current rejected-audit evidence (not authorization), RUN=/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-2c74b88-2026-09-19:
+  taskfmt source /Users/donbeave/Projects/taskfmt/task-format
+    revision afd3b575dbcc7044620bec4b9493a74eca3e5ef2; source tree b7d90bd8
+    version 0.2.0; binary /tmp/taskfmt-latest-install/bin/taskfmt
+    SHA-256 f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
+    73/73 standalone lints, exit 0; qualification taskfmt-qualification.log
+  proof build root RUN/proof-build-target
+    receipt tc-proof-native-build/v1; binary SHA-256 d4a3bb58c5fc4245135088155f418fc8a054f43a1b3428303cccc713dbaf92fa
+  proof nextest RUN/proof-nextest.log and .exit
+    28 passed, exit 0
+  static RUN/fmt.*, RUN/clippy.*, RUN/rustdoc.*, RUN/bash-n.*, RUN/shellcheck.*, RUN/shfmt.*
+    all exit 0
+  catalog RUN/plan-validator.*, RUN/rebundle.*, RUN/taskfmt-lints-summary.txt
+    73 tasks, 1,174 source obligations, 3,256 traceability rows, depth 35; exit 0
+  docs RUN/actionlint.* and RUN/lychee.*
+    Lychee 0.24.2: 612 total, 604 successful, 8 excluded, 0 errors; exit 0
+  workspace /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-final-2c74b88-2026-09-19/result-summary.txt
+    3,342 passed across 139 binaries, 701.657s, exit 0; summary only, no full raw stdout log
 
-The fresh roots above bind the final source payload before this documentation
-commit. The workspace result is explicitly not a final-tree receipt: its source
-behavior is unchanged by this docs-only edit, but its identity remains the
-previous `4a95fcde` / `f98f490` tree. After this documentation commit, a fresh
-seal must bind the post-documentation HEAD/tree. Any relevant source,
-documentation, contract, tool, oracle, environment, or generated-output
-change invalidates affected evidence.
+These observations bind the pre-repair payload and are not acceptance. The
+docs-only commit invalidates affected evidence; a fresh seal must bind the
+post-documentation HEAD/tree. Any relevant source, documentation, contract,
+tool, oracle, environment, or generated-output change invalidates affected
+evidence.
 ```
 
 The exact read-only oracle import is
@@ -117,22 +128,25 @@ SHA-256 is
 The implementation coordinator must exit nonzero before spawning any
 implementer if any condition below is false:
 
-1. The readiness report says `**GO.**`, not NO-GO, and its exact current
-   commit/tree/parent is independently sealed. The final source payload
-   currently documented is commit `74e4ec458e2d8b41257232900bdf511bfa335730`,
-   tree `f14b129677ccc493de52cca25d85d14c0f413823`; after this docs-only
-   commit, the post-documentation identity must be freshly sealed. The current
-   report says NO-GO: therefore this prompt is **NOT AUTHORIZED FOR EXECUTION**.
+1. The readiness report says `**GO.**`, not NO-GO, and the exact current
+   post-documentation HEAD/tree/parent is independently sealed. The tested
+   pre-repair payload was commit `2c74b88b9fbfb4568911dc7d57a303a3cb5991cb`,
+   tree `74a29e7c99a0bb4134eefd7bff1ce26651aaf340`, parent
+   `74e4ec458e2d8b41257232900bdf511bfa335730`; those reports are rejected and
+   this docs-only repair creates another tree. Revalidate exact HEAD/tree
+   after the commit. The current report says NO-GO: therefore this prompt is
+   **NOT AUTHORIZED FOR EXECUTION**.
 2. The protected tag peel, tag tree, snapshot tree, grouped oracle store,
    fixtures, manifests, and expected artifacts match the exact read-only
    import. Any mismatch stops the run.
 3. The candidate branch, local/remote `main`, merge-bases, scope base, and
    clean worktree are freshly read from Git. Never infer branch identity from a
    directory name. Never reset, force-push, prune, or modify another worktree.
-4. The ledger is schema-valid, current, and `armed=false`; no production row
-   is accepted from inspection, lint, stale evidence, or a future result. A
-   separate explicit authorization step must occur after readiness recheck and
-   before arming dispatch.
+4. The ledger is schema-valid, current for the exact HEAD, bound to
+   `refs/heads/refactor/holla-parity`, and `armed=false`; no preparation
+   receipt exists and no production row is accepted from inspection, lint,
+   stale evidence, or a future result. A separate explicit authorization step
+   must occur after readiness recheck and before arming dispatch.
 5. The 73-package catalog and generated DAG validate: 506 checks, 276 edges,
    maximum depth 35, no cycles/dangling IDs/conflicts, and all original tasks
    are mapped. `TASK-001`/`TASK-070` remain retired fail-closed tasks;
@@ -157,8 +171,16 @@ implementer if any condition below is false:
    stale/cross-run inputs, extra/duplicate contexts, forged results, wrong
    hashes, missing observer evidence, and mutated trust inputs must fail closed.
 8. A fresh independent verifier and a separate independent reviewer both
-   return `VERIFIED` for this exact tree. The preserved rejected roots are not
-   receipts:
+   return `VERIFIED` for the exact post-documentation tree. The current
+   rejected reports are not receipts:
+
+   ```text
+   /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-2c74b88-2026-09-19/final-verifier-report.md
+   /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-reviewer-2c74b88-2026-09-19/final-reviewer-report.md
+   ```
+
+   Both return `REJECTED / NO-GO` for commit `2c74b88b` / tree `74a29e7c`.
+   The preserved older rejected roots are also not receipts:
 
    ```text
    /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-proof-requal-b20ca5c6
@@ -168,6 +190,14 @@ implementer if any condition below is false:
 9. Native macOS and required native Linux evidence are available. Containers,
    Docker, Podman, mounts, firmlinks, and namespaces are forbidden. If Linux
    is unavailable, reject startup.
+10. Execution is bounded to the generated DAG and host-local isolated roles,
+    with every subagent configured as `gpt-5.6-luna` at `max` reasoning effort;
+    no unbounded dispatch, alternate model, container, or lifecycle
+    orchestrator is permitted.
+11. The full visual, behavioral, PTY/lifecycle, product, performance,
+    architecture, and merge-readiness gates below pass for the exact final
+    tree. The handoff stops at merge readiness; it grants no permission to
+    merge.
 
 No item may be bypassed by changing the report, accepting snapshots, adding a
 skip/allow-failure, or treating an unavailable check as pass.
@@ -187,11 +217,12 @@ taskfmt source/version/binary hash, comparator, proof binary, environment,
 observer/result evidence, and dependency ancestry. Any relevant source,
 documentation, task contract, schema, script, comparator, tool, oracle,
 environment, or generated-output change invalidates affected evidence. The
-fresh roots listed above bind `74e4ec45` / `f14b1296` before this documentation
-commit; the workspace root separately binds the previous `4a95fcde` /
-`f98f490` tree and is not a final-tree receipt. The future coordinator must
-perform a fresh readiness check and re-seal the exact post-documentation tree
-before dispatch. Ancestor receipts never authorize a changed tree.
+rejected audit roots listed above bind the tested pre-repair
+`2c74b88b` / `74a29e7c` payload; the workspace summary is supporting evidence,
+not a receipt. This docs-only commit invalidates affected evidence. The future
+coordinator must perform a fresh readiness check and re-seal the exact
+post-documentation tree before dispatch. Ancestor receipts never authorize a
+changed tree.
 
 ## Delegation and integration protocol
 

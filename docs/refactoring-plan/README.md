@@ -8,24 +8,37 @@ ledger arming, a push, or a merge. The sole readiness authority is
 [`execution-readiness-report.md`](execution-readiness-report.md). A NO-GO in
 that report is fail-closed.
 
-## Final source payload and documentation seal
+## Tested payload, rejected reports, and documentation seal
 
-The final source payload being documented is:
+The tested pre-repair payload bound by the current external audits is:
 
 | item | identity |
 | --- | --- |
 | branch | `refactor/holla-parity` |
-| source payload commit | `74e4ec458e2d8b41257232900bdf511bfa335730` |
-| source payload tree | `f14b129677ccc493de52cca25d85d14c0f413823` |
-| source payload parent | `4a95fcdeedb8f7a3a132162e536ca28c2404b823` |
+| tested pre-repair commit | `2c74b88b9fbfb4568911dc7d57a303a3cb5991cb` |
+| tested pre-repair tree | `74a29e7c99a0bb4134eefd7bff1ce26651aaf340` |
+| tested pre-repair parent | `74e4ec458e2d8b41257232900bdf511bfa335730` |
 
-The fresh preparation roots below bind this commit/tree unless explicitly
-marked otherwise. This documentation-only reconciliation creates a new Git
-commit and tree; it is not included in those roots. After this commit, a fresh
-readiness seal must bind the post-documentation HEAD/tree before acceptance.
-Any further relevant source, documentation, contract, tool, oracle, or
-environment change invalidates affected evidence. The pre-documentation
-inspection at `bb574d84` / `6e464830` is historical provenance only.
+The current external reports are:
+
+- verifier: `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-2c74b88-2026-09-19/final-verifier-report.md`
+- reviewer: `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-reviewer-2c74b88-2026-09-19/final-reviewer-report.md`
+
+Both bind the exact payload above and return **REJECTED / NO-GO**. They are
+external audit reports, not acceptance receipts, and do not authorize
+dispatch, arming, merge, or product acceptance.
+
+This bounded repair changes only metadata and the evidence index in these four
+canonical documents. It does not change code, scripts, task contracts, the
+ledger, refs, the protected baseline, or product behavior. This docs-only
+commit creates a new Git commit/tree after the tested payload and therefore
+invalidates affected evidence after the commit. A fresh verifier/reviewer
+seal must bind the exact post-commit HEAD/tree before any acceptance or
+dispatch. Any further relevant source, documentation, contract, tool, oracle,
+or environment change invalidates affected evidence.
+
+The pre-documentation inspection at `bb574d84` / `6e464830` and the
+`74e4ec45` preparation roots are historical provenance only.
 
 ## Trust-path repair and independent review
 
@@ -52,9 +65,10 @@ final-payload approval:
   `final-identity.txt` binds that repair to `bb574d84` and tree `6e464830`;
   sealed nextest, Clippy, and rustdoc exit files are all zero.
 
-The independent rejection is closed as a preparation defect only. A separate
-final verifier and reviewer must still evaluate the exact post-documentation
-tree and return `VERIFIED`; no such approval exists.
+The independent rejection is closed as a preparation defect only. The current
+verifier and reviewer reports above reject the tested pre-repair payload; a
+fresh verifier and reviewer must still evaluate the exact post-documentation
+tree and return `VERIFIED`. No accepted receipt exists.
 
 ## Authority and navigation
 
@@ -145,43 +159,28 @@ Only `taskfmt lint "$TASK_DIR"` and the documented standalone `taskfmt verify`
 form are permitted. Taskfmt is not an orchestrator, workspace manager, ref
 manager, container launcher, or acceptance authority.
 
-Current source-payload evidence is raw preparation evidence, not an accepted
-receipt for the post-documentation tree:
+Current pre-repair audit evidence is raw and rejected, not an accepted receipt
+for this documentation tree. Report root:
 
-- proof build:
-  `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-final-74e4ec45-2026-09-19`;
-  receipt JSON binds `74e4ec458e2d8b41257232900bdf511bfa335730` and
-  `f14b129677ccc493de52cca25d85d14c0f413823`; binary SHA-256
-  `88c5340476e1fbaa2e424d97db75b4c323735f4bf3bde7dea1d915b940d6c012`;
-  receipt SHA-256
-  `98e6fe9d090391c9cb28b8cb6fb710ac5c94d2120a2bf39190b143fcb064a86f`;
-- proof nextest:
-  `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-nextest-74e4ec45-2026-09-19`;
-  identity binds the final payload and `nextest.log` records `cargo nextest:
-  28 passed (2 binaries, 21.527s)`, exit 0;
-- static:
-  `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/static-74e4ec45-2026-09-19`;
-  fmt, Clippy, and rustdoc each exit 0;
-- shell:
-  `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/shell-74e4ec45-2026-09-19`;
-  Bash syntax, ShellCheck, shfmt, preparation guards, proof-path guards, and
-  dispatch authorization each exit 0;
-- catalog:
-  `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/catalog-74e4ec45-2026-09-19`;
-  plan exit 0, 73 packages linted with qualified taskfmt and zero failures,
-  rebundle exit 0;
-- documentation:
-  `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/docs-74e4ec45-2026-09-19`;
-  actionlint and Lychee each exit 0.
+```text
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-2c74b88-2026-09-19
+```
 
-Workspace nextest is separate raw evidence:
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-sealed-final-2026-09-19`
-records `3,342 passed` and exit 0, but its identity file binds the previous
-source commit `4a95fcdeedb8f7a3a132162e536ca28c2404b823` and tree
-`f98f4908506f55026a35ea4e2701b78c240d147c`. It ran before this documentation
-change; the docs-only edit does not change source behavior, but this is not a
-final-tree receipt and must not be relabeled as one. The older `3,359 passed,
-1 failed, 6 skipped` result is historical only. No preparation receipt exists.
+Qualified tool and current evidence identities recorded under that root:
+
+| check | current evidence and result |
+| --- | --- |
+| taskfmt | source `/Users/donbeave/Projects/taskfmt/task-format`, revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, source tree `b7d90bd8`, version `0.2.0`, binary `/tmp/taskfmt-latest-install/bin/taskfmt`, SHA-256 `f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de`; `taskfmt-lints-summary.txt` and `taskfmt-lints.exit` record 73/73 standalone lints, exit 0 |
+| proof | `proof-build-target`; `tc-proof-native-build/v1` receipt binds commit `2c74b88b` / tree `74a29e7c`; binary SHA-256 `d4a3bb58c5fc4245135088155f418fc8a054f43a1b3428303cccc713dbaf92fa`; `proof-nextest.log` / `.exit` record 28 passed, exit 0 |
+| static | `fmt.*`, `clippy.*`, `rustdoc.*`, `bash-n.*`, `shellcheck.*`, and `shfmt.*`; all qualified checks exit 0 |
+| catalog | `plan-validator.*` and `rebundle.*`; 73 tasks, 1,174 source obligations, 3,256 traceability rows, depth 35; exits 0 |
+| docs | `actionlint.*` and `lychee.*`; Lychee 0.24.2 reports 612 total, 604 successful, 8 excluded, 0 errors; exit 0 |
+| expected gate failures | `preflight.log` / `.exit`: exit 1 because readiness is not exact GO; `boundary.log` / `.exit`: exit 1 because `parity/evidence.tsv` is missing |
+| workspace | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-final-2c74b88-2026-09-19/result-summary.txt`; 3,342 passed across 139 binaries, 701.657s, exit 0; summary only, no full raw stdout log |
+
+These passing observations do not override the two rejected reports or prove
+acceptance. Their affected evidence is invalid after this docs-only commit;
+the post-commit seal must rerun and rebind what it uses.
 
 Superseded pre-documentation paths remain useful only as historical provenance:
 the old `27/27` and `27 passed` proof-nextest logs, proof build
@@ -218,29 +217,30 @@ future implementation obligations, not preparation changes.
 
 ## Evidence and blockers
 
-The evidence index preserves raw paths, rejected historical verifier/reviewer
-roots, calibration roots, and invalidation rules. Important rejected roots are:
+The evidence index preserves raw paths, the current rejected verifier/reviewer
+reports, calibration roots, and invalidation rules. The current rejected
+reports are:
 
 ```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-proof-requal-b20ca5c6
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/reviewer-final-proof-requal-b20ca5c6
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-211c29ad-independent
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-2c74b88-2026-09-19/final-verifier-report.md
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-reviewer-2c74b88-2026-09-19/final-reviewer-report.md
 ```
 
-They are rejected evidence only. They do not attest to this tree, issue a
-receipt, or authorize GO. No independent final verifier/reviewer has returned
-`VERIFIED` for the post-documentation tree.
+They bind `2c74b88b` / `74a29e7c` and return **REJECTED / NO-GO**. They are
+rejected evidence only: they do not issue a receipt or authorize GO. This
+docs-only repair creates a new tree, so another fresh verifier/reviewer seal
+must bind that post-commit tree; no accepted receipt exists.
 
-Preparation blockers remain: a clean post-documentation final seal; complete
-native proof/result/receipt qualification; a clean deterministic 892-source
-calibration and altered-output negative control; current behavioral/PTY
-evidence; the missing parity evidence contract; full workspace and platform
-gates; Linux; absent `TASK-071`/`TASK-072` dependency receipts; and unresolved
-product refactoring. The 892 control covers 302 cases with 298 passed, 4
-failed, 2 skipped, 1 leaky, exit 100, 7,550 ANSI/plain/PNG/HTML artifacts
-each (30,200 total), and 17 diff files. This is coverage evidence, not a
-calibration pass. The final preparation remains NO-GO, no accepted preparation
-receipt exists, the ledger stays `armed=false`, and the next goal remains
-**NOT AUTHORIZED FOR EXECUTION**.
+Preparation blockers remain: clean post-documentation verifier/reviewer
+sealing; complete native proof/result/receipt qualification; a clean
+deterministic 892-source calibration; the missing `parity/evidence.tsv`; full
+visual/behavioral/product parity; unavailable native Linux; unqualified
+Docker-only taskfmt integration; absent `TASK-071`/`TASK-072` dependency
+receipts; and no accepted preparation receipt. The 892 control is 298/302
+passed with 4 failures, 2 skipped, 1 leaky, exit 100, 7,550
+ANSI/plain/PNG/HTML artifacts each (30,200 total), and 17 diff files. This is
+coverage evidence, not a calibration pass. The final preparation remains
+NO-GO, the refreshed ledger is disarmed, and the next goal remains **NOT
+AUTHORIZED FOR EXECUTION**.
 
 **Decision: NO-GO.**

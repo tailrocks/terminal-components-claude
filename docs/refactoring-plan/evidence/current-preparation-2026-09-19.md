@@ -4,23 +4,33 @@ This is a provenance index for the preparation package. It is not a verifier
 receipt, task acceptance, dispatch authorization, ledger-arm operation, or GO
 decision. Raw evidence remains outside the checkout. Status is **NO-GO**.
 
-## 1. Candidate and Git evidence
+## 1. Tested payload, rejected reports, and Git evidence
 
-The final source payload used by the fresh evidence roots is:
+The tested pre-repair payload bound by the current external reports is:
 
 ```text
 branch: refactor/holla-parity
-commit: 74e4ec458e2d8b41257232900bdf511bfa335730
-tree:   f14b129677ccc493de52cca25d85d14c0f413823
-parent: 4a95fcdeedb8f7a3a132162e536ca28c2404b823
+commit: 2c74b88b9fbfb4568911dc7d57a303a3cb5991cb
+tree:   74a29e7c99a0bb4134eefd7bff1ce26651aaf340
+parent: 74e4ec458e2d8b41257232900bdf511bfa335730
 ```
 
-The four canonical docs are being reconciled as a documentation-only change
-after that payload. Therefore the fresh roots below bind `74e4ec45` /
-`f14b1296`, not the post-reconciliation documentation tree. A new external
-seal must bind the post-commit HEAD/tree before acceptance. Any further
-relevant source, documentation, contract, tool, oracle, or environment change
-invalidates affected evidence.
+Current external reports bound to that payload:
+
+```text
+verifier: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-2c74b88-2026-09-19/final-verifier-report.md
+reviewer: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-reviewer-2c74b88-2026-09-19/final-reviewer-report.md
+decision: REJECTED / NO-GO (both reports)
+```
+
+These reports are audit evidence, not acceptance receipts. This bounded repair
+changes only metadata and the evidence index in the four canonical docs; it
+does not change code, scripts, task contracts, the ledger, refs, the protected
+baseline, or product behavior. The repair creates a new Git commit/tree after
+the tested payload and invalidates affected evidence after that commit. A new
+external verifier/reviewer seal must bind the exact post-commit HEAD/tree
+before acceptance or dispatch. Any further relevant source, documentation,
+contract, tool, oracle, or environment change invalidates affected evidence.
 
 The pre-repair inspection identity and preparation commits remain historical
 provenance:
@@ -165,20 +175,29 @@ all standalone taskfmt lints
   73/73 passed in the source-payload qualification run
 ```
 
-Proof and script evidence from the final source payload is:
+Fresh proof, static, catalog, and documentation evidence from the rejected
+audit is under:
+
+```text
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-2c74b88-2026-09-19
+```
+
+Use `$RUN` below for that root. The current evidence is:
 
 | check | root and result |
 | --- | --- |
-| proof build | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-final-74e4ec45-2026-09-19`; receipt JSON binds commit `74e4ec458e2d8b41257232900bdf511bfa335730` and tree `f14b129677ccc493de52cca25d85d14c0f413823`; binary SHA-256 `88c5340476e1fbaa2e424d97db75b4c323735f4bf3bde7dea1d915b940d6c012`; receipt SHA-256 `98e6fe9d090391c9cb28b8cb6fb710ac5c94d2120a2bf39190b143fcb064a86f` |
-| proof nextest | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-nextest-74e4ec45-2026-09-19`; identity binds the final payload; `cargo nextest: 28 passed (2 binaries, 21.527s)`; exit 0 |
-| static | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/static-74e4ec45-2026-09-19`; fmt, Clippy, and rustdoc each exit 0; identity binds the final payload |
-| shell | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/shell-74e4ec45-2026-09-19`; Bash syntax, ShellCheck, shfmt, preparation guards, proof-path guards, and dispatch authorization each exit 0; identity binds the final payload |
-| catalog | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/catalog-74e4ec45-2026-09-19`; plan exit 0, 73 packages linted with qualified taskfmt and zero failures, rebundle exit 0; identity binds the final payload |
-| documentation | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/docs-74e4ec45-2026-09-19`; actionlint and Lychee each exit 0; identity binds the final payload |
+| taskfmt | source `/Users/donbeave/Projects/taskfmt/task-format`, revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, source tree `b7d90bd8`, version `0.2.0`, binary `/tmp/taskfmt-latest-install/bin/taskfmt`, SHA-256 `f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de`; `$RUN/taskfmt-qualification.log` and `$RUN/taskfmt-lints-summary.txt` / `.exit`; 73/73 standalone lints, exit 0 |
+| proof build | `$RUN/proof-build-target`; `tc-proof-native-build/v1` receipt binds commit `2c74b88b` / tree `74a29e7c`; binary SHA-256 `d4a3bb58c5fc4245135088155f418fc8a054f43a1b3428303cccc713dbaf92fa` |
+| proof nextest | `$RUN/proof-nextest.log` / `.exit`; `cargo nextest` 28 passed, exit 0 |
+| static | `$RUN/fmt.*`, `$RUN/clippy.*`, `$RUN/rustdoc.*`, `$RUN/bash-n.*`, `$RUN/shellcheck.*`, `$RUN/shfmt.*`; all exit 0 |
+| catalog | `$RUN/plan-validator.*`, `$RUN/rebundle.*`, and taskfmt lint artifacts; 73 tasks, 1,174 source obligations, 3,256 traceability rows, depth 35; exits 0 |
+| documentation | `$RUN/actionlint.*`, `$RUN/lychee.*`; Lychee 0.24.2: 612 total, 604 successful, 8 excluded, 0 errors; exit 0 |
+| expected gate failures | `$RUN/preflight.log` / `.exit`: exit 1 because readiness is not exact GO; `$RUN/boundary.log` / `.exit`: exit 1 because `parity/evidence.tsv` is missing |
 
-These are raw source-payload observations, not an accepted preparation
-receipt. The catalog still records 73 packages, 506 checks, 276 dependency
-edges, maximum depth 35, and zero accepted production tasks. The
+These are raw observations bound to the tested pre-repair payload, not an
+accepted preparation receipt. Affected evidence is invalid after this
+documentation commit. The catalog still records 73 packages, 506 checks, 276
+dependency edges, maximum depth 35, and zero accepted production tasks. The
 TASK-071/TASK-072 preparation attempt fails closed because dependency receipts
 are absent; no task was accepted. Native proof remains integrity/control
 evidence, not same-user hostile process isolation.
@@ -225,29 +244,20 @@ Independent checks retained from the current audit include:
 /tmp/tc-git-diff-check-current.log
 ```
 
-The older full-workspace nextest observation `3,359 passed, 1 failed, 6
-skipped` is historical only. The current raw workspace result is `3,342
-passed` and exit 0 at:
+The current final-tree workspace result is `3,342 passed` across 139 binaries,
+701.657s, exit 0 at:
 
 ```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-sealed-final-2026-09-19
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-final-2c74b88-2026-09-19/result-summary.txt
 ```
 
-Durable log:
-
-```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-sealed-final-2026-09-19/nextest.log
-```
-
-The run-root `identity.txt` binds this workspace result to the previous source
-commit `4a95fcdeedb8f7a3a132162e536ca28c2404b823` and tree
-`f98f4908506f55026a35ea4e2701b78c240d147c`. It ran before this docs-only
-change; source behavior is unchanged by that edit, but this is raw evidence,
-not a final-tree receipt and must not be relabeled as binding
-`74e4ec458e2d8b41257232900bdf511bfa335730` / `f14b129677ccc493de52cca25d85d14c0f413823`.
-No preparation receipt exists. Boundary validation still fails at missing
-`parity/evidence.tsv`; native Linux is unavailable. The calibration, boundary,
-proof-receipt, and Linux requirements remain open gates, not passes.
+The summary is supporting evidence only; no full raw stdout log was captured.
+The external report identity binds `2c74b88b` / `74a29e7c` / parent
+`74e4ec45`. It is not a preparation receipt, visual-oracle comparison, or
+product acceptance. This docs-only repair invalidates affected evidence after
+the commit; fresh sealing is required. Boundary validation still fails at
+missing `parity/evidence.tsv`; native Linux is unavailable. The calibration,
+boundary, proof-receipt, and Linux requirements remain open gates, not passes.
 
 ## 4. Trust-boundary review and repair
 
@@ -269,8 +279,11 @@ Clippy, and rustdoc results; all sealed exit files are zero:
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/symlink-parent-repair-2026-09-19
 ```
 
-This closes two preparation defects. It is not final verifier/reviewer
-approval; no current-tree `VERIFIED` result exists.
+This closes two preparation defects. The current external verifier and
+reviewer reports are separate from those historical repairs and both return
+**REJECTED / NO-GO** for `2c74b88b` / `74a29e7c`; they are not acceptance
+receipts. A fresh verifier and reviewer must return `VERIFIED` for the
+post-documentation tree.
 
 ## 5. Visual and behavioral calibration evidence
 
@@ -308,8 +321,16 @@ sleeps.
 
 ## 6. Rejected verifier/reviewer evidence
 
-These roots are preserved but rejected or stale. They must never be treated as
-current receipts:
+The current external reports exist and are rejected:
+
+```text
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-2c74b88-2026-09-19/final-verifier-report.md
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-reviewer-2c74b88-2026-09-19/final-reviewer-report.md
+```
+
+Both bind `2c74b88b` / `74a29e7c` and return **REJECTED / NO-GO**. They are
+not acceptance receipts. These roots are also preserved but rejected or stale;
+they must never be treated as current receipts:
 
 ```text
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-proof-requal-b20ca5c6
@@ -322,14 +343,22 @@ current receipts:
 
 They bind earlier candidates, report explicit rejection, or lack the required
 complete current-tree evidence. Bernoulli's rejection was repaired through the
-two trust-path commits, but it is not a final approval. No post-documentation
-verifier or independent reviewer has returned `VERIFIED`.
+two trust-path commits, but it is not a final approval. The current reports
+reject the tested pre-repair payload; a fresh verifier/reviewer seal must
+return `VERIFIED` for the post-documentation tree.
 
 ## 7. Ledger and evidence freshness
 
 The runtime ledger is `.campaign/ledger.json`, schema `campaign-ledger/v1`,
 with four blocked historical rows and no accepted production rows. Its required
 state is `armed=false`. It is ignored runtime state, not a tracked receipt.
+
+The refreshed ledger state observed by the current reports, before this
+docs-only repair, was schema-valid with
+`integration_ref=refs/heads/refactor/holla-parity`,
+`integration_head=2c74b88b9fbfb4568911dc7d57a303a3cb5991cb`, `armed=false`, and
+no preparation receipt. The new documentation tree requires fresh ledger
+binding; this repair does not modify the ledger.
 
 The sealing protocol is intentionally two-phase: commit the exact preparation
 payload first; then materialize external immutable verifier/reviewer manifests
@@ -355,7 +384,7 @@ evidence never silently authorizes a changed tree.
 | `TASK-071` / `TASK-072` dependency receipts | absent |
 | native Linux | unavailable |
 | taskfmt Docker integration | not run; fails closed |
-| current independent verifier/reviewer | no `VERIFIED` result |
+| current independent verifier/reviewer | reports exist; both `REJECTED / NO-GO`; no `VERIFIED` result |
 | final external seal for this documentation tree | not yet created |
 | repaired trust paths | defects fixed; exact final-tree verifier/reviewer requalification pending |
 
