@@ -27,9 +27,19 @@ historical/tested payload facts, not current final-tree evidence.
 
 Layer 2 is this evidence-only docs package. Its package parent is commit
 `3b79d3403d52ededca087d62dccb9ad4474c105b` with tree
-`d6b85e1feb8e89f25cae6db360b92f071a4c4f43`. Final sealing is external at the
-predeclared run root
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed`.
+`d6b85e1feb8e89f25cae6db360b92f071a4c4f43`. The current source candidate at
+the start of this documentation repair is HEAD
+`211c29adca147d42f8bfce428af1394f0213a22d`, tree
+`3c3b7ea695c5e56d6d7f5c6783456382dff0e434`, parent
+`6a57d2b0bf461a520d22bc0b840ab17dc6ad52f8`. The preceding final-sealed
+candidate was `6a57d2b0bf461a520d22bc0b840ab17dc6ad52f8` with tree
+`1ef2734ebb58b65fba670dfdd460bf189ce15cfa`; its old run root is stale and
+invalid after `211c29ad`:
+
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed`
+
+Final sealing is external at the new predeclared run root
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-211c29ad`.
 Only the final verifier’s manifest from that root may bind actual HEAD/tree,
 task contracts, qualified tools, oracle identities, and receipts. This report
 does not self-attest final tree identity. Any subsequent relevant edit
@@ -44,7 +54,10 @@ merge, or GO decision exists.
 |---|---|
 | Layer-1 tested payload | commit `14aa8ed0469219ff8f6570be7824e5ade39240cc`; tree `f3ef0f6badd01161bc24cdfef5161db55ba5d579`; parent `96c6c475b5d22193b7539565fa5b4612a88ea007`; historical/tested only |
 | Layer-2 docs package parent | commit `3b79d3403d52ededca087d62dccb9ad4474c105b`; tree `d6b85e1feb8e89f25cae6db360b92f071a4c4f43`; evidence-only |
-| Final seal authority | external verifier manifest under `.../verifier-final-sealed`; actual HEAD/tree determined there |
+| Current source candidate at repair start | HEAD `211c29adca147d42f8bfce428af1394f0213a22d`; tree `3c3b7ea695c5e56d6d7f5c6783456382dff0e434`; parent `6a57d2b0bf461a520d22bc0b840ab17dc6ad52f8`; current proof lifecycle fix |
+| Prior final-seal root | `.../verifier-final-sealed`; binds `6a57d2b0bf461a520d22bc0b840ab17dc6ad52f8` / `1ef2734ebb58b65fba670dfdd460bf189ce15cfa`; stale and invalid after `211c29ad` |
+| Final seal authority | external verifier manifest under `.../verifier-final-sealed-211c29ad`; actual HEAD/tree determined there |
+| Current-candidate independent closeout | `.../verifier-211c29ad-independent/VERDICT.md`; **REJECTED** |
 | Protected oracle tag object | `1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5` |
 | Peeled `visual-baseline` commit | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
 | Baseline tree | `0b1f13431fdfd6060cf9f45a114afa5a99cc6c26` |
@@ -52,7 +65,7 @@ merge, or GO decision exists.
 | Oracle inventory | 7,550 keys; 30,200 artifacts; 7,550 each ANSI/plain/PNG/HTML; no other files |
 | Taskfmt source | `/Users/donbeave/Projects/taskfmt/task-format` |
 | Taskfmt | revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`; version `0.2.0`; binary `/tmp/taskfmt-latest-install/bin/taskfmt`; SHA-256 `f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de` |
-| Native proof | schema `tc-proof-native-build/v1`; verifier binary SHA-256 `a3b7712ab7c3ea22940ffe915a2328d25767d35e5253e9df82776db0d3b70fcc`; receipt binds the candidate commit/tree |
+| Native proof | historical/tested Layer-1 schema `tc-proof-native-build/v1`; verifier binary SHA-256 `a3b7712ab7c3ea22940ffe915a2328d25767d35e5253e9df82776db0d3b70fcc`; no accepted current receipt |
 | Ledger | `.campaign/ledger.json`, `campaign-ledger/v1`, 4 rows, `armed=false` |
 
 The oracle tag, branch, release, grouped store, fixtures, snapshots, and
@@ -94,14 +107,44 @@ These are qualification subchecks, not acceptance. The decisive result remains
 3. The existing independent full calibration remains 301/302 passed, with one
    failure and two skips.
 
-The auxiliary copied-runner style-timing self-test exits `1` with
+The auxiliary copied TASK-072 style-timing runner self-test exits `1` with
 `FileNotFoundError` for sibling `runner-bootstrap-index.py`. It is explicitly
-**unqualified** and remains visible in raw evidence; it is not hidden and is
-not counted as a pass. The canonical runner checks passed.
+**unqualified**, retired/out-of-scope, and remains visible in raw evidence; it
+is not hidden and is not counted as a pass. The canonical runner checks passed.
 
 No independent reviewer returned `VERIFIED`. No receipt was issued. No
 product full matrix was run by the Layer-1 verifier. These results do not bind
 the Layer-2 docs package or the final sealing tree.
+
+### Current-candidate supplemental investigations — not receipts
+
+Popper’s independent closeout at
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-211c29ad-independent`
+is external and remains explicitly **REJECTED** for the stale final seal,
+readiness preflight, dispatcher, and calibration. It binds the current
+candidate identity above. The `211c29ad` proof repair closes the observer
+FD/process lifecycle. Its parallel raw nextest exited `0` with 27 passed but
+reported one historical `LEAK` at
+`compare::tests::runner_context_rejects_comparator_report_outside_runtime_outputs`;
+the serialized raw run reported 27/27 clean. Preserve that old LEAK as
+disclosed, non-reproducible raw evidence, not a pass. Franklin’s fresh
+supplemental replay found no reproducible leak: default-parallel and
+serialized refactor-proof nextest each exited `0` with 27/27 passed. These raw
+files are external evidence, not receipts:
+
+- `/tmp/refactor-proof-raw.wpWzhX/default-parallel-raw.log`
+- `/tmp/refactor-proof-combo.BfVzDT/parallel-combo.log`
+- `/tmp/refactor-proof-combo-serialized.1jbqpR/serialized.log`
+
+Hume established that STYLE_TIMING intentionally freezes exactly 11 assets and
+that runner index/extensions belong to the separate RUNNER corpus of 33
+assets. Both freeze checks reported `changed: 0` and `written: false`, and
+TASK-072 standalone taskfmt lint passed. The copied TASK-072 style-timing
+runner self-test still failed with `FileNotFoundError` for sibling
+`runner-bootstrap-index.py`. Preserve that raw failure and do not call it a
+pass. It is an auxiliary retired/out-of-scope diagnostic, not a TASK-072 check
+or readiness blocker. These supplemental observations do not clear any
+blocker.
 
 ## D. Calibration blocker and history
 
@@ -252,7 +295,6 @@ independent, source-bound evidence:
 - no external final-sealing manifest yet binds the actual Layer-2/final
   HEAD/tree;
 - dispatcher TASK-001 verify failure and preflight NO-GO exit;
-- auxiliary style-timing diagnostic remains unqualified;
 - calibration is 301/302 with one failure and two skips, including the mixed
   frozen-oracle history;
 - ledger is disarmed and has no accepted current task rows;
@@ -263,6 +305,10 @@ independent, source-bound evidence:
 - source-bound evidence must be regenerated and sealed by the external final
   verifier against the exact clean tree used for any future decision; any
   subsequent relevant edit invalidates that run.
+
+The copied-runner style-timing failure remains visible as an unqualified,
+retired/out-of-scope diagnostic. It is not a TASK-072 check or readiness
+blocker, and it is not a pass.
 
 No blocker may be hidden by reducing the matrix, blessing candidate output,
 changing thresholds, weakening provenance, manufacturing a receipt, or

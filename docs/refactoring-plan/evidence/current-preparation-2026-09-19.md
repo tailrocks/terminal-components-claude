@@ -6,6 +6,26 @@ evidence remains under the external run roots named below.
 
 ## 1. Two-layer sealing identities
 
+### Current source candidate at repair start
+
+The current clean candidate before this documentation repair is:
+
+| Item | Exact value |
+|---|---|
+| Branch | `refactor/holla-parity` |
+| HEAD | `211c29adca147d42f8bfce428af1394f0213a22d` |
+| Tree | `3c3b7ea695c5e56d6d7f5c6783456382dff0e434` |
+| Parent | `6a57d2b0bf461a520d22bc0b840ab17dc6ad52f8` |
+| Source change | proof lifecycle fix in `tools/refactor-proof/src/verifier.rs` |
+
+This repair creates a later documentation commit. The identities above are
+the source candidate being reconciled, not a self-attested final seal.
+
+Before regeneration, the planning-artifacts helper reported exactly four hash
+mismatches—these four canonical documents—with no membership drift. After the
+reviewed edits, it was run with `--write`, then rerun without `--write`; the
+second run passed.
+
 ### Layer 1 — historical/tested preparation payload
 
 The following identities belong only to the verified preparation payload. They
@@ -24,12 +44,18 @@ binding:
 
 ### Layer 2 — evidence-only docs package and external final seal
 
-The evidence-only docs package parent is commit
+The evidence-only docs package ancestor is commit
 `3b79d3403d52ededca087d62dccb9ad4474c105b` with tree
-`d6b85e1feb8e89f25cae6db360b92f071a4c4f43`. The final sealing run is
-predeclared at:
+`d6b85e1feb8e89f25cae6db360b92f071a4c4f43`. The preceding final-sealed
+candidate was commit `6a57d2b0bf461a520d22bc0b840ab17dc6ad52f8` with tree
+`1ef2734ebb58b65fba670dfdd460bf189ce15cfa`. Its old run root is stale and
+invalid after `211c29ad`:
 
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed`
+
+The replacement final sealing run is predeclared at:
+
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-211c29ad`
 
 The final verifier’s manifest from that external root is the sole authority
 for actual final HEAD/tree, task contracts, tool/oracle identities, and
@@ -40,7 +66,43 @@ sealing. No final sealing receipt is claimed here.
 The ledger remains `.campaign/ledger.json`, schema `campaign-ledger/v1`, with
 4 rows and `armed=false`; dispatch and accepted receipt remain none.
 
-## 2. Protected oracle identity
+## 2. Current supplemental investigations — not receipts
+
+Popper’s independent closeout for the current candidate is explicitly
+**REJECTED**:
+
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-211c29ad-independent`
+
+Its candidate identity is HEAD `211c29adca147d42f8bfce428af1394f0213a22d`,
+tree `3c3b7ea695c5e56d6d7f5c6783456382dff0e434`, parent
+`6a57d2b0bf461a520d22bc0b840ab17dc6ad52f8`. The `211c29ad` proof repair
+closes the observer FD/process lifecycle. Popper’s verdict remains **REJECTED**
+for the stale final seal, readiness preflight, dispatcher, and calibration.
+Its parallel raw nextest exited `0` with 27 passed but reported one historical
+`LEAK` at
+`compare::tests::runner_context_rejects_comparator_report_outside_runtime_outputs`;
+its serialized run reported 27/27 clean. The old LEAK is retained as disclosed,
+non-reproducible raw evidence, not erased, promoted, or treated as a pass.
+
+Franklin’s fresh supplemental replay found no reproducible leak: default-
+parallel and serialized refactor-proof nextest each exited `0` with 27/27
+passed. The raw files are external evidence only, not receipts:
+
+- `/tmp/refactor-proof-raw.wpWzhX/default-parallel-raw.log`
+- `/tmp/refactor-proof-combo.BfVzDT/parallel-combo.log`
+- `/tmp/refactor-proof-combo-serialized.1jbqpR/serialized.log`
+
+Hume established that STYLE_TIMING intentionally freezes exactly 11 assets,
+while runner index/extensions belong to the separate RUNNER corpus of 33
+assets. The style-timing and runner freeze checks both reported `changed: 0`,
+`written: false`, and TASK-072 standalone taskfmt lint passed. The copied
+TASK-072 style-timing runner self-test still failed with `FileNotFoundError` for
+the sibling `runner-bootstrap-index.py`; its raw failure remains preserved and
+is not a pass. This is an auxiliary retired/out-of-scope diagnostic, not a
+TASK-072 check or readiness blocker. These Hume observations are supplemental
+and do not create an acceptance receipt.
+
+## 3. Protected oracle identity
 
 | Item | Exact value |
 |---|---|
@@ -55,7 +117,7 @@ The tag, branch, release, grouped store, fixtures, snapshots, and expected
 artifacts were observed unchanged. They are read-only policy inputs. No
 candidate output was blessed or substituted.
 
-## 3. Layer-1 proof and taskfmt identities — historical/tested only
+## 4. Layer-1 proof and taskfmt identities — historical/tested only
 
 | Item | Exact value |
 |---|---|
@@ -76,7 +138,7 @@ Layer-1 payload commit/tree. The external comparator binding passes with
 historical/tested payload evidence, never a binding for the final docs tree
 and never campaign acceptance.
 
-## 4. Layer-1 verifier result — historical/tested payload
+## 5. Layer-1 verifier result — historical/tested payload
 
 The Layer-1 verifier’s exact conclusion is **REJECTED**. It is not a current
 final-tree receipt or authorization. The following qualification subchecks
@@ -113,7 +175,7 @@ Raw decisive files are `dispatch-verify.{stdout,stderr,exit}` and
 root. No independent reviewer returned `VERIFIED`; no acceptance receipt was
 issued.
 
-### Auxiliary unqualified diagnostic
+### Auxiliary retired/out-of-scope diagnostic
 
 The copied-runner style-timing self-test was run as an auxiliary diagnostic:
 
@@ -124,10 +186,17 @@ python3 .../style-timing-bootstrap/runner-bootstrap-driver.py --self-test
 It exited `1` with `FileNotFoundError` for the absent sibling
 `runner-bootstrap-index.py`. Raw files are
 `style-runner-bootstrap-072-selftest.{stdout,stderr,exit}`. This is recorded as
-**unqualified**, not hidden and not counted as a pass. The canonical runner
-self-tests passed; this copied-runner diagnostic is not campaign acceptance.
+**unqualified**, not hidden and not counted as a pass. Hume’s independent
+freeze evidence records exactly 11 STYLE_TIMING assets and 33 RUNNER assets;
+the runner index/extensions are in the separate RUNNER group. Both freeze
+checks reported `changed: 0`, `written: false`, and TASK-072 taskfmt lint
+passed. The copied-runner failure is therefore an auxiliary retired/out-of-
+scope diagnostic, not a TASK-072 check or readiness blocker; it remains a
+failure and is not converted to a pass.
+The canonical runner self-tests passed; this copied-runner diagnostic is not
+campaign acceptance.
 
-## 5. Calibration and mixed-oracle finding
+## 6. Calibration and mixed-oracle finding
 
 No product full matrix was run by the Layer-1 verifier. Existing independent
 calibration evidence is cited, not reused as a fresh pass:
@@ -156,7 +225,7 @@ rendering source. Frozen expected output requires list+form for
 `connections/form_advanced`. This explains the historical split; it does not
 permit changing the oracle or accepting the mismatch.
 
-## 6. Catalog and remaining product obligations
+## 7. Catalog and remaining product obligations
 
 The current generated catalog contains 73 task packages, 506 checks, 276
 dependency edges, and maximum DAG depth 35. All task manifests remain
@@ -173,13 +242,13 @@ resize and lifecycle behavior, real PTY setup/cleanup/input/settled-frame
 transitions, strict performance budgets, public API/static/documentation
 checks, native platform checks, and complete oracle parity.
 
-## 7. Required final sealing evidence
+## 8. Required final sealing evidence
 
 The final verifier must use the predeclared external run root
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed`.
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-211c29ad`.
 It must bind the actual clean HEAD/tree at run time, plus task contracts,
 tool/oracle identities, contexts, results, and receipts. Do not copy the
-Layer-1 payload identity into the final manifest.
+Layer-1 payload or stale `6a57d2b` identity into the final manifest.
 
 From that clean native macOS worktree, with verifier-owned external target and
 run directories:

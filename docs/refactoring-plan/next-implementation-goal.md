@@ -5,6 +5,14 @@ not permission to run. Current readiness is **NO-GO**; ledger
 `.campaign/ledger.json` is `armed: false`; no task, worktree, receipt, push, or
 merge may be created from this document.
 
+The current source candidate at the start of this documentation repair is
+HEAD `211c29adca147d42f8bfce428af1394f0213a22d`, tree
+`3c3b7ea695c5e56d6d7f5c6783456382dff0e434`, parent
+`6a57d2b0bf461a520d22bc0b840ab17dc6ad52f8`. It contains the current proof
+lifecycle fix. This documentation repair itself creates a later commit, so a
+future verifier must bind the exact resulting HEAD/tree and may not use this
+prompt as a self-attestation.
+
 ## 1. Two-layer starting protocol
 
 Layer 1 is the verified preparation payload, historical/tested only and never
@@ -22,23 +30,31 @@ The Layer-1 proof qualification subchecks pass, but dispatcher verify exits
 `1` with `RESULT FAIL`, preflight exits `1` at NO-GO, and calibration is
 unresolved. These are historical/tested payload facts.
 
-Layer 2 is the evidence-only docs package. Its parent is commit
+Layer 2 is the evidence-only docs package. Its ancestor is commit
 `3b79d3403d52ededca087d62dccb9ad4474c105b` with tree
-`d6b85e1feb8e89f25cae6db360b92f071a4c4f43`. Final sealing is external and
-predeclared at:
+`d6b85e1feb8e89f25cae6db360b92f071a4c4f43`. The preceding final-sealed
+candidate was commit `6a57d2b0bf461a520d22bc0b840ab17dc6ad52f8` with tree
+`1ef2734ebb58b65fba670dfdd460bf189ce15cfa`; its old seal root is stale and
+invalid after `211c29ad`:
 
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed`
 
-The final verifier’s manifest from that run root must bind the actual clean
+The replacement final seal is external and predeclared at:
+
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-211c29ad`
+
+The final verifier’s manifest from that new run root must bind the actual clean
 HEAD/tree, task contracts, qualified tools, oracle identities, and receipts.
 This docs package does not self-attest final tree identity. Any subsequent
 relevant edit invalidates the final sealing run and requires fresh external
 verification.
 
-The verifier setting is inherited `gpt-5.6-luna/max`. Its verifier-owned proof
-receipt is schema `tc-proof-native-build/v1`, binary SHA-256
+The verifier setting is inherited `gpt-5.6-luna/max`. The historical Layer-1
+proof receipt is schema `tc-proof-native-build/v1`, binary SHA-256
 `a3b7712ab7c3ea22940ffe915a2328d25767d35e5253e9df82776db0d3b70fcc`, bound to
-the source candidate commit/tree. Qualified taskfmt is source
+the historical/tested `14aa8ed` payload only; it is not a current receipt for
+`211c29ad` or this repair. No accepted current proof receipt exists. The
+future verifier must build and bind its own proof binary. Qualified taskfmt is source
 `/Users/donbeave/Projects/taskfmt/task-format`, revision
 `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, version `0.2.0`, binary
 `/tmp/taskfmt-latest-install/bin/taskfmt`, SHA-256
@@ -59,7 +75,37 @@ sole failure is `tablepro_connections_form_advanced_120x40_truecolor`, with
 establishes a mixed frozen-oracle state. No oracle, snapshot, expected
 artifact, threshold, timing, or fixture may be changed to hide it.
 
-## 2. Mandatory startup rejection gate
+## 2. Current supplemental evidence — not receipts
+
+Popper’s independent closeout for the current candidate is explicitly
+**REJECTED** at
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-211c29ad-independent`.
+It remains **REJECTED** for the stale final seal, readiness preflight,
+dispatcher, and calibration. The `211c29ad` proof repair closes the observer
+FD/process lifecycle. Its parallel raw nextest exited `0` with 27 passed but
+reported one historical `LEAK` at
+`compare::tests::runner_context_rejects_comparator_report_outside_runtime_outputs`;
+its serialized raw run reported 27/27 clean. Preserve this old LEAK as
+disclosed, non-reproducible raw evidence, not a pass. Franklin’s fresh
+supplemental replay found no reproducible leak: default-parallel and
+serialized refactor-proof nextest each exited `0` with 27/27 passed. The raw
+paths are not receipts:
+
+- `/tmp/refactor-proof-raw.wpWzhX/default-parallel-raw.log`
+- `/tmp/refactor-proof-combo.BfVzDT/parallel-combo.log`
+- `/tmp/refactor-proof-combo-serialized.1jbqpR/serialized.log`
+
+Hume established that STYLE_TIMING intentionally freezes 11 assets and that
+runner index/extensions belong to the separate RUNNER corpus of 33 assets. The
+style-timing and runner freeze checks reported `changed: 0`, `written: false`,
+and TASK-072 standalone taskfmt lint passed. The copied TASK-072 style-timing
+runner self-test still failed with `FileNotFoundError` for sibling
+`runner-bootstrap-index.py`; preserve its raw failure and do not call it a
+pass. It is an auxiliary retired/out-of-scope diagnostic, not a TASK-072 check
+or readiness blocker. These observations do not create a receipt or change
+NO-GO.
+
+## 3. Mandatory startup rejection gate
 
 At startup, before creating a task worktree or spawning an implementation
 subagent:
@@ -67,7 +113,7 @@ subagent:
 1. Read `AGENTS.md`, this goal, the current readiness report, all current
    contracts, and the generated task graph.
 2. Require the external final-sealing manifest from
-   `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed`.
+   `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-211c29ad`.
    That manifest, not this docs package, must report the actual live HEAD/tree,
    parent, branch, clean-worktree state, task contracts, tool identities,
    oracle identities, and receipts.
@@ -81,6 +127,10 @@ subagent:
    Reject evidence bound to any other commit, tree, parent, branch, task, run,
    oracle, taskfmt binary,
    proof binary, or configuration.
+   The old `verifier-final-sealed` root binds `6a57d2b` and is invalid after
+   `211c29ad`; Popper’s current-candidate verdict is **REJECTED**. Franklin’s
+   raw replay is supplemental non-receipt evidence and does not replace an
+   accepted final verifier/reviewer result.
 5. Reject immediately while the ledger is `armed=false`, has no current
    accepted dependency rows, or lacks the authorized workflow’s explicit arm.
 6. Reject immediately unless calibration is complete and clean: all 302
@@ -273,7 +323,7 @@ native macOS proof.
 ## 8. Final merge-readiness, without merge permission
 
 The coordinator may report a future branch **merge-ready** only after the
-external final-sealing manifest at `.../verifier-final-sealed` records the
+external final-sealing manifest at `.../verifier-final-sealed-211c29ad` records the
 actual final HEAD/tree and:
 
 1. readiness changes to GO from a newly sealed, exact-tree report;
