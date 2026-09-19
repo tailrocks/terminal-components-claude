@@ -9,13 +9,14 @@ implementation work, ledger arming, push, or merge.
 
 The current source candidate at the start of this documentation repair is:
 
-- HEAD `211c29adca147d42f8bfce428af1394f0213a22d`;
-- tree `3c3b7ea695c5e56d6d7f5c6783456382dff0e434`;
-- parent `6a57d2b0bf461a520d22bc0b840ab17dc6ad52f8`.
+- HEAD `8da4c2b89084085b6712c61f6d64f1a438f1bd98`;
+- tree `58f3360f9a334ecafc9b17849408f24975ff48b9`;
+- parent `211c29adca147d42f8bfce428af1394f0213a22d`.
 
-Commit `211c29ad` is the current proof lifecycle fix. This repair is a later
-documentation commit, so neither this file nor the other canonical documents
-self-attest the final HEAD/tree.
+This candidate contains the `211c29ad` proof lifecycle fix. The external
+verifier and independent reviewer below bind this exact candidate. This repair
+is a later documentation commit, so neither this file nor the other canonical
+documents self-attest the post-edit HEAD/tree.
 
 ## Two-layer sealing protocol
 
@@ -43,15 +44,30 @@ that preceding candidate and is invalid after `211c29ad`:
 
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed`
 
-Final sealing for the current source line is external and predeclared at:
+The candidate-bound external final-verifier run is:
 
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-211c29ad`
 
-Only the final verifier’s manifest from that run root may bind the actual
-final HEAD/tree, task contracts, qualified tools, oracle identities, and
-receipts. This docs package does not self-attest the final tree identity. Any
-subsequent relevant edit invalidates the final sealing run and requires a new
-external verification.
+Its `VERDICT.md` and `MANIFEST.md` bind HEAD
+`8da4c2b89084085b6712c61f6d64f1a438f1bd98`, tree
+`58f3360f9a334ecafc9b17849408f24975ff48b9`, and parent
+`211c29adca147d42f8bfce428af1394f0213a22d`; the verifier verdict is
+**REJECTED**. Independent review is also **REJECTED** and says preparation GO
+is not authorized at:
+
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/reviewer-final-8da4c2b8`
+
+These are rejected external evidence only. They are not receipts, task
+acceptance, or GO authorization. This documentation repair invalidates the
+candidate-bound final-sealing run; preserve that root as stale evidence only.
+
+Fresh final sealing is predeclared at:
+
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-8da4c2b8`
+
+That run must bind the exact post-edit HEAD/tree, parent, branch, clean
+worktree, contracts, tool/oracle identities, and its own raw evidence. This
+docs package does not self-attest the post-edit tree.
 
 The complete evidence index is
 [`evidence/current-preparation-2026-09-19.md`](evidence/current-preparation-2026-09-19.md).
@@ -115,9 +131,9 @@ passes do not override the Layer-1 **REJECTED** verdict or seal Layer 2.
 
 ## Current supplemental evidence — not receipts
 
-Popper’s external closeout for the current candidate remains explicitly
-**REJECTED** for the stale final seal, readiness preflight, dispatcher, and
-calibration:
+Popper’s supplemental closeout for the prior `211c29ad` candidate remains
+explicitly **REJECTED** for the stale final seal, readiness preflight,
+dispatcher, and calibration:
 
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-211c29ad-independent`
 
@@ -147,14 +163,16 @@ or readiness blocker. The old-root raw evidence is supplemental only.
 
 - TASK-001 dispatcher verify exits `1` (`RESULT FAIL`) on scope/forbidden-path
   checks and the intentional NO-GO checks; preflight exits `1` fail-closed.
-- No accepted current final-sealing manifest is claimed here. The old
-  `verifier-final-sealed` root binds `6a57d2b` and is stale; final HEAD/tree
-  identity remains for the external verifier at
-  `verifier-final-sealed-211c29ad`.
+- The candidate-bound `verifier-final-sealed-211c29ad` run is **REJECTED** and
+  stale after this documentation edit. It is not a receipt; the fresh
+  post-edit final-sealing root is predeclared at
+  `verifier-final-sealed-8da4c2b8`.
+- Current taskfmt `verify` and current accepted receipts remain **UNKNOWN**;
+  taskfmt lint or passing subchecks do not change that status.
 - The copied TASK-072 style-timing runner self-test remains a visible,
   unqualified, auxiliary retired/out-of-scope diagnostic. It is not hidden or
   counted as a pass, and it is not a readiness blocker.
-- Popper’s current-candidate closeout is **REJECTED**. Franklin’s supplemental
+- Popper’s prior-candidate closeout is **REJECTED**. Franklin’s supplemental
   no-leak replay is non-receipt evidence and does not change that verdict.
 - Calibration remains 302 selected, 301 passed, 1 failed, and 2 skipped. The
   sole failure is

@@ -13,10 +13,10 @@ The current clean candidate before this documentation repair is:
 | Item | Exact value |
 |---|---|
 | Branch | `refactor/holla-parity` |
-| HEAD | `211c29adca147d42f8bfce428af1394f0213a22d` |
-| Tree | `3c3b7ea695c5e56d6d7f5c6783456382dff0e434` |
-| Parent | `6a57d2b0bf461a520d22bc0b840ab17dc6ad52f8` |
-| Source change | proof lifecycle fix in `tools/refactor-proof/src/verifier.rs` |
+| HEAD | `8da4c2b89084085b6712c61f6d64f1a438f1bd98` |
+| Tree | `58f3360f9a334ecafc9b17849408f24975ff48b9` |
+| Parent | `211c29adca147d42f8bfce428af1394f0213a22d` |
+| Source change | candidate includes the proof lifecycle fix; `211c29ad..HEAD` is five preparation/readiness documents only |
 
 This repair creates a later documentation commit. The identities above are
 the source candidate being reconciled, not a self-attested final seal.
@@ -53,22 +53,42 @@ invalid after `211c29ad`:
 
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed`
 
-The replacement final sealing run is predeclared at:
+The candidate-bound external final-verifier run is:
 
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-211c29ad`
 
-The final verifier’s manifest from that external root is the sole authority
-for actual final HEAD/tree, task contracts, tool/oracle identities, and
-receipts. This docs package does not self-attest final tree identity. Any
-subsequent relevant edit invalidates that run and requires fresh external
-sealing. No final sealing receipt is claimed here.
+Its manifest binds HEAD `8da4c2b89084085b6712c61f6d64f1a438f1bd98`, tree
+`58f3360f9a334ecafc9b17849408f24975ff48b9`, and parent
+`211c29adca147d42f8bfce428af1394f0213a22d`; its final verifier verdict is
+**REJECTED**. The independent review at
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/reviewer-final-8da4c2b8`
+is also **REJECTED** and says preparation GO is not authorized. These are
+rejected external evidence only, not receipts, task acceptance, or GO.
+
+This documentation repair invalidates the candidate-bound final-sealing run;
+preserve it as stale evidence only. Fresh final sealing is predeclared at:
+
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-8da4c2b8`
+
+The fresh verifier must bind the exact post-edit HEAD/tree, parent, branch,
+clean worktree, contracts, tool/oracle identities, and raw evidence. This docs
+package does not self-attest final tree identity. No final sealing receipt is
+claimed here.
 
 The ledger remains `.campaign/ledger.json`, schema `campaign-ledger/v1`, with
-4 rows and `armed=false`; dispatch and accepted receipt remain none.
+4 rows and `armed=false`; dispatch, accepted receipt, push, and merge remain
+none.
+
+### Candidate-bound final closeout — rejected, not receipts
+
+The final verifier root above contains `VERDICT.md` and `MANIFEST.md` for the
+exact `8da4c2b8` / `58f3360f` candidate. The independent reviewer root contains
+`REVIEW.md` for that same candidate. Both results are preserved as rejected
+evidence only; neither is a receipt or authorization for GO.
 
 ## 2. Current supplemental investigations — not receipts
 
-Popper’s independent closeout for the current candidate is explicitly
+Popper’s independent closeout for the prior `211c29ad` candidate is explicitly
 **REJECTED**:
 
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-211c29ad-independent`
@@ -225,6 +245,11 @@ rendering source. Frozen expected output requires list+form for
 `connections/form_advanced`. This explains the historical split; it does not
 permit changing the oracle or accepting the mismatch.
 
+The readiness preflight remains **NO-GO**. Current taskfmt `verify` and
+current accepted receipts remain **UNKNOWN**; taskfmt lint and passing
+subchecks do not substitute for either. No task was dispatched, and no push or
+merge occurred.
+
 ## 7. Catalog and remaining product obligations
 
 The current generated catalog contains 73 task packages, 506 checks, 276
@@ -245,10 +270,11 @@ checks, native platform checks, and complete oracle parity.
 ## 8. Required final sealing evidence
 
 The final verifier must use the predeclared external run root
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-211c29ad`.
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-8da4c2b8`.
 It must bind the actual clean HEAD/tree at run time, plus task contracts,
 tool/oracle identities, contexts, results, and receipts. Do not copy the
-Layer-1 payload or stale `6a57d2b` identity into the final manifest.
+Layer-1 payload, stale `6a57d2b` identity, or rejected
+`verifier-final-sealed-211c29ad` result into the new final manifest.
 
 From that clean native macOS worktree, with verifier-owned external target and
 run directories:

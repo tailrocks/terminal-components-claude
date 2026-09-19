@@ -29,21 +29,29 @@ Layer 2 is this evidence-only docs package. Its package parent is commit
 `3b79d3403d52ededca087d62dccb9ad4474c105b` with tree
 `d6b85e1feb8e89f25cae6db360b92f071a4c4f43`. The current source candidate at
 the start of this documentation repair is HEAD
-`211c29adca147d42f8bfce428af1394f0213a22d`, tree
-`3c3b7ea695c5e56d6d7f5c6783456382dff0e434`, parent
-`6a57d2b0bf461a520d22bc0b840ab17dc6ad52f8`. The preceding final-sealed
+`8da4c2b89084085b6712c61f6d64f1a438f1bd98`, tree
+`58f3360f9a334ecafc9b17849408f24975ff48b9`, parent
+`211c29adca147d42f8bfce428af1394f0213a22d`. The preceding final-sealed
 candidate was `6a57d2b0bf461a520d22bc0b840ab17dc6ad52f8` with tree
 `1ef2734ebb58b65fba670dfdd460bf189ce15cfa`; its old run root is stale and
 invalid after `211c29ad`:
 
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed`
 
-Final sealing is external at the new predeclared run root
+The candidate-bound external final-verifier run is
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-211c29ad`.
-Only the final verifier’s manifest from that root may bind actual HEAD/tree,
-task contracts, qualified tools, oracle identities, and receipts. This report
-does not self-attest final tree identity. Any subsequent relevant edit
-invalidates the run and requires fresh external sealing.
+Its manifest binds the exact candidate HEAD/tree above and its verdict is
+**REJECTED**. Independent review at
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/reviewer-final-8da4c2b8`
+is also **REJECTED** and says preparation GO is not authorized. These are
+rejected external evidence only, not receipts, task acceptance, or GO.
+
+This documentation repair invalidates that candidate-bound final-sealing run;
+preserve it as stale evidence only. Fresh final sealing is predeclared at
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-8da4c2b8`.
+The fresh verifier must bind the exact post-edit HEAD/tree, parent, branch,
+clean worktree, contracts, tool/oracle identities, and raw evidence. This
+report does not self-attest final tree identity.
 
 Therefore no accepted verifier/reviewer receipt, ledger arm, dispatch, push,
 merge, or GO decision exists.
@@ -54,9 +62,11 @@ merge, or GO decision exists.
 |---|---|
 | Layer-1 tested payload | commit `14aa8ed0469219ff8f6570be7824e5ade39240cc`; tree `f3ef0f6badd01161bc24cdfef5161db55ba5d579`; parent `96c6c475b5d22193b7539565fa5b4612a88ea007`; historical/tested only |
 | Layer-2 docs package parent | commit `3b79d3403d52ededca087d62dccb9ad4474c105b`; tree `d6b85e1feb8e89f25cae6db360b92f071a4c4f43`; evidence-only |
-| Current source candidate at repair start | HEAD `211c29adca147d42f8bfce428af1394f0213a22d`; tree `3c3b7ea695c5e56d6d7f5c6783456382dff0e434`; parent `6a57d2b0bf461a520d22bc0b840ab17dc6ad52f8`; current proof lifecycle fix |
+| Current source candidate at repair start | HEAD `8da4c2b89084085b6712c61f6d64f1a438f1bd98`; tree `58f3360f9a334ecafc9b17849408f24975ff48b9`; parent `211c29adca147d42f8bfce428af1394f0213a22d`; current proof lifecycle fix plus prior preparation docs |
 | Prior final-seal root | `.../verifier-final-sealed`; binds `6a57d2b0bf461a520d22bc0b840ab17dc6ad52f8` / `1ef2734ebb58b65fba670dfdd460bf189ce15cfa`; stale and invalid after `211c29ad` |
-| Final seal authority | external verifier manifest under `.../verifier-final-sealed-211c29ad`; actual HEAD/tree determined there |
+| Candidate-bound final verifier | `.../verifier-final-sealed-211c29ad`; exact `8da4c2b8` / `58f3360f`; **REJECTED**, stale after this documentation edit, not a receipt |
+| Candidate-bound independent reviewer | `.../reviewer-final-8da4c2b8`; exact `8da4c2b8` / `58f3360f`; **REJECTED**, GO not authorized, not a receipt |
+| Next final-seal root | `.../verifier-final-sealed-8da4c2b8`; predeclared and must bind the post-edit HEAD/tree |
 | Current-candidate independent closeout | `.../verifier-211c29ad-independent/VERDICT.md`; **REJECTED** |
 | Protected oracle tag object | `1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5` |
 | Peeled `visual-baseline` commit | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
@@ -292,14 +302,17 @@ The readiness report stays NO-GO until all of these are closed with fresh,
 independent, source-bound evidence:
 
 - Layer-1 historical/tested verdict **REJECTED** and no reviewer acceptance;
-- no external final-sealing manifest yet binds the actual Layer-2/final
-  HEAD/tree;
+- the candidate-bound `verifier-final-sealed-211c29ad` manifest binds
+  `8da4c2b8` / `58f3360f` but is **REJECTED** and stale after this edit; no
+  accepted post-edit final-sealing manifest exists, and the fresh
+  `verifier-final-sealed-8da4c2b8` root must bind the post-edit HEAD/tree;
 - dispatcher TASK-001 verify failure and preflight NO-GO exit;
 - calibration is 301/302 with one failure and two skips, including the mixed
   frozen-oracle history;
 - ledger is disarmed and has no accepted current task rows;
-- proof, taskfmt verify, task, behavior, performance, API, static, docs,
-  platform, PTY, ancestry, and full visual gates are not accepted;
+- proof, current taskfmt `verify`, current receipts, task, behavior,
+  performance, API, static, docs, platform, PTY, ancestry, and full visual
+  gates are unknown or not accepted;
 - frozen oracle is external read-only input and is not yet the active branch
   gate; and
 - source-bound evidence must be regenerated and sealed by the external final
