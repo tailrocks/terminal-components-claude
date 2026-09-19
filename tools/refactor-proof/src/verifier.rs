@@ -1454,7 +1454,12 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
         .and_then(|result| result);
     let stdout = stdout_result?.ok_or_else(|| VerifierError::new("stdout reader missing"))?;
     let stderr = stderr_result?.ok_or_else(|| VerifierError::new("stderr reader missing"))?;
-    let observed_digests = observed_result?;
+    let observed_digests = observed_result.map_err(|error| {
+        VerifierError::new(format!(
+            "{error}; child stderr: {}",
+            String::from_utf8_lossy(&stderr)
+        ))
+    })?;
     let exit = successful_exit(status)?;
     if !regular_path_exists(&member.result_path)? {
         return Err(VerifierError::new("child produced no result"));
@@ -1653,12 +1658,14 @@ fn start_observer_supervisor(
             nonce: &nonce,
         };
         let result = observe_worker(request_read, response_write, &mut provider, &binding);
+        let observer_error = result.as_ref().err().map(ToString::to_string);
         drop(provider);
         let status = finish_observer_provider(&mut child, result.is_err())?;
         if !status.success() {
-            return Err(VerifierError::new(
-                "observer response provider exited unsuccessfully",
-            ));
+            return Err(VerifierError::new(format!(
+                "observer response provider exited unsuccessfully (status={status:?}; observer={})",
+                observer_error.as_deref().unwrap_or("none")
+            )));
         }
         result
     });
@@ -3595,6 +3602,48 @@ mod tests {
     use std::io::BufReader;
     use std::os::unix::fs::PermissionsExt;
     use std::process::Stdio;
+    use std::sync::{Mutex, MutexGuard};
+
+    static OBSERVER_PROVIDER_ENV_LOCK: Mutex<()> = Mutex::new(());
+
+    fn lock_observer_provider_env() -> MutexGuard<'static, ()> {
+        OBSERVER_PROVIDER_ENV_LOCK
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
+    struct ObserverProviderEnvGuard {
+        _lock: MutexGuard<'static, ()>,
+        previous: Option<std::ffi::OsString>,
+    }
+
+    impl ObserverProviderEnvGuard {
+        fn set(provider: &Path) -> Self {
+            let lock = lock_observer_provider_env();
+            let previous = std::env::var_os(OBSERVER_PROVIDER_ENV);
+            // SAFETY: the process-wide mutation is serialized by the test lock
+            // and restored by this guard before the lock is released.
+            unsafe {
+                std::env::set_var(OBSERVER_PROVIDER_ENV, provider.as_os_str());
+            }
+            Self {
+                _lock: lock,
+                previous,
+            }
+        }
+    }
+
+    impl Drop for ObserverProviderEnvGuard {
+        fn drop(&mut self) {
+            // SAFETY: the guard still owns the serialized environment binding.
+            unsafe {
+                match self.previous.take() {
+                    Some(value) => std::env::set_var(OBSERVER_PROVIDER_ENV, value),
+                    None => std::env::remove_var(OBSERVER_PROVIDER_ENV),
+                }
+            }
+        }
+    }
 
     macro_rules! require_ok {
         ($expression:expr, $message:expr) => {{
@@ -3862,6 +3911,13 @@ mod tests {
     }
 
     fn fixture_options() -> std::result::Result<(Fixture, PrepareOptions), String> {
+        fixture_options_for("001", &[])
+    }
+
+    fn fixture_options_for(
+        completion_task: &str,
+        dependency_task_ids: &[&str],
+    ) -> std::result::Result<(Fixture, PrepareOptions), String> {
         let root = tempfile::tempdir().map_err(|error| error.to_string())?;
         let source = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("../..")
@@ -3881,6 +3937,20 @@ mod tests {
         }
         let scope =
             git_output(&candidate, &["rev-parse", "HEAD"]).map_err(|error| error.to_string())?;
+        let dependency_receipts = dependency_task_ids
+            .iter()
+            .map(|task_id| {
+                let path = root.path().join(format!("{task_id}.receipt.json"));
+                let receipt = json!({
+                    "task_id": task_id,
+                    "accepted": true,
+                    "integrated": true,
+                    "integration_commit": scope.clone(),
+                });
+                fs::write(&path, canonical_json(&receipt)).map_err(|error| error.to_string())?;
+                Ok(path)
+            })
+            .collect::<std::result::Result<Vec<_>, String>>()?;
         let tree = git_output(&candidate, &["rev-parse", "HEAD^{tree}"])
             .map_err(|error| error.to_string())?;
         let run_dir = root.path().join("run");
@@ -3918,7 +3988,9 @@ mod tests {
         fs::set_permissions(&taskfmt, permissions).map_err(|error| error.to_string())?;
         let worker = candidate.join("tools/refactor-proof/bin/tc-proof");
         let options = PrepareOptions {
-            task_dir: candidate.join("refactoring-tasks/terminal-components/completion/001"),
+            task_dir: candidate
+                .join("refactoring-tasks/terminal-components/completion")
+                .join(completion_task),
             run_dir: run_dir.clone(),
             worktree: candidate.clone(),
             scope_base: scope,
@@ -3933,7 +4005,7 @@ mod tests {
                 .map_err(|error| error.to_string())?,
             taskfmt_version: "fixture".to_string(),
             taskfmt_sha256: hash_file(&taskfmt).map_err(|error| error.to_string())?,
-            dependency_receipts: Vec::new(),
+            dependency_receipts,
             run_id: None,
             observer_nonce: Some("test-observer".to_string()),
             observer_socket: None,
@@ -4179,6 +4251,32 @@ mod tests {
             "mutate taskfmt provenance"
         );
         require_ok!(set_readonly_file(&receipt_path), "restore receipt readonly");
+        assert!(validate_run(&fixture.run_dir).is_err());
+    }
+
+    #[test]
+    fn native_build_provenance_mutation_is_rejected() {
+        let (fixture, _) = require_ok!(fixture(), "fixture");
+        let build_path = fixture.run_dir.join("target/debug/tc-proof.build.json");
+        let mut build_permissions =
+            require_ok!(fs::metadata(&build_path), "build receipt metadata").permissions();
+        build_permissions.set_mode(0o644);
+        require_ok!(
+            fs::set_permissions(&build_path, build_permissions),
+            "make build receipt writable"
+        );
+        let mut build = require_ok!(
+            parse_json_object(
+                &require_ok!(fs::read(&build_path), "build receipt bytes"),
+                "build receipt",
+            ),
+            "build receipt JSON"
+        );
+        build.insert("tree".to_string(), Value::String("0".repeat(40)));
+        require_ok!(
+            fs::write(&build_path, canonical_json(&Value::Object(build))),
+            "mutate build receipt"
+        );
         assert!(validate_run(&fixture.run_dir).is_err());
     }
 
@@ -4434,6 +4532,7 @@ mod tests {
     fn worker_passed_result_without_observer_is_rejected() {
         let (fixture, prepared) = require_ok!(fixture(), "fixture");
         let member = require_some!(prepared.members.first(), "first member");
+        let _env_lock = lock_observer_provider_env();
         let script = r#"printf '{"category":null,"context_sha256":"%s","observation_digests":[],"operation":"external","outputs":{},"run_id":"%s","schema":"tc-proof-runner-result/v1","status":"passed"}' "$TC_PROOF_CONTEXT_SHA256" "$TC_PROOF_RUN_ID" > "$TC_PROOF_RESULT""#;
         let record = launch(&LaunchOptions {
             run_dir: fixture.run_dir.clone(),
@@ -4448,9 +4547,103 @@ mod tests {
     }
 
     #[test]
+    fn tracked_worker_preflight_launch_succeeds_with_bound_observer() {
+        let (fixture, options) = require_ok!(
+            fixture_options_for("060", &["TASK-059", "TASK-022"]),
+            "fixture options"
+        );
+        let prepared = require_ok!(prepare(&options), "fixture preparation");
+        let member = require_some!(prepared.members.first(), "first member");
+        assert_eq!(member.operation, "preflight");
+        let provider = fixture.root.path().join("observer-provider.py");
+        let provider_closed = provider.with_extension("closed");
+        require_ok!(
+            fs::write(
+                &provider,
+                r#"#!/usr/bin/env python3
+import json
+import sys
+from pathlib import Path
+
+try:
+    for line in sys.stdin:
+        request = json.loads(line)
+        response = {
+            "schema": "tc-proof-observation/v1",
+            "nonce": request["nonce"],
+            "run_id": request["run_id"],
+            "task_id": request["task_id"],
+            "check_id": request["check_id"],
+            "request_id": request["request_id"],
+            "operation": request["operation"],
+            "source_commit": request["source_commit"],
+            "tree": request["tree"],
+            "exit": 0,
+            "stdout": "host-observer",
+            "stderr": "",
+            "files": {},
+            "payload": {"schema": "tc-proof-host-event/v1"},
+            "records": [{"schema": "tc-proof-host-record/v1"}],
+        }
+        print(json.dumps(response, sort_keys=True, separators=(",", ":")), flush=True)
+finally:
+    Path(__file__).with_suffix(".closed").write_text("closed", encoding="utf-8")
+"#
+            ),
+            "observer provider"
+        );
+        let mut provider_permissions =
+            require_ok!(fs::metadata(&provider), "observer provider metadata").permissions();
+        provider_permissions.set_mode(provider_permissions.mode() | 0o111);
+        require_ok!(
+            fs::set_permissions(&provider, provider_permissions),
+            "make observer provider executable"
+        );
+
+        let launch_result = {
+            let _provider_env = ObserverProviderEnvGuard::set(&provider);
+            launch(&LaunchOptions {
+                run_dir: fixture.run_dir.clone(),
+                check_id: member.check_id.clone(),
+                observer_socket: None,
+                timeout: Duration::from_secs(10),
+                program: fixture
+                    .root
+                    .path()
+                    .join("candidate/tools/refactor-proof/bin/tc-proof"),
+                args: vec![
+                    "preflight".to_string(),
+                    "--context".to_string(),
+                    member.context_path.to_string_lossy().into_owned(),
+                ],
+            })
+        };
+
+        let record = match launch_result {
+            Ok(record) => record,
+            Err(error) => {
+                let run_dir = fixture.run_dir.clone();
+                let result = fs::read_to_string(&member.result_path)
+                    .unwrap_or_else(|read_error| format!("<unreadable: {read_error}>"));
+                std::mem::forget(fixture);
+                panic!("tracked worker launch: {error}; result: {result}; run_dir: {run_dir:?}");
+            }
+        };
+        assert_eq!(record.exit, 0);
+        assert_eq!(
+            require_ok!(fs::read(&provider_closed), "observer provider close marker"),
+            b"closed"
+        );
+        let result_metadata = require_ok!(fs::metadata(&member.result_path), "result metadata");
+        assert!(permissions_are_readonly(&result_metadata));
+        assert!(validate_run(&fixture.run_dir).is_ok());
+    }
+
+    #[test]
     fn subprocess_nonzero_and_timeout_are_rejected() {
         let (fixture, prepared) = require_ok!(fixture(), "fixture");
         let member = require_some!(prepared.members.get(1), "second member");
+        let _env_lock = lock_observer_provider_env();
         let nonzero = launch(&LaunchOptions {
             run_dir: fixture.run_dir.clone(),
             check_id: member.check_id.clone(),
@@ -4475,6 +4668,7 @@ mod tests {
     fn alternate_observer_socket_binding_is_rejected() {
         let (fixture, prepared) = require_ok!(fixture(), "fixture");
         let member = require_some!(prepared.members.first(), "first member");
+        let _env_lock = lock_observer_provider_env();
         let error = require_err!(
             launch(&LaunchOptions {
                 run_dir: fixture.run_dir,

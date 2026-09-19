@@ -990,7 +990,16 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
         or sha256_bytes(observer_path.read_bytes()) != observer["sha256"]
     ):
         raise Reject("CONTEXT_INDEX")
-    expected_root = {"contexts", "results", "outputs", "taskfmt-logs", "observer.json", "context-index.json"}
+    expected_root = {
+        "contexts",
+        "results",
+        "outputs",
+        "taskfmt-logs",
+        "target",
+        "observer.json",
+        "context-index.json",
+        "proof-preparation.json",
+    }
     if {path.name for path in index_root.iterdir()} != expected_root:
         raise Reject("CONTEXT_INDEX")
     expected_result = outputs_dir / f"{check_id}.result.json"
