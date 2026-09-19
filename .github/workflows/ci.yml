@@ -41,10 +41,13 @@ name: CI
 #   cargo nextest run -p junie-tui --no-default-features --no-run --lib
 #       §16.5 CI gate `core_is_backend_free` / §22.1: nothing outside
 #       runtime/session.rs needs a backend.
-#   cargo nextest run --workspace --all-targets --all-features --no-run on the pinned 1.88.0 leg
-#       §16.5 `architecture::msrv_and_edition_are_unchanged` + §22.5: `cargo metadata`
-#       proves the FIELD, this job proves the code compiles on the floor. Without it a
-#       builder could use a 1.95 API on a 1.98 toolchain and every other gate would pass.
+#   cargo nextest run --workspace --all-targets --all-features --no-run --exclude visual-baseline
+#       on the pinned 1.88.0 leg. §16.5 `architecture::msrv_and_edition_are_unchanged` +
+#       §22.5: `cargo metadata` proves the FIELD, this job proves the product compiles on
+#       the floor. `visual-baseline` is excluded only here: tuisnap 2d43458 → termpane
+#       0.1.0 declares rust-version 1.97 and may use 1.97 language. Stable still compiles
+#       product + visual suite. Without the 1.88.0 product compile, a builder could use a
+#       1.95 API on a 1.98 toolchain and every other gate would pass.
 #
 # Naming note (§47.1): `junie-tui` / `junie_tui` is the final package/lib name.
 # All four application packages live under `apps/` and consume the public facade.
@@ -72,6 +75,8 @@ jobs:
   # Two legs, both blocking. `1.88.0` is the §22.5 `msrv` job — pinned to the exact
   # declared `rust-version`, never a floating "1.88". `stable` is the §22.5 PRIMARY
   # job, kept so new compiler and clippy diagnostics are seen early.
+  # On 1.88.0 only, `--workspace` compile/test/doc/clippy commands exclude
+  # `visual-baseline` (tuisnap 2d43458 → termpane 0.1.0, rust-version 1.97).
   gates:
     name: gates (${{ matrix.toolchain }})
     if: github.event_name != 'schedule'
@@ -102,10 +107,16 @@ jobs:
         run: cargo metadata --locked --format-version 1 > /dev/null
 
       # §22.5 / §16.5 msrv_and_edition_are_unchanged. On the 1.88.0 leg this IS the
-      # `cargo +1.88.0 nextest run --workspace --all-targets --all-features --no-run` gate; on stable
-      # it is a fast compile-error signal ahead of the slower steps.
+      # `cargo +1.88.0 nextest run --workspace --all-targets --all-features --no-run
+      # --exclude visual-baseline` gate; on stable it is a fast compile-error signal
+      # ahead of the slower steps (and still compiles `visual-baseline`).
       - name: MSRV compile check (§22.5)
-        run: cargo nextest run --locked --workspace --all-targets --all-features --no-run
+        run: |
+          if [ "${{ matrix.toolchain }}" = "1.88.0" ]; then
+            cargo nextest run --locked --workspace --all-targets --all-features --no-run --exclude visual-baseline
+          else
+            cargo nextest run --locked --workspace --all-targets --all-features --no-run
+          fi
 
       # §22.1 / §16.5 core_is_backend_free.
       - name: Backend-free core (§22.1)
@@ -115,13 +126,23 @@ jobs:
         run: cargo fmt --all --check
 
       - name: Clippy (§22.3, §26)
-        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+        run: |
+          if [ "${{ matrix.toolchain }}" = "1.88.0" ]; then
+            cargo clippy --locked --workspace --all-targets --all-features --exclude visual-baseline -- -D warnings
+          else
+            cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+          fi
 
       - name: Required application targets (authoritative inventory)
         run: cargo run --locked -p xtask -- app-inventory --json
 
       - name: Build (§26)
-        run: cargo build --locked --workspace --all-targets --all-features
+        run: |
+          if [ "${{ matrix.toolchain }}" = "1.88.0" ]; then
+            cargo build --locked --workspace --all-targets --all-features --exclude visual-baseline
+          else
+            cargo build --locked --workspace --all-targets --all-features
+          fi
 
       # §16.5 examples_are_external_consumers — the §17 examples compile against the
       # public API only.
@@ -132,7 +153,7 @@ jobs:
       # owns those snapshots; MSRV still runs every behavioral test.
       - name: Test (§26, MSRV)
         if: matrix.toolchain == '1.88.0'
-        run: cargo nextest run --locked --workspace --all-targets --all-features -- --skip architecture::compile_fail_cases_hold
+        run: cargo nextest run --locked --workspace --all-targets --all-features --exclude visual-baseline -- --skip architecture::compile_fail_cases_hold
 
       - name: Test (§26, primary)
         if: matrix.toolchain == 'stable'
@@ -144,13 +165,23 @@ jobs:
 
       # §25.12 / §28 P2: the documented `render::components::*` path is reachable.
       - name: Render matrix is reachable under its documented path (§25.12)
-        run: cargo nextest list --locked --workspace --all-targets --all-features | grep -c 'render::components'
+        run: |
+          if [ "${{ matrix.toolchain }}" = "1.88.0" ]; then
+            cargo nextest list --locked --workspace --all-targets --all-features --exclude visual-baseline | grep -c 'render::components'
+          else
+            cargo nextest list --locked --workspace --all-targets --all-features | grep -c 'render::components'
+          fi
 
       # cargo-nextest 0.9.143 has no doctest runner. Keep rustdoc compilation
       # here; executable doctest coverage remains an explicit TASK-066 blocker
       # and must not be replaced with an invalid `nextest --doc` invocation.
       - name: Docs (§16.5, RUSTDOCFLAGS=-D warnings from the job env)
-        run: cargo doc --locked --workspace --all-features --no-deps
+        run: |
+          if [ "${{ matrix.toolchain }}" = "1.88.0" ]; then
+            cargo doc --locked --workspace --all-features --no-deps --exclude visual-baseline
+          else
+            cargo doc --locked --workspace --all-features --no-deps
+          fi
 
       # §16.5 / §22 §6.2 — the whole boundary and dependency-graph check set.
       - name: Boundary and dependency checks (§16.5, §22.7)
