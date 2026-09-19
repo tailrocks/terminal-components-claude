@@ -12,9 +12,9 @@ The tested preparation payload before this documentation-only commit is:
 
 ```text
 branch: refactor/holla-parity
-commit: a3701d8bb7bcdc491d35397be698ecf86c8d2d9d
-tree:   9ef02188b96aa4e6915c378b9eca344812a8494b
-parent: de2f1295c26e1968d598782e7dd304eae93b75bd
+commit: e10fd942d8350f33f4c29761c322090494d178a4
+tree:   c336ab40031a5cae2f936bc04fe2fcc62f9d8101
+parent: 30fbf36feea797d1320c4ab21c491f8c944935bf
 ```
 
 Git facts independently read from refs:
@@ -24,7 +24,7 @@ refs/heads/main:                  7b27732a8c3c131760ec3438f641cb3c11343a42
 refs/remotes/origin/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
 refs/remotes/origin/refactor/...  f5013f609aed1ba32ce60352b38fd0b1b11b063c
 merge-base campaign/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
-local commits ahead of remote campaign: 53
+local commits ahead of remote campaign: 56
 ```
 
 The final verifier must recompute these values after this documentation
@@ -105,9 +105,10 @@ Native proof runs:
 
 | run | command/result |
 | --- | --- |
-| `proof-full-a3701d8b` | `cargo fmt --check` exit 0; `cargo nextest` 38 passed, 0 skipped |
-| `native-preparation-a3701d8b` | `scripts/campaign-build-proof.sh` exit 0; external binary/receipt bound to current payload |
-| `native-launch-regression-a3701d8b` | positive launch, direct-injection rejection, wrong-nonce rejection; exit 0 |
+| `proof-full-e10fd942-rerun` | `cargo nextest` exit 0; 38 passed, 0 skipped |
+| `native-preparation-e10fd942-clean` | `scripts/campaign-build-proof.sh` exit 0; external binary/receipt/contexts/results/index/observer bound to current payload |
+| `native-launch-regression-e10fd942` | positive launch, direct-injection rejection, wrong-nonce rejection; exit 0 |
+| `native-preparation-e10fd942-clean` preflight | exact proof member path/hash/check bindings; exit 0, non-authorizing |
 | `target-invariant-verify` | adversarial non-`target` run-member rejection; nextest 1 passed, 37 skipped |
 
 The native protocol is non-circular: pin source/tools/contracts/oracle and

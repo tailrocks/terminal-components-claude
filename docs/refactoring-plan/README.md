@@ -22,14 +22,14 @@ The latest tested preparation payload before this documentation-only freeze is:
 
 ```text
 branch:   refactor/holla-parity
-commit:   a3701d8bb7bcdc491d35397be698ecf86c8d2d9d
-tree:     9ef02188b96aa4e6915c378b9eca344812a8494b
-parent:   de2f1295c26e1968d598782e7dd304eae93b75bd
+commit:   e10fd942d8350f33f4c29761c322090494d178a4
+tree:     c336ab40031a5cae2f936bc04fe2fcc62f9d8101
+parent:   30fbf36feea797d1320c4ab21c491f8c944935bf
 local main:   7b27732a8c3c131760ec3438f641cb3c11343a42
 remote main:  7b27732a8c3c131760ec3438f641cb3c11343a42
 remote campaign tip: f5013f609aed1ba32ce60352b38fd0b1b11b063c
 merge-base with main: 7b27732a8c3c131760ec3438f641cb3c11343a42
-campaign commits ahead of origin/refactor/holla-parity: 53
+campaign commits ahead of origin/refactor/holla-parity: 56
 ```
 
 The campaign is a descendant of actual local and remote `main`; the remote
@@ -146,12 +146,16 @@ does not claim isolation from a hostile same-user process.
 
 Current qualification evidence:
 
-- `proof-full-a3701d8b`: `cargo fmt --check` exit 0; `cargo nextest` 38
-  passed, 0 skipped.
-- `native-preparation-a3701d8b`: audited native build helper exit 0; build
-  receipt and binary are external, regular, single-link files.
-- `native-launch-regression-a3701d8b`: positive native launch plus direct-child
+- `proof-full-e10fd942-rerun`: `cargo nextest` exit 0; 38 passed, 0 skipped.
+  The first wrapper run was ambiguous (exit 100 with only 37 reported passes)
+  and is rejected evidence.
+- `native-preparation-e10fd942-clean`: audited native build helper exit 0;
+  external build receipt, binary, contexts, results, observer, and index are
+  bound to the exact source tree.
+- `native-launch-regression-e10fd942`: positive native launch plus direct-child
   injection and wrong-nonce rejection, exit 0.
+- `native-preparation-e10fd942-clean/logs/preflight-proof-preparation.log`:
+  proof member path/hash/check bindings pass; non-authorizing preflight exit 0.
 - `taskfmt-lints-de2f1295`: 73/73 package lints passed, 0 failed.
 
 Raw runs are under

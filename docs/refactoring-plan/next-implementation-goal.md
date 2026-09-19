@@ -27,8 +27,8 @@ Before any implementation agent is spawned, the coordinator must independently:
 2. Re-read Git refs. Bind the actual branch, local/remote `main`, merge-base,
    scope base, clean worktree, final source commit/tree/parent, and dependency
    ancestry. The preparation payload before this documentation freeze was
-   `a3701d8bb7bcdc491d35397be698ecf86c8d2d9d` / tree
-   `9ef02188b96aa4e6915c378b9eca344812a8494b`; the documentation commit and
+   `e10fd942d8350f33f4c29761c322090494d178a4` / tree
+   `c336ab40031a5cae2f936bc04fe2fcc62f9d8101`; the documentation commit and
    any later edit invalidate that identity. Never trust this embedded value
    without fresh Git reads.
 3. Verify the protected oracle exactly:

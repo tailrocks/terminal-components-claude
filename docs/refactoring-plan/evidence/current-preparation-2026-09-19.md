@@ -7,9 +7,9 @@ completion claim.
 ## Source and refs
 
 ```text
-tested preparation payload: a3701d8bb7bcdc491d35397be698ecf86c8d2d9d
-tested tree:                9ef02188b96aa4e6915c378b9eca344812a8494b
-tested parent:              de2f1295c26e1968d598782e7dd304eae93b75bd
+tested preparation payload: e10fd942d8350f33f4c29761c322090494d178a4
+tested tree:                c336ab40031a5cae2f936bc04fe2fcc62f9d8101
+tested parent:              30fbf36feea797d1320c4ab21c491f8c944935bf
 branch:                     refactor/holla-parity
 local main:                 7b27732a8c3c131760ec3438f641cb3c11343a42
 remote main:                7b27732a8c3c131760ec3438f641cb3c11343a42
@@ -80,24 +80,32 @@ Current native proof evidence:
 
 | external run | evidence |
 | --- | --- |
-| `proof-full-a3701d8b` | `fmt.exit=0`; `nextest.exit=0`; 38 passed, 0 skipped |
-| `native-preparation-a3701d8b` | `build.exit=0`; comparator and `tc-proof.build.json` external and bound |
-| `native-launch-regression-a3701d8b` | `native-launch.exit=0`; `native launch regression: PASS` |
+| `proof-full-e10fd942-rerun` | `nextest.exit=0`; 38 passed, 0 skipped |
+| `native-preparation-e10fd942-clean` | `build.exit=0`; comparator, receipt, contexts, results, index, and observer external and bound |
+| `native-launch-regression-e10fd942` | `native-launch.exit=0`; `native launch regression: PASS` |
+| `native-preparation-e10fd942-clean` preflight | `preflight-proof-preparation.exit=0`; exact native proof member bindings pass |
 | `target-invariant-verify` | `fmt.exit=0`; targeted nextest exit 0; 1 passed, 37 skipped |
 
 Raw log hashes:
 
 ```text
-proof-full-a3701d8b/fmt.log:             e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
-proof-full-a3701d8b/nextest.log:         27d00ffa10101a18dd17186a2e2a760f962c2dd648b6b035ac61794e695d45cf
-native-preparation-a3701d8b/build.log:   3b686803344e0db6d42bdbb1deedb7e4e5c2db851096bbb95412234e89d62378
-native-launch-regression-a3701d8b/native-launch.log: 8af2c83cfcb72e21f367577ad64cbe70a24faf6a07409d738a80c8f80f934e0a
+proof-full-e10fd942-rerun/fmt.log:       e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+proof-full-e10fd942-rerun/nextest.log:   0a316130db91f2dbb643df3e58f9b3d89e4a98d6df518908afa33cbab3d55c0d
+native-preparation-e10fd942-clean/build.log: e887dcf58721c0e579dae20a7f297109f5e9324251c35c3760ad6328db94159b
+native-preparation-e10fd942-clean/prepare.log: 785c0a78b9abbc994f38cb069fb0b87766e03f0cb9ab11a372362f4f497de9d1
+native-preparation-e10fd942-clean/validate.log: 785c0a78b9abbc994f38cb069fb0b87766e03f0cb9ab11a372362f4f497de9d1
+native-preparation-e10fd942-clean/preflight-proof-preparation.log: 8e5466715415c0d4761db11cb88e34f8c43f80f8ee020f3a5087587fcc541b95
+native-launch-regression-e10fd942/native-launch.log: 8af2c83cfcb72e21f367577ad64cbe70a24faf6a07409d738a80c8f80f934e0a
 ```
 
 Native binary SHA-256:
-`e749b9cf1a9a77574687cdc64ea881e1d06c86de9c6f1ae6105c7316017a7ad6`.
+`22b9f20a9883f00e6dc7bcbc57c818207b95f9c66350e05c74e3ef38caf81b11`.
 Native build receipt SHA-256:
-`8ad13128831647d42f0b8d6970b98be0c23c5473cc997152a1babc6a0aae935b`.
+`277f9d2343952ded185ba03d7b1e96779ad997d134fe5463b5e7291651186a88`.
+Native proof-preparation SHA-256:
+`70f16d1674eb569ae3ce392bc22a59a79e5b01db3682503f834e910667421209`.
+Context index SHA-256:
+`76465ebde015a5f5855a840c639c361938711d24f682775292584905f7c7d71b`.
 
 The native tests exercise valid launch, direct worker injection, observer
 binding, wrong nonce, replay/truncation/empty response, subprocess failure,
@@ -171,6 +179,10 @@ execution was unavailable; no cross-platform pass is claimed. The campaign
 ledger remains schema-controlled and disarmed; no accepted preparation or
 production receipt exists. Any preflight failure due absent current accepted
 evidence is correct fail-closed behavior.
+
+The first final proof wrapper run for `e10fd942` recorded exit 100 with only 37
+reported passes and no failure detail; it is rejected. The uncensored rerun
+above is the current proof result: 38 passed, exit 0.
 
 Final verifier and reviewer must independently inspect the final clean tree and
 raw proof/calibration evidence. Their paths are the two `final-seal-2026-09-19`
