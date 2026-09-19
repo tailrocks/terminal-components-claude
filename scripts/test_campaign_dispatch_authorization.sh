@@ -43,7 +43,7 @@ git -C "$campaign" config user.email test@example.invalid
 git -C "$campaign" config user.name "Dispatch Authorization Test"
 git -C "$campaign" checkout -q -b refactor/holla-parity
 printf '%s\n' 'campaign fixture' >"$campaign/README.md"
-printf '%s\n' '**NO-GO.**' >"$campaign/docs/refactoring-plan/execution-readiness-report.md"
+printf '%s\n' '# Execution readiness report' '**Verdict: NO-GO.**' >"$campaign/docs/refactoring-plan/execution-readiness-report.md"
 git -C "$campaign" add README.md docs/refactoring-plan/execution-readiness-report.md
 git -C "$campaign" commit -q -m fixture
 
@@ -253,7 +253,7 @@ import sys
 from pathlib import Path
 readiness = Path(sys.argv[1])
 authorization = Path(sys.argv[2])
-readiness.write_text("**GO.**\n", encoding="utf-8")
+readiness.write_text("# Execution readiness report\n**Verdict: GO.**\n", encoding="utf-8")
 value = json.loads(authorization.read_text(encoding="utf-8"))
 value["readiness"]["sha256"] = hashlib.sha256(readiness.read_bytes()).hexdigest()
 authorization.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")

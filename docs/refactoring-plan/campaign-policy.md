@@ -62,6 +62,12 @@ paths are relative to `WORKTREE`; external proof contexts use the exported
 context set and accepted receipts before dispatch. Campaign worktree:
 `.worktrees/campaign` (not `.worktrees/main` / `task-001-bootstrap`).
 
+The readiness report is machine-consumed only when it contains exactly one
+canonical verdict line: `**Verdict: GO.**` or `**Verdict: NO-GO.**`. Legacy
+standalone markers and ambiguous/multiple verdicts fail closed. The report's
+canonical verdict is necessary for preflight but never sufficient for task
+dispatch or acceptance receipts.
+
 ## Related docs
 
 - Path contract: [`path-contract.md`](path-contract.md)

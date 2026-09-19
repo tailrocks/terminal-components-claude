@@ -102,7 +102,7 @@ git -C "$preflight_root" config user.email test@example.invalid
 git -C "$preflight_root" config user.name "Preparation Guard Test"
 git -C "$preflight_root" checkout -q -b refactor/holla-parity
 printf '%s\n' fixture >"$preflight_root/README.md"
-printf '%s\n' '**NO-GO.**' > \
+printf '%s\n' '# Execution readiness report' '**Verdict: NO-GO.**' > \
 	"$preflight_root/docs/refactoring-plan/execution-readiness-report.md"
 git -C "$preflight_root" add README.md docs/refactoring-plan/execution-readiness-report.md
 git -C "$preflight_root" commit -q -m fixture
@@ -171,6 +171,18 @@ printf '%s\n' "$output" | grep -Fq "worktree $preflight_root on refactor/holla-p
 printf '%s\n' "$output" | grep -Fq "readiness report is NO-GO" ||
 	fail "NO-GO report behavior changed: $output"
 pass "campaign-preflight preserves the explicit NO-GO failure"
+
+printf '%s\n' '# Execution readiness report' '**Verdict: GO.**' '**Verdict: NO-GO.**' > \
+	"$preflight_root/docs/refactoring-plan/execution-readiness-report.md"
+if output="$({
+		env TC_CAMPAIGN_WORKTREE="$preflight_root" INTEGRATION_BRANCH=refactor/holla-parity \
+			bash -c "source \"\$1\"; check_readiness_gate" _ "$preflight_helper"
+	} 2>&1)"; then
+	fail "ambiguous canonical readiness report was accepted"
+fi
+printf '%s\n' "$output" | grep -Fq "exactly one canonical verdict" ||
+	fail "ambiguous readiness report had unexpected output: $output"
+pass "campaign-preflight rejects ambiguous readiness verdicts"
 
 plan_root="$TMP_ROOT/plan"
 mkdir -p "$plan_root/scripts" "$plan_root/docs/refactoring-plan/evidence"

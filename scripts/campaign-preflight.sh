@@ -99,14 +99,21 @@ check_worktree() {
 }
 
 check_readiness_gate() {
-	local report
+	local report verdict_count legacy_count verdict
 	report="$(repo_root)/docs/refactoring-plan/execution-readiness-report.md"
 	[[ -f "$report" ]] || fail "readiness report missing: $report"
-	if grep -Eq '^\*\*NO-GO\.\*\*$' "$report"; then
+	verdict_count="$(awk '$0 == "**Verdict: GO.**" || $0 == "**Verdict: NO-GO.**" { count++ } END { print count + 0 }' "$report")"
+	legacy_count="$(awk '$0 == "**GO.**" || $0 == "**NO-GO.**" { count++ } END { print count + 0 }' "$report")"
+	[[ "$legacy_count" == 0 ]] ||
+		fail "readiness report uses a noncanonical verdict marker"
+	[[ "$verdict_count" == 1 ]] ||
+		fail "readiness report must contain exactly one canonical verdict"
+	verdict="$(awk '$0 == "**Verdict: GO.**" || $0 == "**Verdict: NO-GO.**" { print; exit }' "$report")"
+	if [[ "$verdict" == "**Verdict: NO-GO.**" ]]; then
 		fail "readiness report is NO-GO; preflight cannot authorize campaign work"
 	fi
-	grep -Eq '^\*\*GO\.\*\*$' "$report" ||
-		fail "readiness report has no exact GO verdict"
+	[[ "$verdict" == "**Verdict: GO.**" ]] ||
+		fail "readiness report has no exact canonical GO verdict"
 	pass "readiness report is GO"
 }
 

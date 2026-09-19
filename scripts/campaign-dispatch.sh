@@ -453,8 +453,13 @@ ledger_path = regular(Path(ledger_path), "campaign ledger")
 readiness_path = regular(Path(readiness_path), "readiness report")
 
 readiness = readiness_path.read_text(encoding="utf-8")
-readiness_lines = {line.strip() for line in readiness.splitlines()}
-if "**NO-GO.**" in readiness_lines or "**GO.**" not in readiness_lines:
+readiness_lines = [line.strip() for line in readiness.splitlines()]
+canonical_verdicts = [
+    line for line in readiness_lines
+    if line in {"**Verdict: GO.**", "**Verdict: NO-GO.**"}
+]
+legacy_verdicts = [line for line in readiness_lines if line in {"**GO.**", "**NO-GO.**"}]
+if legacy_verdicts or canonical_verdicts != ["**Verdict: GO.**"]:
     fail("current readiness report is not exact GO")
 
 ledger = json_file(ledger_path, "campaign ledger")
