@@ -463,8 +463,12 @@ with tempfile.TemporaryDirectory(prefix="tc-proof-qualification-") as directory:
     )
 PY
 
+# The single-quoted strings are intentional: this test searches for literal
+# shell source and must not expand the variables in the pattern.
+# shellcheck disable=SC2016
 grep -Fq 'campaign_require_regular_file "$TASKFMT_BIN" "taskfmt" 1 1' "$PREFLIGHT" ||
 	fail "preflight does not require a single-link taskfmt"
+# shellcheck disable=SC2016
 grep -Fq 'campaign_require_regular_file "$TASKFMT" "taskfmt" 1 1' "$DISPATCH" ||
 	fail "dispatch does not require a single-link taskfmt"
 pass "preflight and dispatch require a single-link taskfmt"

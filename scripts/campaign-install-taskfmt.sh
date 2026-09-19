@@ -5,7 +5,7 @@ set -euo pipefail
 TASKFMT_REV="afd3b575dbcc7044620bec4b9493a74eca3e5ef2"
 TASKFMT_VERSION="0.2.0"
 TASKFMT_SHA256="f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de"
-TASKFMT_SOURCE="/Users/donbeave/Projects/taskfmt/task-format"
+TASKFMT_SOURCE="${TC_TASKFMT_SOURCE:-/Users/donbeave/Projects/taskfmt/task-format}"
 TASKFMT_ROOT="${TC_TASKFMT_INSTALL:-/tmp/taskfmt-latest-install}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 # shellcheck disable=SC1091
