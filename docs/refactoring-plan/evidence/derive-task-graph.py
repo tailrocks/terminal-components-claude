@@ -173,7 +173,6 @@ def describe_contract(root: Path, owner_task_id: str, path: Path, kind: str) -> 
         result["task_metadata"] = {
             "path": relative(root, metadata_path),
             "schema": metadata.get("schema"),
-            "status": metadata.get("status"),
             "dependencies": metadata.get("dependencies"),
         }
     return result
