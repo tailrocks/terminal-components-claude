@@ -10,30 +10,34 @@ that report is fail-closed.
 
 ## Exact candidate, rejected reports, and final seal
 
-The last exact candidate independently audited before this documentation
-refresh was:
+The last exact candidate independently sealed before this documentation repair
+was:
 
 | item | identity |
 | --- | --- |
 | branch | `refactor/holla-parity` |
-| audited commit | `a80c790e2ebba15e4a00e7cff4296eab2a5bccc5` |
-| audited tree | `d765429108cd14109d420faf96ae481e1eae11e1` |
-| audited parent | `2c74b88b9fbfb4568911dc7d57a303a3cb5991cb` |
+| audited commit | `dd26d2e7cc4ebbf1d8f1af4c54e7081744549382` |
+| audited tree | `ed1525875021c613fa9265239ad2f4835f9e1785` |
+| audited parent | `a80c790e2ebba15e4a00e7cff4296eab2a5bccc5` |
 
-The latest exact-tree reports before this documentation refresh are:
+The actual final exact-tree reports for that payload are:
 
-- verifier: `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-refresh-a80c79-2026-09-19/final-verifier-report.md`
-- reviewer: `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-reviewer-refresh-a80c79-2026-09-19/final-reviewer-report.md`
+- verifier: `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md`
+  SHA-256 `a3390e74bd0dc85ca3e0ba62a62bb9c7b139851a952c4203781bde4c57462bc0`
+- reviewer: `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md`
+  SHA-256 `57051451aabf2a31fa1de31cddb4ee3c27f24c281df41755d3846769011fc46d`
 
-Both bind `a80c790e` / `d7654291` and return **REJECTED / NO-GO**. They are
+Both bind `dd26d2e7` / `ed152587` / parent `a80c790e` and return
+**REJECTED / NO-GO**. They are
 external audit reports, not acceptance receipts, and do not authorize
-dispatch, arming, merge, or product acceptance. The earlier `2c74b88b` reports
-remain historical rejected evidence only.
+dispatch, arming, merge, or product acceptance. The earlier
+`a80c790e` / `d7654291` / `2c74b88b` reports are historical rejected evidence
+only; they do not describe the sealed `dd26d2e7` payload.
 
 This bounded repair changes only metadata and the evidence index in these four
 canonical documents. It does not change code, scripts, task contracts, the
 ledger, refs, the protected baseline, or product behavior. This docs-only
-commit creates a new Git commit/tree after the audited payload and therefore
+commit creates a new Git commit/tree after the sealed payload and therefore
 invalidates affected evidence after the commit. A fresh exact-tree
 verifier/reviewer seal must bind the post-commit HEAD/tree before any
 acceptance or dispatch. The final seal uses these predetermined external
@@ -46,6 +50,12 @@ locations, so recording the evidence does not require another source edit:
 
 Any further relevant source, documentation, contract, tool, oracle, or
 environment change invalidates affected evidence.
+
+The earlier `a80c790e2ebba15e4a00e7cff4296eab2a5bccc5` / tree
+`d765429108cd14109d420faf96ae481e1eae11e1` / parent `2c74b88b9fbfb4568911dc7d57a303a3cb5991cb`
+audit and its `final-verifier-refresh-a80c79-2026-09-19` and
+`final-reviewer-refresh-a80c79-2026-09-19` reports are historical provenance
+only. They are superseded by the exact `dd26d2e7` reports above.
 
 The pre-documentation inspection at `bb574d84` / `6e464830` and the
 `74e4ec45` preparation roots are historical provenance only.
@@ -183,6 +193,36 @@ test-list creation with `docker_itest: SKIP`; exit 104) and
 the upstream Docker integration passed. Campaign policy excludes that path;
 it is upstream-only provenance, not a campaign blocker or acceptance input.
 
+### Exact-tag HTML provenance blocker (Galileo audit)
+
+Galileo's independent exact-tag calibration audit identified a
+path-dependent HTML provenance blocker, not a product conclusion. The frozen
+HTML from tag `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` / tree
+`0b1f13431fdfd6060cf9f45a114afa5a99cc6c26` embeds the literal executable
+provenance `/Users/donbeave/Projects/terminal-components-claude/target/debug/<bin>`.
+The verifier-owned real target in the exact-tag run root
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/calibration-baseline-4a79c0a2`
+embeds `RUN/target/debug/<bin>` instead. HTML is therefore not yet a
+qualified exact comparison between those builds.
+
+The tag's `tests/visual_baseline/support.rs` uses compile-time
+`env!("CARGO_BIN_EXE_*")` at lines 35–38 and builds case argv at lines
+423–438. Its `tuisnap` PTY/frame/render/grouped path preserves grouped
+expected/actual/diff/report artifacts and performs byte comparisons. Because
+the executable path is compiled into the binary, `exec -a`, environment
+changes, or a wrapper process cannot repair this provenance after build. The
+historical baseline checkout's `target` is a protected shared-cache symlink to
+`/Users/donbeave/Library/Caches/mbx/targets/v1/8ebb271f62cb4d1ddf4b4e663c9a473e6cc42793d9dfc918efefcd0a8b9ea8e3`; the path contract forbids using that symlink as the verifier target.
+
+The exact-tag run was incomplete/failed; its raw evidence remains under the
+run root above. Galileo observed an HTML byte mismatch during the tag control,
+and no output was normalized or blessed. This is a preparation/provenance
+blocker, not product acceptance or a product regression. Closure requires a
+reviewed exact-safe provenance strategy or an explicitly authorized external
+path that makes the frozen and verifier executable identities comparable,
+followed by a clean exact-tag rerun and byte comparison. Until then the
+preparation remains **NO-GO**.
+
 The detailed exact-candidate audit evidence before this documentation refresh
 is raw and rejected, not an accepted receipt for this documentation tree.
 Report root:
@@ -191,22 +231,23 @@ Report root:
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-a80c79-2026-09-19
 ```
 
-Qualified tool and pre-refresh evidence identities recorded under that root:
+Historical tool and pre-refresh evidence identities recorded under that root:
 
-| check | current evidence and result |
+| check | historical evidence and result |
 | --- | --- |
 | taskfmt | source `/Users/donbeave/Projects/taskfmt/task-format`, revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, source tree `b7d90bd8`, version `0.2.0`, binary `/tmp/taskfmt-latest-install/bin/taskfmt`, SHA-256 `f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de`; `taskfmt-lints-summary.txt` and `taskfmt-lints.exit` record 73/73 standalone lints, exit 0 |
 | proof | `proof-build-target`; `tc-proof-native-build/v1` receipt binds commit `a80c790e` / tree `d7654291`; binary SHA-256 `192423f5c5175cdf1eca9bc963b8e732eff02c39c4dd404c380a0285effbba20`; `proof-nextest.log` / `.exit` record 28 passed, exit 0 |
 | static | `fmt.*`, `clippy.*`, `rustdoc.*`, `bash-n.*`, `shellcheck.*`, and `shfmt.*`; all qualified checks exit 0 |
-| catalog | `plan-validator.*` and `rebundle.*`; 73 tasks, 1,174 source obligations, 3,256 traceability rows, depth 35; exits 0 |
+| catalog | `plan-validator.*` and `rebundle.*`; 73 direct task packages, 77 recursive `verify.toml` files, 506 direct checks, 526 recursive checks, 1,174 source obligations, 3,256 traceability rows, 276 edges, depth 35; exits 0 |
 | docs | `actionlint.*` and `lychee.*`; Lychee 0.24.2 reports 612 total, 604 successful, 8 excluded, 0 errors; exit 0 |
 | expected gate failures | `preflight.log` / `.exit`: exit 1 because readiness is not exact GO; `boundary.log` / `.exit`: exit 1 because `parity/evidence.tsv` is missing |
-| workspace | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-final-a80c790e-2026-09-19/result-summary.txt`; exact final-tree run; result is recorded after completion and remains supporting evidence only |
 
 These passing observations do not override the rejected reports or prove
 acceptance. Their affected evidence is invalid after this docs-only commit;
 the predetermined final seal must rerun and rebind what it uses.
 
+The preceding `$RUN` table is historical evidence bound to the superseded
+`a80c790e` / `d7654291` payload; it is not current exact-tree evidence.
 Superseded pre-documentation paths remain useful only as historical provenance:
 the old `27/27` and `27 passed` proof-nextest logs, proof build
 `proof-preparation-final-2026-09-19` with binary SHA-256
@@ -214,15 +255,27 @@ the old `27/27` and `27 passed` proof-nextest logs, proof build
 `static-final-2026-09-19`, `shell-final-current-2026-09-19`,
 `docs-final-current-retry-2026-09-19`, and
 `taskfmt-lints-final-retry-2026-09-19` are not current evidence. Native Linux
-evidence is unavailable. `xtask boundary` still fails because
-`parity/evidence.tsv` is missing.
+evidence is unavailable. The current exact-tree workspace support result is:
+
+```text
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-final-dd26-2026-09-19/result-summary.txt
+SHA-256: 6971f496cfc91b097a5ec677ad128dc48e7d55e83aebb7ab09af1df8804c8143
+binds: dd26d2e7cc4ebbf1d8f1af4c54e7081744549382 / ed1525875021c613fa9265239ad2f4835f9e1785 / parent a80c790e2ebba15e4a00e7cff4296eab2a5bccc5
+result: cargo nextest 3342 passed (139 binaries, exit 0)
+```
+
+This is supporting Rust workspace evidence only, not a preparation receipt or
+parity acceptance. `xtask boundary` still fails because `parity/evidence.tsv`
+is missing.
 
 ## Task and architecture state
 
-The generated catalog has 73 packages (`001`–`073`), 506 checks (27 `argv`,
-479 `shell`), 276 dependency edges, and maximum dependency depth 35. Plan
-validation reports 1,174 source obligations, 3,256 traceability rows, and zero
-structural errors. All package lints passed; no production task is accepted.
+The generated catalog has 73 direct task packages (`001`–`073`) and 77
+recursive `verify.toml` files, including four nested bootstrap fixtures. It has
+506 direct checks (27 `argv`, 479 `shell`) and 526 recursive checks, 276
+dependency edges, and maximum dependency depth 35. Plan validation reports
+1,174 source obligations, 3,256 traceability rows, and zero structural errors.
+All package lints passed; no production task is accepted.
 
 - `TASK-001` and `TASK-070` are retired/non-qualifying fail-closed historical
   lifecycle tasks. They are not dispatchable implementation work.
@@ -242,21 +295,31 @@ future implementation obligations, not preparation changes.
 
 The evidence index preserves raw paths, the latest exact-tree rejected
 verifier/reviewer reports, calibration roots, and invalidation rules. The
-latest pre-refresh rejected reports are:
+latest exact-tree rejected reports are:
 
 ```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-refresh-a80c79-2026-09-19/final-verifier-report.md
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-reviewer-refresh-a80c79-2026-09-19/final-reviewer-report.md
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md
+SHA-256: a3390e74bd0dc85ca3e0ba62a62bb9c7b139851a952c4203781bde4c57462bc0
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md
+SHA-256: 57051451aabf2a31fa1de31cddb4ee3c27f24c281df41755d3846769011fc46d
 ```
 
-They bind `a80c790e` / `d7654291` and return **REJECTED / NO-GO**. They are
-rejected evidence only: they do not issue a receipt or authorize GO. This
-docs-only repair creates a new tree, so the predetermined final seal must bind
-that post-commit tree; no accepted receipt exists.
+They bind `dd26d2e7` / `ed152587` / parent `a80c790e` and return
+**REJECTED / NO-GO**. They are rejected evidence only: they do not issue a
+receipt or authorize GO. The a80/d765 reports are historical and superseded;
+this docs-only repair creates a new tree, so the predetermined final seal must
+bind that post-commit tree. No accepted receipt exists.
+
+The tracked
+[`current-preparation-2026-09-18.md`](evidence/current-preparation-2026-09-18.md)
+is explicitly superseded by this 2026-09-19 index. It remains unchanged as
+historical provenance, including its original bindings and raw evidence root;
+its observations do not authorize the current tree.
 
 Preparation blockers remain: clean post-refresh verifier/reviewer
-sealing; complete native proof/result/receipt qualification; a clean
-deterministic 892-source calibration; the missing `parity/evidence.tsv`; full
+sealing; complete native proof/result/receipt qualification; path-dependent
+HTML provenance for the exact-tag calibration; a clean deterministic
+892-source calibration; the missing `parity/evidence.tsv`; full
 visual/behavioral/product parity; unavailable native Linux; absent
 `TASK-071`/`TASK-072` dependency receipts; and no accepted preparation
 receipt. The upstream Docker-only taskfmt path is policy-excluded and is not a

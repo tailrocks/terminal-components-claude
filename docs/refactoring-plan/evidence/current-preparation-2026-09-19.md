@@ -6,25 +6,28 @@ decision. Raw evidence remains outside the checkout. Status is **NO-GO**.
 
 ## 1. Exact candidate, rejected reports, and Git evidence
 
-The latest exact candidate audited before this documentation refresh is:
+The last exact candidate independently sealed before this documentation repair
+is:
 
 ```text
 branch: refactor/holla-parity
-commit: a80c790e2ebba15e4a00e7cff4296eab2a5bccc5
-tree:   d765429108cd14109d420faf96ae481e1eae11e1
-parent: 2c74b88b9fbfb4568911dc7d57a303a3cb5991cb
+commit: dd26d2e7cc4ebbf1d8f1af4c54e7081744549382
+tree:   ed1525875021c613fa9265239ad2f4835f9e1785
+parent: a80c790e2ebba15e4a00e7cff4296eab2a5bccc5
 ```
 
-Latest exact-tree reports bound to that payload before this documentation
-refresh:
+Actual final exact-tree reports bound to that payload:
 
 ```text
-verifier: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-refresh-a80c79-2026-09-19/final-verifier-report.md
-reviewer: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-reviewer-refresh-a80c79-2026-09-19/final-reviewer-report.md
+verifier: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md
+SHA-256: a3390e74bd0dc85ca3e0ba62a62bb9c7b139851a952c4203781bde4c57462bc0
+reviewer: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md
+SHA-256: 57051451aabf2a31fa1de31cddb4ee3c27f24c281df41755d3846769011fc46d
 decision: REJECTED / NO-GO (both reports)
 ```
 
-These reports are audit evidence, not acceptance receipts. This bounded repair
+These reports bind `dd26d2e7` / `ed152587` / parent `a80c790e` and are audit
+evidence, not acceptance receipts. This bounded repair
 changes only metadata and the evidence index in the four canonical docs; it
 does not change code, scripts, task contracts, the ledger, refs, the protected
 baseline, or product behavior. The repair creates a new Git commit/tree after
@@ -39,6 +42,17 @@ before acceptance or dispatch. The predetermined final seal locations are:
 
 Any further relevant source, documentation, contract, tool, oracle, or
 environment change invalidates affected evidence.
+
+The earlier `a80c790e` / `d7654291` / `2c74b88b` payload and its
+`final-verifier-refresh-a80c79-2026-09-19` / `final-reviewer-refresh-a80c79-2026-09-19`
+reports are historical rejected provenance only. They are superseded by the
+exact `dd26d2e7` reports above.
+
+The tracked
+[`current-preparation-2026-09-18.md`](current-preparation-2026-09-18.md) is
+explicitly superseded by this 2026-09-19 index. It remains unchanged for
+provenance, including its original bindings and raw evidence root; its
+observations do not authorize the current sealed payload.
 
 The pre-repair inspection identity and preparation commits remain historical
 provenance:
@@ -187,21 +201,24 @@ python3 -B docs/refactoring-plan/evidence/validate-plan.py --summary
   3,256 traceability rows; maximum dependency depth 35
 
 task catalog
-  73 packages; 506 checks (27 argv, 479 shell); 276 dependency edges;
-  0 structural graph errors; 0 accepted production tasks
+  73 direct task packages; 77 recursive verify.toml files (four nested
+  bootstrap fixtures); 506 direct checks (27 argv, 479 shell); 526 recursive
+  checks; 276 dependency edges; maximum depth 35; 0 structural graph errors;
+  0 accepted production tasks
 
 all standalone taskfmt lints
   73/73 passed in the source-payload qualification run
 ```
 
-Fresh proof, static, catalog, and documentation evidence from the rejected
-exact-candidate audit before this documentation refresh is under:
+Historical proof, static, catalog, and documentation evidence from the
+rejected `a80c790e` / `d7654291` audit is under:
 
 ```text
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-a80c79-2026-09-19
 ```
 
-Use `$RUN` below for that pre-refresh root. The evidence is:
+Use `$RUN` below for that historical root. The evidence is not current
+exact-tree acceptance evidence:
 
 | check | root and result |
 | --- | --- |
@@ -209,14 +226,16 @@ Use `$RUN` below for that pre-refresh root. The evidence is:
 | proof build | `$RUN/proof-build-target`; `tc-proof-native-build/v1` receipt binds commit `a80c790e` / tree `d7654291`; binary SHA-256 `192423f5c5175cdf1eca9bc963b8e732eff02c39c4dd404c380a0285effbba20` |
 | proof nextest | `$RUN/proof-nextest.log` / `.exit`; `cargo nextest` 28 passed, exit 0 |
 | static | `$RUN/fmt.*`, `$RUN/clippy.*`, `$RUN/rustdoc.*`, `$RUN/bash-n.*`, `$RUN/shellcheck.*`, `$RUN/shfmt.*`; all exit 0 |
-| catalog | `$RUN/plan-validator.*`, `$RUN/rebundle.*`, and taskfmt lint artifacts; 73 tasks, 1,174 source obligations, 3,256 traceability rows, depth 35; exits 0 |
+| catalog | `$RUN/plan-validator.*`, `$RUN/rebundle.*`, and taskfmt lint artifacts; 73 direct task packages, 77 recursive `verify.toml` files, 506 direct checks, 526 recursive checks, 1,174 source obligations, 3,256 traceability rows, 276 edges, depth 35; exits 0 |
 | documentation | `$RUN/actionlint.*`, `$RUN/lychee.*`; Lychee 0.24.2: 612 total, 604 successful, 8 excluded, 0 errors; exit 0 |
 | expected gate failures | `$RUN/preflight.log` / `.exit`: exit 1 because readiness is not exact GO; `$RUN/boundary.log` / `.exit`: exit 1 because `parity/evidence.tsv` is missing |
 
-These are raw observations bound to the audited exact candidate, not an
-accepted preparation receipt. Affected evidence is invalid after this
-documentation commit. The catalog still records 73 packages, 506 checks, 276
-dependency edges, maximum depth 35, and zero accepted production tasks. The
+These are raw observations bound to the historical `a80c790e` / `d7654291`
+candidate, not an accepted preparation receipt. Affected evidence is invalid
+after the sealed `dd26d2e7` payload. The catalog currently records 73 direct
+task packages, 77 recursive `verify.toml` files, 506 direct checks, 526
+recursive checks, 276 dependency edges, maximum depth 35, and zero accepted
+production tasks. The
 TASK-071/TASK-072 preparation attempt fails closed because dependency receipts
 are absent; no task was accepted. Native proof remains integrity/control
 evidence, not same-user hostile process isolation.
@@ -266,13 +285,16 @@ Independent checks retained from the current audit include:
 The exact final-tree workspace result is recorded at:
 
 ```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-final-a80c790e-2026-09-19/result-summary.txt
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-final-dd26-2026-09-19/result-summary.txt
+SHA-256: 6971f496cfc91b097a5ec677ad128dc48e7d55e83aebb7ab09af1df8804c8143
+binds: dd26d2e7cc4ebbf1d8f1af4c54e7081744549382 / ed1525875021c613fa9265239ad2f4835f9e1785 / parent a80c790e2ebba15e4a00e7cff4296eab2a5bccc5
+result: cargo nextest 3342 passed (139 binaries, exit 0)
 ```
 
 It is supporting evidence only, not a preparation receipt, visual-oracle
-comparison, or product acceptance. It binds the pre-refresh exact candidate;
-this documentation refresh invalidates affected evidence after the commit and
-requires fresh sealing. Boundary validation still fails at missing
+comparison, or product acceptance. It binds the exact `dd26d2e7` payload; this
+documentation repair creates a new tree and invalidates affected evidence
+after the commit, requiring fresh sealing. Boundary validation still fails at missing
 `parity/evidence.tsv`; native Linux is unavailable. The calibration, boundary,
 proof-receipt, and Linux requirements remain open gates, not passes.
 
@@ -297,10 +319,11 @@ Clippy, and rustdoc results; all sealed exit files are zero:
 ```
 
 This closes two preparation defects. The latest exact-tree verifier and
-reviewer reports are separate from those historical repairs and both return
-**REJECTED / NO-GO** for `a80c790e` / `d7654291`; they are not acceptance
-receipts. A fresh verifier and reviewer must return `VERIFIED` for the
-post-refresh documentation tree.
+reviewer reports are separate from those historical repairs, bind
+`dd26d2e7` / `ed152587` / parent `a80c790e`, and both return
+**REJECTED / NO-GO**. Their paths and hashes are recorded in Section 6; they
+are not acceptance receipts. A fresh verifier and reviewer must return
+`VERIFIED` for the post-repair documentation tree.
 
 ## 5. Visual and behavioral calibration evidence
 
@@ -328,6 +351,35 @@ surfaces, two skips, one leak, exit 100, and 17 diff files. It is complete
 coverage evidence, not an accepted calibration. A deterministic clean rerun
 and altered-output negative control remain blockers.
 
+### Exact-tag HTML provenance blocker (Galileo audit)
+
+Galileo's independent audit identifies the exact-tag HTML failure boundary as
+path-dependent executable provenance, not a product result. The frozen tag
+source is `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`, tree
+`0b1f13431fdfd6060cf9f45a114afa5a99cc6c26`; frozen HTML embeds
+`/Users/donbeave/Projects/terminal-components-claude/target/debug/<bin>`.
+The external verifier-owned real target used by the control embeds
+`RUN/target/debug/<bin>` under the run root above. The two compile-time
+executable identities are not the same HTML provenance.
+
+The tag's `tests/visual_baseline/support.rs` lines 35–38 use
+`env!("CARGO_BIN_EXE_*")`; lines 423–438 construct the executable argv. The
+tag suite imports the `tuisnap` PTY/frame/render/grouped machinery, preserves
+grouped expected/actual/diff/report artifacts, and performs byte comparisons.
+`exec -a`, environment changes, and wrapper processes cannot change a path
+already embedded by `env!` at compile time. The protected historical baseline
+checkout's `target` is a shared-cache symlink to
+`/Users/donbeave/Library/Caches/mbx/targets/v1/8ebb271f62cb4d1ddf4b4e663c9a473e6cc42793d9dfc918efefcd0a8b9ea8e3`;
+the current path contract forbids using that symlink as a verifier target.
+
+The exact-tag run was incomplete/failed. Galileo observed an HTML byte
+mismatch in the raw run; no output was normalized or blessed, and the run is
+not a calibration pass. This is a preparation blocker, not product acceptance
+evidence. Closure requires a reviewed exact-safe provenance strategy or an
+explicitly authorized external path that makes the frozen and verifier
+executable identities comparable, followed by a clean exact-tag rerun and
+byte comparison. Without that evidence, readiness remains **NO-GO**.
+
 The final matrix must exercise exact ANSI/plain/PNG/HTML equality, all five
 sizes (`72x20`, `80x24`, `100x30`, `120x40`, `160x50`), all five color modes,
 all applications/fixtures/routes/checkpoints, and PTY setup/input/resize/
@@ -338,16 +390,20 @@ sleeps.
 
 ## 6. Rejected verifier/reviewer evidence
 
-The latest exact-tree external reports before this documentation refresh
-exist and are rejected:
+The latest exact-tree external reports for the sealed `dd26d2e7` payload exist
+and are rejected:
 
 ```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-refresh-a80c79-2026-09-19/final-verifier-report.md
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-reviewer-refresh-a80c79-2026-09-19/final-reviewer-report.md
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md
+SHA-256: a3390e74bd0dc85ca3e0ba62a62bb9c7b139851a952c4203781bde4c57462bc0
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md
+SHA-256: 57051451aabf2a31fa1de31cddb4ee3c27f24c281df41755d3846769011fc46d
 ```
 
-Both bind `a80c790e` / `d7654291` and return **REJECTED / NO-GO**. They are
-not acceptance receipts. These roots are also preserved but rejected or stale;
+Both bind `dd26d2e7` / `ed152587` / parent `a80c790e` and return
+**REJECTED / NO-GO**. They are not acceptance receipts. The older
+`a80c790e` / `d7654291` / `2c74b88b` reports are historical rejected
+provenance only. These roots are also preserved but rejected or stale;
 they must never be treated as current receipts:
 
 ```text
@@ -361,10 +417,10 @@ they must never be treated as current receipts:
 
 They bind earlier candidates, report explicit rejection, or lack the required
 complete current-tree evidence. Bernoulli's rejection was repaired through the
-two trust-path commits, but it is not a final approval. The pre-refresh reports
-reject the audited exact candidate; a fresh verifier/reviewer seal must return
-`VERIFIED` for the post-refresh documentation tree. The predetermined
-final-seal paths are:
+two trust-path commits, but it is not a final approval. The exact `dd26d2e7`
+reports reject readiness; a fresh verifier/reviewer seal must return `VERIFIED`
+for the post-repair documentation tree. The predetermined final-seal paths
+are:
 
 ```text
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md
@@ -377,10 +433,10 @@ The runtime ledger is `.campaign/ledger.json`, schema `campaign-ledger/v1`,
 with four blocked historical rows and no accepted production rows. Its required
 state is `armed=false`. It is ignored runtime state, not a tracked receipt.
 
-The refreshed ledger state observed by the pre-refresh exact-tree reports was
+The refreshed ledger state observed by the exact `dd26d2e7` reports was
 schema-valid with
 `integration_ref=refs/heads/refactor/holla-parity`,
-`integration_head=a80c790e2ebba15e4a00e7cff4296eab2a5bccc5`,
+`integration_head=dd26d2e7cc4ebbf1d8f1af4c54e7081744549382`,
 `armed=false`, and no preparation receipt. The new documentation tree requires
 fresh ledger binding; this repair does not modify the ledger.
 
@@ -407,6 +463,7 @@ evidence never silently authorizes a changed tree.
 | `parity/evidence.tsv` | missing; boundary gate fails |
 | `TASK-071` / `TASK-072` dependency receipts | absent |
 | native Linux | unavailable |
+| exact-tag HTML executable provenance | unresolved preparation blocker; frozen `/Users/donbeave/Projects/terminal-components-claude/target/debug/<bin>` and verifier-owned `RUN/target/debug/<bin>` are not yet proven safely comparable; no normalization/blessing |
 | latest pre-refresh independent verifier/reviewer | exact-tree reports exist; both `REJECTED / NO-GO`; no `VERIFIED` result |
 | final external seal for this documentation tree | predetermined external paths; must be created after this commit |
 | repaired trust paths | defects fixed; exact final-tree verifier/reviewer requalification pending |

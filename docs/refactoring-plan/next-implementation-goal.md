@@ -6,15 +6,23 @@ NO-GO, the current ledger must remain `armed=false`, and no production task may
 be dispatched. The prompt becomes eligible only after a separate readiness
 revalidation and explicit authorization.
 
-The latest exact-tree verifier and reviewer reports before this documentation
-refresh bind `a80c790e` / `d7654291` and both return **REJECTED / NO-GO**. They
-are not acceptance receipts. This documentation-only repair changes metadata
-and the evidence index; it creates a new tree and requires another fresh seal
-after the commit. The final seal is predetermined at:
+The latest exact-tree verifier and reviewer reports bind the last sealed
+preparation payload `dd26d2e7` / tree `ed152587` / parent `a80c790e` and both
+return **REJECTED / NO-GO**. They are not acceptance receipts. This
+documentation-only repair changes metadata and the evidence index; it creates
+a new tree and requires another fresh seal after the commit. The final seal is
+predetermined at:
 
 ```text
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md
+```
+
+Report hashes:
+
+```text
+verifier SHA-256: a3390e74bd0dc85ca3e0ba62a62bb9c7b139851a952c4203781bde4c57462bc0
+reviewer SHA-256: 57051451aabf2a31fa1de31cddb4ee3c27f24c281df41755d3846769011fc46d
 ```
 
 ## Objective
@@ -36,11 +44,11 @@ the visual validation contract. Then require these identities to be freshly
 revalidated; the values below are preparation references, not permission:
 
 ```text
-last independently audited candidate before this documentation refresh:
+last independently sealed preparation payload before this documentation repair:
   branch refactor/holla-parity
-  commit a80c790e2ebba15e4a00e7cff4296eab2a5bccc5
-  tree d765429108cd14109d420faf96ae481e1eae11e1
-  parent 2c74b88b9fbfb4568911dc7d57a303a3cb5991cb
+  commit dd26d2e7cc4ebbf1d8f1af4c54e7081744549382
+  tree ed1525875021c613fa9265239ad2f4835f9e1785
+  parent a80c790e2ebba15e4a00e7cff4296eab2a5bccc5
 
 protected visual tag:
   refs/tags/visual-baseline^{commit}
@@ -78,17 +86,23 @@ latest pre-refresh rejected-audit evidence (not authorization), RUN=/Users/donbe
   static RUN/fmt.*, RUN/clippy.*, RUN/rustdoc.*, RUN/bash-n.*, RUN/shellcheck.*, RUN/shfmt.*
     all exit 0
   catalog RUN/plan-validator.*, RUN/rebundle.*, RUN/taskfmt-lints-summary.txt
-    73 tasks, 1,174 source obligations, 3,256 traceability rows, depth 35; exit 0
+    73 direct task packages, 77 recursive verify.toml files;
+    506 direct / 526 recursive checks; 276 edges; 1,174 source obligations;
+    3,256 traceability rows; depth 35; exit 0
   docs RUN/actionlint.* and RUN/lychee.*
     Lychee 0.24.2: 612 total, 604 successful, 8 excluded, 0 errors; exit 0
-  workspace /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-final-a80c790e-2026-09-19/result-summary.txt
-    exact final-tree workspace result; supporting evidence only, not acceptance
+  workspace /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-final-dd26-2026-09-19/result-summary.txt
+    SHA-256 6971f496cfc91b097a5ec677ad128dc48e7d55e83aebb7ab09af1df8804c8143
+    binds dd26d2e7cc4ebbf1d8f1af4c54e7081744549382 / ed1525875021c613fa9265239ad2f4835f9e1785 / parent a80c790e2ebba15e4a00e7cff4296eab2a5bccc5
+    cargo nextest 3342 passed (139 binaries, exit 0); supporting evidence only, not acceptance
 
-These observations bind the pre-refresh exact candidate and are not acceptance. The
-docs-only commit invalidates affected evidence; a fresh seal must bind the
-post-refresh HEAD/tree. Any relevant source, documentation, contract,
-tool, oracle, environment, or generated-output change invalidates affected
-evidence.
+The taskfmt, proof, static, and catalog observations in the pre-refresh block
+bind the historical `a80c790e` / `d7654291` payload. The report identities at
+the top bind `dd26d2e7` / `ed152587` and are rejected; the `dd26d2e7` workspace
+result is current supporting evidence for that sealed payload, not a receipt.
+The docs-only commit invalidates affected evidence; a fresh seal must bind the
+post-refresh HEAD/tree. Any relevant source, documentation, contract, tool,
+oracle, environment, or generated-output change invalidates affected evidence.
 ```
 
 The exact read-only oracle import is
@@ -123,19 +137,28 @@ leaky, exit 100, 7,550 artifacts of each type, 17 diff files. Raw summary
 SHA-256 is
 `33034862cfb3d7ae2676bbe01269db5ac0c1af6d3cf6e61896f408c36eb14d3c`.
 
+The qualified taskfmt source also contains an upstream-only opt-in Docker
+integration at the same revision/tree. Its exact evidence is
+`harness/tests/docker_itest.rs`, `harness/tests/run_docker_itest.sh`,
+`harness/README.md`, and `docs/monitoring.md`; it requires
+`TASKFMT_ITEST_DOCKER=1`, `cargo test`, a live Docker daemon, and a harness
+image. The campaign forbids Docker/containers and permits only standalone
+`taskfmt lint`/`verify`. The path was not run and no upstream Docker
+qualification is claimed; it is policy-excluded/upstream-only, not a campaign
+blocker or acceptance input.
+
 ## Startup gate — reject dispatch now
 
 The implementation coordinator must exit nonzero before spawning any
 implementer if any condition below is false:
 
 1. The readiness report says `**GO.**`, not NO-GO, and the exact current
-   post-refresh HEAD/tree/parent is independently sealed. The latest rejected
-   pre-refresh candidate was commit `a80c790e2ebba15e4a00e7cff4296eab2a5bccc5`,
-   tree `d765429108cd14109d420faf96ae481e1eae11e1`, parent
-   `2c74b88b9fbfb4568911dc7d57a303a3cb5991cb`; those reports are rejected and
-   this documentation refresh creates another tree. Revalidate exact
-   HEAD/tree after the commit. The current report says NO-GO: therefore this
-   prompt is **NOT AUTHORIZED FOR EXECUTION**.
+   post-refresh HEAD/tree/parent is independently sealed. The current
+   `dd26d2e7` / `ed152587` reports above are rejected; the earlier
+   `a80c790e` / `d7654291` / `2c74b88b` evidence is historical and rejected,
+   not current authorization. This documentation refresh creates another
+   tree. Revalidate exact HEAD/tree after the commit. The current report says
+   NO-GO: therefore this prompt is **NOT AUTHORIZED FOR EXECUTION**.
 2. The protected tag peel, tag tree, snapshot tree, grouped oracle store,
    fixtures, manifests, and expected artifacts match the exact read-only
    import. Any mismatch stops the run.
@@ -147,7 +170,8 @@ implementer if any condition below is false:
    receipt exists and no production row is accepted from inspection, lint,
    stale evidence, or a future result. A separate explicit authorization step
    must occur after readiness recheck and before arming dispatch.
-5. The 73-package catalog and generated DAG validate: 506 checks, 276 edges,
+5. The 73 direct task packages and 77 recursive `verify.toml` files and
+   generated DAG validate: 506 direct / 526 recursive checks, 276 edges,
    maximum depth 35, no cycles/dangling IDs/conflicts, and all original tasks
    are mapped. `TASK-001`/`TASK-070` remain retired fail-closed tasks;
    `TASK-071`/`TASK-072` require fresh accepted qualification before use;
@@ -179,9 +203,8 @@ implementer if any condition below is false:
    /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md
    ```
 
-   The latest pre-refresh reports return `REJECTED / NO-GO` for commit
-   `a80c790e` / tree `d7654291`; they are not receipts. The preserved older
-   rejected roots are also not receipts:
+   The historical `a80c790e` / `d7654291` reports return `REJECTED / NO-GO`;
+   they are not receipts. The preserved older rejected roots are also not receipts:
 
    ```text
    /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-proof-requal-b20ca5c6
@@ -195,7 +218,17 @@ implementer if any condition below is false:
     with every subagent configured as `gpt-5.6-luna` at `max` reasoning effort;
     no unbounded dispatch, alternate model, container, or lifecycle
     orchestrator is permitted.
-11. The full visual, behavioral, PTY/lifecycle, product, performance,
+11. Exact-tag HTML provenance is qualified: the frozen tag's compiled
+    `/Users/donbeave/Projects/terminal-components-claude/target/debug/<bin>`
+    identity and the verifier-owned real `RUN/target/debug/<bin>` identity are
+    reconciled by a reviewed exact-safe provenance strategy or explicitly
+    authorized external path. `tests/visual_baseline/support.rs` lines 35–38
+    use compile-time `env!("CARGO_BIN_EXE_*")`; `exec -a`, environment changes,
+    and wrappers cannot repair that path after compilation. The protected
+    shared-cache target symlink is forbidden by the path contract. The exact
+    tag must then rerun and pass byte-for-byte without normalization or
+    blessing.
+12. The full visual, behavioral, PTY/lifecycle, product, performance,
     architecture, and merge-readiness gates below pass for the exact final
     tree. The handoff stops at merge readiness; it grants no permission to
     merge.
@@ -206,9 +239,14 @@ skip/allow-failure, or treating an unavailable check as pass.
 Current refusal facts are binding: the 892 control covers 302 cases with 298
 passed, 4 failed, 2 skipped, 1 leaky, exit 100, 7,550 ANSI/plain/PNG/HTML
 artifacts each (30,200 total), and 17 diff files; native Linux is unavailable;
-`parity/evidence.tsv` is missing; `TASK-071`/`TASK-072` dependency receipts
-are absent; no accepted preparation receipt exists; and the ledger remains
-`armed=false`.
+`parity/evidence.tsv` is missing; exact-tag HTML executable provenance is
+unresolved; `TASK-071`/`TASK-072` dependency receipts are absent; no accepted
+preparation receipt exists; and the ledger remains `armed=false`.
+
+The tracked
+[`current-preparation-2026-09-18.md`](evidence/current-preparation-2026-09-18.md)
+is explicitly superseded by the 2026-09-19 evidence index. It remains only
+historical provenance and cannot authorize this goal.
 
 ## Evidence invalidation
 
