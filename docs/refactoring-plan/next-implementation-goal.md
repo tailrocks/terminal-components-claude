@@ -5,19 +5,35 @@ not permission to run. Current readiness is **NO-GO**; ledger
 `.campaign/ledger.json` is `armed: false`; no task, worktree, receipt, push, or
 merge may be created from this document.
 
-## 1. Exact starting binding
+## 1. Two-layer starting protocol
 
-The source candidate for all current claims is branch `refactor/holla-parity`,
-commit `14aa8ed0469219ff8f6570be7824e5ade39240cc`, tree
-`f3ef0f6badd01161bc24cdfef5161db55ba5d579`, parent
-`96c6c475b5d22193b7539565fa5b4612a88ea007`. The current independent verifier
-run is:
+Layer 1 is the verified preparation payload, historical/tested only and never
+the current final-tree binding:
 
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-14aa8ed-lagrange/VERDICT.md`
+- branch observed during the payload test: `refactor/holla-parity`;
+- commit `14aa8ed0469219ff8f6570be7824e5ade39240cc`;
+- tree `f3ef0f6badd01161bc24cdfef5161db55ba5d579`;
+- parent `96c6c475b5d22193b7539565fa5b4612a88ea007`;
+- tested run root
+  `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-14aa8ed-lagrange`;
+- tested verdict: **REJECTED**.
 
-Its verdict is **REJECTED**. Proof qualification subchecks pass, but this
-candidate is not accepted for preparation GO: dispatcher verify exits `1` with
-`RESULT FAIL`, preflight exits `1` at NO-GO, and calibration is unresolved.
+The Layer-1 proof qualification subchecks pass, but dispatcher verify exits
+`1` with `RESULT FAIL`, preflight exits `1` at NO-GO, and calibration is
+unresolved. These are historical/tested payload facts.
+
+Layer 2 is the evidence-only docs package. Its parent is commit
+`3b79d3403d52ededca087d62dccb9ad4474c105b` with tree
+`d6b85e1feb8e89f25cae6db360b92f071a4c4f43`. Final sealing is external and
+predeclared at:
+
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed`
+
+The final verifier’s manifest from that run root must bind the actual clean
+HEAD/tree, task contracts, qualified tools, oracle identities, and receipts.
+This docs package does not self-attest final tree identity. Any subsequent
+relevant edit invalidates the final sealing run and requires fresh external
+verification.
 
 The verifier setting is inherited `gpt-5.6-luna/max`. Its verifier-owned proof
 receipt is schema `tc-proof-native-build/v1`, binary SHA-256
@@ -36,7 +52,8 @@ The protected oracle is tag ref object
 and 30,200 artifacts: 7,550 each ANSI, plain text, PNG, and HTML. The ledger
 is `campaign-ledger/v1`, has four rows, and is `armed=false`.
 
-Current calibration is 302 selected, 301 passed, 1 failed, and 2 skipped. The
+The preserved calibration evidence is 302 selected, 301 passed, 1 failed, and
+2 skipped. The
 sole failure is `tablepro_connections_form_advanced_120x40_truecolor`, with
 24/100 matching and 76/100 mismatching artifacts. Independent history
 establishes a mixed frozen-oracle state. No oracle, snapshot, expected
@@ -49,14 +66,20 @@ subagent:
 
 1. Read `AGENTS.md`, this goal, the current readiness report, all current
    contracts, and the generated task graph.
-2. Verify the live branch, expected parent, candidate source identity, clean
-   worktree, protected tag peel/tree, snapshot inventory, taskfmt identity, and
-   ledger schema/armed state.
+2. Require the external final-sealing manifest from
+   `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed`.
+   That manifest, not this docs package, must report the actual live HEAD/tree,
+   parent, branch, clean-worktree state, task contracts, tool identities,
+   oracle identities, and receipts.
 3. Reject immediately if the readiness report is **NO-GO**. This includes the
    current run. **NO-GO never authorizes execution.**
-4. Reject immediately if evidence is stale, missing, self-attested,
-   candidate-generated, unqualified, rejected, blocked, unknown, or bound to
-   any other commit, tree, parent, branch, task, run, oracle, taskfmt binary,
+4. Reject immediately if evidence is stale, missing, self-attested by the docs
+   package, candidate-generated, unqualified, rejected, blocked, unknown, or
+   bound to the historical/tested Layer-1 payload when a final-tree binding is
+   required. The `14aa…` payload and `verifier-14aa8ed-lagrange` run are
+   historical evidence only.
+   Reject evidence bound to any other commit, tree, parent, branch, task, run,
+   oracle, taskfmt binary,
    proof binary, or configuration.
 5. Reject immediately while the ledger is `armed=false`, has no current
    accepted dependency rows, or lacks the authorized workflow’s explicit arm.
@@ -64,8 +87,8 @@ subagent:
    selected cases pass, zero fail, zero skip, and the full frozen inventory
    still has exactly 7,550 keys and 30,200 artifacts.
 7. Reject immediately unless the independent verifier and reviewer both return
-   accepted evidence for the exact source tree. The current verifier verdict
-   is **REJECTED**, so startup must stop.
+   accepted evidence for the exact final tree in the external manifest. The
+   Layer-1 tested verdict is **REJECTED**, so startup must stop.
 8. Reject any tag, snapshot, grouped-store, expected-artifact, baseline,
    ledger, task-contract, or generated-file mutation before execution.
 9. Reject Docker, Podman, containers, images, mounts, firmlinks, and the old
@@ -83,6 +106,10 @@ Apply these rules to every proof, task, calibration, and review result:
   scripts, fixtures, oracle identity, nextest/taskfmt configuration, tool
   binary, branch parent, ledger, or protected-ref identity invalidates all
   source-bound receipts. Rerun from a clean tree; do not edit a receipt.
+- The final sealing manifest is valid only for the exact run root, HEAD/tree,
+  task contracts, tools, oracle, and receipts it records. Any subsequent
+  relevant edit invalidates the run, even when the edit is documentation-only;
+  create a new external final-sealing run.
 - A receipt must bind task/check/run IDs, source commit/tree/parent, scope base,
   oracle tag/manifest/snapshot tree, taskfmt revision/version/SHA, proof binary
   path/SHA, context index, observer capability, result paths, and exact raw
@@ -121,7 +148,8 @@ All roles use isolated host-local macOS environments and
   external run/target directory, builds native `tc-proof`, materializes exact
   contexts/index/observer/result capabilities, runs only standalone taskfmt
   `lint` and `verify`, runs native behavior and affected-oracle checks, and
-  records raw evidence.
+  records raw evidence plus the final manifest’s actual HEAD/tree. The docs
+  package never supplies that identity.
 - **Independent reviewer:** independently checks scope, ancestry, tool/source
   identities, proof provenance, behavior, visual results, architecture
   ownership, forbidden mutations, and all raw outcomes. It returns
@@ -244,7 +272,9 @@ native macOS proof.
 
 ## 8. Final merge-readiness, without merge permission
 
-The coordinator may report a future branch **merge-ready** only after:
+The coordinator may report a future branch **merge-ready** only after the
+external final-sealing manifest at `.../verifier-final-sealed` records the
+actual final HEAD/tree and:
 
 1. readiness changes to GO from a newly sealed, exact-tree report;
 2. all preparation blockers and all 73 DAG tasks have accepted verifier and

@@ -3,28 +3,41 @@
 Status: **NO-GO; preparation only; `.campaign/ledger.json` is `armed: false`**
 (2026-09-19).
 
-This directory is the current preparation record for `refactor/holla-parity`.
-It does not authorize `/goal`, task dispatch, implementation work, ledger
-arming, push, or merge.
+This directory is an evidence-only preparation package for
+`refactor/holla-parity`. It does not authorize `/goal`, task dispatch,
+implementation work, ledger arming, push, or merge.
 
-## Current source and proof binding
+## Two-layer sealing protocol
 
-All current source claims in this preparation record bind to the candidate
-source commit `14aa8ed0469219ff8f6570be7824e5ade39240cc`, tree
-`f3ef0f6badd01161bc24cdfef5161db55ba5d579`, and parent
-`96c6c475b5d22193b7539565fa5b4612a88ea007` on branch
-`refactor/holla-parity`. The documentation-only commit that updates these four
-files is not a replacement source candidate and carries no proof receipt.
+Layer 1 is the verified preparation payload, retained as historical/tested
+evidence only. It is **never** the current final-tree binding:
 
-The current independent verifier is:
+- payload commit `14aa8ed0469219ff8f6570be7824e5ade39240cc`;
+- payload tree `f3ef0f6badd01161bc24cdfef5161db55ba5d579`;
+- payload parent `96c6c475b5d22193b7539565fa5b4612a88ea007`;
+- tested verifier run
+  `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-14aa8ed-lagrange`;
+- tested verdict `VERDICT.md`: **REJECTED**.
 
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-14aa8ed-lagrange/VERDICT.md`
+Its proof qualification subchecks pass, but TASK-001 dispatcher verification
+exits `1` with `RESULT FAIL`, readiness preflight exits `1` at the explicit
+NO-GO gate, and the existing full calibration is not clean. These facts are
+historical/tested payload evidence, not current final-tree evidence.
 
-Its verdict for the exact candidate is **REJECTED**. Proof qualification
-subchecks pass, but TASK-001 dispatcher verification exits `1` with
-`RESULT FAIL`, readiness preflight exits `1` at the explicit NO-GO gate, and
-the existing full calibration is not clean. No accepted verifier/reviewer
-receipt exists. The complete evidence index is
+Layer 2 is this evidence-only docs package. Its package parent is commit
+`3b79d3403d52ededca087d62dccb9ad4474c105b` with tree
+`d6b85e1feb8e89f25cae6db360b92f071a4c4f43`. Final sealing is external and
+predeclared at:
+
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed`
+
+Only the final verifier’s manifest from that run root may bind the actual
+final HEAD/tree, task contracts, qualified tools, oracle identities, and
+receipts. This docs package does not self-attest the final tree identity. Any
+subsequent relevant edit invalidates the final sealing run and requires a new
+external verification.
+
+The complete evidence index is
 [`evidence/current-preparation-2026-09-19.md`](evidence/current-preparation-2026-09-19.md).
 
 This documentation update changes only the four canonical documents named in
@@ -74,20 +87,22 @@ revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, version `0.2.0`, binary
 `f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de`.
 Only standalone `lint` and `verify` are permitted.
 
-The verifier-owned native proof build is schema `tc-proof-native-build/v1`,
+The Layer-1 tested native proof build is schema `tc-proof-native-build/v1`,
 binary SHA-256
 `a3b7712ab7c3ea22940ffe915a2328d25767d35e5253e9df82776db0d3b70fcc`, bound
-to candidate commit `14aa8ed0469219ff8f6570be7824e5ade39240cc` and tree
-`f3ef0f6badd01161bc24cdfef5161db55ba5d579`. The proof qualification run
+to the historical/tested Layer-1 payload, not the final docs tree. Its
+qualification run
 passed 26/26 locked nextest tests, 72/72 comparator cases over 141 invocations
 with 0 failures, all 7 external-binding negative controls, native observer
 launch/validate, plan/DAG/path/freeze checks, and 73/73 taskfmt lints. Those
-passes do not override the overall **REJECTED** verdict.
+passes do not override the Layer-1 **REJECTED** verdict or seal Layer 2.
 
 ## Current blockers
 
 - TASK-001 dispatcher verify exits `1` (`RESULT FAIL`) on scope/forbidden-path
   checks and the intentional NO-GO checks; preflight exits `1` fail-closed.
+- No accepted Layer-2 final-sealing manifest is claimed here; final HEAD/tree
+  identity remains for the external verifier at `verifier-final-sealed`.
 - The auxiliary copied-runner style-timing self-test fails with
   `FileNotFoundError` for sibling `runner-bootstrap-index.py`. It is recorded
   as **unqualified**, visible evidence; it is not hidden or counted as a pass.

@@ -8,26 +8,43 @@
 **NO-GO.**
 
 The branch is campaign/proof scaffolding. No production refactoring task has
-been dispatched, no task is accepted, and product parity is unproven. All
-current source claims in this report bind to candidate commit
-`14aa8ed0469219ff8f6570be7824e5ade39240cc`, tree
-`f3ef0f6badd01161bc24cdfef5161db55ba5d579`, parent
-`96c6c475b5d22193b7539565fa5b4612a88ea007`, branch
-`refactor/holla-parity`. The four-document update is documentation-only and
-does not create a new source candidate or receipt.
+been dispatched, no task is accepted, and product parity is unproven.
 
-The independent verifier at
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-14aa8ed-lagrange/VERDICT.md`
-returned **REJECTED** for that exact candidate. Proof qualification subchecks
-pass, but dispatcher verification and readiness preflight fail closed, and
-calibration is incomplete. Therefore no accepted verifier/reviewer receipt,
-ledger arm, dispatch, push, merge, or GO decision exists.
+### Two-layer sealing protocol
+
+Layer 1 is the verified preparation payload, retained as historical/tested
+evidence only and never as the current final-tree binding:
+
+- commit `14aa8ed0469219ff8f6570be7824e5ade39240cc`;
+- tree `f3ef0f6badd01161bc24cdfef5161db55ba5d579`;
+- parent `96c6c475b5d22193b7539565fa5b4612a88ea007`;
+- run root `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-14aa8ed-lagrange`;
+- verdict `VERDICT.md`: **REJECTED**.
+
+Its proof qualification subchecks pass, but dispatcher verification and
+readiness preflight fail closed, and calibration is incomplete. These are
+historical/tested payload facts, not current final-tree evidence.
+
+Layer 2 is this evidence-only docs package. Its package parent is commit
+`3b79d3403d52ededca087d62dccb9ad4474c105b` with tree
+`d6b85e1feb8e89f25cae6db360b92f071a4c4f43`. Final sealing is external at the
+predeclared run root
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed`.
+Only the final verifier’s manifest from that root may bind actual HEAD/tree,
+task contracts, qualified tools, oracle identities, and receipts. This report
+does not self-attest final tree identity. Any subsequent relevant edit
+invalidates the run and requires fresh external sealing.
+
+Therefore no accepted verifier/reviewer receipt, ledger arm, dispatch, push,
+merge, or GO decision exists.
 
 ## B. Fixed identities and trust roots
 
 | Input | Bound identity |
 |---|---|
-| Source candidate | commit `14aa8ed0469219ff8f6570be7824e5ade39240cc`; tree `f3ef0f6badd01161bc24cdfef5161db55ba5d579`; parent `96c6c475b5d22193b7539565fa5b4612a88ea007` |
+| Layer-1 tested payload | commit `14aa8ed0469219ff8f6570be7824e5ade39240cc`; tree `f3ef0f6badd01161bc24cdfef5161db55ba5d579`; parent `96c6c475b5d22193b7539565fa5b4612a88ea007`; historical/tested only |
+| Layer-2 docs package parent | commit `3b79d3403d52ededca087d62dccb9ad4474c105b`; tree `d6b85e1feb8e89f25cae6db360b92f071a4c4f43`; evidence-only |
+| Final seal authority | external verifier manifest under `.../verifier-final-sealed`; actual HEAD/tree determined there |
 | Protected oracle tag object | `1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5` |
 | Peeled `visual-baseline` commit | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
 | Baseline tree | `0b1f13431fdfd6060cf9f45a114afa5a99cc6c26` |
@@ -43,10 +60,11 @@ expected artifacts are read-only policy inputs. The observed tag-derived
 inventory is unchanged. Provider-enforced immutability is not assumed;
 repository policy is the guard.
 
-## C. Current evidence
+## C. Layer-1 evidence — historical/tested payload
 
-The verifier setting was inherited `gpt-5.6-luna/max`. The following
-qualification evidence passes:
+The verifier setting for the Layer-1 test was inherited `gpt-5.6-luna/max`.
+The following qualification evidence passes for that historical/tested
+payload:
 
 - locked offline `cargo nextest run --locked --offline -p refactor-proof
   --no-fail-fast`: 26 passed, 0 failed, 0 skipped;
@@ -82,7 +100,8 @@ The auxiliary copied-runner style-timing self-test exits `1` with
 not counted as a pass. The canonical runner checks passed.
 
 No independent reviewer returned `VERIFIED`. No receipt was issued. No
-product full matrix was run by the current verifier.
+product full matrix was run by the Layer-1 verifier. These results do not bind
+the Layer-2 docs package or the final sealing tree.
 
 ## D. Calibration blocker and history
 
@@ -229,7 +248,9 @@ cargo nextest run --locked --workspace --no-fail-fast
 The readiness report stays NO-GO until all of these are closed with fresh,
 independent, source-bound evidence:
 
-- current verifier verdict **REJECTED** and no reviewer acceptance;
+- Layer-1 historical/tested verdict **REJECTED** and no reviewer acceptance;
+- no external final-sealing manifest yet binds the actual Layer-2/final
+  HEAD/tree;
 - dispatcher TASK-001 verify failure and preflight NO-GO exit;
 - auxiliary style-timing diagnostic remains unqualified;
 - calibration is 301/302 with one failure and two skips, including the mixed
@@ -239,8 +260,9 @@ independent, source-bound evidence:
   platform, PTY, ancestry, and full visual gates are not accepted;
 - frozen oracle is external read-only input and is not yet the active branch
   gate; and
-- source-bound evidence must be regenerated and sealed against the exact clean
-  tree used for any future decision.
+- source-bound evidence must be regenerated and sealed by the external final
+  verifier against the exact clean tree used for any future decision; any
+  subsequent relevant edit invalidates that run.
 
 No blocker may be hidden by reducing the matrix, blessing candidate output,
 changing thresholds, weakening provenance, manufacturing a receipt, or

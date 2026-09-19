@@ -1,29 +1,44 @@
 # Current preparation evidence — 2026-09-19
 
 This is a bounded preparation index, not a verifier receipt, task acceptance,
-execution authorization, or GO decision. It records the independent verifier
-run for the exact source candidate and the separate calibration evidence. Raw
+execution authorization, or GO decision. It records two distinct layers. Raw
 evidence remains under the external run roots named below.
 
-## 1. Binding identities
+## 1. Two-layer sealing identities
+
+### Layer 1 — historical/tested preparation payload
+
+The following identities belong only to the verified preparation payload. They
+are historical/tested evidence and are **never** the current final-tree
+binding:
 
 | Item | Exact value |
 |---|---|
-| Branch | `refactor/holla-parity` |
-| Candidate commit | `14aa8ed0469219ff8f6570be7824e5ade39240cc` |
-| Candidate tree | `f3ef0f6badd01161bc24cdfef5161db55ba5d579` |
-| Candidate parent | `96c6c475b5d22193b7539565fa5b4612a88ea007` |
+| Branch observed during payload test | `refactor/holla-parity` |
+| Tested payload commit | `14aa8ed0469219ff8f6570be7824e5ade39240cc` |
+| Tested payload tree | `f3ef0f6badd01161bc24cdfef5161db55ba5d579` |
+| Tested payload parent | `96c6c475b5d22193b7539565fa5b4612a88ea007` |
 | Verifier setting | `gpt-5.6-luna/max` |
-| Verifier run | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-14aa8ed-lagrange` |
-| Verdict file | `.../verifier-14aa8ed-lagrange/VERDICT.md` |
-| Overall verdict | **REJECTED** |
-| Ledger | `.campaign/ledger.json`, schema `campaign-ledger/v1`, 4 rows, `armed=false` |
-| Dispatch / receipt | none / none |
+| Historical/tested run | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-14aa8ed-lagrange` |
+| Historical/tested verdict | `.../verifier-14aa8ed-lagrange/VERDICT.md`: **REJECTED** |
 
-The four-doc commit made after this source candidate is documentation-only. It
-does not change the candidate source binding above, and it does not create a
-proof receipt. Any future execution receipt must bind the exact clean tree it
-actually verifies, including any later documentation tip.
+### Layer 2 — evidence-only docs package and external final seal
+
+The evidence-only docs package parent is commit
+`3b79d3403d52ededca087d62dccb9ad4474c105b` with tree
+`d6b85e1feb8e89f25cae6db360b92f071a4c4f43`. The final sealing run is
+predeclared at:
+
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed`
+
+The final verifier’s manifest from that external root is the sole authority
+for actual final HEAD/tree, task contracts, tool/oracle identities, and
+receipts. This docs package does not self-attest final tree identity. Any
+subsequent relevant edit invalidates that run and requires fresh external
+sealing. No final sealing receipt is claimed here.
+
+The ledger remains `.campaign/ledger.json`, schema `campaign-ledger/v1`, with
+4 rows and `armed=false`; dispatch and accepted receipt remain none.
 
 ## 2. Protected oracle identity
 
@@ -40,13 +55,13 @@ The tag, branch, release, grouped store, fixtures, snapshots, and expected
 artifacts were observed unchanged. They are read-only policy inputs. No
 candidate output was blessed or substituted.
 
-## 3. Proof and taskfmt identities
+## 3. Layer-1 proof and taskfmt identities — historical/tested only
 
 | Item | Exact value |
 |---|---|
 | Native build schema | `tc-proof-native-build/v1` |
 | Native build command | `cargo build --locked --offline -p refactor-proof --bin tc-proof` |
-| Native proof binary | `.../verifier-14aa8ed-lagrange/target/debug/tc-proof` |
+| Historical/tested native proof binary | `.../verifier-14aa8ed-lagrange/target/debug/tc-proof` |
 | Native proof binary SHA-256 | `a3b7712ab7c3ea22940ffe915a2328d25767d35e5253e9df82776db0d3b70fcc` |
 | Native build receipt | `.../target/debug/tc-proof.build.json` |
 | Taskfmt source | `/Users/donbeave/Projects/taskfmt/task-format` |
@@ -55,16 +70,17 @@ candidate output was blessed or substituted.
 | Taskfmt binary | `/tmp/taskfmt-latest-install/bin/taskfmt` |
 | Taskfmt SHA-256 | `f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de` |
 
-The native proof receipt binds the proof binary to candidate commit
-`14aa8ed0469219ff8f6570be7824e5ade39240cc` and tree
-`f3ef0f6badd01161bc24cdfef5161db55ba5d579`. The external comparator binding
-passes with `TC_PROOF_NATIVE_BINARY` forwarded; it does not grant campaign
-acceptance.
+The native proof receipt binds the proof binary to the historical/tested
+Layer-1 payload commit/tree. The external comparator binding passes with
+`TC_PROOF_NATIVE_BINARY` forwarded; its comparator hash and result are
+historical/tested payload evidence, never a binding for the final docs tree
+and never campaign acceptance.
 
-## 4. Independent verifier result
+## 4. Layer-1 verifier result — historical/tested payload
 
-The verifier’s exact conclusion is **REJECTED**. It is not a preparation
-receipt or authorization. The following qualification subchecks passed:
+The Layer-1 verifier’s exact conclusion is **REJECTED**. It is not a current
+final-tree receipt or authorization. The following qualification subchecks
+passed for the historical/tested payload:
 
 | Check | Result |
 |---|---|
@@ -93,8 +109,9 @@ The decisive failures are:
   readiness-report **NO-GO** gate. It does not arm or dispatch the ledger.
 
 Raw decisive files are `dispatch-verify.{stdout,stderr,exit}` and
-`preflight.{stdout,stderr,exit}` under the verifier run root. No independent
-reviewer returned `VERIFIED`; no acceptance receipt was issued.
+`preflight.{stdout,stderr,exit}` under the historical/tested Layer-1 run
+root. No independent reviewer returned `VERIFIED`; no acceptance receipt was
+issued.
 
 ### Auxiliary unqualified diagnostic
 
@@ -112,7 +129,7 @@ self-tests passed; this copied-runner diagnostic is not campaign acceptance.
 
 ## 5. Calibration and mixed-oracle finding
 
-No product full matrix was run by the current verifier. Existing independent
+No product full matrix was run by the Layer-1 verifier. Existing independent
 calibration evidence is cited, not reused as a fresh pass:
 
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/calibration-frozen-connections/full-run-1/`
@@ -156,9 +173,15 @@ resize and lifecycle behavior, real PTY setup/cleanup/input/settled-frame
 transitions, strict performance budgets, public API/static/documentation
 checks, native platform checks, and complete oracle parity.
 
-## 7. Required next evidence
+## 7. Required final sealing evidence
 
-From a clean native macOS worktree, with verifier-owned external target and
+The final verifier must use the predeclared external run root
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed`.
+It must bind the actual clean HEAD/tree at run time, plus task contracts,
+tool/oracle identities, contexts, results, and receipts. Do not copy the
+Layer-1 payload identity into the final manifest.
+
+From that clean native macOS worktree, with verifier-owned external target and
 run directories:
 
 ```sh
@@ -176,5 +199,5 @@ Then obtain accepted independent verifier and reviewer evidence for the native
 positive/adversarial proof matrix, resolve the calibration failure and skips
 without changing the oracle, and run the complete 7,550-key/30,200-artifact
 PTY visual gate. Any stale, missing, rejected, unqualified, unknown, or
-source-mismatched result invalidates the preparation set and keeps the verdict
-**NO-GO**.
+source-mismatched result invalidates the final sealing run and keeps the
+verdict **NO-GO**. Any subsequent relevant edit invalidates the run.
