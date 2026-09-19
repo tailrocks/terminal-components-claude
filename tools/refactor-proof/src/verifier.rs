@@ -2418,14 +2418,75 @@ fn absolute_path(path: &Path, label: &str) -> Result<PathBuf> {
     Ok(path.to_path_buf())
 }
 
+fn allowed_system_symlink_target(path: &Path) -> Option<&'static Path> {
+    match path {
+        path if path == Path::new("/etc") => Some(Path::new("/private/etc")),
+        path if path == Path::new("/home") => Some(Path::new("/System/Volumes/Data/home")),
+        path if path == Path::new("/tmp") => Some(Path::new("/private/tmp")),
+        path if path == Path::new("/var") => Some(Path::new("/private/var")),
+        _ => None,
+    }
+}
+
+fn validate_path_components(path: &Path, label: &str, allow_missing_final: bool) -> Result<()> {
+    absolute_path(path, label)?;
+    let mut current = PathBuf::new();
+    let mut components = path.components().peekable();
+    while let Some(component) = components.next() {
+        current.push(component.as_os_str());
+        let is_final = components.peek().is_none();
+        match fs::symlink_metadata(&current) {
+            Ok(metadata) => {
+                if metadata.file_type().is_symlink() {
+                    let allowed = allowed_system_symlink_target(&current).is_some_and(|target| {
+                        current
+                            .canonicalize()
+                            .is_ok_and(|resolved| resolved == target)
+                    });
+                    if !allowed {
+                        return Err(VerifierError::new(format!(
+                            "{label} path component must not be a symlink: {}",
+                            current.display()
+                        )));
+                    }
+                } else if !is_final && !metadata.is_dir() {
+                    return Err(VerifierError::new(format!(
+                        "{label} path component is not a directory: {}",
+                        current.display()
+                    )));
+                }
+            }
+            Err(error)
+                if is_final && allow_missing_final && error.kind() == io::ErrorKind::NotFound =>
+            {
+                return Ok(());
+            }
+            Err(error) => {
+                return Err(VerifierError::new(format!(
+                    "{label} path component is unreadable: {}: {error}",
+                    current.display()
+                )));
+            }
+        }
+    }
+    Ok(())
+}
+
 fn canonical_input_dir(path: &Path, label: &str) -> Result<PathBuf> {
-    absolute_path(path, label)?
-        .canonicalize()
+    let path = absolute_path(path, label)?;
+    validate_path_components(&path, label, false)?;
+    if path.is_symlink() {
+        return Err(VerifierError::new(format!(
+            "{label} must be a real directory"
+        )));
+    }
+    path.canonicalize()
         .map_err(|error| VerifierError::new(format!("{label}: {error}")))
 }
 
 fn canonical_existing_dir(path: &Path, label: &str) -> Result<PathBuf> {
     let path = absolute_path(path, label)?;
+    validate_path_components(&path, label, false)?;
     if path.is_symlink() || !path.is_dir() {
         return Err(VerifierError::new(format!(
             "{label} must be a real directory"
@@ -2436,6 +2497,7 @@ fn canonical_existing_dir(path: &Path, label: &str) -> Result<PathBuf> {
 }
 
 fn regular_dir(path: &Path, label: &str) -> Result<PathBuf> {
+    validate_path_components(path, label, false)?;
     if path.is_symlink() || !path.is_dir() {
         return Err(VerifierError::new(format!("{label} is absent or unsafe")));
     }
@@ -2443,6 +2505,7 @@ fn regular_dir(path: &Path, label: &str) -> Result<PathBuf> {
 }
 
 fn regular_file(path: &Path, label: &str) -> Result<PathBuf> {
+    validate_path_components(path, label, false)?;
     let metadata = fs::symlink_metadata(path)
         .map_err(|error| VerifierError::new(format!("{label}: {error}")))?;
     if metadata.file_type().is_symlink()
@@ -2479,6 +2542,7 @@ fn link_count(metadata: &fs::Metadata) -> u64 {
 }
 
 fn regular_path_exists(path: &Path) -> Result<bool> {
+    validate_path_components(path, "path", true)?;
     match fs::symlink_metadata(path) {
         Ok(metadata) => {
             if metadata.file_type().is_symlink()
@@ -3058,6 +3122,71 @@ mod tests {
             return;
         };
         assert_eq!(metadata.permissions().mode() & 0o222, 0);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn trust_path_validation_rejects_symlinked_parents_and_preserves_allowed_ancestry()
+    -> std::result::Result<(), Box<dyn std::error::Error>> {
+        use std::os::unix::fs::{PermissionsExt, symlink};
+
+        let temporary = tempfile::tempdir_in("/tmp")?;
+        let real_root = temporary.path().join("real");
+        fs::create_dir_all(real_root.join("nested"))?;
+        let file = real_root.join("nested/trusted.json");
+        fs::write(&file, b"trusted")?;
+        assert_eq!(regular_file(&file, "trusted file")?, file);
+        assert!(canonical_existing_dir(&real_root, "candidate root")?.is_absolute());
+
+        let hardlink = temporary.path().join("hardlink.json");
+        fs::hard_link(&file, &hardlink)?;
+        let Err(error) = regular_file(&hardlink, "trusted file") else {
+            return Err("hard-linked trusted file was accepted".into());
+        };
+        assert!(error.to_string().contains("immutable regular file"));
+
+        let alias = temporary.path().join("alias");
+        symlink(&real_root, &alias)?;
+        let aliased_file = alias.join("nested/trusted.json");
+        let Err(error) = regular_file(&aliased_file, "trusted file") else {
+            return Err("symlinked parent was accepted".into());
+        };
+        assert!(
+            error
+                .to_string()
+                .contains("path component must not be a symlink")
+        );
+        let Err(error) = regular_path_exists(&alias.join("nested/result.json")) else {
+            return Err("symlinked output parent was accepted".into());
+        };
+        assert!(
+            error
+                .to_string()
+                .contains("path component must not be a symlink")
+        );
+        let Err(error) = canonical_existing_dir(&alias, "candidate root") else {
+            return Err("symlinked directory was accepted".into());
+        };
+        assert!(
+            error
+                .to_string()
+                .contains("path component must not be a symlink")
+        );
+
+        let executable = real_root.join("tool");
+        fs::copy(std::env::current_exe()?, &executable)?;
+        let mut permissions = fs::metadata(&executable)?.permissions();
+        permissions.set_mode(permissions.mode() | 0o111);
+        fs::set_permissions(&executable, permissions)?;
+        let Err(error) = executable_identity(&alias.join("tool"), "proof tool") else {
+            return Err("symlinked executable parent was accepted".into());
+        };
+        assert!(
+            error
+                .to_string()
+                .contains("path component must not be a symlink")
+        );
+        Ok(())
     }
 
     struct Fixture {
