@@ -153,7 +153,7 @@ claim isolation from a hostile same-user process.
 Current and historical qualification evidence:
 
 - Current taskfmt lint at pushed `247e47d5`: 73/73 packages passed, exit 0;
-  log `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-247-direct/all.log`,
+  log `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-current-2/all.log`,
   SHA-256 `afecad09ba800c74fc841fd4d830fd8932d80e84894bd18c5bf5660522134124`.
 - Current proof run at `247e47d5`: `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/refactor-proof-current-clean/nextest.log`,
   SHA-256 `629750c16dcab5fd69bc6a8c082aadbcdc10526f105f2a7f7b2db603f10b4cc6`;
