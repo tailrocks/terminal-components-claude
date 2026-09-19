@@ -104,7 +104,7 @@ SHA-256:  f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
 ```
 
 Current package-lint run at pushed `247e47d5`:
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-current-2/all.log`;
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-247-direct/all.log`;
 73/73 passed, exit 0; log SHA-256
 `afecad09ba800c74fc841fd4d830fd8932d80e84894bd18c5bf5660522134124`.
 Lint validates contract format only; it does not accept implementation.
