@@ -175,9 +175,9 @@ pass "campaign-preflight preserves the explicit NO-GO failure"
 printf '%s\n' '# Execution readiness report' '**Verdict: GO.**' '**Verdict: NO-GO.**' > \
 	"$preflight_root/docs/refactoring-plan/execution-readiness-report.md"
 if output="$({
-		env TC_CAMPAIGN_WORKTREE="$preflight_root" INTEGRATION_BRANCH=refactor/holla-parity \
-			bash -c "source \"\$1\"; check_readiness_gate" _ "$preflight_helper"
-	} 2>&1)"; then
+	env TC_CAMPAIGN_WORKTREE="$preflight_root" INTEGRATION_BRANCH=refactor/holla-parity \
+		bash -c "source \"\$1\"; check_readiness_gate" _ "$preflight_helper"
+} 2>&1)"; then
 	fail "ambiguous canonical readiness report was accepted"
 fi
 printf '%s\n' "$output" | grep -Fq "exactly one canonical verdict" ||
