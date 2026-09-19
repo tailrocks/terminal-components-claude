@@ -1563,10 +1563,10 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
     let mut stdout_thread = Some(thread::spawn(|| read_bounded(stdout)));
     let mut stderr_thread = Some(thread::spawn(|| read_bounded(stderr)));
     let started = Instant::now();
-    let status = loop {
-        match child.try_wait() {
-            Ok(Some(status)) => break status,
-            Ok(None) if started.elapsed() > options.timeout => {
+    loop {
+        match child_exited_unreaped(&mut child) {
+            Ok(true) => break,
+            Ok(false) if started.elapsed() > options.timeout => {
                 return Err(report_cleanup_error(
                     VerifierError::new("child timed out"),
                     cleanup_failed_launch(
@@ -1578,7 +1578,7 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
                     ),
                 ));
             }
-            Ok(None) => thread::sleep(CLEANUP_POLL_INTERVAL),
+            Ok(false) => thread::sleep(CLEANUP_POLL_INTERVAL),
             Err(error) => {
                 return Err(report_cleanup_error(
                     error.into(),
@@ -1592,7 +1592,7 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
                 ));
             }
         }
-    };
+    }
     if let Err(error) = kill_process_group(worker_group) {
         return Err(report_cleanup_error(
             VerifierError::new(format!("process-group termination failed: {error}")),
@@ -1605,6 +1605,33 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
             ),
         ));
     }
+    let status = match child.try_wait() {
+        Ok(Some(status)) => status,
+        Ok(None) => {
+            return Err(report_cleanup_error(
+                VerifierError::new("exited child was not reaped"),
+                cleanup_failed_launch(
+                    &mut child,
+                    worker_group,
+                    stdout_thread.take(),
+                    stderr_thread.take(),
+                    Some(observer_supervisor),
+                ),
+            ));
+        }
+        Err(error) => {
+            return Err(report_cleanup_error(
+                error.into(),
+                cleanup_failed_launch(
+                    &mut child,
+                    worker_group,
+                    stdout_thread.take(),
+                    stderr_thread.take(),
+                    Some(observer_supervisor),
+                ),
+            ));
+        }
+    };
     let stdout_result = stdout_thread.take().map(join_output).transpose();
     let stderr_result = stderr_thread.take().map(join_output).transpose();
     let observed_result = observer_supervisor.wait(Duration::from_secs(5));
@@ -1933,7 +1960,14 @@ fn report_cleanup_error(error: VerifierError, cleanup: Result<()>) -> VerifierEr
     }
 }
 
+#[cfg(test)]
+thread_local! {
+    static PROCESS_GROUP_KILL_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
 fn kill_process_group(process_group: ProcessGroupId) -> io::Result<()> {
+    #[cfg(test)]
+    PROCESS_GROUP_KILL_COUNT.set(PROCESS_GROUP_KILL_COUNT.get().saturating_add(1));
     #[cfg(unix)]
     {
         let process_group = libc::pid_t::try_from(process_group.0).map_err(|_| {
@@ -1997,13 +2031,88 @@ fn wait_for_child_until(child: &mut Child, deadline: Instant, label: &str) -> Re
     }
 }
 
+fn child_exited_unreaped(child: &mut Child) -> io::Result<bool> {
+    #[cfg(unix)]
+    {
+        waitid_child_exited_unreaped(child)
+    }
+    #[cfg(not(unix))]
+    {
+        Ok(child.try_wait()?.is_some())
+    }
+}
+
+#[cfg(unix)]
+fn waitid_child_exited_unreaped(child: &Child) -> io::Result<bool> {
+    let pid = libc::pid_t::try_from(child.id()).map_err(|_| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "child pid does not fit the native process id type",
+        )
+    })?;
+    if pid <= 1 {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "child pid is not waitable",
+        ));
+    }
+    let id = libc::id_t::try_from(pid).map_err(|_| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "child pid does not fit the native wait id type",
+        )
+    })?;
+    loop {
+        let mut info = std::mem::MaybeUninit::<libc::siginfo_t>::zeroed();
+        // SAFETY: `info` is a zeroed siginfo_t; waitid writes the WEXITED
+        // result or leaves the empty WNOHANG identity. WNOWAIT does not reap.
+        let result = unsafe {
+            libc::waitid(
+                libc::P_PID,
+                id,
+                info.as_mut_ptr(),
+                libc::WEXITED | libc::WNOHANG | libc::WNOWAIT,
+            )
+        };
+        if result == -1 {
+            let error = io::Error::last_os_error();
+            if error.kind() == io::ErrorKind::Interrupted {
+                continue;
+            }
+            return Err(error);
+        }
+        // SAFETY: waitid returned success, so `info` is a defined siginfo_t.
+        let info = unsafe { info.assume_init() };
+        // SAFETY: WEXITED waitid fills the child-status layout including si_pid.
+        return Ok(unsafe { info.si_pid() } != 0);
+    }
+}
+
+fn wait_for_child_exit_unreaped_until(
+    child: &mut Child,
+    deadline: Instant,
+    label: &str,
+) -> Result<()> {
+    loop {
+        if child_exited_unreaped(child)? {
+            return Ok(());
+        }
+        if Instant::now() >= deadline {
+            return Err(VerifierError::new(format!(
+                "{label} did not terminate before cleanup deadline"
+            )));
+        }
+        thread::sleep(CLEANUP_POLL_INTERVAL);
+    }
+}
+
 fn terminate_child_until(
     child: &mut Child,
     process_group: ProcessGroupId,
     deadline: Instant,
 ) -> Result<ExitStatus> {
+    let group_error = kill_process_group(process_group).err();
     let reaped = child.try_wait()?;
-    let mut group_error = kill_process_group(process_group).err();
     let direct_error = if reaped.is_some() {
         None
     } else {
@@ -2013,9 +2122,6 @@ fn terminate_child_until(
         Some(status) => status,
         None => wait_for_child_until(child, deadline, "child")?,
     };
-    if let Err(error) = kill_process_group(process_group) {
-        group_error = Some(error);
-    }
     if let Some(error) = group_error {
         return Err(VerifierError::new(format!(
             "process-group termination failed: {error}"
@@ -2080,14 +2186,14 @@ fn finish_observer_provider(
         OBSERVER_PROVIDER_GRACE_TIMEOUT,
         "observer response provider",
     )?;
-    match wait_for_child_until(child, graceful_deadline, "observer response provider") {
-        Ok(status) => {
+    match wait_for_child_exit_unreaped_until(child, graceful_deadline, "observer response provider")
+    {
+        Ok(()) => {
             let deadline = cleanup_deadline(
                 OBSERVER_CLEANUP_TIMEOUT,
                 "observer response provider group reap",
             )?;
-            terminate_child_until(child, process_group, deadline)?;
-            Ok(status)
+            terminate_child_until(child, process_group, deadline)
         }
         Err(wait_error) => match terminate_child(child, process_group, OBSERVER_CLEANUP_TIMEOUT) {
             Ok(_) => Err(VerifierError::new(format!(
@@ -4254,6 +4360,118 @@ mod tests {
             terminate_child_until(&mut child, process_group, deadline),
             "kill captured group after leader reap"
         );
+        let started = Instant::now();
+        loop {
+            // SAFETY: same descendant pid; ESRCH means the captured group kill landed.
+            let gone = unsafe { libc::kill(descendant, 0) };
+            if gone == -1 && io::Error::last_os_error().raw_os_error() == Some(libc::ESRCH) {
+                break;
+            }
+            assert!(
+                started.elapsed() < Duration::from_secs(1),
+                "descendant {descendant} still exists after captured group kill"
+            );
+            thread::sleep(CLEANUP_POLL_INTERVAL);
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn terminate_child_until_kills_group_while_leader_is_unreaped() {
+        use std::io::{BufRead, BufReader};
+        use std::os::unix::process::CommandExt;
+
+        struct ProcessGroupGuard(ProcessGroupId);
+        impl Drop for ProcessGroupGuard {
+            fn drop(&mut self) {
+                let _ = kill_process_group(self.0);
+            }
+        }
+
+        let mut command = Command::new("/bin/sh");
+        command
+            .arg("-c")
+            .arg("/bin/sleep 30 </dev/null >/dev/null 2>&1 & printf '%s\\n' \"$!\"; exec /usr/bin/true")
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null());
+        // SAFETY: the pre-exec hook only creates a private process group for
+        // the test leader, using the async-signal-safe setpgid operation.
+        unsafe {
+            command.pre_exec(|| {
+                if libc::setpgid(0, 0) == -1 {
+                    return Err(io::Error::last_os_error());
+                }
+                Ok(())
+            });
+        }
+        let mut child = require_ok!(command.spawn(), "spawn process-group leader");
+        let process_group = require_ok!(ProcessGroupId::from_child(&child), "capture pgid");
+        let _guard = ProcessGroupGuard(process_group);
+        let mut stdout = BufReader::new(require_some!(child.stdout.take(), "leader stdout"));
+        let mut listed = String::new();
+        require_ok!(stdout.read_line(&mut listed), "read descendant pid");
+        drop(stdout);
+        let descendant = require_ok!(listed.trim().parse::<libc::pid_t>(), "parse descendant pid");
+        assert!(
+            descendant > 1,
+            "descendant pid {descendant} is not killable"
+        );
+        let leader = require_ok!(libc::pid_t::try_from(child.id()), "leader pid");
+        assert!(leader > 1, "leader pid {leader} is not waitable");
+
+        PROCESS_GROUP_KILL_COUNT.set(0);
+        let wait_deadline = require_ok!(
+            cleanup_deadline(OBSERVER_CLEANUP_TIMEOUT, "unreaped leader exit"),
+            "wait deadline"
+        );
+        require_ok!(
+            wait_for_child_exit_unreaped_until(&mut child, wait_deadline, "leader"),
+            "detect leader exit without reaping"
+        );
+        assert_eq!(
+            PROCESS_GROUP_KILL_COUNT.get(),
+            0,
+            "unreaped wait must not signal the captured group"
+        );
+        assert!(
+            require_ok!(
+                child_exited_unreaped(&mut child),
+                "waitid should still see the unreaped leader"
+            ),
+            "leader exit must remain visible to WNOWAIT"
+        );
+        // SAFETY: leader is the spawned child; 0 tests existence without signaling.
+        let zombie = unsafe { libc::kill(leader, 0) };
+        assert_eq!(zombie, 0, "zombie leader must still hold the pid/pgid");
+        // SAFETY: descendant is the sleep child started in the captured group.
+        let alive = unsafe { libc::kill(descendant, 0) };
+        assert_eq!(alive, 0, "descendant should outlive the unreaped leader");
+
+        let kill_deadline = require_ok!(
+            cleanup_deadline(OBSERVER_CLEANUP_TIMEOUT, "unreaped group kill"),
+            "kill deadline"
+        );
+        PROCESS_GROUP_KILL_COUNT.set(0);
+        require_ok!(
+            terminate_child_until(&mut child, process_group, kill_deadline),
+            "kill captured group while leader is unreaped"
+        );
+        assert_eq!(
+            PROCESS_GROUP_KILL_COUNT.get(),
+            1,
+            "process-group SIGKILL must run once before reap, not again after"
+        );
+        let reaped = require_ok!(child.try_wait(), "cached leader status after reap");
+        assert!(
+            require_some!(reaped, "leader status").success(),
+            "leader should exit after exec /usr/bin/true"
+        );
+        // SAFETY: leader was reaped; ESRCH means the pid is no longer a zombie.
+        let gone_leader = unsafe { libc::kill(leader, 0) };
+        assert_eq!(gone_leader, -1, "leader must be reaped after group kill");
+        assert_eq!(io::Error::last_os_error().raw_os_error(), Some(libc::ESRCH));
+
         let started = Instant::now();
         loop {
             // SAFETY: same descendant pid; ESRCH means the captured group kill landed.
