@@ -709,7 +709,13 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
     )?;
     let (request_write, response_read, observer_thread) =
         start_observer_supervisor(&prepared, member, &nonce, &oracle_commit)?;
-    let (handoff_read, mut handoff_write) = make_handoff_pipe()?;
+    let (handoff_read, mut handoff_write) = match make_handoff_pipe() {
+        Ok(pipe) => pipe,
+        Err(error) => {
+            abort_observer_supervisor(request_write, response_read, observer_thread);
+            return Err(error);
+        }
+    };
     let handoff = json!({
         "schema": NATIVE_HANDOFF_SCHEMA,
         "run_id": prepared.run_id.clone(),
@@ -720,9 +726,24 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
         "index_sha256": prepared.index_sha256.clone(),
         "token": random_hex(32),
     });
-    handoff_write.write_all(canonical_json(&handoff).as_bytes())?;
-    handoff_write.write_all(b"\n")?;
-    handoff_write.flush()?;
+    if let Err(error) = handoff_write.write_all(canonical_json(&handoff).as_bytes()) {
+        drop(handoff_read);
+        drop(handoff_write);
+        abort_observer_supervisor(request_write, response_read, observer_thread);
+        return Err(error.into());
+    }
+    if let Err(error) = handoff_write.write_all(b"\n") {
+        drop(handoff_read);
+        drop(handoff_write);
+        abort_observer_supervisor(request_write, response_read, observer_thread);
+        return Err(error.into());
+    }
+    if let Err(error) = handoff_write.flush() {
+        drop(handoff_read);
+        drop(handoff_write);
+        abort_observer_supervisor(request_write, response_read, observer_thread);
+        return Err(error.into());
+    }
     let handoff_fd = handoff_read.as_raw_fd();
     let request_fd = request_write.as_raw_fd();
     let response_fd = response_read.as_raw_fd();
@@ -750,14 +771,23 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
         .env("TC_PROOF_OBSERVER_RESPONSE_FD", response_fd.to_string())
         .env("TC_PROOF_NATIVE_HANDOFF_FD", handoff_fd.to_string())
         .env_remove("TC_PROOF_OBSERVER_SOCKET");
+    #[cfg(unix)]
+    // SAFETY: the pre-exec hook only creates a private process group for the
+    // worker, using the async-signal-safe setpgid operation.
+    unsafe {
+        command.pre_exec(|| {
+            if libc::setpgid(0, 0) == -1 {
+                return Err(io::Error::last_os_error());
+            }
+            Ok(())
+        });
+    }
     let mut child = match command.spawn() {
         Ok(child) => child,
         Err(error) => {
-            drop(request_write);
-            drop(response_read);
             drop(handoff_read);
             drop(handoff_write);
-            let _ = observer_thread.join();
+            abort_observer_supervisor(request_write, response_read, observer_thread);
             return Err(VerifierError::new(format!("launch failed: {error}")));
         }
     };
@@ -765,38 +795,57 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
     drop(response_read);
     drop(handoff_read);
     drop(handoff_write);
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or_else(|| VerifierError::new("stdout pipe unavailable"))?;
-    let stderr = child
-        .stderr
-        .take()
-        .ok_or_else(|| VerifierError::new("stderr pipe unavailable"))?;
-    let stdout_thread = thread::spawn(|| read_bounded(stdout));
-    let stderr_thread = thread::spawn(|| read_bounded(stderr));
+    let stdout = match child.stdout.take() {
+        Some(stdout) => stdout,
+        None => {
+            cleanup_failed_launch(&mut child, None, None, Some(observer_thread));
+            return Err(VerifierError::new("stdout pipe unavailable"));
+        }
+    };
+    let stderr = match child.stderr.take() {
+        Some(stderr) => stderr,
+        None => {
+            cleanup_failed_launch(&mut child, None, None, Some(observer_thread));
+            return Err(VerifierError::new("stderr pipe unavailable"));
+        }
+    };
+    let mut stdout_thread = Some(thread::spawn(|| read_bounded(stdout)));
+    let mut stderr_thread = Some(thread::spawn(|| read_bounded(stderr)));
     let started = Instant::now();
     let status = loop {
-        if let Some(status) = child.try_wait()? {
-            break status;
+        match child.try_wait() {
+            Ok(Some(status)) => break status,
+            Ok(None) if started.elapsed() > options.timeout => {
+                terminate_child(&mut child);
+                let _ = stdout_thread.take().map(|handle| handle.join());
+                let _ = stderr_thread.take().map(|handle| handle.join());
+                let observer = observer_thread
+                    .join()
+                    .map_err(|_| VerifierError::new("observer supervisor panicked"))?;
+                observer?;
+                return Err(VerifierError::new("child timed out"));
+            }
+            Ok(None) => thread::sleep(Duration::from_millis(5)),
+            Err(error) => {
+                cleanup_failed_launch(
+                    &mut child,
+                    stdout_thread.take(),
+                    stderr_thread.take(),
+                    Some(observer_thread),
+                );
+                return Err(error.into());
+            }
         }
-        if started.elapsed() > options.timeout {
-            let _ = child.kill();
-            let _ = child.wait();
-            let observer = observer_thread
-                .join()
-                .map_err(|_| VerifierError::new("observer supervisor panicked"))?;
-            observer?;
-            return Err(VerifierError::new("child timed out"));
-        }
-        thread::sleep(Duration::from_millis(5));
     };
-    let stdout = join_output(stdout_thread)?;
-    let stderr = join_output(stderr_thread)?;
-    let observed_digests = observer_thread
+    let stdout_result = stdout_thread.take().map(join_output).transpose();
+    let stderr_result = stderr_thread.take().map(join_output).transpose();
+    let observed_result = observer_thread
         .join()
-        .map_err(|_| VerifierError::new("observer supervisor panicked"))?;
-    let observed_digests = observed_digests?;
+        .map_err(|_| VerifierError::new("observer supervisor panicked"))
+        .and_then(|result| result);
+    let stdout = stdout_result?.ok_or_else(|| VerifierError::new("stdout reader missing"))?;
+    let stderr = stderr_result?.ok_or_else(|| VerifierError::new("stderr reader missing"))?;
+    let observed_digests = observed_result?;
     let exit = successful_exit(status)?;
     if !regular_path_exists(&member.result_path)? {
         return Err(VerifierError::new("child produced no result"));
@@ -834,17 +883,43 @@ fn make_pipe() -> Result<(File, File)> {
             io::Error::last_os_error()
         )));
     }
-    for fd in fds {
-        // SAFETY: descriptors are valid and owned by this function.
-        if unsafe { libc::fcntl(fd, libc::F_SETFD, 0) } == -1 {
-            return Err(VerifierError::new(format!(
-                "observer pipe inheritance failed: {}",
-                io::Error::last_os_error()
-            )));
-        }
+    // SAFETY: each descriptor is transferred exactly once to a File before
+    // any fallible flag operation, so an error still closes both descriptors.
+    let read = unsafe { File::from_raw_fd(fds[0]) };
+    let write = unsafe { File::from_raw_fd(fds[1]) };
+    set_close_on_exec(&read, false)?;
+    set_close_on_exec(&write, false)?;
+    Ok((read, write))
+}
+
+#[cfg(unix)]
+fn set_close_on_exec(file: &File, enabled: bool) -> Result<()> {
+    let current = unsafe { libc::fcntl(file.as_raw_fd(), libc::F_GETFD) };
+    if current == -1 {
+        return Err(VerifierError::new(format!(
+            "observer descriptor flags read failed: {}",
+            io::Error::last_os_error()
+        )));
     }
-    // SAFETY: each descriptor is transferred exactly once to a File.
-    Ok(unsafe { (File::from_raw_fd(fds[0]), File::from_raw_fd(fds[1])) })
+    let flags = if enabled {
+        current | libc::FD_CLOEXEC
+    } else {
+        current & !libc::FD_CLOEXEC
+    };
+    if unsafe { libc::fcntl(file.as_raw_fd(), libc::F_SETFD, flags) } == -1 {
+        return Err(VerifierError::new(format!(
+            "observer descriptor inheritance configuration failed: {}",
+            io::Error::last_os_error()
+        )));
+    }
+    Ok(())
+}
+
+#[cfg(unix)]
+fn protect_supervisor_observer_ends(request_read: &File, response_write: &File) -> Result<()> {
+    set_close_on_exec(request_read, true)?;
+    set_close_on_exec(response_write, true)?;
+    Ok(())
 }
 
 #[cfg(unix)]
@@ -853,13 +928,7 @@ fn make_handoff_pipe() -> Result<(File, File)> {
     // The worker receives only the read end. Without this close-on-exec bit,
     // its inherited write end would prevent the one-shot read from reaching
     // EOF and would turn the handoff into a reusable environment convention.
-    // SAFETY: the descriptor is owned by `write` and remains valid here.
-    if unsafe { libc::fcntl(write.as_raw_fd(), libc::F_SETFD, libc::FD_CLOEXEC) } == -1 {
-        return Err(VerifierError::new(format!(
-            "native handoff inheritance failed: {}",
-            io::Error::last_os_error()
-        )));
-    }
+    set_close_on_exec(&write, true)?;
     Ok((read, write))
 }
 
@@ -894,6 +963,12 @@ fn start_observer_supervisor(
     regular_file(&provider, "observer response provider")?;
     let (request_read, request_write) = make_pipe()?;
     let (response_read, response_write) = make_pipe()?;
+    // Only request_write and response_read belong in the worker. The
+    // supervisor-owned counterparts must not survive worker exec, or a
+    // worker descendant can keep the observer pipes open after the worker
+    // itself exits.
+    #[cfg(unix)]
+    protect_supervisor_observer_ends(&request_read, &response_write)?;
     // The provider is a separate host process. Spawn it before the worker
     // handoff exists, and close every observer-pipe endpoint in its child.
     // Otherwise it can retain the worker-facing writer and make the
@@ -984,6 +1059,50 @@ fn start_observer_supervisor(
         result
     });
     Ok((request_write, response_read, supervisor))
+}
+
+fn abort_observer_supervisor(
+    request_write: File,
+    response_read: File,
+    observer_thread: thread::JoinHandle<Result<Vec<String>>>,
+) {
+    drop(request_write);
+    drop(response_read);
+    let _ = observer_thread.join();
+}
+
+fn terminate_child(child: &mut Child) {
+    #[cfg(unix)]
+    {
+        let process_group = child.id() as libc::pid_t;
+        if process_group > 0 {
+            // SAFETY: the worker creates its own process group before exec;
+            // sending SIGKILL to the negative pid targets only that group.
+            unsafe {
+                let _ = libc::kill(-process_group, libc::SIGKILL);
+            }
+        }
+    }
+    let _ = child.kill();
+    let _ = child.wait();
+}
+
+fn cleanup_failed_launch(
+    child: &mut Child,
+    stdout_thread: Option<thread::JoinHandle<Result<Vec<u8>>>>,
+    stderr_thread: Option<thread::JoinHandle<Result<Vec<u8>>>>,
+    observer_thread: Option<thread::JoinHandle<Result<Vec<String>>>>,
+) {
+    terminate_child(child);
+    if let Some(handle) = stdout_thread {
+        let _ = handle.join();
+    }
+    if let Some(handle) = stderr_thread {
+        let _ = handle.join();
+    }
+    if let Some(handle) = observer_thread {
+        let _ = handle.join();
+    }
 }
 
 trait ObserverProvider {
@@ -2799,6 +2918,25 @@ mod tests {
     fn output_limit_is_enforced() {
         let data = vec![0_u8; MAX_CHILD_OUTPUT_BYTES + 1];
         assert!(read_bounded(data.as_slice()).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn supervisor_owned_observer_ends_are_close_on_exec() {
+        let (request_read, request_write) = make_pipe().expect("request pipe");
+        let (response_read, response_write) = make_pipe().expect("response pipe");
+        protect_supervisor_observer_ends(&request_read, &response_write)
+            .expect("protect supervisor ends");
+
+        let request_read_flags = unsafe { libc::fcntl(request_read.as_raw_fd(), libc::F_GETFD) };
+        let request_write_flags = unsafe { libc::fcntl(request_write.as_raw_fd(), libc::F_GETFD) };
+        let response_read_flags = unsafe { libc::fcntl(response_read.as_raw_fd(), libc::F_GETFD) };
+        let response_write_flags =
+            unsafe { libc::fcntl(response_write.as_raw_fd(), libc::F_GETFD) };
+        assert_ne!(request_read_flags & libc::FD_CLOEXEC, 0);
+        assert_eq!(request_write_flags & libc::FD_CLOEXEC, 0);
+        assert_eq!(response_read_flags & libc::FD_CLOEXEC, 0);
+        assert_ne!(response_write_flags & libc::FD_CLOEXEC, 0);
     }
 
     #[test]
