@@ -123,11 +123,10 @@ def write_provider(path: Path) -> None:
 
 
 def prepare_fixture(
-    native: Path,
     source: Path,
     root: Path,
     taskfmt: tuple[Path, Path, str, str, str],
-) -> tuple[Path, dict[str, dict[str, str]]]:
+) -> tuple[Path, dict[str, dict[str, str]], Path]:
     candidate = root / "candidate"
     cloned = run(["git", "clone", "--local", "--no-hardlinks", str(source), str(candidate)], cwd=source)
     if cloned.returncode != 0:
@@ -137,6 +136,24 @@ def prepare_fixture(
         raise SystemExit(f"candidate scope lookup failed:\n{scope.stderr}")
     run_dir = root / "run"
     run_dir.mkdir()
+    target = run_dir / "target"
+    target.mkdir()
+    build_environment = os.environ.copy()
+    build_environment.update(
+        {
+            "TC_PROOF_TARGET_DIR": str(target),
+            "CARGO_TARGET_DIR": str(target),
+        }
+    )
+    built = run(
+        ["bash", "scripts/campaign-build-proof.sh"],
+        cwd=candidate,
+        env=build_environment,
+        timeout=180.0,
+    )
+    if built.returncode != 0:
+        raise SystemExit(f"native fixture build failed:\n{built.stdout}\n{built.stderr}")
+    native = target / "debug/tc-proof"
     native_receipt = native.parent / "tc-proof.build.json"
     require_regular_file(native, "native verifier", executable=True)
     require_regular_file(native_receipt, "native build receipt")
@@ -185,7 +202,7 @@ def prepare_fixture(
     if any(set(member) != member_keys for member in index["contexts"] + index["results"]):
         raise SystemExit("native context index member ABI is not canonical")
     contexts = {member["check_id"]: member for member in index["contexts"]}
-    return run_dir, contexts
+    return run_dir, contexts, native
 
 
 def worker_environment(run_dir: Path, native: Path, provider: Path) -> dict[str, str]:
@@ -216,21 +233,15 @@ def invoke(bundle: Path, context: Path, *, cwd: Path, environment: dict[str, str
 def main() -> None:
     source = Path(__file__).resolve().parents[3]
     bundle = source / "tools/refactor-proof/bin/tc-proof"
-    native = (
-        Path(os.environ["TC_PROOF_NATIVE_BINARY"])
-        if os.environ.get("TC_PROOF_NATIVE_BINARY")
-        else source / "target/debug/tc-proof"
-    )
     if not bundle.is_file() or not os.access(bundle, os.X_OK):
         raise SystemExit(f"tracked proof bundle is not executable: {bundle}")
     taskfmt = qualified_taskfmt()
-    require_regular_file(native, "native verifier", executable=True)
 
     with tempfile.TemporaryDirectory(prefix="tc-proof-native-launch-") as directory:
         root = Path(directory).resolve()
         provider = root / "observer-provider.py"
         write_provider(provider)
-        run_dir, contexts = prepare_fixture(native, source, root, taskfmt)
+        run_dir, contexts, native = prepare_fixture(source, root, taskfmt)
         context = Path(contexts["CHK-001"]["path"])
         environment = worker_environment(run_dir, native, provider)
 
