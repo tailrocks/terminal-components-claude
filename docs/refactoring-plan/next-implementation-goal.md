@@ -25,11 +25,11 @@ the visual validation contract. Then require these identities to be freshly
 revalidated; the values below are preparation references, not permission:
 
 ```text
-campaign preparation payload at documentation start:
+current final source payload before this documentation-only reconciliation:
   branch refactor/holla-parity
-  HEAD bb574d84bf25ff9179b42e951fca52068f2ab623
-  tree 6e464830897f7c39014b12a79219d6cde8b56549
-  parent 8e783592afd0a2c2f08076858a386a091a35e712
+  commit 74e4ec458e2d8b41257232900bdf511bfa335730
+  tree f14b129677ccc493de52cca25d85d14c0f413823
+  parent 4a95fcdeedb8f7a3a132162e536ca28c2404b823
 
 protected visual tag:
   refs/tags/visual-baseline^{commit}
@@ -54,9 +54,30 @@ qualified taskfmt:
   binary /tmp/taskfmt-latest-install/bin/taskfmt
   SHA-256 f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
 
-preparation proof build reference:
-  external root /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-preparation-final-2026-09-19
-  binary SHA-256 f85400a16dc131fe0f59bfc90b5ec22cadf97de02833a216ed81385bf70a1b44
+fresh final-payload preparation evidence references (not authorization):
+  proof build root /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-final-74e4ec45-2026-09-19
+  proof binary SHA-256 88c5340476e1fbaa2e424d97db75b4c323735f4bf3bde7dea1d915b940d6c012
+  proof receipt SHA-256 98e6fe9d090391c9cb28b8cb6fb710ac5c94d2120a2bf39190b143fcb064a86f
+  proof nextest root /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-nextest-74e4ec45-2026-09-19
+    28 passed (2 binaries, 21.527s), exit 0; identity binds final payload
+  static root /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/static-74e4ec45-2026-09-19
+    fmt, Clippy, rustdoc exit 0; identity binds final payload
+  shell root /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/shell-74e4ec45-2026-09-19
+    Bash syntax, ShellCheck, shfmt, preparation/proof-path/dispatch guards exit 0
+  catalog root /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/catalog-74e4ec45-2026-09-19
+    plan exit 0; 73 qualified taskfmt lints, zero failures; rebundle exit 0
+  docs root /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/docs-74e4ec45-2026-09-19
+    actionlint and Lychee exit 0; identity binds final payload
+  workspace root /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-sealed-final-2026-09-19
+    3,342 passed, exit 0; raw evidence only, identity is previous 4a95/f98 tree
+
+The fresh roots above bind the final source payload before this documentation
+commit. The workspace result is explicitly not a final-tree receipt: its source
+behavior is unchanged by this docs-only edit, but its identity remains the
+previous `4a95fcde` / `f98f490` tree. After this documentation commit, a fresh
+seal must bind the post-documentation HEAD/tree. Any relevant source,
+documentation, contract, tool, oracle, environment, or generated-output
+change invalidates affected evidence.
 ```
 
 The exact read-only oracle import is
@@ -97,8 +118,11 @@ The implementation coordinator must exit nonzero before spawning any
 implementer if any condition below is false:
 
 1. The readiness report says `**GO.**`, not NO-GO, and its exact current
-   commit/tree/parent is independently sealed. The current report says
-   NO-GO: therefore this prompt is **NOT AUTHORIZED FOR EXECUTION**.
+   commit/tree/parent is independently sealed. The final source payload
+   currently documented is commit `74e4ec458e2d8b41257232900bdf511bfa335730`,
+   tree `f14b129677ccc493de52cca25d85d14c0f413823`; after this docs-only
+   commit, the post-documentation identity must be freshly sealed. The current
+   report says NO-GO: therefore this prompt is **NOT AUTHORIZED FOR EXECUTION**.
 2. The protected tag peel, tag tree, snapshot tree, grouped oracle store,
    fixtures, manifests, and expected artifacts match the exact read-only
    import. Any mismatch stops the run.
@@ -148,6 +172,13 @@ implementer if any condition below is false:
 No item may be bypassed by changing the report, accepting snapshots, adding a
 skip/allow-failure, or treating an unavailable check as pass.
 
+Current refusal facts are binding: the 892 control covers 302 cases with 298
+passed, 4 failed, 2 skipped, 1 leaky, exit 100, 7,550 ANSI/plain/PNG/HTML
+artifacts each (30,200 total), and 17 diff files; native Linux is unavailable;
+`parity/evidence.tsv` is missing; `TASK-071`/`TASK-072` dependency receipts
+are absent; no accepted preparation receipt exists; and the ledger remains
+`armed=false`.
+
 ## Evidence invalidation
 
 Every future receipt must bind the exact final source commit/tree/parent,
@@ -155,11 +186,12 @@ branch, scope base, task contracts, graph/catalog hashes, oracle import,
 taskfmt source/version/binary hash, comparator, proof binary, environment,
 observer/result evidence, and dependency ancestry. Any relevant source,
 documentation, task contract, schema, script, comparator, tool, oracle,
-environment, or generated-output change invalidates affected evidence. In
-particular, this documentation commit changes the source tree after the
-`bb574d84` payload documented above; the future coordinator must perform a
-fresh readiness check and re-seal the exact post-documentation tree before
-dispatch. Ancestor receipts never authorize a changed tree.
+environment, or generated-output change invalidates affected evidence. The
+fresh roots listed above bind `74e4ec45` / `f14b1296` before this documentation
+commit; the workspace root separately binds the previous `4a95fcde` /
+`f98f490` tree and is not a final-tree receipt. The future coordinator must
+perform a fresh readiness check and re-seal the exact post-documentation tree
+before dispatch. Ancestor receipts never authorize a changed tree.
 
 ## Delegation and integration protocol
 

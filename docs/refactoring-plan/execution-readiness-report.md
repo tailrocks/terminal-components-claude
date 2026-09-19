@@ -9,29 +9,25 @@ verdict is NO-GO.
 
 ## 1. Bound source and Git truth
 
-The documentation repair started from the freshly inspected checkout below.
-The resulting documentation commit changes the tree; therefore the identities
-below are the exact source payload against which the repair was authored, not a
-self-attested post-commit receipt.
+The final source payload being documented is the exact commit/tree below:
 
 | field | value |
 | --- | --- |
 | branch | `refactor/holla-parity` |
-| HEAD at repair start | `bb574d84bf25ff9179b42e951fca52068f2ab623` |
-| tree at repair start | `6e464830897f7c39014b12a79219d6cde8b56549` |
-| parent | `8e783592afd0a2c2f08076858a386a091a35e712` |
-| local `main` | `7b27732a8c3c131760ec3438f641cb3c11343a42` |
-| `origin/main` | `7b27732a8c3c131760ec3438f641cb3c11343a42` |
-| remote campaign ref | `f5013f609aed1ba32ce60352b38fd0b1b11b063c` |
-| merge-base with `main` | `7b27732a8c3c131760ec3438f641cb3c11343a42` |
-| merge-base with baseline | `cc14dd6beae526884aabdf897e309be837b4f504` |
-| `main..HEAD` at repair start | 78 commits |
-| `origin/refactor/holla-parity..HEAD` at repair start | 34 commits |
+| source payload commit | `74e4ec458e2d8b41257232900bdf511bfa335730` |
+| source payload tree | `f14b129677ccc493de52cca25d85d14c0f413823` |
+| source payload parent | `4a95fcdeedb8f7a3a132162e536ca28c2404b823` |
 
-Local and remote `main` agree. The campaign ref has not been pushed in this
-preparation wave. The directory `.worktrees/main` is not evidence of `main`;
-its branch identity was checked from Git refs. No protected ref was moved,
-rewritten, pruned, or force-pushed.
+Fresh preparation evidence below binds this source payload unless explicitly
+marked otherwise. This documentation-only reconciliation changes the Git tree
+after those runs; it is not a self-attested post-commit receipt. A fresh
+verifier/reviewer seal must bind the post-documentation HEAD/tree before
+acceptance. Any further relevant source, documentation, contract, tool,
+oracle, or environment change invalidates affected evidence.
+
+The older pre-documentation inspection identity `bb574d84` / `6e464830` and
+its branch/ref/merge-base observations remain historical provenance only. No
+protected ref was moved, rewritten, pruned, or force-pushed.
 
 The semantic three-way comparison is:
 
@@ -146,73 +142,52 @@ The preparation commits are:
 - `bb574d84bf25ff9179b42e951fca52068f2ab623` — Rust verifier symlinked-parent
   trust-path repair; tree `6e464830897f7c39014b12a79219d6cde8b56549`.
 
-The native proof changes are preparation infrastructure only. The observed
-source-payload checks reported:
+The native proof changes are preparation infrastructure only. Fresh raw
+evidence for the final source payload is:
 
-- `cargo fmt --all --check`: pass;
-- `cargo nextest run --locked -p refactor-proof`: 27/27 pass;
-- strict proof-code Clippy and rustdoc: pass in the sealed repair evidence;
-- shell syntax, ShellCheck, shfmt, preparation guards, proof-path guards, and
-  dispatch-authorization guards: pass after the taskfmt path repair;
-- plan/DAG validator: pass; all 73 standalone taskfmt lints: pass.
+| check | root and result |
+| --- | --- |
+| proof build | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-final-74e4ec45-2026-09-19`; receipt JSON binds commit `74e4ec458e2d8b41257232900bdf511bfa335730` and tree `f14b129677ccc493de52cca25d85d14c0f413823`; binary SHA-256 `88c5340476e1fbaa2e424d97db75b4c323735f4bf3bde7dea1d915b940d6c012`; receipt SHA-256 `98e6fe9d090391c9cb28b8cb6fb710ac5c94d2120a2bf39190b143fcb064a86f` |
+| proof nextest | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-nextest-74e4ec45-2026-09-19`; identity binds commit/tree; `cargo nextest: 28 passed (2 binaries, 21.527s)`; exit 0 |
+| static | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/static-74e4ec45-2026-09-19`; fmt, Clippy, and rustdoc each exit 0 |
+| shell | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/shell-74e4ec45-2026-09-19`; Bash syntax, ShellCheck, shfmt, preparation guards, proof-path guards, and dispatch authorization each exit 0 |
+| catalog | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/catalog-74e4ec45-2026-09-19`; plan exit 0, 73 packages linted with qualified taskfmt and zero failures, rebundle exit 0 |
+| documentation | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/docs-74e4ec45-2026-09-19`; actionlint and Lychee each exit 0 |
 
-Current evidence paths:
-
-```text
-taskfmt lints (73/73):
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/taskfmt-lints-final-retry-2026-09-19
-proof build (exit 0; SHA-256 f85400a16dc131fe0f59bfc90b5ec22cadf97de02833a216ed81385bf70a1b44):
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-preparation-final-2026-09-19
-Rust trust-path repair and sealed focused nextest/Clippy/rustdoc:
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/symlink-parent-repair-2026-09-19
-taskfmt trust-path repair:
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/taskfmt-path-repair-2026-09-19
-```
-
-The TASK-071/TASK-072 preparation attempt fails closed because prerequisite
-dependency receipts are absent. It is not an acceptance result. The prior
-proof-static result is stale relative to the trust repairs. The corrected
-static run has fmt 0, Clippy 0, and rustdoc-correct 0 at
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/static-final-2026-09-19`.
-Shell evidence before the trust repair is at
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/shell-final-current-2026-09-19`;
-the repair-root contains the latest shell guard evidence. Documentation checks
-are at
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/docs-final-current-retry-2026-09-19`
-(actionlint 0, Lychee 0).
-
-The current boundary run is
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/boundary-final-current-2026-09-19`;
-exit 1 is solely the missing `parity/evidence.tsv` parity-contract check and
-all other boundary checks pass. The current preflight run is
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/preflight-final-current-2026-09-19`;
-exit 1 at the exact NO-GO report gate. The refreshed ignored ledger remains
-`armed=false`.
-
-These observations are not an accepted receipt for the post-documentation
-tree. They must be re-run by a fresh verifier after the final source payload is
-sealed. Native proof is integrity/control evidence, not same-user hostile
-process isolation; the supported threat model and limitations remain in
+These roots are bound to `74e4ec45` / `f14b1296` before this documentation
+commit. They are not an accepted receipt for the post-documentation tree.
+Native proof is integrity/control evidence, not same-user hostile process
+isolation; the supported threat model and limitations remain in
 `proof-contract.md`.
 
-The prior full-workspace nextest observation was not a clean gate: `3,359
-passed, 1 failed, 6 skipped`; an isolated rerun of the affected architecture
-test passed. This is historical evidence, not the current final result. The
-sealed native macOS final-tree command bound by its identity file to source
-commit `4a95fcdeedb8f7a3a132162e536ca28c2404b823` and tree
-`f98f4908506f55026a35ea4e2701b78c240d147c` completed with `3,342 passed` and
-exit 0. Durable log:
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-sealed-final-2026-09-19/nextest.log`;
-identity file: `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-sealed-final-2026-09-19/identity.txt`.
-This is raw evidence only; no preparation receipt exists. `xtask boundary`
-still fails the parity contract because `parity/evidence.tsv` is absent. The
-required full behavioral and visual runs are not complete.
+The prior full-workspace result `3,359 passed, 1 failed, 6 skipped` is
+historical only. The current raw workspace result is
+`3,342 passed` and exit 0 at:
 
-Taskfmt source integration qualification is unavailable: the Docker-only test
-path was not run, and its guard fails closed when the explicit integration
-opt-in is absent. No Docker, Podman, container, image, mount, or namespace was
-used. Native Linux is unavailable in this environment; macOS evidence alone
-cannot satisfy a required Linux gate.
+```text
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-sealed-final-2026-09-19
+```
+
+Its `identity.txt` binds the previous source commit
+`4a95fcdeedb8f7a3a132162e536ca28c2404b823` and tree
+`f98f4908506f55026a35ea4e2701b78c240d147c`. It ran before this docs-only
+change; source behavior is unchanged by the documentation edit, but this raw
+workspace evidence is not a final-tree receipt and must not be relabeled as
+binding `74e4ec45` / `f14b1296`. Its durable log is
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-sealed-final-2026-09-19/nextest.log`.
+
+The following paths remain useful only as historical or superseded provenance:
+the old proof-nextest logs reporting `27/27` and `27 passed`, proof build
+`proof-preparation-final-2026-09-19` with binary SHA-256
+`f85400a16dc131fe0f59bfc90b5ec22cadf97de02833a216ed81385bf70a1b44`,
+`static-final-2026-09-19`, `shell-final-current-2026-09-19`,
+`docs-final-current-retry-2026-09-19`, and
+`taskfmt-lints-final-retry-2026-09-19`. They are not current final-payload
+evidence. The TASK-071/TASK-072 preparation attempt still fails closed because
+dependency receipts are absent; no task was accepted. The boundary run still
+fails on missing `parity/evidence.tsv`, native Linux is unavailable, and full
+taskfmt source integration remains unqualified because its Docker-only path was
+not run and fails closed without its opt-in. The ledger remains `armed=false`.
 
 ## 5. Calibration and parity status
 

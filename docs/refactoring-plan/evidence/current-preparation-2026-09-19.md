@@ -6,23 +6,24 @@ decision. Raw evidence remains outside the checkout. Status is **NO-GO**.
 
 ## 1. Candidate and Git evidence
 
-The live checkout was re-read before this documentation repair:
+The final source payload used by the fresh evidence roots is:
 
 ```text
 branch: refactor/holla-parity
-HEAD:   bb574d84bf25ff9179b42e951fca52068f2ab623
-tree:   6e464830897f7c39014b12a79219d6cde8b56549
-parent: 8e783592afd0a2c2f08076858a386a091a35e712
-local main: 7b27732a8c3c131760ec3438f641cb3c11343a42
-origin/main: 7b27732a8c3c131760ec3438f641cb3c11343a42
-origin/refactor/holla-parity: f5013f609aed1ba32ce60352b38fd0b1b11b063c
-merge-base(main, candidate): 7b27732a8c3c131760ec3438f641cb3c11343a42
-merge-base(visual-baseline, candidate): cc14dd6beae526884aabdf897e309be837b4f504
+commit: 74e4ec458e2d8b41257232900bdf511bfa335730
+tree:   f14b129677ccc493de52cca25d85d14c0f413823
+parent: 4a95fcdeedb8f7a3a132162e536ca28c2404b823
 ```
 
-The candidate was 75 commits ahead of local `main` and 31 commits ahead of the
-remote campaign ref at inspection. The preparation commits bound to that
-payload are:
+The four canonical docs are being reconciled as a documentation-only change
+after that payload. Therefore the fresh roots below bind `74e4ec45` /
+`f14b1296`, not the post-reconciliation documentation tree. A new external
+seal must bind the post-commit HEAD/tree before acceptance. Any further
+relevant source, documentation, contract, tool, oracle, or environment change
+invalidates affected evidence.
+
+The pre-repair inspection identity and preparation commits remain historical
+provenance:
 
 ```text
 e8c4950928b0ab6cc1268777dbed6f96cb0309ba
@@ -40,10 +41,7 @@ tree 6e464830897f7c39014b12a79219d6cde8b56549
 fix: harden preparation shell guards
 ```
 
-The four documents in this package are a new source change. Their resulting
-commit/tree must be obtained from Git after commit and then bound by fresh
-external verifier/reviewer manifests. No pre-documentation receipt survives
-that relevant tree change.
+No pre-documentation receipt survives the relevant documentation tree change.
 
 ## 2. Protected oracle import
 
@@ -167,58 +165,52 @@ all standalone taskfmt lints
   73/73 passed in the source-payload qualification run
 ```
 
-Proof and script evidence:
+Proof and script evidence from the final source payload is:
+
+| check | root and result |
+| --- | --- |
+| proof build | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-final-74e4ec45-2026-09-19`; receipt JSON binds commit `74e4ec458e2d8b41257232900bdf511bfa335730` and tree `f14b129677ccc493de52cca25d85d14c0f413823`; binary SHA-256 `88c5340476e1fbaa2e424d97db75b4c323735f4bf3bde7dea1d915b940d6c012`; receipt SHA-256 `98e6fe9d090391c9cb28b8cb6fb710ac5c94d2120a2bf39190b143fcb064a86f` |
+| proof nextest | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-nextest-74e4ec45-2026-09-19`; identity binds the final payload; `cargo nextest: 28 passed (2 binaries, 21.527s)`; exit 0 |
+| static | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/static-74e4ec45-2026-09-19`; fmt, Clippy, and rustdoc each exit 0; identity binds the final payload |
+| shell | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/shell-74e4ec45-2026-09-19`; Bash syntax, ShellCheck, shfmt, preparation guards, proof-path guards, and dispatch authorization each exit 0; identity binds the final payload |
+| catalog | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/catalog-74e4ec45-2026-09-19`; plan exit 0, 73 packages linted with qualified taskfmt and zero failures, rebundle exit 0; identity binds the final payload |
+| documentation | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/docs-74e4ec45-2026-09-19`; actionlint and Lychee each exit 0; identity binds the final payload |
+
+These are raw source-payload observations, not an accepted preparation
+receipt. The catalog still records 73 packages, 506 checks, 276 dependency
+edges, maximum depth 35, and zero accepted production tasks. The
+TASK-071/TASK-072 preparation attempt fails closed because dependency receipts
+are absent; no task was accepted. Native proof remains integrity/control
+evidence, not same-user hostile process isolation.
+
+Superseded pre-documentation evidence remains preserved but is not current:
 
 ```text
 /private/tmp/campaign-readonly-audit-20260919-refactor-proof-nextest.log
-  historical pre-repair run: 27/27 passed after the proof repair sequence
-
+  historical pre-repair run: 27/27 passed
 /private/tmp/tc-preflight-proof-current.sD2yr5/refactor-proof-nextest.log
-  27 passed
-
+  historical pre-final run: 27 passed
 /private/tmp/campaign-preparation-guards-parent.log
-  preparation guards: all bounded checks passed
-
+  historical preparation-guard result
 /private/tmp/review-f6-preparation.diff
-  review diff for the f6 shell/preparation repair
-```
-
-The source-payload commands reported `cargo fmt --all --check`, strict
-proof-code Clippy/rustdoc, ShellCheck, shfmt, shell syntax, proof-path tests,
-and dispatch authorization tests as passing after the preparation commits.
-Fresh current evidence is:
-
-```text
-taskfmt lints, 73/73:
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/taskfmt-lints-final-retry-2026-09-19
-proof build, exit 0, binary SHA-256 f85400a16dc131fe0f59bfc90b5ec22cadf97de02833a216ed81385bf70a1b44:
+  historical review diff for the shell/preparation repair
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-preparation-final-2026-09-19
-taskfmt path repair:
+  superseded proof build; binary SHA-256 f85400a16dc131fe0f59bfc90b5ec22cadf97de02833a216ed81385bf70a1b44
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/taskfmt-path-repair-2026-09-19
-Rust parent trust-path repair:
+  historical trust-path repair evidence
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/symlink-parent-repair-2026-09-19
+  historical trust-path repair evidence
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/static-final-2026-09-19
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/shell-final-current-2026-09-19
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/docs-final-current-retry-2026-09-19
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/taskfmt-lints-final-retry-2026-09-19
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/boundary-final-current-2026-09-19
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/preflight-final-current-2026-09-19
 ```
 
-The TASK-071/TASK-072 preparation attempt fails closed because prerequisite
-dependency receipts are absent; no task was accepted. The final static root
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/static-final-2026-09-19`
-has fmt 0, Clippy 0, and corrected rustdoc 0. The proof-static result before
-the trust repairs is stale and is not a current receipt. Shell checks before
-the trust repair are at
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/shell-final-current-2026-09-19`;
-the repair-root above contains the latest guard evidence. Documentation checks
-are at
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/docs-final-current-retry-2026-09-19`
-(actionlint 0, Lychee 0). These paths do not replace a post-documentation
-independent seal.
-
-The current boundary run is
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/boundary-final-current-2026-09-19`;
-exit 1 is solely the missing `parity/evidence.tsv` parity-contract check and
-all other boundary checks pass. The current preflight run is
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/preflight-final-current-2026-09-19`;
-exit 1 at the exact NO-GO report gate. The refreshed ignored ledger remains
-`armed=false`.
+The older boundary and preflight roots remain useful diagnostic evidence only:
+the boundary check still exits 1 on missing `parity/evidence.tsv`, the exact
+NO-GO report gate still exits 1, and the ignored ledger remains `armed=false`.
 
 Independent checks retained from the current audit include:
 
@@ -233,12 +225,9 @@ Independent checks retained from the current audit include:
 /tmp/tc-git-diff-check-current.log
 ```
 
-The prior full-workspace nextest observation was not clean: `3,359 passed, 1
-failed, 6 skipped`; an isolated rerun passed the affected architecture test.
-It is historical evidence, not the current final result. After source payload
-commit `4a95fcdeedb8f7a3a132162e536ca28c2404b823` and tree
-`f98f4908506f55026a35ea4e2701b78c240d147c`, the sealed native macOS command
-completed with `3,342 passed` and exit 0. The raw run root is:
+The older full-workspace nextest observation `3,359 passed, 1 failed, 6
+skipped` is historical only. The current raw workspace result is `3,342
+passed` and exit 0 at:
 
 ```text
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-sealed-final-2026-09-19
@@ -250,11 +239,15 @@ Durable log:
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-sealed-final-2026-09-19/nextest.log
 ```
 
-The run-root `identity.txt` binds the command to that commit/tree. This is
-raw evidence only; no preparation receipt exists. Boundary validation still
-fails at missing `parity/evidence.tsv`. Native Linux was not available. The
-calibration, boundary, proof-receipt, and Linux requirements remain open
-gates, not passes.
+The run-root `identity.txt` binds this workspace result to the previous source
+commit `4a95fcdeedb8f7a3a132162e536ca28c2404b823` and tree
+`f98f4908506f55026a35ea4e2701b78c240d147c`. It ran before this docs-only
+change; source behavior is unchanged by that edit, but this is raw evidence,
+not a final-tree receipt and must not be relabeled as binding
+`74e4ec458e2d8b41257232900bdf511bfa335730` / `f14b129677ccc493de52cca25d85d14c0f413823`.
+No preparation receipt exists. Boundary validation still fails at missing
+`parity/evidence.tsv`; native Linux is unavailable. The calibration, boundary,
+proof-receipt, and Linux requirements remain open gates, not passes.
 
 ## 4. Trust-boundary review and repair
 
@@ -353,9 +346,13 @@ evidence never silently authorizes a changed tree.
 | preparation readiness | NO-GO |
 | production dispatch | not performed |
 | ledger | disarmed |
+| accepted preparation receipt | none |
 | protected baseline | unchanged |
 | current product parity | unproven; known regressions remain |
 | full oracle calibration | not accepted |
+| 892 calibration result | 302 cases: 298 passed, 4 failed, 2 skipped, 1 leaky, exit 100; 7,550 ANSI/plain/PNG/HTML each; 30,200 total; 17 diff files |
+| `parity/evidence.tsv` | missing; boundary gate fails |
+| `TASK-071` / `TASK-072` dependency receipts | absent |
 | native Linux | unavailable |
 | taskfmt Docker integration | not run; fails closed |
 | current independent verifier/reviewer | no `VERIFIED` result |
@@ -363,5 +360,7 @@ evidence never silently authorizes a changed tree.
 | repaired trust paths | defects fixed; exact final-tree verifier/reviewer requalification pending |
 
 The next implementation prompt is deliberately marked **NOT AUTHORIZED FOR
-EXECUTION** and rejects startup until these conditions are independently
-closed.
+EXECUTION**. Startup must reject while the report is NO-GO, the ledger is
+`armed=false`, dependency receipts are absent, native Linux is unavailable,
+parity evidence is missing, or no accepted final-tree preparation receipt and
+independent `VERIFIED` review exist.
