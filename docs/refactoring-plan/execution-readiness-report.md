@@ -8,13 +8,13 @@ is a preparation gate, not an implementation prompt. Keep the campaign ledger
 
 ## 1. Exact source and branch truth
 
-The tested preparation payload before this final documentation freeze is:
+The current pushed preparation payload before this documentation update is:
 
 ```text
 branch: refactor/holla-parity
-commit: bc4e5980256f1fa2c66d673790c99610b610fd16
-tree:   1a388126806c701ff4420f17023a8b792bfd4b98
-parent: 1da58a09f420b653195b5d8015ed5ca22deb8a6
+commit: 247e47d5c00f83685211c98cdef1a281b2af86b4
+tree:   40d76b003cfb7e6f19a818942762d9d9f82e11f6
+parents: 9346c104d9a544c36bd61e48002f037fdc13423d, 28a75786
 ```
 
 Git facts independently read from refs:
@@ -22,9 +22,9 @@ Git facts independently read from refs:
 ```text
 refs/heads/main:                  7b27732a8c3c131760ec3438f641cb3c11343a42
 refs/remotes/origin/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
-refs/remotes/origin/refactor/...  1da58a09f420b653195b5d8015ed5ca22deb8a6
+refs/remotes/origin/refactor/...  247e47d5c00f83685211c98cdef1a281b2af86b4
 merge-base campaign/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
-local commits ahead of remote campaign: 1
+local commits ahead of remote campaign: 0
 ```
 
 The final verifier must recompute these values after this documentation
@@ -38,7 +38,9 @@ their paths are:
 ```
 
 No accepted preparation receipt exists. Historical report hashes and prior
-NO-GO identities are not current bindings.
+NO-GO identities are not current bindings. The documentation commit itself
+will change the tested tree; final verification must rebind its post-commit
+identity.
 
 ## 2. Immutable baseline and exact corpus
 
@@ -61,6 +63,10 @@ Manifest SHA-256:
 The import was derived from the peeled tag, has zero symlinks, and was not
 used as a candidate-generated baseline. Protected refs and artifacts are
 unchanged.
+
+At current campaign HEAD `247e47d5`, `tests/visual_baseline/` and
+`.config/nextest.toml` exist. The candidate branch still lacks `snapshots/`
+and `parity/evidence.tsv`; those remain external protected-oracle inputs.
 
 ## 3. Catalog and executable DAG
 
@@ -97,19 +103,19 @@ binary:   /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campai
 SHA-256:  f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
 ```
 
-Current package-lint run:
-`taskfmt-lints-bc4e5980/summary.tsv`: 73/73 passed, 0 failed. Lint validates
-contract format only; it does not accept implementation.
+Current package-lint run at pushed `247e47d5`:
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-current-2/all.log`;
+73/73 passed, exit 0; log SHA-256
+`afecad09ba800c74fc841fd4d830fd8932d80e84894bd18c5bf5660522134124`.
+Lint validates contract format only; it does not accept implementation.
 
 Native proof runs:
 
 | run | command/result |
 | --- | --- |
-| `proof-full-bc4e5980` | unfiltered `cargo nextest` exit 100; 37 passed, 1 bounded observer-hang test failed |
-| `native-preparation-bc4e5980` | build, prepare, validate, and explicit proof-preparation preflight exit 0; exact `bc4e5980`/`1a388126` bindings |
-| `adversarial-preparation-bc4e5980` | preparation guards, proof paths, dispatch authorization, and ledger contracts exit 0 |
-| `taskfmt-lints-bc4e5980` | 73/73 package lints passed, 0 failed |
-| `final-checks-bc4e5980` | plan and graph validators exit 0; pre-arm preflight exit 1 on canonical NO-GO |
+| `refactor-proof-current-clean` | `247e47d5`/`40d76b00`; selected nextest 2/3 passed, provider-hang test failed, exit 100; log SHA-256 `629750c16dcab5fd69bc6a8c082aadbcdc10526f105f2a7f7b2db603f10b4cc6` |
+| `preflight-current-clean` | historical clean run bound to `9346c104`/`00958932`; exit 1 with correct NO-GO refusal; result SHA-256 `ad1e78e8c2c5c14fd068befd42fa7774d115dfd83e91f41784ca2a22e56adf12` |
+| `proof-full-bc4e5980`, `native-preparation-bc4e5980`, `adversarial-preparation-bc4e5980`, `taskfmt-lints-bc4e5980`, `final-checks-bc4e5980` | historical runs bound to superseded `bc4e5980`; provenance only |
 
 The native protocol is non-circular: pin source/tools/contracts/oracle and
 prerequisite receipts, materialize contexts, start the observer, execute the
@@ -124,7 +130,27 @@ isolation claim. Hashes, regular-file checks, path checks, read-only inputs,
 observer evidence, and independent exit observation provide integrity and
 detection controls.
 
+The independent launcher review at
+`/private/tmp/tc-known-good-control-review-9346.oX9Hqi/` rejected the visual
+control for protected-target use; missing source/output freshness and link
+checks; accepted target/config/manifest overrides; missing exact HTML and
+provenance validation; incomplete tool identity; destructive scratch cleanup;
+and `shfmt -d` failure. It is not a qualification receipt.
+
+The independent adversarial proof audit
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/adversarial-fe802/adversarial-proof-contract-audit-fe802.md`
+(SHA-256 `e92d7f517c05992afefc0d80bc3b4aef5250b22cb17865ddfb136e12b4ab7f19`)
+remains rejected with AP-01–AP-05 open: observer provenance, result closure,
+taskfmt sealing, trust-path consistency, and observer request-count binding.
+
 ## 5. Frozen calibration and parity blocker
+
+The detailed calibration report
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/calibration-fe802/CALIBRATION-REPORT.md`
+(SHA-256 `c1c8b3221cd51661eb36cd57a4c850ab3a093cb9a5647b16d39d88c33516d55e`)
+is historical: it binds `fe802534`, not current `247e47d5`. Its NO-GO
+findings remain provenance and cannot attest to the current or post-document
+tree.
 
 The exact peeled-tag source was executed against the pre-existing read-only
 oracle in external run
@@ -159,9 +185,17 @@ workspace/static/documentation, and platform gates remain implementation
 obligations. They are not accepted by the preparation suite.
 
 Current macOS-native preparation checks are recorded under the external run
-root. Current shell syntax/ShellCheck/actionlint evidence is pass. Required
-Linux execution is unavailable in this environment and therefore is not
-claimed. CI is supplementary and cannot substitute for native macOS/Linux
+root. Fresh pre-documentation Lychee passed at
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/lychee-docs-247e47d5`
+(exit 0, 748 inputs; log SHA-256
+`2e3b6e8d8f1f9a9740000b37cb83cec558485df985dadcfd0642052b968c956c`) and
+qualified actionlint 1.7.12 passed at
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/actionlint-docs-247e47d5`
+(exit 0; log SHA-256
+`e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`).
+Historical Lychee/actionlint runs remain bound to `9346c104`/`00958932`.
+Required Linux execution is unavailable in this environment and therefore is
+not claimed. CI is supplementary and cannot substitute for native macOS/Linux
 evidence. No Docker, Podman, container, image, mount, firmlink, namespace, or
 retired lifecycle path was used by this campaign.
 
@@ -176,6 +210,14 @@ retired lifecycle path was used by this campaign.
 | Linux native evidence unavailable | platform owner | execute required native Linux lane or keep NO-GO |
 | product migration/ownership/parity incomplete | implementation goal | complete reconciled DAG and final architecture/product gates |
 | ledger must stay disarmed | coordinator | preserve `armed=false` until separate explicit dispatch authorization after fresh readiness recheck |
+
+The ignored ledger is schema-valid but stale: `.campaign/ledger.json` has
+`armed=false`, `integration_head=a292cf860d87c93fc329d16d2310ca86ad370d3d`,
+catalog tree `10d44afa017c8f6e68da8b78805477335081efb0`, no preparation
+receipt, four blocked task rows, and receipt keys `task-001`/`task-070`.
+Its SHA-256 is
+`9c26f11628fda8a1feb7b248f7a53b05741bf6dd3eaea1d2746c008d5ed52b06`.
+It must not authorize the current branch.
 
 Resolved preparation defects include stale task graph status metadata, stale
 taskfmt path/version enforcement, missing native receipt binding, incomplete

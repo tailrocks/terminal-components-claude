@@ -18,30 +18,30 @@ contains no status, acceptance result, or dispatch authority.
 
 ## Current candidate and branch truth
 
-The latest tested preparation payload before this final documentation freeze is:
+The current pushed preparation payload before this documentation update is:
 
 ```text
 branch:   refactor/holla-parity
-commit:   bc4e5980256f1fa2c66d673790c99610b610fd16
-tree:     1a388126806c701ff4420f17023a8b792bfd4b98
-parent:   1da58a09f420b653195b5d8015ed5ca22deb8a6a
+commit:   247e47d5c00f83685211c98cdef1a281b2af86b4
+tree:     40d76b003cfb7e6f19a818942762d9d9f82e11f6
+parents:  9346c104d9a544c36bd61e48002f037fdc13423d, 28a75786
 local main:   7b27732a8c3c131760ec3438f641cb3c11343a42
 remote main:  7b27732a8c3c131760ec3438f641cb3c11343a42
-remote campaign tip: 1da58a09f420b653195b5d8015ed5ca22deb8a6a
+remote campaign tip: 247e47d5c00f83685211c98cdef1a281b2af86b4
 merge-base with main: 7b27732a8c3c131760ec3438f641cb3c11343a42
-campaign commits ahead of origin/refactor/holla-parity: 1
+campaign commits ahead of origin/refactor/holla-parity: 0
 ```
 
 The campaign is a descendant of actual local and remote `main`; the remote
-campaign ref is stale relative to this local preparation branch. No ref was
-reset, rewritten, force-pushed, pruned, or moved. The directory name
-`.worktrees/main` was not used to identify `main`.
+campaign ref equals this pushed payload. No ref was reset, rewritten,
+force-pushed, pruned, or moved. The directory name `.worktrees/main` was not
+used to identify `main`.
 
 The four canonical documents are source-controlled preparation metadata. Their
-commit changes the tested payload, so the final verifier must bind the exact
-post-documentation HEAD/tree. Evidence is invalidated by any relevant source,
-documentation, task contract, schema, script, tool, oracle, environment, or
-generated-output change. The evidence-sealing protocol is therefore:
+next commit changes the tested payload, so the final verifier must bind the
+exact post-documentation HEAD/tree. Evidence is invalidated by any relevant
+source, documentation, task contract, schema, script, tool, oracle,
+environment, or generated-output change. The evidence-sealing protocol is:
 
 ```text
 commit preparation payload
@@ -80,6 +80,11 @@ Its control run is
 That run executed 302 cases and produced the complete count, but was not
 clean: 298 passed, 4 failed, 2 skipped, 1 leaky, exit 100. No output was
 blessed or normalized.
+
+At current campaign HEAD `247e47d5`, `tests/visual_baseline/` and
+`.config/nextest.toml` exist. The candidate branch still has no `snapshots/`
+directory and no `parity/evidence.tsv`; those remain protected external oracle
+inputs, not candidate-generated expected output.
 
 Parity is exact at cells/styles/layout/ANSI/plain/PNG/HTML and interactive
 state transitions. PTY checks must include setup, input, resize, settled state,
@@ -135,32 +140,51 @@ Only standalone `taskfmt lint "$TASK_DIR"` and the documented standalone
 are allowed. Taskfmt is not an orchestrator, workspace manager, ref manager,
 container launcher, or acceptance authority.
 
-The native Rust launcher/materializer now binds task/check/run/source/tree,
-scope base, dependency receipts, oracle, contracts, comparator/tool hashes,
-environment, observer nonce/FD transport, result locations, and immutable
-receipts. It rejects forged, stale, duplicate, missing, symlinked, hard-linked,
-mutated, cross-run, wrong-tree, wrong-tool, wrong-oracle, wrong-nonce, and
-incomplete inputs. Observer shutdown is bounded; canonical native targets are
-named `target`. Preflight and dispatch require exactly one canonical readiness
-verdict and reject legacy or ambiguous markers. The supported threat model
-detects integrity substitution but does not claim isolation from a hostile
-same-user process.
+The native Rust launcher/materializer has implementation and contract claims
+for source/tree, scope, oracle, contracts, tool hashes, observer transport,
+results, and receipts. Those claims are not qualified: the independent
+launcher review rejected the current visual control for protected-target use,
+missing source/output freshness and link controls, accepted target/config/
+manifest overrides, incomplete HTML/provenance validation, incomplete tool
+identity, destructive scratch cleanup, and failed `shfmt -d`. The native
+threat model remains limited to integrity/detection controls; it does not
+claim isolation from a hostile same-user process.
 
-Current qualification evidence:
+Current and historical qualification evidence:
 
-- `proof-full-bc4e5980`: unfiltered `cargo nextest` exit 100; 37 passed and
-  the bounded observer-hang test failed under the unfiltered run. The raw
-  failure is retained; a focused rerun cannot erase it.
-- `native-preparation-bc4e5980`: build, prepare, validate, and explicit
-  proof-preparation preflight all exit 0; external build receipt, binary,
-  contexts, results, observer, and index bind to `bc4e5980` / `1a388126`.
-- `adversarial-preparation-bc4e5980`: preparation guards, proof paths,
-  dispatch authorization, and ledger contract checks all exit 0.
-- `taskfmt-lints-bc4e5980`: 73/73 package lints passed, 0 failed.
+- Current taskfmt lint at pushed `247e47d5`: 73/73 packages passed, exit 0;
+  log `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-current-2/all.log`,
+  SHA-256 `afecad09ba800c74fc841fd4d830fd8932d80e84894bd18c5bf5660522134124`.
+- Current proof run at `247e47d5`: `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/refactor-proof-current-clean/nextest.log`,
+  SHA-256 `629750c16dcab5fd69bc6a8c082aadbcdc10526f105f2a7f7b2db603f10b4cc6`;
+  2/3 selected tests passed and the provider-hang test failed, exit 100.
+- `proof-full-bc4e5980`, `native-preparation-bc4e5980`,
+  `adversarial-preparation-bc4e5980`, `taskfmt-lints-bc4e5980`, and
+  `final-checks-bc4e5980` are historical runs bound to superseded source;
+  they remain provenance only.
+
+The adversarial audit at
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/adversarial-fe802/adversarial-proof-contract-audit-fe802.md`
+(SHA-256 `e92d7f517c05992afefc0d80bc3b4aef5250b22cb17865ddfb136e12b4ab7f19`)
+is rejected with AP-01–AP-05 open: observer provenance, result closure,
+taskfmt sealing, trust-path consistency, and observer request-count binding.
 
 Raw runs are under
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19`.
 They are supporting evidence, not acceptance receipts.
+
+The clean pre-arm preflight run
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/preflight-current-clean`
+exited 1 with the correct NO-GO refusal. Its result SHA-256 is
+`ad1e78e8c2c5c14fd068befd42fa7774d115dfd83e91f41784ca2a22e56adf12`; it is
+bound to historical `9346c104`/`00958932`, so it cannot authorize the current
+or post-documentation tree. Fresh pre-documentation Lychee log
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/lychee-docs-247e47d5/lychee.log`
+passed with SHA-256 `2e3b6e8d8f1f9a9740000b37cb83cec558485df985dadcfd0642052b968c956c`;
+qualified actionlint 1.7.12 log
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/actionlint-docs-247e47d5/actionlint.log`
+passed with SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+No final-tree verifier or reviewer receipt exists.
 
 ## Readiness and navigation
 

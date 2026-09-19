@@ -27,9 +27,11 @@ Before any implementation agent is spawned, the coordinator must independently:
 2. Re-read Git refs. Bind the actual branch, local/remote `main`, merge-base,
    scope base, clean worktree, final source commit/tree/parent, and dependency
    ancestry. The preparation payload before this documentation freeze was
-   `bc4e5980256f1fa2c66d673790c99610b610fd16` / tree
-   `1a388126806c701ff4420f17023a8b792bfd4b98` with parent
-   `1da58a09f420b653195b5d8015ed5ca22deb8a6a`; the documentation commit and
+   `247e47d5c00f83685211c98cdef1a281b2af86b4` / tree
+   `40d76b003cfb7e6f19a818942762d9d9f82e11f6` with merge parents
+   `9346c104d9a544c36bd61e48002f037fdc13423d` and `28a75786`; local and
+   remote `main` are `7b27732a8c3c131760ec3438f641cb3c11343a42`, and the
+   remote campaign tip equals `247e47d5`; the documentation commit and
    any later edit invalidate that identity. Never trust this embedded value
    without fresh Git reads.
 3. Verify the protected oracle exactly:
@@ -71,7 +73,10 @@ Before any implementation agent is spawned, the coordinator must independently:
    tree. Materialize contexts/results/logs/calibration outputs only in external
    verifier-owned native run directories. Validate every source/tree/tool/oracle
    binding, observer nonce/FD, result schema/hash, dependency receipt, and
-   read-only trust input. The worker cannot authorize its own success.
+   read-only trust input. The worker cannot authorize its own success. Current
+   evidence is not such a receipt: taskfmt lint is 73/73, proof is 2/3 with
+   the provider-hang failure, and the clean preflight exit 1 is bound to
+   historical `9346c104`/`00958932`.
 7. Require a fresh independent verifier and a separate independent reviewer to
    return `VERIFIED` for the exact final tree. Predetermined report paths:
 

@@ -1,4 +1,4 @@
-# Current preparation evidence — 2026-09-19
+# Current preparation evidence — updated 2026-09-20
 
 Status: **NO-GO.** This file is a provenance index, not a verifier receipt,
 task acceptance, dispatch authorization, ledger-arm operation, or product
@@ -7,17 +7,18 @@ completion claim.
 ## Source and refs
 
 ```text
-tested preparation payload: bc4e5980256f1fa2c66d673790c99610b610fd16
-tested tree:                1a388126806c701ff4420f17023a8b792bfd4b98
-tested parent:              1da58a09f420b653195b5d8015ed5ca22deb8a6
+current pushed payload:     247e47d5c00f83685211c98cdef1a281b2af86b4
+current pushed tree:        40d76b003cfb7e6f19a818942762d9d9f82e11f6
+merge parents:              9346c104d9a544c36bd61e48002f037fdc13423d,
+                            28a75786
 branch:                     refactor/holla-parity
 local main:                 7b27732a8c3c131760ec3438f641cb3c11343a42
 remote main:                7b27732a8c3c131760ec3438f641cb3c11343a42
-remote campaign tip:       1da58a09f420b653195b5d8015ed5ca22deb8a6
+remote campaign tip:       247e47d5c00f83685211c98cdef1a281b2af86b4
 merge-base with main:       7b27732a8c3c131760ec3438f641cb3c11343a42
 ```
 
-The documentation commit containing this index changes the final tree. A
+The four-document commit containing this index changes the final tree. A
 fresh verifier and reviewer must bind the exact post-commit identity. No
 receipt may attest to a future commit containing itself. Final report paths:
 
@@ -53,6 +54,11 @@ The source identity for the complete snapshot producer is
 `89218626011f2f82c4e87c4dfd5868a4c5f3e284` / tree
 `6fccf997cd742071ebcff0e0a00e89404ef95ca8`, with the same snapshot tree.
 
+At current campaign HEAD `247e47d5`, `tests/visual_baseline/` and
+`.config/nextest.toml` exist. The candidate branch has no `snapshots/`
+directory and no `parity/evidence.tsv`; the imported oracle remains external
+and read-only.
+
 ## Qualified tools and command evidence
 
 Taskfmt qualification:
@@ -67,23 +73,26 @@ binary SHA-256: f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
 ```
 
 The qualified binary is a regular, single-link executable. Only standalone
-`lint` and `verify` operations are allowed. Current lint evidence:
+`lint` and `verify` operations are allowed. Current lint evidence, run against
+the pushed `247e47d5` payload before this documentation update:
 
 ```text
-run: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/taskfmt-lints-bc4e5980
+run: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-current-2
+log: all.log
+log SHA-256: afecad09ba800c74fc841fd4d830fd8932d80e84894bd18c5bf5660522134124
 packages: 73
 passed: 73
 failed: 0
+exit: 0
 ```
 
 Current native proof evidence:
 
 | external run | evidence |
 | --- | --- |
-| `proof-full-bc4e5980` | unfiltered nextest exit 100; 37 passed, 1 bounded observer-hang test failed |
-| `native-preparation-bc4e5980` | build, prepare, validate, and explicit preflight exit 0; comparator, receipt, contexts, results, index, and observer bind to current tree |
-| `adversarial-preparation-bc4e5980` | preparation guards, proof paths, dispatch authorization, and ledger contracts exit 0 |
-| `final-checks-bc4e5980` | plan/graph validators exit 0; pre-arm preflight exit 1 on canonical NO-GO |
+| `refactor-proof-current-clean` | `247e47d5`/`40d76b00`; selected nextest 2/3 passed, provider-hang test failed, exit 100; `nextest.log` SHA-256 `629750c16dcab5fd69bc6a8c082aadbcdc10526f105f2a7f7b2db603f10b4cc6`; `result.txt` SHA-256 `e962a1a60e7302a5ef98dcb334eadae077b231a83ffe1af066927de4bd8750a1` |
+| `preflight-current-clean` | historical clean run bound to `9346c104`/`00958932`; exit 1 with correct NO-GO refusal; `result.txt` SHA-256 `ad1e78e8c2c5c14fd068befd42fa7774d115dfd83e91f41784ca2a22e56adf12` |
+| `proof-full-bc4e5980`, `native-preparation-bc4e5980`, `adversarial-preparation-bc4e5980`, `final-checks-bc4e5980` | historical runs bound to superseded `bc4e5980`; provenance only |
 
 Raw log hashes:
 
@@ -118,6 +127,62 @@ binding, wrong nonce, replay/truncation/empty response, subprocess failure,
 timeouts, provider hang teardown, result/context mutation, link substitution,
 stale/cross-run identity, and canonical target-name enforcement. A worker’s
 success string or zero taskfmt exit is never acceptance.
+
+The independent launcher review
+`/private/tmp/tc-known-good-control-review-9346.oX9Hqi/` rejected the visual
+control for protected-target use; missing source/output freshness and link
+controls; accepted `--target-dir`, `--config`, and `--manifest-path`
+overrides; missing exact HTML/provenance validation; incomplete tool identity;
+destructive scratch cleanup; and `shfmt -d` failure. It is not an acceptance
+receipt.
+
+The independent adversarial audit
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/adversarial-fe802/adversarial-proof-contract-audit-fe802.md`
+(SHA-256 `e92d7f517c05992afefc0d80bc3b4aef5250b22cb17865ddfb136e12b4ab7f19`)
+remains rejected with AP-01–AP-05 open: observer provenance, result closure,
+taskfmt sealing, trust-path consistency, and observer request-count binding.
+
+## Static, documentation, and ledger evidence
+
+Fresh pre-documentation checks at the pushed `247e47d5` payload:
+
+```text
+Lychee run: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/lychee-docs-247e47d5
+Lychee result: exit=0, inputs=748
+Lychee log SHA-256: 2e3b6e8d8f1f9a9740000b37cb83cec558485df985dadcfd0642052b968c956c
+
+Actionlint run: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/actionlint-docs-247e47d5
+Actionlint version: 1.7.12
+Actionlint result: exit=0
+Actionlint log SHA-256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+```
+
+These checks precede the documentation commit; they are not final-tree
+verifier evidence. Historical Lychee/actionlint runs bind to
+`9346c104`/`00958932` and remain provenance only.
+
+The detailed calibration report
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/calibration-fe802/CALIBRATION-REPORT.md`
+(SHA-256 `c1c8b3221cd51661eb36cd57a4c850ab3a093cb9a5647b16d39d88c33516d55e`)
+is historical and binds `fe802534`, not current `247e47d5`. It remains NO-GO:
+the complete known-good control did not establish exact parity, including the
+missing TablePro key, HTML executable-path bytes, TablePro structural output,
+Holla elapsed-time output, and unstable settled transitions.
+
+The ignored ledger is schema-valid but stale:
+
+```text
+armed: false
+integration_head: a292cf860d87c93fc329d16d2310ca86ad370d3d
+catalog tree: 10d44afa017c8f6e68da8b78805477335081efb0
+preparation: null
+task rows: 4 (all BLOCKED)
+receipt keys: task-001, task-070
+SHA-256: 9c26f11628fda8a1feb7b248f7a53b05741bf6dd3eaea1d2746c008d5ed52b06
+```
+
+No accepted current preparation receipt exists. No evidence in this index
+authorizes dispatch or ledger arming.
 
 ## Graph and architecture
 
@@ -184,19 +249,15 @@ modified, accepted, masked, or replaced.
 
 ## Platform, ledger, and final decision
 
-Native macOS preparation checks are available under the run root. Shell syntax,
-ShellCheck, actionlint, plan, graph, taskfmt lint, and proof-format checks pass
-for their tested payloads. The unfiltered proof nextest run is not passing:
-37 tests passed and the bounded observer-hang test failed, exit 100. Required
-native Linux execution was unavailable; no cross-platform pass is claimed. The campaign
-ledger remains schema-controlled and disarmed; no accepted preparation or
-production receipt exists. Any preflight failure due absent current accepted
-evidence is correct fail-closed behavior.
-
-The current unfiltered proof run for `bc4e5980` recorded exit 100 with 37
-passes; `verifier::tests::provider_hang_after_acceptance_is_bounded_and_rejected`
-failed its under-four-second assertion. The raw failure remains binding and is
-not erased by focused tests or host-contention hypotheses.
+Native macOS preparation checks are available under the run root. Current
+selected proof at `247e47d5` recorded 2/3 tests passed and
+`verifier::tests::provider_hang_after_acceptance_is_bounded_and_rejected`
+failed its under-four-second assertion, exit 100. Fresh Lychee/actionlint are
+pre-documentation evidence. Required native Linux execution was unavailable;
+no cross-platform pass is claimed. The campaign ledger remains schema-
+controlled and disarmed; no accepted preparation or production receipt exists.
+Any preflight failure due absent current accepted evidence is correct
+fail-closed behavior.
 
 Final verifier and reviewer must independently inspect the final clean tree and
 raw proof/calibration evidence. Their paths are the two `final-seal-2026-09-19`
