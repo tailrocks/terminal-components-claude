@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import stat
 from pathlib import Path
 from typing import Any
 
@@ -243,6 +244,7 @@ def validate_index_close_outputs(
     run_dir = Path(index["run_id"])
     if not run_dir.is_absolute() or output_dir != run_dir / "outputs":
         raise Reject("CLOSURE")
+    _real_directory(run_dir)
     _real_directory(output_dir)
     contexts_dir = run_dir / "contexts"
     results_dir = run_dir / "results"

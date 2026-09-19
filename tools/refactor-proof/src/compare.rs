@@ -10,6 +10,9 @@ use std::fs::{self, OpenOptions};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
+#[cfg(unix)]
+use std::os::unix::fs::MetadataExt;
+
 use serde::Serialize;
 use serde_json::Value;
 use tuisnap::Frame;
@@ -419,13 +422,15 @@ fn check_unexpected_approval(root: &Path) -> Result<(), FailureCode> {
 }
 
 fn scan_tree_for_symlinks(root: &Path) -> Result<(), FailureCode> {
-    if !root.is_dir() {
+    let metadata = fs::symlink_metadata(root).map_err(|_| FailureCode::Integrity)?;
+    if metadata.file_type().is_symlink() {
+        return Err(FailureCode::UnsafePath);
+    }
+    if !metadata.is_dir() {
         return Err(FailureCode::Integrity);
     }
     for entry in walk_files(root)? {
-        if entry.is_symlink() {
-            return Err(FailureCode::UnsafePath);
-        }
+        validate_regular_single_link_file(&entry)?;
     }
     Ok(())
 }
@@ -438,14 +443,38 @@ fn walk_files(root: &Path) -> Result<Vec<PathBuf>, FailureCode> {
         for entry in entries {
             let entry = entry.map_err(|_| FailureCode::Integrity)?;
             let path = entry.path();
-            if path.is_dir() {
-                stack.push(path);
-            } else {
+            let metadata = fs::symlink_metadata(&path).map_err(|_| FailureCode::Integrity)?;
+            if metadata.file_type().is_symlink() || !metadata.is_dir() {
                 files.push(path);
+            } else {
+                stack.push(path);
             }
         }
     }
     Ok(files)
+}
+
+fn validate_regular_single_link_file(path: &Path) -> Result<(), FailureCode> {
+    let metadata = fs::symlink_metadata(path).map_err(|_| FailureCode::Integrity)?;
+    if metadata.file_type().is_symlink() {
+        return Err(FailureCode::UnsafePath);
+    }
+    if !metadata.file_type().is_file() || link_count(&metadata) != 1 {
+        return Err(FailureCode::Integrity);
+    }
+    Ok(())
+}
+
+fn link_count(metadata: &fs::Metadata) -> u64 {
+    #[cfg(unix)]
+    {
+        metadata.nlink()
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = metadata;
+        1
+    }
 }
 
 fn verify_manifest(
@@ -455,6 +484,7 @@ fn verify_manifest(
     allow_extra_files: bool,
 ) -> Result<ArtifactsManifest, FailureCode> {
     let manifest_path = root.join("manifest.json");
+    validate_regular_single_link_file(&manifest_path)?;
     let bytes = fs::read(&manifest_path).map_err(|_| FailureCode::Integrity)?;
     if sha256_bytes(&bytes) != expected_hash {
         return Err(FailureCode::Integrity);
@@ -517,9 +547,7 @@ fn verify_manifest(
 
     for (path, size, hash) in &files {
         let full = root.join(path);
-        if full.is_symlink() {
-            return Err(FailureCode::UnsafePath);
-        }
+        validate_regular_single_link_file(&full)?;
         let data = fs::read(&full).map_err(|_| FailureCode::Integrity)?;
         if data.len() as u64 != *size || sha256_bytes(&data) != *hash {
             return Err(FailureCode::Integrity);
@@ -690,11 +718,8 @@ fn compare_scenario(context: &CompareContext, scenario: &ScenarioSpec) -> Option
         &oracle_prov_path,
         &candidate_prov_path,
     ] {
-        if path.is_symlink() {
-            return Some(FailureCode::UnsafePath);
-        }
-        if !path.is_file() {
-            return Some(FailureCode::Integrity);
+        if let Err(code) = validate_regular_single_link_file(path) {
+            return Some(code);
         }
     }
 
@@ -1004,6 +1029,85 @@ fn ensure_real_directory(path: &Path) -> io::Result<()> {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[cfg(unix)]
+    #[test]
+    fn tree_scan_rejects_symlinked_artifact_directory() -> Result<(), Box<dyn std::error::Error>> {
+        use std::os::unix::fs::symlink;
+
+        let temporary = tempfile::tempdir()?;
+        let root = temporary.path().join("candidate");
+        let outside = temporary.path().join("outside");
+        fs::create_dir_all(&root)?;
+        fs::create_dir_all(&outside)?;
+        fs::write(outside.join("forged.json"), b"forged")?;
+        symlink(&outside, root.join("artifacts"))?;
+
+        assert_eq!(scan_tree_for_symlinks(&root), Err(FailureCode::UnsafePath));
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn scenario_rejects_hardlinked_frame_state_and_provenance()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let temporary = tempfile::tempdir()?;
+        let scenario = ScenarioSpec {
+            id: "case-001".to_owned(),
+            frame: "frame.json".to_owned(),
+            state: "state.json".to_owned(),
+            provenance: "provenance.json".to_owned(),
+            state_keys: vec!["value".to_owned()],
+            lane: "direct".to_owned(),
+            checkpoint: "after".to_owned(),
+        };
+
+        for hardlinked_name in ["frame.json", "state.json", "provenance.json"] {
+            let case_root = temporary.path().join(hardlinked_name);
+            let oracle_root = case_root.join("oracle");
+            let candidate_root = case_root.join("candidate");
+            fs::create_dir_all(&oracle_root)?;
+            fs::create_dir_all(&candidate_root)?;
+            for name in ["frame.json", "state.json", "provenance.json"] {
+                fs::write(oracle_root.join(name), b"{}\n")?;
+                let candidate_path = candidate_root.join(name);
+                if name == hardlinked_name {
+                    let source = case_root.join("hardlink-source");
+                    fs::write(&source, b"{}\n")?;
+                    fs::hard_link(source, candidate_path)?;
+                } else {
+                    fs::write(candidate_path, b"{}\n")?;
+                }
+            }
+
+            let context = CompareContext {
+                raw_bytes: Vec::new(),
+                run_id: "run".to_owned(),
+                task_id: "task".to_owned(),
+                oracle_commit: "a".repeat(40),
+                candidate_source_tree: "b".repeat(40),
+                oracle_root,
+                candidate_root,
+                oracle_manifest_sha256: String::new(),
+                candidate_manifest_sha256: String::new(),
+                required_sha256: String::new(),
+                actions_sha256: String::new(),
+                required_ids: Vec::new(),
+                required_count: 0,
+                tool_sha256: String::new(),
+                oracle_adapter_sha256: String::new(),
+                candidate_adapter_sha256: String::new(),
+                report_path: case_root.join("report.json"),
+            };
+
+            assert_eq!(
+                compare_scenario(&context, &scenario),
+                Some(FailureCode::Integrity),
+                "hardlinked {hardlinked_name} must be rejected"
+            );
+        }
+        Ok(())
+    }
 
     #[cfg(unix)]
     #[test]
