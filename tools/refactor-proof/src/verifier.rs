@@ -195,6 +195,18 @@ struct PreparedMember {
     comparator_report_path: Option<PathBuf>,
 }
 
+type ObserverSupervisor = (File, File, thread::JoinHandle<Result<Vec<String>>>);
+
+struct ObserverBinding<'a> {
+    run_id: &'a str,
+    task_id: &'a str,
+    check_id: &'a str,
+    operation: &'a str,
+    tree: &'a str,
+    oracle_commit: &'a str,
+    nonce: &'a str,
+}
+
 /// Prepared run identity returned by validation.
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct PreparedRun {
@@ -215,6 +227,15 @@ pub struct PreparedRun {
 }
 
 /// Prepare the exact immutable context/index set for one task.
+///
+/// # Errors
+///
+/// Returns a verifier error when any bound input is missing, inconsistent,
+/// mutable, or cannot be materialized in the external run directory.
+#[expect(
+    clippy::too_many_lines,
+    reason = "one preparation pipeline keeps all immutable bindings and materialization steps reviewable together"
+)]
 pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
     let task_dir = canonical_input_dir(&options.task_dir, "task directory")?;
     let worktree = canonical_input_dir(&options.worktree, "candidate worktree")?;
@@ -464,6 +485,15 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
 /// The index shape is deliberately the same shape consumed by
 /// `scripts/campaign_ledger.py`.  Preparation results are immutable records in
 /// `results/`; worker results are separate host-selected files in `outputs/`.
+///
+/// # Errors
+///
+/// Returns a verifier error when the run index, bound artifacts, or directory
+/// contents fail validation.
+#[expect(
+    clippy::too_many_lines,
+    reason = "one fail-closed validation boundary checks the complete run contract"
+)]
 pub fn validate_run(run_dir: &Path) -> Result<PreparedRun> {
     let run_dir = canonical_existing_dir(run_dir, "run directory")?;
     let index_path = immutable_file(&run_dir.join("context-index.json"), "context index")?;
@@ -656,6 +686,15 @@ pub fn validate_run(run_dir: &Path) -> Result<PreparedRun> {
 }
 
 /// Launch one bounded child and accept only a complete, bound result artifact.
+///
+/// # Errors
+///
+/// Returns a verifier error when launch inputs, observer evidence, child
+/// output, or the resulting bound artifact fails validation.
+#[expect(
+    clippy::too_many_lines,
+    reason = "child, observer, cleanup, and result acceptance ordering is one lifecycle"
+)]
 pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
     require_check_id(&options.check_id)?;
     if options.timeout.is_zero() || options.timeout > Duration::from_millis(MAX_LAUNCH_TIMEOUT_MS) {
@@ -795,19 +834,13 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
     drop(response_read);
     drop(handoff_read);
     drop(handoff_write);
-    let stdout = match child.stdout.take() {
-        Some(stdout) => stdout,
-        None => {
-            cleanup_failed_launch(&mut child, None, None, Some(observer_thread));
-            return Err(VerifierError::new("stdout pipe unavailable"));
-        }
+    let Some(stdout) = child.stdout.take() else {
+        cleanup_failed_launch(&mut child, None, None, Some(observer_thread));
+        return Err(VerifierError::new("stdout pipe unavailable"));
     };
-    let stderr = match child.stderr.take() {
-        Some(stderr) => stderr,
-        None => {
-            cleanup_failed_launch(&mut child, None, None, Some(observer_thread));
-            return Err(VerifierError::new("stderr pipe unavailable"));
-        }
+    let Some(stderr) = child.stderr.take() else {
+        cleanup_failed_launch(&mut child, None, None, Some(observer_thread));
+        return Err(VerifierError::new("stderr pipe unavailable"));
     };
     let mut stdout_thread = Some(thread::spawn(|| read_bounded(stdout)));
     let mut stderr_thread = Some(thread::spawn(|| read_bounded(stderr)));
@@ -817,8 +850,8 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
             Ok(Some(status)) => break status,
             Ok(None) if started.elapsed() > options.timeout => {
                 terminate_child(&mut child);
-                let _ = stdout_thread.take().map(|handle| handle.join());
-                let _ = stderr_thread.take().map(|handle| handle.join());
+                let _ = stdout_thread.take().map(thread::JoinHandle::join);
+                let _ = stderr_thread.take().map(thread::JoinHandle::join);
                 let observer = observer_thread
                     .join()
                     .map_err(|_| VerifierError::new("observer supervisor panicked"))?;
@@ -886,6 +919,7 @@ fn make_pipe() -> Result<(File, File)> {
     // SAFETY: each descriptor is transferred exactly once to a File before
     // any fallible flag operation, so an error still closes both descriptors.
     let read = unsafe { File::from_raw_fd(fds[0]) };
+    // SAFETY: the second descriptor is transferred exactly once to a File.
     let write = unsafe { File::from_raw_fd(fds[1]) };
     set_close_on_exec(&read, false)?;
     set_close_on_exec(&write, false)?;
@@ -894,6 +928,7 @@ fn make_pipe() -> Result<(File, File)> {
 
 #[cfg(unix)]
 fn set_close_on_exec(file: &File, enabled: bool) -> Result<()> {
+    // SAFETY: `file` owns a valid descriptor for the duration of this call.
     let current = unsafe { libc::fcntl(file.as_raw_fd(), libc::F_GETFD) };
     if current == -1 {
         return Err(VerifierError::new(format!(
@@ -906,6 +941,7 @@ fn set_close_on_exec(file: &File, enabled: bool) -> Result<()> {
     } else {
         current & !libc::FD_CLOEXEC
     };
+    // SAFETY: `file` owns a valid descriptor and `flags` came from F_GETFD.
     if unsafe { libc::fcntl(file.as_raw_fd(), libc::F_SETFD, flags) } == -1 {
         return Err(VerifierError::new(format!(
             "observer descriptor inheritance configuration failed: {}",
@@ -951,7 +987,7 @@ fn start_observer_supervisor(
     member: &PreparedMember,
     nonce: &str,
     oracle_commit: &str,
-) -> Result<(File, File, thread::JoinHandle<Result<Vec<String>>>)> {
+) -> Result<ObserverSupervisor> {
     let provider = std::env::var_os(OBSERVER_PROVIDER_ENV)
         .map(PathBuf::from)
         .filter(|path| !path.as_os_str().is_empty())
@@ -1005,25 +1041,19 @@ fn start_observer_supervisor(
             VerifierError::new(format!("observer response provider launch failed: {error}"))
         })?
     };
-    let stdin = match child.stdin.take() {
-        Some(stdin) => stdin,
-        None => {
-            let _ = child.kill();
-            let _ = child.wait();
-            return Err(VerifierError::new(
-                "observer response provider stdin unavailable",
-            ));
-        }
+    let Some(stdin) = child.stdin.take() else {
+        let _ = child.kill();
+        let _ = child.wait();
+        return Err(VerifierError::new(
+            "observer response provider stdin unavailable",
+        ));
     };
-    let stdout = match child.stdout.take() {
-        Some(stdout) => stdout,
-        None => {
-            let _ = child.kill();
-            let _ = child.wait();
-            return Err(VerifierError::new(
-                "observer response provider stdout unavailable",
-            ));
-        }
+    let Some(stdout) = child.stdout.take() else {
+        let _ = child.kill();
+        let _ = child.wait();
+        return Err(VerifierError::new(
+            "observer response provider stdout unavailable",
+        ));
     };
     let mut provider = PipeObserverProvider {
         request: BufWriter::new(stdin),
@@ -1037,18 +1067,16 @@ fn start_observer_supervisor(
     let nonce = nonce.to_owned();
     let oracle_commit = oracle_commit.to_owned();
     let supervisor = thread::spawn(move || {
-        let result = observe_worker(
-            request_read,
-            response_write,
-            &mut provider,
-            &run_id,
-            &task_id,
-            &check_id,
-            &operation,
-            &tree,
-            &oracle_commit,
-            &nonce,
-        );
+        let binding = ObserverBinding {
+            run_id: &run_id,
+            task_id: &task_id,
+            check_id: &check_id,
+            operation: &operation,
+            tree: &tree,
+            oracle_commit: &oracle_commit,
+            nonce: &nonce,
+        };
+        let result = observe_worker(request_read, response_write, &mut provider, &binding);
         drop(provider);
         let status = finish_observer_provider(&mut child, result.is_err())?;
         if !status.success() {
@@ -1075,11 +1103,13 @@ fn terminate_child(child: &mut Child) {
     #[cfg(unix)]
     {
         let process_group = child.id() as libc::pid_t;
-        if process_group > 0 {
+        if let Some(process_group) = process_group.checked_neg()
+            && process_group < 0
+        {
             // SAFETY: the worker creates its own process group before exec;
             // sending SIGKILL to the negative pid targets only that group.
             unsafe {
-                let _ = libc::kill(-process_group, libc::SIGKILL);
+                let _ = libc::kill(process_group, libc::SIGKILL);
             }
         }
     }
@@ -1110,8 +1140,8 @@ trait ObserverProvider {
 }
 
 struct PipeObserverProvider {
-    request: io::BufWriter<ChildStdin>,
-    response: io::BufReader<ChildStdout>,
+    request: BufWriter<ChildStdin>,
+    response: BufReader<ChildStdout>,
 }
 
 impl ObserverProvider for PipeObserverProvider {
@@ -1135,7 +1165,9 @@ fn finish_observer_provider(child: &mut Child, kill: bool) -> Result<ExitStatus>
     if kill {
         let _ = child.kill();
     }
-    let deadline = Instant::now() + Duration::from_secs(5);
+    let deadline = Instant::now()
+        .checked_add(Duration::from_secs(5))
+        .ok_or_else(|| VerifierError::new("observer response deadline overflowed"))?;
     loop {
         if let Some(status) = child.try_wait()? {
             return Ok(status);
@@ -1155,22 +1187,11 @@ fn observe_worker<P: ObserverProvider>(
     request_read: File,
     response_write: File,
     provider: &mut P,
-    run_id: &str,
-    task_id: &str,
-    check_id: &str,
-    operation: &str,
-    tree: &str,
-    oracle_commit: &str,
-    nonce: &str,
+    binding: &ObserverBinding<'_>,
 ) -> Result<Vec<String>> {
-    let expected = match operation {
-        "oracle" => 2,
-        "preflight" | "required" | "capture" | "account-tests" | "architecture" | "close"
-        | "external" => 1,
-        _ => 1,
-    };
-    let mut reader = io::BufReader::new(request_read);
-    let mut writer = io::BufWriter::new(response_write);
+    let expected = if binding.operation == "oracle" { 2 } else { 1 };
+    let mut reader = BufReader::new(request_read);
+    let mut writer = BufWriter::new(response_write);
     let mut observed_digests = Vec::with_capacity(expected);
     for request_id in 0..expected {
         let mut line = String::new();
@@ -1196,31 +1217,21 @@ fn observe_worker<P: ObserverProvider>(
             "observer request",
         )?;
         if request.get("schema") != Some(&Value::String("tc-proof-runner-observe/v1".to_string()))
-            || required_string(&request, "nonce")? != nonce
-            || required_string(&request, "run_id")? != run_id
-            || required_string(&request, "task_id")? != task_id
-            || required_string(&request, "check_id")? != check_id
+            || required_string(&request, "nonce")? != binding.nonce
+            || required_string(&request, "run_id")? != binding.run_id
+            || required_string(&request, "task_id")? != binding.task_id
+            || required_string(&request, "check_id")? != binding.check_id
             || request.get("request_id").and_then(Value::as_u64) != Some(request_id as u64)
-            || required_string(&request, "operation")? != operation
-            || required_string(&request, "source_commit")? != oracle_commit
-            || required_string(&request, "tree")? != tree
+            || required_string(&request, "operation")? != binding.operation
+            || required_string(&request, "source_commit")? != binding.oracle_commit
+            || required_string(&request, "tree")? != binding.tree
         {
             return Err(VerifierError::new(
                 "observer request binding mismatch or replay",
             ));
         }
         let response = provider.observe(&request)?;
-        validate_observer_response(
-            &response,
-            run_id,
-            task_id,
-            check_id,
-            request_id as u64,
-            operation,
-            oracle_commit,
-            tree,
-            nonce,
-        )?;
+        validate_observer_response(&response, request_id as u64, binding)?;
         let response = Value::Object(response);
         observed_digests.push(sha256_canonical(&response));
         writer.write_all(canonical_json(&response).as_bytes())?;
@@ -1236,14 +1247,8 @@ fn observe_worker<P: ObserverProvider>(
 
 fn validate_observer_response(
     response: &Map<String, Value>,
-    run_id: &str,
-    task_id: &str,
-    check_id: &str,
     request_id: u64,
-    operation: &str,
-    oracle_commit: &str,
-    tree: &str,
-    nonce: &str,
+    binding: &ObserverBinding<'_>,
 ) -> Result<()> {
     exact_keys(
         response,
@@ -1267,14 +1272,14 @@ fn validate_observer_response(
         "observer response",
     )?;
     if response.get("schema") != Some(&Value::String("tc-proof-observation/v1".to_string()))
-        || required_string(response, "nonce")? != nonce
-        || required_string(response, "run_id")? != run_id
-        || required_string(response, "task_id")? != task_id
-        || required_string(response, "check_id")? != check_id
+        || required_string(response, "nonce")? != binding.nonce
+        || required_string(response, "run_id")? != binding.run_id
+        || required_string(response, "task_id")? != binding.task_id
+        || required_string(response, "check_id")? != binding.check_id
         || response.get("request_id").and_then(Value::as_u64) != Some(request_id)
-        || required_string(response, "operation")? != operation
-        || required_string(response, "source_commit")? != oracle_commit
-        || required_string(response, "tree")? != tree
+        || required_string(response, "operation")? != binding.operation
+        || required_string(response, "source_commit")? != binding.oracle_commit
+        || required_string(response, "tree")? != binding.tree
         || response.get("exit").and_then(Value::as_i64) != Some(0)
         || response.get("stdout").and_then(Value::as_str).is_none()
         || response.get("stderr").and_then(Value::as_str).is_none()
@@ -1305,7 +1310,7 @@ fn validate_observer_response(
         .ok_or_else(|| VerifierError::new("observer response records are empty or invalid"))?;
     if records
         .iter()
-        .any(|record| record.as_object().is_none_or(|record| record.is_empty()))
+        .any(|record| record.as_object().is_none_or(Map::is_empty))
     {
         return Err(VerifierError::new(
             "observer response contains an invalid record",
@@ -1333,7 +1338,7 @@ fn discover_checks(verify: &VerifyFile) -> Result<Vec<CheckSpec>> {
                 )));
             }
         };
-        let operation = discover_operation(&source)?;
+        let operation = discover_operation(&source);
         let context_ref = discover_context_reference(&source, &check.id)?;
         let lane = discover_flag(&source, "--lane").unwrap_or_else(|| "direct".to_string());
         let namespace = discover_flag(&source, "--namespace").unwrap_or_default();
@@ -1361,7 +1366,7 @@ fn discover_checks(verify: &VerifyFile) -> Result<Vec<CheckSpec>> {
     Ok(checks)
 }
 
-fn discover_operation(command: &str) -> Result<String> {
+fn discover_operation(command: &str) -> String {
     let tokens = command
         .split(|character: char| {
             character.is_whitespace() || matches!(character, '"' | '\'' | ';' | '|')
@@ -1372,15 +1377,15 @@ fn discover_operation(command: &str) -> Result<String> {
         .iter()
         .position(|token| token.ends_with("tc-proof") || *token == "tc-proof")
     else {
-        return Ok("external".to_string());
+        return "external".to_string();
     };
-    Ok(tokens
-        .get(position + 1)
+    tokens
+        .get(position.saturating_add(1))
         .filter(|operation| !operation.starts_with('-'))
         .map_or_else(
             || "external".to_string(),
             |operation| (*operation).to_string(),
-        ))
+        )
 }
 
 fn discover_context_reference(command: &str, check_id: &str) -> Result<Option<String>> {
@@ -1388,14 +1393,16 @@ fn discover_context_reference(command: &str, check_id: &str) -> Result<Option<St
     let mut found = None;
     let mut remaining = command;
     while let Some(position) = remaining.find(marker) {
-        let suffix = &remaining[position + marker.len()..];
+        let suffix = &remaining[position.saturating_add(marker.len())..];
         let end = suffix
             .find(|character: char| {
                 !(character.is_ascii_alphanumeric() || character == '-' || character == '.')
             })
             .unwrap_or(suffix.len());
         let reference = &suffix[..end];
-        if !reference.starts_with("CHK-") || !reference.ends_with(".json") || reference.len() != 12
+        if !reference.starts_with("CHK-")
+            || reference.strip_suffix(".json").is_none()
+            || reference.len() != 12
         {
             return Err(VerifierError::new("invalid verifier context reference"));
         }
@@ -1423,7 +1430,7 @@ fn discover_flag(command: &str, flag: &str) -> Option<String> {
     tokens
         .iter()
         .position(|token| *token == flag)
-        .and_then(|position| tokens.get(position + 1))
+        .and_then(|position| tokens.get(position.saturating_add(1)))
         .map(|value| (*value).to_string())
 }
 
@@ -1449,7 +1456,8 @@ fn discover_templates(
             .map(|value| value.to_string_lossy().into_owned())
             .unwrap_or_default();
         if !name.starts_with("CHK-")
-            || !(name.ends_with(".json") || name.ends_with(".template.json"))
+            || !(name.strip_suffix(".json").is_some()
+                || name.strip_suffix(".template.json").is_some())
         {
             continue;
         }
@@ -1481,6 +1489,10 @@ fn discover_templates(
     Ok(templates)
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "context construction mirrors the exact schema and preserves field-binding order"
+)]
 fn build_context(
     check: &CheckSpec,
     template: Option<&TemplateInfo>,
@@ -1892,6 +1904,10 @@ fn validate_runtime_outputs(
     Ok(())
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "context validation keeps the complete allowlist and identity contract visible"
+)]
 fn validate_context(
     context: &Map<String, Value>,
     run_id: &str,
@@ -2563,10 +2579,17 @@ fn random_hex(bytes: usize) -> String {
     if let Ok(mut file) = File::open("/dev/urandom")
         && file.read_exact(&mut buffer).is_ok()
     {
-        return buffer.iter().map(|byte| format!("{byte:02x}")).collect();
+        use std::fmt::Write as _;
+        let mut output = String::with_capacity(bytes.saturating_mul(2));
+        for byte in buffer {
+            let _ = write!(output, "{byte:02x}");
+        }
+        return output;
     }
-    sha256_bytes(format!("{}:{:?}", std::process::id(), Instant::now()).as_bytes())[..bytes * 2]
-        .to_string()
+    sha256_bytes(format!("{}:{:?}", std::process::id(), Instant::now()).as_bytes())
+        .chars()
+        .take(bytes.saturating_mul(2))
+        .collect()
 }
 
 fn git_identity(worktree: &Path) -> Result<(String, String)> {
@@ -2848,6 +2871,66 @@ mod tests {
     use std::os::unix::fs::PermissionsExt;
     use std::process::Stdio;
 
+    macro_rules! require_ok {
+        ($expression:expr, $message:expr) => {{
+            let result = $expression;
+            assert!(result.is_ok(), "{}", $message);
+            let Ok(value) = result else { return };
+            value
+        }};
+    }
+
+    macro_rules! require_some {
+        ($expression:expr, $message:expr) => {{
+            let result = $expression;
+            assert!(result.is_some(), "{}", $message);
+            let Some(value) = result else { return };
+            value
+        }};
+    }
+
+    macro_rules! require_err {
+        ($expression:expr, $message:expr) => {{
+            let result = $expression;
+            assert!(result.is_err(), "{}", $message);
+            let Err(error) = result else { return };
+            error
+        }};
+    }
+
+    macro_rules! require_ok_error {
+        ($expression:expr, $message:expr) => {{
+            let result = $expression;
+            assert!(result.is_ok(), "{}", $message);
+            let Ok(value) = result else {
+                return VerifierError::new($message);
+            };
+            value
+        }};
+    }
+
+    macro_rules! require_some_error {
+        ($expression:expr, $message:expr) => {{
+            let result = $expression;
+            assert!(result.is_some(), "{}", $message);
+            let Some(value) = result else {
+                return VerifierError::new($message);
+            };
+            value
+        }};
+    }
+
+    macro_rules! require_err_error {
+        ($expression:expr, $message:expr) => {{
+            let result = $expression;
+            assert!(result.is_err(), "{}", $message);
+            let Err(error) = result else {
+                return VerifierError::new($message);
+            };
+            error
+        }};
+    }
+
     fn observer_request(
         nonce: &str,
         request_id: u64,
@@ -2870,6 +2953,23 @@ mod tests {
 
     struct FailingProvider;
 
+    fn observer_binding<'a>(
+        operation: &'a str,
+        tree: &'a str,
+        oracle_commit: &'a str,
+        nonce: &'a str,
+    ) -> ObserverBinding<'a> {
+        ObserverBinding {
+            run_id: "/run",
+            task_id: "TASK-001",
+            check_id: "CHK-001",
+            operation,
+            tree,
+            oracle_commit,
+            nonce,
+        }
+    }
+
     impl ObserverProvider for FailingProvider {
         fn observe(&mut self, _request: &Map<String, Value>) -> Result<Map<String, Value>> {
             Err(VerifierError::new(
@@ -2882,7 +2982,7 @@ mod tests {
 
     impl ObserverProvider for ValidProvider {
         fn observe(&mut self, request: &Map<String, Value>) -> Result<Map<String, Value>> {
-            Ok(json!({
+            json!({
                 "schema": "tc-proof-observation/v1",
                 "nonce": request["nonce"].clone(),
                 "run_id": request["run_id"].clone(),
@@ -2901,7 +3001,7 @@ mod tests {
             })
             .as_object()
             .cloned()
-            .ok_or_else(|| VerifierError::new("test provider response is not an object"))?)
+            .ok_or_else(|| VerifierError::new("test provider response is not an object"))
         }
     }
 
@@ -2923,15 +3023,21 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn supervisor_owned_observer_ends_are_close_on_exec() {
-        let (request_read, request_write) = make_pipe().expect("request pipe");
-        let (response_read, response_write) = make_pipe().expect("response pipe");
-        protect_supervisor_observer_ends(&request_read, &response_write)
-            .expect("protect supervisor ends");
+        let (request_read, request_write) = require_ok!(make_pipe(), "request pipe");
+        let (response_read, response_write) = require_ok!(make_pipe(), "response pipe");
+        require_ok!(
+            protect_supervisor_observer_ends(&request_read, &response_write),
+            "protect supervisor ends"
+        );
 
+        // SAFETY: each descriptor is owned by the corresponding live `File`.
         let request_read_flags = unsafe { libc::fcntl(request_read.as_raw_fd(), libc::F_GETFD) };
+        // SAFETY: each descriptor is owned by the corresponding live `File`.
         let request_write_flags = unsafe { libc::fcntl(request_write.as_raw_fd(), libc::F_GETFD) };
+        // SAFETY: each descriptor is owned by the corresponding live `File`.
         let response_read_flags = unsafe { libc::fcntl(response_read.as_raw_fd(), libc::F_GETFD) };
         let response_write_flags =
+            // SAFETY: each descriptor is owned by the corresponding live `File`.
             unsafe { libc::fcntl(response_write.as_raw_fd(), libc::F_GETFD) };
         assert_ne!(request_read_flags & libc::FD_CLOEXEC, 0);
         assert_eq!(request_write_flags & libc::FD_CLOEXEC, 0);
@@ -3003,13 +3109,14 @@ mod tests {
 
     #[test]
     fn materialization_has_exact_index_bound_context_set() {
-        let (fixture, prepared) = fixture().expect("fixture");
-        let index_raw = fs::read(fixture.run_dir.join("context-index.json")).expect("index");
-        let index = parse_json_object(&index_raw, "index").expect("parse index");
-        let index_members = index
-            .get("contexts")
-            .and_then(Value::as_array)
-            .expect("contexts");
+        let (fixture, prepared) = require_ok!(fixture(), "fixture");
+        let index_raw = require_ok!(
+            fs::read(fixture.run_dir.join("context-index.json")),
+            "index"
+        );
+        let index = require_ok!(parse_json_object(&index_raw, "index"), "parse index");
+        let index_members =
+            require_some!(index.get("contexts").and_then(Value::as_array), "contexts");
         assert_eq!(
             index.keys().map(String::as_str).collect::<BTreeSet<_>>(),
             BTreeSet::from([
@@ -3038,40 +3145,73 @@ mod tests {
 
     #[test]
     fn materialization_uses_ledger_preparation_abi() {
-        let (fixture, _) = fixture().expect("fixture");
-        let index = parse_json_object(
-            &fs::read(fixture.run_dir.join("context-index.json")).expect("index"),
-            "index",
-        )
-        .expect("parse index");
-        let context_path = index["contexts"][0]["path"].as_str().expect("context path");
-        let result_path = index["results"][0]["path"].as_str().expect("result path");
-        let context = parse_json_object(&fs::read(context_path).expect("context"), "context")
-            .expect("parse context");
-        let result = parse_json_object(&fs::read(result_path).expect("result"), "result")
-            .expect("parse result");
-        let observer = parse_json_object(
-            &fs::read(fixture.run_dir.join("observer.json")).expect("observer"),
-            "observer",
-        )
-        .expect("parse observer");
-        assert_eq!(context["schema"], CONTEXT_SCHEMA);
-        assert_eq!(result["schema"], PREPARATION_RESULT_SCHEMA);
-        assert_eq!(observer["schema"], OBSERVER_SCHEMA);
-        assert_eq!(index["schema"], INDEX_SCHEMA);
+        let (fixture, _) = require_ok!(fixture(), "fixture");
+        let index_raw = require_ok!(
+            fs::read(fixture.run_dir.join("context-index.json")),
+            "index"
+        );
+        let index = require_ok!(parse_json_object(&index_raw, "index"), "parse index");
+        let context_path = require_some!(
+            index
+                .get("contexts")
+                .and_then(Value::as_array)
+                .and_then(|entries| entries.first())
+                .and_then(|entry| entry.get("path"))
+                .and_then(Value::as_str),
+            "context path"
+        );
+        let result_path = require_some!(
+            index
+                .get("results")
+                .and_then(Value::as_array)
+                .and_then(|entries| entries.first())
+                .and_then(|entry| entry.get("path"))
+                .and_then(Value::as_str),
+            "result path"
+        );
+        let context = require_ok!(
+            parse_json_object(&require_ok!(fs::read(context_path), "context"), "context"),
+            "parse context"
+        );
+        let result = require_ok!(
+            parse_json_object(&require_ok!(fs::read(result_path), "result"), "result"),
+            "parse result"
+        );
+        let observer_raw = require_ok!(fs::read(fixture.run_dir.join("observer.json")), "observer");
+        let observer = require_ok!(
+            parse_json_object(&observer_raw, "observer"),
+            "parse observer"
+        );
+        assert_eq!(
+            context.get("schema").and_then(Value::as_str),
+            Some(CONTEXT_SCHEMA)
+        );
+        assert_eq!(
+            result.get("schema").and_then(Value::as_str),
+            Some(PREPARATION_RESULT_SCHEMA)
+        );
+        assert_eq!(
+            observer.get("schema").and_then(Value::as_str),
+            Some(OBSERVER_SCHEMA)
+        );
+        assert_eq!(
+            index.get("schema").and_then(Value::as_str),
+            Some(INDEX_SCHEMA)
+        );
     }
 
     #[test]
     fn legacy_runner_index_shape_is_rejected_by_native_validator() {
-        let (fixture, _) = fixture().expect("fixture");
+        let (fixture, _) = require_ok!(fixture(), "fixture");
         let index_path = fixture.run_dir.join("context-index.json");
-        let mut permissions = fs::metadata(&index_path)
-            .expect("index metadata")
-            .permissions();
+        let mut permissions =
+            require_ok!(fs::metadata(&index_path), "index metadata").permissions();
         permissions.set_mode(0o644);
-        fs::set_permissions(&index_path, permissions).expect("make index writable");
-        fs::write(
-            &index_path,
+        require_ok!(
+            fs::set_permissions(&index_path, permissions),
+            "make index writable"
+        );
+        let legacy_index = require_ok!(
             serde_json::to_vec(&json!({
                 "schema": INDEX_SCHEMA,
                 "task_id": "TASK-001",
@@ -3079,58 +3219,71 @@ mod tests {
                 "tree": "deadbeef",
                 "trust_sha256": "deadbeef",
                 "members": [],
-            }))
-            .expect("legacy index JSON"),
-        )
-        .expect("write legacy index");
+            })),
+            "legacy index JSON"
+        );
+        require_ok!(fs::write(&index_path, legacy_index), "write legacy index");
         assert!(validate_run(&fixture.run_dir).is_err());
     }
 
     #[test]
     fn extra_runtime_output_is_rejected() {
-        let (fixture, _) = fixture().expect("fixture");
-        fs::write(fixture.run_dir.join("outputs/extra.json"), b"{}").expect("extra output");
+        let (fixture, _) = require_ok!(fixture(), "fixture");
+        require_ok!(
+            fs::write(fixture.run_dir.join("outputs/extra.json"), b"{}"),
+            "extra output"
+        );
         assert!(validate_run(&fixture.run_dir).is_err());
     }
 
     #[test]
     fn materialization_rejects_context_symlink_and_hardlink() {
-        let (fixture, prepared) = fixture().expect("fixture");
-        let member = prepared.members.first().expect("first member");
+        let (fixture, prepared) = require_ok!(fixture(), "fixture");
+        let member = require_some!(prepared.members.first(), "first member");
         let context_path = member.context_path.clone();
-        let contexts_dir = context_path.parent().expect("contexts parent");
-        let mut permissions = fs::metadata(contexts_dir)
-            .expect("contexts metadata")
-            .permissions();
+        let contexts_dir = require_some!(context_path.parent(), "contexts parent");
+        let mut permissions =
+            require_ok!(fs::metadata(contexts_dir), "contexts metadata").permissions();
         permissions.set_mode(0o755);
-        fs::set_permissions(contexts_dir, permissions).expect("make contexts writable");
+        require_ok!(
+            fs::set_permissions(contexts_dir, permissions),
+            "make contexts writable"
+        );
         let alias = fixture.root.path().join("context-alias");
-        fs::hard_link(&context_path, &alias).expect("hard link");
+        require_ok!(fs::hard_link(&context_path, &alias), "hard link");
         assert!(validate_run(&fixture.run_dir).is_err());
         let _ = fs::remove_file(&alias);
-        let other = prepared
-            .members
-            .get(1)
-            .map(|member| member.context_path.clone())
-            .expect("second member");
-        fs::remove_file(&context_path).expect("remove context");
-        std::os::unix::fs::symlink(other, &context_path).expect("symlink");
+        let other = require_some!(
+            prepared
+                .members
+                .get(1)
+                .map(|member| member.context_path.clone()),
+            "second member"
+        );
+        require_ok!(fs::remove_file(&context_path), "remove context");
+        require_ok!(std::os::unix::fs::symlink(other, &context_path), "symlink");
         assert!(validate_run(&fixture.run_dir).is_err());
     }
 
     #[test]
     fn index_hash_and_candidate_identity_mutations_fail_closed() {
-        let (fixture, _) = fixture().expect("fixture");
+        let (fixture, _) = require_ok!(fixture(), "fixture");
         let index_path = fixture.run_dir.join("context-index.json");
-        let mut permissions = fs::metadata(&index_path)
-            .expect("index metadata")
-            .permissions();
+        let mut permissions =
+            require_ok!(fs::metadata(&index_path), "index metadata").permissions();
         permissions.set_mode(0o644);
-        fs::set_permissions(&index_path, permissions).expect("make index writable");
-        fs::write(&index_path, b"{}").expect("mutate index");
+        require_ok!(
+            fs::set_permissions(&index_path, permissions),
+            "make index writable"
+        );
+        require_ok!(fs::write(&index_path, b"{}"), "mutate index");
         assert!(validate_run(&fixture.run_dir).is_err());
     }
 
+    #[expect(
+        clippy::too_many_lines,
+        reason = "the test fixture mirrors the complete context/result/index rebinding attack"
+    )]
     fn mutate_first_context_and_rebind_hashes(
         fixture: &Fixture,
         mutate: impl FnOnce(&mut Map<String, Value>),
@@ -3138,66 +3291,122 @@ mod tests {
         let index_path = fixture.run_dir.join("context-index.json");
         let contexts_dir = fixture.run_dir.join("contexts");
         let results_dir = fixture.run_dir.join("results");
-        let mut directory_permissions = fs::metadata(&contexts_dir)
-            .expect("contexts metadata")
-            .permissions();
+        let mut directory_permissions =
+            require_ok_error!(fs::metadata(&contexts_dir), "contexts metadata").permissions();
         directory_permissions.set_mode(0o755);
-        fs::set_permissions(&contexts_dir, directory_permissions.clone())
-            .expect("make contexts writable");
-        fs::set_permissions(&results_dir, directory_permissions).expect("make results writable");
-        let mut index_permissions = fs::metadata(&index_path)
-            .expect("index metadata")
-            .permissions();
+        require_ok_error!(
+            fs::set_permissions(&contexts_dir, directory_permissions.clone()),
+            "make contexts writable"
+        );
+        require_ok_error!(
+            fs::set_permissions(&results_dir, directory_permissions),
+            "make results writable"
+        );
+        let mut index_permissions =
+            require_ok_error!(fs::metadata(&index_path), "index metadata").permissions();
         index_permissions.set_mode(0o644);
-        fs::set_permissions(&index_path, index_permissions).expect("make index writable");
+        require_ok_error!(
+            fs::set_permissions(&index_path, index_permissions),
+            "make index writable"
+        );
 
-        let mut index = parse_json_object(&fs::read(&index_path).expect("index"), "index")
-            .expect("parse index");
-        let context_path =
-            PathBuf::from(index["contexts"][0]["path"].as_str().expect("context path"));
-        let result_path = PathBuf::from(index["results"][0]["path"].as_str().expect("result path"));
-        let mut context = parse_json_object(&fs::read(&context_path).expect("context"), "context")
-            .expect("parse context");
-        let mut context_permissions = fs::metadata(&context_path)
-            .expect("context metadata")
-            .permissions();
+        let mut index = require_ok_error!(
+            parse_json_object(&require_ok_error!(fs::read(&index_path), "index"), "index"),
+            "parse index"
+        );
+        let context_path = PathBuf::from(require_some_error!(
+            index
+                .get("contexts")
+                .and_then(Value::as_array)
+                .and_then(|entries| entries.first())
+                .and_then(|entry| entry.get("path"))
+                .and_then(Value::as_str),
+            "context path"
+        ));
+        let result_path = PathBuf::from(require_some_error!(
+            index
+                .get("results")
+                .and_then(Value::as_array)
+                .and_then(|entries| entries.first())
+                .and_then(|entry| entry.get("path"))
+                .and_then(Value::as_str),
+            "result path"
+        ));
+        let mut context = require_ok_error!(
+            parse_json_object(
+                &require_ok_error!(fs::read(&context_path), "context"),
+                "context"
+            ),
+            "parse context"
+        );
+        let mut context_permissions =
+            require_ok_error!(fs::metadata(&context_path), "context metadata").permissions();
         context_permissions.set_mode(0o644);
-        fs::set_permissions(&context_path, context_permissions.clone())
-            .expect("make context writable");
-        let mut result_permissions = fs::metadata(&result_path)
-            .expect("result metadata")
-            .permissions();
+        require_ok_error!(
+            fs::set_permissions(&context_path, context_permissions.clone()),
+            "make context writable"
+        );
+        let mut result_permissions =
+            require_ok_error!(fs::metadata(&result_path), "result metadata").permissions();
         result_permissions.set_mode(0o644);
-        fs::set_permissions(&result_path, result_permissions).expect("make result writable");
+        require_ok_error!(
+            fs::set_permissions(&result_path, result_permissions),
+            "make result writable"
+        );
 
         mutate(&mut context);
         let context_raw = canonical_json(&Value::Object(context)).into_bytes();
-        fs::write(&context_path, &context_raw).expect("rewrite context");
+        require_ok_error!(fs::write(&context_path, &context_raw), "rewrite context");
         let context_hash = sha256_bytes(&context_raw);
-        index["contexts"][0]["sha256"] = Value::String(context_hash.clone());
+        if let Some(contexts) = index.get_mut("contexts").and_then(Value::as_array_mut)
+            && let Some(context_entry) = contexts.first_mut().and_then(Value::as_object_mut)
+        {
+            context_entry.insert("sha256".to_owned(), Value::String(context_hash.clone()));
+        } else {
+            return VerifierError::new("context entry missing");
+        }
 
-        let mut preparation =
-            parse_json_object(&fs::read(&result_path).expect("preparation"), "preparation")
-                .expect("parse preparation");
-        preparation["context_sha256"] = Value::String(context_hash);
+        let mut preparation = require_ok_error!(
+            parse_json_object(
+                &require_ok_error!(fs::read(&result_path), "preparation"),
+                "preparation"
+            ),
+            "parse preparation"
+        );
+        preparation.insert("context_sha256".to_owned(), Value::String(context_hash));
         let preparation_raw = canonical_json(&Value::Object(preparation)).into_bytes();
-        fs::write(&result_path, &preparation_raw).expect("rewrite preparation");
-        index["results"][0]["sha256"] = Value::String(sha256_bytes(&preparation_raw));
+        require_ok_error!(
+            fs::write(&result_path, &preparation_raw),
+            "rewrite preparation"
+        );
+        if let Some(results) = index.get_mut("results").and_then(Value::as_array_mut)
+            && let Some(result_entry) = results.first_mut().and_then(Value::as_object_mut)
+        {
+            result_entry.insert(
+                "sha256".to_owned(),
+                Value::String(sha256_bytes(&preparation_raw)),
+            );
+        } else {
+            return VerifierError::new("result entry missing");
+        }
         let index_raw = canonical_json(&Value::Object(index)).into_bytes();
-        fs::write(&index_path, &index_raw).expect("rewrite index");
+        require_ok_error!(fs::write(&index_path, &index_raw), "rewrite index");
 
-        set_readonly_file(&context_path).expect("restore context readonly");
-        set_readonly_file(&result_path).expect("restore result readonly");
-        set_readonly_file(&index_path).expect("restore index readonly");
-        set_readonly_dir(&contexts_dir).expect("restore contexts readonly");
-        set_readonly_dir(&results_dir).expect("restore results readonly");
+        require_ok_error!(set_readonly_file(&context_path), "restore context readonly");
+        require_ok_error!(set_readonly_file(&result_path), "restore result readonly");
+        require_ok_error!(set_readonly_file(&index_path), "restore index readonly");
+        require_ok_error!(set_readonly_dir(&contexts_dir), "restore contexts readonly");
+        require_ok_error!(set_readonly_dir(&results_dir), "restore results readonly");
 
-        validate_run(&fixture.run_dir).expect_err("mutated context was accepted")
+        require_err_error!(
+            validate_run(&fixture.run_dir),
+            "mutated context was accepted"
+        )
     }
 
     #[test]
     fn recheck_rejects_wrong_source_tree_after_context_rebinding() {
-        let (fixture, _) = fixture().expect("fixture");
+        let (fixture, _) = require_ok!(fixture(), "fixture");
         let error = mutate_first_context_and_rebind_hashes(&fixture, |context| {
             context["tree"] = Value::String("f".repeat(40));
         });
@@ -3206,7 +3415,7 @@ mod tests {
 
     #[test]
     fn recheck_rejects_wrong_oracle_commit_after_context_rebinding() {
-        let (fixture, _) = fixture().expect("fixture");
+        let (fixture, _) = require_ok!(fixture(), "fixture");
         let error = mutate_first_context_and_rebind_hashes(&fixture, |context| {
             context["oracle_commit"] = Value::String("f".repeat(40));
         });
@@ -3215,10 +3424,9 @@ mod tests {
 
     #[test]
     fn recheck_rejects_wrong_tool_after_context_rebinding() {
-        let fixture_result = fixture();
-        let (fixture, _) = fixture_result.expect("fixture");
+        let (fixture, _) = require_ok!(fixture(), "fixture");
         let wrong_tool = Path::new("/bin/sh");
-        let wrong_hash = sha256_bytes(&fs::read(wrong_tool).expect("wrong tool"));
+        let wrong_hash = sha256_bytes(&require_ok!(fs::read(wrong_tool), "wrong tool"));
         let error = mutate_first_context_and_rebind_hashes(&fixture, |context| {
             context["tool"] = json!({
                 "path": wrong_tool,
@@ -3230,9 +3438,9 @@ mod tests {
 
     #[test]
     fn worker_passed_result_without_observer_is_rejected() {
-        let (fixture, prepared) = fixture().expect("fixture");
-        let member = prepared.members.first().expect("first member");
-        let script = r###"printf '{"category":null,"context_sha256":"%s","observation_digests":[],"operation":"external","outputs":{},"run_id":"%s","schema":"tc-proof-runner-result/v1","status":"passed"}' "$TC_PROOF_CONTEXT_SHA256" "$TC_PROOF_RUN_ID" > "$TC_PROOF_RESULT""###;
+        let (fixture, prepared) = require_ok!(fixture(), "fixture");
+        let member = require_some!(prepared.members.first(), "first member");
+        let script = r#"printf '{"category":null,"context_sha256":"%s","observation_digests":[],"operation":"external","outputs":{},"run_id":"%s","schema":"tc-proof-runner-result/v1","status":"passed"}' "$TC_PROOF_CONTEXT_SHA256" "$TC_PROOF_RUN_ID" > "$TC_PROOF_RESULT""#;
         let record = launch(&LaunchOptions {
             run_dir: fixture.run_dir.clone(),
             check_id: member.check_id.clone(),
@@ -3241,14 +3449,14 @@ mod tests {
             program: PathBuf::from("/bin/sh"),
             args: vec!["-c".to_string(), script.to_string()],
         });
-        let error = record.expect_err("worker result without an observation");
+        let error = require_err!(record, "worker result without an observation");
         assert!(error.to_string().contains("observer"));
     }
 
     #[test]
     fn subprocess_nonzero_and_timeout_are_rejected() {
-        let (fixture, prepared) = fixture().expect("fixture");
-        let member = prepared.members.get(1).expect("second member");
+        let (fixture, prepared) = require_ok!(fixture(), "fixture");
+        let member = require_some!(prepared.members.get(1), "second member");
         let nonzero = launch(&LaunchOptions {
             run_dir: fixture.run_dir.clone(),
             check_id: member.check_id.clone(),
@@ -3271,24 +3479,26 @@ mod tests {
 
     #[test]
     fn alternate_observer_socket_binding_is_rejected() {
-        let (fixture, prepared) = fixture().expect("fixture");
-        let member = prepared.members.first().expect("first member");
-        let error = launch(&LaunchOptions {
-            run_dir: fixture.run_dir,
-            check_id: member.check_id.clone(),
-            observer_socket: Some(PathBuf::from("/tmp/retired-observer.sock")),
-            timeout: Duration::from_secs(5),
-            program: PathBuf::from("/bin/true"),
-            args: Vec::new(),
-        })
-        .expect_err("retired socket should be rejected");
+        let (fixture, prepared) = require_ok!(fixture(), "fixture");
+        let member = require_some!(prepared.members.first(), "first member");
+        let error = require_err!(
+            launch(&LaunchOptions {
+                run_dir: fixture.run_dir,
+                check_id: member.check_id.clone(),
+                observer_socket: Some(PathBuf::from("/tmp/retired-observer.sock")),
+                timeout: Duration::from_secs(5),
+                program: PathBuf::from("/bin/true"),
+                args: Vec::new(),
+            }),
+            "retired socket should be rejected"
+        );
         assert!(error.to_string().contains("alternate observer"));
     }
 
     #[test]
     fn observer_protocol_rejects_missing_independent_response() {
-        let (request_read, mut request_write) = make_pipe().expect("request pipe");
-        let (response_read, response_write) = make_pipe().expect("response pipe");
+        let (request_read, mut request_write) = require_ok!(make_pipe(), "request pipe");
+        let (response_read, response_write) = require_ok!(make_pipe(), "response pipe");
         let source_commit = "a".repeat(40);
         let tree = "b".repeat(40);
         let supervisor = thread::spawn({
@@ -3300,32 +3510,30 @@ mod tests {
                     request_read,
                     response_write,
                     &mut provider,
-                    "/run",
-                    "TASK-001",
-                    "CHK-001",
-                    "capture",
-                    &tree,
-                    &source_commit,
-                    "nonce",
+                    &observer_binding("capture", &tree, &source_commit, "nonce"),
                 )
             }
         });
-        request_write
-            .write_all(observer_request("nonce", 0, "capture", &source_commit, &tree).as_bytes())
-            .expect("request");
-        request_write.flush().expect("flush request");
+        require_ok!(
+            request_write.write_all(
+                observer_request("nonce", 0, "capture", &source_commit, &tree).as_bytes()
+            ),
+            "request"
+        );
+        require_ok!(request_write.flush(), "flush request");
         drop(request_write);
-        let error = supervisor
-            .join()
-            .expect("supervisor join")
-            .expect_err("missing independent response");
+        drop(response_read);
+        let error = require_err!(
+            require_ok!(supervisor.join(), "supervisor join"),
+            "missing independent response"
+        );
         assert!(error.to_string().contains("independent observer response"));
     }
 
     #[test]
     fn observer_protocol_rejects_wrong_nonce() {
-        let (request_read, mut request_write) = make_pipe().expect("request pipe");
-        let (response_read, response_write) = make_pipe().expect("response pipe");
+        let (request_read, mut request_write) = require_ok!(make_pipe(), "request pipe");
+        let (response_read, response_write) = require_ok!(make_pipe(), "response pipe");
         let source_commit = "a".repeat(40);
         let tree = "b".repeat(40);
         let supervisor = thread::spawn({
@@ -3337,61 +3545,53 @@ mod tests {
                     request_read,
                     response_write,
                     &mut provider,
-                    "/run",
-                    "TASK-001",
-                    "CHK-001",
-                    "capture",
-                    &tree,
-                    &source_commit,
-                    "nonce",
+                    &observer_binding("capture", &tree, &source_commit, "nonce"),
                 )
             }
         });
-        request_write
-            .write_all(observer_request("wrong", 0, "capture", &source_commit, &tree).as_bytes())
-            .expect("request");
-        request_write.flush().expect("flush request");
+        require_ok!(
+            request_write.write_all(
+                observer_request("wrong", 0, "capture", &source_commit, &tree).as_bytes()
+            ),
+            "request"
+        );
+        require_ok!(request_write.flush(), "flush request");
         drop(request_write);
         drop(response_read);
-        let error = supervisor
-            .join()
-            .expect("supervisor join")
-            .expect_err("wrong nonce");
+        let error = require_err!(
+            require_ok!(supervisor.join(), "supervisor join"),
+            "wrong nonce"
+        );
         assert!(error.to_string().contains("binding mismatch"));
     }
 
     #[test]
     fn observer_protocol_rejects_truncation_and_replay() {
-        let (request_read, mut request_write) = make_pipe().expect("request pipe");
-        let (response_read, response_write) = make_pipe().expect("response pipe");
+        let (request_read, mut request_write) = require_ok!(make_pipe(), "request pipe");
+        let (response_read, response_write) = require_ok!(make_pipe(), "response pipe");
         let supervisor = thread::spawn(move || {
             let mut provider = FailingProvider;
             observe_worker(
                 request_read,
                 response_write,
                 &mut provider,
-                "/run",
-                "TASK-001",
-                "CHK-001",
-                "capture",
-                &"b".repeat(40),
-                &"a".repeat(40),
-                "nonce",
+                &observer_binding("capture", &"b".repeat(40), &"a".repeat(40), "nonce"),
             )
         });
-        request_write
-            .write_all(b"{\"schema\":\"tc-proof-runner-observe/v1\"")
-            .expect("truncated request");
+        require_ok!(
+            request_write.write_all(b"{\"schema\":\"tc-proof-runner-observe/v1\""),
+            "truncated request"
+        );
         drop(request_write);
         drop(response_read);
-        let error = supervisor
-            .join()
-            .expect("supervisor join")
-            .expect_err("truncation");
+        let error = require_err!(
+            require_ok!(supervisor.join(), "supervisor join"),
+            "truncation"
+        );
         assert!(error.to_string().contains("truncated"));
 
-        let (request_read, mut request_write) = make_pipe().expect("replay request pipe");
-        let (response_read, response_write) = make_pipe().expect("replay response pipe");
+        let (request_read, mut request_write) = require_ok!(make_pipe(), "replay request pipe");
+        let (response_read, response_write) = require_ok!(make_pipe(), "replay response pipe");
         let mut response_read = BufReader::new(response_read);
         let source_commit = "a".repeat(40);
         let tree = "b".repeat(40);
@@ -3404,32 +3604,19 @@ mod tests {
                     request_read,
                     response_write,
                     &mut provider,
-                    "/run",
-                    "TASK-001",
-                    "CHK-001",
-                    "capture",
-                    &tree,
-                    &source_commit,
-                    "nonce",
+                    &observer_binding("capture", &tree, &source_commit, "nonce"),
                 )
             }
         });
         let request = observer_request("nonce", 0, "capture", &source_commit, &tree);
-        request_write
-            .write_all(request.as_bytes())
-            .expect("request");
-        request_write.write_all(request.as_bytes()).expect("replay");
-        request_write.flush().expect("flush request");
+        require_ok!(request_write.write_all(request.as_bytes()), "request");
+        require_ok!(request_write.write_all(request.as_bytes()), "replay");
+        require_ok!(request_write.flush(), "flush request");
         let mut response = String::new();
-        response_read
-            .read_line(&mut response)
-            .expect("replay response");
+        require_ok!(response_read.read_line(&mut response), "replay response");
         drop(request_write);
         drop(response_read);
-        let error = supervisor
-            .join()
-            .expect("supervisor join")
-            .expect_err("replay");
+        let error = require_err!(require_ok!(supervisor.join(), "supervisor join"), "replay");
         assert!(error.to_string().contains("replay"));
     }
 }

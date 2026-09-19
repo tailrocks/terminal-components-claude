@@ -36,12 +36,8 @@ fn parse_compare_args(args: &[String]) -> PathBuf {
         };
         match option {
             "--context" => {
-                index += 1;
-                context = Some(
-                    args.get(index)
-                        .map(PathBuf::from)
-                        .unwrap_or_else(|| usage()),
-                );
+                index = index.saturating_add(1);
+                context = Some(args.get(index).map_or_else(|| usage(), PathBuf::from));
             }
             "--help" | "-h" => {
                 print!("{HELP}");
@@ -52,13 +48,13 @@ fn parse_compare_args(args: &[String]) -> PathBuf {
                 usage();
             }
         }
-        index += 1;
+        index = index.saturating_add(1);
     }
     context.unwrap_or_else(|| usage())
 }
 
 fn value_after(args: &[String], index: &mut usize, option: &str) -> Result<String, String> {
-    *index += 1;
+    *index = (*index).saturating_add(1);
     args.get(*index)
         .filter(|value| !value.starts_with('-'))
         .cloned()
@@ -86,18 +82,18 @@ fn parse_prepare_args(args: &[String]) -> Result<verifier::PrepareOptions, Strin
         };
         match option {
             "--task-dir" => {
-                task_dir = Some(PathBuf::from(value_after(args, &mut index, "--task-dir")?))
+                task_dir = Some(PathBuf::from(value_after(args, &mut index, "--task-dir")?));
             }
             "--run-dir" => {
-                run_dir = Some(PathBuf::from(value_after(args, &mut index, "--run-dir")?))
+                run_dir = Some(PathBuf::from(value_after(args, &mut index, "--run-dir")?));
             }
             "--worktree" => {
-                worktree = Some(PathBuf::from(value_after(args, &mut index, "--worktree")?))
+                worktree = Some(PathBuf::from(value_after(args, &mut index, "--worktree")?));
             }
             "--scope-base" => scope_base = Some(value_after(args, &mut index, "--scope-base")?),
             "--oracle-tag" => oracle_tag = Some(value_after(args, &mut index, "--oracle-tag")?),
             "--oracle-commit" => {
-                oracle_commit = Some(value_after(args, &mut index, "--oracle-commit")?)
+                oracle_commit = Some(value_after(args, &mut index, "--oracle-commit")?);
             }
             "--tool" => tool = Some(PathBuf::from(value_after(args, &mut index, "--tool")?)),
             "--comparator" => {
@@ -105,10 +101,10 @@ fn parse_prepare_args(args: &[String]) -> Result<verifier::PrepareOptions, Strin
                     args,
                     &mut index,
                     "--comparator",
-                )?))
+                )?));
             }
             "--taskfmt" => {
-                taskfmt = Some(PathBuf::from(value_after(args, &mut index, "--taskfmt")?))
+                taskfmt = Some(PathBuf::from(value_after(args, &mut index, "--taskfmt")?));
             }
             "--dependency-receipt" => dependency_receipts.push(PathBuf::from(value_after(
                 args,
@@ -117,19 +113,19 @@ fn parse_prepare_args(args: &[String]) -> Result<verifier::PrepareOptions, Strin
             )?)),
             "--run-id" => run_id = Some(value_after(args, &mut index, "--run-id")?),
             "--observer-nonce" => {
-                observer_nonce = Some(value_after(args, &mut index, "--observer-nonce")?)
+                observer_nonce = Some(value_after(args, &mut index, "--observer-nonce")?);
             }
             "--observer-socket" => {
                 observer_socket = Some(PathBuf::from(value_after(
                     args,
                     &mut index,
                     "--observer-socket",
-                )?))
+                )?));
             }
             "--help" | "-h" => return Err(HELP.to_string()),
             option => return Err(format!("unknown prepare option: {option}")),
         }
-        index += 1;
+        index = index.saturating_add(1);
     }
     Ok(verifier::PrepareOptions {
         task_dir: task_dir.ok_or_else(|| "missing --task-dir".to_string())?,
@@ -167,7 +163,7 @@ fn parse_launch_args(args: &[String]) -> Result<verifier::LaunchOptions, String>
         };
         match option {
             "--run-dir" => {
-                run_dir = Some(PathBuf::from(value_after(prefix, &mut index, "--run-dir")?))
+                run_dir = Some(PathBuf::from(value_after(prefix, &mut index, "--run-dir")?));
             }
             "--check-id" => check_id = Some(value_after(prefix, &mut index, "--check-id")?),
             "--observer-socket" => {
@@ -175,20 +171,20 @@ fn parse_launch_args(args: &[String]) -> Result<verifier::LaunchOptions, String>
                     prefix,
                     &mut index,
                     "--observer-socket",
-                )?))
+                )?));
             }
             "--timeout-ms" => {
                 timeout_ms = value_after(prefix, &mut index, "--timeout-ms")?
                     .parse()
-                    .map_err(|_| "invalid --timeout-ms".to_string())?
+                    .map_err(|_| "invalid --timeout-ms".to_string())?;
             }
             "--help" | "-h" => return Err(HELP.to_string()),
             option => return Err(format!("unknown launch option: {option}")),
         }
-        index += 1;
+        index = index.saturating_add(1);
     }
     let program = args
-        .get(separator + 1)
+        .get(separator.saturating_add(1))
         .ok_or_else(|| "launch child program is missing".to_string())?
         .clone();
     Ok(verifier::LaunchOptions {
@@ -198,7 +194,7 @@ fn parse_launch_args(args: &[String]) -> Result<verifier::LaunchOptions, String>
         timeout: Duration::from_millis(timeout_ms),
         program: PathBuf::from(program),
         args: args
-            .get(separator + 2..)
+            .get(separator.saturating_add(2)..)
             .ok_or_else(|| "invalid launch child argument range".to_string())?
             .to_vec(),
     })
@@ -208,14 +204,17 @@ fn parse_validate_args(args: &[String]) -> Result<PathBuf, String> {
     let mut run_dir = None;
     let mut index = 0;
     while index < args.len() {
-        match args[index].as_str() {
+        let Some(option) = args.get(index).map(String::as_str) else {
+            break;
+        };
+        match option {
             "--run-dir" => {
-                run_dir = Some(PathBuf::from(value_after(args, &mut index, "--run-dir")?))
+                run_dir = Some(PathBuf::from(value_after(args, &mut index, "--run-dir")?));
             }
             "--help" | "-h" => return Err(HELP.to_string()),
             option => return Err(format!("unknown validate option: {option}")),
         }
-        index += 1;
+        index = index.saturating_add(1);
     }
     run_dir.ok_or_else(|| "missing --run-dir".to_string())
 }
@@ -242,7 +241,6 @@ fn main() -> ExitCode {
             ExitCode::from(code as u8)
         }
         "prepare" => match parse_prepare_args(&args)
-            .map_err(|error| error.to_string())
             .and_then(|options| verifier::prepare(&options).map_err(|error| error.to_string()))
             .and_then(|run| print_json(&run))
         {
@@ -263,7 +261,6 @@ fn main() -> ExitCode {
             }
         },
         "launch" => match parse_launch_args(&args)
-            .map_err(|error| error.to_string())
             .and_then(|options| verifier::launch(&options).map_err(|error| error.to_string()))
             .and_then(|record| print_json(&record))
         {

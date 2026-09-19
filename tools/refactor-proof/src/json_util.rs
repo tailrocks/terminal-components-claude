@@ -20,7 +20,7 @@ fn sort_value(value: &Value) -> Value {
         Value::Object(map) => {
             let mut sorted = Map::new();
             let mut keys: Vec<_> = map.keys().collect();
-            keys.sort();
+            keys.sort_unstable();
             for key in keys {
                 sorted.insert(key.clone(), sort_value(&map[key]));
             }
@@ -53,6 +53,11 @@ pub fn canonical_json_line(value: &Value) -> String {
 }
 
 /// Parse JSON while rejecting duplicate object keys at any depth.
+///
+/// # Errors
+///
+/// Returns the parser error when `text` is not valid UTF-8 JSON or contains a
+/// duplicate object key.
 pub fn parse_json_strict(text: &str) -> Result<Value, String> {
     let mut de = serde_json::Deserializer::from_str(text);
     de.deserialize_any(NoDupVisitor)
@@ -133,6 +138,11 @@ impl<'de> Visitor<'de> for NoDupVisitor {
 }
 
 /// Parse JSON from bytes with duplicate-key rejection.
+///
+/// # Errors
+///
+/// Returns the parser error when `bytes` is not UTF-8 JSON or contains a
+/// duplicate object key.
 pub fn parse_json_bytes_strict(bytes: &[u8]) -> Result<Value, String> {
     let text = std::str::from_utf8(bytes).map_err(|error| error.to_string())?;
     parse_json_strict(text)
@@ -163,7 +173,7 @@ pub fn duplicate_values(values: &[String]) -> Vec<String> {
 pub fn object_keys(value: &Value) -> Option<Vec<&str>> {
     value.as_object().map(|map| {
         let mut keys: Vec<_> = map.keys().map(String::as_str).collect();
-        keys.sort();
+        keys.sort_unstable();
         keys
     })
 }
@@ -179,6 +189,10 @@ pub fn get_str<'a>(value: &'a Value, key: &str) -> Option<&'a str> {
 }
 
 /// Load required string field.
+///
+/// # Errors
+///
+/// Returns an error when `key` is absent or is not a JSON string.
 pub fn require_str(value: &Value, key: &str) -> Result<String, String> {
     get_str(value, key)
         .map(str::to_owned)
@@ -186,6 +200,10 @@ pub fn require_str(value: &Value, key: &str) -> Result<String, String> {
 }
 
 /// Load required u64 field stored as JSON number.
+///
+/// # Errors
+///
+/// Returns an error when `key` is absent or is not a non-negative JSON integer.
 pub fn require_u64(value: &Value, key: &str) -> Result<u64, String> {
     value
         .get(key)
@@ -194,6 +212,11 @@ pub fn require_u64(value: &Value, key: &str) -> Result<u64, String> {
 }
 
 /// Load required string array field.
+///
+/// # Errors
+///
+/// Returns an error when `key` is absent, is not an array, or contains a
+/// non-string entry.
 pub fn require_str_array(value: &Value, key: &str) -> Result<Vec<String>, String> {
     let array = value
         .get(key)
@@ -217,6 +240,10 @@ pub fn has_exact_keys(value: &Value, keys: &[&str]) -> bool {
 }
 
 /// Build a map from a JSON object for keyed lookup.
+///
+/// # Errors
+///
+/// Returns an error when `value` is not a JSON object.
 pub fn as_object_map(value: &Value) -> Result<&Map<String, Value>, String> {
     value
         .as_object()
@@ -224,6 +251,11 @@ pub fn as_object_map(value: &Value) -> Result<&Map<String, Value>, String> {
 }
 
 /// Index scenarios by id.
+///
+/// # Errors
+///
+/// Returns an error when an entry has no string `id_field` or when two entries
+/// have the same id.
 pub fn index_by_id(entries: &[Value], id_field: &str) -> Result<HashMap<String, Value>, String> {
     let mut map = HashMap::new();
     for entry in entries {

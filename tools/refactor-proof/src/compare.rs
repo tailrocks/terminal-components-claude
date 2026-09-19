@@ -126,6 +126,11 @@ enum CompareOutcome {
 }
 
 /// Execute `tc-proof compare` for the context file at `context_path`.
+///
+/// # Errors
+///
+/// Returns an I/O error when the context cannot be read or the comparison
+/// report cannot be written.
 pub fn run_compare(context_path: &Path) -> io::Result<i32> {
     let raw_bytes = fs::read(context_path)?;
     let context = match parse_context(&raw_bytes) {
@@ -168,21 +173,21 @@ fn parse_compare_value(
     validate_report_path(&report_path, &oracle_root, &candidate_root, None)?;
     Ok(CompareContext {
         raw_bytes: raw_bytes.to_vec(),
-        run_id: require_str(&value, "run_id")?,
-        task_id: require_str(&value, "task_id")?,
-        oracle_commit: require_str(&value, "oracle_commit")?,
-        candidate_source_tree: require_str(&value, "candidate_source_tree")?,
+        run_id: require_str(value, "run_id")?,
+        task_id: require_str(value, "task_id")?,
+        oracle_commit: require_str(value, "oracle_commit")?,
+        candidate_source_tree: require_str(value, "candidate_source_tree")?,
         oracle_root,
         candidate_root,
-        oracle_manifest_sha256: require_str(&value, "oracle_manifest_sha256")?,
-        candidate_manifest_sha256: require_str(&value, "candidate_manifest_sha256")?,
-        required_sha256: require_str(&value, "required_sha256")?,
-        actions_sha256: require_str(&value, "actions_sha256")?,
-        required_ids: require_str_array(&value, "required_ids")?,
-        required_count: require_u64(&value, "required_count")?,
-        tool_sha256: require_str(&value, "tool_sha256")?,
-        oracle_adapter_sha256: require_str(&value, "oracle_adapter_sha256")?,
-        candidate_adapter_sha256: require_str(&value, "candidate_adapter_sha256")?,
+        oracle_manifest_sha256: require_str(value, "oracle_manifest_sha256")?,
+        candidate_manifest_sha256: require_str(value, "candidate_manifest_sha256")?,
+        required_sha256: require_str(value, "required_sha256")?,
+        actions_sha256: require_str(value, "actions_sha256")?,
+        required_ids: require_str_array(value, "required_ids")?,
+        required_count: require_u64(value, "required_count")?,
+        tool_sha256: require_str(value, "tool_sha256")?,
+        oracle_adapter_sha256: require_str(value, "oracle_adapter_sha256")?,
+        candidate_adapter_sha256: require_str(value, "candidate_adapter_sha256")?,
         report_path,
     })
 }
@@ -271,16 +276,15 @@ fn validate_report_path(
     {
         return Err("report path is not an external absolute path".to_string());
     }
-    if let Some(runtime_root) = runtime_root {
-        if report_path.parent() != Some(runtime_root)
+    if let Some(runtime_root) = runtime_root
+        && (report_path.parent() != Some(runtime_root)
             || !runtime_root.is_absolute()
             || runtime_root == oracle_root
             || runtime_root == candidate_root
             || runtime_root.starts_with(oracle_root)
-            || runtime_root.starts_with(candidate_root)
-        {
-            return Err("report path is outside the host-selected runtime output".to_string());
-        }
+            || runtime_root.starts_with(candidate_root))
+    {
+        return Err("report path is outside the host-selected runtime output".to_string());
     }
     Ok(())
 }
@@ -1003,24 +1007,23 @@ mod tests {
 
     #[cfg(unix)]
     #[test]
-    fn report_path_qualifies_symlinked_temporary_ancestry() {
+    fn report_path_qualifies_symlinked_temporary_ancestry() -> Result<(), Box<dyn std::error::Error>>
+    {
         use std::os::unix::fs::symlink;
 
-        let temporary = tempfile::tempdir().expect("temporary directory");
+        let temporary = tempfile::tempdir()?;
         let real_root = temporary.path().join("real-run");
-        fs::create_dir_all(real_root.join("outputs")).expect("real run root");
+        fs::create_dir_all(real_root.join("outputs"))?;
         let aliased_root = temporary.path().join("var-link");
-        symlink(&real_root, &aliased_root).expect("symlinked run root");
+        symlink(&real_root, &aliased_root)?;
 
         let qualified = qualify_report_path(&aliased_root.join("outputs/report.json"))
-            .expect("qualified report path");
+            .map_err(io::Error::other)?;
         assert_eq!(
             qualified,
-            real_root
-                .canonicalize()
-                .expect("real run root realpath")
-                .join("outputs/report.json")
+            real_root.canonicalize()?.join("outputs/report.json")
         );
+        Ok(())
     }
 
     fn old_compare_context(report_path: &str) -> Value {
@@ -1047,7 +1050,8 @@ mod tests {
     }
 
     #[test]
-    fn runner_context_preserves_nested_comparator_schema_and_host_output() {
+    fn runner_context_preserves_nested_comparator_schema_and_host_output()
+    -> Result<(), Box<dyn std::error::Error>> {
         let nested = old_compare_context("/run/outputs/CHK-001.compare.json");
         let runner = json!({
             "schema": RUNNER_CONTEXT_SCHEMA,
@@ -1065,19 +1069,28 @@ mod tests {
                 },
             },
         });
-        let raw = serde_json::to_vec(&runner).expect("runner context");
-        let parsed = parse_context(&raw).expect("parse runner context");
+        let raw = serde_json::to_vec(&runner)?;
+        let parsed = parse_context(&raw).map_err(io::Error::other)?;
         assert_eq!(
             parsed.report_path,
             PathBuf::from("/run/outputs/CHK-001.compare.json")
         );
         assert_eq!(parsed.candidate_source_tree, "b".repeat(40));
+        Ok(())
     }
 
     #[test]
-    fn runner_context_rejects_comparator_report_outside_runtime_outputs() {
+    fn runner_context_rejects_comparator_report_outside_runtime_outputs()
+    -> Result<(), Box<dyn std::error::Error>> {
         let mut nested = old_compare_context("/run/outputs/CHK-001.compare.json");
-        nested["report_path"] = Value::String("/oracle/forged.json".to_string());
+        assert!(nested.is_object(), "nested context must be an object");
+        let Some(nested_object) = nested.as_object_mut() else {
+            return Ok(());
+        };
+        nested_object.insert(
+            "report_path".to_string(),
+            Value::String("/oracle/forged.json".to_string()),
+        );
         let runner = json!({
             "schema": RUNNER_CONTEXT_SCHEMA,
             "run_id": "/run",
@@ -1094,7 +1107,8 @@ mod tests {
                 },
             },
         });
-        let raw = serde_json::to_vec(&runner).expect("runner context");
+        let raw = serde_json::to_vec(&runner)?;
         assert!(parse_context(&raw).is_err());
+        Ok(())
     }
 }

@@ -70,7 +70,7 @@ pub struct ObserverRequest {
 #[serde(tag = "schema")]
 pub enum ObserverResponse {
     #[serde(rename = "tc-proof-observation/v1")]
-    Observation(ObserverObservation),
+    Observation(Box<ObserverObservation>),
     #[serde(rename = "tc-proof-observer-error/v1")]
     Error(ObserverError),
 }
