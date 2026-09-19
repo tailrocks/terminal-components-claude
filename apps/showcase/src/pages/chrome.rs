@@ -315,6 +315,10 @@ impl Page for ChromePage {
         "Chrome"
     }
 
+    fn seek_paused(&mut self, frame: u64) {
+        self.frame = usize::try_from(frame).unwrap_or(usize::MAX);
+    }
+
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
         let brand = brand().update(cx);
         if brand.activated() {

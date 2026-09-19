@@ -9,6 +9,7 @@ members = [
     "apps/tablepro",
     "apps/jackin-preview",
     "apps/holla",
+    "tests/visual_baseline",
 ]
 default-members = [
     "crates/tui",
