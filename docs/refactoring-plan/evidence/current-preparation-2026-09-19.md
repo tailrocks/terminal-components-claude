@@ -164,9 +164,20 @@ binary: /tmp/taskfmt-latest-install/bin/taskfmt
 SHA-256: f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
 ```
 
-Only standalone taskfmt `lint` and `verify` are allowed. Taskfmt source Docker
-integration was not run; its Docker-only test selection fails closed without
-the explicit opt-in. No container or mount lifecycle was used.
+Only standalone taskfmt `lint` and `verify` are allowed. The qualified
+taskfmt source also contains an upstream-only, opt-in Docker integration at
+revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2` / tree
+`b7d90bd8adbe6c341a08fc485099ee8cf1584431`. Its exact source evidence is
+`harness/tests/docker_itest.rs`, `harness/tests/run_docker_itest.sh`,
+`harness/README.md`, and `docs/monitoring.md`: the runner sets
+`TASKFMT_ITEST_DOCKER=1`, invokes `cargo test`, and requires a live Docker
+daemon and harness image. `/tmp/taskfmt-platform-audit.log` records the full
+taskfmt workspace nextest stopping at test-list creation on
+`docker_itest: SKIP` (exit 104); `/tmp/taskfmt-platform-audit-native.log`
+records native taskfmt crates at 268 passed, 7 binaries, exit 0. Docker was
+not run, and no upstream Docker qualification is claimed. Campaign policy
+excludes that path; it is upstream-only provenance, not a campaign blocker or
+acceptance input. No container or mount lifecycle was used.
 
 Plan and catalog evidence:
 
@@ -396,7 +407,6 @@ evidence never silently authorizes a changed tree.
 | `parity/evidence.tsv` | missing; boundary gate fails |
 | `TASK-071` / `TASK-072` dependency receipts | absent |
 | native Linux | unavailable |
-| taskfmt Docker integration | not run; fails closed |
 | latest pre-refresh independent verifier/reviewer | exact-tree reports exist; both `REJECTED / NO-GO`; no `VERIFIED` result |
 | final external seal for this documentation tree | predetermined external paths; must be created after this commit |
 | repaired trust paths | defects fixed; exact final-tree verifier/reviewer requalification pending |

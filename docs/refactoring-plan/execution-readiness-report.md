@@ -187,6 +187,21 @@ evidence is invalid after this documentation commit. Native proof is
 integrity/control evidence, not same-user hostile process isolation; the
 supported threat model and limitations remain in `proof-contract.md`.
 
+The qualified taskfmt checkout contains an upstream-only, opt-in Docker
+integration at revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2` / tree
+`b7d90bd8adbe6c341a08fc485099ee8cf1584431`. The exact source evidence is
+`harness/tests/docker_itest.rs`, `harness/tests/run_docker_itest.sh`,
+`harness/README.md`, and `docs/monitoring.md`: the runner sets
+`TASKFMT_ITEST_DOCKER=1`, invokes `cargo test`, and requires a live Docker
+daemon and harness image. `/tmp/taskfmt-platform-audit.log` records the full
+taskfmt workspace nextest stopping at test-list creation on
+`docker_itest: SKIP` (exit 104); `/tmp/taskfmt-platform-audit-native.log`
+records native taskfmt crates at 268 passed, 7 binaries, exit 0. Docker was
+not run, and no upstream Docker qualification is claimed. Campaign policy
+excludes this upstream path, so it is not a preparation blocker or acceptance
+input; campaign qualification remains the standalone `taskfmt lint`/`verify`
+surface above.
+
 The exact final-tree workspace result is recorded at:
 
 ```text
@@ -207,9 +222,9 @@ the old proof-nextest logs reporting `27/27` and `27 passed`, proof build
 `taskfmt-lints-final-retry-2026-09-19`. They are not current final-payload
 evidence. The TASK-071/TASK-072 preparation attempt still fails closed because
 dependency receipts are absent; no task was accepted. The boundary run still
-fails on missing `parity/evidence.tsv`, native Linux is unavailable, and full
-taskfmt source integration remains unqualified because its Docker-only path was
-not run and fails closed without its opt-in. The ledger remains `armed=false`.
+fails on missing `parity/evidence.tsv`, and native Linux is unavailable. The
+upstream Docker-only taskfmt path is policy-excluded/upstream-only, was not
+run, and is not claimed as qualified. The ledger remains `armed=false`.
 
 ## 5. Calibration and parity status
 

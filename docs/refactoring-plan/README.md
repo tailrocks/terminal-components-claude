@@ -169,6 +169,20 @@ Only `taskfmt lint "$TASK_DIR"` and the documented standalone `taskfmt verify`
 form are permitted. Taskfmt is not an orchestrator, workspace manager, ref
 manager, container launcher, or acceptance authority.
 
+The qualified taskfmt checkout also contains an upstream-only, opt-in Docker
+integration. At revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2` / tree
+`b7d90bd8adbe6c341a08fc485099ee8cf1584431`, its exact source evidence is
+`harness/tests/docker_itest.rs`, `harness/tests/run_docker_itest.sh`,
+`harness/README.md`, and `docs/monitoring.md`. The runner requires
+`TASKFMT_ITEST_DOCKER=1`, invokes `cargo test`, and requires a live Docker
+daemon and harness image. The platform audit evidence is
+`/tmp/taskfmt-platform-audit.log` (full taskfmt workspace nextest stopped at
+test-list creation with `docker_itest: SKIP`; exit 104) and
+`/tmp/taskfmt-platform-audit-native.log` (native taskfmt crates: 268 passed,
+7 binaries, exit 0). This campaign did not run Docker and makes no claim that
+the upstream Docker integration passed. Campaign policy excludes that path;
+it is upstream-only provenance, not a campaign blocker or acceptance input.
+
 The detailed exact-candidate audit evidence before this documentation refresh
 is raw and rejected, not an accepted receipt for this documentation tree.
 Report root:
@@ -199,11 +213,9 @@ the old `27/27` and `27 passed` proof-nextest logs, proof build
 `f85400a16dc131fe0f59bfc90b5ec22cadf97de02833a216ed81385bf70a1b44`,
 `static-final-2026-09-19`, `shell-final-current-2026-09-19`,
 `docs-final-current-retry-2026-09-19`, and
-`taskfmt-lints-final-retry-2026-09-19` are not current evidence. Full taskfmt
-source integration tests remain unqualified because the Docker-only path was
-not run and fails closed without its opt-in. Native Linux evidence is
-unavailable. `xtask boundary` still fails because `parity/evidence.tsv` is
-missing.
+`taskfmt-lints-final-retry-2026-09-19` are not current evidence. Native Linux
+evidence is unavailable. `xtask boundary` still fails because
+`parity/evidence.tsv` is missing.
 
 ## Task and architecture state
 
@@ -245,9 +257,10 @@ that post-commit tree; no accepted receipt exists.
 Preparation blockers remain: clean post-refresh verifier/reviewer
 sealing; complete native proof/result/receipt qualification; a clean
 deterministic 892-source calibration; the missing `parity/evidence.tsv`; full
-visual/behavioral/product parity; unavailable native Linux; unqualified
-Docker-only taskfmt integration; absent `TASK-071`/`TASK-072` dependency
-receipts; and no accepted preparation receipt. The 892 control is 298/302
+visual/behavioral/product parity; unavailable native Linux; absent
+`TASK-071`/`TASK-072` dependency receipts; and no accepted preparation
+receipt. The upstream Docker-only taskfmt path is policy-excluded and is not a
+campaign blocker; it was not run and is not claimed as qualified. The 892 control is 298/302
 passed with 4 failures, 2 skipped, 1 leaky, exit 100, 7,550
 ANSI/plain/PNG/HTML artifacts each (30,200 total), and 17 diff files. This is
 coverage evidence, not a calibration pass. The final preparation remains
