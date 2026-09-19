@@ -18,16 +18,16 @@ contains no status, acceptance result, or dispatch authority.
 
 ## Current candidate and branch truth
 
-The current pushed preparation payload before this documentation update is:
+The tested preparation payload immediately before this documentation correction is:
 
 ```text
 branch:   refactor/holla-parity
-commit:   c42c2ae301197baea6376156a17664d5863497b4
-tree:     b841969e714a74740eccb3f7c47eab05cabafed8
-parent:   b62dd9c350c24deb95e6255cdf7b5987dca13514
+commit:   1fb2b71c23edc6dd7b6d81b2e97b6bd5d4265717
+tree:     51ffdc30306be16bbb5e7aedb49d3daff5f766ef
+parent:   dc14a1e16edb3aa31a071d8a16857cff2328db1b
 local main:   7b27732a8c3c131760ec3438f641cb3c11343a42
 remote main:  7b27732a8c3c131760ec3438f641cb3c11343a42
-remote campaign tip: c42c2ae301197baea6376156a17664d5863497b4
+remote campaign tip: 1fb2b71c23edc6dd7b6d81b2e97b6bd5d4265717
 merge-base with main: 7b27732a8c3c131760ec3438f641cb3c11343a42
 campaign commits ahead of origin/refactor/holla-parity: 0
 ```
@@ -81,7 +81,7 @@ That run executed 302 cases and produced the complete count, but was not
 clean: 298 passed, 4 failed, 2 skipped, 1 leaky, exit 100. No output was
 blessed or normalized.
 
-At current campaign HEAD `c42c2ae3`, `tests/visual_baseline/` and
+At the pre-correction candidate `1fb2b71c`, `tests/visual_baseline/` and
 `.config/nextest.toml` exist. The candidate branch still has no `snapshots/`
 directory and no `parity/evidence.tsv`; those remain protected external oracle
 inputs, not candidate-generated expected output.
@@ -155,7 +155,7 @@ Current and historical qualification evidence:
 - Pre-documentation taskfmt lint at pushed code `247e47d5`: 73/73 packages passed, exit 0;
   log `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-247-direct/all.log`,
   SHA-256 `afecad09ba800c74fc841fd4d830fd8932d80e84894bd18c5bf5660522134124`.
-- Proof source `37214cfb` has the current candidate tree
+- Proof source `37214cfb` has the historical code tree
   `6445c9969ef2f028ff17eb24608de966f1e60b62`. Its focused native nextest run
   passed 3/3 at
   `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/final-37214cfb/refactor-proof/nextest.log`

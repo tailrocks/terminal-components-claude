@@ -27,11 +27,11 @@ Before any implementation agent is spawned, the coordinator must independently:
 2. Re-read Git refs. Bind the actual branch, local/remote `main`, merge-base,
    scope base, clean worktree, final source commit/tree/parent, and dependency
    ancestry. The preparation payload before this generated prompt was
-   `c42c2ae301197baea6376156a17664d5863497b4` / tree
-   `b841969e714a74740eccb3f7c47eab05cabafed8`, parent
-   `b62dd9c350c24deb95e6255cdf7b5987dca13514`; local and remote `main` are
+   `1fb2b71c23edc6dd7b6d81b2e97b6bd5d4265717` / tree
+   `51ffdc30306be16bbb5e7aedb49d3daff5f766ef`, parent
+   `dc14a1e16edb3aa31a071d8a16857cff2328db1b`; local and remote `main` are
    `7b27732a8c3c131760ec3438f641cb3c11343a42`, and the remote campaign tip
-   equals `c42c2ae3`. The documentation commit and any later edit invalidate
+   equals `1fb2b71c`. The documentation correction commit and any later edit invalidate
    that identity. Never trust this embedded value without fresh Git reads.
 3. Verify the protected oracle exactly:
 

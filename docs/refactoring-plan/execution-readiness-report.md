@@ -8,21 +8,21 @@ is a preparation gate, not an implementation prompt. Keep the campaign ledger
 
 ## 1. Exact source and branch truth
 
-The current pushed preparation payload before this documentation update is:
+The tested preparation payload immediately before this documentation correction is:
 
 ```text
 branch: refactor/holla-parity
-commit: c42c2ae301197baea6376156a17664d5863497b4
-tree:   b841969e714a74740eccb3f7c47eab05cabafed8
-parent: b62dd9c350c24deb95e6255cdf7b5987dca13514
+commit: 1fb2b71c23edc6dd7b6d81b2e97b6bd5d4265717
+tree:   51ffdc30306be16bbb5e7aedb49d3daff5f766ef
+parent: dc14a1e16edb3aa31a071d8a16857cff2328db1b
 ```
 
-Git facts independently read from refs:
+Git facts at that pre-correction payload:
 
 ```text
 refs/heads/main:                  7b27732a8c3c131760ec3438f641cb3c11343a42
 refs/remotes/origin/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
-refs/remotes/origin/refactor/...  c42c2ae301197baea6376156a17664d5863497b4
+refs/remotes/origin/refactor/...  1fb2b71c23edc6dd7b6d81b2e97b6bd5d4265717
 merge-base campaign/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
 local commits ahead of remote campaign: 0
 ```
@@ -64,7 +64,7 @@ The import was derived from the peeled tag, has zero symlinks, and was not
 used as a candidate-generated baseline. Protected refs and artifacts are
 unchanged.
 
-At current campaign HEAD `c42c2ae3`, `tests/visual_baseline/` and
+At the pre-correction candidate `1fb2b71c`, `tests/visual_baseline/` and
 `.config/nextest.toml` exist. The candidate branch still lacks `snapshots/`
 and `parity/evidence.tsv`; those remain external protected-oracle inputs.
 
@@ -149,7 +149,7 @@ taskfmt sealing, trust-path consistency, and observer request-count binding.
 The detailed calibration report
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/calibration-fe802/CALIBRATION-REPORT.md`
 (SHA-256 `c1c8b3221cd51661eb36cd57a4c850ab3a093cb9a5647b16d39d88c33516d55e`)
-is historical: it binds `fe802534`, not current `c42c2ae3`. Its NO-GO
+is historical: it binds `fe802534`, not the current post-correction tree. Its NO-GO
 findings remain provenance and cannot attest to the current or post-document
 tree.
 

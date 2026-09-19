@@ -7,13 +7,13 @@ completion claim.
 ## Source and refs
 
 ```text
-current pushed payload:     c42c2ae301197baea6376156a17664d5863497b4
-current pushed tree:        b841969e714a74740eccb3f7c47eab05cabafed8
-parent:                     b62dd9c350c24deb95e6255cdf7b5987dca13514
+pre-correction tested payload: 1fb2b71c23edc6dd7b6d81b2e97b6bd5d4265717
+pre-correction tested tree:    51ffdc30306be16bbb5e7aedb49d3daff5f766ef
+parent:                        dc14a1e16edb3aa31a071d8a16857cff2328db1b
 branch:                     refactor/holla-parity
 local main:                 7b27732a8c3c131760ec3438f641cb3c11343a42
 remote main:                7b27732a8c3c131760ec3438f641cb3c11343a42
-remote campaign tip:       c42c2ae301197baea6376156a17664d5863497b4
+remote campaign tip:       1fb2b71c23edc6dd7b6d81b2e97b6bd5d4265717
 merge-base with main:       7b27732a8c3c131760ec3438f641cb3c11343a42
 ```
 
@@ -53,7 +53,7 @@ The source identity for the complete snapshot producer is
 `89218626011f2f82c4e87c4dfd5868a4c5f3e284` / tree
 `6fccf997cd742071ebcff0e0a00e89404ef95ca8`, with the same snapshot tree.
 
-At current campaign HEAD `c42c2ae3`, `tests/visual_baseline/` and
+At the pre-correction candidate `1fb2b71c`, `tests/visual_baseline/` and
 `.config/nextest.toml` exist. The candidate branch has no `snapshots/`
 directory and no `parity/evidence.tsv`; the imported oracle remains external
 and read-only.
@@ -72,7 +72,7 @@ binary SHA-256: f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
 ```
 
 The qualified binary is a regular, single-link executable. Only standalone
-`lint` and `verify` operations are allowed. Current lint evidence, run against
+`lint` and `verify` operations are allowed. Pre-documentation lint evidence, run against
 the pushed `247e47d5` code payload before this documentation update:
 
 ```text
@@ -165,7 +165,7 @@ verifier evidence. Historical Lychee/actionlint runs bind to
 The detailed calibration report
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/calibration-fe802/CALIBRATION-REPORT.md`
 (SHA-256 `c1c8b3221cd51661eb36cd57a4c850ab3a093cb9a5647b16d39d88c33516d55e`)
-is historical and binds `fe802534`, not current `c42c2ae3`. It remains NO-GO:
+is historical and binds `fe802534`, not the current post-correction tree. It remains NO-GO:
 the complete known-good control did not establish exact parity, including the
 missing TablePro key, HTML executable-path bytes, TablePro structural output,
 Holla elapsed-time output, and unstable settled transitions.
