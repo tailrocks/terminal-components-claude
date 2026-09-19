@@ -20,8 +20,13 @@ def _write_json(path: Path, value: dict[str, object]) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
-def _fixture() -> tuple[Path, dict[str, object], dict[str, object], Path]:
-    root = Path(tempfile.mkdtemp(prefix="tc-proof-closure-"))
+def _fixture(base_dir: Path | None = None) -> tuple[Path, dict[str, object], dict[str, object], Path]:
+    root = Path(
+        tempfile.mkdtemp(
+            prefix="tc-proof-closure-",
+            dir=str(base_dir) if base_dir is not None else None,
+        )
+    )
     contexts_dir = root / "contexts"
     results_dir = root / "results"
     output_dir = root / "outputs"
@@ -140,6 +145,41 @@ class ClosurePathTests(unittest.TestCase):
                     with self.assertRaises(Reject) as raised:
                         validate_index_close_outputs(event, index, output_dir, "CHK-001")
                     self.assertEqual(raised.exception.category, "CLOSURE")
+                finally:
+                    for path in sorted(root.rglob("*"), reverse=True):
+                        if path.is_symlink() or path.is_file():
+                            path.unlink()
+                        elif path.is_dir():
+                            path.rmdir()
+                    root.rmdir()
+
+    def test_symlinked_ancestor_of_run_and_trust_paths_is_rejected(self) -> None:
+        real_parent = Path(tempfile.mkdtemp(prefix="tc-proof-closure-parent-"))
+        alias_parent = real_parent.with_name(real_parent.name + "-alias")
+        alias_parent.symlink_to(real_parent, target_is_directory=True)
+        root = None
+        try:
+            root, index, event, output_dir = _fixture(alias_parent)
+            with self.assertRaises(Reject) as raised:
+                validate_index_close_outputs(event, index, output_dir, "CHK-001")
+            self.assertEqual(raised.exception.category, "CLOSURE")
+        finally:
+            if root is not None:
+                for path in sorted(root.rglob("*"), reverse=True):
+                    if path.is_symlink() or path.is_file():
+                        path.unlink()
+                    elif path.is_dir():
+                        path.rmdir()
+                root.rmdir()
+            alias_parent.unlink()
+            real_parent.rmdir()
+
+    def test_allowed_tmp_and_var_aliases_remain_accepted(self) -> None:
+        for base_dir in (Path("/tmp"), Path("/var/tmp")):
+            with self.subTest(base_dir=base_dir):
+                root, index, event, output_dir = _fixture(base_dir)
+                try:
+                    validate_index_close_outputs(event, index, output_dir, "CHK-001")
                 finally:
                     for path in sorted(root.rglob("*"), reverse=True):
                         if path.is_symlink() or path.is_file():

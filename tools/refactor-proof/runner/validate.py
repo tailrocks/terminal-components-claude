@@ -138,6 +138,13 @@ _RUNTIME_RESULT_KEYS = {
     "outputs",
 }
 
+_ALLOWED_SYSTEM_SYMLINKS = {
+    Path("/etc"): Path("/private/etc"),
+    Path("/home"): Path("/System/Volumes/Data/home"),
+    Path("/tmp"): Path("/private/tmp"),
+    Path("/var"): Path("/private/var"),
+}
+
 
 def _hex(value: Any, length: int) -> bool:
     return isinstance(value, str) and len(value) == length and all(
@@ -149,7 +156,24 @@ def _check_id(value: Any) -> bool:
     return isinstance(value, str) and len(value) == 7 and value.startswith("CHK-") and value[4:].isdigit()
 
 
+def _real_path_components(path: Path) -> None:
+    if not path.is_absolute():
+        raise Reject("CLOSURE")
+    current = Path(path.anchor)
+    for component in path.parts[1:]:
+        current /= component
+        try:
+            metadata = current.lstat()
+        except OSError:
+            raise Reject("CLOSURE") from None
+        if stat.S_ISLNK(metadata.st_mode):
+            allowed_target = _ALLOWED_SYSTEM_SYMLINKS.get(current)
+            if allowed_target is None or current.resolve() != allowed_target:
+                raise Reject("CLOSURE")
+
+
 def _regular_file(path: Path) -> None:
+    _real_path_components(path)
     try:
         metadata = path.lstat()
     except OSError:
@@ -159,6 +183,7 @@ def _regular_file(path: Path) -> None:
 
 
 def _real_directory(path: Path) -> None:
+    _real_path_components(path)
     try:
         metadata = path.lstat()
     except OSError:
