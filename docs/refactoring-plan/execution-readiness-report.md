@@ -8,13 +8,13 @@ is a preparation gate, not an implementation prompt. Keep the campaign ledger
 
 ## 1. Exact source and branch truth
 
-The tested preparation payload before this documentation-only commit is:
+The tested preparation payload before this final documentation freeze is:
 
 ```text
 branch: refactor/holla-parity
-commit: e10fd942d8350f33f4c29761c322090494d178a4
-tree:   c336ab40031a5cae2f936bc04fe2fcc62f9d8101
-parent: 30fbf36feea797d1320c4ab21c491f8c944935bf
+commit: bc4e5980256f1fa2c66d673790c99610b610fd16
+tree:   1a388126806c701ff4420f17023a8b792bfd4b98
+parent: 1da58a09f420b653195b5d8015ed5ca22deb8a6
 ```
 
 Git facts independently read from refs:
@@ -22,9 +22,9 @@ Git facts independently read from refs:
 ```text
 refs/heads/main:                  7b27732a8c3c131760ec3438f641cb3c11343a42
 refs/remotes/origin/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
-refs/remotes/origin/refactor/...  f5013f609aed1ba32ce60352b38fd0b1b11b063c
+refs/remotes/origin/refactor/...  1da58a09f420b653195b5d8015ed5ca22deb8a6
 merge-base campaign/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
-local commits ahead of remote campaign: 56
+local commits ahead of remote campaign: 1
 ```
 
 The final verifier must recompute these values after this documentation
@@ -98,18 +98,18 @@ SHA-256:  f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
 ```
 
 Current package-lint run:
-`taskfmt-lints-de2f1295/summary.tsv`: 73/73 passed, 0 failed. Lint validates
+`taskfmt-lints-bc4e5980/summary.tsv`: 73/73 passed, 0 failed. Lint validates
 contract format only; it does not accept implementation.
 
 Native proof runs:
 
 | run | command/result |
 | --- | --- |
-| `proof-full-e10fd942-rerun` | `cargo nextest` exit 0; 38 passed, 0 skipped |
-| `native-preparation-e10fd942-clean` | `scripts/campaign-build-proof.sh` exit 0; external binary/receipt/contexts/results/index/observer bound to current payload |
-| `native-launch-regression-e10fd942` | positive launch, direct-injection rejection, wrong-nonce rejection; exit 0 |
-| `native-preparation-e10fd942-clean` preflight | exact proof member path/hash/check bindings; exit 0, non-authorizing |
-| `target-invariant-verify` | adversarial non-`target` run-member rejection; nextest 1 passed, 37 skipped |
+| `proof-full-bc4e5980` | unfiltered `cargo nextest` exit 100; 37 passed, 1 bounded observer-hang test failed |
+| `native-preparation-bc4e5980` | build, prepare, validate, and explicit proof-preparation preflight exit 0; exact `bc4e5980`/`1a388126` bindings |
+| `adversarial-preparation-bc4e5980` | preparation guards, proof paths, dispatch authorization, and ledger contracts exit 0 |
+| `taskfmt-lints-bc4e5980` | 73/73 package lints passed, 0 failed |
+| `final-checks-bc4e5980` | plan and graph validators exit 0; pre-arm preflight exit 1 on canonical NO-GO |
 
 The native protocol is non-circular: pin source/tools/contracts/oracle and
 prerequisite receipts, materialize contexts, start the observer, execute the
@@ -143,7 +143,11 @@ fixture change, or expected-artifact replacement was used.
 A separate complete control from source `89218626011f2f82c4e87c4dfd5868a4c5f3e284`
 ran 302 cases: 298 pass, 4 fail, 2 skipped, 1 leaky, exit 100. It is not a
 clean calibration. These failures are preparation blockers because the gate
-cannot yet prove a known-good source against the complete immutable oracle.
+cannot yet prove a known-good source against the complete immutable oracle. A
+fresh repeat was started in `baseline-tag-control-current-1da58a09`; it was
+terminated after 1:03:39 at its exact process group (`pgid 26873`) because no
+durable result appeared and it was consuming the host. No exit file was
+written, so it is incomplete evidence and not a pass.
 
 ## 6. Product obligations, scripts, and platform state
 
@@ -168,16 +172,19 @@ retired lifecycle path was used by this campaign.
 | exact-tag known-good matrix fails | next implementation / proof owner | independently execute all 7,550 keys and 30,200 artifacts with exact-safe executable provenance and zero unexplained mismatch |
 | observed corpus misses one key and HTML path differs | visual harness owner | repair source/harness provenance without normalization or oracle mutation; rerun complete tag control |
 | no accepted current preparation receipt | verifier/reviewer | final clean tree gets independent `VERIFIED` verifier and separate reviewer evidence; no fabricated receipt |
+| unfiltered native proof suite fails | proof owner | stable `cargo nextest` pass for all 38 proof tests under the qualified command |
 | Linux native evidence unavailable | platform owner | execute required native Linux lane or keep NO-GO |
 | product migration/ownership/parity incomplete | implementation goal | complete reconciled DAG and final architecture/product gates |
 | ledger must stay disarmed | coordinator | preserve `armed=false` until separate explicit dispatch authorization after fresh readiness recheck |
 
 Resolved preparation defects include stale task graph status metadata, stale
 taskfmt path/version enforcement, missing native receipt binding, incomplete
-worker launch fixture provenance, unbounded observer-provider teardown, and
-noncanonical native target names. Their current code evidence is not a final
-GO because calibration remains failed.
+worker launch fixture provenance, unbounded observer-provider teardown,
+noncanonical native target names, and ambiguous readiness verdict parsing. The
+current code evidence is not a final GO because proof qualification and
+calibration remain failed.
 
-**Decision: NO-GO.** The failed exact-tag calibration, absent accepted receipt,
-unavailable Linux evidence, and unfinished product obligations prohibit GO.
+**Decision: NO-GO.** The failed exact-tag calibration, failed unfiltered proof
+suite, absent accepted receipt, unavailable Linux evidence, and unfinished
+product obligations prohibit GO.
 The next implementation prompt is explicitly not authorized.

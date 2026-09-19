@@ -18,18 +18,18 @@ contains no status, acceptance result, or dispatch authority.
 
 ## Current candidate and branch truth
 
-The latest tested preparation payload before this documentation-only freeze is:
+The latest tested preparation payload before this final documentation freeze is:
 
 ```text
 branch:   refactor/holla-parity
-commit:   e10fd942d8350f33f4c29761c322090494d178a4
-tree:     c336ab40031a5cae2f936bc04fe2fcc62f9d8101
-parent:   30fbf36feea797d1320c4ab21c491f8c944935bf
+commit:   bc4e5980256f1fa2c66d673790c99610b610fd16
+tree:     1a388126806c701ff4420f17023a8b792bfd4b98
+parent:   1da58a09f420b653195b5d8015ed5ca22deb8a6a
 local main:   7b27732a8c3c131760ec3438f641cb3c11343a42
 remote main:  7b27732a8c3c131760ec3438f641cb3c11343a42
-remote campaign tip: f5013f609aed1ba32ce60352b38fd0b1b11b063c
+remote campaign tip: 1da58a09f420b653195b5d8015ed5ca22deb8a6a
 merge-base with main: 7b27732a8c3c131760ec3438f641cb3c11343a42
-campaign commits ahead of origin/refactor/holla-parity: 56
+campaign commits ahead of origin/refactor/holla-parity: 1
 ```
 
 The campaign is a descendant of actual local and remote `main`; the remote
@@ -141,22 +141,22 @@ environment, observer nonce/FD transport, result locations, and immutable
 receipts. It rejects forged, stale, duplicate, missing, symlinked, hard-linked,
 mutated, cross-run, wrong-tree, wrong-tool, wrong-oracle, wrong-nonce, and
 incomplete inputs. Observer shutdown is bounded; canonical native targets are
-named `target`. The supported threat model detects integrity substitution but
-does not claim isolation from a hostile same-user process.
+named `target`. Preflight and dispatch require exactly one canonical readiness
+verdict and reject legacy or ambiguous markers. The supported threat model
+detects integrity substitution but does not claim isolation from a hostile
+same-user process.
 
 Current qualification evidence:
 
-- `proof-full-e10fd942-rerun`: `cargo nextest` exit 0; 38 passed, 0 skipped.
-  The first wrapper run was ambiguous (exit 100 with only 37 reported passes)
-  and is rejected evidence.
-- `native-preparation-e10fd942-clean`: audited native build helper exit 0;
-  external build receipt, binary, contexts, results, observer, and index are
-  bound to the exact source tree.
-- `native-launch-regression-e10fd942`: positive native launch plus direct-child
-  injection and wrong-nonce rejection, exit 0.
-- `native-preparation-e10fd942-clean/logs/preflight-proof-preparation.log`:
-  proof member path/hash/check bindings pass; non-authorizing preflight exit 0.
-- `taskfmt-lints-de2f1295`: 73/73 package lints passed, 0 failed.
+- `proof-full-bc4e5980`: unfiltered `cargo nextest` exit 100; 37 passed and
+  the bounded observer-hang test failed under the unfiltered run. The raw
+  failure is retained; a focused rerun cannot erase it.
+- `native-preparation-bc4e5980`: build, prepare, validate, and explicit
+  proof-preparation preflight all exit 0; external build receipt, binary,
+  contexts, results, observer, and index bind to `bc4e5980` / `1a388126`.
+- `adversarial-preparation-bc4e5980`: preparation guards, proof paths,
+  dispatch authorization, and ledger contract checks all exit 0.
+- `taskfmt-lints-bc4e5980`: 73/73 package lints passed, 0 failed.
 
 Raw runs are under
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19`.
@@ -188,6 +188,7 @@ return explicit decisions. Their predetermined external paths are:
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md
 ```
 
-Because exact-tag calibration fails, no honest preparation receipt or GO can
-exist in this goal. The next goal must revalidate readiness before any
-authorization or arming operation.
+Because exact-tag calibration, the unfiltered proof suite, platform evidence,
+and product parity remain failed or unavailable, no honest preparation receipt
+or GO can exist in this goal. The next goal must revalidate readiness before
+any authorization or arming operation.
