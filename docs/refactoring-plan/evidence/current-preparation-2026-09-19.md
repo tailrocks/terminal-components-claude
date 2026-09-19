@@ -233,10 +233,28 @@ Independent checks retained from the current audit include:
 /tmp/tc-git-diff-check-current.log
 ```
 
-The full workspace nextest result was not clean: `3,359 passed, 1 failed, 6
-skipped`; an isolated rerun passed the affected architecture test. Boundary
-validation fails at missing `parity/evidence.tsv`. Native Linux was not
-available. These are open gates, not passes.
+The prior full-workspace nextest observation was not clean: `3,359 passed, 1
+failed, 6 skipped`; an isolated rerun passed the affected architecture test.
+It is historical evidence, not the current final result. After source payload
+commit `4a95fcdeedb8f7a3a132162e536ca28c2404b823` and tree
+`f98f4908506f55026a35ea4e2701b78c240d147c`, the sealed native macOS command
+completed with `3,342 passed` and exit 0. The raw run root is:
+
+```text
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-sealed-final-2026-09-19
+```
+
+Durable log:
+
+```text
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-sealed-final-2026-09-19/nextest.log
+```
+
+The run-root `identity.txt` binds the command to that commit/tree. This is
+raw evidence only; no preparation receipt exists. Boundary validation still
+fails at missing `parity/evidence.tsv`. Native Linux was not available. The
+calibration, boundary, proof-receipt, and Linux requirements remain open
+gates, not passes.
 
 ## 4. Trust-boundary review and repair
 

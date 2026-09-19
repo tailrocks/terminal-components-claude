@@ -156,13 +156,18 @@ checks. Fresh evidence is indexed in the evidence document. These are
 source-payload observations, not a final receipt for the
 post-documentation tree. The repaired Rust run has one focused nextest test
 plus 27 skipped under the selected filter, Clippy zero, and rustdoc zero; it is
-not a complete protocol receipt. Full workspace nextest had a parallel
-reliability failure (`3,359 passed, 1 failed, 6 skipped`); an isolated rerun
-passed only the affected architecture test. `xtask boundary` still fails
-because `parity/evidence.tsv` is absent. Full taskfmt source integration
-tests are not qualified: the Docker-only test path was not run and fails
-closed when its required opt-in is absent. Native Linux evidence is
-unavailable.
+not a complete protocol receipt. A prior full-workspace nextest observation
+had a parallel reliability failure (`3,359 passed, 1 failed, 6 skipped`); it
+is historical evidence, not the current final result. The sealed native macOS
+final-tree command bound to source commit `4a95fcdeedb8f7a3a132162e536ca28c2404b823`
+and tree `f98f4908506f55026a35ea4e2701b78c240d147c` completed with `3,342
+passed` and exit 0. Its durable log is
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-sealed-final-2026-09-19/nextest.log`;
+the identity file is in that run root. This is raw evidence only; no
+preparation receipt exists. `xtask boundary` still fails because
+`parity/evidence.tsv` is absent. Full taskfmt source integration tests are
+not qualified: the Docker-only test path was not run and fails closed when
+its required opt-in is absent. Native Linux evidence is unavailable.
 
 ## Task and architecture state
 

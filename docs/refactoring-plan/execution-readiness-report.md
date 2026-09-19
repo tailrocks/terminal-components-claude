@@ -195,11 +195,18 @@ sealed. Native proof is integrity/control evidence, not same-user hostile
 process isolation; the supported threat model and limitations remain in
 `proof-contract.md`.
 
-The full workspace nextest observation was not a clean gate: `3,359 passed,
-1 failed, 6 skipped`; an isolated rerun of the affected architecture test
-passed, so concurrency reliability remains unresolved. `xtask boundary` fails
-the parity contract because `parity/evidence.tsv` is absent. The required full
-behavioral and visual runs are not complete.
+The prior full-workspace nextest observation was not a clean gate: `3,359
+passed, 1 failed, 6 skipped`; an isolated rerun of the affected architecture
+test passed. This is historical evidence, not the current final result. The
+sealed native macOS final-tree command bound by its identity file to source
+commit `4a95fcdeedb8f7a3a132162e536ca28c2404b823` and tree
+`f98f4908506f55026a35ea4e2701b78c240d147c` completed with `3,342 passed` and
+exit 0. Durable log:
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-sealed-final-2026-09-19/nextest.log`;
+identity file: `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-sealed-final-2026-09-19/identity.txt`.
+This is raw evidence only; no preparation receipt exists. `xtask boundary`
+still fails the parity contract because `parity/evidence.tsv` is absent. The
+required full behavioral and visual runs are not complete.
 
 Taskfmt source integration qualification is unavailable: the Docker-only test
 path was not run, and its guard fails closed when the explicit integration
