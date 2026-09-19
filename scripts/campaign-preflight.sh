@@ -18,6 +18,7 @@ TASKFMT_VERSION="0.2.0"
 TASKFMT_SHA256="f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de"
 TASKFMT_SOURCE="/Users/donbeave/Projects/taskfmt/task-format"
 TASKFMT_BIN="${TC_TASKFMT:-/tmp/taskfmt-latest-install/bin/taskfmt}"
+PREFLIGHT_REPORT="${TC_PREFLIGHT_REPORT:-}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 usage() {
@@ -30,6 +31,9 @@ proof-preparation     Non-authorizing native verifier-input qualification.
                       Requires TC_PROOF_RUN_DIR and optionally
                       TC_PROOF_PREPARATION_RECEIPT; never reads or mutates
                       .campaign/ledger.json.
+TC_PREFLIGHT_REPORT   Optional external machine-readable report path. When
+                      set for preflight, the report and an immutable ledger
+                      snapshot are written outside the candidate worktree.
 EOF
 }
 
@@ -375,6 +379,151 @@ check_validate_plan() {
   fi
 }
 
+write_preflight_report() {
+  [[ -n "$PREFLIGHT_REPORT" ]] || return 0
+  local root wt ledger current_head current_tree
+  root="$(repo_root)"
+  wt="$(campaign_worktree)"
+  ledger="$root/.campaign/ledger.json"
+  current_head="$(git -C "$wt" rev-parse HEAD)"
+  current_tree="$(git -C "$wt" rev-parse 'HEAD^{tree}')"
+  PYTHONPATH="$SCRIPT_DIR" python3 - "$PREFLIGHT_REPORT" "$root" "$wt" "$ledger" \
+    "$current_head" "$current_tree" "$INTEGRATION_BRANCH" "$ORACLE_TAG" \
+    "$TAG_PEELED_EXPECT" "$ORACLE_TREE_EXPECT" "$TASKFMT_REV" "$TASKFMT_VERSION" \
+    "$TASKFMT_SHA256" "$TASKFMT_SOURCE" "$TASKFMT_BIN" "$CATALOG_MANIFEST_REL" <<'PY' \
+    || fail "cannot write external machine-readable preflight report"
+import hashlib
+import json
+import os
+import stat
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+(
+    report_text,
+    root_text,
+    worktree_text,
+    ledger_text,
+    current_head,
+    current_tree,
+    integration_branch,
+    oracle_tag,
+    oracle_commit,
+    oracle_tree,
+    taskfmt_revision,
+    taskfmt_version,
+    taskfmt_sha256,
+    taskfmt_source,
+    taskfmt_path,
+    catalog_manifest_rel,
+) = sys.argv[1:]
+
+
+def reject(message: str) -> None:
+    raise SystemExit(message)
+
+
+def no_symlink_parent(path: Path, field: str) -> None:
+    if not path.is_absolute():
+        reject(f"{field} must be absolute")
+    current = Path(path.anchor)
+    for component in path.parts[1:-1]:
+        current /= component
+        try:
+            mode = os.lstat(current).st_mode
+        except OSError as error:
+            reject(f"{field} parent is unreadable: {error}")
+        if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
+            reject(f"{field} parent is not a real directory: {current}")
+
+
+def outside(path: Path, parent: Path, field: str) -> None:
+    try:
+        path.resolve().relative_to(parent.resolve())
+    except ValueError:
+        return
+    reject(f"{field} must be external to {parent}")
+
+
+report = Path(report_text)
+root = Path(root_text).resolve()
+worktree = Path(worktree_text).resolve()
+ledger = Path(ledger_text)
+no_symlink_parent(report, "preflight report")
+if report.exists() or report.is_symlink():
+    reject(f"preflight report already exists: {report}")
+outside(report, root, "preflight report")
+outside(report, worktree, "preflight report")
+
+snapshot = report.with_name(report.name + ".ledger.json")
+no_symlink_parent(snapshot, "preflight ledger snapshot")
+if snapshot.exists() or snapshot.is_symlink():
+    reject(f"preflight ledger snapshot already exists: {snapshot}")
+outside(snapshot, root, "preflight ledger snapshot")
+outside(snapshot, worktree, "preflight ledger snapshot")
+
+try:
+    ledger_bytes = ledger.read_bytes()
+    ledger_value = json.loads(ledger_bytes.decode("utf-8"))
+except (OSError, UnicodeError, json.JSONDecodeError) as error:
+    reject(f"campaign ledger is not readable JSON: {error}")
+if not isinstance(ledger_value, dict) or ledger_value.get("armed") is not False:
+    reject("campaign ledger snapshot must capture armed=false")
+snapshot.write_bytes(ledger_bytes)
+snapshot_hash = hashlib.sha256(ledger_bytes).hexdigest()
+catalog = ledger_value.get("catalog")
+if not isinstance(catalog, dict):
+    reject("campaign ledger catalog is missing")
+expected_catalog = {
+    "commit": current_head,
+    "tree": current_tree,
+    "branch": integration_branch,
+    "manifest": {
+        "path": catalog_manifest_rel,
+        "sha256": hashlib.sha256((root / catalog_manifest_rel).read_bytes()).hexdigest(),
+    },
+}
+if any(catalog.get(key) != value for key, value in expected_catalog.items()):
+    reject("campaign ledger catalog is not current")
+report_value = {
+    "schema": "campaign-preflight-report/v1",
+    "verdict": "PASS",
+    "operation": "preflight",
+    "command": "scripts/campaign-preflight.sh preflight",
+    "exit": 0,
+    "integration_ref": f"refs/heads/{integration_branch}",
+    "source": {"root": str(Path(root_text).resolve()), "commit": current_head, "tree": current_tree},
+    "oracle": {"tag": oracle_tag, "commit": oracle_commit, "tree": oracle_tree},
+    "catalog": expected_catalog,
+    "taskfmt": {
+        "taskfmt_revision": taskfmt_revision,
+        "taskfmt_version": taskfmt_version,
+        "taskfmt_sha256": taskfmt_sha256,
+        "taskfmt_source": taskfmt_source,
+        "taskfmt_path": str(Path(taskfmt_path).resolve()),
+    },
+    "ledger": {
+        "path": str(ledger.resolve()),
+        "sha256": snapshot_hash,
+        "snapshot": {"path": str(snapshot.resolve()), "sha256": snapshot_hash},
+        "integration_head": current_head,
+        "armed": False,
+    },
+    "checks": {
+        name: "PASS"
+        for name in (
+            "tag", "branch", "worktree", "readiness", "ledger", "taskfmt",
+            "host_local_paths", "harness", "native_proof", "plan",
+        )
+    },
+    "recorded_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+}
+report.write_text(json.dumps(report_value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+  pass "machine-readable preflight report and disarmed ledger snapshot written: $PREFLIGHT_REPORT"
+}
+
 check_proof_preparation() {
   local root wt run receipt current_head current_tree
   root="$(repo_root)"
@@ -531,7 +680,7 @@ for name in ("contexts", "results"):
         external_file(entry, f"context index {name}[{index_number}]")
 print("external proof preparation paths, hashes, hardlinks, and source tree: OK")
 PY
-  PYTHONPATH="$SCRIPT_DIR" python3 - "$receipt" "$wt" "$current_head" "$run" \
+PYTHONPATH="$SCRIPT_DIR" python3 - "$receipt" "$wt" "$current_head" "$current_tree" "$run" \
     "$TASKFMT_REV" "$TASKFMT_VERSION" "$TASKFMT_SHA256" "$TASKFMT_SOURCE" \
     "$TASKFMT_BIN" <<'PY' \
     || fail "proof preparation is not bound, complete, and current"
@@ -541,7 +690,7 @@ from pathlib import Path
 
 from campaign_ledger import validate_proof_preparation
 
-receipt_path, worktree, current_head, run_dir, revision, version, digest, source, binary = sys.argv[1:]
+receipt_path, worktree, current_head, current_tree, run_dir, revision, version, digest, source, binary = sys.argv[1:]
 with Path(receipt_path).open(encoding="utf-8") as stream:
     preparation = json.load(stream)
 expected_taskfmt = {
@@ -555,6 +704,7 @@ validate_proof_preparation(
     preparation,
     worktree=worktree,
     current_head=current_head,
+    current_tree=current_tree,
     run_dir=run_dir,
     expected_taskfmt=expected_taskfmt,
 )
@@ -589,6 +739,7 @@ main() {
       check_harness
       check_native_proof
       check_validate_plan
+      write_preflight_report
       echo ""
       echo "Preflight complete. No task dispatch or integration is performed."
       ;;

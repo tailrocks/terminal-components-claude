@@ -8,6 +8,10 @@ TASKFMT="${TC_TASKFMT:-/tmp/taskfmt-latest-install/bin/taskfmt}"
 TASKFMT_REV="afd3b575dbcc7044620bec4b9493a74eca3e5ef2"
 TASKFMT_VERSION="0.2.0"
 TASKFMT_SHA256="f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de"
+ORACLE_TAG="refs/tags/visual-baseline"
+ORACLE_COMMIT="4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+ORACLE_TREE="0b1f13431fdfd6060cf9f45a114afa5a99cc6c26"
+CATALOG_MANIFEST_REL="docs/refactoring-plan/task-index.tsv"
 
 fail() {
   echo "test_campaign_dispatch_authorization: FAIL: $*" >&2
@@ -36,6 +40,7 @@ catalog="$TMP_ROOT/catalog"
 target="$TMP_ROOT/target"
 mkdir -p "$campaign/docs/refactoring-plan" "$campaign/.campaign" \
   "$candidate" "$catalog/002" "$candidate/tools/refactor-proof/bin" "$target/debug"
+printf '%s\n' 'catalog manifest' > "$campaign/docs/refactoring-plan/task-index.tsv"
 
 git -C "$campaign" init -q
 git -C "$campaign" config user.email test@example.invalid
@@ -65,7 +70,13 @@ python3 - "$campaign" "$candidate" "$TASKFMT" "$TASKFMT_REV" "$TASKFMT_VERSION" 
 import hashlib
 import json
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
+
+ORACLE_TAG = "refs/tags/visual-baseline"
+ORACLE_COMMIT = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+ORACLE_TREE = "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26"
+CATALOG_MANIFEST_REL = "docs/refactoring-plan/task-index.tsv"
 
 campaign = Path(sys.argv[1])
 candidate = Path(sys.argv[2])
@@ -95,8 +106,13 @@ ledger = {
     "armed": True,
     "armed_at": "2026-09-19T00:00:00Z",
     "catalog": {
-        "commit": campaign_head,
+    "commit": campaign_head,
+        "tree": campaign_tree,
         "branch": "refactor/holla-parity",
+        "manifest": {
+            "path": "docs/refactoring-plan/task-index.tsv",
+            "sha256": hashlib.sha256((campaign / "docs/refactoring-plan/task-index.tsv").read_bytes()).hexdigest(),
+        },
         "recorded_at": "2026-09-19T00:00:00Z",
     },
     "toolchain": {
@@ -114,11 +130,58 @@ ledger_path.write_text(json.dumps(ledger, indent=2, sort_keys=True) + "\n", enco
 
 run = campaign.parent / "positive-run"
 run.mkdir()
-preflight = run / "preflight.log"
-preflight.write_text("preflight exit=0\n", encoding="utf-8")
+preflight = run / "preflight-report.json"
 readiness = campaign / "docs/refactoring-plan/execution-readiness-report.md"
 
 sha256 = lambda path: hashlib.sha256(path.read_bytes()).hexdigest()
+preflight_ledger = run / "preflight-ledger.json"
+preflight_ledger_value = json.loads(ledger_path.read_text(encoding="utf-8"))
+preflight_ledger_value["armed"] = False
+preflight_ledger_value.pop("armed_at", None)
+preflight_ledger.write_text(json.dumps(preflight_ledger_value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+preflight_report = {
+    "schema": "campaign-preflight-report/v1",
+    "verdict": "PASS",
+    "operation": "preflight",
+    "command": "scripts/campaign-preflight.sh preflight",
+    "exit": 0,
+    "integration_ref": "refs/heads/refactor/holla-parity",
+    "source": {"root": str(campaign), "commit": campaign_head, "tree": campaign_tree},
+    "oracle": {"tag": ORACLE_TAG, "commit": ORACLE_COMMIT, "tree": ORACLE_TREE},
+    "catalog": {
+        "commit": campaign_head,
+        "tree": campaign_tree,
+        "branch": "refactor/holla-parity",
+        "manifest": {
+            "path": CATALOG_MANIFEST_REL,
+            "sha256": sha256(campaign / CATALOG_MANIFEST_REL),
+        },
+    },
+    "taskfmt": {
+        "taskfmt_revision": revision,
+        "taskfmt_version": version,
+        "taskfmt_sha256": taskfmt_sha,
+        "taskfmt_source": "/Users/donbeave/Projects/taskfmt/task-format",
+        "taskfmt_path": str(taskfmt),
+    },
+    "ledger": {
+        "path": str(ledger_path),
+        "sha256": sha256(preflight_ledger),
+        "snapshot": {
+            "path": str(preflight_ledger),
+            "sha256": sha256(preflight_ledger),
+        },
+        "integration_head": campaign_head,
+        "armed": False,
+    },
+    "checks": {
+        "tag": "PASS", "branch": "PASS", "worktree": "PASS", "readiness": "PASS",
+        "ledger": "PASS", "taskfmt": "PASS", "host_local_paths": "PASS",
+        "harness": "PASS", "native_proof": "PASS", "plan": "PASS",
+    },
+    "recorded_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+}
+preflight.write_text(json.dumps(preflight_report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 authorization = {
     "schema": "campaign-dispatch-authorization/v1",
     "authorization": "AUTHORIZED",
@@ -237,6 +300,83 @@ value["integration_head"] = subprocess.check_output(
     ["git", "-C", str(campaign), "rev-parse", "HEAD"], text=True
 ).strip()
 ledger_path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+
+preflight_report="$TMP_ROOT/positive-run/preflight-report.json"
+preflight_report_good="$TMP_ROOT/positive-run/preflight-report.good.json"
+preflight_ledger_good="$TMP_ROOT/positive-run/preflight-ledger.good.json"
+cp "$preflight_report" "$preflight_report_good"
+cp "$TMP_ROOT/positive-run/preflight-ledger.json" "$preflight_ledger_good"
+
+expect_report_reject() {
+  local label="$1"
+  local expected="$2"
+  cp "$preflight_report_good" "$preflight_report"
+  cp "$preflight_ledger_good" "$TMP_ROOT/positive-run/preflight-ledger.json"
+  python3 - "$preflight_report" "$TMP_ROOT/positive-run/authorization.json" "$label" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+report_path, authorization_path = map(Path, sys.argv[1:3])
+label = sys.argv[3]
+report = json.loads(report_path.read_text(encoding="utf-8"))
+if label == "source":
+    report["source"]["tree"] = "0" * 40
+elif label == "oracle":
+    report["oracle"]["tree"] = "1" * 40
+elif label == "taskfmt":
+    report["taskfmt"]["taskfmt_sha256"] = "2" * 64
+elif label == "ledger":
+    report["ledger"]["armed"] = True
+elif label == "ledger-hash":
+    report["ledger"]["sha256"] = "3" * 64
+elif label == "ledger-path":
+    report["ledger"]["path"] = str(report_path)
+elif label == "ledger-missing":
+    report["ledger"]["snapshot"]["path"] = str(report_path.parent / "missing-ledger.json")
+elif label == "ledger-forged":
+    snapshot_path = Path(report["ledger"]["snapshot"]["path"])
+    snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+    snapshot["armed"] = True
+    snapshot_path.write_text(json.dumps(snapshot, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    forged_hash = hashlib.sha256(snapshot_path.read_bytes()).hexdigest()
+    report["ledger"]["sha256"] = forged_hash
+    report["ledger"]["snapshot"]["sha256"] = forged_hash
+elif label == "checks":
+    report["checks"].pop("plan")
+else:
+    raise SystemExit(f"unknown report mutation {label}")
+report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+authorization = json.loads(authorization_path.read_text(encoding="utf-8"))
+authorization["preflight"]["evidence_sha256"] = hashlib.sha256(report_path.read_bytes()).hexdigest()
+authorization_path.write_text(json.dumps(authorization, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+PY
+  expect_reject "report-$label" "$expected"
+}
+
+expect_report_reject "source" "source/tree binding"
+expect_report_reject "oracle" "frozen oracle binding"
+expect_report_reject "taskfmt" "taskfmt binding"
+expect_report_reject "ledger" "ledger state"
+expect_report_reject "ledger-hash" "snapshot hash"
+expect_report_reject "ledger-path" "ledger path is stale"
+expect_report_reject "ledger-missing" "preflight ledger snapshot"
+expect_report_reject "ledger-forged" "snapshot is armed"
+expect_report_reject "checks" "checks are incomplete"
+cp "$preflight_report_good" "$preflight_report"
+cp "$preflight_ledger_good" "$TMP_ROOT/positive-run/preflight-ledger.json"
+python3 - "$TMP_ROOT/positive-run/authorization.json" "$preflight_report" <<'PY'
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+authorization_path, report_path = map(Path, sys.argv[1:])
+authorization = json.loads(authorization_path.read_text(encoding="utf-8"))
+authorization["preflight"]["evidence_sha256"] = hashlib.sha256(report_path.read_bytes()).hexdigest()
+authorization_path.write_text(json.dumps(authorization, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
 
 binary="$target/debug/tc-proof"

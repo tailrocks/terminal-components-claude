@@ -5,7 +5,12 @@
   "armed": false,
   "catalog": {
     "commit": "REPLACE_AT_INIT",
+    "tree": "REPLACE_AT_INIT",
     "branch": "refactor/holla-parity",
+    "manifest": {
+      "path": "docs/refactoring-plan/task-index.tsv",
+      "sha256": "REPLACE_AT_INIT"
+    },
     "recorded_at": "REPLACE_AT_INIT"
   },
   "toolchain": {

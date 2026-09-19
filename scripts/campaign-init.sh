@@ -6,6 +6,7 @@ ARCH_MAIN="${ARCH_MAIN:-7b27732a8c3c131760ec3438f641cb3c11343a42}"
 INTEGRATION_BRANCH="${INTEGRATION_BRANCH:-refactor/holla-parity}"
 CATALOG_BRANCH="${CATALOG_BRANCH:-refactor/holla-parity}"
 WORKTREE_PATH="${TC_CAMPAIGN_WORKTREE:-.worktrees/campaign}"
+CATALOG_MANIFEST_REL="docs/refactoring-plan/task-index.tsv"
 
 repo_root() {
   git -C "${BASH_SOURCE[0]%/*}/.." rev-parse --show-toplevel
@@ -52,23 +53,28 @@ main() {
     cp .campaign/ledger.template.json .campaign/ledger.json
   fi
 
-  local catalog_sha catalog_time head_sha
-  catalog_sha="$(git rev-parse "origin/$CATALOG_BRANCH" 2>/dev/null || git rev-parse "$CATALOG_BRANCH" 2>/dev/null || echo REPLACE_AT_INIT)"
+  local catalog_time head_sha tree_sha catalog_manifest_sha
   catalog_time="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   head_sha="$(git rev-parse "$INTEGRATION_BRANCH")"
+  tree_sha="$(git rev-parse "$INTEGRATION_BRANCH^{tree}")"
+  [[ -f "$root/$CATALOG_MANIFEST_REL" && ! -L "$root/$CATALOG_MANIFEST_REL" ]] \
+    || die "missing or linked catalog manifest: $root/$CATALOG_MANIFEST_REL"
+  catalog_manifest_sha="$(shasum -a 256 "$root/$CATALOG_MANIFEST_REL" | awk '{print $1}')"
 
   if command -v python3 >/dev/null 2>&1; then
-    python3 - "$root" "$catalog_sha" "$catalog_time" "$head_sha" "$CATALOG_BRANCH" "$INTEGRATION_BRANCH" <<'PY'
+    python3 - "$root" "$catalog_time" "$head_sha" "$tree_sha" "$catalog_manifest_sha" "$CATALOG_MANIFEST_REL" "$CATALOG_BRANCH" "$INTEGRATION_BRANCH" <<'PY'
 import json, sys
-root, catalog_sha, catalog_time, head_sha, catalog_branch, integration_branch = sys.argv[1:7]
+root, catalog_time, head_sha, tree_sha, catalog_manifest_sha, catalog_manifest_rel, catalog_branch, integration_branch = sys.argv[1:9]
 path = f"{root}/.campaign/ledger.json"
 with open(path) as f:
     ledger = json.load(f)
 ledger["integration_ref"] = f"refs/heads/{integration_branch}"
 ledger["integration_head"] = head_sha
 ledger["catalog"] = {
-    "commit": catalog_sha,
+    "commit": head_sha,
+    "tree": tree_sha,
     "branch": catalog_branch,
+    "manifest": {"path": catalog_manifest_rel, "sha256": catalog_manifest_sha},
     "recorded_at": catalog_time,
 }
 with open(path, "w") as f:
@@ -87,7 +93,7 @@ Campaign workspace initialized (pre-arm).
   Integration branch:  $INTEGRATION_BRANCH @ $(git rev-parse "$INTEGRATION_BRANCH" | cut -c1-12)
   Worktree:            $WORKTREE_PATH
   Ledger:              .campaign/ledger.json
-  Catalog branch:      $CATALOG_BRANCH @ ${catalog_sha:0:12}
+  Catalog branch:      $CATALOG_BRANCH @ ${head_sha:0:12}/${tree_sha:0:12}
 
 Next steps (do NOT arm /goal yet):
   1. ./scripts/campaign-install-taskfmt.sh

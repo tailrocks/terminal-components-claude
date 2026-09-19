@@ -37,10 +37,12 @@
     "catalog": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["commit", "branch", "recorded_at"],
+      "required": ["commit", "tree", "branch", "manifest", "recorded_at"],
       "properties": {
         "commit": {"$ref": "#/$defs/fullSha"},
+        "tree": {"$ref": "#/$defs/fullSha"},
         "branch": {"type": "string", "minLength": 1},
+        "manifest": {"$ref": "#/$defs/manifestReference"},
         "recorded_at": {"$ref": "#/$defs/timestamp"}
       }
     },
@@ -85,6 +87,15 @@
             "sha256": {"$ref": "#/$defs/sha256"}
           }
         }
+      }
+    },
+    "manifestReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"$ref": "#/$defs/relativePath"},
+        "sha256": {"$ref": "#/$defs/sha256"}
       }
     },
     "qualificationArtifact": {

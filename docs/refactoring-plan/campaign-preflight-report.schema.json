@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "terminal-components/campaign-preflight-report/v1",
+  "title": "Campaign preflight report",
+  "description": "Immutable machine-readable evidence from the disarmed preflight. Dispatch validates this report and its external ledger snapshot.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "verdict", "operation", "command", "exit", "integration_ref", "source", "oracle", "catalog", "taskfmt", "ledger", "checks", "recorded_at"],
+  "properties": {
+    "schema": {"const": "campaign-preflight-report/v1"},
+    "verdict": {"const": "PASS"},
+    "operation": {"const": "preflight"},
+    "command": {"const": "scripts/campaign-preflight.sh preflight"},
+    "exit": {"const": 0},
+    "integration_ref": {"type": "string", "pattern": "^refs/heads/.+$"},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["root", "commit", "tree"],
+      "properties": {
+        "root": {"$ref": "#/$defs/absolutePath"},
+        "commit": {"$ref": "#/$defs/fullSha"},
+        "tree": {"$ref": "#/$defs/fullSha"}
+      }
+    },
+    "oracle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tag", "commit", "tree"],
+      "properties": {
+        "tag": {"type": "string", "minLength": 1},
+        "commit": {"$ref": "#/$defs/fullSha"},
+        "tree": {"$ref": "#/$defs/fullSha"}
+      }
+    },
+    "catalog": {"$ref": "#/$defs/catalogIdentity"},
+    "taskfmt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["taskfmt_revision", "taskfmt_version", "taskfmt_sha256", "taskfmt_source", "taskfmt_path"],
+      "properties": {
+        "taskfmt_revision": {"$ref": "#/$defs/fullSha"},
+        "taskfmt_version": {"type": "string", "minLength": 1},
+        "taskfmt_sha256": {"$ref": "#/$defs/sha256"},
+        "taskfmt_source": {"$ref": "#/$defs/absolutePath"},
+        "taskfmt_path": {"$ref": "#/$defs/absolutePath"}
+      }
+    },
+    "ledger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256", "snapshot", "integration_head", "armed"],
+      "properties": {
+        "path": {"$ref": "#/$defs/absolutePath"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "snapshot": {"$ref": "#/$defs/pathReference"},
+        "integration_head": {"$ref": "#/$defs/fullSha"},
+        "armed": {"const": false}
+      }
+    },
+    "checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tag", "branch", "worktree", "readiness", "ledger", "taskfmt", "host_local_paths", "harness", "native_proof", "plan"],
+      "properties": {
+        "tag": {"const": "PASS"},
+        "branch": {"const": "PASS"},
+        "worktree": {"const": "PASS"},
+        "readiness": {"const": "PASS"},
+        "ledger": {"const": "PASS"},
+        "taskfmt": {"const": "PASS"},
+        "host_local_paths": {"const": "PASS"},
+        "harness": {"const": "PASS"},
+        "native_proof": {"const": "PASS"},
+        "plan": {"const": "PASS"}
+      }
+    },
+    "recorded_at": {"$ref": "#/$defs/timestamp"}
+  },
+  "$defs": {
+    "fullSha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "timestamp": {"type": "string", "format": "date-time"},
+    "absolutePath": {"type": "string", "pattern": "^/[^\\u0000]*$"},
+    "relativePath": {"type": "string", "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"},
+    "pathReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"$ref": "#/$defs/absolutePath"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "catalogIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commit", "tree", "branch", "manifest"],
+      "properties": {
+        "commit": {"$ref": "#/$defs/fullSha"},
+        "tree": {"$ref": "#/$defs/fullSha"},
+        "branch": {"type": "string", "minLength": 1},
+        "manifest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": {"$ref": "#/$defs/relativePath"},
+            "sha256": {"$ref": "#/$defs/sha256"}
+          }
+        }
+      }
+    }
+  }
+}

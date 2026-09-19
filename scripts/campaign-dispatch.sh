@@ -9,6 +9,8 @@ TASKFMT_SOURCE="/Users/donbeave/Projects/taskfmt/task-format"
 TASKFMT="${TC_TASKFMT:-/tmp/taskfmt-latest-install/bin/taskfmt}"
 ORACLE_TAG="refs/tags/visual-baseline"
 ORACLE_COMMIT="4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+ORACLE_TREE="0b1f13431fdfd6060cf9f45a114afa5a99cc6c26"
+CATALOG_MANIFEST_REL="docs/refactoring-plan/task-index.tsv"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 INTEGRATION_BRANCH="${INTEGRATION_BRANCH:-refactor/holla-parity}"
@@ -252,6 +254,11 @@ from pathlib import Path
 
 from campaign_ledger import validate_ledger_schema, validate_taskfmt_binding
 
+ORACLE_TAG = "refs/tags/visual-baseline"
+ORACLE_COMMIT = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+ORACLE_TREE = "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26"
+CATALOG_MANIFEST_REL = "docs/refactoring-plan/task-index.tsv"
+
 (
     campaign_root,
     ledger_path,
@@ -280,7 +287,18 @@ def fail(message: str) -> None:
 
 
 def regular(path: Path, field: str) -> Path:
-    if not path.is_absolute() or path.is_symlink() or not path.is_file():
+    if not path.is_absolute():
+        fail(f"{field} is not an absolute non-symlink regular file: {path}")
+    current = Path(path.anchor)
+    for component in path.parts[1:]:
+        current /= component
+        if current.is_symlink():
+            fail(f"{field} contains a symlinked path component: {current}")
+    try:
+        metadata = path.lstat()
+    except OSError as error:
+        fail(f"{field} is unreadable: {error}")
+    if path.is_symlink() or not path.is_file() or metadata.st_nlink != 1:
         fail(f"{field} is not an absolute non-symlink regular file: {path}")
     return path.resolve()
 
@@ -345,6 +363,22 @@ if ledger["integration_head"] != campaign_commit:
     fail("campaign ledger integration_head is stale")
 if ledger["catalog"]["branch"] != integration_branch:
     fail("campaign ledger catalog branch is stale")
+catalog_manifest = regular(
+    campaign_root / CATALOG_MANIFEST_REL,
+    "catalog manifest",
+)
+expected_catalog = {
+    "commit": campaign_commit,
+    "tree": campaign_tree,
+    "branch": integration_branch,
+    "manifest": {
+        "path": CATALOG_MANIFEST_REL,
+        "sha256": digest(catalog_manifest),
+    },
+}
+for key, value in expected_catalog.items():
+    if ledger["catalog"].get(key) != value:
+        fail(f"campaign ledger catalog {key} is stale or mismatched")
 if ledger["armed"] is not True:
     fail("campaign ledger is disarmed; explicit dispatch arming is required")
 if "armed_at" not in ledger:
@@ -438,7 +472,7 @@ if not isinstance(preflight, dict):
     fail("dispatch authorization preflight evidence is missing")
 if set(preflight) != {"command", "exit", "evidence", "evidence_sha256"}:
     fail("dispatch authorization preflight evidence shape is invalid")
-if preflight["exit"] != 0 or not isinstance(preflight["command"], str) or not preflight["command"]:
+if preflight["exit"] != 0 or preflight["command"] != "scripts/campaign-preflight.sh preflight":
     fail("dispatch authorization preflight did not pass")
 preflight_evidence = regular(Path(preflight["evidence"]), "preflight evidence")
 outside(preflight_evidence, candidate_root, "preflight evidence")
@@ -447,6 +481,106 @@ if digest(preflight_evidence) != preflight["evidence_sha256"]:
     fail("dispatch authorization preflight evidence hash is stale")
 if preflight_evidence == authorization_path:
     fail("dispatch authorization cannot cite itself as preflight evidence")
+
+report = json_file(preflight_evidence, "preflight report")
+report_allowed = {
+    "schema",
+    "verdict",
+    "operation",
+    "command",
+    "exit",
+    "integration_ref",
+    "source",
+    "oracle",
+    "catalog",
+    "taskfmt",
+    "ledger",
+    "checks",
+    "recorded_at",
+}
+if set(report) != report_allowed:
+    fail("preflight report shape is invalid")
+if report["schema"] != "campaign-preflight-report/v1":
+    fail("preflight report schema is invalid")
+if report["verdict"] != "PASS" or report["operation"] != "preflight":
+    fail("preflight report is not a passing preflight")
+if report["command"] != preflight["command"] or report["exit"] != preflight["exit"]:
+    fail("preflight report command/exit is not bound to authorization")
+if report["integration_ref"] != expected_ref:
+    fail("preflight report integration_ref is stale")
+if report["source"] != {
+    "root": str(campaign_root),
+    "commit": campaign_commit,
+    "tree": campaign_tree,
+}:
+    fail("preflight report source/tree binding is stale")
+if report["oracle"] != {
+    "tag": ORACLE_TAG,
+    "commit": ORACLE_COMMIT,
+    "tree": ORACLE_TREE,
+}:
+    fail("preflight report frozen oracle binding is stale")
+if report["catalog"] != expected_catalog:
+    fail("preflight report catalog binding is stale")
+if report["taskfmt"] != expected_taskfmt:
+    fail("preflight report taskfmt binding is stale")
+ledger_report = report["ledger"]
+if not isinstance(ledger_report, dict) or set(ledger_report) != {
+    "path", "sha256", "snapshot", "integration_head", "armed"
+}:
+    fail("preflight report ledger binding is invalid")
+if ledger_report["path"] != str(ledger_path):
+    fail("preflight report ledger path is stale")
+if not isinstance(ledger_report["sha256"], str) or not all(
+    character in "0123456789abcdef" for character in ledger_report["sha256"]
+) or len(ledger_report["sha256"]) != 64:
+    fail("preflight report ledger hash is invalid")
+if ledger_report["integration_head"] != campaign_commit or ledger_report["armed"] is not False:
+    fail("preflight report ledger state is stale or armed")
+snapshot = ledger_report["snapshot"]
+if not isinstance(snapshot, dict) or set(snapshot) != {"path", "sha256"}:
+    fail("preflight report ledger snapshot binding is invalid")
+snapshot_path = regular(Path(snapshot["path"]), "preflight ledger snapshot")
+outside(snapshot_path, candidate_root, "preflight ledger snapshot")
+outside(snapshot_path, campaign_root, "preflight ledger snapshot")
+if snapshot_path == preflight_evidence or snapshot_path == authorization_path:
+    fail("preflight ledger snapshot cannot reuse report or authorization")
+if snapshot["sha256"] != ledger_report["sha256"]:
+    fail("preflight ledger snapshot hash is not bound to report")
+if digest(snapshot_path) != ledger_report["sha256"]:
+    fail("preflight ledger snapshot hash is forged or stale")
+snapshot_ledger = json_file(snapshot_path, "preflight ledger snapshot")
+try:
+    validate_ledger_schema(snapshot_ledger)
+    validate_taskfmt_binding(snapshot_ledger, expected_taskfmt)
+except Exception as error:
+    fail(f"preflight ledger snapshot is invalid: {error}")
+if snapshot_ledger["integration_ref"] != expected_ref:
+    fail("preflight ledger snapshot integration_ref is stale")
+if snapshot_ledger["integration_head"] != campaign_commit:
+    fail("preflight ledger snapshot integration_head is stale")
+if snapshot_ledger["armed"] is not False:
+    fail("preflight ledger snapshot is armed")
+if {
+    "commit": snapshot_ledger["catalog"]["commit"],
+    "tree": snapshot_ledger["catalog"]["tree"],
+    "branch": snapshot_ledger["catalog"]["branch"],
+    "manifest": snapshot_ledger["catalog"]["manifest"],
+} != expected_catalog:
+    fail("preflight ledger snapshot catalog is stale")
+expected_checks = {
+    "tag", "branch", "worktree", "readiness", "ledger", "taskfmt",
+    "host_local_paths", "harness", "native_proof", "plan",
+}
+if report["checks"] != {name: "PASS" for name in expected_checks}:
+    fail("preflight report checks are incomplete or not passing")
+try:
+    from datetime import datetime, timezone
+    recorded_at = datetime.fromisoformat(report["recorded_at"].replace("Z", "+00:00"))
+    if recorded_at.tzinfo is None or recorded_at.astimezone(timezone.utc) > datetime.now(timezone.utc):
+        fail("preflight report recorded_at is invalid or from the future")
+except (AttributeError, TypeError, ValueError):
+    fail("preflight report recorded_at is invalid")
 
 print(
     "dispatch authorization: GO, current campaign ledger, explicit armed state, "

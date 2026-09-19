@@ -60,6 +60,7 @@ def file_sha256(path: Path) -> str:
 
 
 def make_ledger(root: Path) -> dict[str, Any]:
+    root.mkdir(parents=True, exist_ok=True)
     run = root / "run-001"
     run.mkdir(parents=True)
     result_path = run / "result.json"
@@ -103,6 +104,8 @@ def make_ledger(root: Path) -> dict[str, Any]:
         "reviewer_evidence_sha256": reviewer_hash,
     }
     write_json(evidence_path, evidence)
+    catalog_manifest = root / "catalog-manifest.json"
+    catalog_manifest.write_text("catalog\n", encoding="utf-8")
 
     receipt = {
         "schema": RECEIPT_SCHEMA,
@@ -146,7 +149,16 @@ def make_ledger(root: Path) -> dict[str, Any]:
         "integration_ref": f"refs/heads/{BRANCH}",
         "integration_head": SHA,
         "armed": False,
-        "catalog": {"commit": SHA, "branch": BRANCH, "recorded_at": NOW},
+        "catalog": {
+            "commit": SHA,
+            "tree": TREE,
+            "branch": BRANCH,
+            "manifest": {
+                "path": "catalog-manifest.json",
+                "sha256": file_sha256(catalog_manifest),
+            },
+            "recorded_at": NOW,
+        },
         "toolchain": dict(TASKFMT),
         "receipts": {"task-001": receipt},
         "tasks": [row],
@@ -158,9 +170,15 @@ def validate_fixture(ledger: dict[str, Any], root: Path) -> None:
         ledger,
         BRANCH,
         current_head=SHA,
+        current_tree=TREE,
         expected_taskfmt=TASKFMT,
         dependency_graph={"TASK-001": {"dependencies": []}},
         repository_root=root,
+        catalog_identity={
+            "commit": SHA,
+            "tree": TREE,
+            "manifest": ledger["catalog"]["manifest"],
+        },
     )
 
 
@@ -186,6 +204,7 @@ def expect_reject(
 def make_preparation(root: Path) -> tuple[dict[str, Any], Path, Path]:
     worktree = root / "candidate-worktree"
     run = root / "external-run"
+    worktree.mkdir(parents=True)
     (run / "target" / "debug").mkdir(parents=True)
     (run / "contexts").mkdir(parents=True)
     (run / "results").mkdir(parents=True)
@@ -319,6 +338,21 @@ def main() -> None:
         expected="taskfmt_revision",
     )
     expect_reject(
+        "top-level catalog commit",
+        lambda ledger, root: ledger["catalog"].update({"commit": "e" * 40}),
+        expected="ledger.catalog.commit",
+    )
+    expect_reject(
+        "top-level catalog tree",
+        lambda ledger, root: ledger["catalog"].update({"tree": "e" * 40}),
+        expected="ledger.catalog.tree",
+    )
+    expect_reject(
+        "top-level catalog manifest hash",
+        lambda ledger, root: ledger["catalog"]["manifest"].update({"sha256": "e" * 64}),
+        expected="ledger.catalog.manifest",
+    )
+    expect_reject(
         "receipt binding",
         lambda ledger, root: ledger["tasks"][0].update({"receipt_key": "task-002"}),
         expected="receipt_key",
@@ -333,9 +367,15 @@ def main() -> None:
                 ledger,
                 BRANCH,
                 current_head=SHA,
+                current_tree=TREE,
                 expected_taskfmt=TASKFMT,
                 dependency_graph={"TASK-001": {"dependencies": ["TASK-002"]}},
                 repository_root=root,
+                catalog_identity={
+                    "commit": SHA,
+                    "tree": TREE,
+                    "manifest": ledger["catalog"]["manifest"],
+                },
             )
         except LedgerValidationError as error:
             if "dependency" not in str(error):
@@ -368,6 +408,7 @@ def main() -> None:
             preparation,
             worktree=worktree,
             current_head=SHA,
+            current_tree=TREE,
             run_dir=run,
             expected_taskfmt=TASKFMT,
         )
@@ -378,6 +419,7 @@ def main() -> None:
                 forged,
                 worktree=worktree,
                 current_head=SHA,
+                current_tree=TREE,
                 run_dir=run,
                 expected_taskfmt=TASKFMT,
             )
@@ -403,6 +445,7 @@ def main() -> None:
                 legacy,
                 worktree=worktree,
                 current_head=SHA,
+                current_tree=TREE,
                 run_dir=run,
                 expected_taskfmt=TASKFMT,
             )
@@ -413,6 +456,7 @@ def main() -> None:
             raise RuntimeError("legacy Rust runner index ABI was accepted")
 
     qualification_tests()
+    legacy_adversarial_tests()
 
     print("campaign ledger authority and proof-preparation contracts: PASS")
 
@@ -420,6 +464,84 @@ def main() -> None:
 def validate_current_head_mutation(ledger: dict[str, Any]) -> None:
     # Keep the mutation explicit so the test remains effective under -O.
     ledger["integration_head"] = "e" * 40
+
+
+def expect_legacy_reject(
+    label: str,
+    mutate: Callable[[dict[str, Any], Path, Path], None],
+    expected: str,
+) -> None:
+    with tempfile.TemporaryDirectory(prefix="campaign-legacy-proof-") as directory:
+        root = Path(directory)
+        preparation, worktree, run = make_preparation(root)
+        mutate(preparation, worktree, run)
+        try:
+            validate_proof_preparation(
+                preparation,
+                worktree=worktree,
+                current_head=SHA,
+                current_tree=TREE,
+                run_dir=run,
+                expected_taskfmt=TASKFMT,
+            )
+        except LedgerValidationError as error:
+            if expected not in str(error):
+                raise RuntimeError(f"{label}: wrong rejection: {error}") from error
+            return
+        raise RuntimeError(f"{label}: forged legacy proof was accepted")
+
+
+def legacy_adversarial_tests() -> None:
+    def symlink_run(preparation: dict[str, Any], worktree: Path, run: Path) -> None:
+        alias = run.parent / "run-alias"
+        alias.symlink_to(run, target_is_directory=True)
+        preparation["run_id"] = str(alias)
+
+    expect_legacy_reject("symlinked run root", symlink_run, "symlink")
+
+    def extra_context(preparation: dict[str, Any], worktree: Path, run: Path) -> None:
+        (run / "contexts" / "unexpected.json").write_text("extra\n", encoding="utf-8")
+
+    expect_legacy_reject("extra context member", extra_context, "extra files")
+
+    def extra_observer(preparation: dict[str, Any], worktree: Path, run: Path) -> None:
+        (run / "observer-copy.json").write_bytes((run / "observer.json").read_bytes())
+
+    expect_legacy_reject("extra observer member", extra_observer, "observer members")
+
+    def hardlinked_context(preparation: dict[str, Any], worktree: Path, run: Path) -> None:
+        context = run / "contexts" / "CHK-001.json"
+        source = run / "context-source.json"
+        source.write_bytes(context.read_bytes())
+        context.unlink()
+        context.hardlink_to(source)
+
+    expect_legacy_reject("hard-linked context", hardlinked_context, "hard-linked")
+
+    def wrong_build_tree(preparation: dict[str, Any], worktree: Path, run: Path) -> None:
+        receipt = run / "target" / "debug" / "tc-proof.build.json"
+        build = json.loads(receipt.read_text(encoding="utf-8"))
+        build["tree"] = "f" * 40
+        write_json(receipt, build)
+        preparation["native_build"]["receipt_sha256"] = file_sha256(receipt)
+
+    expect_legacy_reject("wrong build tree", wrong_build_tree, "tree mismatch")
+
+    def wrong_build_target(preparation: dict[str, Any], worktree: Path, run: Path) -> None:
+        other_target = run / "other-target"
+        (other_target / "debug").mkdir(parents=True)
+        receipt = run / "target" / "debug" / "tc-proof.build.json"
+        build = json.loads(receipt.read_text(encoding="utf-8"))
+        build["target_dir"] = str(other_target)
+        build["cargo_target_dir"] = str(other_target)
+        write_json(receipt, build)
+        preparation["native_build"]["receipt_sha256"] = file_sha256(receipt)
+
+    expect_legacy_reject(
+        "mismatched build target and binary",
+        wrong_build_target,
+        "target/debug/tc-proof",
+    )
 
 
 def make_qualification(root: Path) -> tuple[dict[str, Any], dict[str, Any], dict[str, str], datetime]:
@@ -491,13 +613,40 @@ def qualification_tests() -> None:
         qualification, paths, oracle, qualified = make_qualification(root)
         validate_preparation_qualification(qualification, worktree=paths["candidate"], current_head=SHA, current_tree=TREE, integration_branch=BRANCH, expected_oracle=oracle, expected_taskfmt=TASKFMT, repository_root=paths["candidate"], now=qualified + timedelta(seconds=1))
         ledger = make_ledger(root / "ledger-fixture")
+        ledger["catalog"]["manifest"] = qualification["catalog"]["manifest"]
         ledger["tasks"][0]["status"] = "blocked"
         ledger["preparation"] = qualification
-        validate_preflight_ledger(ledger, BRANCH, current_head=SHA, current_tree=TREE, expected_oracle=oracle, expected_taskfmt=TASKFMT, dependency_graph={"TASK-001": {"dependencies": []}}, repository_root=paths["candidate"], now=qualified + timedelta(seconds=1))
+        validate_preflight_ledger(ledger, BRANCH, current_head=SHA, current_tree=TREE, expected_oracle=oracle, expected_taskfmt=TASKFMT, dependency_graph={"TASK-001": {"dependencies": []}}, repository_root=paths["candidate"], catalog_identity=qualification["catalog"], task_graph_identity=qualification["task_graph"], now=qualified + timedelta(seconds=1))
+        dispatched = copy.deepcopy(ledger)
+        dispatched["tasks"][0]["status"] = "dispatched"
+        try:
+            validate_preflight_ledger(dispatched, BRANCH, current_head=SHA, current_tree=TREE, expected_oracle=oracle, expected_taskfmt=TASKFMT, dependency_graph={"TASK-001": {"dependencies": []}}, repository_root=paths["candidate"], catalog_identity=qualification["catalog"], task_graph_identity=qualification["task_graph"], now=qualified + timedelta(seconds=1))
+        except LedgerValidationError as error:
+            if "cannot bypass production task status" not in str(error):
+                raise RuntimeError(f"dispatched row rejected for wrong reason: {error}") from error
+        else:
+            raise RuntimeError("dispatched production row bypassed preparation qualification")
+        historical_with_dispatched = make_ledger(root / "historical-ledger")
+        dispatched_row = copy.deepcopy(historical_with_dispatched["tasks"][0])
+        dispatched_row["task_id"] = "TASK-002"
+        dispatched_row["receipt_key"] = "task-002"
+        dispatched_row["status"] = "dispatched"
+        historical_with_dispatched["tasks"].append(dispatched_row)
+        try:
+            validate_fixture(historical_with_dispatched, root / "historical-ledger")
+        except LedgerValidationError as error:
+            if "cannot bypass production task status" not in str(error):
+                raise RuntimeError(
+                    f"dispatched row alongside historical receipt rejected for wrong reason: {error}"
+                ) from error
+        else:
+            raise RuntimeError(
+                "dispatched production row bypassed validation beside a historical receipt"
+            )
         missing_preparation = copy.deepcopy(ledger)
         del missing_preparation["preparation"]
         try:
-            validate_preflight_ledger(missing_preparation, BRANCH, current_head=SHA, current_tree=TREE, expected_oracle=oracle, expected_taskfmt=TASKFMT, dependency_graph={"TASK-001": {"dependencies": []}}, repository_root=paths["candidate"], now=qualified + timedelta(seconds=1))
+            validate_preflight_ledger(missing_preparation, BRANCH, current_head=SHA, current_tree=TREE, expected_oracle=oracle, expected_taskfmt=TASKFMT, dependency_graph={"TASK-001": {"dependencies": []}}, repository_root=paths["candidate"], catalog_identity=qualification["catalog"], task_graph_identity=qualification["task_graph"], now=qualified + timedelta(seconds=1))
         except LedgerValidationError:
             pass
         else:
@@ -555,6 +704,83 @@ def qualification_tests() -> None:
                 raise RuntimeError(f"hardlink rejected for wrong reason: {error}") from error
         else:
             raise RuntimeError("hard-linked proof input was accepted")
+
+    expect_qualification_reject(
+        "shared proof/verifier run",
+        lambda qualification, paths, qualified: qualification["verifier"].update(
+            {"run_id": qualification["proof_preparation"]["run_id"]}
+        ),
+        "separate run directories",
+    )
+    expect_qualification_reject(
+        "qualified_at drift",
+        mutate_qualified_at,
+        "qualified_at must equal reviewer recorded_at",
+    )
+    expect_qualification_reject(
+        "reviewer evidence timestamp drift",
+        mutate_reviewer_evidence_timestamp,
+        "recorded_at is not bound",
+    )
+    expect_qualification_reject(
+        "future qualification",
+        lambda qualification, paths, qualified: None,
+        "from the future",
+        now_delta=-1,
+    )
+
+
+def expect_qualification_reject(
+    label: str,
+    mutate: Callable[[dict[str, Any], dict[str, Path], datetime], None],
+    expected: str,
+    *,
+    now_delta: int = 1,
+) -> None:
+    with tempfile.TemporaryDirectory(prefix="campaign-qualification-reject-") as directory:
+        qualification, paths, oracle, qualified = make_qualification(Path(directory))
+        mutate(qualification, paths, qualified)
+        try:
+            validate_preparation_qualification(
+                qualification,
+                worktree=paths["candidate"],
+                current_head=SHA,
+                current_tree=TREE,
+                integration_branch=BRANCH,
+                expected_oracle=oracle,
+                expected_taskfmt=TASKFMT,
+                repository_root=paths["candidate"],
+                now=qualified + timedelta(seconds=now_delta),
+            )
+        except LedgerValidationError as error:
+            if expected not in str(error):
+                raise RuntimeError(f"{label}: wrong rejection: {error}") from error
+            return
+        raise RuntimeError(f"{label}: forged preparation qualification was accepted")
+
+
+def mutate_reviewer_evidence_timestamp(
+    qualification: dict[str, Any], paths: dict[str, Path], qualified: datetime
+) -> None:
+    evidence_path = Path(qualification["reviewer"]["evidence"]["path"])
+    evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    evidence["recorded_at"] = (qualified - timedelta(seconds=1)).isoformat().replace(
+        "+00:00", "Z"
+    )
+    write_json(evidence_path, evidence)
+    qualification["reviewer"]["evidence"]["sha256"] = file_sha256(evidence_path)
+
+
+def mutate_qualified_at(
+    qualification: dict[str, Any], paths: dict[str, Path], qualified: datetime
+) -> None:
+    shifted = qualified + timedelta(seconds=1)
+    qualification["freshness"]["qualified_at"] = shifted.isoformat().replace(
+        "+00:00", "Z"
+    )
+    qualification["freshness"]["expires_at"] = (
+        shifted + timedelta(seconds=3600)
+    ).isoformat().replace("+00:00", "Z")
 
 
 

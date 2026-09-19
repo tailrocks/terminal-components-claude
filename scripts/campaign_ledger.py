@@ -37,6 +37,7 @@ PREPARATION_QUALIFICATION_SCHEMA = "campaign-preparation-qualification/v1"
 PREPARATION_VERIFIER_SCHEMA = "campaign-preparation-verifier/v1"
 PREPARATION_REVIEW_SCHEMA = "campaign-preparation-review/v1"
 PREPARATION_EVIDENCE_SCHEMA = "campaign-preparation-evidence/v1"
+PREFLIGHT_REPORT_SCHEMA = "campaign-preflight-report/v1"
 PREPARATION_RECORD_KEY = "preparation"
 
 FROZEN_ORACLE_TAG = "refs/tags/visual-baseline"
@@ -44,6 +45,8 @@ FROZEN_ORACLE_COMMIT = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
 FROZEN_ORACLE_TREE = "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26"
 
 ACCEPTED_TASK_STATUSES = frozenset({"verified", "integrated"})
+PREPARATION_TASK_STATUSES = frozenset({"pending", "blocked"})
+VALID_PREFLIGHT_TASK_STATUSES = ACCEPTED_TASK_STATUSES | PREPARATION_TASK_STATUSES
 ACCEPTED_VERIFIER_VERDICT = "VERIFIED"
 ACCEPTED_REVIEWER_VERDICT = "VERIFIED"
 TASK_STATUSES = frozenset(
@@ -174,6 +177,19 @@ def _qualification_directory(path: Path, field: str) -> Path:
     if not stat.S_ISDIR(metadata.st_mode):
         _reject(f"{field} is not a directory: {path}")
     return path
+
+
+def _qualification_file_under(path: Path, parent: Path, field: str) -> Path:
+    """Validate a single-link regular file without following trust-path links."""
+
+    if not path.is_absolute() or ".." in path.parts:
+        _reject(f"{field} must be a safe absolute path")
+    file_path = _qualification_file(path, field)
+    try:
+        file_path.resolve().relative_to(parent.resolve())
+    except ValueError:
+        _reject(f"{field} is outside its bound directory")
+    return file_path
 
 
 def _path_ref_shape(value: Any, field: str) -> None:
@@ -663,10 +679,24 @@ def validate_ledger_schema(ledger: Mapping[str, Any]) -> None:
         )
 
     catalog = _mapping(ledger["catalog"], "ledger.catalog")
-    _unknown(catalog, {"commit", "branch", "recorded_at"}, "ledger.catalog")
-    _required(catalog, ("commit", "branch", "recorded_at"), "ledger.catalog")
+    _unknown(
+        catalog,
+        {"commit", "tree", "branch", "manifest", "recorded_at"},
+        "ledger.catalog",
+    )
+    _required(
+        catalog,
+        ("commit", "tree", "branch", "manifest", "recorded_at"),
+        "ledger.catalog",
+    )
     _full_sha(catalog["commit"], "ledger.catalog.commit")
+    _tree_sha(catalog["tree"], "ledger.catalog.tree")
     _string(catalog["branch"], "ledger.catalog.branch")
+    manifest = _mapping(catalog["manifest"], "ledger.catalog.manifest")
+    _unknown(manifest, {"path", "sha256"}, "ledger.catalog.manifest")
+    _required(manifest, ("path", "sha256"), "ledger.catalog.manifest")
+    _relative_path(manifest["path"], "ledger.catalog.manifest.path")
+    _sha256(manifest["sha256"], "ledger.catalog.manifest.sha256")
     _timestamp(catalog["recorded_at"], "ledger.catalog.recorded_at")
 
     toolchain = _mapping(ledger["toolchain"], "ledger.toolchain")
@@ -1090,7 +1120,7 @@ def _qualification_run(
     try:
         resolved.relative_to(candidate.resolve())
     except ValueError:
-        return path
+        return resolved
     _reject(f"{field} must be external to the candidate worktree")
 
 
@@ -1150,6 +1180,30 @@ def _validate_preparation_identity(
     _qualification_file(manifest_path, f"{field}.manifest.path")
     if _file_sha256(manifest_path, f"{field}.manifest.path") != manifest["sha256"]:
         _reject(f"{field}.manifest hash does not match the current file")
+
+
+def _validate_ledger_catalog(
+    catalog: Mapping[str, Any],
+    *,
+    expected: Mapping[str, Any],
+    integration_branch: str,
+    repository_root: Path,
+) -> None:
+    """Bind the operator catalog row to the exact current candidate catalog."""
+
+    if catalog["branch"] != integration_branch:
+        _reject("ledger.catalog.branch is not the integration branch")
+    actual = {
+        "commit": catalog["commit"],
+        "tree": catalog["tree"],
+        "manifest": catalog["manifest"],
+    }
+    _validate_preparation_identity(
+        actual,
+        expected,
+        field="ledger.catalog",
+        repository_root=repository_root,
+    )
 
 
 def _common_preparation_evidence(
@@ -1334,19 +1388,32 @@ def _validate_external_proof_preparation(
     )
     if build["schema"] != NATIVE_BUILD_SCHEMA:
         _reject("proof preparation native build schema mismatch")
-    if build["worktree"] != str(candidate.resolve()) or build["commit"] != candidate_commit:
+    build_worktree = Path(_absolute_path(build["worktree"], "native_build.worktree"))
+    _qualification_directory(build_worktree, "native_build.worktree")
+    if build_worktree.resolve() != candidate.resolve() or build["commit"] != candidate_commit:
         _reject("proof preparation native build source mismatch")
     if build["tree"] != candidate_tree:
         _reject("proof preparation native build tree mismatch")
     target = Path(_absolute_path(build["target_dir"], "native_build.target_dir"))
     _qualification_directory(target, "native_build.target_dir")
+    target = target.resolve()
     try:
-        target.resolve().relative_to(run_dir.resolve())
+        target.relative_to(run_dir.resolve())
     except ValueError:
         _reject("native build target is outside the proof run")
     if build.get("cargo_target_dir") != build["target_dir"]:
         _reject("native build Cargo target mismatch")
-    if Path(_absolute_path(build["binary"], "native_build.binary")).resolve() != binary_path.resolve():
+    _qualification_directory(target / "debug", "native_build.target_dir/debug")
+    if binary_path.resolve() != target / "debug" / "tc-proof":
+        _reject("native build binary does not match target/debug/tc-proof")
+    if receipt_path.resolve() != target / "debug" / "tc-proof.build.json":
+        _reject("native build receipt path does not match target/debug/tc-proof.build.json")
+    build_binary = _qualification_file_under(
+        Path(_absolute_path(build["binary"], "native_build.binary")),
+        run_dir,
+        "native_build.binary",
+    )
+    if build_binary.resolve() != binary_path.resolve():
         _reject("native build binary path mismatch")
     if build["binary_sha256"] != native["binary_sha256"]:
         _reject("native build binary hash is not bound")
@@ -1487,7 +1554,6 @@ def _validate_external_proof_preparation(
         actual = {
             _qualification_file(path, f"proof_preparation.{directory_name} member").resolve()
             for path in directory.iterdir()
-            if not path.name.startswith(".")
         }
         if actual != {path.resolve() for path in expected}:
             _reject(f"proof preparation {directory_name} contains missing or extra files")
@@ -1586,20 +1652,22 @@ def validate_preparation_qualification(
         expected_taskfmt=expected_taskfmt,
         repository_root=root,
     )
-    proof_run = Path(proof["run_id"]).resolve()
+    proof_run = _qualification_run(
+        proof["run_id"], field="preparation.proof_preparation.run_id", candidate=candidate
+    )
     verifier = _mapping(preparation["verifier"], "preparation.verifier")
     reviewer = _mapping(preparation["reviewer"], "preparation.reviewer")
     verifier_run = _qualification_run(verifier["run_id"], field="preparation.verifier.run_id", candidate=candidate)
     reviewer_run = _qualification_run(reviewer["run_id"], field="preparation.reviewer.run_id", candidate=candidate)
-    if verifier_run == reviewer_run:
-        _reject("verifier and reviewer must use separate run directories")
+    if len({proof_run, verifier_run, reviewer_run}) != 3:
+        _reject("proof preparation, verifier, and reviewer must use separate run directories")
     verifier_path, verifier_ref = _qualification_ref_file(
         verifier["evidence"], field="preparation.verifier.evidence", run_dir=verifier_run, repository_root=root
     )
     reviewer_path, reviewer_ref = _qualification_ref_file(
         reviewer["evidence"], field="preparation.reviewer.evidence", run_dir=reviewer_run, repository_root=root
     )
-    if verifier_path == reviewer_path or verifier_path == Path(proof["run_id"]):
+    if verifier_path == reviewer_path or verifier_path == proof_run or reviewer_path == proof_run:
         _reject("verifier evidence path is reused across runs")
     verifier_evidence = _read_json(verifier_path, "preparation.verifier.evidence")
     reviewer_evidence = _read_json(reviewer_path, "preparation.reviewer.evidence")
@@ -1627,6 +1695,10 @@ def validate_preparation_qualification(
         _reject("reviewer evidence verifier-run binding mismatch")
     if reviewer_evidence.get("verifier_evidence_sha256") != verifier_ref["sha256"]:
         _reject("reviewer evidence does not bind verifier evidence")
+    if verifier_evidence.get("recorded_at") != verifier["recorded_at"]:
+        _reject("verifier evidence recorded_at is not bound to the ledger")
+    if reviewer_evidence.get("recorded_at") != reviewer["recorded_at"]:
+        _reject("reviewer evidence recorded_at is not bound to the ledger")
     if verifier["verdict"] != ACCEPTED_VERIFIER_VERDICT or reviewer["verdict"] != ACCEPTED_REVIEWER_VERDICT:
         _reject("preparation verifier and reviewer verdicts must both be VERIFIED")
     if verifier_evidence.get("verdict") != verifier["verdict"] or reviewer_evidence.get("verdict") != reviewer["verdict"]:
@@ -1641,8 +1713,10 @@ def validate_preparation_qualification(
         _reject("preparation freshness expiry does not match max_age_seconds")
     verifier_at = _parse_timestamp(verifier["recorded_at"], "preparation.verifier.recorded_at")
     reviewer_at = _parse_timestamp(reviewer["recorded_at"], "preparation.reviewer.recorded_at")
-    if verifier_at > reviewer_at or reviewer_at > qualified_at:
+    if verifier_at > reviewer_at:
         _reject("preparation evidence ordering is not fresh")
+    if qualified_at != reviewer_at:
+        _reject("preparation qualified_at must equal reviewer recorded_at")
     if isinstance(now, datetime):
         if now.tzinfo is None:
             _reject("now must include a timezone")
@@ -1690,23 +1764,47 @@ def validate_preflight_ledger(
             "ledger.integration_head is stale "
             f"({ledger['integration_head']} != current {current_head})"
         )
-    if ledger["catalog"]["branch"] != integration_branch:
-        _reject("ledger.catalog.branch is not the integration branch")
-    if ledger["catalog"]["commit"] == "REPLACE_AT_INIT":
-        _reject("catalog commit not recorded")
+    if current_tree is None:
+        _reject("current integration tree is required")
+    current_tree = _tree_sha(current_tree, "current_tree")
+    if repository_root is None:
+        _reject("repository root is required for receipt verification")
+    root = Path(repository_root).resolve()
+    if not root.is_dir():
+        _reject(f"repository root is not a directory: {root}")
+    if catalog_identity is None:
+        _reject("current catalog identity is required")
+    expected_catalog = _identity_expected(
+        catalog_identity,
+        field="catalog",
+        current_head=current_head,
+        current_tree=current_tree,
+    )
+    if "manifest" not in expected_catalog:
+        _reject("current catalog manifest identity is required")
+    _validate_ledger_catalog(
+        _mapping(ledger["catalog"], "ledger.catalog"),
+        expected=expected_catalog,
+        integration_branch=integration_branch,
+        repository_root=root,
+    )
     if expected_taskfmt is None:
         _reject("current taskfmt identity is required")
     validate_taskfmt_binding(ledger, expected_taskfmt)
     if dependency_graph is None:
         _reject("current dependency graph is required")
     dependencies = _dependency_map(dependency_graph)
-    if repository_root is None:
-        _reject("repository root is required for receipt verification")
-    root = Path(repository_root).resolve()
-    if not root.is_dir():
-        _reject(f"repository root is not a directory: {root}")
-
     rows = {row["task_id"]: row for row in ledger["tasks"]}
+    disallowed = [
+        row["task_id"]
+        for row in ledger["tasks"]
+        if row["status"] not in VALID_PREFLIGHT_TASK_STATUSES
+    ]
+    if disallowed:
+        _reject(
+            "preparation qualification cannot bypass production task status: "
+            + ", ".join(disallowed)
+        )
     accepted_candidates = [
         row for row in ledger["tasks"] if row["status"] in ACCEPTED_TASK_STATUSES
     ]
@@ -1714,16 +1812,6 @@ def validate_preflight_ledger(
         preparation = ledger.get(PREPARATION_RECORD_KEY)
         if not isinstance(preparation, Mapping):
             _reject("no accepted production receipt or preparation qualification exists")
-        if current_tree is None:
-            completed = subprocess.run(
-                ["git", "-C", str(root), "rev-parse", "HEAD^{tree}"],
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            if completed.returncode != 0:
-                _reject("current candidate tree is required for preparation qualification")
-            current_tree = completed.stdout.strip()
         validate_preparation_qualification(
             preparation,
             worktree=root,
@@ -1798,6 +1886,7 @@ def _validate_preparation_file(
     *,
     worktree: str | Path,
     current_head: str,
+    current_tree: str | None,
     run_dir: str | Path,
     expected_taskfmt: Mapping[str, str],
 ) -> None:
@@ -1823,25 +1912,33 @@ def _validate_preparation_file(
     task_id = _task_id(preparation["task_id"], "proof preparation.task_id")
     worktree_path = Path(
         _absolute_path(preparation["worktree"], "proof preparation.worktree")
-    ).resolve()
-    expected_worktree = Path(worktree).resolve()
+    )
+    _qualification_directory(worktree_path, "proof preparation.worktree")
+    worktree_path = worktree_path.resolve()
+    expected_worktree = Path(
+        _absolute_path(str(worktree), "worktree")
+    )
+    _qualification_directory(expected_worktree, "worktree")
+    expected_worktree = expected_worktree.resolve()
     if worktree_path != expected_worktree:
         _reject("proof preparation worktree is not the verifier worktree")
     _full_sha(preparation["commit"], "proof preparation.commit")
     if preparation["commit"] != _full_sha(current_head, "current_head"):
         _reject("proof preparation commit is stale")
+    if current_tree is None:
+        _reject("proof preparation current tree is required")
+    current_tree = _tree_sha(current_tree, "current_tree")
     _full_sha(preparation["scope_base"], "proof preparation.scope_base")
-    run_path = Path(
-        _absolute_path(preparation["run_id"], "proof preparation.run_id")
-    ).resolve()
-    expected_run = Path(run_dir).resolve()
+    run_path = _qualification_run(
+        preparation["run_id"], field="proof preparation.run_id", candidate=worktree_path
+    )
+    expected_run = _qualification_run(
+        str(run_dir), field="run_dir", candidate=worktree_path
+    )
     if run_path != expected_run:
         _reject("proof preparation run_id is not the requested run directory")
     if run_path == worktree_path or worktree_path in run_path.parents:
         _reject("proof preparation run directory is inside the worktree")
-    if run_path.is_symlink() or not run_path.is_dir():
-        _reject("proof preparation run directory is not a real directory")
-
     validate_taskfmt_binding({"toolchain": preparation["taskfmt"]}, expected_taskfmt)
 
     native_build = _mapping(preparation["native_build"], "proof preparation.native_build")
@@ -1855,15 +1952,19 @@ def _validate_preparation_file(
         ("receipt", "receipt_sha256", "binary", "binary_sha256"),
         "proof preparation.native_build",
     )
-    build_receipt_path = Path(
-        _absolute_path(native_build["receipt"], "native_build.receipt")
+    build_receipt_path = _qualification_file_under(
+        Path(_absolute_path(native_build["receipt"], "native_build.receipt")),
+        run_path,
+        "native_build.receipt",
     )
-    binary_path = Path(_absolute_path(native_build["binary"], "native_build.binary"))
+    binary_path = _qualification_file_under(
+        Path(_absolute_path(native_build["binary"], "native_build.binary")),
+        run_path,
+        "native_build.binary",
+    )
     # Native proof artifacts live in the verifier-owned external run/target
     # namespace.  They must never be accepted from the candidate's target
     # path (which may be a shared-cache symlink).
-    _under(build_receipt_path, run_path, "native_build.receipt")
-    _under(binary_path, run_path, "native_build.binary")
     _sha256(native_build["receipt_sha256"], "native_build.receipt_sha256")
     _sha256(native_build["binary_sha256"], "native_build.binary_sha256")
     if (
@@ -1902,20 +2003,30 @@ def _validate_preparation_file(
     )
     if build["schema"] != NATIVE_BUILD_SCHEMA:
         _reject("native build receipt has the wrong schema")
-    if (
-        Path(_absolute_path(build["worktree"], "native_build.worktree")).resolve()
-        != worktree_path
-    ):
+    build_worktree = Path(_absolute_path(build["worktree"], "native_build.worktree"))
+    _qualification_directory(build_worktree, "native_build.worktree")
+    if build_worktree.resolve() != worktree_path:
         _reject("native build receipt worktree mismatch")
     if build["commit"] != preparation["commit"]:
         _reject("native build receipt commit mismatch")
-    _tree_sha(build["tree"], "native_build.receipt.tree")
+    if build["tree"] != current_tree:
+        _reject("native build receipt tree mismatch")
     target_path = Path(_absolute_path(build["target_dir"], "native_build.receipt.target_dir"))
     _qualification_directory(target_path, "native_build.receipt.target_dir")
     if build.get("cargo_target_dir") != build["target_dir"]:
         _reject("native build receipt Cargo target mismatch")
-    if target_path.resolve() == worktree_path or worktree_path in target_path.resolve().parents:
+    target_path = target_path.resolve()
+    if target_path == worktree_path or worktree_path in target_path.parents:
         _reject("native build target is inside the worktree")
+    try:
+        target_path.relative_to(run_path)
+    except ValueError:
+        _reject("native build target is outside the proof run")
+    _qualification_directory(target_path / "debug", "native_build.receipt.target_dir/debug")
+    if binary_path.resolve() != target_path / "debug" / "tc-proof":
+        _reject("native build receipt binary does not match target/debug/tc-proof")
+    if build_receipt_path.resolve() != target_path / "debug" / "tc-proof.build.json":
+        _reject("native build receipt path does not match target/debug/tc-proof.build.json")
     if (
         Path(_absolute_path(build["binary"], "native_build.binary")).resolve()
         != binary_path.resolve()
@@ -1929,7 +2040,7 @@ def _validate_preparation_file(
     index_record = _mapping(preparation["context_index"], "proof preparation.context_index")
     _unknown(index_record, {"path", "sha256"}, "proof preparation.context_index")
     _required(index_record, ("path", "sha256"), "proof preparation.context_index")
-    index_path = _under(
+    index_path = _qualification_file_under(
         Path(_absolute_path(index_record["path"], "context_index.path")),
         run_path,
         "context_index.path",
@@ -2024,6 +2135,7 @@ def _validate_preparation_file(
     _required(index_observer, ("path", "sha256"), "context_index.observer")
     if index_observer != preparation["observer"]:
         _reject("context index observer binding mismatch")
+    expected_members = {"contexts": set(), "results": set()}
     for check_id in context_entries:
         for left, right, name in (
             (context_entries[check_id], index_contexts[check_id], "context"),
@@ -2031,12 +2143,18 @@ def _validate_preparation_file(
         ):
             if left["path"] != right["path"] or left["sha256"] != right["sha256"]:
                 _reject(f"context index {name} binding mismatch for {check_id}")
-        context_path = _under(
-            Path(context_entries[check_id]["path"]), run_path, f"{check_id}.context"
+        context_path = _qualification_file_under(
+            Path(context_entries[check_id]["path"]),
+            run_path,
+            f"{check_id}.context",
         )
-        result_path = _under(
-            Path(result_entries[check_id]["path"]), run_path, f"{check_id}.result"
+        result_path = _qualification_file_under(
+            Path(result_entries[check_id]["path"]),
+            run_path,
+            f"{check_id}.result",
         )
+        expected_members["contexts"].add(context_path.resolve())
+        expected_members["results"].add(result_path.resolve())
         if (
             _file_sha256(context_path, f"{check_id}.context")
             != context_entries[check_id]["sha256"]
@@ -2099,14 +2217,37 @@ def _validate_preparation_file(
         ):
             _reject(f"{check_id} result identity mismatch")
 
+    for directory_name, expected in expected_members.items():
+        directory = _qualification_directory(
+            run_path / directory_name,
+            f"proof preparation.{directory_name}",
+        )
+        actual = {
+            _qualification_file(path, f"proof preparation.{directory_name} member").resolve()
+            for path in directory.iterdir()
+        }
+        if actual != expected:
+            _reject(
+                f"proof preparation {directory_name} contains missing or extra files"
+            )
+
     observer = _mapping(preparation["observer"], "proof preparation.observer")
     _unknown(observer, {"path", "sha256"}, "proof preparation.observer")
     _required(observer, ("path", "sha256"), "proof preparation.observer")
-    observer_path = _under(
+    observer_path = _qualification_file_under(
         Path(_absolute_path(observer["path"], "observer.path")),
         run_path,
         "observer.path",
     )
+    if observer_path.resolve() != run_path / "observer.json":
+        _reject("observer.path must be run/observer.json")
+    observer_members = {
+        path.resolve()
+        for path in run_path.iterdir()
+        if path.name.startswith("observer")
+    }
+    if observer_members != {observer_path.resolve()}:
+        _reject("proof preparation observer members are missing or extra")
     _sha256(observer["sha256"], "observer.sha256")
     if _file_sha256(observer_path, "observer") != observer["sha256"]:
         _reject("observer capability hash mismatch")
@@ -2156,6 +2297,7 @@ def validate_proof_preparation(
     *,
     worktree: str | Path,
     current_head: str,
+    current_tree: str | None = None,
     run_dir: str | Path,
     expected_taskfmt: Mapping[str, str],
 ) -> None:
@@ -2171,6 +2313,7 @@ def validate_proof_preparation(
         preparation,
         worktree=worktree,
         current_head=current_head,
+        current_tree=current_tree,
         run_dir=run_dir,
         expected_taskfmt=expected_taskfmt,
     )
