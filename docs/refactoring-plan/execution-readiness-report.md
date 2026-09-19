@@ -7,35 +7,43 @@ It is a preparation gate, not an implementation prompt. The campaign ledger
 must remain `armed: false`; no production task may be dispatched while this
 verdict is NO-GO.
 
-## 1. Tested payload, reports, and Git truth
+## 1. Exact candidate, reports, and Git truth
 
-The tested pre-repair payload bound by the current external reports is the
-exact commit/tree below:
+The latest exact candidate audited before this documentation refresh is the
+commit/tree below:
 
 | field | value |
 | --- | --- |
 | branch | `refactor/holla-parity` |
-| tested pre-repair commit | `2c74b88b9fbfb4568911dc7d57a303a3cb5991cb` |
-| tested pre-repair tree | `74a29e7c99a0bb4134eefd7bff1ce26651aaf340` |
-| tested pre-repair parent | `74e4ec458e2d8b41257232900bdf511bfa335730` |
+| audited commit | `a80c790e2ebba15e4a00e7cff4296eab2a5bccc5` |
+| audited tree | `d765429108cd14109d420faf96ae481e1eae11e1` |
+| audited parent | `2c74b88b9fbfb4568911dc7d57a303a3cb5991cb` |
 
-Current external reports binding that payload:
+Latest exact-tree reports binding that payload before this documentation
+refresh:
 
-- verifier: `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-2c74b88-2026-09-19/final-verifier-report.md`
-- reviewer: `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-reviewer-2c74b88-2026-09-19/final-reviewer-report.md`
+- verifier: `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-refresh-a80c79-2026-09-19/final-verifier-report.md`
+- reviewer: `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-reviewer-refresh-a80c79-2026-09-19/final-reviewer-report.md`
 
 Both decisions are **REJECTED / NO-GO**. They are external audit reports, not
 acceptance receipts and not authorization for dispatch, arming, merge, or
-product acceptance.
+product acceptance. The earlier `2c74b88b` reports are historical rejected
+evidence only.
 
 This bounded repair changes only metadata and the evidence index in the four
 canonical documents. It does not change code, scripts, task contracts, the
 ledger, refs, the protected baseline, or product behavior. The repair creates
 a new Git commit/tree after the tested payload and invalidates affected
 evidence after that commit. A fresh verifier/reviewer seal must bind the exact
-post-documentation HEAD/tree before acceptance or dispatch. Any further
+post-refresh HEAD/tree before acceptance or dispatch. Any further
 relevant source, documentation, contract, tool, oracle, or environment change
-invalidates affected evidence.
+invalidates affected evidence. The post-refresh final seal is predetermined
+at these external locations:
+
+```text
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md
+```
 
 The older pre-documentation inspection identity `bb574d84` / `6e464830` and
 its branch/ref/merge-base observations remain historical provenance only. No
@@ -122,7 +130,7 @@ The machine-checked catalog contains:
 | source obligations | 1,174 |
 | traceability rows | 3,256 |
 | plan/DAG structural errors | 0 |
-| taskfmt standalone lints | 73/73 passed in the tested pre-repair run |
+| taskfmt standalone lints | 73/73 passed in the pre-refresh qualification run |
 | accepted production tasks | 0 |
 
 Disposition is explicit. `TASK-001` and `TASK-070` are retired/non-qualifying
@@ -154,21 +162,20 @@ The preparation commits are:
 - `bb574d84bf25ff9179b42e951fca52068f2ab623` — Rust verifier symlinked-parent
   trust-path repair; tree `6e464830897f7c39014b12a79219d6cde8b56549`.
 
-The native proof changes are preparation infrastructure only. Fresh raw
-evidence from the rejected audits, bound to the tested pre-repair payload, is
-under:
+The native proof changes are preparation infrastructure only. The detailed
+exact-candidate raw evidence from before this documentation refresh is under:
 
 ```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-2c74b88-2026-09-19
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-a80c79-2026-09-19
 ```
 
-Use `$RUN` below for that verifier root. Current qualified tool and check
-identities are:
+Use `$RUN` below for that pre-refresh verifier root. Its qualified tool and
+check identities are:
 
 | check | root and result |
 | --- | --- |
 | taskfmt | source `/Users/donbeave/Projects/taskfmt/task-format`, revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, source tree `b7d90bd8`, version `0.2.0`, binary `/tmp/taskfmt-latest-install/bin/taskfmt`, SHA-256 `f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de`; `$RUN/taskfmt-qualification.log` and `$RUN/taskfmt-lints-summary.txt` / `.exit`; 73/73 standalone lints, exit 0 |
-| proof build | `$RUN/proof-build-target`; `tc-proof-native-build/v1` receipt binds commit `2c74b88b` / tree `74a29e7c`; binary SHA-256 `d4a3bb58c5fc4245135088155f418fc8a054f43a1b3428303cccc713dbaf92fa` |
+| proof build | `$RUN/proof-build-target`; `tc-proof-native-build/v1` receipt binds commit `a80c790e` / tree `d7654291`; binary SHA-256 `192423f5c5175cdf1eca9bc963b8e732eff02c39c4dd404c380a0285effbba20` |
 | proof nextest | `$RUN/proof-nextest.log` / `.exit`; `cargo nextest` 28 passed, exit 0 |
 | static | `$RUN/fmt.*`, `$RUN/clippy.*`, `$RUN/rustdoc.*`, `$RUN/bash-n.*`, `$RUN/shellcheck.*`, `$RUN/shfmt.*`; all exit 0 |
 | catalog | `$RUN/plan-validator.*`, `$RUN/rebundle.*`, and taskfmt lint artifacts; 73 tasks, 1,174 source obligations, 3,256 traceability rows, depth 35; exits 0 |
@@ -180,17 +187,16 @@ evidence is invalid after this documentation commit. Native proof is
 integrity/control evidence, not same-user hostile process isolation; the
 supported threat model and limitations remain in `proof-contract.md`.
 
-The current pre-repair final-tree workspace result is `3,342 passed` across 139 binaries,
-701.657s, exit 0 at:
+The exact final-tree workspace result is recorded at:
 
 ```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-final-2c74b88-2026-09-19/result-summary.txt
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-final-a80c790e-2026-09-19/result-summary.txt
 ```
 
-The summary is supporting evidence only; no full raw stdout log was captured.
-The report identity binds `2c74b88b` / `74a29e7c` / parent `74e4ec45`. It is
-not a preparation receipt, visual-oracle comparison, or product acceptance,
-and its affected evidence requires fresh post-commit sealing.
+It is supporting evidence only, not a preparation receipt, visual-oracle
+comparison, or product acceptance. It binds the pre-refresh exact candidate;
+the documentation refresh invalidates affected evidence and requires the
+predetermined final seal to rebind it.
 
 The following paths remain useful only as historical or superseded provenance:
 the old proof-nextest logs reporting `27/27` and `27 passed`, proof build
@@ -295,19 +301,25 @@ cannot attest to a future commit containing itself. The ignored runtime ledger
 must remain schema-valid, current, and `armed=false`; it cannot replace the
 external seal.
 
-The current external reports for the tested pre-repair payload are:
+The latest exact-tree reports before this documentation refresh are:
 
 ```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-2c74b88-2026-09-19/final-verifier-report.md
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-reviewer-2c74b88-2026-09-19/final-reviewer-report.md
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-refresh-a80c79-2026-09-19/final-verifier-report.md
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-reviewer-refresh-a80c79-2026-09-19/final-reviewer-report.md
 ```
 
-Both bind `2c74b88b` / `74a29e7c` and return **REJECTED / NO-GO**. They are
+Both bind `a80c790e` / `d7654291` and return **REJECTED / NO-GO**. They are
 not acceptance receipts. The refreshed ledger observed by the reports is
 schema-valid, bound to `refs/heads/refactor/holla-parity` with
-`integration_head=2c74b88b`, `armed=false`, and no preparation receipt. This
+`integration_head=a80c790e`, `armed=false`, and no preparation receipt. This
 docs-only repair creates a new tree, so that state and all affected evidence
-must be freshly revalidated after the commit.
+must be freshly revalidated after the commit. The final post-refresh seal is
+reserved at:
+
+```text
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md
+```
 
 Rejected historical roots are also preserved in the evidence index:
 
@@ -318,9 +330,9 @@ Rejected historical roots are also preserved in the evidence index:
 ```
 
 They are not receipts for this source. Bernoulli's prior rejection is recorded
-above and its two findings are repaired. The current reports exist but reject
+above and its two findings are repaired. The pre-refresh reports reject
 readiness; no independent verifier/reviewer has returned `VERIFIED` for the
-post-documentation tree.
+post-refresh documentation tree.
 
 **Final decision: NO-GO.** The report must remain NO-GO until every blocker
 above has fresh, exact-tree, independently reviewed evidence. This decision

@@ -6,15 +6,15 @@ NO-GO, the current ledger must remain `armed=false`, and no production task may
 be dispatched. The prompt becomes eligible only after a separate readiness
 revalidation and explicit authorization.
 
-The current external verifier and reviewer reports exist, bind the tested
-pre-repair payload below, and both return **REJECTED / NO-GO**. They are not
-acceptance receipts. This four-file docs-only repair changes metadata and the
-evidence index only; it creates a new tree and requires another fresh seal
-after the commit.
+The latest exact-tree verifier and reviewer reports before this documentation
+refresh bind `a80c790e` / `d7654291` and both return **REJECTED / NO-GO**. They
+are not acceptance receipts. This documentation-only repair changes metadata
+and the evidence index; it creates a new tree and requires another fresh seal
+after the commit. The final seal is predetermined at:
 
 ```text
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-2c74b88-2026-09-19/final-verifier-report.md
-/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-reviewer-2c74b88-2026-09-19/final-reviewer-report.md
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md
 ```
 
 ## Objective
@@ -36,11 +36,11 @@ the visual validation contract. Then require these identities to be freshly
 revalidated; the values below are preparation references, not permission:
 
 ```text
-tested pre-repair payload bound by the rejected reports:
+last independently audited candidate before this documentation refresh:
   branch refactor/holla-parity
-  commit 2c74b88b9fbfb4568911dc7d57a303a3cb5991cb
-  tree 74a29e7c99a0bb4134eefd7bff1ce26651aaf340
-  parent 74e4ec458e2d8b41257232900bdf511bfa335730
+  commit a80c790e2ebba15e4a00e7cff4296eab2a5bccc5
+  tree d765429108cd14109d420faf96ae481e1eae11e1
+  parent 2c74b88b9fbfb4568911dc7d57a303a3cb5991cb
 
 protected visual tag:
   refs/tags/visual-baseline^{commit}
@@ -65,14 +65,14 @@ qualified taskfmt:
   binary /tmp/taskfmt-latest-install/bin/taskfmt
   SHA-256 f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
 
-current rejected-audit evidence (not authorization), RUN=/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-2c74b88-2026-09-19:
+latest pre-refresh rejected-audit evidence (not authorization), RUN=/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-a80c79-2026-09-19:
   taskfmt source /Users/donbeave/Projects/taskfmt/task-format
     revision afd3b575dbcc7044620bec4b9493a74eca3e5ef2; source tree b7d90bd8
     version 0.2.0; binary /tmp/taskfmt-latest-install/bin/taskfmt
     SHA-256 f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
     73/73 standalone lints, exit 0; qualification taskfmt-qualification.log
   proof build root RUN/proof-build-target
-    receipt tc-proof-native-build/v1; binary SHA-256 d4a3bb58c5fc4245135088155f418fc8a054f43a1b3428303cccc713dbaf92fa
+    receipt tc-proof-native-build/v1; binary SHA-256 192423f5c5175cdf1eca9bc963b8e732eff02c39c4dd404c380a0285effbba20
   proof nextest RUN/proof-nextest.log and .exit
     28 passed, exit 0
   static RUN/fmt.*, RUN/clippy.*, RUN/rustdoc.*, RUN/bash-n.*, RUN/shellcheck.*, RUN/shfmt.*
@@ -81,12 +81,12 @@ current rejected-audit evidence (not authorization), RUN=/Users/donbeave/Project
     73 tasks, 1,174 source obligations, 3,256 traceability rows, depth 35; exit 0
   docs RUN/actionlint.* and RUN/lychee.*
     Lychee 0.24.2: 612 total, 604 successful, 8 excluded, 0 errors; exit 0
-  workspace /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-final-2c74b88-2026-09-19/result-summary.txt
-    3,342 passed across 139 binaries, 701.657s, exit 0; summary only, no full raw stdout log
+  workspace /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/workspace-nextest-final-a80c790e-2026-09-19/result-summary.txt
+    exact final-tree workspace result; supporting evidence only, not acceptance
 
-These observations bind the pre-repair payload and are not acceptance. The
+These observations bind the pre-refresh exact candidate and are not acceptance. The
 docs-only commit invalidates affected evidence; a fresh seal must bind the
-post-documentation HEAD/tree. Any relevant source, documentation, contract,
+post-refresh HEAD/tree. Any relevant source, documentation, contract,
 tool, oracle, environment, or generated-output change invalidates affected
 evidence.
 ```
@@ -129,13 +129,13 @@ The implementation coordinator must exit nonzero before spawning any
 implementer if any condition below is false:
 
 1. The readiness report says `**GO.**`, not NO-GO, and the exact current
-   post-documentation HEAD/tree/parent is independently sealed. The tested
-   pre-repair payload was commit `2c74b88b9fbfb4568911dc7d57a303a3cb5991cb`,
-   tree `74a29e7c99a0bb4134eefd7bff1ce26651aaf340`, parent
-   `74e4ec458e2d8b41257232900bdf511bfa335730`; those reports are rejected and
-   this docs-only repair creates another tree. Revalidate exact HEAD/tree
-   after the commit. The current report says NO-GO: therefore this prompt is
-   **NOT AUTHORIZED FOR EXECUTION**.
+   post-refresh HEAD/tree/parent is independently sealed. The latest rejected
+   pre-refresh candidate was commit `a80c790e2ebba15e4a00e7cff4296eab2a5bccc5`,
+   tree `d765429108cd14109d420faf96ae481e1eae11e1`, parent
+   `2c74b88b9fbfb4568911dc7d57a303a3cb5991cb`; those reports are rejected and
+   this documentation refresh creates another tree. Revalidate exact
+   HEAD/tree after the commit. The current report says NO-GO: therefore this
+   prompt is **NOT AUTHORIZED FOR EXECUTION**.
 2. The protected tag peel, tag tree, snapshot tree, grouped oracle store,
    fixtures, manifests, and expected artifacts match the exact read-only
    import. Any mismatch stops the run.
@@ -171,16 +171,17 @@ implementer if any condition below is false:
    stale/cross-run inputs, extra/duplicate contexts, forged results, wrong
    hashes, missing observer evidence, and mutated trust inputs must fail closed.
 8. A fresh independent verifier and a separate independent reviewer both
-   return `VERIFIED` for the exact post-documentation tree. The current
-   rejected reports are not receipts:
+   return `VERIFIED` for the exact post-refresh tree. The predetermined final
+   seal locations are not receipts until they exist and bind the current tree:
 
    ```text
-   /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-verifier-2c74b88-2026-09-19/final-verifier-report.md
-   /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-reviewer-2c74b88-2026-09-19/final-reviewer-report.md
+   /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md
+   /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md
    ```
 
-   Both return `REJECTED / NO-GO` for commit `2c74b88b` / tree `74a29e7c`.
-   The preserved older rejected roots are also not receipts:
+   The latest pre-refresh reports return `REJECTED / NO-GO` for commit
+   `a80c790e` / tree `d7654291`; they are not receipts. The preserved older
+   rejected roots are also not receipts:
 
    ```text
    /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-proof-requal-b20ca5c6
@@ -217,12 +218,12 @@ taskfmt source/version/binary hash, comparator, proof binary, environment,
 observer/result evidence, and dependency ancestry. Any relevant source,
 documentation, task contract, schema, script, comparator, tool, oracle,
 environment, or generated-output change invalidates affected evidence. The
-rejected audit roots listed above bind the tested pre-repair
-`2c74b88b` / `74a29e7c` payload; the workspace summary is supporting evidence,
-not a receipt. This docs-only commit invalidates affected evidence. The future
+pre-refresh rejected audit roots listed above bind the `a80c790e` /
+`d7654291` payload; the workspace summary is supporting evidence, not a
+receipt. This documentation refresh invalidates affected evidence. The future
 coordinator must perform a fresh readiness check and re-seal the exact
-post-documentation tree before dispatch. Ancestor receipts never authorize a
-changed tree.
+post-refresh tree before dispatch. Ancestor receipts never authorize a changed
+tree.
 
 ## Delegation and integration protocol
 
