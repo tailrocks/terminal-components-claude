@@ -15,22 +15,50 @@ The four-document repair was started only after reading the live checkout:
 | item | identity |
 | --- | --- |
 | branch | `refactor/holla-parity` |
-| HEAD | `f6f94dc995f5b6451800d739174d7f23802a40c3` |
-| HEAD tree | `61563f7b48d0fe7b8e5bdddae57072e96f6a6f12` |
-| parent | `e8c4950928b0ab6cc1268777dbed6f96cb0309ba` |
-| preparation commits | `e8c49509` proof static repair; `f6f94dc9` shell/preparation guards |
+| HEAD | `bb574d84bf25ff9179b42e951fca52068f2ab623` |
+| HEAD tree | `6e464830897f7c39014b12a79219d6cde8b56549` |
+| parent | `8e783592afd0a2c2f08076858a386a091a35e712` |
+| preparation commits | `e8c49509` proof static repair; `f6f94dc9` shell/preparation guards; `8e783592` taskfmt trust-path repair; `bb574d84` Rust trust-path repair |
 | local `main` | `7b27732a8c3c131760ec3438f641cb3c11343a42` |
 | `origin/main` | `7b27732a8c3c131760ec3438f641cb3c11343a42` |
 | `origin/refactor/holla-parity` | `f5013f609aed1ba32ce60352b38fd0b1b11b063c` |
 | merge-base with `main` | `7b27732a8c3c131760ec3438f641cb3c11343a42` |
 | merge-base with protected baseline | `cc14dd6beae526884aabdf897e309be837b4f504` |
 
-At that point `main` was an ancestor of the campaign, the campaign was 75
-commits ahead of local `main` and 31 commits ahead of its remote campaign ref,
+At that point `main` was an ancestor of the campaign, the campaign was 78
+commits ahead of local `main` and 34 commits ahead of its remote campaign ref,
 and no push or ref mutation had occurred. `.worktrees/main` is not used to
 identify `main`; Git refs are authoritative. This document commit changes the
 tree, so the post-commit source identity must be sealed externally and any
 pre-commit evidence must be re-bound before acceptance.
+
+## Trust-path repair and independent review
+
+Bernoulli (`gpt-5.6-luna`, max reasoning effort) independently rejected the
+prior preparation tree `21f875318f61c30f55bf0a47b8daa4326d48540a7` after
+reproducing two trust defects: taskfmt accepted a symlinked final or parent
+alias, and the Rust verifier accepted symlinked parent components. Raw review
+evidence is retained at:
+
+```text
+/tmp/campaign-review-evidence-21f87531.7EkYOO/
+```
+
+The defects were repaired, but this is not final-tree approval:
+
+- `8e783592afd0a2c2f08076858a386a091a35e712` rejects taskfmt final and parent
+  aliases in preflight/dispatch and adds adversarial coverage. Evidence:
+  /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/taskfmt-path-repair-2026-09-19.
+- `bb574d84bf25ff9179b42e951fca52068f2ab623` rejects symlinked Rust verifier
+  trust-path parents while preserving the documented macOS system symlinks.
+  Evidence:
+  /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/symlink-parent-repair-2026-09-19.
+  `final-identity.txt` binds the repair to `bb574d84` and tree
+  `6e464830`; sealed nextest, Clippy, and rustdoc exit files are all zero.
+
+The independent rejection is closed as a preparation defect only. A separate
+final verifier and reviewer must still evaluate the exact post-documentation
+tree and return `VERIFIED`; no such approval exists.
 
 ## Authority and navigation
 
@@ -121,16 +149,20 @@ Only `taskfmt lint "$TASK_DIR"` and the documented standalone `taskfmt verify`
 form are permitted. Taskfmt is not an orchestrator, workspace manager, ref
 manager, container launcher, or acceptance authority.
 
-Observed preparation payload checks include plan/DAG validation, 73/73
-standalone lints, 27/27 `refactor-proof` nextest tests after `e8c49509`, strict
-proof-code Clippy/rustdoc after `e8c49509`, and the shell guard/path checks in
-`f6f94dc9`. These are source-payload observations, not a final receipt for the
-post-documentation tree. Full workspace nextest had a parallel reliability
-failure (`3,359 passed, 1 failed, 6 skipped`); an isolated rerun passed only
-the affected architecture test. `xtask boundary` still fails because
-`parity/evidence.tsv` is absent. Full taskfmt source integration tests are not
-qualified: the Docker-only test path was not run and fails closed when its
-required opt-in is absent. Native Linux evidence is unavailable.
+The observed preparation payload checks include plan/DAG validation, 73/73
+standalone lints, 27/27 `refactor-proof` nextest tests before the Rust
+parent-path repair, strict proof-code Clippy/rustdoc, and shell guard/path
+checks. Fresh evidence is indexed in the evidence document. These are
+source-payload observations, not a final receipt for the
+post-documentation tree. The repaired Rust run has one focused nextest test
+plus 27 skipped under the selected filter, Clippy zero, and rustdoc zero; it is
+not a complete protocol receipt. Full workspace nextest had a parallel
+reliability failure (`3,359 passed, 1 failed, 6 skipped`); an isolated rerun
+passed only the affected architecture test. `xtask boundary` still fails
+because `parity/evidence.tsv` is absent. Full taskfmt source integration
+tests are not qualified: the Docker-only test path was not run and fails
+closed when its required opt-in is absent. Native Linux evidence is
+unavailable.
 
 ## Task and architecture state
 
@@ -169,10 +201,12 @@ receipt, or authorize GO. No independent final verifier/reviewer has returned
 `VERIFIED` for the post-documentation tree.
 
 Preparation blockers remain: a clean post-documentation final seal; complete
-native proof/result/receipt qualification; a complete 892-source control
-replay with exact 30,200-artifact coverage and negative controls; current
-behavioral/PTY evidence; the missing parity evidence contract; full workspace
-and platform gates; Linux; and unresolved product refactoring. The ledger stays
-disarmed and no production task has been dispatched.
+native proof/result/receipt qualification; a clean deterministic 892-source
+calibration and altered-output negative control; current behavioral/PTY
+evidence; the missing parity evidence contract; full workspace and platform
+gates; Linux; and unresolved product refactoring. The complete 892 run proves
+matrix execution coverage but is not a calibration pass: it has four exact
+failures and one leak. The ledger stays disarmed and no production task has
+been dispatched.
 
 **Decision: NO-GO.**

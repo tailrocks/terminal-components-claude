@@ -10,9 +10,9 @@ The live checkout was re-read before this documentation repair:
 
 ```text
 branch: refactor/holla-parity
-HEAD:   f6f94dc995f5b6451800d739174d7f23802a40c3
-tree:   61563f7b48d0fe7b8e5bdddae57072e96f6a6f12
-parent: e8c4950928b0ab6cc1268777dbed6f96cb0309ba
+HEAD:   bb574d84bf25ff9179b42e951fca52068f2ab623
+tree:   6e464830897f7c39014b12a79219d6cde8b56549
+parent: 8e783592afd0a2c2f08076858a386a091a35e712
 local main: 7b27732a8c3c131760ec3438f641cb3c11343a42
 origin/main: 7b27732a8c3c131760ec3438f641cb3c11343a42
 origin/refactor/holla-parity: f5013f609aed1ba32ce60352b38fd0b1b11b063c
@@ -31,6 +31,12 @@ fix(refactor-proof): satisfy strict Rust static gates
 
 f6f94dc995f5b6451800d739174d7f23802a40c3
 tree 61563f7b48d0fe7b8e5bdddae57072e96f6a6f12
+
+8e783592afd0a2c2f08076858a386a091a35e712
+tree e2867345caf658d339deaecd7f8fa13d04e7c008
+
+bb574d84bf25ff9179b42e951fca52068f2ab623
+tree 6e464830897f7c39014b12a79219d6cde8b56549
 fix: harden preparation shell guards
 ```
 
@@ -96,8 +102,21 @@ The source control run is:
 ```
 
 Its `logs/source-identity.txt` records the exact source and inventory. The
-full run exits `4`; the alternate binary run exits `94`. These are incomplete
-control attempts, not calibration passes.
+complete direct matrix summary is retained at:
+
+```text
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/baseline-control-892-2026-09-19/logs/final-direct-matrix-summary-v2-2026-09-19.txt
+SHA-256: 33034862cfb3d7ae2676bbe01269db5ac0c1af6d3cf6e61896f408c36eb14d3c
+```
+
+It records 302 cases, 298 passed, 4 failed, 2 skipped, 1 leaky, exit 100;
+7,550 ANSI, plain-text, PNG, and HTML artifacts each; and 17 diff files. The
+failed surfaces are Holla `task_input_cancelled` nocolor timing (`0 s`
+versus frozen `1 s` at `80x24` and `120x40`), pointer
+`tablepro_resize_workbench_grown`, TablePro `ack_gate`, and TablePro
+`connections/form_advanced`. This proves full matrix execution coverage, not
+a clean calibration. No output was normalized or blessed. Earlier exits `4`
+and `94` remain incomplete control attempts, not calibration passes.
 
 The distinct architecture/source oracle remains:
 
@@ -166,9 +185,40 @@ Proof and script evidence:
 
 The source-payload commands reported `cargo fmt --all --check`, strict
 proof-code Clippy/rustdoc, ShellCheck, shfmt, shell syntax, proof-path tests,
-and dispatch authorization tests as passing after the two preparation
-commits. These files are not final-tree receipts. Fresh exact-tree checks are
-required after this documentation commit.
+and dispatch authorization tests as passing after the preparation commits.
+Fresh current evidence is:
+
+```text
+taskfmt lints, 73/73:
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/taskfmt-lints-final-retry-2026-09-19
+proof build, exit 0, binary SHA-256 f85400a16dc131fe0f59bfc90b5ec22cadf97de02833a216ed81385bf70a1b44:
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-preparation-final-2026-09-19
+taskfmt path repair:
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/taskfmt-path-repair-2026-09-19
+Rust parent trust-path repair:
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/symlink-parent-repair-2026-09-19
+```
+
+The TASK-071/TASK-072 preparation attempt fails closed because prerequisite
+dependency receipts are absent; no task was accepted. The final static root
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/static-final-2026-09-19`
+has fmt 0, Clippy 0, and corrected rustdoc 0. The proof-static result before
+the trust repairs is stale and is not a current receipt. Shell checks before
+the trust repair are at
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/shell-final-current-2026-09-19`;
+the repair-root above contains the latest guard evidence. Documentation checks
+are at
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/docs-final-current-retry-2026-09-19`
+(actionlint 0, Lychee 0). These paths do not replace a post-documentation
+independent seal.
+
+The current boundary run is
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/boundary-final-current-2026-09-19`;
+exit 1 is solely the missing `parity/evidence.tsv` parity-contract check and
+all other boundary checks pass. The current preflight run is
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/preflight-final-current-2026-09-19`;
+exit 1 at the exact NO-GO report gate. The refreshed ignored ledger remains
+`armed=false`.
 
 Independent checks retained from the current audit include:
 
@@ -188,7 +238,30 @@ skipped`; an isolated rerun passed the affected architecture test. Boundary
 validation fails at missing `parity/evidence.tsv`. Native Linux was not
 available. These are open gates, not passes.
 
-## 4. Visual and behavioral calibration evidence
+## 4. Trust-boundary review and repair
+
+Bernoulli (`gpt-5.6-luna`, max reasoning effort) independently rejected the
+prior tree `21f875318f61c30f55bf0a47b8daa4326d48540a7` after reproducing
+taskfmt final/parent aliases and Rust verifier symlinked parent paths. Raw
+review evidence:
+
+```text
+/tmp/campaign-review-evidence-21f87531.7EkYOO/
+```
+
+The taskfmt defect is repaired by `8e783592afd0a2c2f08076858a386a091a35e712`.
+The Rust defect is repaired by `bb574d84bf25ff9179b42e951fca52068f2ab623`.
+The Rust repair root below includes `final-identity.txt`, sealed nextest,
+Clippy, and rustdoc results; all sealed exit files are zero:
+
+```text
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/symlink-parent-repair-2026-09-19
+```
+
+This closes two preparation defects. It is not final verifier/reviewer
+approval; no current-tree `VERIFIED` result exists.
+
+## 5. Visual and behavioral calibration evidence
 
 The older run:
 
@@ -207,10 +280,12 @@ The exact-tag control under:
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/calibration-baseline-4a79c0a2
 ```
 
-did not establish a complete clean replay. No output was blessed. The
-892-source control has the correct complete corpus identity but exits without
-an accepted matrix result. The complete 7,550-key / 30,200-artifact control,
-deterministic rerun, and altered-output negative control remain blockers.
+did not establish a complete clean replay. No output was blessed. The 892
+source control did execute all 302 cases and produced 7,550 artifacts for each
+of ANSI, plain text, PNG, and HTML, but the summary records four failed
+surfaces, two skips, one leak, exit 100, and 17 diff files. It is complete
+coverage evidence, not an accepted calibration. A deterministic clean rerun
+and altered-output negative control remain blockers.
 
 The final matrix must exercise exact ANSI/plain/PNG/HTML equality, all five
 sizes (`72x20`, `80x24`, `100x30`, `120x40`, `160x50`), all five color modes,
@@ -220,7 +295,7 @@ geometry, interaction, lifecycle, and behavior parity. It may not use copied
 expected files, automatic blessing, broad tolerance, masks, or arbitrary
 sleeps.
 
-## 5. Rejected verifier/reviewer evidence
+## 6. Rejected verifier/reviewer evidence
 
 These roots are preserved but rejected or stale. They must never be treated as
 current receipts:
@@ -231,13 +306,15 @@ current receipts:
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-211c29ad-independent
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-8da4c2b8
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/reviewer-final-b20ca5c6
+/tmp/campaign-review-evidence-21f87531.7EkYOO/
 ```
 
 They bind earlier candidates, report explicit rejection, or lack the required
-complete current-tree evidence. No post-documentation verifier or independent
-reviewer has returned `VERIFIED`.
+complete current-tree evidence. Bernoulli's rejection was repaired through the
+two trust-path commits, but it is not a final approval. No post-documentation
+verifier or independent reviewer has returned `VERIFIED`.
 
-## 6. Ledger and evidence freshness
+## 7. Ledger and evidence freshness
 
 The runtime ledger is `.campaign/ledger.json`, schema `campaign-ledger/v1`,
 with four blocked historical rows and no accepted production rows. Its required
@@ -251,7 +328,7 @@ results, and dependency ancestry. A receipt cannot hash a future commit that
 contains itself. Any relevant change invalidates affected evidence. Ancestor
 evidence never silently authorizes a changed tree.
 
-## 7. Open blockers and disposition
+## 8. Open blockers and disposition
 
 | issue | state |
 | --- | --- |
@@ -265,6 +342,7 @@ evidence never silently authorizes a changed tree.
 | taskfmt Docker integration | not run; fails closed |
 | current independent verifier/reviewer | no `VERIFIED` result |
 | final external seal for this documentation tree | not yet created |
+| repaired trust paths | defects fixed; exact final-tree verifier/reviewer requalification pending |
 
 The next implementation prompt is deliberately marked **NOT AUTHORIZED FOR
 EXECUTION** and rejects startup until these conditions are independently

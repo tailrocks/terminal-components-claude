@@ -27,9 +27,9 @@ revalidated; the values below are preparation references, not permission:
 ```text
 campaign preparation payload at documentation start:
   branch refactor/holla-parity
-  HEAD f6f94dc995f5b6451800d739174d7f23802a40c3
-  tree 61563f7b48d0fe7b8e5bdddae57072e96f6a6f12
-  parent e8c4950928b0ab6cc1268777dbed6f96cb0309ba
+  HEAD bb574d84bf25ff9179b42e951fca52068f2ab623
+  tree 6e464830897f7c39014b12a79219d6cde8b56549
+  parent 8e783592afd0a2c2f08076858a386a091a35e712
 
 protected visual tag:
   refs/tags/visual-baseline^{commit}
@@ -53,6 +53,10 @@ qualified taskfmt:
   version 0.2.0
   binary /tmp/taskfmt-latest-install/bin/taskfmt
   SHA-256 f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
+
+preparation proof build reference:
+  external root /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-preparation-final-2026-09-19
+  binary SHA-256 f85400a16dc131fe0f59bfc90b5ec22cadf97de02833a216ed81385bf70a1b44
 ```
 
 The exact read-only oracle import is
@@ -61,6 +65,31 @@ with manifest
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/oracle-import-manifest-2026-09-19`.
 Do not use `3570a2ed23444dddf1eddcdcc49b654b169038fe` as a complete oracle
 source: it has only 28,580 artifacts / 7,145 keys.
+
+The latest preparation trust repairs are
+`8e783592afd0a2c2f08076858a386a091a35e712` (taskfmt final/parent alias
+rejection) and `bb574d84bf25ff9179b42e951fca52068f2ab623` (Rust verifier
+parent-path rejection). Their raw evidence roots are:
+
+```text
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/taskfmt-path-repair-2026-09-19
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/symlink-parent-repair-2026-09-19
+```
+
+Bernoulli (`gpt-5.6-luna`, max) rejected the prior tree for these defects; that
+rejection and raw evidence are
+`/tmp/campaign-review-evidence-21f87531.7EkYOO/`. The repairs do not constitute
+final current-tree approval.
+
+The complete 892 control source is commit
+`89218626011f2f82c4e87c4dfd5868a4c5f3e284`, tree
+`6fccf997cd742071ebcff0e0a00e89404ef95ca8`, snapshot tree
+`3f0261c32849e26feda24d87697de4a7ce6b8375`, under
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/baseline-control-892-2026-09-19`.
+Its complete run is not acceptance: 302 cases, 298 pass, 4 fail, 2 skip, 1
+leaky, exit 100, 7,550 artifacts of each type, 17 diff files. Raw summary
+SHA-256 is
+`33034862cfb3d7ae2676bbe01269db5ac0c1af6d3cf6e61896f408c36eb14d3c`.
 
 ## Startup gate — reject dispatch now
 
@@ -118,6 +147,19 @@ implementer if any condition below is false:
 
 No item may be bypassed by changing the report, accepting snapshots, adding a
 skip/allow-failure, or treating an unavailable check as pass.
+
+## Evidence invalidation
+
+Every future receipt must bind the exact final source commit/tree/parent,
+branch, scope base, task contracts, graph/catalog hashes, oracle import,
+taskfmt source/version/binary hash, comparator, proof binary, environment,
+observer/result evidence, and dependency ancestry. Any relevant source,
+documentation, task contract, schema, script, comparator, tool, oracle,
+environment, or generated-output change invalidates affected evidence. In
+particular, this documentation commit changes the source tree after the
+`bb574d84` payload documented above; the future coordinator must perform a
+fresh readiness check and re-seal the exact post-documentation tree before
+dispatch. Ancestor receipts never authorize a changed tree.
 
 ## Delegation and integration protocol
 
