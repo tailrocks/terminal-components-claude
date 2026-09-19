@@ -8,12 +8,13 @@
   "required": ["schema", "integration_ref", "integration_head", "armed", "catalog", "toolchain", "tasks", "receipts"],
   "properties": {
     "schema": {"const": "campaign-ledger/v1"},
-    "integration_ref": {"type": "string", "pattern": "^refs/heads/[^/]+$"},
+    "integration_ref": {"type": "string", "pattern": "^refs/heads/.+$"},
     "integration_head": {"$ref": "#/$defs/fullSha", "description": "Exact current tip; preflight compares it with the live branch tip."},
     "armed": {"type": "boolean", "description": "Preflight requires false; this field cannot authorize work by itself."},
     "armed_at": {"$ref": "#/$defs/timestamp"},
     "catalog": {"$ref": "#/$defs/catalog"},
     "toolchain": {"$ref": "#/$defs/toolchain"},
+    "preparation": {"$ref": "#/$defs/preparationQualification"},
     "receipts": {
       "type": "object",
       "patternProperties": {
@@ -57,6 +58,117 @@
         "taskfmt_source": {"$ref": "#/$defs/absolutePath"},
         "taskfmt_path": {"$ref": "#/$defs/absolutePath"},
         "tuisnap_path": {"anyOf": [{"const": ""}, {"$ref": "#/$defs/absolutePath"}]}
+      }
+    },
+    "pathReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": {"$ref": "#/$defs/absolutePath"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "manifestIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commit", "tree", "manifest"],
+      "properties": {
+        "commit": {"$ref": "#/$defs/fullSha"},
+        "tree": {"$ref": "#/$defs/fullSha"},
+        "manifest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["path", "sha256"],
+          "properties": {
+            "path": {"$ref": "#/$defs/relativePath"},
+            "sha256": {"$ref": "#/$defs/sha256"}
+          }
+        }
+      }
+    },
+    "qualificationArtifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["check_id", "path", "sha256"],
+      "properties": {
+        "check_id": {"type": "string", "pattern": "^CHK-[0-9]{3}$"},
+        "path": {"$ref": "#/$defs/absolutePath"},
+        "sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "preparationProof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["task_id", "run_id", "preparation_receipt", "context_index", "observer", "contexts", "results"],
+      "properties": {
+        "task_id": {"$ref": "#/$defs/taskId"},
+        "run_id": {"$ref": "#/$defs/absolutePath"},
+        "preparation_receipt": {"$ref": "#/$defs/pathReference"},
+        "context_index": {"$ref": "#/$defs/pathReference"},
+        "observer": {"$ref": "#/$defs/pathReference"},
+        "contexts": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/qualificationArtifact"}},
+        "results": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/qualificationArtifact"}}
+      }
+    },
+    "preparationDecision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "evidence", "verdict", "recorded_at"],
+      "properties": {
+        "run_id": {"$ref": "#/$defs/absolutePath"},
+        "evidence": {"$ref": "#/$defs/pathReference"},
+        "verdict": {"const": "VERIFIED"},
+        "recorded_at": {"$ref": "#/$defs/timestamp"}
+      }
+    },
+    "preparationFreshness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["qualified_at", "expires_at", "max_age_seconds"],
+      "properties": {
+        "qualified_at": {"$ref": "#/$defs/timestamp"},
+        "expires_at": {"$ref": "#/$defs/timestamp"},
+        "max_age_seconds": {"type": "integer", "minimum": 1}
+      }
+    },
+    "preparationQualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema", "integration_ref", "candidate_commit", "candidate_tree", "oracle", "catalog", "task_graph", "taskfmt", "proof_preparation", "verifier", "reviewer", "freshness"],
+      "properties": {
+        "schema": {"const": "campaign-preparation-qualification/v1"},
+        "integration_ref": {"type": "string", "pattern": "^refs/heads/.+$"},
+        "candidate_commit": {"$ref": "#/$defs/fullSha"},
+        "candidate_tree": {"$ref": "#/$defs/fullSha"},
+        "oracle": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tag", "commit", "tree"],
+          "properties": {
+            "tag": {"type": "string", "minLength": 1},
+            "commit": {"$ref": "#/$defs/fullSha"},
+            "tree": {"$ref": "#/$defs/fullSha"}
+          }
+        },
+        "catalog": {"$ref": "#/$defs/manifestIdentity"},
+        "task_graph": {"$ref": "#/$defs/manifestIdentity"},
+        "taskfmt": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["taskfmt_revision", "taskfmt_version", "taskfmt_sha256", "taskfmt_source", "taskfmt_path"],
+          "properties": {
+            "taskfmt_revision": {"$ref": "#/$defs/fullSha"},
+            "taskfmt_version": {"type": "string", "minLength": 1},
+            "taskfmt_sha256": {"$ref": "#/$defs/sha256"},
+            "taskfmt_source": {"$ref": "#/$defs/absolutePath"},
+            "taskfmt_path": {"$ref": "#/$defs/absolutePath"}
+          }
+        },
+        "proof_preparation": {"$ref": "#/$defs/preparationProof"},
+        "verifier": {"$ref": "#/$defs/preparationDecision"},
+        "reviewer": {"$ref": "#/$defs/preparationDecision"},
+        "freshness": {"$ref": "#/$defs/preparationFreshness"}
       }
     },
     "task": {

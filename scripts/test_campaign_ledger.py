@@ -6,6 +6,7 @@ import copy
 import hashlib
 import json
 import tempfile
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
 
@@ -13,9 +14,14 @@ from campaign_ledger import (
     CONTEXT_INDEX_SCHEMA,
     CONTEXT_SCHEMA,
     EVIDENCE_SCHEMA,
+    FROZEN_ORACLE_COMMIT,
+    FROZEN_ORACLE_TREE,
     NATIVE_BUILD_SCHEMA,
     OBSERVER_SCHEMA,
     PREPARATION_RESULT_SCHEMA,
+    PREPARATION_QUALIFICATION_SCHEMA,
+    PREPARATION_REVIEW_SCHEMA,
+    PREPARATION_VERIFIER_SCHEMA,
     PROOF_PREPARATION_SCHEMA,
     RECEIPT_SCHEMA,
     RESULT_SCHEMA,
@@ -23,6 +29,7 @@ from campaign_ledger import (
     LedgerValidationError,
     accepted_verifier_rows,
     validate_preflight_ledger,
+    validate_preparation_qualification,
     validate_proof_preparation,
 )
 
@@ -38,6 +45,9 @@ TASKFMT = {
     "taskfmt_path": "/opt/taskfmt/bin/taskfmt",
 }
 NOW = "2026-09-18T00:00:00Z"
+TREE = "b" * 40
+ORACLE_COMMIT = FROZEN_ORACLE_COMMIT
+ORACLE_TREE = FROZEN_ORACLE_TREE
 
 
 def write_json(path: Path, value: Any) -> None:
@@ -176,18 +186,21 @@ def expect_reject(
 def make_preparation(root: Path) -> tuple[dict[str, Any], Path, Path]:
     worktree = root / "candidate-worktree"
     run = root / "external-run"
-    (worktree / "target" / "debug").mkdir(parents=True)
+    (run / "target" / "debug").mkdir(parents=True)
     (run / "contexts").mkdir(parents=True)
     (run / "results").mkdir(parents=True)
     worktree = worktree.resolve()
     run = run.resolve()
-    binary = worktree / "target" / "debug" / "tc-proof"
+    binary = run / "target" / "debug" / "tc-proof"
     binary.write_bytes(b"qualified-native-comparator")
     build_receipt_path = binary.with_name("tc-proof.build.json")
     build = {
         "schema": NATIVE_BUILD_SCHEMA,
         "worktree": str(worktree),
+        "target_dir": str(run / "target"),
+        "cargo_target_dir": str(run / "target"),
         "commit": SHA,
+        "tree": TREE,
         "binary": str(binary),
         "binary_sha256": file_sha256(binary),
     }
@@ -399,12 +412,150 @@ def main() -> None:
         else:
             raise RuntimeError("legacy Rust runner index ABI was accepted")
 
+    qualification_tests()
+
     print("campaign ledger authority and proof-preparation contracts: PASS")
 
 
 def validate_current_head_mutation(ledger: dict[str, Any]) -> None:
     # Keep the mutation explicit so the test remains effective under -O.
     ledger["integration_head"] = "e" * 40
+
+
+def make_qualification(root: Path) -> tuple[dict[str, Any], dict[str, Any], dict[str, str], datetime]:
+    """Build a complete external-run qualification fixture."""
+    candidate = root / "candidate"
+    proof_run = root / "proof-run"
+    verifier_run = root / "verifier-run"
+    reviewer_run = root / "reviewer-run"
+    for path in (candidate, proof_run / "contexts", proof_run / "results", proof_run / "target" / "debug", verifier_run, reviewer_run):
+        path.mkdir(parents=True)
+    (candidate / "catalog-manifest.json").write_text("catalog\n", encoding="utf-8")
+    (candidate / "task-graph.json").write_text("graph\n", encoding="utf-8")
+    candidate = candidate.resolve()
+    proof_run = proof_run.resolve()
+    verifier_run = verifier_run.resolve()
+    reviewer_run = reviewer_run.resolve()
+
+    def ref(path: Path) -> dict[str, str]:
+        return {"path": str(path), "sha256": file_sha256(path)}
+
+    binary = proof_run / "target" / "debug" / "tc-proof"
+    binary.write_bytes(b"native-proof")
+    build_path = binary.with_name("tc-proof.build.json")
+    build = {
+        "schema": NATIVE_BUILD_SCHEMA,
+        "worktree": str(candidate),
+        "target_dir": str(proof_run / "target"),
+        "cargo_target_dir": str(proof_run / "target"),
+        "commit": SHA,
+        "tree": TREE,
+        "binary": str(binary),
+        "binary_sha256": file_sha256(binary),
+    }
+    write_json(build_path, build)
+    context = proof_run / "contexts" / "CHK-001.json"
+    result = proof_run / "results" / "CHK-001.json"
+    observer = proof_run / "observer.json"
+    write_json(context, {"schema": CONTEXT_SCHEMA, "task_id": "TASK-001", "check_id": "CHK-001", "run_id": str(proof_run), "worktree_commit": SHA, "scope_base": BASE, "operation": "preflight"})
+    write_json(result, {"schema": PREPARATION_RESULT_SCHEMA, "task_id": "TASK-001", "check_id": "CHK-001", "run_id": str(proof_run), "worktree_commit": SHA, "scope_base": BASE, "context_sha256": file_sha256(context), "status": "ready"})
+    write_json(observer, {"schema": OBSERVER_SCHEMA, "task_id": "TASK-001", "run_id": str(proof_run), "worktree_commit": SHA, "scope_base": BASE, "transport": "inherited-pipe/v1", "nonce_sha256": "e" * 64})
+    index = {"schema": CONTEXT_INDEX_SCHEMA, "task_id": "TASK-001", "run_id": str(proof_run), "worktree_commit": SHA, "scope_base": BASE, "contexts": [{"check_id": "CHK-001", **ref(context)}], "results": [{"check_id": "CHK-001", **ref(result)}], "observer": ref(observer)}
+    index_path = proof_run / "context-index.json"
+    write_json(index_path, index)
+    prep_path = proof_run / "proof-preparation.json"
+    prep = {"schema": PROOF_PREPARATION_SCHEMA, "task_id": "TASK-001", "worktree": str(candidate), "commit": SHA, "scope_base": BASE, "run_id": str(proof_run), "native_build": {"receipt": str(build_path), "receipt_sha256": file_sha256(build_path), "binary": str(binary), "binary_sha256": file_sha256(binary)}, "taskfmt": dict(TASKFMT), "context_index": ref(index_path), "contexts": index["contexts"], "results": index["results"], "observer": index["observer"]}
+    write_json(prep_path, prep)
+
+    catalog = {"commit": SHA, "tree": TREE, "manifest": {"path": "catalog-manifest.json", "sha256": file_sha256(candidate / "catalog-manifest.json")}}
+    graph = {"commit": SHA, "tree": TREE, "manifest": {"path": "task-graph.json", "sha256": file_sha256(candidate / "task-graph.json")}}
+    oracle = {"tag": "refs/tags/visual-baseline", "commit": ORACLE_COMMIT, "tree": ORACLE_TREE}
+    qualified = datetime.now(timezone.utc).replace(microsecond=0)
+    verifier_at = qualified - timedelta(seconds=2)
+    common = {"proof_run_id": str(proof_run), "candidate_commit": SHA, "candidate_tree": TREE, "integration_ref": f"refs/heads/{BRANCH}", "oracle": oracle, "catalog": catalog, "task_graph": graph, "taskfmt": dict(TASKFMT), "proof_preparation_sha256": file_sha256(prep_path), "context_index_sha256": file_sha256(index_path), "observer_sha256": file_sha256(observer), "scope_base": BASE}
+    verifier_path = verifier_run / "verifier.json"
+    verifier = {"schema": PREPARATION_VERIFIER_SCHEMA, "verdict": "VERIFIED", "run_id": str(verifier_run), **common, "recorded_at": verifier_at.isoformat().replace("+00:00", "Z")}
+    write_json(verifier_path, verifier)
+    reviewer_path = reviewer_run / "reviewer.json"
+    reviewer = {"schema": PREPARATION_REVIEW_SCHEMA, "verdict": "VERIFIED", "run_id": str(reviewer_run), "verifier_run_id": str(verifier_run), "verifier_evidence_sha256": file_sha256(verifier_path), **common, "recorded_at": qualified.isoformat().replace("+00:00", "Z")}
+    write_json(reviewer_path, reviewer)
+    qualification = {"schema": PREPARATION_QUALIFICATION_SCHEMA, "integration_ref": f"refs/heads/{BRANCH}", "candidate_commit": SHA, "candidate_tree": TREE, "oracle": oracle, "catalog": catalog, "task_graph": graph, "taskfmt": dict(TASKFMT), "proof_preparation": {"task_id": "TASK-001", "run_id": str(proof_run), "preparation_receipt": ref(prep_path), "context_index": ref(index_path), "observer": ref(observer), "contexts": index["contexts"], "results": index["results"]}, "verifier": {"run_id": str(verifier_run), "evidence": ref(verifier_path), "verdict": "VERIFIED", "recorded_at": verifier["recorded_at"]}, "reviewer": {"run_id": str(reviewer_run), "evidence": ref(reviewer_path), "verdict": "VERIFIED", "recorded_at": reviewer["recorded_at"]}, "freshness": {"qualified_at": qualified.isoformat().replace("+00:00", "Z"), "expires_at": (qualified + timedelta(seconds=3600)).isoformat().replace("+00:00", "Z"), "max_age_seconds": 3600}}
+    expected_catalog = {"commit": SHA, "tree": TREE, "manifest": catalog["manifest"]}
+    expected_graph = {"commit": SHA, "tree": TREE, "manifest": graph["manifest"]}
+    return qualification, {"candidate": candidate, "proof": proof_run, "verifier": verifier_run, "reviewer": reviewer_run}, {"tag": oracle["tag"], "commit": oracle["commit"], "tree": oracle["tree"]}, qualified
+
+
+def qualification_tests() -> None:
+    with tempfile.TemporaryDirectory(prefix="campaign-qualification-") as directory:
+        root = Path(directory)
+        qualification, paths, oracle, qualified = make_qualification(root)
+        validate_preparation_qualification(qualification, worktree=paths["candidate"], current_head=SHA, current_tree=TREE, integration_branch=BRANCH, expected_oracle=oracle, expected_taskfmt=TASKFMT, repository_root=paths["candidate"], now=qualified + timedelta(seconds=1))
+        ledger = make_ledger(root / "ledger-fixture")
+        ledger["tasks"][0]["status"] = "blocked"
+        ledger["preparation"] = qualification
+        validate_preflight_ledger(ledger, BRANCH, current_head=SHA, current_tree=TREE, expected_oracle=oracle, expected_taskfmt=TASKFMT, dependency_graph={"TASK-001": {"dependencies": []}}, repository_root=paths["candidate"], now=qualified + timedelta(seconds=1))
+        missing_preparation = copy.deepcopy(ledger)
+        del missing_preparation["preparation"]
+        try:
+            validate_preflight_ledger(missing_preparation, BRANCH, current_head=SHA, current_tree=TREE, expected_oracle=oracle, expected_taskfmt=TASKFMT, dependency_graph={"TASK-001": {"dependencies": []}}, repository_root=paths["candidate"], now=qualified + timedelta(seconds=1))
+        except LedgerValidationError:
+            pass
+        else:
+            raise RuntimeError("zero-production-row preflight accepted without preparation")
+        forged = copy.deepcopy(qualification)
+        forged["candidate_tree"] = "c" * 40
+        try:
+            validate_preparation_qualification(forged, worktree=paths["candidate"], current_head=SHA, current_tree=TREE, integration_branch=BRANCH, expected_oracle=oracle, expected_taskfmt=TASKFMT, repository_root=paths["candidate"], now=qualified + timedelta(seconds=1))
+        except LedgerValidationError:
+            pass
+        else:
+            raise RuntimeError("wrong candidate tree was accepted")
+        wrong_oracle = dict(oracle)
+        wrong_oracle["tree"] = "1" * 40
+        try:
+            validate_preparation_qualification(qualification, worktree=paths["candidate"], current_head=SHA, current_tree=TREE, integration_branch=BRANCH, expected_oracle=wrong_oracle, expected_taskfmt=TASKFMT, repository_root=paths["candidate"], now=qualified + timedelta(seconds=1))
+        except LedgerValidationError:
+            pass
+        else:
+            raise RuntimeError("caller-supplied oracle tree was accepted")
+        proof = Path(paths["proof"])
+        context = proof / "contexts" / "CHK-001.json"
+        symlink_target = proof / "context-original.json"
+        symlink_target.write_bytes(context.read_bytes())
+        context.unlink()
+        context.symlink_to(symlink_target)
+        try:
+            validate_preparation_qualification(qualification, worktree=paths["candidate"], current_head=SHA, current_tree=TREE, integration_branch=BRANCH, expected_oracle=oracle, expected_taskfmt=TASKFMT, repository_root=paths["candidate"], now=qualified + timedelta(seconds=1))
+        except LedgerValidationError as error:
+            if "symlink" not in str(error):
+                raise RuntimeError(f"symlink rejected for wrong reason: {error}") from error
+        else:
+            raise RuntimeError("symlinked proof input was accepted")
+        context.unlink()
+        context.write_bytes(symlink_target.read_bytes())
+        symlink_target.unlink()
+        context.write_text(context.read_text(encoding="utf-8") + "forged\n", encoding="utf-8")
+        try:
+            validate_preparation_qualification(qualification, worktree=paths["candidate"], current_head=SHA, current_tree=TREE, integration_branch=BRANCH, expected_oracle=oracle, expected_taskfmt=TASKFMT, repository_root=paths["candidate"], now=qualified + timedelta(seconds=1))
+        except LedgerValidationError as error:
+            if "hash" not in str(error):
+                raise RuntimeError(f"mutated context rejected for wrong reason: {error}") from error
+        else:
+            raise RuntimeError("mutated context was accepted")
+        # A hard-linked evidence file is rejected before content is trusted.
+        context.write_text(json.dumps({"schema": CONTEXT_SCHEMA, "task_id": "TASK-001", "check_id": "CHK-001", "run_id": str(proof), "worktree_commit": SHA, "scope_base": BASE, "operation": "preflight"}) + "\n", encoding="utf-8")
+        hardlink = proof / "context-source.json"
+        hardlink.write_bytes(context.read_bytes())
+        context.unlink()
+        context.hardlink_to(hardlink)
+        try:
+            validate_preparation_qualification(qualification, worktree=paths["candidate"], current_head=SHA, current_tree=TREE, integration_branch=BRANCH, expected_oracle=oracle, expected_taskfmt=TASKFMT, repository_root=paths["candidate"], now=qualified + timedelta(seconds=1))
+        except LedgerValidationError as error:
+            if "hard-linked" not in str(error):
+                raise RuntimeError(f"hardlink rejected for wrong reason: {error}") from error
+        else:
+            raise RuntimeError("hard-linked proof input was accepted")
+
 
 
 if __name__ == "__main__":
