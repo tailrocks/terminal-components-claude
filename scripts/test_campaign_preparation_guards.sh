@@ -108,7 +108,9 @@ git -C "$preflight_root" add README.md docs/refactoring-plan/execution-readiness
 git -C "$preflight_root" commit -q -m fixture
 preflight_helper="$preflight_root/scripts/campaign-preflight-functions.sh"
 copy_without_main "$PREFLIGHT" "$preflight_helper"
+cp "$SCRIPT_DIR/campaign-path-guards.sh" "$preflight_root/scripts/campaign-path-guards.sh"
 git -C "$preflight_root" add scripts/campaign-preflight-functions.sh
+git -C "$preflight_root" add scripts/campaign-path-guards.sh
 git -C "$preflight_root" commit -q -m helper
 cd "$preflight_root"
 
@@ -123,6 +125,40 @@ printf '%s\n' "$output" | grep -Fq "worktree $preflight_root is dirty" ||
 	fail "dirty worktree had unexpected output: $output"
 pass "campaign-preflight rejects a dirty candidate worktree"
 rm "$preflight_root/dirty-marker"
+
+qualified_taskfmt="${TC_TASKFMT:-/tmp/taskfmt-latest-install/bin/taskfmt}"
+[[ -f "$qualified_taskfmt" ]] ||
+	fail "qualified taskfmt is missing: $qualified_taskfmt"
+
+run_taskfmt_identity() {
+	local path="$1"
+	env TC_TASKFMT="$path" bash -c \
+		"source \"\$1\"; check_taskfmt_identity" _ "$preflight_helper" 2>&1
+}
+
+if output="$(run_taskfmt_identity "$qualified_taskfmt")"; then
+	pass "preflight accepts the qualified taskfmt path"
+else
+	fail "preflight rejected the qualified taskfmt path: $output"
+fi
+
+taskfmt_final_alias="$TMP_ROOT/taskfmt-final-alias"
+ln -s "$qualified_taskfmt" "$taskfmt_final_alias"
+if output="$(run_taskfmt_identity "$taskfmt_final_alias")"; then
+	fail "preflight accepted a taskfmt final symlink"
+fi
+printf '%s\n' "$output" | grep -Fq "taskfmt final path must not be a symlink" ||
+	fail "taskfmt final symlink rejection had unexpected output: $output"
+pass "preflight rejects a taskfmt final symlink"
+
+taskfmt_parent_alias="$TMP_ROOT/taskfmt-parent-alias"
+ln -s "$(dirname "$qualified_taskfmt")" "$taskfmt_parent_alias"
+if output="$(run_taskfmt_identity "$taskfmt_parent_alias/$(basename "$qualified_taskfmt")")"; then
+	fail "preflight accepted a taskfmt symlinked parent"
+fi
+printf '%s\n' "$output" | grep -Fq "taskfmt parent path component must not be a symlink" ||
+	fail "taskfmt symlinked parent rejection had unexpected output: $output"
+pass "preflight rejects a taskfmt symlinked parent"
 
 if output="$(
 	env TC_CAMPAIGN_WORKTREE="$preflight_root" INTEGRATION_BRANCH=refactor/holla-parity \
@@ -141,6 +177,7 @@ mkdir -p "$plan_root/scripts" "$plan_root/docs/refactoring-plan/evidence"
 git init -q "$plan_root"
 plan_helper="$plan_root/scripts/campaign-preflight-functions.sh"
 copy_without_main "$PREFLIGHT" "$plan_helper"
+cp "$SCRIPT_DIR/campaign-path-guards.sh" "$plan_root/scripts/campaign-path-guards.sh"
 python3 - "$plan_root/docs/refactoring-plan/evidence/validate-plan.py" <<'PY'
 import sys
 from pathlib import Path

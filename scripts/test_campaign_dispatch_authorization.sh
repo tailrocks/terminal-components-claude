@@ -461,6 +461,52 @@ if ((positive_rc != 0)); then
 fi
 pass "valid current preflight authorization accepted"
 
+taskfmt_final_alias="$TMP_ROOT/taskfmt-final-alias"
+ln -s "$TASKFMT" "$taskfmt_final_alias"
+set +e
+TASK=002 \
+	TC_CAMPAIGN_ROOT="$campaign" \
+	TC_TASK_WORKTREE="$candidate" \
+	TC_TASK_RUN_DIR="$TMP_ROOT/positive-run" \
+	TC_TASK_BASE="$candidate_head" \
+	TC_TASK_PREFLIGHT_EVIDENCE="$TMP_ROOT/positive-run/authorization.json" \
+	TC_CATALOG_ROOT="$catalog" \
+	TC_PROOF_TARGET_DIR="$target" \
+	CARGO_TARGET_DIR="" \
+	TC_TASKFMT="$taskfmt_final_alias" \
+	"$DISPATCH" verify >"$TMP_ROOT/taskfmt-final.stdout" 2>"$TMP_ROOT/taskfmt-final.stderr"
+taskfmt_final_rc=$?
+set -e
+if ((taskfmt_final_rc == 0)); then
+	fail "dispatch accepted a taskfmt final symlink"
+fi
+grep -Fq "taskfmt final path must not be a symlink" "$TMP_ROOT/taskfmt-final.stderr" ||
+	fail "dispatch taskfmt final symlink rejection had unexpected output: $(rtk cat "$TMP_ROOT/taskfmt-final.stderr")"
+pass "dispatch rejects a taskfmt final symlink"
+
+taskfmt_parent_alias="$TMP_ROOT/taskfmt-parent-alias"
+ln -s "$(dirname "$TASKFMT")" "$taskfmt_parent_alias"
+set +e
+TASK=002 \
+	TC_CAMPAIGN_ROOT="$campaign" \
+	TC_TASK_WORKTREE="$candidate" \
+	TC_TASK_RUN_DIR="$TMP_ROOT/positive-run" \
+	TC_TASK_BASE="$candidate_head" \
+	TC_TASK_PREFLIGHT_EVIDENCE="$TMP_ROOT/positive-run/authorization.json" \
+	TC_CATALOG_ROOT="$catalog" \
+	TC_PROOF_TARGET_DIR="$target" \
+	CARGO_TARGET_DIR="" \
+	TC_TASKFMT="$taskfmt_parent_alias/$(basename "$TASKFMT")" \
+	"$DISPATCH" verify >"$TMP_ROOT/taskfmt-parent.stdout" 2>"$TMP_ROOT/taskfmt-parent.stderr"
+taskfmt_parent_rc=$?
+set -e
+if ((taskfmt_parent_rc == 0)); then
+	fail "dispatch accepted a taskfmt symlinked parent"
+fi
+grep -Fq "taskfmt parent path component must not be a symlink" "$TMP_ROOT/taskfmt-parent.stderr" ||
+	fail "dispatch taskfmt symlinked parent rejection had unexpected output: $(rtk cat "$TMP_ROOT/taskfmt-parent.stderr")"
+pass "dispatch rejects a taskfmt symlinked parent"
+
 hardlink_sentinel="$TMP_ROOT/hardlink-tc-proof"
 cp "$binary" "$hardlink_sentinel"
 rm "$binary"

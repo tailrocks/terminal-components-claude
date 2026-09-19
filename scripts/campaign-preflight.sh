@@ -20,6 +20,8 @@ TASKFMT_SOURCE="/Users/donbeave/Projects/taskfmt/task-format"
 TASKFMT_BIN="${TC_TASKFMT:-/tmp/taskfmt-latest-install/bin/taskfmt}"
 PREFLIGHT_REPORT="${TC_PREFLIGHT_REPORT:-}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/campaign-path-guards.sh"
 
 usage() {
 	cat <<'EOF'
@@ -213,14 +215,14 @@ PY
 
 check_taskfmt_identity() {
 	[[ "$TASKFMT_BIN" = /* ]] || fail "taskfmt path must be absolute: $TASKFMT_BIN"
+	campaign_require_regular_file "$TASKFMT_BIN" "taskfmt" 0 1 ||
+		fail "taskfmt path failed trust-path validation: $TASKFMT_BIN"
 	[[ -d "$TASKFMT_SOURCE/.git" ]] ||
 		fail "taskfmt source is not a git checkout: $TASKFMT_SOURCE"
 	[[ -z "$(git -C "$TASKFMT_SOURCE" status --porcelain)" ]] ||
 		fail "taskfmt source is dirty: $TASKFMT_SOURCE"
 	[[ "$(git -C "$TASKFMT_SOURCE" rev-parse HEAD)" == "$TASKFMT_REV" ]] ||
 		fail "taskfmt source is not latest $TASKFMT_REV"
-	[[ -f "$TASKFMT_BIN" && ! -L "$TASKFMT_BIN" && -x "$TASKFMT_BIN" ]] ||
-		fail "taskfmt is not a regular executable: $TASKFMT_BIN"
 	local actual_sha
 	actual_sha="$(shasum -a 256 "$TASKFMT_BIN" | awk '{print $1}')"
 	[[ "$actual_sha" == "$TASKFMT_SHA256" ]] ||

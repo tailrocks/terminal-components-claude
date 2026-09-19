@@ -11,6 +11,8 @@ ORACLE_TAG="refs/tags/visual-baseline"
 ORACLE_COMMIT="4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/campaign-path-guards.sh"
 INTEGRATION_BRANCH="${INTEGRATION_BRANCH:-refactor/holla-parity}"
 CAMPAIGN_ROOT="${TC_CAMPAIGN_ROOT:-$REPO_ROOT}"
 CAMPAIGN_LEDGER="${TC_CAMPAIGN_LEDGER:-$CAMPAIGN_ROOT/.campaign/ledger.json}"
@@ -269,7 +271,8 @@ PY
 
 require_taskfmt() {
 	require_absolute_paths
-	[[ -x "$TASKFMT" ]] || die "taskfmt not executable: $TASKFMT"
+	campaign_require_regular_file "$TASKFMT" "taskfmt" 0 1 ||
+		die "taskfmt path failed trust-path validation: $TASKFMT"
 	local actual_sha
 	actual_sha="$(shasum -a 256 "$TASKFMT" | awk '{print $1}')"
 	[[ "$actual_sha" == "$TASKFMT_SHA256" ]] ||
@@ -742,8 +745,8 @@ cmd_verify() {
 	require_scope_base
 	require_external_run_dir
 	require_clean_worktree
-	require_dispatch_authorization
 	require_taskfmt
+	require_dispatch_authorization
 	target_dir="$(resolve_target_dir "$worktree_root")" ||
 		die "native proof target directory is invalid"
 	binary="$(proof_binary "$target_dir")"

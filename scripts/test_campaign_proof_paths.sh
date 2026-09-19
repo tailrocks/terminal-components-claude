@@ -206,6 +206,7 @@ except ValueError as error:
     raise SystemExit("campaign-preflight main entry point changed") from error
 destination.write_text("\n".join(lines) + "\n", encoding="utf-8")
 PY
+cp "$SCRIPT_DIR/campaign-path-guards.sh" "$repo/scripts/campaign-path-guards.sh"
 
 preflight_target="$TMP_ROOT/preflight-target"
 mkdir -p "$preflight_target/debug"
