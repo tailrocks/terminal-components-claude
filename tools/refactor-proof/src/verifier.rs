@@ -15,7 +15,7 @@ use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
 use std::os::fd::{AsRawFd, FromRawFd};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, ExitStatus, Stdio};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -44,6 +44,9 @@ const OBSERVER_PROVIDER_ENV: &str = "TC_PROOF_OBSERVER_PROVIDER";
 const EXPECTED_ORACLE_COMMIT: &str = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b";
 const MAX_LAUNCH_TIMEOUT_MS: u64 = 600_000;
 const MAX_CHILD_OUTPUT_BYTES: usize = 32 * 1024 * 1024;
+const CLEANUP_POLL_INTERVAL: Duration = Duration::from_millis(5);
+const OBSERVER_CLEANUP_TIMEOUT: Duration = Duration::from_secs(1);
+const OBSERVER_PROVIDER_GRACE_TIMEOUT: Duration = Duration::from_secs(1);
 
 /// Native preparation inputs supplied by the verifier subagent.
 #[derive(Debug, Clone)]
@@ -235,47 +238,63 @@ impl ObserverSupervisor {
         self.response_read.take();
     }
 
-    fn kill_provider(&self) {
-        let mut provider = self
-            .provider
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        terminate_child(&mut provider);
-    }
-
-    fn join_thread(&mut self) -> Result<Vec<String>> {
+    fn join_thread_until(&mut self, deadline: Instant) -> Result<Vec<String>> {
         let thread = self
             .thread
             .take()
             .ok_or_else(|| VerifierError::new("observer supervisor thread is missing"))?;
-        thread
-            .join()
-            .map_err(|_| VerifierError::new("observer supervisor panicked"))?
+        join_result_thread(thread, deadline, "observer supervisor")
+    }
+
+    fn kill_provider_until(&self, deadline: Instant) -> Result<()> {
+        let mut provider = lock_provider_until(&self.provider, deadline)?;
+        terminate_child_until(&mut provider, deadline).map(|_| ())
     }
 
     fn wait(mut self, timeout: Duration) -> Result<Vec<String>> {
         self.close_worker_ends();
-        let deadline = Instant::now().checked_add(timeout);
+        let deadline = cleanup_deadline(timeout, "observer supervisor")?;
         loop {
             if self
                 .thread
                 .as_ref()
                 .is_some_and(thread::JoinHandle::is_finished)
             {
-                return self.join_thread();
+                return self.join_thread_until(Instant::now());
             }
-            if deadline.is_none_or(|deadline| Instant::now() >= deadline) {
-                self.kill_provider();
-                return self.join_thread();
+            if Instant::now() >= deadline {
+                let cleanup_deadline =
+                    cleanup_deadline(OBSERVER_CLEANUP_TIMEOUT, "observer supervisor cleanup")?;
+                let provider_error = self.kill_provider_until(cleanup_deadline).err();
+                let thread_result = self.join_thread_until(cleanup_deadline);
+                return match provider_error {
+                    None => thread_result,
+                    Some(provider_error) => match thread_result {
+                        Ok(_) => Err(provider_error),
+                        Err(thread_error) => Err(VerifierError::new(format!(
+                            "{provider_error}; observer supervisor cleanup: {thread_error}"
+                        ))),
+                    },
+                };
             }
-            thread::sleep(Duration::from_millis(5));
+            thread::sleep(CLEANUP_POLL_INTERVAL);
         }
     }
 
-    fn abort(mut self) {
+    fn abort(self) -> Result<()> {
+        let deadline = cleanup_deadline(OBSERVER_CLEANUP_TIMEOUT, "observer supervisor abort")?;
+        self.abort_until(deadline)
+    }
+
+    fn abort_until(mut self, deadline: Instant) -> Result<()> {
         self.close_worker_ends();
-        self.kill_provider();
-        let _ = self.thread.take().and_then(|thread| thread.join().ok());
+        let provider_error = self.kill_provider_until(deadline).err();
+        let thread_error = self.join_thread_until(deadline).map(|_| ()).err();
+        let errors = [provider_error, thread_error]
+            .into_iter()
+            .flatten()
+            .collect();
+        combine_cleanup_errors(errors)
     }
 }
 
@@ -1386,8 +1405,10 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
     let (handoff_read, mut handoff_write) = match make_handoff_pipe() {
         Ok(pipe) => pipe,
         Err(error) => {
-            abort_observer_supervisor(observer_supervisor);
-            return Err(error);
+            return Err(report_cleanup_error(
+                error,
+                abort_observer_supervisor(observer_supervisor),
+            ));
         }
     };
     let handoff = json!({
@@ -1403,20 +1424,26 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
     if let Err(error) = handoff_write.write_all(canonical_json(&handoff).as_bytes()) {
         drop(handoff_read);
         drop(handoff_write);
-        abort_observer_supervisor(observer_supervisor);
-        return Err(error.into());
+        return Err(report_cleanup_error(
+            error.into(),
+            abort_observer_supervisor(observer_supervisor),
+        ));
     }
     if let Err(error) = handoff_write.write_all(b"\n") {
         drop(handoff_read);
         drop(handoff_write);
-        abort_observer_supervisor(observer_supervisor);
-        return Err(error.into());
+        return Err(report_cleanup_error(
+            error.into(),
+            abort_observer_supervisor(observer_supervisor),
+        ));
     }
     if let Err(error) = handoff_write.flush() {
         drop(handoff_read);
         drop(handoff_write);
-        abort_observer_supervisor(observer_supervisor);
-        return Err(error.into());
+        return Err(report_cleanup_error(
+            error.into(),
+            abort_observer_supervisor(observer_supervisor),
+        ));
     }
     let handoff_fd = handoff_read.as_raw_fd();
     let (request_fd, response_fd) = match observer_supervisor.worker_fds() {
@@ -1424,8 +1451,10 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
         Err(error) => {
             drop(handoff_read);
             drop(handoff_write);
-            abort_observer_supervisor(observer_supervisor);
-            return Err(error);
+            return Err(report_cleanup_error(
+                error,
+                abort_observer_supervisor(observer_supervisor),
+            ));
         }
     };
     let mut command = Command::new(&options.program);
@@ -1468,20 +1497,26 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
         Err(error) => {
             drop(handoff_read);
             drop(handoff_write);
-            abort_observer_supervisor(observer_supervisor);
-            return Err(VerifierError::new(format!("launch failed: {error}")));
+            return Err(report_cleanup_error(
+                VerifierError::new(format!("launch failed: {error}")),
+                abort_observer_supervisor(observer_supervisor),
+            ));
         }
     };
     observer_supervisor.close_worker_ends();
     drop(handoff_read);
     drop(handoff_write);
     let Some(stdout) = child.stdout.take() else {
-        cleanup_failed_launch(&mut child, None, None, Some(observer_supervisor));
-        return Err(VerifierError::new("stdout pipe unavailable"));
+        return Err(report_cleanup_error(
+            VerifierError::new("stdout pipe unavailable"),
+            cleanup_failed_launch(&mut child, None, None, Some(observer_supervisor)),
+        ));
     };
     let Some(stderr) = child.stderr.take() else {
-        cleanup_failed_launch(&mut child, None, None, Some(observer_supervisor));
-        return Err(VerifierError::new("stderr pipe unavailable"));
+        return Err(report_cleanup_error(
+            VerifierError::new("stderr pipe unavailable"),
+            cleanup_failed_launch(&mut child, None, None, Some(observer_supervisor)),
+        ));
     };
     let mut stdout_thread = Some(thread::spawn(|| read_bounded(stdout)));
     let mut stderr_thread = Some(thread::spawn(|| read_bounded(stderr)));
@@ -1490,21 +1525,27 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
         match child.try_wait() {
             Ok(Some(status)) => break status,
             Ok(None) if started.elapsed() > options.timeout => {
-                terminate_child(&mut child);
-                let _ = stdout_thread.take().map(thread::JoinHandle::join);
-                let _ = stderr_thread.take().map(thread::JoinHandle::join);
-                abort_observer_supervisor(observer_supervisor);
-                return Err(VerifierError::new("child timed out"));
+                return Err(report_cleanup_error(
+                    VerifierError::new("child timed out"),
+                    cleanup_failed_launch(
+                        &mut child,
+                        stdout_thread.take(),
+                        stderr_thread.take(),
+                        Some(observer_supervisor),
+                    ),
+                ));
             }
-            Ok(None) => thread::sleep(Duration::from_millis(5)),
+            Ok(None) => thread::sleep(CLEANUP_POLL_INTERVAL),
             Err(error) => {
-                cleanup_failed_launch(
-                    &mut child,
-                    stdout_thread.take(),
-                    stderr_thread.take(),
-                    Some(observer_supervisor),
-                );
-                return Err(error.into());
+                return Err(report_cleanup_error(
+                    error.into(),
+                    cleanup_failed_launch(
+                        &mut child,
+                        stdout_thread.take(),
+                        stderr_thread.take(),
+                        Some(observer_supervisor),
+                    ),
+                ));
             }
         }
     };
@@ -1685,17 +1726,15 @@ fn start_observer_supervisor(
         })?
     };
     let Some(stdin) = child.stdin.take() else {
-        let _ = child.kill();
-        let _ = child.wait();
-        return Err(VerifierError::new(
-            "observer response provider stdin unavailable",
+        return Err(report_cleanup_error(
+            VerifierError::new("observer response provider stdin unavailable"),
+            terminate_child(&mut child, OBSERVER_CLEANUP_TIMEOUT).map(|_| ()),
         ));
     };
     let Some(stdout) = child.stdout.take() else {
-        let _ = child.kill();
-        let _ = child.wait();
-        return Err(VerifierError::new(
-            "observer response provider stdout unavailable",
+        return Err(report_cleanup_error(
+            VerifierError::new("observer response provider stdout unavailable"),
+            terminate_child(&mut child, OBSERVER_CLEANUP_TIMEOUT).map(|_| ()),
         ));
     };
     let mut provider = PipeObserverProvider {
@@ -1725,9 +1764,11 @@ fn start_observer_supervisor(
         let observer_error = result.as_ref().err().map(ToString::to_string);
         drop(provider);
         let status = {
-            let mut child = provider_process_for_supervisor
-                .lock()
-                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            let deadline = cleanup_deadline(
+                OBSERVER_CLEANUP_TIMEOUT,
+                "observer supervisor provider cleanup",
+            )?;
+            let mut child = lock_provider_until(&provider_process_for_supervisor, deadline)?;
             finish_observer_provider(&mut child, result.is_err())?
         };
         if !status.success() {
@@ -1746,26 +1787,165 @@ fn start_observer_supervisor(
     })
 }
 
-fn abort_observer_supervisor(supervisor: ObserverSupervisor) {
-    supervisor.abort();
+fn abort_observer_supervisor(supervisor: ObserverSupervisor) -> Result<()> {
+    supervisor.abort()
 }
 
-fn terminate_child(child: &mut Child) {
+fn cleanup_deadline(timeout: Duration, label: &str) -> Result<Instant> {
+    Instant::now()
+        .checked_add(timeout)
+        .ok_or_else(|| VerifierError::new(format!("{label} deadline overflowed")))
+}
+
+fn lock_provider_until<'a>(
+    provider: &'a Mutex<Child>,
+    deadline: Instant,
+) -> Result<MutexGuard<'a, Child>> {
+    loop {
+        match provider.try_lock() {
+            Ok(provider) => return Ok(provider),
+            Err(std::sync::TryLockError::Poisoned(provider)) => return Ok(provider.into_inner()),
+            Err(std::sync::TryLockError::WouldBlock) => {}
+        }
+        if Instant::now() >= deadline {
+            return Err(VerifierError::new(
+                "observer response provider lock did not become available before cleanup deadline",
+            ));
+        }
+        thread::sleep(CLEANUP_POLL_INTERVAL);
+    }
+}
+
+fn join_thread_bounded<T>(
+    thread: thread::JoinHandle<T>,
+    deadline: Instant,
+    label: &str,
+) -> Result<T> {
+    loop {
+        if thread.is_finished() {
+            return thread
+                .join()
+                .map_err(|_| VerifierError::new(format!("{label} thread panicked")));
+        }
+        if Instant::now() >= deadline {
+            return Err(VerifierError::new(format!(
+                "{label} thread did not finish before cleanup deadline"
+            )));
+        }
+        thread::sleep(CLEANUP_POLL_INTERVAL);
+    }
+}
+
+fn join_result_thread<T>(
+    thread: thread::JoinHandle<Result<T>>,
+    deadline: Instant,
+    label: &str,
+) -> Result<T> {
+    join_thread_bounded(thread, deadline, label)?
+}
+
+fn combine_cleanup_errors(errors: Vec<VerifierError>) -> Result<()> {
+    if errors.is_empty() {
+        return Ok(());
+    }
+    let details = errors
+        .into_iter()
+        .map(|error| error.to_string())
+        .collect::<Vec<_>>()
+        .join("; ");
+    Err(VerifierError::new(format!("cleanup failed: {details}")))
+}
+
+fn report_cleanup_error(error: VerifierError, cleanup: Result<()>) -> VerifierError {
+    match cleanup {
+        Ok(()) => error,
+        Err(cleanup_error) => {
+            VerifierError::new(format!("{error}; cleanup failed: {cleanup_error}"))
+        }
+    }
+}
+
+fn kill_process_group(child: &Child) -> io::Result<()> {
     #[cfg(unix)]
     {
-        let process_group = child.id() as libc::pid_t;
-        if let Some(process_group) = process_group.checked_neg()
-            && process_group < 0
-        {
-            // SAFETY: the worker creates its own process group before exec;
-            // sending SIGKILL to the negative pid targets only that group.
-            unsafe {
-                let _ = libc::kill(process_group, libc::SIGKILL);
+        let process_group = libc::pid_t::try_from(child.id()).map_err(|_| {
+            io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "child pid does not fit the native process-group type",
+            )
+        })?;
+        if process_group <= 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "child pid is not a valid process-group id",
+            ));
+        }
+        // SAFETY: worker and provider launch hooks create private groups with
+        // the child pid as the group id before either process can run.
+        if unsafe { libc::kill(-process_group, libc::SIGKILL) } == -1 {
+            let error = io::Error::last_os_error();
+            if error.raw_os_error() != Some(libc::ESRCH) {
+                return Err(error);
             }
         }
     }
-    let _ = child.kill();
-    let _ = child.wait();
+    #[cfg(not(unix))]
+    let _ = child;
+    Ok(())
+}
+
+fn child_gone_error(error: &io::Error) -> bool {
+    let gone = matches!(
+        error.kind(),
+        io::ErrorKind::InvalidInput | io::ErrorKind::NotFound
+    );
+    #[cfg(unix)]
+    {
+        gone || error.raw_os_error() == Some(libc::ESRCH)
+    }
+    #[cfg(not(unix))]
+    {
+        gone
+    }
+}
+
+fn wait_for_child_until(child: &mut Child, deadline: Instant, label: &str) -> Result<ExitStatus> {
+    loop {
+        if let Some(status) = child.try_wait()? {
+            return Ok(status);
+        }
+        if Instant::now() >= deadline {
+            return Err(VerifierError::new(format!(
+                "{label} did not terminate before cleanup deadline"
+            )));
+        }
+        thread::sleep(CLEANUP_POLL_INTERVAL);
+    }
+}
+
+fn terminate_child_until(child: &mut Child, deadline: Instant) -> Result<ExitStatus> {
+    if let Some(status) = child.try_wait()? {
+        return Ok(status);
+    }
+    let group_error = kill_process_group(child).err();
+    let direct_error = child.kill().err();
+    let status = wait_for_child_until(child, deadline, "child")?;
+    if let Some(error) = group_error {
+        return Err(VerifierError::new(format!(
+            "process-group termination failed: {error}"
+        )));
+    }
+    if let Some(error) = direct_error.filter(|error| !child_gone_error(error)) {
+        return Err(VerifierError::new(format!(
+            "child termination failed: {error}"
+        )));
+    }
+    Ok(status)
+}
+
+fn terminate_child(child: &mut Child, timeout: Duration) -> Result<ExitStatus> {
+    let deadline = cleanup_deadline(timeout, "child termination")?;
+    terminate_child_until(child, deadline)
 }
 
 fn cleanup_failed_launch(
@@ -1773,16 +1953,48 @@ fn cleanup_failed_launch(
     stdout_thread: Option<thread::JoinHandle<Result<Vec<u8>>>>,
     stderr_thread: Option<thread::JoinHandle<Result<Vec<u8>>>>,
     observer_supervisor: Option<ObserverSupervisor>,
-) {
-    terminate_child(child);
-    if let Some(handle) = stdout_thread {
-        let _ = handle.join();
+) -> Result<()> {
+    let deadline = cleanup_deadline(OBSERVER_CLEANUP_TIMEOUT, "launch cleanup")?;
+    let mut errors = Vec::new();
+    if let Err(error) = terminate_child_until(child, deadline) {
+        errors.push(error);
     }
-    if let Some(handle) = stderr_thread {
-        let _ = handle.join();
+    if let Some(thread) = stdout_thread
+        && let Err(error) = join_result_thread(thread, deadline, "child stdout reader")
+    {
+        errors.push(error);
     }
-    if let Some(supervisor) = observer_supervisor {
-        supervisor.abort();
+    if let Some(thread) = stderr_thread
+        && let Err(error) = join_result_thread(thread, deadline, "child stderr reader")
+    {
+        errors.push(error);
+    }
+    if let Some(supervisor) = observer_supervisor
+        && let Err(error) = supervisor.abort_until(deadline)
+    {
+        errors.push(error);
+    }
+    combine_cleanup_errors(errors)
+}
+
+fn finish_observer_provider(child: &mut Child, kill: bool) -> Result<ExitStatus> {
+    if kill {
+        return terminate_child(child, OBSERVER_CLEANUP_TIMEOUT);
+    }
+    let graceful_deadline = cleanup_deadline(
+        OBSERVER_PROVIDER_GRACE_TIMEOUT,
+        "observer response provider",
+    )?;
+    match wait_for_child_until(child, graceful_deadline, "observer response provider") {
+        Ok(status) => Ok(status),
+        Err(wait_error) => match terminate_child(child, OBSERVER_CLEANUP_TIMEOUT) {
+            Ok(_) => Err(VerifierError::new(format!(
+                "observer response provider did not terminate gracefully: {wait_error}"
+            ))),
+            Err(cleanup_error) => Err(VerifierError::new(format!(
+                "observer response provider cleanup failed: {cleanup_error}; original wait: {wait_error}"
+            ))),
+        },
     }
 }
 
@@ -1809,28 +2021,6 @@ impl ObserverProvider for PipeObserverProvider {
             ));
         }
         parse_json_object(line.trim_end_matches('\n').as_bytes(), "observer response")
-    }
-}
-
-fn finish_observer_provider(child: &mut Child, kill: bool) -> Result<ExitStatus> {
-    if kill {
-        let _ = child.kill();
-    }
-    let deadline = Instant::now()
-        .checked_add(Duration::from_secs(5))
-        .ok_or_else(|| VerifierError::new("observer response deadline overflowed"))?;
-    loop {
-        if let Some(status) = child.try_wait()? {
-            return Ok(status);
-        }
-        if Instant::now() >= deadline {
-            let _ = child.kill();
-            let _ = child.wait();
-            return Err(VerifierError::new(
-                "observer response provider did not terminate",
-            ));
-        }
-        thread::sleep(Duration::from_millis(5));
     }
 }
 
@@ -3659,9 +3849,8 @@ fn read_bounded<R: Read>(reader: R) -> Result<Vec<u8>> {
 }
 
 fn join_output(handle: thread::JoinHandle<Result<Vec<u8>>>) -> Result<Vec<u8>> {
-    handle
-        .join()
-        .map_err(|_| VerifierError::new("child output reader panicked"))?
+    let deadline = cleanup_deadline(OBSERVER_CLEANUP_TIMEOUT, "child output collection")?;
+    join_result_thread(handle, deadline, "child output reader")
 }
 
 fn successful_exit(status: ExitStatus) -> Result<i32> {
