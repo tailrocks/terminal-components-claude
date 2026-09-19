@@ -215,7 +215,7 @@ PY
 
 check_taskfmt_identity() {
 	[[ "$TASKFMT_BIN" = /* ]] || fail "taskfmt path must be absolute: $TASKFMT_BIN"
-	campaign_require_regular_file "$TASKFMT_BIN" "taskfmt" 0 1 ||
+	campaign_require_regular_file "$TASKFMT_BIN" "taskfmt" 1 1 ||
 		fail "taskfmt path failed trust-path validation: $TASKFMT_BIN"
 	[[ -d "$TASKFMT_SOURCE/.git" ]] ||
 		fail "taskfmt source is not a git checkout: $TASKFMT_SOURCE"

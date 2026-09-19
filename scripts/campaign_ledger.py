@@ -43,6 +43,7 @@ PREPARATION_RECORD_KEY = "preparation"
 FROZEN_ORACLE_TAG = "refs/tags/visual-baseline"
 FROZEN_ORACLE_COMMIT = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
 FROZEN_ORACLE_TREE = "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26"
+FROZEN_ORACLE_REF_SHA256 = "dd1df64115ad97feb40cdd1b888356d2461483c7f6372ad8b183364fb317b036"
 
 ACCEPTED_TASK_STATUSES = frozenset({"verified", "integrated"})
 PREPARATION_TASK_STATUSES = frozenset({"pending", "blocked"})
@@ -58,6 +59,18 @@ _FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _TASK_ID = re.compile(r"^TASK-[0-9]{3}$")
 _RECEIPT_KEY = re.compile(r"^task-[0-9]{3}$")
+
+# Native macOS exposes temporary and home paths through these stable system
+# aliases. This must stay byte-for-byte equivalent in policy to
+# campaign-path-guards.sh and the Rust verifier: only the exact alias and
+# exact resolved target are allowed. Candidate-created symlinks remain
+# rejected.
+_ALLOWED_SYSTEM_SYMLINKS = {
+    Path("/etc"): Path("/private/etc"),
+    Path("/home"): Path("/System/Volumes/Data/home"),
+    Path("/tmp"): Path("/private/tmp"),
+    Path("/var"): Path("/private/var"),
+}
 
 
 class LedgerValidationError(AssertionError):
@@ -138,7 +151,7 @@ def _parse_timestamp(value: Any, field: str) -> datetime:
 
 
 def _path_components_have_no_symlink(path: Path, field: str) -> None:
-    """Reject symlinked path components without normalizing away `/tmp` aliases."""
+    """Reject unsafe symlinks while accepting only exact native system aliases."""
 
     if not path.is_absolute():
         _reject(f"{field} must be absolute: {path}")
@@ -150,7 +163,9 @@ def _path_components_have_no_symlink(path: Path, field: str) -> None:
         except OSError as error:
             _reject(f"{field} has an unreadable path component {current}: {error}")
         if stat.S_ISLNK(mode):
-            _reject(f"{field} contains a symlinked path component: {current}")
+            allowed_target = _ALLOWED_SYSTEM_SYMLINKS.get(current)
+            if allowed_target is None or Path(os.path.realpath(current)) != allowed_target:
+                _reject(f"{field} contains a symlinked path component: {current}")
 
 
 def _qualification_file(path: Path, field: str) -> Path:
@@ -900,6 +915,41 @@ def _file_sha256(path: Path, field: str) -> str:
     return digest
 
 
+def _canonical_json_sha256(value: Any) -> str:
+    """Match Rust ``tc-proof`` canonical JSON hashing."""
+
+    raw = json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _validate_executable_identity(
+    value: Mapping[str, Any],
+    *,
+    expected_path: Path,
+    field: str,
+) -> None:
+    """Validate a proof context executable binding at the receipt boundary."""
+
+    _unknown(value, {"path", "sha256"}, field)
+    _required(value, ("path", "sha256"), field)
+    path = _qualification_file(
+        Path(_absolute_path(value["path"], f"{field}.path")),
+        f"{field}.path",
+    )
+    if not os.access(path, os.X_OK):
+        _reject(f"{field}.path is not executable")
+    _sha256(value["sha256"], f"{field}.sha256")
+    if path.resolve() != expected_path.resolve():
+        _reject(f"{field}.path is not the expected executable")
+    if _file_sha256(path, f"{field}.path") != value["sha256"]:
+        _reject(f"{field}.sha256 does not match the executable")
+
+
 def _under(path: Path, parent: Path, field: str) -> Path:
     try:
         path.resolve().relative_to(parent.resolve())
@@ -1327,6 +1377,14 @@ def _validate_external_proof_preparation(
 
     preparation_path, preparation_ref = ref("preparation_receipt")
     preparation = _read_json(preparation_path, "proof_preparation.preparation_receipt")
+    _validate_preparation_file(
+        preparation,
+        worktree=candidate,
+        current_head=candidate_commit,
+        current_tree=candidate_tree,
+        run_dir=run_dir,
+        expected_taskfmt=expected_taskfmt,
+    )
     if preparation.get("schema") != PROOF_PREPARATION_SCHEMA:
         _reject("proof preparation receipt has the wrong schema")
     if preparation.get("task_id") != task_id:
@@ -1521,7 +1579,32 @@ def _validate_external_proof_preparation(
             if name == "context":
                 _unknown(
                     record,
-                    {"schema", "task_id", "check_id", "run_id", "worktree_commit", "scope_base", "operation"},
+                    {
+                        "schema",
+                        "run_id",
+                        "task_id",
+                        "check_id",
+                        "worktree_commit",
+                        "scope_base",
+                        "operation",
+                        "tree",
+                        "oracle_commit",
+                        "oracle_tree",
+                        "bundle",
+                        "bundle_sha256",
+                        "tool",
+                        "dependencies",
+                        "adapter",
+                        "lane",
+                        "axes",
+                        "members",
+                        "inventory",
+                        "evidence",
+                        "configuration",
+                        "qualification",
+                        "architecture_profile",
+                        "branch_host_projection",
+                    },
                     f"proof_preparation.context.{check_id}",
                 )
                 _required(
@@ -1531,6 +1614,23 @@ def _validate_external_proof_preparation(
                 )
                 if record["schema"] != CONTEXT_SCHEMA or record["operation"] == "":
                     _reject(f"proof preparation context schema/operation mismatch for {check_id}")
+                _validate_proof_context_bindings(
+                    record,
+                    candidate=candidate,
+                    candidate_commit=candidate_commit,
+                    candidate_tree=candidate_tree,
+                    run_path=run_dir,
+                    task_id=task_id,
+                    scope_base=scope_base,
+                    check_id=check_id,
+                    native_binary=Path(
+                        _absolute_path(
+                            preparation["native_build"]["binary"],
+                            "proof_preparation.native_build.binary",
+                        )
+                    ),
+                    taskfmt=preparation["taskfmt"],
+                )
             else:
                 _required(
                     record,
@@ -1878,7 +1978,296 @@ def validate_preflight_ledger(
                 _reject(
                     f"task {task_id} dependency {dependency} receipt is not an "
                     "ancestor of the task base"
-                )
+            )
+
+
+def _validate_proof_context_bindings(
+    context: Mapping[str, Any],
+    *,
+    candidate: Path,
+    candidate_commit: str,
+    candidate_tree: str,
+    run_path: Path,
+    task_id: str,
+    scope_base: str,
+    check_id: str,
+    native_binary: Path,
+    taskfmt: Mapping[str, Any],
+) -> None:
+    """Independently validate trust identities carried by one strong context."""
+
+    required = (
+        "schema",
+        "run_id",
+        "task_id",
+        "check_id",
+        "worktree_commit",
+        "scope_base",
+        "operation",
+        "tree",
+        "oracle_commit",
+        "oracle_tree",
+        "bundle",
+        "bundle_sha256",
+        "tool",
+        "qualification",
+    )
+    _unknown(
+        context,
+        {
+            "schema",
+            "run_id",
+            "task_id",
+            "check_id",
+            "worktree_commit",
+            "scope_base",
+            "operation",
+            "tree",
+            "oracle_commit",
+            "oracle_tree",
+            "bundle",
+            "bundle_sha256",
+            "tool",
+            "dependencies",
+            "adapter",
+            "lane",
+            "axes",
+            "members",
+            "inventory",
+            "evidence",
+            "configuration",
+            "qualification",
+            "architecture_profile",
+            "branch_host_projection",
+        },
+        f"proof preparation.context.{check_id}",
+    )
+    _required(context, required, f"proof preparation.context.{check_id}")
+    field = f"proof preparation.context.{check_id}"
+    if context["schema"] != CONTEXT_SCHEMA:
+        _reject(f"{field} schema mismatch")
+    if (
+        context["run_id"] != str(run_path)
+        or context["task_id"] != task_id
+        or context["check_id"] != check_id
+        or context["worktree_commit"] != candidate_commit
+        or context["scope_base"] != scope_base
+    ):
+        _reject(f"{field} identity mismatch")
+    _string(context["operation"], f"{field}.operation")
+    if context["tree"] != candidate_tree:
+        _reject(f"{field} source tree is not bound to the candidate")
+    if context["oracle_commit"] != FROZEN_ORACLE_COMMIT:
+        _reject(f"{field} oracle commit is not the protected baseline")
+    if context["oracle_tree"] != FROZEN_ORACLE_TREE:
+        _reject(f"{field} oracle tree is not the protected baseline")
+    if context["bundle"] != FROZEN_ORACLE_TAG:
+        _reject(f"{field} oracle tag is not the protected visual-baseline tag")
+    _sha256(context["bundle_sha256"], f"{field}.bundle_sha256")
+
+    qualification = _mapping(context["qualification"], f"{field}.qualification")
+    _unknown(
+        qualification,
+        {
+            "common",
+            "trust_manifest",
+            "trust_manifest_sha256",
+            "check",
+            "worker_context",
+            "template_sha256",
+            "comparator",
+        },
+        f"{field}.qualification",
+    )
+    _required(
+        qualification,
+        ("common", "trust_manifest", "trust_manifest_sha256"),
+        f"{field}.qualification",
+    )
+    common = _mapping(qualification["common"], f"{field}.qualification.common")
+    _unknown(
+        common,
+        {
+            "run_id",
+            "task_id",
+            "run_dir",
+            "worktree",
+            "scope_base",
+            "candidate_commit",
+            "candidate_tree",
+            "oracle",
+            "files",
+            "dependencies",
+            "tool",
+            "comparator",
+            "taskfmt",
+            "observer",
+            "outputs",
+        },
+        f"{field}.qualification.common",
+    )
+    _required(
+        common,
+        (
+            "run_id",
+            "task_id",
+            "run_dir",
+            "worktree",
+            "scope_base",
+            "candidate_commit",
+            "candidate_tree",
+            "oracle",
+            "tool",
+            "comparator",
+            "taskfmt",
+            "observer",
+            "outputs",
+        ),
+        f"{field}.qualification.common",
+    )
+    if (
+        common["run_id"] != str(run_path)
+        or common["task_id"] != task_id
+        or common["run_dir"] != str(run_path)
+        or common["scope_base"] != scope_base
+        or common["candidate_commit"] != candidate_commit
+        or common["candidate_tree"] != candidate_tree
+        or Path(_absolute_path(common["worktree"], f"{field}.worktree")).resolve()
+        != candidate.resolve()
+    ):
+        _reject(f"{field} common identity mismatch")
+
+    oracle = _mapping(common["oracle"], f"{field}.qualification.common.oracle")
+    _unknown(
+        oracle,
+        {"tag", "tag_ref_sha256", "commit", "tree"},
+        f"{field}.qualification.common.oracle",
+    )
+    _required(
+        oracle,
+        ("tag", "tag_ref_sha256", "commit", "tree"),
+        f"{field}.qualification.common.oracle",
+    )
+    if oracle["tag"] != FROZEN_ORACLE_TAG:
+        _reject(f"{field} common oracle tag is not protected")
+    if oracle["commit"] != FROZEN_ORACLE_COMMIT:
+        _reject(f"{field} common oracle commit is not protected")
+    if oracle["tree"] != FROZEN_ORACLE_TREE:
+        _reject(f"{field} common oracle tree is not protected")
+    _sha256(oracle["tag_ref_sha256"], f"{field}.oracle.tag_ref_sha256")
+    if oracle["tag_ref_sha256"] != FROZEN_ORACLE_REF_SHA256:
+        _reject(f"{field} oracle tag ref is not the protected baseline ref")
+    if context["bundle_sha256"] != oracle["tag_ref_sha256"]:
+        _reject(f"{field} top-level oracle ref digest is not bound")
+
+    candidate_tool = candidate / "tools/refactor-proof/bin/tc-proof"
+    _validate_executable_identity(
+        _mapping(common["tool"], f"{field}.qualification.common.tool"),
+        expected_path=candidate_tool,
+        field=f"{field}.qualification.common.tool",
+    )
+    if context["tool"] != common["tool"]:
+        _reject(f"{field} worker binding is not copied from common trust")
+
+    comparator = _mapping(
+        common["comparator"], f"{field}.qualification.common.comparator"
+    )
+    _validate_executable_identity(
+        comparator,
+        expected_path=native_binary,
+        field=f"{field}.qualification.common.comparator",
+    )
+
+    taskfmt_identity = _mapping(
+        common["taskfmt"], f"{field}.qualification.common.taskfmt"
+    )
+    expected_taskfmt_identity = {
+        "path": taskfmt["taskfmt_path"],
+        "sha256": taskfmt["taskfmt_sha256"],
+    }
+    if taskfmt_identity != expected_taskfmt_identity:
+        _reject(f"{field} taskfmt binding is not bound to the strong receipt")
+    _validate_executable_identity(
+        taskfmt_identity,
+        expected_path=Path(taskfmt["taskfmt_path"]),
+        field=f"{field}.qualification.common.taskfmt",
+    )
+    _qualification_directory(
+        Path(taskfmt["taskfmt_source"]), f"{field}.taskfmt_source"
+    )
+
+    observer = _mapping(
+        common["observer"], f"{field}.qualification.common.observer"
+    )
+    _required(observer, ("transport", "nonce", "capability"), f"{field}.observer")
+    if observer["transport"] != "inherited-pipe/v1":
+        _reject(f"{field} observer transport is not inherited-pipe/v1")
+    nonce = _string(observer["nonce"], f"{field}.observer.nonce")
+    capability = Path(_absolute_path(observer["capability"], f"{field}.observer.capability"))
+    if capability.resolve() != (run_path / "observer.json").resolve():
+        _reject(f"{field} observer capability escaped the run")
+    observer_record = _read_json(capability, f"{field}.observer.capability")
+    if observer_record.get("nonce_sha256") != hashlib.sha256(nonce.encode()).hexdigest():
+        _reject(f"{field} observer nonce is not bound to the capability")
+
+    outputs = _mapping(common["outputs"], f"{field}.qualification.common.outputs")
+    _required(outputs, ("runtime", "taskfmt_logs"), f"{field}.outputs")
+    if Path(_absolute_path(outputs["runtime"], f"{field}.outputs.runtime")).resolve() != (
+        run_path / "outputs"
+    ).resolve():
+        _reject(f"{field} runtime output root escaped the run")
+    if Path(_absolute_path(outputs["taskfmt_logs"], f"{field}.outputs.taskfmt_logs")).resolve() != (
+        run_path / "taskfmt-logs"
+    ).resolve():
+        _reject(f"{field} taskfmt log root escaped the run")
+
+    trust_manifest = _mapping(
+        qualification["trust_manifest"], f"{field}.qualification.trust_manifest"
+    )
+    if trust_manifest.get("schema") != "tc-proof-trust-manifest/v1":
+        _reject(f"{field} trust manifest schema mismatch")
+    if trust_manifest.get("common") != common:
+        _reject(f"{field} trust manifest common binding mismatch")
+    _sha256(
+        qualification["trust_manifest_sha256"],
+        f"{field}.qualification.trust_manifest_sha256",
+    )
+    if _canonical_json_sha256(trust_manifest) != qualification["trust_manifest_sha256"]:
+        _reject(f"{field} trust manifest digest mismatch")
+    checks = trust_manifest.get("checks")
+    if not isinstance(checks, list) or not any(
+        isinstance(check, Mapping)
+        and check.get("check_id") == check_id
+        and check.get("operation") == context["operation"]
+        for check in checks
+    ):
+        _reject(f"{field} trust manifest lacks the bound check")
+
+    comparator_qualification = qualification.get("comparator")
+    if comparator_qualification is not None:
+        comparator_qualification = _mapping(
+            comparator_qualification, f"{field}.qualification.comparator"
+        )
+        nested = _mapping(
+            comparator_qualification.get("context"),
+            f"{field}.qualification.comparator.context",
+        )
+        if (
+            nested.get("run_id") != str(run_path)
+            or nested.get("task_id") != task_id
+            or nested.get("check_id") != check_id
+            or nested.get("candidate_source_tree") != candidate_tree
+            or nested.get("oracle_commit") != FROZEN_ORACLE_COMMIT
+        ):
+            _reject(f"{field} comparator context binding mismatch")
+        report_path = Path(
+            _absolute_path(
+                comparator_qualification.get("report_path"),
+                f"{field}.qualification.comparator.report_path",
+            )
+        )
+        if report_path.parent != (run_path / "outputs") or report_path.name != f"{check_id}.compare.json":
+            _reject(f"{field} comparator report escaped runtime outputs")
 
 
 def _validate_preparation_file(
@@ -1939,6 +2328,14 @@ def _validate_preparation_file(
         _reject("proof preparation run_id is not the requested run directory")
     if run_path == worktree_path or worktree_path in run_path.parents:
         _reject("proof preparation run directory is inside the worktree")
+    receipt_file = _qualification_file_under(
+        run_path / "proof-preparation.json",
+        run_path,
+        "proof_preparation.receipt_file",
+    )
+    if _read_json(receipt_file, "proof_preparation.receipt_file") != dict(preparation):
+        _reject("proof preparation receipt file does not match the validated object")
+    _validate_taskfmt_record(preparation["taskfmt"], "proof preparation.taskfmt")
     validate_taskfmt_binding({"toolchain": preparation["taskfmt"]}, expected_taskfmt)
 
     native_build = _mapping(preparation["native_build"], "proof preparation.native_build")
@@ -2022,6 +2419,8 @@ def _validate_preparation_file(
         target_path.relative_to(run_path)
     except ValueError:
         _reject("native build target is outside the proof run")
+    if target_path.parent != run_path.resolve():
+        _reject("native build target must be a direct child of the proof run")
     _qualification_directory(target_path / "debug", "native_build.receipt.target_dir/debug")
     if binary_path.resolve() != target_path / "debug" / "tc-proof":
         _reject("native build receipt binary does not match target/debug/tc-proof")
@@ -2166,6 +2565,18 @@ def _validate_preparation_file(
         ):
             _reject(f"{check_id} result hash mismatch")
         context = _read_json(context_path, f"{check_id}.context")
+        _validate_proof_context_bindings(
+            context,
+            candidate=worktree_path,
+            candidate_commit=preparation["commit"],
+            candidate_tree=current_tree,
+            run_path=run_path,
+            task_id=task_id,
+            scope_base=preparation["scope_base"],
+            check_id=check_id,
+            native_binary=binary_path,
+            taskfmt=preparation["taskfmt"],
+        )
         _required(
             context,
             (
@@ -2230,6 +2641,21 @@ def _validate_preparation_file(
             _reject(
                 f"proof preparation {directory_name} contains missing or extra files"
             )
+
+    expected_run_members = {
+        target_path.name,
+        "contexts",
+        "results",
+        "outputs",
+        "taskfmt-logs",
+        "observer.json",
+        "context-index.json",
+        "proof-preparation.json",
+    }
+    if {path.name for path in run_path.iterdir()} != expected_run_members:
+        _reject("proof preparation run directory contains missing or extra members")
+    for name in ("outputs", "taskfmt-logs"):
+        _qualification_directory(run_path / name, f"proof preparation.{name}")
 
     observer = _mapping(preparation["observer"], "proof preparation.observer")
     _unknown(observer, {"path", "sha256"}, "proof preparation.observer")

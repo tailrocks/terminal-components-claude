@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 BUILD="$SCRIPT_DIR/campaign-build-proof.sh"
 PREFLIGHT="$SCRIPT_DIR/campaign-preflight.sh"
 DISPATCH="$SCRIPT_DIR/campaign-dispatch.sh"
+INSTALLER="$SCRIPT_DIR/campaign-install-taskfmt.sh"
 TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/tc-proof-path-contract.XXXXXX")"
 
 cleanup() {
@@ -166,6 +167,66 @@ fi
 grep -Fq "proof binary is not a regular single-link file" <<<"$output" ||
 	fail "hardlinked proof binary rejection had unexpected output: $output"
 pass "hardlinked proof binary rejection"
+
+installer_repo="$TMP_ROOT/installer-repo"
+mkdir -p "$installer_repo/scripts"
+cp "$SCRIPT_DIR/campaign-path-guards.sh" "$installer_repo/scripts/campaign-path-guards.sh"
+python3 - "$INSTALLER" "$installer_repo/scripts/campaign-install-taskfmt-functions.sh" <<'PY'
+import sys
+from pathlib import Path
+
+source = Path(sys.argv[1])
+destination = Path(sys.argv[2])
+lines = source.read_text(encoding="utf-8").splitlines()
+try:
+    lines.remove('main "$@"')
+except ValueError as error:
+    raise SystemExit("campaign-install-taskfmt main entry point changed") from error
+destination.write_text("\n".join(lines) + "\n", encoding="utf-8")
+PY
+installer_original="$TMP_ROOT/installed-taskfmt"
+installer_hardlink="$TMP_ROOT/taskfmt-hardlink"
+printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"$installer_original"
+chmod 755 "$installer_original"
+ln "$installer_original" "$installer_hardlink"
+installer_before_sha="$(shasum -a 256 "$installer_hardlink" | awk '{print $1}')"
+if ! output="$(bash -c 'source "$1"; materialize_single_link "$2"' _ \
+	"$installer_repo/scripts/campaign-install-taskfmt-functions.sh" \
+	"$installer_hardlink" 2>&1)"; then
+	fail "single-link taskfmt materialization rejected a valid hardlink source: $output"
+fi
+python3 - "$installer_hardlink" "$installer_before_sha" <<'PY'
+import hashlib
+import stat
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+expected = sys.argv[2]
+metadata = path.stat()
+if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+    raise SystemExit(f"materialized taskfmt is not regular single-link: {path}")
+if not (metadata.st_mode & 0o111):
+    raise SystemExit(f"materialized taskfmt is not executable: {path}")
+actual = hashlib.sha256(path.read_bytes()).hexdigest()
+if actual != expected:
+    raise SystemExit(f"materialized taskfmt hash changed: {actual} != {expected}")
+PY
+pass "installer materializes exact taskfmt bytes as one link"
+
+taskfmt_guard_source="$TMP_ROOT/taskfmt-guard-source"
+taskfmt_guard_hardlink="$TMP_ROOT/taskfmt-guard-hardlink"
+printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"$taskfmt_guard_source"
+chmod 755 "$taskfmt_guard_source"
+ln "$taskfmt_guard_source" "$taskfmt_guard_hardlink"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/campaign-path-guards.sh"
+if output="$(campaign_require_regular_file "$taskfmt_guard_hardlink" "taskfmt" 1 1 2>&1)"; then
+	fail "taskfmt hardlink passed the single-link guard"
+fi
+grep -Fq "must be a regular single-link file" <<<"$output" ||
+	fail "taskfmt hardlink guard had unexpected output: $output"
+pass "taskfmt hardlink is rejected at the trust guard"
 
 python3 - "$receipt" <<'PY'
 import json
@@ -342,7 +403,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from campaign_ledger import LedgerValidationError, validate_preparation_qualification
-from test_campaign_ledger import TASKFMT, BRANCH, make_qualification
+from test_campaign_ledger import BRANCH, make_qualification
 
 
 def expect_reject(label, operation, expected):
@@ -364,7 +425,7 @@ with tempfile.TemporaryDirectory(prefix="tc-proof-qualification-") as directory:
         "current_tree": "b" * 40,
         "integration_branch": BRANCH,
         "expected_oracle": oracle,
-        "expected_taskfmt": TASKFMT,
+        "expected_taskfmt": paths["taskfmt"],
         "repository_root": paths["candidate"],
         "now": qualified + timedelta(seconds=1),
     }
@@ -401,6 +462,12 @@ with tempfile.TemporaryDirectory(prefix="tc-proof-qualification-") as directory:
         "task_graph.tree",
     )
 PY
+
+grep -Fq 'campaign_require_regular_file "$TASKFMT_BIN" "taskfmt" 1 1' "$PREFLIGHT" ||
+	fail "preflight does not require a single-link taskfmt"
+grep -Fq 'campaign_require_regular_file "$TASKFMT" "taskfmt" 1 1' "$DISPATCH" ||
+	fail "dispatch does not require a single-link taskfmt"
+pass "preflight and dispatch require a single-link taskfmt"
 
 grep -Fq "export TC_PROOF_TARGET_DIR=\"\$target_dir\" CARGO_TARGET_DIR=\"\$target_dir\"" "$DISPATCH" ||
 	fail "dispatch does not export the resolved target root"

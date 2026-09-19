@@ -271,7 +271,7 @@ PY
 
 require_taskfmt() {
 	require_absolute_paths
-	campaign_require_regular_file "$TASKFMT" "taskfmt" 0 1 ||
+	campaign_require_regular_file "$TASKFMT" "taskfmt" 1 1 ||
 		die "taskfmt path failed trust-path validation: $TASKFMT"
 	local actual_sha
 	actual_sha="$(shasum -a 256 "$TASKFMT" | awk '{print $1}')"

@@ -81,6 +81,47 @@ the run directory or selected through a worker-controlled default.
 The preparation ABI is intentionally shared with
 `scripts/campaign_ledger.py`:
 
+The ledger and the external proof document are two different schemas. The
+tracked `ledger.preparation` value is the
+`campaign-preparation-qualification/v1` wrapper. Its
+`proof_preparation` member uses the `preparationProof` definition and contains
+only immutable path/hash references. It must not be replaced with the strong
+document. The external `$RUN_DIR/proof-preparation.json` file is the
+`campaign-proof-preparation/v1` document and is schema-addressable as
+`docs/refactoring-plan/campaign-ledger.schema.json#proofPreparation` (the
+`proofPreparation` anchor). The wrapper path/hash is checked first; the strong
+document and every referenced artifact are then checked by
+`validate_proof_preparation` / `validate_preparation_qualification`.
+
+The strong document is sealed after native materialization and never contains
+its own future hash. This keeps evidence non-circular: the external file binds
+the run inputs, while the tracked wrapper records that file's immutable hash.
+
+Native proof layout is verifier-owned and exact:
+
+```text
+$RUN_DIR/
+  target/debug/tc-proof
+  target/debug/tc-proof.build.json
+  contexts/CHK-NNN.json
+  results/CHK-NNN.json
+  outputs/
+  taskfmt-logs/
+  observer.json
+  context-index.json
+  proof-preparation.json
+```
+
+`target` is a direct child of `$RUN_DIR`, and the run root contains exactly
+these members after preparation. The target is never the candidate worktree's
+`target` path or a shared-cache symlink. Every trust file and output reference
+must resolve through real path components to a regular single-link file;
+symlink and hard-link substitution is rejected. The JSON schema describes the
+ABI shape; the native validator additionally checks bytes, hashes, source
+commit/tree, oracle identity, worker identity, comparator identity, taskfmt
+provenance, observer nonce/capability, trust-manifest digest, and exact run
+membership.
+
 - `context-index.json`: `tc-proof-context-index/v1`, with `task_id`,
   `run_id`, `worktree_commit`, `scope_base`, `contexts`, `results`, and
   `observer`.

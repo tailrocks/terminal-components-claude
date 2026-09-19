@@ -110,6 +110,7 @@
     },
     "preparationProof": {
       "type": "object",
+      "description": "Tracked ledger wrapper. These are immutable path references to the external strong proof-preparation document; this wrapper is intentionally not the external document itself.",
       "additionalProperties": false,
       "required": ["task_id", "run_id", "preparation_receipt", "context_index", "observer", "contexts", "results"],
       "properties": {
@@ -288,7 +289,9 @@
       "additionalProperties": true
     },
     "proofPreparation": {
+      "$anchor": "proofPreparation",
       "type": "object",
+      "description": "External proof-preparation.json ABI. Validate this document with the proofPreparation fragment, then run the semantic native validator; it is never embedded into the tracked preparationQualification wrapper.",
       "additionalProperties": false,
       "required": ["schema", "task_id", "worktree", "commit", "scope_base", "run_id", "native_build", "taskfmt", "context_index", "contexts", "results", "observer"],
       "properties": {
@@ -309,11 +312,43 @@
             "binary_sha256": {"$ref": "#/$defs/sha256"}
           }
         },
-        "taskfmt": {"$ref": "#/$defs/toolchain"},
+        "taskfmt": {"$ref": "#/$defs/proofTaskfmt"},
         "context_index": {"$ref": "#/$defs/indexReference"},
         "contexts": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/artifactReference"}},
         "results": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/artifactReference"}},
         "observer": {"$ref": "#/$defs/indexReference"}
+      }
+    },
+    "proofTaskfmt": {
+      "$anchor": "proofTaskfmt",
+      "type": "object",
+      "description": "Full standalone taskfmt provenance carried by the external proof document.",
+      "additionalProperties": false,
+      "required": ["taskfmt_revision", "taskfmt_version", "taskfmt_sha256", "taskfmt_source", "taskfmt_path"],
+      "properties": {
+        "taskfmt_revision": {"$ref": "#/$defs/fullSha"},
+        "taskfmt_version": {"type": "string", "minLength": 1},
+        "taskfmt_sha256": {"$ref": "#/$defs/sha256"},
+        "taskfmt_source": {"$ref": "#/$defs/absolutePath"},
+        "taskfmt_path": {"$ref": "#/$defs/absolutePath"}
+      }
+    },
+    "nativeBuildReceipt": {
+      "$anchor": "nativeBuildReceipt",
+      "type": "object",
+      "description": "Addressable schema for target/debug/tc-proof.build.json. The semantic validator additionally requires a direct verifier-run/target layout and single-link files.",
+      "additionalProperties": false,
+      "required": ["schema", "worktree", "target_dir", "cargo_target_dir", "commit", "tree", "binary", "binary_sha256"],
+      "properties": {
+        "schema": {"const": "tc-proof-native-build/v1"},
+        "worktree": {"$ref": "#/$defs/absolutePath"},
+        "target_dir": {"$ref": "#/$defs/absolutePath"},
+        "cargo_target_dir": {"$ref": "#/$defs/absolutePath"},
+        "commit": {"$ref": "#/$defs/fullSha"},
+        "tree": {"$ref": "#/$defs/fullSha"},
+        "binary": {"$ref": "#/$defs/absolutePath"},
+        "binary_sha256": {"$ref": "#/$defs/sha256"},
+        "command": {"type": "array", "items": {"type": "string"}}
       }
     },
     "artifactReference": {
