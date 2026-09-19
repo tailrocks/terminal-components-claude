@@ -15,6 +15,7 @@ use std::io::{self, BufRead, BufReader, BufWriter, Read, Write};
 use std::os::fd::{AsRawFd, FromRawFd};
 use std::path::{Path, PathBuf};
 use std::process::{Child, ChildStdin, ChildStdout, Command, ExitStatus, Stdio};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -208,7 +209,74 @@ struct PreparedMember {
     comparator_report_path: Option<PathBuf>,
 }
 
-type ObserverSupervisor = (File, File, thread::JoinHandle<Result<Vec<String>>>);
+struct ObserverSupervisor {
+    request_write: Option<File>,
+    response_read: Option<File>,
+    provider: Arc<Mutex<Child>>,
+    thread: Option<thread::JoinHandle<Result<Vec<String>>>>,
+}
+
+impl ObserverSupervisor {
+    fn worker_fds(&self) -> Result<(i32, i32)> {
+        let request_write = self
+            .request_write
+            .as_ref()
+            .ok_or_else(|| VerifierError::new("observer request pipe is closed"))?;
+        let response_read = self
+            .response_read
+            .as_ref()
+            .ok_or_else(|| VerifierError::new("observer response pipe is closed"))?;
+        Ok((request_write.as_raw_fd(), response_read.as_raw_fd()))
+    }
+
+    fn close_worker_ends(&mut self) {
+        self.request_write.take();
+        self.response_read.take();
+    }
+
+    fn kill_provider(&self) {
+        let mut provider = self
+            .provider
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        terminate_child(&mut provider);
+    }
+
+    fn join_thread(&mut self) -> Result<Vec<String>> {
+        let thread = self
+            .thread
+            .take()
+            .ok_or_else(|| VerifierError::new("observer supervisor thread is missing"))?;
+        thread
+            .join()
+            .map_err(|_| VerifierError::new("observer supervisor panicked"))?
+    }
+
+    fn wait(mut self, timeout: Duration) -> Result<Vec<String>> {
+        self.close_worker_ends();
+        let deadline = Instant::now().checked_add(timeout);
+        loop {
+            if self
+                .thread
+                .as_ref()
+                .is_some_and(thread::JoinHandle::is_finished)
+            {
+                return self.join_thread();
+            }
+            if deadline.is_none_or(|deadline| Instant::now() >= deadline) {
+                self.kill_provider();
+                return self.join_thread();
+            }
+            thread::sleep(Duration::from_millis(5));
+        }
+    }
+
+    fn abort(mut self) {
+        self.close_worker_ends();
+        self.kill_provider();
+        let _ = self.thread.take().and_then(|thread| thread.join().ok());
+    }
+}
 
 struct ObserverBinding<'a> {
     run_id: &'a str,
@@ -1322,12 +1390,12 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
             .ok_or_else(|| VerifierError::new("oracle binding is missing"))?,
         "commit",
     )?;
-    let (request_write, response_read, observer_thread) =
+    let mut observer_supervisor =
         start_observer_supervisor(&prepared, member, &nonce, &oracle_commit)?;
     let (handoff_read, mut handoff_write) = match make_handoff_pipe() {
         Ok(pipe) => pipe,
         Err(error) => {
-            abort_observer_supervisor(request_write, response_read, observer_thread);
+            abort_observer_supervisor(observer_supervisor);
             return Err(error);
         }
     };
@@ -1344,24 +1412,31 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
     if let Err(error) = handoff_write.write_all(canonical_json(&handoff).as_bytes()) {
         drop(handoff_read);
         drop(handoff_write);
-        abort_observer_supervisor(request_write, response_read, observer_thread);
+        abort_observer_supervisor(observer_supervisor);
         return Err(error.into());
     }
     if let Err(error) = handoff_write.write_all(b"\n") {
         drop(handoff_read);
         drop(handoff_write);
-        abort_observer_supervisor(request_write, response_read, observer_thread);
+        abort_observer_supervisor(observer_supervisor);
         return Err(error.into());
     }
     if let Err(error) = handoff_write.flush() {
         drop(handoff_read);
         drop(handoff_write);
-        abort_observer_supervisor(request_write, response_read, observer_thread);
+        abort_observer_supervisor(observer_supervisor);
         return Err(error.into());
     }
     let handoff_fd = handoff_read.as_raw_fd();
-    let request_fd = request_write.as_raw_fd();
-    let response_fd = response_read.as_raw_fd();
+    let (request_fd, response_fd) = match observer_supervisor.worker_fds() {
+        Ok(fds) => fds,
+        Err(error) => {
+            drop(handoff_read);
+            drop(handoff_write);
+            abort_observer_supervisor(observer_supervisor);
+            return Err(error);
+        }
+    };
     let mut command = Command::new(&options.program);
     command
         .args(&options.args)
@@ -1402,20 +1477,19 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
         Err(error) => {
             drop(handoff_read);
             drop(handoff_write);
-            abort_observer_supervisor(request_write, response_read, observer_thread);
+            abort_observer_supervisor(observer_supervisor);
             return Err(VerifierError::new(format!("launch failed: {error}")));
         }
     };
-    drop(request_write);
-    drop(response_read);
+    observer_supervisor.close_worker_ends();
     drop(handoff_read);
     drop(handoff_write);
     let Some(stdout) = child.stdout.take() else {
-        cleanup_failed_launch(&mut child, None, None, Some(observer_thread));
+        cleanup_failed_launch(&mut child, None, None, Some(observer_supervisor));
         return Err(VerifierError::new("stdout pipe unavailable"));
     };
     let Some(stderr) = child.stderr.take() else {
-        cleanup_failed_launch(&mut child, None, None, Some(observer_thread));
+        cleanup_failed_launch(&mut child, None, None, Some(observer_supervisor));
         return Err(VerifierError::new("stderr pipe unavailable"));
     };
     let mut stdout_thread = Some(thread::spawn(|| read_bounded(stdout)));
@@ -1428,10 +1502,7 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
                 terminate_child(&mut child);
                 let _ = stdout_thread.take().map(thread::JoinHandle::join);
                 let _ = stderr_thread.take().map(thread::JoinHandle::join);
-                let observer = observer_thread
-                    .join()
-                    .map_err(|_| VerifierError::new("observer supervisor panicked"))?;
-                observer?;
+                abort_observer_supervisor(observer_supervisor);
                 return Err(VerifierError::new("child timed out"));
             }
             Ok(None) => thread::sleep(Duration::from_millis(5)),
@@ -1440,7 +1511,7 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
                     &mut child,
                     stdout_thread.take(),
                     stderr_thread.take(),
-                    Some(observer_thread),
+                    Some(observer_supervisor),
                 );
                 return Err(error.into());
             }
@@ -1448,10 +1519,7 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
     };
     let stdout_result = stdout_thread.take().map(join_output).transpose();
     let stderr_result = stderr_thread.take().map(join_output).transpose();
-    let observed_result = observer_thread
-        .join()
-        .map_err(|_| VerifierError::new("observer supervisor panicked"))
-        .and_then(|result| result);
+    let observed_result = observer_supervisor.wait(Duration::from_secs(5));
     let stdout = stdout_result?.ok_or_else(|| VerifierError::new("stdout reader missing"))?;
     let stderr = stderr_result?.ok_or_else(|| VerifierError::new("stderr reader missing"))?;
     let observed_digests = observed_result.map_err(|error| {
@@ -1610,6 +1678,9 @@ fn start_observer_supervisor(
         // launcher process.
         unsafe {
             command.pre_exec(move || {
+                if libc::setpgid(0, 0) == -1 {
+                    return Err(io::Error::last_os_error());
+                }
                 for fd in observer_fds {
                     if fd > 2 && libc::close(fd) == -1 {
                         return Err(io::Error::last_os_error());
@@ -1640,6 +1711,7 @@ fn start_observer_supervisor(
         request: BufWriter::new(stdin),
         response: BufReader::new(stdout),
     };
+    let provider_process = Arc::new(Mutex::new(child));
     let run_id = prepared.run_id.clone();
     let task_id = prepared.task_id.clone();
     let check_id = member.check_id.clone();
@@ -1647,6 +1719,7 @@ fn start_observer_supervisor(
     let tree = prepared.candidate_tree.clone();
     let nonce = nonce.to_owned();
     let oracle_commit = oracle_commit.to_owned();
+    let provider_process_for_supervisor = Arc::clone(&provider_process);
     let supervisor = thread::spawn(move || {
         let binding = ObserverBinding {
             run_id: &run_id,
@@ -1660,7 +1733,12 @@ fn start_observer_supervisor(
         let result = observe_worker(request_read, response_write, &mut provider, &binding);
         let observer_error = result.as_ref().err().map(ToString::to_string);
         drop(provider);
-        let status = finish_observer_provider(&mut child, result.is_err())?;
+        let status = {
+            let mut child = provider_process_for_supervisor
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            finish_observer_provider(&mut child, result.is_err())?
+        };
         if !status.success() {
             return Err(VerifierError::new(format!(
                 "observer response provider exited unsuccessfully (status={status:?}; observer={})",
@@ -1669,17 +1747,16 @@ fn start_observer_supervisor(
         }
         result
     });
-    Ok((request_write, response_read, supervisor))
+    Ok(ObserverSupervisor {
+        request_write: Some(request_write),
+        response_read: Some(response_read),
+        provider: provider_process,
+        thread: Some(supervisor),
+    })
 }
 
-fn abort_observer_supervisor(
-    request_write: File,
-    response_read: File,
-    observer_thread: thread::JoinHandle<Result<Vec<String>>>,
-) {
-    drop(request_write);
-    drop(response_read);
-    let _ = observer_thread.join();
+fn abort_observer_supervisor(supervisor: ObserverSupervisor) {
+    supervisor.abort();
 }
 
 fn terminate_child(child: &mut Child) {
@@ -1704,7 +1781,7 @@ fn cleanup_failed_launch(
     child: &mut Child,
     stdout_thread: Option<thread::JoinHandle<Result<Vec<u8>>>>,
     stderr_thread: Option<thread::JoinHandle<Result<Vec<u8>>>>,
-    observer_thread: Option<thread::JoinHandle<Result<Vec<String>>>>,
+    observer_supervisor: Option<ObserverSupervisor>,
 ) {
     terminate_child(child);
     if let Some(handle) = stdout_thread {
@@ -1713,8 +1790,8 @@ fn cleanup_failed_launch(
     if let Some(handle) = stderr_thread {
         let _ = handle.join();
     }
-    if let Some(handle) = observer_thread {
-        let _ = handle.join();
+    if let Some(supervisor) = observer_supervisor {
+        supervisor.abort();
     }
 }
 
@@ -4637,6 +4714,76 @@ finally:
         let result_metadata = require_ok!(fs::metadata(&member.result_path), "result metadata");
         assert!(permissions_are_readonly(&result_metadata));
         assert!(validate_run(&fixture.run_dir).is_ok());
+    }
+
+    #[test]
+    fn provider_hang_after_acceptance_is_bounded_and_rejected() {
+        let (fixture, options) = require_ok!(
+            fixture_options_for("060", &["TASK-059", "TASK-022"]),
+            "fixture options"
+        );
+        let prepared = require_ok!(prepare(&options), "fixture preparation");
+        let member = require_some!(prepared.members.first(), "first member");
+        let provider = fixture.root.path().join("hanging-observer-provider.py");
+        let accepted = provider.with_extension("accepted");
+        require_ok!(
+            fs::write(
+                &provider,
+                r#"#!/usr/bin/env python3
+import json
+import sys
+import time
+from pathlib import Path
+
+for line in sys.stdin:
+    json.loads(line)
+    Path(__file__).with_suffix(".accepted").write_text("accepted", encoding="utf-8")
+    while True:
+        time.sleep(1)
+"#
+            ),
+            "hanging observer provider"
+        );
+        let mut provider_permissions =
+            require_ok!(fs::metadata(&provider), "observer provider metadata").permissions();
+        provider_permissions.set_mode(provider_permissions.mode() | 0o111);
+        require_ok!(
+            fs::set_permissions(&provider, provider_permissions),
+            "make hanging observer provider executable"
+        );
+
+        let started = Instant::now();
+        let launch_result = {
+            let _provider_env = ObserverProviderEnvGuard::set(&provider);
+            launch(&LaunchOptions {
+                run_dir: fixture.run_dir.clone(),
+                check_id: member.check_id.clone(),
+                observer_socket: None,
+                timeout: Duration::from_secs(1),
+                program: fixture
+                    .root
+                    .path()
+                    .join("candidate/tools/refactor-proof/bin/tc-proof"),
+                args: vec![
+                    "preflight".to_string(),
+                    "--context".to_string(),
+                    member.context_path.to_string_lossy().into_owned(),
+                ],
+            })
+        };
+        let elapsed = started.elapsed();
+        let error = require_err!(
+            launch_result,
+            "a provider that hangs after accepting a request must be rejected"
+        );
+        assert!(
+            elapsed < Duration::from_secs(4),
+            "provider hang was not bounded: {elapsed:?}; error: {error}"
+        );
+        assert_eq!(
+            require_ok!(fs::read(&accepted), "provider acceptance marker"),
+            b"accepted"
+        );
     }
 
     #[test]
