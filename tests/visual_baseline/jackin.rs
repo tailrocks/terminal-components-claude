@@ -7,12 +7,12 @@
 //! (accounts-mixed, capsule-multi) keep statics only in audit.rs
 //! (`jackin/audit/`, 5x5 matrix — the dedupe rule).
 //!
-//! Ported verbatim from the retired tools/tuisnap_baseline.sh (argv, needles,
-//! sends, CAP_TIMEOUTs); only the store names were regrouped. Do not
+//! Ported verbatim from the retired `tools/tuisnap_baseline.sh` (argv, needles,
+//! sends, `CAP_TIMEOUTs`); only the store names were regrouped. Do not
 //! hand-tune: drift against the approved frames means the port or the app
 //! changed.
 //!
-//! Interactive-group notes (spec §3.4, verified against src/bin/jackin_preview):
+//! Interactive-group notes (spec §3.4, verified against `src/bin/jackin_preview`):
 //! - Manager/editor captures boot `returning`, not `accounts-mixed`: the same
 //!   populated world, but accounts-mixed starts on the Accounts route
 //!   (app.rs:248) while returning joins straight into the Manager.

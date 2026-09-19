@@ -6,8 +6,8 @@
 //! workbench audit fixture keeps statics only in audit.rs
 //! (`tablepro/audit/`, 5x5 matrix — the dedupe rule).
 //!
-//! Ported verbatim from the retired tools/tuisnap_baseline.sh (argv, needles,
-//! sends, CAP_TIMEOUTs); only the store names were regrouped. Do not
+//! Ported verbatim from the retired `tools/tuisnap_baseline.sh` (argv, needles,
+//! sends, `CAP_TIMEOUTs`); only the store names were regrouped. Do not
 //! hand-tune: drift against the approved frames means the port or the app
 //! changed.
 

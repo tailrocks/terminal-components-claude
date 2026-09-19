@@ -49,9 +49,9 @@ pub const TABLEPRO: &str = "tablepro";
 pub const JACKIN: &str = "jackin-preview";
 pub const HOLLA: &str = "holla";
 
-/// SETTLE_MS from the bash runner.
+/// `SETTLE_MS` from the bash runner.
 pub const SETTLE: Duration = Duration::from_millis(400);
-/// TIMEOUT_MS default; boot-streaming screens override it per capture
+/// `TIMEOUT_MS` default; boot-streaming screens override it per capture
 /// ([`Case::timeout`], the bash `CAP_TIMEOUT=` prefix).
 pub const TIMEOUT_MS: u64 = 8_000;
 
@@ -95,7 +95,7 @@ pub fn audit_default_name(prefix: &str, cols: u16, rows: u16, color: Color) -> S
 }
 
 /// Every capture name the suite produces: the canonical 5×5 expansion of each
-/// Case::new root and the data-driven audit matrices. `Case::dynamic` loops are
+/// `Case::new` root and the data-driven audit matrices. `Case::dynamic` loops are
 /// not parsed; their names come from the audit constants below.
 pub fn suite_capture_names() -> BTreeSet<String> {
     let mut names = parse_case_new_names();
@@ -381,8 +381,8 @@ impl Case {
         Self { sends, ..self }
     }
 
-    /// CAP_TIMEOUT override for screens whose boot stream outlasts
-    /// TIMEOUT_MS (scrolling, terminal): the boot wait_idle shares it.
+    /// `CAP_TIMEOUT` override for screens whose boot stream outlasts
+    /// `TIMEOUT_MS` (scrolling, terminal): the boot `wait_idle` shares it.
     pub fn timeout(self, ms: u64) -> Self {
         Self {
             timeout_ms: ms,
@@ -438,7 +438,7 @@ impl Case {
 pub fn argv_for(case: &Case) -> Vec<String> {
     let mut argv = Vec::with_capacity(case.args.len() + 3);
     argv.push(resolve_bin(case.bin));
-    argv.extend(case.args.iter().map(|s| s.to_string()));
+    argv.extend(case.args.iter().map(ToString::to_string));
     let flag = match case.color {
         Color::Truecolor => Some("truecolor"),
         Color::Ansi256 => Some("256"),
@@ -479,7 +479,7 @@ fn steps_for(case: &Case) -> Vec<String> {
     if !case.needle.is_empty() {
         steps.push(format!("wait:{}", case.needle));
     }
-    steps.extend(case.sends.iter().map(|s| s.to_string()));
+    steps.extend(case.sends.iter().map(ToString::to_string));
     steps
 }
 
@@ -574,9 +574,10 @@ fn refuse_bless() {
         "TUISNAP_ACCEPT",
         "TUISNAP_BLESS",
     ] {
-        if env::var_os(name).is_some() {
-            panic!("refusing {name}; never bless/accept from this suite");
-        }
+        assert!(
+            env::var_os(name).is_none(),
+            "refusing {name}; never bless/accept from this suite"
+        );
     }
 }
 
@@ -630,7 +631,7 @@ fn resolve_bin(name: &str) -> String {
         .join(name)
         .into_os_string()
         .into_string()
-        .unwrap_or_else(|raw| panic!("bin path for {name} is not UTF-8: {raw:?}"))
+        .unwrap_or_else(|raw| panic!("bin path for {name} is not UTF-8: {}", raw.display()))
 }
 
 /// Cell-exact (ansi) + content (txt) + render-level (html) byte gates +
@@ -665,7 +666,7 @@ pub fn run_and_assert(case: &Case) {
     assert_gated(&gate(&case.name, &frame));
 }
 
-/// Expand one representative static Case::new root through the full canonical
+/// Expand one representative static `Case::new` root through the full canonical
 /// matrix. The representative's sends/timeout apply to every combo; choose a
 /// representative whose determinism contract is size-independent.
 pub fn run_canonical(representative: &Case) {
@@ -807,7 +808,7 @@ pub fn collect_matrix(combo: &str, body: impl FnOnce()) -> bool {
             let msg = e
                 .downcast_ref::<String>()
                 .cloned()
-                .or_else(|| e.downcast_ref::<&str>().map(|s| s.to_string()))
+                .or_else(|| e.downcast_ref::<&str>().map(ToString::to_string))
                 .unwrap_or_else(|| "unknown panic".into());
             eprintln!("matrix combo FAILED {combo}: {msg}");
             false
@@ -844,7 +845,7 @@ pub fn spawn_boot(case: &Case) -> Session {
     session
 }
 
-/// Boot: needle first. Live clocks starve a quiet-window wait_idle.
+/// Boot: needle first. Live clocks starve a quiet-window `wait_idle`.
 pub fn boot(session: &mut Session, needle: &str) {
     if !needle.is_empty() {
         session

@@ -415,7 +415,7 @@ fn showcase_fade_textarea_wheel_matrix() {
     });
 }
 
-/// Review mode (the proven diff_review sends), then the wheel over the Old
+/// Review mode (the proven `diff_review` sends), then the wheel over the Old
 /// pane scrolls the 5-hunk diff.
 #[test]
 #[ignore = "visual baseline capture; run with --ignored"]

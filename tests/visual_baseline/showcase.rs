@@ -7,8 +7,8 @@
 //! representative root runs the shared 5×5 canonical matrix; the pointer
 //! group applies the same matrix to its six resize roots.
 //!
-//! Ported verbatim from the retired tools/tuisnap_baseline.sh (argv, needles,
-//! sends, CAP_TIMEOUTs); only the store names were regrouped
+//! Ported verbatim from the retired `tools/tuisnap_baseline.sh` (argv, needles,
+//! sends, `CAP_TIMEOUTs`); only the store names were regrouped
 //! (`showcase_<leaf>` → `showcase/<sub_group>/<leaf>`). Do not hand-tune:
 //! drift against the approved frames means the port or the app changed.
 
