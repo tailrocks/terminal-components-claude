@@ -9,8 +9,6 @@ TASKFMT_SOURCE="/Users/donbeave/Projects/taskfmt/task-format"
 TASKFMT="${TC_TASKFMT:-/tmp/taskfmt-latest-install/bin/taskfmt}"
 ORACLE_TAG="refs/tags/visual-baseline"
 ORACLE_COMMIT="4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
-ORACLE_TREE="0b1f13431fdfd6060cf9f45a114afa5a99cc6c26"
-CATALOG_MANIFEST_REL="docs/refactoring-plan/task-index.tsv"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 INTEGRATION_BRANCH="${INTEGRATION_BRANCH:-refactor/holla-parity}"
@@ -24,7 +22,7 @@ BASE="${TC_TASK_BASE:-}"
 PREFLIGHT_EVIDENCE="${TC_TASK_PREFLIGHT_EVIDENCE:-}"
 
 usage() {
-  cat <<'EOF'
+	cat <<'EOF'
 Usage: campaign-dispatch.sh <lint|verify|help>
 
 Required:
@@ -49,39 +47,73 @@ EOF
 }
 
 die() {
-  echo "campaign-dispatch: $*" >&2
-  exit 1
+	echo "campaign-dispatch: $*" >&2
+	exit 1
 }
 
 require_absolute_paths() {
-  [[ "$CATALOG_ROOT" = /* ]] || die "catalog root must be absolute: $CATALOG_ROOT"
-  [[ "$TASKFMT_SOURCE" = /* ]] || die "taskfmt source must be absolute: $TASKFMT_SOURCE"
-  [[ "$CAMPAIGN_ROOT" = /* ]] || die "campaign root must be absolute: $CAMPAIGN_ROOT"
-  [[ "$CAMPAIGN_LEDGER" = /* ]] || die "campaign ledger must be absolute: $CAMPAIGN_LEDGER"
-  [[ "$READINESS_REPORT" = /* ]] || die "readiness report must be absolute: $READINESS_REPORT"
+	[[ "$CATALOG_ROOT" = /* ]] || die "catalog root must be absolute: $CATALOG_ROOT"
+	[[ "$TASKFMT_SOURCE" = /* ]] || die "taskfmt source must be absolute: $TASKFMT_SOURCE"
+	[[ "$CAMPAIGN_ROOT" = /* ]] || die "campaign root must be absolute: $CAMPAIGN_ROOT"
+	[[ "$CAMPAIGN_LEDGER" = /* ]] || die "campaign ledger must be absolute: $CAMPAIGN_LEDGER"
+	[[ "$READINESS_REPORT" = /* ]] || die "readiness report must be absolute: $READINESS_REPORT"
 }
 
 task_dir() {
-  local task="${TASK:-}"
-  [[ "$task" =~ ^[0-9]{3}$ ]] || die "set TASK=NNN"
-  echo "$CATALOG_ROOT/$task"
+	local task="${TASK:-}"
+	[[ "$task" =~ ^[0-9]{3}$ ]] || die "set TASK=NNN"
+	echo "$CATALOG_ROOT/$task"
 }
 
 resolve_target_dir() {
-  local worktree_root="$1"
-  local tc_target_dir="${TC_PROOF_TARGET_DIR:-}"
-  local cargo_target="${CARGO_TARGET_DIR:-}"
-  python3 - "$worktree_root" "$tc_target_dir" "$cargo_target" <<'PY'
+	local worktree_root="$1"
+	local tc_target_dir="${TC_PROOF_TARGET_DIR:-}"
+	local cargo_target="${CARGO_TARGET_DIR:-}"
+	python3 - "$worktree_root" "$tc_target_dir" "$cargo_target" <<'PY'
+import os
+import stat
 import sys
 from pathlib import Path
 
 root = Path(sys.argv[1]).resolve()
 tc_raw, cargo_raw = sys.argv[2:]
 
+
+def check_parent_components(path: Path, name: str) -> None:
+    allowed_system_symlinks = {
+        Path("/etc"): Path("/private/etc"),
+        Path("/home"): Path("/System/Volumes/Data/home"),
+        Path("/tmp"): Path("/private/tmp"),
+        Path("/var"): Path("/private/var"),
+    }
+    current = Path(path.anchor)
+    for component in path.parts[1:-1]:
+        current /= component
+        try:
+            metadata = os.lstat(current)
+        except FileNotFoundError:
+            break
+        except OSError as error:
+            raise SystemExit(
+                f"{name} parent path component is unreadable: {current}: {error}"
+            ) from error
+        if stat.S_ISLNK(metadata.st_mode):
+            if current.resolve() != allowed_system_symlinks.get(current):
+                raise SystemExit(
+                    f"{name} parent path component must not be a symlink: {current}"
+                )
+            continue
+        if not stat.S_ISDIR(metadata.st_mode):
+            raise SystemExit(
+                f"{name} parent path component is not a directory: {current}"
+            )
+
+
 def checked_path(raw: str, name: str) -> Path:
     path = Path(raw)
     if not path.is_absolute():
         raise SystemExit(f"{name} must be an absolute path: {raw or '<empty>'}")
+    check_parent_components(path, name)
     if path.is_symlink():
         raise SystemExit(f"{name} must not be a symlink: {path}")
     return path
@@ -100,6 +132,7 @@ elif cargo_raw:
     selected = checked_path(cargo_raw, "CARGO_TARGET_DIR")
 else:
     selected = root / "target"
+    check_parent_components(selected, "proof target directory")
 
 if selected.is_symlink():
     raise SystemExit(f"proof target directory must not be a symlink: {selected}")
@@ -116,30 +149,31 @@ PY
 }
 
 proof_binary() {
-  local target_dir="$1"
-  echo "$target_dir/debug/tc-proof"
+	local target_dir="$1"
+	echo "$target_dir/debug/tc-proof"
 }
 
 require_native_proof() {
-  local worktree_root="$1"
-  local target_dir="$2"
-  local binary="$3"
-  local receipt commit tree
-  [[ -d "$target_dir" && ! -L "$target_dir" ]] \
-    || die "native proof target directory missing or linked: $target_dir"
-  [[ -d "$target_dir/debug" && ! -L "$target_dir/debug" ]] \
-    || die "native proof debug target directory missing or linked: $target_dir/debug"
-  [[ -f "$binary" && ! -L "$binary" && -x "$binary" ]] \
-    || die "native tc-proof comparator missing: $binary (run scripts/campaign-build-proof.sh with TC_PROOF_TARGET_DIR)"
-  receipt="$target_dir/debug/tc-proof.build.json"
-  [[ -f "$receipt" && ! -L "$receipt" ]] \
-    || die "native tc-proof build receipt missing: $receipt (run scripts/campaign-build-proof.sh)"
-  commit="$(git -C "$worktree_root" rev-parse HEAD)"
-  tree="$(git -C "$worktree_root" rev-parse 'HEAD^{tree}')"
-  python3 - "$receipt" "$worktree_root" "$target_dir" "$commit" "$tree" "$binary" <<'PY' \
-    || die "native tc-proof build receipt does not match this worktree/target"
+	local worktree_root="$1"
+	local target_dir="$2"
+	local binary="$3"
+	local receipt commit tree
+	[[ -d "$target_dir" && ! -L "$target_dir" ]] ||
+		die "native proof target directory missing or linked: $target_dir"
+	[[ -d "$target_dir/debug" && ! -L "$target_dir/debug" ]] ||
+		die "native proof debug target directory missing or linked: $target_dir/debug"
+	[[ -f "$binary" && ! -L "$binary" && -x "$binary" ]] ||
+		die "native tc-proof comparator missing: $binary (run scripts/campaign-build-proof.sh with TC_PROOF_TARGET_DIR)"
+	receipt="$target_dir/debug/tc-proof.build.json"
+	[[ -f "$receipt" && ! -L "$receipt" ]] ||
+		die "native tc-proof build receipt missing: $receipt (run scripts/campaign-build-proof.sh)"
+	commit="$(git -C "$worktree_root" rev-parse HEAD)"
+	tree="$(git -C "$worktree_root" rev-parse 'HEAD^{tree}')"
+	python3 - "$receipt" "$worktree_root" "$target_dir" "$commit" "$tree" "$binary" <<'PY' ||
 import hashlib
 import json
+import os
+import stat
 import sys
 from pathlib import Path
 
@@ -161,94 +195,130 @@ if value.get("commit") != commit or value.get("tree") != tree:
     raise SystemExit("wrong build source binding")
 if value.get("binary") != str(Path(binary).resolve()):
     raise SystemExit("wrong build binary")
+for path, label in (
+    (Path(binary), "native comparator"),
+    (Path(receipt), "native build receipt"),
+):
+    try:
+        metadata = os.lstat(path)
+    except OSError as error:
+        raise SystemExit(f"{label} is unreadable: {error}") from error
+    if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+        raise SystemExit(f"{label} is not a regular single-link file")
 actual = hashlib.sha256(Path(binary).read_bytes()).hexdigest()
 if value.get("binary_sha256") != actual:
     raise SystemExit("native comparator hash mismatch")
 PY
+		die "native tc-proof build receipt does not match this worktree/target"
 }
 
 require_scope_base() {
-  [[ "$BASE" =~ ^[0-9a-f]{40}$ ]] \
-    || die "set TC_TASK_BASE to the explicit full scope-base commit"
-  local resolved
-  resolved="$(git -C "$WORKTREE" rev-parse --verify "${BASE}^{commit}" 2>/dev/null)" \
-    || die "scope base is not a commit in the verifier worktree: $BASE"
-  [[ "$resolved" == "$BASE" ]] \
-    || die "scope base must be an explicit full commit, not an abbreviation: $BASE"
+	[[ "$BASE" =~ ^[0-9a-f]{40}$ ]] ||
+		die "set TC_TASK_BASE to the explicit full scope-base commit"
+	local resolved
+	resolved="$(git -C "$WORKTREE" rev-parse --verify "${BASE}^{commit}" 2>/dev/null)" ||
+		die "scope base is not a commit in the verifier worktree: $BASE"
+	[[ "$resolved" == "$BASE" ]] ||
+		die "scope base must be an explicit full commit, not an abbreviation: $BASE"
 }
 
 require_clean_worktree() {
-  [[ -z "$(git -C "$WORKTREE" status --porcelain)" ]] \
-    || die "subagent worktree has uncommitted changes; verify only a committed task tree"
+	[[ -z "$(git -C "$WORKTREE" status --porcelain)" ]] ||
+		die "subagent worktree has uncommitted changes; verify only a committed task tree"
 }
 
 require_external_run_dir() {
-  python3 - "$RUN_DIR" "$WORKTREE" <<'PY' || die "verifier run directory is missing, reused, or inside the worktree"
+	python3 - "$RUN_DIR" "$WORKTREE" <<'PY' || die "verifier run directory is missing, reused, or inside the worktree"
+import os
+import stat
 import sys
 from pathlib import Path
 
-run = Path(sys.argv[1])
-worktree = Path(sys.argv[2]).resolve()
-if not run.is_absolute() or run.is_symlink() or not run.is_dir():
-    raise SystemExit("run directory must be an existing regular directory")
-if run.resolve() == worktree or worktree in run.resolve().parents:
+
+def real_directory(path: Path, field: str) -> Path:
+    if not path.is_absolute():
+        raise SystemExit(f"{field} must be an absolute directory")
+    allowed_system_symlinks = {
+        Path("/etc"): Path("/private/etc"),
+        Path("/home"): Path("/System/Volumes/Data/home"),
+        Path("/tmp"): Path("/private/tmp"),
+        Path("/var"): Path("/private/var"),
+    }
+    current = Path(path.anchor)
+    for component in path.parts[1:]:
+        current /= component
+        try:
+            metadata = os.lstat(current)
+        except OSError as error:
+            raise SystemExit(f"{field} is unreadable: {error}") from error
+        if stat.S_ISLNK(metadata.st_mode):
+            if current.resolve() != allowed_system_symlinks.get(current):
+                raise SystemExit(f"{field} contains a symlinked path component: {current}")
+            continue
+        if not stat.S_ISDIR(metadata.st_mode):
+            raise SystemExit(f"{field} must be an existing real directory")
+    return path.resolve()
+
+
+run = real_directory(Path(sys.argv[1]), "run directory")
+worktree = real_directory(Path(sys.argv[2]), "candidate worktree")
+if run == worktree or worktree in run.parents:
     raise SystemExit("run directory must be external to the candidate worktree")
-if not run.parent.is_dir() or run.parent.is_symlink():
-    raise SystemExit("run directory parent must be a real directory")
 PY
 }
 
 require_taskfmt() {
-  require_absolute_paths
-  [[ -x "$TASKFMT" ]] || die "taskfmt not executable: $TASKFMT"
-  local actual_sha
-  actual_sha="$(shasum -a 256 "$TASKFMT" | awk '{print $1}')"
-  [[ "$actual_sha" == "$TASKFMT_SHA256" ]] \
-    || die "taskfmt SHA-256 is $actual_sha; expected $TASKFMT_SHA256"
-  "$TASKFMT" --version | grep -Fq "git $TASKFMT_REV" \
-    || die "taskfmt is not latest $TASKFMT_REV"
-  [[ -d "$TASKFMT_SOURCE/.git" ]] \
-    || die "taskfmt source is not a git checkout: $TASKFMT_SOURCE"
-  [[ -z "$(git -C "$TASKFMT_SOURCE" status --porcelain)" ]] \
-    || die "taskfmt source is dirty: $TASKFMT_SOURCE"
-  [[ "$(git -C "$TASKFMT_SOURCE" rev-parse HEAD)" == "$TASKFMT_REV" ]] \
-    || die "taskfmt source is not latest $TASKFMT_REV"
+	require_absolute_paths
+	[[ -x "$TASKFMT" ]] || die "taskfmt not executable: $TASKFMT"
+	local actual_sha
+	actual_sha="$(shasum -a 256 "$TASKFMT" | awk '{print $1}')"
+	[[ "$actual_sha" == "$TASKFMT_SHA256" ]] ||
+		die "taskfmt SHA-256 is $actual_sha; expected $TASKFMT_SHA256"
+	"$TASKFMT" --version | grep -Fq "git $TASKFMT_REV" ||
+		die "taskfmt is not latest $TASKFMT_REV"
+	[[ -d "$TASKFMT_SOURCE/.git" ]] ||
+		die "taskfmt source is not a git checkout: $TASKFMT_SOURCE"
+	[[ -z "$(git -C "$TASKFMT_SOURCE" status --porcelain)" ]] ||
+		die "taskfmt source is dirty: $TASKFMT_SOURCE"
+	[[ "$(git -C "$TASKFMT_SOURCE" rev-parse HEAD)" == "$TASKFMT_REV" ]] ||
+		die "taskfmt source is not latest $TASKFMT_REV"
 }
 
 require_dispatch_authorization() {
-  local task_id campaign_branch campaign_commit campaign_tree candidate_commit candidate_tree
-  task_id="TASK-${TASK:-}"
-  [[ "$task_id" =~ ^TASK-[0-9]{3}$ ]] || die "set TASK=NNN"
-  [[ -n "$WORKTREE" && "$WORKTREE" = /* ]] \
-    || die "set TC_TASK_WORKTREE to an absolute isolated worktree"
-  [[ -d "$WORKTREE" ]] || die "subagent worktree missing: $WORKTREE"
-  [[ -n "$RUN_DIR" && "$RUN_DIR" = /* ]] \
-    || die "set TC_TASK_RUN_DIR to a unique absolute verifier run directory"
-  [[ -n "$PREFLIGHT_EVIDENCE" && "$PREFLIGHT_EVIDENCE" = /* ]] \
-    || die "set TC_TASK_PREFLIGHT_EVIDENCE to an external authorization manifest"
+	local task_id campaign_branch campaign_commit campaign_tree candidate_commit candidate_tree
+	task_id="TASK-${TASK:-}"
+	[[ "$task_id" =~ ^TASK-[0-9]{3}$ ]] || die "set TASK=NNN"
+	[[ -n "$WORKTREE" && "$WORKTREE" = /* ]] ||
+		die "set TC_TASK_WORKTREE to an absolute isolated worktree"
+	[[ -d "$WORKTREE" ]] || die "subagent worktree missing: $WORKTREE"
+	[[ -n "$RUN_DIR" && "$RUN_DIR" = /* ]] ||
+		die "set TC_TASK_RUN_DIR to a unique absolute verifier run directory"
+	[[ -n "$PREFLIGHT_EVIDENCE" && "$PREFLIGHT_EVIDENCE" = /* ]] ||
+		die "set TC_TASK_PREFLIGHT_EVIDENCE to an external authorization manifest"
 
-  campaign_branch="$(git -C "$CAMPAIGN_ROOT" branch --show-current 2>/dev/null)" \
-    || die "campaign root is not a Git worktree: $CAMPAIGN_ROOT"
-  [[ "$campaign_branch" == "$INTEGRATION_BRANCH" ]] \
-    || die "campaign root is on '$campaign_branch', expected '$INTEGRATION_BRANCH'"
-  campaign_commit="$(git -C "$CAMPAIGN_ROOT" rev-parse HEAD 2>/dev/null)" \
-    || die "campaign root has no resolvable HEAD: $CAMPAIGN_ROOT"
-  campaign_tree="$(git -C "$CAMPAIGN_ROOT" rev-parse 'HEAD^{tree}' 2>/dev/null)" \
-    || die "campaign root has no resolvable HEAD tree: $CAMPAIGN_ROOT"
-  candidate_commit="$(git -C "$WORKTREE" rev-parse HEAD 2>/dev/null)" \
-    || die "candidate worktree is not a Git worktree: $WORKTREE"
-  candidate_tree="$(git -C "$WORKTREE" rev-parse 'HEAD^{tree}' 2>/dev/null)" \
-    || die "candidate worktree has no resolvable HEAD tree: $WORKTREE"
+	campaign_branch="$(git -C "$CAMPAIGN_ROOT" branch --show-current 2>/dev/null)" ||
+		die "campaign root is not a Git worktree: $CAMPAIGN_ROOT"
+	[[ "$campaign_branch" == "$INTEGRATION_BRANCH" ]] ||
+		die "campaign root is on '$campaign_branch', expected '$INTEGRATION_BRANCH'"
+	campaign_commit="$(git -C "$CAMPAIGN_ROOT" rev-parse HEAD 2>/dev/null)" ||
+		die "campaign root has no resolvable HEAD: $CAMPAIGN_ROOT"
+	campaign_tree="$(git -C "$CAMPAIGN_ROOT" rev-parse 'HEAD^{tree}' 2>/dev/null)" ||
+		die "campaign root has no resolvable HEAD tree: $CAMPAIGN_ROOT"
+	candidate_commit="$(git -C "$WORKTREE" rev-parse HEAD 2>/dev/null)" ||
+		die "candidate worktree is not a Git worktree: $WORKTREE"
+	candidate_tree="$(git -C "$WORKTREE" rev-parse 'HEAD^{tree}' 2>/dev/null)" ||
+		die "candidate worktree has no resolvable HEAD tree: $WORKTREE"
 
-  PYTHONPATH="$SCRIPT_DIR" python3 - \
-    "$CAMPAIGN_ROOT" "$CAMPAIGN_LEDGER" "$READINESS_REPORT" \
-    "$PREFLIGHT_EVIDENCE" "$RUN_DIR" "$WORKTREE" "$INTEGRATION_BRANCH" \
-    "$campaign_branch" "$campaign_commit" "$campaign_tree" "$candidate_commit" \
-    "$candidate_tree" "$task_id" "$BASE" "$TASKFMT_REV" "$TASKFMT_VERSION" \
-    "$TASKFMT_SHA256" "$TASKFMT_SOURCE" "$TASKFMT" <<'PY' \
-    || die "dispatch authorization is missing, stale, unsafe, or invalid"
+	PYTHONPATH="$SCRIPT_DIR" python3 - \
+		"$CAMPAIGN_ROOT" "$CAMPAIGN_LEDGER" "$READINESS_REPORT" \
+		"$PREFLIGHT_EVIDENCE" "$RUN_DIR" "$WORKTREE" "$INTEGRATION_BRANCH" \
+		"$campaign_branch" "$campaign_commit" "$campaign_tree" "$candidate_commit" \
+		"$candidate_tree" "$task_id" "$BASE" "$TASKFMT_REV" "$TASKFMT_VERSION" \
+		"$TASKFMT_SHA256" "$TASKFMT_SOURCE" "$TASKFMT" <<'PY' ||
 import hashlib
 import json
+import os
+import stat
 import sys
 from pathlib import Path
 
@@ -289,11 +359,25 @@ def fail(message: str) -> None:
 def regular(path: Path, field: str) -> Path:
     if not path.is_absolute():
         fail(f"{field} is not an absolute non-symlink regular file: {path}")
+    allowed_system_symlinks = {
+        Path("/etc"): Path("/private/etc"),
+        Path("/home"): Path("/System/Volumes/Data/home"),
+        Path("/tmp"): Path("/private/tmp"),
+        Path("/var"): Path("/private/var"),
+    }
     current = Path(path.anchor)
     for component in path.parts[1:]:
         current /= component
-        if current.is_symlink():
-            fail(f"{field} contains a symlinked path component: {current}")
+        try:
+            metadata = os.lstat(current)
+        except OSError as error:
+            fail(f"{field} is unreadable: {error}")
+        if stat.S_ISLNK(metadata.st_mode):
+            if current.resolve() != allowed_system_symlinks.get(current):
+                fail(f"{field} contains a symlinked path component: {current}")
+            continue
+        if not stat.S_ISDIR(metadata.st_mode) and current != path:
+            fail(f"{field} contains a non-directory path component: {current}")
     try:
         metadata = path.lstat()
     except OSError as error:
@@ -304,8 +388,27 @@ def regular(path: Path, field: str) -> Path:
 
 
 def directory(path: Path, field: str) -> Path:
-    if not path.is_absolute() or path.is_symlink() or not path.is_dir():
+    if not path.is_absolute():
         fail(f"{field} is not an absolute non-symlink directory: {path}")
+    allowed_system_symlinks = {
+        Path("/etc"): Path("/private/etc"),
+        Path("/home"): Path("/System/Volumes/Data/home"),
+        Path("/tmp"): Path("/private/tmp"),
+        Path("/var"): Path("/private/var"),
+    }
+    current = Path(path.anchor)
+    for component in path.parts[1:]:
+        current /= component
+        try:
+            metadata = os.lstat(current)
+        except OSError as error:
+            fail(f"{field} is unreadable: {error}")
+        if stat.S_ISLNK(metadata.st_mode):
+            if current.resolve() != allowed_system_symlinks.get(current):
+                fail(f"{field} contains a symlinked path component: {current}")
+            continue
+        if not stat.S_ISDIR(metadata.st_mode):
+            fail(f"{field} is not an absolute non-symlink directory: {path}")
     return path.resolve()
 
 
@@ -587,99 +690,100 @@ print(
     "candidate, task, scope base, taskfmt, and preflight evidence bound"
 )
 PY
+		die "dispatch authorization is missing, stale, unsafe, or invalid"
 }
 
 prepare_native_contexts() {
-  local dir="$1"
-  local binary="$2"
-  local -a command=(
-    "$binary" prepare
-    --task-dir "$dir"
-    --run-dir "$RUN_DIR"
-    --worktree "$WORKTREE"
-    --scope-base "$BASE"
-    --oracle-tag "$ORACLE_TAG"
-    --oracle-commit "$ORACLE_COMMIT"
-    --tool "$WORKTREE/tools/refactor-proof/bin/tc-proof"
-    --comparator "$binary"
-    --taskfmt "$TASKFMT"
-  )
-  if [[ -n "${TC_TASK_DEPENDENCY_RECEIPTS:-}" ]]; then
-    local receipt
-    local -a receipts
-    IFS=: read -r -a receipts <<< "$TC_TASK_DEPENDENCY_RECEIPTS"
-    for receipt in "${receipts[@]}"; do
-      [[ -n "$receipt" ]] || die "dependency receipt list contains an empty path"
-      command+=(--dependency-receipt "$receipt")
-    done
-  fi
-  "${command[@]}" >/dev/null || die "native verifier preparation failed"
+	local dir="$1"
+	local binary="$2"
+	local -a command=(
+		"$binary" prepare
+		--task-dir "$dir"
+		--run-dir "$RUN_DIR"
+		--worktree "$WORKTREE"
+		--scope-base "$BASE"
+		--oracle-tag "$ORACLE_TAG"
+		--oracle-commit "$ORACLE_COMMIT"
+		--tool "$WORKTREE/tools/refactor-proof/bin/tc-proof"
+		--comparator "$binary"
+		--taskfmt "$TASKFMT"
+	)
+	if [[ -n "${TC_TASK_DEPENDENCY_RECEIPTS:-}" ]]; then
+		local receipt
+		local -a receipts
+		IFS=: read -r -a receipts <<<"$TC_TASK_DEPENDENCY_RECEIPTS"
+		for receipt in "${receipts[@]}"; do
+			[[ -n "$receipt" ]] || die "dependency receipt list contains an empty path"
+			command+=(--dependency-receipt "$receipt")
+		done
+	fi
+	"${command[@]}" >/dev/null || die "native verifier preparation failed"
 }
 
 cmd_lint() {
-  require_taskfmt
-  local dir
-  dir="$(task_dir)"
-  export TC_TASKFMT="$TASKFMT" TC_TASKFMT_SOURCE="$TASKFMT_SOURCE"
-  "$TASKFMT" lint "$dir"
+	require_taskfmt
+	local dir
+	dir="$(task_dir)"
+	export TC_TASKFMT="$TASKFMT" TC_TASKFMT_SOURCE="$TASKFMT_SOURCE"
+	"$TASKFMT" lint "$dir"
 }
 
 cmd_verify() {
-  local dir binary target_dir worktree_root
-  require_absolute_paths
-  dir="$(task_dir)"
-  [[ -n "$WORKTREE" && "$WORKTREE" = /* ]] \
-    || die "set TC_TASK_WORKTREE to an absolute isolated worktree"
-  [[ -d "$WORKTREE" ]] || die "subagent worktree missing: $WORKTREE"
-  [[ -n "$RUN_DIR" && "$RUN_DIR" = /* ]] \
-    || die "set TC_TASK_RUN_DIR to a unique absolute verifier run directory"
-  worktree_root="$(git -C "$WORKTREE" rev-parse --show-toplevel)" \
-    || die "candidate worktree is not a Git worktree: $WORKTREE"
-  require_scope_base
-  require_external_run_dir
-  require_clean_worktree
-  require_dispatch_authorization
-  require_taskfmt
-  target_dir="$(resolve_target_dir "$worktree_root")" \
-    || die "native proof target directory is invalid"
-  binary="$(proof_binary "$target_dir")"
-  export TC_PROOF_TARGET_DIR="$target_dir" CARGO_TARGET_DIR="$target_dir"
-  require_native_proof "$worktree_root" "$target_dir" "$binary"
-  prepare_native_contexts "$dir" "$binary"
-  export TC_PROOF_CONTEXT_INDEX="$RUN_DIR/context-index.json"
-  local context_index_sha256
-  context_index_sha256="$(shasum -a 256 "$TC_PROOF_CONTEXT_INDEX" | awk '{print $1}')"
-  export TC_PROOF_CONTEXT_INDEX_SHA256="$context_index_sha256"
-  export RUN_DIR TC_TASKFMT="$TASKFMT" TC_TASKFMT_SOURCE="$TASKFMT_SOURCE"
-  export TC_PROOF_NATIVE_LAUNCH=1
-  export TC_PROOF_NATIVE_BINARY="$binary"
-  export TC_PROOF_NATIVE_LAUNCHER="$binary"
-  export TC_PROOF_NATIVE_TIMEOUT_MS="${TC_PROOF_NATIVE_TIMEOUT_MS:-600000}"
+	local dir binary target_dir worktree_root
+	require_absolute_paths
+	dir="$(task_dir)"
+	[[ -n "$WORKTREE" && "$WORKTREE" = /* ]] ||
+		die "set TC_TASK_WORKTREE to an absolute isolated worktree"
+	[[ -d "$WORKTREE" ]] || die "subagent worktree missing: $WORKTREE"
+	[[ -n "$RUN_DIR" && "$RUN_DIR" = /* ]] ||
+		die "set TC_TASK_RUN_DIR to a unique absolute verifier run directory"
+	worktree_root="$(git -C "$WORKTREE" rev-parse --show-toplevel)" ||
+		die "candidate worktree is not a Git worktree: $WORKTREE"
+	require_scope_base
+	require_external_run_dir
+	require_clean_worktree
+	require_dispatch_authorization
+	require_taskfmt
+	target_dir="$(resolve_target_dir "$worktree_root")" ||
+		die "native proof target directory is invalid"
+	binary="$(proof_binary "$target_dir")"
+	export TC_PROOF_TARGET_DIR="$target_dir" CARGO_TARGET_DIR="$target_dir"
+	require_native_proof "$worktree_root" "$target_dir" "$binary"
+	prepare_native_contexts "$dir" "$binary"
+	export TC_PROOF_CONTEXT_INDEX="$RUN_DIR/context-index.json"
+	local context_index_sha256
+	context_index_sha256="$(shasum -a 256 "$TC_PROOF_CONTEXT_INDEX" | awk '{print $1}')"
+	export TC_PROOF_CONTEXT_INDEX_SHA256="$context_index_sha256"
+	export RUN_DIR TC_TASKFMT="$TASKFMT" TC_TASKFMT_SOURCE="$TASKFMT_SOURCE"
+	export TC_PROOF_NATIVE_LAUNCH=1
+	export TC_PROOF_NATIVE_BINARY="$binary"
+	export TC_PROOF_NATIVE_LAUNCHER="$binary"
+	export TC_PROOF_NATIVE_TIMEOUT_MS="${TC_PROOF_NATIVE_TIMEOUT_MS:-600000}"
 
-  local taskfmt_status=0
-  "$TASKFMT" verify \
-    --root "$WORKTREE" \
-    --task-dir "$dir" \
-    --base "$BASE" \
-    --progress "" \
-    --log-dir "$RUN_DIR/taskfmt-logs" \
-    || taskfmt_status=$?
+	local taskfmt_status=0
+	"$TASKFMT" verify \
+		--root "$WORKTREE" \
+		--task-dir "$dir" \
+		--base "$BASE" \
+		--progress "" \
+		--log-dir "$RUN_DIR/taskfmt-logs" ||
+		taskfmt_status=$?
 
-  local validate_status=0
-  "$binary" validate --run-dir "$RUN_DIR" || validate_status=$?
-  if (( taskfmt_status != 0 )); then
-    return "$taskfmt_status"
-  fi
-  (( validate_status == 0 )) || die "native proof validation failed after taskfmt"
+	local validate_status=0
+	"$binary" validate --run-dir "$RUN_DIR" || validate_status=$?
+	if ((taskfmt_status != 0)); then
+		return "$taskfmt_status"
+	fi
+	((validate_status == 0)) || die "native proof validation failed after taskfmt"
 }
 
 main() {
-  case "${1:-help}" in
-    lint) cmd_lint ;;
-    verify) cmd_verify ;;
-    help|-h|--help) usage ;;
-    *) die "unknown command: ${1:-}" ;;
-  esac
+	case "${1:-help}" in
+	lint) cmd_lint ;;
+	verify) cmd_verify ;;
+	help | -h | --help) usage ;;
+	*) die "unknown command: ${1:-}" ;;
+	esac
 }
 
 main "$@"

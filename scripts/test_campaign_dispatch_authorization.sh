@@ -8,29 +8,25 @@ TASKFMT="${TC_TASKFMT:-/tmp/taskfmt-latest-install/bin/taskfmt}"
 TASKFMT_REV="afd3b575dbcc7044620bec4b9493a74eca3e5ef2"
 TASKFMT_VERSION="0.2.0"
 TASKFMT_SHA256="f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de"
-ORACLE_TAG="refs/tags/visual-baseline"
-ORACLE_COMMIT="4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
-ORACLE_TREE="0b1f13431fdfd6060cf9f45a114afa5a99cc6c26"
-CATALOG_MANIFEST_REL="docs/refactoring-plan/task-index.tsv"
 
 fail() {
-  echo "test_campaign_dispatch_authorization: FAIL: $*" >&2
-  exit 1
+	echo "test_campaign_dispatch_authorization: FAIL: $*" >&2
+	exit 1
 }
 
 pass() {
-  echo "test_campaign_dispatch_authorization: PASS: $*"
+	echo "test_campaign_dispatch_authorization: PASS: $*"
 }
 
 TMP_ROOT=""
 if TMP_ROOT="$(mktemp -d /private/tmp/tc-dispatch-auth.XXXXXX 2>/dev/null)"; then
-  :
+	:
 else
-  TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/tc-dispatch-auth.XXXXXX")"
+	TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/tc-dispatch-auth.XXXXXX")"
 fi
 
 cleanup() {
-  rm -rf "$TMP_ROOT"
+	rm -rf "$TMP_ROOT"
 }
 trap cleanup EXIT
 
@@ -39,15 +35,15 @@ candidate="$TMP_ROOT/candidate"
 catalog="$TMP_ROOT/catalog"
 target="$TMP_ROOT/target"
 mkdir -p "$campaign/docs/refactoring-plan" "$campaign/.campaign" \
-  "$candidate" "$catalog/002" "$candidate/tools/refactor-proof/bin" "$target/debug"
-printf '%s\n' 'catalog manifest' > "$campaign/docs/refactoring-plan/task-index.tsv"
+	"$candidate" "$catalog/002" "$candidate/tools/refactor-proof/bin" "$target/debug"
+printf '%s\n' 'catalog manifest' >"$campaign/docs/refactoring-plan/task-index.tsv"
 
 git -C "$campaign" init -q
 git -C "$campaign" config user.email test@example.invalid
 git -C "$campaign" config user.name "Dispatch Authorization Test"
 git -C "$campaign" checkout -q -b refactor/holla-parity
-printf '%s\n' 'campaign fixture' > "$campaign/README.md"
-printf '%s\n' '**NO-GO.**' > "$campaign/docs/refactoring-plan/execution-readiness-report.md"
+printf '%s\n' 'campaign fixture' >"$campaign/README.md"
+printf '%s\n' '**NO-GO.**' >"$campaign/docs/refactoring-plan/execution-readiness-report.md"
 git -C "$campaign" add README.md docs/refactoring-plan/execution-readiness-report.md
 git -C "$campaign" commit -q -m fixture
 
@@ -55,9 +51,9 @@ git -C "$candidate" init -q
 git -C "$candidate" config user.email test@example.invalid
 git -C "$candidate" config user.name "Dispatch Authorization Test"
 git -C "$candidate" checkout -q -b candidate
-printf '%s\n' 'candidate fixture' > "$candidate/README.md"
+printf '%s\n' 'candidate fixture' >"$candidate/README.md"
 printf '%s\n' '#!/usr/bin/env bash' 'set -euo pipefail' 'exit 0' \
-  > "$candidate/tools/refactor-proof/bin/tc-proof"
+	>"$candidate/tools/refactor-proof/bin/tc-proof"
 chmod +x "$candidate/tools/refactor-proof/bin/tc-proof"
 git -C "$candidate" add README.md
 git -C "$candidate" add tools/refactor-proof/bin/tc-proof
@@ -226,26 +222,26 @@ authorization = {
 PY
 
 expect_reject() {
-  local label="$1"
-  local expected="$2"
-  local run_dir="$TMP_ROOT/run-$label"
-  mkdir "$run_dir"
-  local output
-  if output="$({
-    TASK=002 \
-    TC_CAMPAIGN_ROOT="$campaign" \
-    TC_TASK_WORKTREE="$candidate" \
-    TC_TASK_RUN_DIR="$run_dir" \
-    TC_TASK_BASE="$(git -C "$candidate" rev-parse HEAD)" \
-    TC_TASK_PREFLIGHT_EVIDENCE="$TMP_ROOT/positive-run/authorization.json" \
-    TC_CATALOG_ROOT="$catalog" \
-    "$DISPATCH" verify
-  } 2>&1)"; then
-    fail "$label was accepted"
-  fi
-  grep -Fq "$expected" <<<"$output" \
-    || fail "$label had unexpected rejection: $output"
-  pass "$label rejected: $expected"
+	local label="$1"
+	local expected="$2"
+	local run_dir="$TMP_ROOT/run-$label"
+	mkdir "$run_dir"
+	local output
+	if output="$({
+		TASK=002 \
+			TC_CAMPAIGN_ROOT="$campaign" \
+			TC_TASK_WORKTREE="$candidate" \
+			TC_TASK_RUN_DIR="$run_dir" \
+			TC_TASK_BASE="$(git -C "$candidate" rev-parse HEAD)" \
+			TC_TASK_PREFLIGHT_EVIDENCE="$TMP_ROOT/positive-run/authorization.json" \
+			TC_CATALOG_ROOT="$catalog" \
+			"$DISPATCH" verify
+	} 2>&1)"; then
+		fail "$label was accepted"
+	fi
+	grep -Fq "$expected" <<<"$output" ||
+		fail "$label had unexpected rejection: $output"
+	pass "$label rejected: $expected"
 }
 
 expect_reject "no-go" "readiness report is not exact GO"
@@ -309,11 +305,11 @@ cp "$preflight_report" "$preflight_report_good"
 cp "$TMP_ROOT/positive-run/preflight-ledger.json" "$preflight_ledger_good"
 
 expect_report_reject() {
-  local label="$1"
-  local expected="$2"
-  cp "$preflight_report_good" "$preflight_report"
-  cp "$preflight_ledger_good" "$TMP_ROOT/positive-run/preflight-ledger.json"
-  python3 - "$preflight_report" "$TMP_ROOT/positive-run/authorization.json" "$label" <<'PY'
+	local label="$1"
+	local expected="$2"
+	cp "$preflight_report_good" "$preflight_report"
+	cp "$preflight_ledger_good" "$TMP_ROOT/positive-run/preflight-ledger.json"
+	python3 - "$preflight_report" "$TMP_ROOT/positive-run/authorization.json" "$label" <<'PY'
 import hashlib
 import json
 import sys
@@ -353,7 +349,7 @@ authorization = json.loads(authorization_path.read_text(encoding="utf-8"))
 authorization["preflight"]["evidence_sha256"] = hashlib.sha256(report_path.read_bytes()).hexdigest()
 authorization_path.write_text(json.dumps(authorization, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
-  expect_reject "report-$label" "$expected"
+	expect_reject "report-$label" "$expected"
 }
 
 expect_report_reject "source" "source/tree binding"
@@ -424,22 +420,70 @@ value = {
 Path(receipt).write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
 
+linked_target_parent="$TMP_ROOT/linked-target-parent"
+ln -s "$TMP_ROOT" "$linked_target_parent"
 set +e
 TASK=002 \
-TC_CAMPAIGN_ROOT="$campaign" \
-TC_TASK_WORKTREE="$candidate" \
-TC_TASK_RUN_DIR="$TMP_ROOT/positive-run" \
-TC_TASK_BASE="$candidate_head" \
-TC_TASK_PREFLIGHT_EVIDENCE="$TMP_ROOT/positive-run/authorization.json" \
-TC_CATALOG_ROOT="$catalog" \
-TC_PROOF_TARGET_DIR="$target" \
-TC_TASKFMT="$TASKFMT" \
-"$DISPATCH" verify >"$TMP_ROOT/positive.stdout" 2>"$TMP_ROOT/positive.stderr"
+	TC_CAMPAIGN_ROOT="$campaign" \
+	TC_TASK_WORKTREE="$candidate" \
+	TC_TASK_RUN_DIR="$TMP_ROOT/positive-run" \
+	TC_TASK_BASE="$candidate_head" \
+	TC_TASK_PREFLIGHT_EVIDENCE="$TMP_ROOT/positive-run/authorization.json" \
+	TC_CATALOG_ROOT="$catalog" \
+	TC_PROOF_TARGET_DIR="$linked_target_parent/target" \
+	CARGO_TARGET_DIR="" \
+	TC_TASKFMT="$TASKFMT" \
+	"$DISPATCH" verify >"$TMP_ROOT/linked-parent.stdout" 2>"$TMP_ROOT/linked-parent.stderr"
+linked_parent_rc=$?
+set -e
+if ((linked_parent_rc == 0)); then
+	fail "dispatch accepted a target with a symlinked parent"
+fi
+grep -Fq "parent path component must not be a symlink" "$TMP_ROOT/linked-parent.stderr" ||
+	fail "dispatch symlinked target parent rejection had unexpected output: $(rtk cat "$TMP_ROOT/linked-parent.stderr")"
+pass "dispatch rejects a symlinked target parent"
+
+set +e
+TASK=002 \
+	TC_CAMPAIGN_ROOT="$campaign" \
+	TC_TASK_WORKTREE="$candidate" \
+	TC_TASK_RUN_DIR="$TMP_ROOT/positive-run" \
+	TC_TASK_BASE="$candidate_head" \
+	TC_TASK_PREFLIGHT_EVIDENCE="$TMP_ROOT/positive-run/authorization.json" \
+	TC_CATALOG_ROOT="$catalog" \
+	TC_PROOF_TARGET_DIR="$target" \
+	TC_TASKFMT="$TASKFMT" \
+	"$DISPATCH" verify >"$TMP_ROOT/positive.stdout" 2>"$TMP_ROOT/positive.stderr"
 positive_rc=$?
 set -e
-if (( positive_rc != 0 )); then
-  fail "valid preflight authorization rejected (exit $positive_rc): stdout=$(rtk cat "$TMP_ROOT/positive.stdout") stderr=$(rtk cat "$TMP_ROOT/positive.stderr")"
+if ((positive_rc != 0)); then
+	fail "valid preflight authorization rejected (exit $positive_rc): stdout=$(rtk cat "$TMP_ROOT/positive.stdout") stderr=$(rtk cat "$TMP_ROOT/positive.stderr")"
 fi
 pass "valid current preflight authorization accepted"
+
+hardlink_sentinel="$TMP_ROOT/hardlink-tc-proof"
+cp "$binary" "$hardlink_sentinel"
+rm "$binary"
+ln "$hardlink_sentinel" "$binary"
+set +e
+TASK=002 \
+	TC_CAMPAIGN_ROOT="$campaign" \
+	TC_TASK_WORKTREE="$candidate" \
+	TC_TASK_RUN_DIR="$TMP_ROOT/positive-run" \
+	TC_TASK_BASE="$candidate_head" \
+	TC_TASK_PREFLIGHT_EVIDENCE="$TMP_ROOT/positive-run/authorization.json" \
+	TC_CATALOG_ROOT="$catalog" \
+	TC_PROOF_TARGET_DIR="$target" \
+	CARGO_TARGET_DIR="" \
+	TC_TASKFMT="$TASKFMT" \
+	"$DISPATCH" verify >"$TMP_ROOT/hardlink.stdout" 2>"$TMP_ROOT/hardlink.stderr"
+hardlink_rc=$?
+set -e
+if ((hardlink_rc == 0)); then
+	fail "dispatch accepted a hardlinked proof binary"
+fi
+grep -Fq "native comparator is not a regular single-link file" "$TMP_ROOT/hardlink.stderr" ||
+	fail "dispatch hardlink rejection had unexpected output: $(rtk cat "$TMP_ROOT/hardlink.stderr")"
+pass "dispatch rejects a hardlinked proof binary"
 
 echo "test_campaign_dispatch_authorization: all checks passed"

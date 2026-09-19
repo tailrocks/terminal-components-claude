@@ -22,7 +22,7 @@ PREFLIGHT_REPORT="${TC_PREFLIGHT_REPORT:-}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 usage() {
-  cat <<'EOF'
+	cat <<'EOF'
 Usage: scripts/campaign-preflight.sh [preflight|proof-preparation]
 
 preflight             Authorizing readiness gate. Fails while the report is
@@ -38,94 +38,95 @@ EOF
 }
 
 repo_root() {
-  git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel
+	git -C "$SCRIPT_DIR/.." rev-parse --show-toplevel
 }
 
 fail() {
-  echo "campaign-preflight: FAIL: $*" >&2
-  exit 1
+	echo "campaign-preflight: FAIL: $*" >&2
+	exit 1
 }
 
 pass() {
-  echo "campaign-preflight: OK: $*"
+	echo "campaign-preflight: OK: $*"
 }
 
 campaign_worktree() {
-  local root
-  root="$(repo_root)"
-  if [[ "$WORKTREE_PATH" = /* ]]; then
-    echo "$WORKTREE_PATH"
-  else
-    echo "$root/$WORKTREE_PATH"
-  fi
+	local root
+	root="$(repo_root)"
+	if [[ "$WORKTREE_PATH" = /* ]]; then
+		echo "$WORKTREE_PATH"
+	else
+		echo "$root/$WORKTREE_PATH"
+	fi
 }
 
 check_tag() {
-  local peeled tree
-  peeled="$(git rev-parse "${ORACLE_TAG}^{commit}" 2>/dev/null || echo MISSING)"
-  tree="$(git rev-parse "${ORACLE_TAG}^{tree}" 2>/dev/null || echo MISSING)"
-  if [[ "$peeled" != "$TAG_PEELED_EXPECT" ]]; then
-    fail "visual-baseline tag peeled=$peeled (expected $TAG_PEELED_EXPECT)"
-  elif [[ "$tree" != "$ORACLE_TREE_EXPECT" ]]; then
-    fail "visual-baseline tree=$tree (expected $ORACLE_TREE_EXPECT)"
-  else
-    pass "visual-baseline tag/tree unmoved @ ${peeled:0:12}/${tree:0:12}"
-  fi
+	local peeled tree
+	peeled="$(git rev-parse "${ORACLE_TAG}^{commit}" 2>/dev/null || echo MISSING)"
+	tree="$(git rev-parse "${ORACLE_TAG}^{tree}" 2>/dev/null || echo MISSING)"
+	if [[ "$peeled" != "$TAG_PEELED_EXPECT" ]]; then
+		fail "visual-baseline tag peeled=$peeled (expected $TAG_PEELED_EXPECT)"
+	elif [[ "$tree" != "$ORACLE_TREE_EXPECT" ]]; then
+		fail "visual-baseline tree=$tree (expected $ORACLE_TREE_EXPECT)"
+	else
+		pass "visual-baseline tag/tree unmoved @ ${peeled:0:12}/${tree:0:12}"
+	fi
 }
 
 check_branch() {
-  git show-ref --verify --quiet "refs/heads/$INTEGRATION_BRANCH" \
-    || fail "missing branch $INTEGRATION_BRANCH (run campaign-init.sh)"
-  pass "branch $INTEGRATION_BRANCH @ $(git rev-parse "$INTEGRATION_BRANCH" | cut -c1-12)"
+	git show-ref --verify --quiet "refs/heads/$INTEGRATION_BRANCH" ||
+		fail "missing branch $INTEGRATION_BRANCH (run campaign-init.sh)"
+	pass "branch $INTEGRATION_BRANCH @ $(git rev-parse "$INTEGRATION_BRANCH" | cut -c1-12)"
 }
 
 check_worktree() {
-  local wt wt_branch branch_head wt_head
-  wt="$(campaign_worktree)"
-  [[ -d "$wt" ]] || fail "missing worktree $wt"
-  wt_branch="$(git -C "$wt" branch --show-current 2>/dev/null || echo detached)"
-  if [[ "$wt_branch" != "$INTEGRATION_BRANCH" ]]; then
-    fail "worktree on '$wt_branch' (expected $INTEGRATION_BRANCH)"
-  fi
-  branch_head="$(git rev-parse "$INTEGRATION_BRANCH")"
-  wt_head="$(git -C "$wt" rev-parse HEAD)"
-  [[ "$wt_head" == "$branch_head" ]] \
-    || fail "worktree HEAD $wt_head is not current branch HEAD $branch_head"
-  pass "worktree $wt on $INTEGRATION_BRANCH @ ${wt_head:0:12}"
+	local wt wt_branch branch_head wt_head
+	wt="$(campaign_worktree)"
+	[[ -d "$wt" ]] || fail "missing worktree $wt"
+	wt_branch="$(git -C "$wt" branch --show-current 2>/dev/null || echo detached)"
+	if [[ "$wt_branch" != "$INTEGRATION_BRANCH" ]]; then
+		fail "worktree on '$wt_branch' (expected $INTEGRATION_BRANCH)"
+	fi
+	branch_head="$(git rev-parse "$INTEGRATION_BRANCH")"
+	wt_head="$(git -C "$wt" rev-parse HEAD)"
+	[[ "$wt_head" == "$branch_head" ]] ||
+		fail "worktree HEAD $wt_head is not current branch HEAD $branch_head"
+	[[ -z "$(git -C "$wt" status --porcelain)" ]] ||
+		fail "worktree $wt is dirty; preflight requires a clean candidate worktree"
+	pass "worktree $wt on $INTEGRATION_BRANCH @ ${wt_head:0:12}"
 }
 
 check_readiness_gate() {
-  local report
-  report="$(repo_root)/docs/refactoring-plan/execution-readiness-report.md"
-  [[ -f "$report" ]] || fail "readiness report missing: $report"
-  if grep -Eq '^\*\*NO-GO\.\*\*$' "$report"; then
-    fail "readiness report is NO-GO; preflight cannot authorize campaign work"
-  fi
-  grep -Eq '^\*\*GO\.\*\*$' "$report" \
-    || fail "readiness report has no exact GO verdict"
-  pass "readiness report is GO"
+	local report
+	report="$(repo_root)/docs/refactoring-plan/execution-readiness-report.md"
+	[[ -f "$report" ]] || fail "readiness report missing: $report"
+	if grep -Eq '^\*\*NO-GO\.\*\*$' "$report"; then
+		fail "readiness report is NO-GO; preflight cannot authorize campaign work"
+	fi
+	grep -Eq '^\*\*GO\.\*\*$' "$report" ||
+		fail "readiness report has no exact GO verdict"
+	pass "readiness report is GO"
 }
 
 check_ledger() {
-  local root ledger graph catalog_manifest wt current_head current_tree
-  root="$(repo_root)"
-  ledger="$root/.campaign/ledger.json"
-  graph="$root/$TASK_GRAPH_MANIFEST_REL"
-  catalog_manifest="$root/$CATALOG_MANIFEST_REL"
-  wt="$(campaign_worktree)"
-  current_head="$(git -C "$wt" rev-parse HEAD)"
-  current_tree="$(git -C "$wt" rev-parse 'HEAD^{tree}')"
-  [[ -f "$ledger" ]] || fail "missing $ledger (run campaign-init.sh)"
-  [[ -f "$graph" ]] || fail "missing dependency graph: $graph"
-  [[ -f "$catalog_manifest" && ! -L "$catalog_manifest" ]] \
-    || fail "missing or linked catalog manifest: $catalog_manifest"
-  PYTHONPATH="$SCRIPT_DIR" python3 - "$ledger" "$INTEGRATION_BRANCH" \
-    "$current_head" "$current_tree" "$graph" "$root" "$TASKFMT_REV" \
-    "$TASKFMT_VERSION" "$TASKFMT_SHA256" "$TASKFMT_SOURCE" "$TASKFMT_BIN" \
-    "$ORACLE_TAG" "$TAG_PEELED_EXPECT" "$ORACLE_TREE_EXPECT" \
-    "$catalog_manifest" "$CATALOG_MANIFEST_REL" "$graph" \
-    "$TASK_GRAPH_MANIFEST_REL" <<'PY' \
-    || fail "ledger invalid or stale"
+	local root ledger graph catalog_manifest wt current_head current_tree
+	root="$(repo_root)"
+	ledger="$root/.campaign/ledger.json"
+	graph="$root/$TASK_GRAPH_MANIFEST_REL"
+	catalog_manifest="$root/$CATALOG_MANIFEST_REL"
+	wt="$(campaign_worktree)"
+	current_head="$(git -C "$wt" rev-parse HEAD)"
+	current_tree="$(git -C "$wt" rev-parse 'HEAD^{tree}')"
+	[[ -f "$ledger" ]] || fail "missing $ledger (run campaign-init.sh)"
+	[[ -f "$graph" ]] || fail "missing dependency graph: $graph"
+	[[ -f "$catalog_manifest" && ! -L "$catalog_manifest" ]] ||
+		fail "missing or linked catalog manifest: $catalog_manifest"
+	PYTHONPATH="$SCRIPT_DIR" python3 - "$ledger" "$INTEGRATION_BRANCH" \
+		"$current_head" "$current_tree" "$graph" "$root" "$TASKFMT_REV" \
+		"$TASKFMT_VERSION" "$TASKFMT_SHA256" "$TASKFMT_SOURCE" "$TASKFMT_BIN" \
+		"$ORACLE_TAG" "$TAG_PEELED_EXPECT" "$ORACLE_TREE_EXPECT" \
+		"$catalog_manifest" "$CATALOG_MANIFEST_REL" "$graph" \
+		"$TASK_GRAPH_MANIFEST_REL" <<'PY' ||
 import hashlib
 import json
 import sys
@@ -206,71 +207,74 @@ validate_preflight_ledger(
 )
 print("ledger schema/receipt/head/tree/oracle/catalog/graph/taskfmt/proof/reviewer bindings: OK")
 PY
-  pass "ledger valid, disarmed, and bound to current HEAD/tree and preparation identities"
+		fail "ledger invalid or stale"
+	pass "ledger valid, disarmed, and bound to current HEAD/tree and preparation identities"
 }
 
 check_taskfmt_identity() {
-  [[ "$TASKFMT_BIN" = /* ]] || fail "taskfmt path must be absolute: $TASKFMT_BIN"
-  [[ -d "$TASKFMT_SOURCE/.git" ]] \
-    || fail "taskfmt source is not a git checkout: $TASKFMT_SOURCE"
-  [[ -z "$(git -C "$TASKFMT_SOURCE" status --porcelain)" ]] \
-    || fail "taskfmt source is dirty: $TASKFMT_SOURCE"
-  [[ "$(git -C "$TASKFMT_SOURCE" rev-parse HEAD)" == "$TASKFMT_REV" ]] \
-    || fail "taskfmt source is not latest $TASKFMT_REV"
-  [[ -f "$TASKFMT_BIN" && ! -L "$TASKFMT_BIN" && -x "$TASKFMT_BIN" ]] \
-    || fail "taskfmt is not a regular executable: $TASKFMT_BIN"
-  local actual_sha
-  actual_sha="$(shasum -a 256 "$TASKFMT_BIN" | awk '{print $1}')"
-  [[ "$actual_sha" == "$TASKFMT_SHA256" ]] \
-    || fail "taskfmt SHA-256 is $actual_sha; expected $TASKFMT_SHA256"
-  "$TASKFMT_BIN" --version | grep -Fq "git $TASKFMT_REV" \
-    || fail "taskfmt is not latest $TASKFMT_REV"
-  pass "current taskfmt identity @ $TASKFMT_BIN"
+	[[ "$TASKFMT_BIN" = /* ]] || fail "taskfmt path must be absolute: $TASKFMT_BIN"
+	[[ -d "$TASKFMT_SOURCE/.git" ]] ||
+		fail "taskfmt source is not a git checkout: $TASKFMT_SOURCE"
+	[[ -z "$(git -C "$TASKFMT_SOURCE" status --porcelain)" ]] ||
+		fail "taskfmt source is dirty: $TASKFMT_SOURCE"
+	[[ "$(git -C "$TASKFMT_SOURCE" rev-parse HEAD)" == "$TASKFMT_REV" ]] ||
+		fail "taskfmt source is not latest $TASKFMT_REV"
+	[[ -f "$TASKFMT_BIN" && ! -L "$TASKFMT_BIN" && -x "$TASKFMT_BIN" ]] ||
+		fail "taskfmt is not a regular executable: $TASKFMT_BIN"
+	local actual_sha
+	actual_sha="$(shasum -a 256 "$TASKFMT_BIN" | awk '{print $1}')"
+	[[ "$actual_sha" == "$TASKFMT_SHA256" ]] ||
+		fail "taskfmt SHA-256 is $actual_sha; expected $TASKFMT_SHA256"
+	"$TASKFMT_BIN" --version | grep -Fq "git $TASKFMT_REV" ||
+		fail "taskfmt is not latest $TASKFMT_REV"
+	pass "current taskfmt identity @ $TASKFMT_BIN"
 }
 
 check_taskfmt() {
-  check_taskfmt_identity
-  local catalog task
-  catalog="$(repo_root)/refactoring-tasks/terminal-components/completion"
-  for task in "$catalog"/[0-9][0-9][0-9]; do
-    "$TASKFMT_BIN" lint "$task" >/dev/null \
-      || fail "latest taskfmt lint failed: $task"
-  done
-  pass "latest taskfmt lint passed for every numbered package"
+	check_taskfmt_identity
+	local catalog task
+	catalog="$(repo_root)/refactoring-tasks/terminal-components/completion"
+	for task in "$catalog"/[0-9][0-9][0-9]; do
+		"$TASKFMT_BIN" lint "$task" >/dev/null ||
+			fail "latest taskfmt lint failed: $task"
+	done
+	pass "latest taskfmt lint passed for every numbered package"
 }
 
 check_host_local_task_paths() {
-  local root
-  root="$(repo_root)"
-  if rg -n '(^|[" ])/(task|work|proof|run)(/|[" ])' \
-    "$root/refactoring-tasks/terminal-components/completion" \
-    --glob 'verify.toml' >/dev/null; then
-    fail "task verify.toml still contains legacy container paths"
-  fi
-  pass "task verify.toml paths are host-local"
+	local root
+	root="$(repo_root)"
+	if rg -n '(^|[" ])/(task|work|proof|run)(/|[" ])' \
+		"$root/refactoring-tasks/terminal-components/completion" \
+		--glob 'verify.toml' >/dev/null; then
+		fail "task verify.toml still contains legacy container paths"
+	fi
+	pass "task verify.toml paths are host-local"
 }
 
 check_harness() {
-  local wt
-  wt="$(campaign_worktree)"
-  if [[ -f "$wt/Cargo.toml" ]] && grep -q refactor-proof "$wt/Cargo.toml" 2>/dev/null; then
-    if (cd "$wt" && NEXTEST_USER_CONFIG_FILE=none cargo nextest list -p refactor-proof >/dev/null 2>/dev/null); then
-      pass "refactor-proof nextest discovery"
-    else
-      fail "refactor-proof nextest discovery failed in worktree"
-    fi
-  else
-    fail "worktree missing refactor-proof"
-  fi
+	local wt
+	wt="$(campaign_worktree)"
+	if [[ -f "$wt/Cargo.toml" ]] && grep -q refactor-proof "$wt/Cargo.toml" 2>/dev/null; then
+		if (cd "$wt" && NEXTEST_USER_CONFIG_FILE=none cargo nextest list -p refactor-proof >/dev/null 2>/dev/null); then
+			pass "refactor-proof nextest discovery"
+		else
+			fail "refactor-proof nextest discovery failed in worktree"
+		fi
+	else
+		fail "worktree missing refactor-proof"
+	fi
 }
 
 check_native_proof() {
-  local wt target_dir binary receipt commit tree tc_target cargo_target
-  wt="$(campaign_worktree)"
-  tc_target="${TC_PROOF_TARGET_DIR:-}"
-  cargo_target="${CARGO_TARGET_DIR:-}"
-  if ! target_dir="$(
-    python3 - "$wt" "$tc_target" "$cargo_target" <<'PY'
+	local wt target_dir binary receipt commit tree tc_target cargo_target
+	wt="$(campaign_worktree)"
+	tc_target="${TC_PROOF_TARGET_DIR:-}"
+	cargo_target="${CARGO_TARGET_DIR:-}"
+	if ! target_dir="$(
+		python3 - "$wt" "$tc_target" "$cargo_target" <<'PY'
+import os
+import stat
 import sys
 from pathlib import Path
 
@@ -278,10 +282,41 @@ root = Path(sys.argv[1]).resolve()
 tc_raw, cargo_raw = sys.argv[2:]
 
 
+def check_parent_components(path: Path, name: str) -> None:
+    allowed_system_symlinks = {
+        Path("/etc"): Path("/private/etc"),
+        Path("/home"): Path("/System/Volumes/Data/home"),
+        Path("/tmp"): Path("/private/tmp"),
+        Path("/var"): Path("/private/var"),
+    }
+    current = Path(path.anchor)
+    for component in path.parts[1:-1]:
+        current /= component
+        try:
+            metadata = os.lstat(current)
+        except FileNotFoundError:
+            break
+        except OSError as error:
+            raise SystemExit(
+                f"{name} parent path component is unreadable: {current}: {error}"
+            ) from error
+        if stat.S_ISLNK(metadata.st_mode):
+            if current.resolve() != allowed_system_symlinks.get(current):
+                raise SystemExit(
+                    f"{name} parent path component must not be a symlink: {current}"
+                )
+            continue
+        if not stat.S_ISDIR(metadata.st_mode):
+            raise SystemExit(
+                f"{name} parent path component is not a directory: {current}"
+            )
+
+
 def checked_path(raw: str, name: str) -> Path:
     path = Path(raw)
     if not path.is_absolute():
         raise SystemExit(f"{name} must be an absolute path: {raw or '<empty>'}")
+    check_parent_components(path, name)
     if path.is_symlink():
         raise SystemExit(f"{name} must not be a symlink: {path}")
     return path
@@ -301,6 +336,7 @@ elif cargo_raw:
     selected = checked_path(cargo_raw, "CARGO_TARGET_DIR")
 else:
     selected = root / "target"
+    check_parent_components(selected, "proof target directory")
 
 if selected.is_symlink():
     raise SystemExit(f"proof target directory must not be a symlink: {selected}")
@@ -314,23 +350,24 @@ if resolved == root or root in resolved.parents:
     raise SystemExit("proof target directory must be external to the worktree")
 print(resolved)
 PY
-  )"; then
-    fail "native proof target is invalid"
-  fi
-binary="$target_dir/debug/tc-proof"
-receipt="$target_dir/debug/tc-proof.build.json"
-[[ -d "$target_dir/debug" && ! -L "$target_dir/debug" ]] \
-    || fail "native proof debug target directory missing or linked: $target_dir/debug"
-[[ -f "$binary" && ! -L "$binary" && -x "$binary" ]] \
-    || fail "native tc-proof comparator missing or linked: $binary (run campaign-build-proof.sh with TC_PROOF_TARGET_DIR)"
-[[ -f "$receipt" && ! -L "$receipt" ]] \
-    || fail "native tc-proof build receipt missing or linked: $receipt (run campaign-build-proof.sh with TC_PROOF_TARGET_DIR)"
-  commit="$(git -C "$wt" rev-parse HEAD)"
-  tree="$(git -C "$wt" rev-parse 'HEAD^{tree}')"
-  PYTHONPATH="$SCRIPT_DIR" python3 - "$receipt" "$wt" "$target_dir" "$commit" "$tree" "$binary" <<'PY' \
-    || fail "native tc-proof build receipt does not match this worktree"
+	)"; then
+		fail "native proof target is invalid"
+	fi
+	binary="$target_dir/debug/tc-proof"
+	receipt="$target_dir/debug/tc-proof.build.json"
+	[[ -d "$target_dir/debug" && ! -L "$target_dir/debug" ]] ||
+		fail "native proof debug target directory missing or linked: $target_dir/debug"
+	[[ -f "$binary" && ! -L "$binary" && -x "$binary" ]] ||
+		fail "native tc-proof comparator missing or linked: $binary (run campaign-build-proof.sh with TC_PROOF_TARGET_DIR)"
+	[[ -f "$receipt" && ! -L "$receipt" ]] ||
+		fail "native tc-proof build receipt missing or linked: $receipt (run campaign-build-proof.sh with TC_PROOF_TARGET_DIR)"
+	commit="$(git -C "$wt" rev-parse HEAD)"
+	tree="$(git -C "$wt" rev-parse 'HEAD^{tree}')"
+	PYTHONPATH="$SCRIPT_DIR" python3 - "$receipt" "$wt" "$target_dir" "$commit" "$tree" "$binary" <<'PY' ||
 import hashlib
 import json
+import os
+import stat
 import sys
 from pathlib import Path
 
@@ -352,46 +389,54 @@ if value.get("tree") != tree:
 if value.get("binary") != str(Path(binary).resolve()):
     raise SystemExit("wrong build binary")
 binary_path = Path(binary)
-if binary_path.is_symlink() or not binary_path.is_file():
-    raise SystemExit("native comparator is not a regular file")
 receipt_path = Path(receipt)
-if receipt_path.is_symlink() or not receipt_path.is_file():
-    raise SystemExit("native build receipt is not a regular file")
+for path, label in (
+    (binary_path, "native comparator"),
+    (receipt_path, "native build receipt"),
+):
+    try:
+        metadata = os.lstat(path)
+    except OSError as error:
+        raise SystemExit(f"{label} is unreadable: {error}") from error
+    if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+        raise SystemExit(f"{label} is not a regular single-link file")
 actual = hashlib.sha256(binary_path.read_bytes()).hexdigest()
 if value.get("binary_sha256") != actual:
     raise SystemExit("native comparator hash mismatch")
 PY
-  pass "native tc-proof comparator and build receipt match external target, worktree HEAD, and tree"
+		fail "native tc-proof build receipt does not match this worktree"
+	pass "native tc-proof comparator and build receipt match external target, worktree HEAD, and tree"
 }
 
 check_validate_plan() {
-  local root script
-  root="$(repo_root)"
-  script="$root/docs/refactoring-plan/evidence/validate-plan.py"
-  if [[ -f "$script" ]]; then
-    if python3 "$script" --summary 2>/dev/null | grep -q '"error_count": 0'; then
-      pass "validate-plan error_count 0"
-    else
-      fail "validate-plan not green or script failed"
-    fi
-  else
-    fail "validate-plan.py not found"
-  fi
+	local root script summary
+	root="$(repo_root)"
+	script="$root/docs/refactoring-plan/evidence/validate-plan.py"
+	if [[ -f "$script" ]]; then
+		if summary="$(python3 "$script" --summary)"; then
+			if grep -Fq '"error_count": 0' <<<"$summary"; then
+				pass "validate-plan error_count 0"
+				return 0
+			fi
+		fi
+		fail "validate-plan not green or script failed"
+	else
+		fail "validate-plan.py not found"
+	fi
 }
 
 write_preflight_report() {
-  [[ -n "$PREFLIGHT_REPORT" ]] || return 0
-  local root wt ledger current_head current_tree
-  root="$(repo_root)"
-  wt="$(campaign_worktree)"
-  ledger="$root/.campaign/ledger.json"
-  current_head="$(git -C "$wt" rev-parse HEAD)"
-  current_tree="$(git -C "$wt" rev-parse 'HEAD^{tree}')"
-  PYTHONPATH="$SCRIPT_DIR" python3 - "$PREFLIGHT_REPORT" "$root" "$wt" "$ledger" \
-    "$current_head" "$current_tree" "$INTEGRATION_BRANCH" "$ORACLE_TAG" \
-    "$TAG_PEELED_EXPECT" "$ORACLE_TREE_EXPECT" "$TASKFMT_REV" "$TASKFMT_VERSION" \
-    "$TASKFMT_SHA256" "$TASKFMT_SOURCE" "$TASKFMT_BIN" "$CATALOG_MANIFEST_REL" <<'PY' \
-    || fail "cannot write external machine-readable preflight report"
+	[[ -n "$PREFLIGHT_REPORT" ]] || return 0
+	local root wt ledger current_head current_tree
+	root="$(repo_root)"
+	wt="$(campaign_worktree)"
+	ledger="$root/.campaign/ledger.json"
+	current_head="$(git -C "$wt" rev-parse HEAD)"
+	current_tree="$(git -C "$wt" rev-parse 'HEAD^{tree}')"
+	PYTHONPATH="$SCRIPT_DIR" python3 - "$PREFLIGHT_REPORT" "$root" "$wt" "$ledger" \
+		"$current_head" "$current_tree" "$INTEGRATION_BRANCH" "$ORACLE_TAG" \
+		"$TAG_PEELED_EXPECT" "$ORACLE_TREE_EXPECT" "$TASKFMT_REV" "$TASKFMT_VERSION" \
+		"$TASKFMT_SHA256" "$TASKFMT_SOURCE" "$TASKFMT_BIN" "$CATALOG_MANIFEST_REL" <<'PY' ||
 import hashlib
 import json
 import os
@@ -427,6 +472,12 @@ def reject(message: str) -> None:
 def no_symlink_parent(path: Path, field: str) -> None:
     if not path.is_absolute():
         reject(f"{field} must be absolute")
+    allowed_system_symlinks = {
+        Path("/etc"): Path("/private/etc"),
+        Path("/home"): Path("/System/Volumes/Data/home"),
+        Path("/tmp"): Path("/private/tmp"),
+        Path("/var"): Path("/private/var"),
+    }
     current = Path(path.anchor)
     for component in path.parts[1:-1]:
         current /= component
@@ -434,7 +485,11 @@ def no_symlink_parent(path: Path, field: str) -> None:
             mode = os.lstat(current).st_mode
         except OSError as error:
             reject(f"{field} parent is unreadable: {error}")
-        if stat.S_ISLNK(mode) or not stat.S_ISDIR(mode):
+        if stat.S_ISLNK(mode):
+            if current.resolve() != allowed_system_symlinks.get(current):
+                reject(f"{field} parent is not a real directory: {current}")
+            continue
+        if not stat.S_ISDIR(mode):
             reject(f"{field} parent is not a real directory: {current}")
 
 
@@ -521,32 +576,32 @@ report_value = {
 }
 report.write_text(json.dumps(report_value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
-  pass "machine-readable preflight report and disarmed ledger snapshot written: $PREFLIGHT_REPORT"
+		fail "cannot write external machine-readable preflight report"
+	pass "machine-readable preflight report and disarmed ledger snapshot written: $PREFLIGHT_REPORT"
 }
 
 check_proof_preparation() {
-  local root wt run receipt current_head current_tree
-  root="$(repo_root)"
-  wt="$(campaign_worktree)"
-  run="${TC_PROOF_RUN_DIR:-}"
-  receipt="${TC_PROOF_PREPARATION_RECEIPT:-}"
-  [[ -n "$run" && "$run" = /* ]] \
-    || fail "set TC_PROOF_RUN_DIR to an external absolute preparation directory"
-  if [[ -z "$receipt" ]]; then
-    receipt="$run/proof-preparation.json"
-  fi
-  [[ "$receipt" = /* ]] || fail "proof preparation receipt must be absolute: $receipt"
-  [[ -f "$receipt" && ! -L "$receipt" ]] \
-    || fail "proof preparation receipt missing or symlinked: $receipt"
-  [[ -z "$(git -C "$wt" status --porcelain)" ]] \
-    || fail "proof preparation worktree is dirty"
-  current_head="$(git -C "$wt" rev-parse HEAD)"
-  current_tree="$(git -C "$wt" rev-parse 'HEAD^{tree}')"
-  check_taskfmt_identity
-  check_native_proof
-  PYTHONPATH="$SCRIPT_DIR" python3 - "$receipt" "$wt" "$current_head" \
-    "$current_tree" "$run" <<'PY' \
-    || fail "proof preparation contains an unsafe or stale external artifact"
+	local root wt run receipt current_head current_tree
+	root="$(repo_root)"
+	wt="$(campaign_worktree)"
+	run="${TC_PROOF_RUN_DIR:-}"
+	receipt="${TC_PROOF_PREPARATION_RECEIPT:-}"
+	[[ -n "$run" && "$run" = /* ]] ||
+		fail "set TC_PROOF_RUN_DIR to an external absolute preparation directory"
+	if [[ -z "$receipt" ]]; then
+		receipt="$run/proof-preparation.json"
+	fi
+	[[ "$receipt" = /* ]] || fail "proof preparation receipt must be absolute: $receipt"
+	[[ -f "$receipt" && ! -L "$receipt" ]] ||
+		fail "proof preparation receipt missing or symlinked: $receipt"
+	[[ -z "$(git -C "$wt" status --porcelain)" ]] ||
+		fail "proof preparation worktree is dirty"
+	current_head="$(git -C "$wt" rev-parse HEAD)"
+	current_tree="$(git -C "$wt" rev-parse 'HEAD^{tree}')"
+	check_taskfmt_identity
+	check_native_proof
+	PYTHONPATH="$SCRIPT_DIR" python3 - "$receipt" "$wt" "$current_head" \
+		"$current_tree" "$run" <<'PY' ||
 import hashlib
 import json
 import os
@@ -566,14 +621,23 @@ def reject(message: str) -> None:
 def no_symlink_components(path: Path, field: str) -> None:
     if not path.is_absolute():
         reject(f"{field} is not absolute")
+    allowed_system_symlinks = {
+        Path("/etc"): Path("/private/etc"),
+        Path("/home"): Path("/System/Volumes/Data/home"),
+        Path("/tmp"): Path("/private/tmp"),
+        Path("/var"): Path("/private/var"),
+    }
     current = Path(path.anchor)
     for component in path.parts[1:]:
         current /= component
         try:
-            if stat.S_ISLNK(os.lstat(current).st_mode):
-                reject(f"{field} contains a symlinked path component: {current}")
+            mode = os.lstat(current).st_mode
         except OSError as error:
             reject(f"{field} is unreadable: {error}")
+        if stat.S_ISLNK(mode):
+            if current.resolve() != allowed_system_symlinks.get(current):
+                reject(f"{field} contains a symlinked path component: {current}")
+            continue
 
 
 def regular_file(path: Path, field: str) -> Path:
@@ -680,10 +744,10 @@ for name in ("contexts", "results"):
         external_file(entry, f"context index {name}[{index_number}]")
 print("external proof preparation paths, hashes, hardlinks, and source tree: OK")
 PY
-PYTHONPATH="$SCRIPT_DIR" python3 - "$receipt" "$wt" "$current_head" "$current_tree" "$run" \
-    "$TASKFMT_REV" "$TASKFMT_VERSION" "$TASKFMT_SHA256" "$TASKFMT_SOURCE" \
-    "$TASKFMT_BIN" <<'PY' \
-    || fail "proof preparation is not bound, complete, and current"
+		fail "proof preparation contains an unsafe or stale external artifact"
+	PYTHONPATH="$SCRIPT_DIR" python3 - "$receipt" "$wt" "$current_head" "$current_tree" "$run" \
+		"$TASKFMT_REV" "$TASKFMT_VERSION" "$TASKFMT_SHA256" "$TASKFMT_SOURCE" \
+		"$TASKFMT_BIN" <<'PY' ||
 import json
 import sys
 from pathlib import Path
@@ -710,47 +774,51 @@ validate_proof_preparation(
 )
 print("proof preparation context/index/result/observer bindings: OK")
 PY
-  pass "proof preparation qualified; non-authorizing (ledger and tasks unchanged)"
+		fail "proof preparation is not bound, complete, and current"
+	pass "proof preparation qualified; non-authorizing (ledger and tasks unchanged)"
 }
 
 main() {
-  local mode="${1:-preflight}"
-  case "$mode" in
-    proof-preparation|proof-prep|qualify-proof-preparation)
-      root="$(repo_root)"
-      cd "$root"
-      echo "==> Native proof-preparation qualification (non-authorizing)"
-      check_branch
-      check_worktree
-      check_proof_preparation
-      ;;
-    preflight|--preflight)
-      [[ "$#" -le 1 ]] || { usage >&2; fail "unknown preflight arguments"; }
-      root="$(repo_root)"
-      cd "$root"
-      echo "==> Pre-arm preflight (does not arm /goal)"
-      check_tag
-      check_branch
-      check_worktree
-      check_readiness_gate
-      check_ledger
-      check_taskfmt
-      check_host_local_task_paths
-      check_harness
-      check_native_proof
-      check_validate_plan
-      write_preflight_report
-      echo ""
-      echo "Preflight complete. No task dispatch or integration is performed."
-      ;;
-    help|-h|--help)
-      usage
-      ;;
-    *)
-      usage >&2
-      fail "unknown mode: $mode"
-      ;;
-  esac
+	local mode="${1:-preflight}"
+	case "$mode" in
+	proof-preparation | proof-prep | qualify-proof-preparation)
+		root="$(repo_root)"
+		cd "$root"
+		echo "==> Native proof-preparation qualification (non-authorizing)"
+		check_branch
+		check_worktree
+		check_proof_preparation
+		;;
+	preflight | --preflight)
+		[[ "$#" -le 1 ]] || {
+			usage >&2
+			fail "unknown preflight arguments"
+		}
+		root="$(repo_root)"
+		cd "$root"
+		echo "==> Pre-arm preflight (does not arm /goal)"
+		check_tag
+		check_branch
+		check_worktree
+		check_readiness_gate
+		check_ledger
+		check_taskfmt
+		check_host_local_task_paths
+		check_harness
+		check_native_proof
+		check_validate_plan
+		write_preflight_report
+		echo ""
+		echo "Preflight complete. No task dispatch or integration is performed."
+		;;
+	help | -h | --help)
+		usage
+		;;
+	*)
+		usage >&2
+		fail "unknown mode: $mode"
+		;;
+	esac
 }
 
 main "$@"
