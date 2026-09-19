@@ -41,17 +41,13 @@ name: CI
 #   cargo nextest run -p junie-tui --no-default-features --no-run --lib
 #       §16.5 CI gate `core_is_backend_free` / §22.1: nothing outside
 #       runtime/session.rs needs a backend.
-#   cargo nextest run --workspace --all-targets --all-features --no-run --exclude visual-baseline
-#       on the pinned 1.88.0 leg. §16.5 `architecture::msrv_and_edition_are_unchanged` +
-#       §22.5: `cargo metadata` proves the FIELD, this job proves the product compiles on
-#       the floor. tuisnap 2d43458 → termpane 0.1.0 declares rust-version 1.97 and may
-#       use 1.97 language; do not --ignore-rust-version on 1.88. Stable still compiles
-#       product + visual suite. Without the 1.88.0 product compile, a builder could use a
+#   cargo nextest run --workspace --all-targets --all-features --no-run
+#       on both legs. On 1.88.0, `--ignore-rust-version` keeps the full workspace
+#       selection, including `visual-baseline`; its pinned termpane 0.1.0 declares
+#       rust-version 1.97. §16.5 `architecture::msrv_and_edition_are_unchanged` +
+#       §22.5: `cargo metadata` proves the FIELD, this job proves the product and visual
+#       suite compile on the floor. Without the 1.88.0 compile, a builder could use a
 #       1.95 API on a 1.98 toolchain and every other gate would pass.
-#   cargo nextest run --workspace --all-targets --all-features --exclude visual-baseline
-#       on stable Test (§26, primary). store_integrity requires VISUAL_BASELINE_STORE;
-#       the default workspace gate is not the visual matrix. 1.88.0 Test already excludes
-#       visual-baseline for the rust-version reason above.
 #
 # Naming note (§47.1): `junie-tui` / `junie_tui` is the final package/lib name.
 # All four application packages live under `apps/` and consume the public facade.
@@ -79,10 +75,9 @@ jobs:
   # Two legs, both blocking. `1.88.0` is the §22.5 `msrv` job — pinned to the exact
   # declared `rust-version`, never a floating "1.88". `stable` is the §22.5 PRIMARY
   # job, kept so new compiler and clippy diagnostics are seen early.
-  # On 1.88.0, `--workspace` compile/test/doc/clippy commands exclude
-  # `visual-baseline` (tuisnap 2d43458 → termpane 0.1.0, rust-version 1.97).
-  # Stable still compiles/docs/clippies the visual suite. Stable Test also
-  # excludes it so store_integrity is not run without the external oracle.
+  # Both legs retain full `--workspace` compile/test/doc/clippy coverage, including
+  # `visual-baseline`. The 1.88.0 leg uses `--ignore-rust-version` because its pinned
+  # termpane 0.1.0 declares rust-version 1.97.
   gates:
     name: gates (${{ matrix.toolchain }})
     if: github.event_name != 'schedule'
@@ -113,13 +108,12 @@ jobs:
         run: cargo metadata --locked --format-version 1 > /dev/null
 
       # §22.5 / §16.5 msrv_and_edition_are_unchanged. On the 1.88.0 leg this IS the
-      # `cargo +1.88.0 nextest run --workspace --all-targets --all-features --no-run
-      # --exclude visual-baseline` gate; on stable it is a fast compile-error signal
-      # ahead of the slower steps (and still compiles `visual-baseline`).
+      # full-workspace gate with `--ignore-rust-version`, retaining `visual-baseline`;
+      # on stable it is a fast compile-error signal ahead of the slower steps.
       - name: MSRV compile check (§22.5)
         run: |
           if [ "${{ matrix.toolchain }}" = "1.88.0" ]; then
-            cargo nextest run --locked --workspace --all-targets --all-features --no-run --exclude visual-baseline
+            cargo nextest run --locked --ignore-rust-version --workspace --all-targets --all-features --no-run
           else
             cargo nextest run --locked --workspace --all-targets --all-features --no-run
           fi
@@ -134,7 +128,7 @@ jobs:
       - name: Clippy (§22.3, §26)
         run: |
           if [ "${{ matrix.toolchain }}" = "1.88.0" ]; then
-            cargo clippy --locked --workspace --all-targets --all-features --exclude visual-baseline -- -D warnings
+            cargo clippy --locked --ignore-rust-version --workspace --all-targets --all-features -- -D warnings
           else
             cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
           fi
@@ -145,7 +139,7 @@ jobs:
       - name: Build (§26)
         run: |
           if [ "${{ matrix.toolchain }}" = "1.88.0" ]; then
-            cargo build --locked --workspace --all-targets --all-features --exclude visual-baseline
+            cargo build --locked --ignore-rust-version --workspace --all-targets --all-features
           else
             cargo build --locked --workspace --all-targets --all-features
           fi
@@ -156,16 +150,15 @@ jobs:
         run: cargo build --locked -p junie-tui --examples
 
       # trybuild diagnostics are compiler-version-specific. The primary toolchain
-      # owns those snapshots; MSRV still runs every behavioral test.
+      # owns those snapshots; MSRV still runs every behavioral test across the full
+      # workspace, including `visual-baseline` with `--ignore-rust-version`.
       - name: Test (§26, MSRV)
         if: matrix.toolchain == '1.88.0'
-        run: cargo nextest run --locked --workspace --all-targets --all-features --exclude visual-baseline -- --skip architecture::compile_fail_cases_hold
+        run: cargo nextest run --locked --ignore-rust-version --workspace --all-targets --all-features -- --skip architecture::compile_fail_cases_hold
 
-      # store_integrity requires VISUAL_BASELINE_STORE; this is not the visual
-      # matrix. Keep 1.88.0 --exclude visual-baseline; do not --ignore-rust-version.
       - name: Test (§26, primary)
         if: matrix.toolchain == 'stable'
-        run: cargo nextest run --locked --workspace --all-targets --all-features --exclude visual-baseline
+        run: cargo nextest run --locked --workspace --all-targets --all-features
 
       # §16.3 + §28 P2: BOTH render targets, or the gate runs half the matrix.
       - name: Render matrix, both targets (§16.3)
@@ -175,7 +168,7 @@ jobs:
       - name: Render matrix is reachable under its documented path (§25.12)
         run: |
           if [ "${{ matrix.toolchain }}" = "1.88.0" ]; then
-            cargo nextest list --locked --workspace --all-targets --all-features --exclude visual-baseline | grep -c 'render::components'
+            cargo nextest list --locked --ignore-rust-version --workspace --all-targets --all-features | grep -c 'render::components'
           else
             cargo nextest list --locked --workspace --all-targets --all-features | grep -c 'render::components'
           fi
@@ -186,7 +179,7 @@ jobs:
       - name: Docs (§16.5, RUSTDOCFLAGS=-D warnings from the job env)
         run: |
           if [ "${{ matrix.toolchain }}" = "1.88.0" ]; then
-            cargo doc --locked --workspace --all-features --no-deps --exclude visual-baseline
+            cargo doc --locked --ignore-rust-version --workspace --all-features --no-deps
           else
             cargo doc --locked --workspace --all-features --no-deps
           fi
