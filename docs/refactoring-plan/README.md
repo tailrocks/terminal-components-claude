@@ -1,228 +1,178 @@
 # Refactoring plan navigation
 
-Status: **NO-GO; preparation only; `.campaign/ledger.json` is `armed: false`**
-(2026-09-19).
+Status: **NO-GO. Preparation only. The campaign ledger remains `armed: false`.**
 
-This directory is an evidence-only preparation package for
-`refactor/holla-parity`. It does not authorize `/goal`, task dispatch,
-implementation work, ledger arming, push, or merge.
+This directory is the canonical preparation package for `refactor/holla-parity`.
+It does not authorize the implementation `/goal`, production task dispatch,
+ledger arming, a push, or a merge. The sole readiness authority is
+[`execution-readiness-report.md`](execution-readiness-report.md). A NO-GO in
+that report is fail-closed.
 
-The current source candidate at the start of this documentation repair is:
+## Source identity at documentation start
 
-- HEAD `b20ca5c6511b2cd6ba751658f4fbe3af8f4f726d`;
-- tree `6d784f09ac06dc3af5765bc2e5f6e8579bed01d6`;
-- parent `8da4c2b89084085b6712c61f6d64f1a438f1bd98`.
+The four-document repair was started only after reading the live checkout:
 
-This candidate contains the `211c29ad` proof lifecycle fix and the prior
-preparation-doc package. The fresh external proof-tool requalification is
-bound below. This repair is a later documentation commit, so neither this file
-nor the other canonical documents self-attest the post-edit HEAD/tree.
+| item | identity |
+| --- | --- |
+| branch | `refactor/holla-parity` |
+| HEAD | `f6f94dc995f5b6451800d739174d7f23802a40c3` |
+| HEAD tree | `61563f7b48d0fe7b8e5bdddae57072e96f6a6f12` |
+| parent | `e8c4950928b0ab6cc1268777dbed6f96cb0309ba` |
+| preparation commits | `e8c49509` proof static repair; `f6f94dc9` shell/preparation guards |
+| local `main` | `7b27732a8c3c131760ec3438f641cb3c11343a42` |
+| `origin/main` | `7b27732a8c3c131760ec3438f641cb3c11343a42` |
+| `origin/refactor/holla-parity` | `f5013f609aed1ba32ce60352b38fd0b1b11b063c` |
+| merge-base with `main` | `7b27732a8c3c131760ec3438f641cb3c11343a42` |
+| merge-base with protected baseline | `cc14dd6beae526884aabdf897e309be837b4f504` |
 
-## Two-layer sealing protocol
+At that point `main` was an ancestor of the campaign, the campaign was 75
+commits ahead of local `main` and 31 commits ahead of its remote campaign ref,
+and no push or ref mutation had occurred. `.worktrees/main` is not used to
+identify `main`; Git refs are authoritative. This document commit changes the
+tree, so the post-commit source identity must be sealed externally and any
+pre-commit evidence must be re-bound before acceptance.
 
-Layer 1 is the verified preparation payload, retained as historical/tested
-evidence only. It is **never** the current final-tree binding:
+## Authority and navigation
 
-- payload commit `14aa8ed0469219ff8f6570be7824e5ade39240cc`;
-- payload tree `f3ef0f6badd01161bc24cdfef5161db55ba5d579`;
-- payload parent `96c6c475b5d22193b7539565fa5b4612a88ea007`;
-- tested verifier run
-  `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-14aa8ed-lagrange`;
-- tested verdict `VERDICT.md`: **REJECTED**.
+Resolve conflict in this order: repository policy and user scope; the frozen
+visual oracle; current source, tests, contracts, and Git evidence; this report
+and the campaign contracts; historical notes. Historical evidence cannot
+override current source or authorize execution.
 
-Its proof qualification subchecks pass, but TASK-001 dispatcher verification
-exits `1` with `RESULT FAIL`, readiness preflight exits `1` at the explicit
-NO-GO gate, and the existing full calibration is not clean. These facts are
-historical/tested payload evidence, not current final-tree evidence.
+- [`execution-readiness-report.md`](execution-readiness-report.md) — current
+  verdict, blockers, and acceptance gate.
+- [`evidence/current-preparation-2026-09-19.md`](evidence/current-preparation-2026-09-19.md)
+  — command/evidence index and provenance ledger.
+- [`next-implementation-goal.md`](next-implementation-goal.md) — complete
+  future prompt, explicitly **NOT AUTHORIZED FOR EXECUTION** while this report
+  is NO-GO.
+- [`campaign-policy.md`](campaign-policy.md) — branch, scope, and protected
+  ref rules.
+- [`subagent-only-policy.md`](subagent-only-policy.md) and
+  [`campaign-executor-protocol.md`](campaign-executor-protocol.md) — native
+  roles, isolation, integration, and evidence sequence.
+- [`path-contract.md`](path-contract.md) and
+  [`proof-contract.md`](proof-contract.md) — native paths, trust inputs, and
+  result/receipt binding.
+- [`campaign-ledger.schema.json`](campaign-ledger.schema.json) — ledger shape.
+- [`task-graph.json`](task-graph.json) — generated structure only; it contains
+  no authorization or acceptance result.
+- [`task-graph.md`](task-graph.md) and [`task-index.tsv`](task-index.tsv) —
+  reconciled catalog and dependencies.
+- [`../../refactoring-tasks/visual-validation.md`](../../refactoring-tasks/visual-validation.md)
+  — exact visual/behavioral comparison contract.
+- [`architecture.md`](architecture.md), the branch-diff reports, and the root
+  architecture documents — product and target-architecture obligations.
 
-Layer 2 is this evidence-only docs package. Its package ancestor is commit
-`3b79d3403d52ededca087d62dccb9ad4474c105b` with tree
-`d6b85e1feb8e89f25cae6db360b92f071a4c4f43`; the preceding sealed candidate
-was `6a57d2b0bf461a520d22bc0b840ab17dc6ad52f8` with tree
-`1ef2734ebb58b65fba670dfdd460bf189ce15cfa`. The old final-seal root binds
-that preceding candidate and is invalid after `211c29ad`:
+## Frozen baseline and oracle
 
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed`
+The protected identity is the peeled tag, not a branch name or release label:
 
-The candidate-bound external final-verifier run before this repair is:
+| artifact | immutable identity |
+| --- | --- |
+| `refs/tags/visual-baseline^{commit}` | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
+| baseline commit tree | `0b1f13431fdfd6060cf9f45a114afa5a99cc6c26` |
+| `snapshots/` tree | `3f0261c32849e26feda24d87697de4a7ce6b8375` |
+| matrix keys | 7,550 |
+| artifacts | 30,200: 7,550 each ANSI, plain text, PNG, HTML |
 
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-8da4c2b8`
+The exact read-only import and its independent manifest are external:
 
-Its `VERDICT.md` and `MANIFEST.md` bind HEAD
-`b20ca5c6511b2cd6ba751658f4fbe3af8f4f726d`, tree
-`6d784f09ac06dc3af5765bc2e5f6e8579bed01d6`, and parent
-`8da4c2b89084085b6712c61f6d64f1a438f1bd98`; the verifier verdict is
-**REJECTED**. Independent review is also **REJECTED** and says preparation GO
-is not authorized at:
+```text
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/oracle-import-2026-09-19
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/oracle-import-manifest-2026-09-19
+```
 
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/reviewer-final-b20ca5c6`
+The import records the tag commit/tree, snapshot tree, 30,200-file hash
+manifest, four 7,550-key lists, and zero symlinks. It is read-only. No
+candidate output has been used as an expected artifact.
 
-These are rejected external evidence only. They are not receipts, task
-acceptance, or GO authorization. This documentation repair invalidates the
-candidate-bound final-sealing run; preserve that root as stale evidence only.
+Three identities must not be conflated:
 
-Fresh final sealing is predeclared at:
+1. `4a79c0a2` is the protected artifact/oracle commit.
+2. `89218626011f2f82c4e87c4dfd5868a4c5f3e284`, tree
+   `6fccf997cd742071ebcff0e0a00e89404ef95ca8`, is the Git source identified
+   as the snapshot producer. Its `snapshots/` tree is the same
+   `3f0261c32849e26feda24d87697de4a7ce6b8375`, with all 30,200 artifacts. Its
+   external control root is
+   `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/baseline-control-892-2026-09-19`.
+3. `02f5294bfdbf38004cc49130d0aff1d01f31434c` (tree
+   `efa2b409b77077caf5c639f7f4c6154cbadbce5`) remains the distinct
+   architecture/source oracle. It is not the visual artifact tag.
 
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-proof-requal-b20ca5c6`
+The earlier `3570a2ed23444dddf1eddcdcc49b654b169038fe` claim is corrected, not
+authoritative: its tree is `77d6a559536d6a1d733b52d3b78b5b49112315cb` and its
+snapshot corpus is only 28,580 artifacts / 7,145 keys. It cannot calibrate the
+complete gate.
 
-The independent review root is predeclared at:
+## Qualified tools and checks
 
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/reviewer-final-proof-requal-b20ca5c6`
+The only qualified standalone taskfmt is:
 
-Those runs must bind the exact post-edit HEAD/tree, parent, branch, clean
-worktree, contracts, tool/oracle identities, and their own raw evidence. This
-docs package does not self-attest the post-edit tree.
+```text
+source: /Users/donbeave/Projects/taskfmt/task-format
+revision: afd3b575dbcc7044620bec4b9493a74eca3e5ef2
+version: 0.2.0
+binary: /tmp/taskfmt-latest-install/bin/taskfmt
+binary SHA-256: f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
+```
 
-The complete evidence index is
-[`evidence/current-preparation-2026-09-19.md`](evidence/current-preparation-2026-09-19.md).
+Only `taskfmt lint "$TASK_DIR"` and the documented standalone `taskfmt verify`
+form are permitted. Taskfmt is not an orchestrator, workspace manager, ref
+manager, container launcher, or acceptance authority.
 
-This documentation update owns only the four canonical documents and generated
-`planning-artifacts.tsv`. It does not change product source, task manifests,
-proof code, task semantics, the ledger, protected baseline refs or snapshots,
-run evidence, or generated expected artifacts.
+Observed preparation payload checks include plan/DAG validation, 73/73
+standalone lints, 27/27 `refactor-proof` nextest tests after `e8c49509`, strict
+proof-code Clippy/rustdoc after `e8c49509`, and the shell guard/path checks in
+`f6f94dc9`. These are source-payload observations, not a final receipt for the
+post-documentation tree. Full workspace nextest had a parallel reliability
+failure (`3,359 passed, 1 failed, 6 skipped`); an isolated rerun passed only
+the affected architecture test. `xtask boundary` still fails because
+`parity/evidence.tsv` is absent. Full taskfmt source integration tests are not
+qualified: the Docker-only test path was not run and fails closed when its
+required opt-in is absent. Native Linux evidence is unavailable.
 
-## Authority
+## Task and architecture state
 
-[`execution-readiness-report.md`](execution-readiness-report.md) is the sole
-current readiness authority. Its **NO-GO** controls whether the campaign can be
-armed or executed.
+The generated catalog has 73 packages (`001`–`073`), 506 checks (27 `argv`,
+479 `shell`), 276 dependency edges, and maximum dependency depth 35. Plan
+validation reports 1,174 source obligations, 3,256 traceability rows, and zero
+structural errors. All package lints passed; no production task is accepted.
 
-[`next-implementation-goal.md`](next-implementation-goal.md) is the complete
-future `/goal` prompt. It is labeled **NOT AUTHORIZED FOR EXECUTION** and must
-reject NO-GO, stale evidence, unqualified calibration, and `armed: false` at
-startup.
+- `TASK-001` and `TASK-070` are retired/non-qualifying fail-closed historical
+  lifecycle tasks. They are not dispatchable implementation work.
+- `TASK-071` and `TASK-072` remain blocked qualification prerequisites until
+  fresh, independently reviewed receipts exist.
+- `TASK-002`–`TASK-069` and `TASK-073` contain the remaining implementation,
+  ownership, behavior, visual, performance, and closure obligations.
 
-Current contracts:
+The target architecture is caller-owned state, borrowed props, read-only draw,
+runtime-owned routing/focus/layers/pointer/cursor, and one reusable owner per
+component family. The current product still has duplicate/compatibility
+painters and missing application behavior. Examples are the Showcase grid and
+chrome, Jackin projections, and TablePro tree/filter/frame painters. These are
+future implementation obligations, not preparation changes.
 
-- [`campaign-policy.md`](campaign-policy.md) — branch, scope, and protection
-- [`campaign-executor-protocol.md`](campaign-executor-protocol.md) — isolated roles and sequence
-- [`path-contract.md`](path-contract.md) — native paths and external run data
-- [`proof-contract.md`](proof-contract.md) — context, observer, result, and receipt rules
-- [`task-format.md`](task-format.md) — qualified standalone taskfmt
-- [`subagent-only-policy.md`](subagent-only-policy.md) — native macOS subagents
-- [`campaign-ledger.schema.json`](campaign-ledger.schema.json) — ledger schema
-- [`task-graph.json`](task-graph.json) — generated dependency structure only
-- [`../../refactoring-tasks/visual-validation.md`](../../refactoring-tasks/visual-validation.md) — visual comparison contract
+## Evidence and blockers
 
-Lychee is the documentation verifier. It does not orchestrate agents, arm the
-ledger, start containers, or grant execution authority.
+The evidence index preserves raw paths, rejected historical verifier/reviewer
+roots, calibration roots, and invalidation rules. Important rejected roots are:
 
-## Fixed preparation identities
+```text
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-final-sealed-proof-requal-b20ca5c6
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/reviewer-final-proof-requal-b20ca5c6
+/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-211c29ad-independent
+```
 
-The protected oracle is the peeled `visual-baseline` tag commit
-`4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`, tag ref object
-`1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5`, baseline tree
-`0b1f13431fdfd6060cf9f45a114afa5a99cc6c26`, and snapshot tree
-`3f0261c32849e26feda24d87697de4a7ce6b8375`. Its unchanged inventory is
-7,550 matrix keys and 30,200 artifacts: 7,550 each of ANSI, plain text, PNG,
-and HTML, across five terminal sizes and five color modes.
+They are rejected evidence only. They do not attest to this tree, issue a
+receipt, or authorize GO. No independent final verifier/reviewer has returned
+`VERIFIED` for the post-documentation tree.
 
-The only qualified taskfmt is `/Users/donbeave/Projects/taskfmt/task-format` at
-revision `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, version `0.2.0`, binary
-`/tmp/taskfmt-latest-install/bin/taskfmt`, SHA-256
-`f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de`.
-Only standalone `lint` and `verify` are permitted.
+Preparation blockers remain: a clean post-documentation final seal; complete
+native proof/result/receipt qualification; a complete 892-source control
+replay with exact 30,200-artifact coverage and negative controls; current
+behavioral/PTY evidence; the missing parity evidence contract; full workspace
+and platform gates; Linux; and unresolved product refactoring. The ledger stays
+disarmed and no production task has been dispatched.
 
-The Layer-1 tested native proof build is schema `tc-proof-native-build/v1`,
-binary SHA-256
-`a3b7712ab7c3ea22940ffe915a2328d25767d35e5253e9df82776db0d3b70fcc`, bound
-to the historical/tested Layer-1 payload, not the final docs tree. Its
-qualification run
-passed 26/26 locked nextest tests, 72/72 comparator cases over 141 invocations
-with 0 failures, all 7 external-binding negative controls, native observer
-launch/validate, plan/DAG/path/freeze checks, and 73/73 taskfmt lints. Those
-passes do not override the Layer-1 **REJECTED** verdict or seal Layer 2.
-
-The fresh current-candidate proof-tool requalification is external,
-source-bound, and non-authorizing:
-
-- run root `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-requalify-b20ca5c6`;
-- receipt `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/proof-requalify-b20ca5c6/target/debug/tc-proof.build.json`;
-- schema `tc-proof-native-build/v1`;
-- commit `b20ca5c6511b2cd6ba751658f4fbe3af8f4f726d`, tree
-  `6d784f09ac06dc3af5765bc2e5f6e8579bed01d6`, parent
-  `8da4c2b89084085b6712c61f6d64f1a438f1bd98`;
-- binary SHA-256
-  `f05e5b62021f555627225c42775e31a51498ea893d88998d5c91a4bb23773bcf`;
-- external target is not a symlink; `COMMANDS-AND-RESULTS.txt`,
-  `build-proof.log`, `fmt-check.log`, and `nextest.log` record build exit 0,
-  fmt exit 0, and 27 passed nextest tests.
-
-The old worktree-shared `target` is stale and must not be trusted. This fresh
-external build is current candidate-bound proof-tool input, not an acceptance
-receipt; no task is accepted, no dispatch is authorized, and the ledger stays
-`armed: false`.
-
-## Current supplemental evidence — not receipts
-
-Popper’s supplemental closeout for the prior `211c29ad` candidate remains
-explicitly **REJECTED** for the stale final seal, readiness preflight,
-dispatcher, and calibration:
-
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-211c29ad-independent`
-
-The `211c29ad` proof repair closes the observer FD/process lifecycle. Popper’s
-parallel raw nextest reported exit `0`, 27 passed, and one historical `LEAK` at
-`compare::tests::runner_context_rejects_comparator_report_outside_runtime_outputs`;
-its serialized raw run reported 27/27 clean. Keep that old LEAK disclosed as
-non-reproducible raw evidence, not a pass. Franklin’s fresh supplemental
-default-parallel and serialized refactor-proof nextest runs both exited `0`
-with 27/27 passed. These runs do not create a receipt or clear the rejected
-closeout:
-
-- `/tmp/refactor-proof-raw.wpWzhX/default-parallel-raw.log`
-- `/tmp/refactor-proof-combo.BfVzDT/parallel-combo.log`
-- `/tmp/refactor-proof-combo-serialized.1jbqpR/serialized.log`
-
-Hume established that STYLE_TIMING intentionally freezes 11 assets and that
-runner index/extensions belong to the separate RUNNER corpus of 33 assets.
-Both freeze checks reported `changed: 0` and `written: false`, and TASK-072
-standalone taskfmt lint passed. The copied TASK-072 style-timing runner
-self-test still failed with `FileNotFoundError` for sibling
-`runner-bootstrap-index.py`; preserve that raw failure and never call it a
-pass. It is an auxiliary retired/out-of-scope diagnostic, not a TASK-072 check
-or readiness blocker. The old-root raw evidence is supplemental only.
-
-## Current blockers
-
-- TASK-001 dispatcher verify exits `1` (`RESULT FAIL`) on scope/forbidden-path
-  checks and the intentional NO-GO checks; preflight exits `1` fail-closed.
-- The candidate-bound `verifier-final-sealed-8da4c2b8` run is **REJECTED** and
-  stale after this documentation edit. It is not a receipt; the fresh
-  post-edit final-sealing and review roots are predeclared at
-  `verifier-final-sealed-proof-requal-b20ca5c6` and
-  `reviewer-final-proof-requal-b20ca5c6`.
-- Current taskfmt `verify` and current accepted receipts remain **UNKNOWN**;
-  taskfmt lint or passing subchecks do not change that status.
-- The fresh external proof-tool requalification is source-bound to b20 and
-  records build/fmt/27-test success, but is not an acceptance receipt. The
-  old worktree-shared `target` and its stale receipt remain untrusted.
-- The copied TASK-072 style-timing runner self-test remains a visible,
-  unqualified, auxiliary retired/out-of-scope diagnostic. It is not hidden or
-  counted as a pass, and it is not a readiness blocker.
-- Popper’s prior-candidate closeout is **REJECTED**. Franklin’s supplemental
-  no-leak replay is non-receipt evidence and does not change that verdict.
-- Calibration remains 302 selected, 301 passed, 1 failed, and 2 skipped. The
-  sole failure is
-  `tablepro_connections_form_advanced_120x40_truecolor`: 24/100 artifacts
-  match and 76/100 mismatch. Independent history establishes a mixed frozen
-  oracle state; no oracle output may be changed to reconcile it.
-- The ledger remains `armed: false`; no task was dispatched, no receipt was
-  issued, and no push or merge occurred.
-- All 73 task manifests remain unaccepted. The catalog has 506 checks, 276
-  dependency edges, and maximum DAG depth 35. Consumer migration, duplicate
-  renderer/compatibility-painter removal, component ownership, behavior, PTY,
-  performance, API, static, documentation, platform, and complete visual
-  parity remain obligations.
-
-## Historical records
-
-Retired reports, prompts, runbooks, and coordination files are provenance
-only. They cannot override this report, current contracts, deterministic proof,
-or the protected oracle. Do not replay their old taskfmt, container, or
-baseline commands. The old `docs/sources/PLANNING_GOAL.md` path is absent; the
-immutable baseline copy is the only historical reference when needed.
-
-Never move, retarget, recreate, or write to the `visual-baseline` tag, branch,
-release, grouped store, snapshots, fixtures, or expected artifacts. Provider
-immutability is not assumed; repository policy is the protection boundary.
+**Decision: NO-GO.**
