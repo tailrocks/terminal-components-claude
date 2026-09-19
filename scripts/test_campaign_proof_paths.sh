@@ -251,6 +251,73 @@ grep -Fq "wrong build tree" <<<"$output" \
   || fail "preflight stale receipt rejection had unexpected output: $output"
 pass "preflight rejects a stale build receipt"
 
+PYTHONPATH="$SCRIPT_DIR" python3 - <<'PY'
+import copy
+import tempfile
+from datetime import timedelta
+from pathlib import Path
+
+from campaign_ledger import LedgerValidationError, validate_preparation_qualification
+from test_campaign_ledger import TASKFMT, BRANCH, make_qualification
+
+
+def expect_reject(label, operation, expected):
+    try:
+        operation()
+    except LedgerValidationError as error:
+        if expected not in str(error):
+            raise SystemExit(f"{label} rejected for the wrong reason: {error}")
+        print(f"test_campaign_proof_paths: PASS: {label}")
+        return
+    raise SystemExit(f"{label} was accepted")
+
+
+with tempfile.TemporaryDirectory(prefix="tc-proof-qualification-") as directory:
+    qualification, paths, oracle, qualified = make_qualification(Path(directory))
+    common = {
+        "worktree": paths["candidate"],
+        "current_head": "a" * 40,
+        "current_tree": "b" * 40,
+        "integration_branch": BRANCH,
+        "expected_oracle": oracle,
+        "expected_taskfmt": TASKFMT,
+        "repository_root": paths["candidate"],
+        "now": qualified + timedelta(seconds=1),
+    }
+    common["catalog_identity"] = qualification["catalog"]
+    common["task_graph_identity"] = qualification["task_graph"]
+    validate_preparation_qualification(qualification, **common)
+    print("test_campaign_proof_paths: PASS: valid external preparation qualification")
+
+    stale_tree = copy.deepcopy(qualification)
+    stale_tree["candidate_tree"] = "c" * 40
+    expect_reject(
+        "stale preparation candidate tree",
+        lambda: validate_preparation_qualification(stale_tree, **common),
+        "candidate tree",
+    )
+
+    wrong_oracle = dict(oracle)
+    wrong_oracle["tree"] = "1" * 40
+    expect_reject(
+        "wrong protected oracle identity",
+        lambda: validate_preparation_qualification(
+            qualification, **{**common, "expected_oracle": wrong_oracle}
+        ),
+        "protected baseline tree",
+    )
+
+    wrong_graph = copy.deepcopy(qualification["task_graph"])
+    wrong_graph["tree"] = "c" * 40
+    expect_reject(
+        "wrong task-graph identity",
+        lambda: validate_preparation_qualification(
+            qualification, **{**common, "task_graph_identity": wrong_graph}
+        ),
+        "task_graph.tree",
+    )
+PY
+
 grep -Fq "export TC_PROOF_TARGET_DIR=\"\$target_dir\" CARGO_TARGET_DIR=\"\$target_dir\"" "$DISPATCH" \
   || fail "dispatch does not export the resolved target root"
 grep -Fq "require_native_proof \"\$worktree_root\" \"\$target_dir\" \"\$binary\"" "$DISPATCH" \

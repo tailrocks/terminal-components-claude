@@ -8,7 +8,11 @@ set -euo pipefail
 
 INTEGRATION_BRANCH="${INTEGRATION_BRANCH:-refactor/holla-parity}"
 WORKTREE_PATH="${TC_CAMPAIGN_WORKTREE:-.}"
+ORACLE_TAG="refs/tags/visual-baseline"
 TAG_PEELED_EXPECT="${TAG_PEELED_EXPECT:-4a79c0a2d40fca46fc406b77157ce3b3f12ec16b}"
+ORACLE_TREE_EXPECT="0b1f13431fdfd6060cf9f45a114afa5a99cc6c26"
+CATALOG_MANIFEST_REL="docs/refactoring-plan/task-index.tsv"
+TASK_GRAPH_MANIFEST_REL="docs/refactoring-plan/task-graph.json"
 TASKFMT_REV="afd3b575dbcc7044620bec4b9493a74eca3e5ef2"
 TASKFMT_VERSION="0.2.0"
 TASKFMT_SHA256="f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de"
@@ -53,12 +57,15 @@ campaign_worktree() {
 }
 
 check_tag() {
-  local peeled
-  peeled="$(git rev-parse "refs/tags/visual-baseline^{commit}" 2>/dev/null || echo MISSING)"
+  local peeled tree
+  peeled="$(git rev-parse "${ORACLE_TAG}^{commit}" 2>/dev/null || echo MISSING)"
+  tree="$(git rev-parse "${ORACLE_TAG}^{tree}" 2>/dev/null || echo MISSING)"
   if [[ "$peeled" != "$TAG_PEELED_EXPECT" ]]; then
     fail "visual-baseline tag peeled=$peeled (expected $TAG_PEELED_EXPECT)"
+  elif [[ "$tree" != "$ORACLE_TREE_EXPECT" ]]; then
+    fail "visual-baseline tree=$tree (expected $ORACLE_TREE_EXPECT)"
   else
-    pass "visual-baseline tag unmoved @ ${peeled:0:12}"
+    pass "visual-baseline tag/tree unmoved @ ${peeled:0:12}/${tree:0:12}"
   fi
 }
 
@@ -96,25 +103,73 @@ check_readiness_gate() {
 }
 
 check_ledger() {
-  local root ledger graph wt current_head
+  local root ledger graph catalog_manifest wt current_head current_tree
   root="$(repo_root)"
   ledger="$root/.campaign/ledger.json"
-  graph="$root/docs/refactoring-plan/task-graph.json"
+  graph="$root/$TASK_GRAPH_MANIFEST_REL"
+  catalog_manifest="$root/$CATALOG_MANIFEST_REL"
   wt="$(campaign_worktree)"
   current_head="$(git -C "$wt" rev-parse HEAD)"
+  current_tree="$(git -C "$wt" rev-parse 'HEAD^{tree}')"
   [[ -f "$ledger" ]] || fail "missing $ledger (run campaign-init.sh)"
   [[ -f "$graph" ]] || fail "missing dependency graph: $graph"
+  [[ -f "$catalog_manifest" && ! -L "$catalog_manifest" ]] \
+    || fail "missing or linked catalog manifest: $catalog_manifest"
   PYTHONPATH="$SCRIPT_DIR" python3 - "$ledger" "$INTEGRATION_BRANCH" \
-    "$current_head" "$graph" "$root" "$TASKFMT_REV" "$TASKFMT_VERSION" \
-    "$TASKFMT_SHA256" "$TASKFMT_SOURCE" "$TASKFMT_BIN" <<'PY' \
+    "$current_head" "$current_tree" "$graph" "$root" "$TASKFMT_REV" \
+    "$TASKFMT_VERSION" "$TASKFMT_SHA256" "$TASKFMT_SOURCE" "$TASKFMT_BIN" \
+    "$ORACLE_TAG" "$TAG_PEELED_EXPECT" "$ORACLE_TREE_EXPECT" \
+    "$catalog_manifest" "$CATALOG_MANIFEST_REL" "$graph" \
+    "$TASK_GRAPH_MANIFEST_REL" <<'PY' \
     || fail "ledger invalid or stale"
+import hashlib
 import json
 import sys
 from pathlib import Path
 
 from campaign_ledger import validate_preflight_ledger
 
-ledger_path, branch, current_head, graph_path, root, revision, version, digest, source, binary = sys.argv[1:]
+(
+    ledger_path,
+    branch,
+    current_head,
+    current_tree,
+    graph_path,
+    root,
+    revision,
+    version,
+    digest,
+    source,
+    binary,
+    oracle_tag,
+    oracle_commit,
+    oracle_tree,
+    catalog_path,
+    catalog_rel,
+    graph_manifest_path,
+    graph_rel,
+) = sys.argv[1:]
+
+
+def manifest_identity(path_text: str, relative: str) -> dict[str, object]:
+    path = Path(path_text)
+    relative_path = Path(relative)
+    if path.is_symlink() or not path.is_file():
+        raise SystemExit(f"manifest is not a non-symlink regular file: {path}")
+    if relative_path.is_absolute() or ".." in relative_path.parts:
+        raise SystemExit(f"manifest path is not repository-relative: {relative}")
+    if path.resolve() != (Path(root) / relative_path).resolve():
+        raise SystemExit(f"manifest path mismatch: {relative}")
+    return {
+        "commit": current_head,
+        "tree": current_tree,
+        "manifest": {
+            "path": relative,
+            "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+        },
+    }
+
+
 with Path(ledger_path).open(encoding="utf-8") as stream:
     ledger = json.load(stream)
 with Path(graph_path).open(encoding="utf-8") as stream:
@@ -126,17 +181,28 @@ expected_taskfmt = {
     "taskfmt_source": source,
     "taskfmt_path": str(Path(binary).resolve()),
 }
+expected_oracle = {
+    "tag": oracle_tag,
+    "commit": oracle_commit,
+    "tree": oracle_tree,
+}
+catalog_identity = manifest_identity(catalog_path, catalog_rel)
+task_graph_identity = manifest_identity(graph_manifest_path, graph_rel)
 validate_preflight_ledger(
     ledger,
     branch,
     current_head=current_head,
+    current_tree=current_tree,
+    expected_oracle=expected_oracle,
     expected_taskfmt=expected_taskfmt,
     dependency_graph=graph,
+    catalog_identity=catalog_identity,
+    task_graph_identity=task_graph_identity,
     repository_root=root,
 )
-print("ledger schema/receipt/head/taskfmt/dependency/result/reviewer bindings: OK")
+print("ledger schema/receipt/head/tree/oracle/catalog/graph/taskfmt/proof/reviewer bindings: OK")
 PY
-  pass "ledger valid, disarmed, and bound to current HEAD"
+  pass "ledger valid, disarmed, and bound to current HEAD/tree and preparation identities"
 }
 
 check_taskfmt_identity() {
@@ -310,7 +376,7 @@ check_validate_plan() {
 }
 
 check_proof_preparation() {
-  local root wt run receipt current_head
+  local root wt run receipt current_head current_tree
   root="$(repo_root)"
   wt="$(campaign_worktree)"
   run="${TC_PROOF_RUN_DIR:-}"
@@ -326,8 +392,145 @@ check_proof_preparation() {
   [[ -z "$(git -C "$wt" status --porcelain)" ]] \
     || fail "proof preparation worktree is dirty"
   current_head="$(git -C "$wt" rev-parse HEAD)"
+  current_tree="$(git -C "$wt" rev-parse 'HEAD^{tree}')"
   check_taskfmt_identity
   check_native_proof
+  PYTHONPATH="$SCRIPT_DIR" python3 - "$receipt" "$wt" "$current_head" \
+    "$current_tree" "$run" <<'PY' \
+    || fail "proof preparation contains an unsafe or stale external artifact"
+import hashlib
+import json
+import os
+import stat
+import sys
+from pathlib import Path
+
+receipt_path, worktree, current_head, current_tree, run_dir = sys.argv[1:]
+worktree_path = Path(worktree).resolve()
+run_path = Path(run_dir).resolve()
+
+
+def reject(message: str) -> None:
+    raise SystemExit(message)
+
+
+def no_symlink_components(path: Path, field: str) -> None:
+    if not path.is_absolute():
+        reject(f"{field} is not absolute")
+    current = Path(path.anchor)
+    for component in path.parts[1:]:
+        current /= component
+        try:
+            if stat.S_ISLNK(os.lstat(current).st_mode):
+                reject(f"{field} contains a symlinked path component: {current}")
+        except OSError as error:
+            reject(f"{field} is unreadable: {error}")
+
+
+def regular_file(path: Path, field: str) -> Path:
+    no_symlink_components(path, field)
+    try:
+        metadata = os.lstat(path)
+    except OSError as error:
+        reject(f"{field} is unreadable: {error}")
+    if not stat.S_ISREG(metadata.st_mode):
+        reject(f"{field} is not a regular file")
+    if metadata.st_nlink != 1:
+        reject(f"{field} is hard-linked")
+    return path
+
+
+def external_file(value: object, field: str) -> tuple[Path, str]:
+    if not isinstance(value, dict) or set(value) != {"path", "sha256"}:
+        reject(f"{field} reference shape is invalid")
+    raw_path = Path(value["path"])
+    if not raw_path.is_absolute() or ".." in raw_path.parts:
+        reject(f"{field} path is not a safe absolute path")
+    regular_file(raw_path, field)
+    resolved = raw_path.resolve()
+    try:
+        resolved.relative_to(run_path)
+    except ValueError:
+        reject(f"{field} is outside the proof run")
+    actual = hashlib.sha256(raw_path.read_bytes()).hexdigest()
+    if value["sha256"] != actual:
+        reject(f"{field} hash mismatch")
+    return resolved, actual
+
+
+def load(path: Path, field: str) -> dict:
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        reject(f"{field} is not valid JSON: {error}")
+    if not isinstance(value, dict):
+        reject(f"{field} is not a JSON object")
+    return value
+
+
+receipt = Path(receipt_path)
+regular_file(receipt, "proof preparation receipt")
+if receipt.resolve().parent != run_path:
+    reject("proof preparation receipt is outside the proof run")
+preparation = load(receipt, "proof preparation receipt")
+if preparation.get("commit") != current_head:
+    reject("proof preparation receipt commit is stale")
+if preparation.get("worktree") != str(worktree_path):
+    reject("proof preparation receipt worktree is stale")
+if preparation.get("run_id") != str(run_path):
+    reject("proof preparation receipt run is stale")
+
+native = preparation.get("native_build")
+if not isinstance(native, dict):
+    reject("proof preparation native build is missing")
+build_receipt, _ = external_file(
+    {"path": native.get("receipt"), "sha256": native.get("receipt_sha256")},
+    "native build receipt",
+)
+binary, binary_hash = external_file(
+    {"path": native.get("binary"), "sha256": native.get("binary_sha256")},
+    "native proof binary",
+)
+build = load(build_receipt, "native build receipt")
+if build.get("schema") != "tc-proof-native-build/v1":
+    reject("native build receipt schema is stale")
+if build.get("worktree") != str(worktree_path):
+    reject("native build receipt worktree is stale")
+if build.get("commit") != current_head or build.get("tree") != current_tree:
+    reject("native build receipt source tree is stale")
+if build.get("binary") != str(binary) or build.get("binary_sha256") != binary_hash:
+    reject("native build receipt binary binding is stale")
+target = Path(str(build.get("target_dir", "")))
+if not target.is_absolute() or ".." in target.parts:
+    reject("native build target path is unsafe")
+no_symlink_components(target, "native build target")
+if target.is_symlink() or not target.is_dir():
+    reject("native build target is not a real directory")
+try:
+    target.resolve().relative_to(run_path)
+except ValueError:
+    reject("native build target is outside the proof run")
+if build.get("cargo_target_dir") != str(target.resolve()):
+    reject("native build Cargo target binding is stale")
+
+external_file(preparation.get("context_index"), "context index")
+external_file(preparation.get("observer"), "observer capability")
+for name in ("contexts", "results"):
+    entries = preparation.get(name)
+    if not isinstance(entries, list) or not entries:
+        reject(f"proof preparation {name} are missing")
+    for index, entry in enumerate(entries):
+        external_file(entry, f"proof preparation {name}[{index}]")
+
+index = load(Path(preparation["context_index"]["path"]), "context index")
+for name in ("contexts", "results"):
+    entries = index.get(name)
+    if not isinstance(entries, list) or not entries:
+        reject(f"context index {name} are missing")
+    for index_number, entry in enumerate(entries):
+        external_file(entry, f"context index {name}[{index_number}]")
+print("external proof preparation paths, hashes, hardlinks, and source tree: OK")
+PY
   PYTHONPATH="$SCRIPT_DIR" python3 - "$receipt" "$wt" "$current_head" "$run" \
     "$TASKFMT_REV" "$TASKFMT_VERSION" "$TASKFMT_SHA256" "$TASKFMT_SOURCE" \
     "$TASKFMT_BIN" <<'PY' \
