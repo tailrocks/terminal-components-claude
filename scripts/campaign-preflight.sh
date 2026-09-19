@@ -195,38 +195,103 @@ check_harness() {
 }
 
 check_native_proof() {
-  local wt binary receipt commit
+  local wt target_dir binary receipt commit tree tc_target cargo_target
   wt="$(campaign_worktree)"
-  binary="$wt/target/debug/tc-proof"
-  [[ -f "$binary" && ! -L "$binary" && -x "$binary" ]] \
-    || fail "native tc-proof comparator missing: $binary (run campaign-build-proof.sh in this worktree)"
-  receipt="$binary.build.json"
-  [[ -f "$receipt" && ! -L "$receipt" ]] \
-    || fail "native tc-proof build receipt missing: $receipt (run campaign-build-proof.sh)"
+  tc_target="${TC_PROOF_TARGET_DIR:-}"
+  cargo_target="${CARGO_TARGET_DIR:-}"
+  if ! target_dir="$(
+    python3 - "$wt" "$tc_target" "$cargo_target" <<'PY'
+import sys
+from pathlib import Path
+
+root = Path(sys.argv[1]).resolve()
+tc_raw, cargo_raw = sys.argv[2:]
+
+
+def checked_path(raw: str, name: str) -> Path:
+    path = Path(raw)
+    if not path.is_absolute():
+        raise SystemExit(f"{name} must be an absolute path: {raw or '<empty>'}")
+    if path.is_symlink():
+        raise SystemExit(f"{name} must not be a symlink: {path}")
+    return path
+
+
+if tc_raw and cargo_raw:
+    tc_path = checked_path(tc_raw, "TC_PROOF_TARGET_DIR")
+    cargo_path = checked_path(cargo_raw, "CARGO_TARGET_DIR")
+    if tc_path.resolve() != cargo_path.resolve():
+        raise SystemExit(
+            "TC_PROOF_TARGET_DIR and CARGO_TARGET_DIR select ambiguous target roots"
+        )
+    selected = tc_path
+elif tc_raw:
+    selected = checked_path(tc_raw, "TC_PROOF_TARGET_DIR")
+elif cargo_raw:
+    selected = checked_path(cargo_raw, "CARGO_TARGET_DIR")
+else:
+    selected = root / "target"
+
+if selected.is_symlink():
+    raise SystemExit(f"proof target directory must not be a symlink: {selected}")
+if not selected.exists():
+    raise SystemExit(f"proof target directory is missing: {selected}")
+if not selected.is_dir():
+    raise SystemExit(f"proof target path is not a directory: {selected}")
+
+resolved = selected.resolve()
+if resolved == root or root in resolved.parents:
+    raise SystemExit("proof target directory must be external to the worktree")
+print(resolved)
+PY
+  )"; then
+    fail "native proof target is invalid"
+  fi
+binary="$target_dir/debug/tc-proof"
+receipt="$target_dir/debug/tc-proof.build.json"
+[[ -d "$target_dir/debug" && ! -L "$target_dir/debug" ]] \
+    || fail "native proof debug target directory missing or linked: $target_dir/debug"
+[[ -f "$binary" && ! -L "$binary" && -x "$binary" ]] \
+    || fail "native tc-proof comparator missing or linked: $binary (run campaign-build-proof.sh with TC_PROOF_TARGET_DIR)"
+[[ -f "$receipt" && ! -L "$receipt" ]] \
+    || fail "native tc-proof build receipt missing or linked: $receipt (run campaign-build-proof.sh with TC_PROOF_TARGET_DIR)"
   commit="$(git -C "$wt" rev-parse HEAD)"
-  PYTHONPATH="$SCRIPT_DIR" python3 - "$receipt" "$wt" "$commit" "$binary" <<'PY' \
+  tree="$(git -C "$wt" rev-parse 'HEAD^{tree}')"
+  PYTHONPATH="$SCRIPT_DIR" python3 - "$receipt" "$wt" "$target_dir" "$commit" "$tree" "$binary" <<'PY' \
     || fail "native tc-proof build receipt does not match this worktree"
 import hashlib
 import json
 import sys
 from pathlib import Path
 
-receipt, worktree, commit, binary = sys.argv[1:]
+receipt, worktree, target, commit, tree, binary = sys.argv[1:]
 with Path(receipt).open(encoding="utf-8") as stream:
     value = json.load(stream)
 if value.get("schema") != "tc-proof-native-build/v1":
     raise SystemExit("wrong build receipt schema")
 if value.get("worktree") != str(Path(worktree).resolve()):
     raise SystemExit("wrong build worktree")
+if value.get("target_dir") != str(Path(target).resolve()):
+    raise SystemExit("wrong build target")
+if value.get("cargo_target_dir") != str(Path(target).resolve()):
+    raise SystemExit("wrong Cargo target")
 if value.get("commit") != commit:
     raise SystemExit("wrong build commit")
+if value.get("tree") != tree:
+    raise SystemExit("wrong build tree")
 if value.get("binary") != str(Path(binary).resolve()):
     raise SystemExit("wrong build binary")
-actual = hashlib.sha256(Path(binary).read_bytes()).hexdigest()
+binary_path = Path(binary)
+if binary_path.is_symlink() or not binary_path.is_file():
+    raise SystemExit("native comparator is not a regular file")
+receipt_path = Path(receipt)
+if receipt_path.is_symlink() or not receipt_path.is_file():
+    raise SystemExit("native build receipt is not a regular file")
+actual = hashlib.sha256(binary_path.read_bytes()).hexdigest()
 if value.get("binary_sha256") != actual:
     raise SystemExit("native comparator hash mismatch")
 PY
-  pass "native tc-proof comparator and build receipt match worktree HEAD"
+  pass "native tc-proof comparator and build receipt match external target, worktree HEAD, and tree"
 }
 
 check_validate_plan() {

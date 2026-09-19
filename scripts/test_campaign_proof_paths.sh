@@ -4,6 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 BUILD="$SCRIPT_DIR/campaign-build-proof.sh"
+PREFLIGHT="$SCRIPT_DIR/campaign-preflight.sh"
 DISPATCH="$SCRIPT_DIR/campaign-dispatch.sh"
 TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/tc-proof-path-contract.XXXXXX")"
 
@@ -138,6 +139,117 @@ fi
 grep -Fq "stale proof receipt source binding" <<<"$output" \
   || fail "mismatched receipt had unexpected output: $output"
 pass "stale/mismatched receipt rejection"
+
+mkdir -p "$repo/scripts"
+preflight_helper="$repo/scripts/campaign-preflight-functions.sh"
+python3 - "$PREFLIGHT" "$preflight_helper" <<'PY'
+import sys
+from pathlib import Path
+
+source = Path(sys.argv[1])
+destination = Path(sys.argv[2])
+lines = source.read_text(encoding="utf-8").splitlines()
+try:
+    lines.remove('main "$@"')
+except ValueError as error:
+    raise SystemExit("campaign-preflight main entry point changed") from error
+destination.write_text("\n".join(lines) + "\n", encoding="utf-8")
+PY
+
+preflight_target="$TMP_ROOT/preflight-target"
+mkdir -p "$preflight_target/debug"
+cp "$binary" "$preflight_target/debug/tc-proof"
+python3 - "$repo" "$preflight_target" "$preflight_target/debug/tc-proof" \
+  "$preflight_target/debug/tc-proof.build.json" <<'PY'
+import hashlib
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+repo, target, binary, receipt = map(Path, sys.argv[1:])
+commit = subprocess.check_output(
+    ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+).strip()
+tree = subprocess.check_output(
+    ["git", "-C", str(repo), "rev-parse", "HEAD^{tree}"], text=True
+).strip()
+resolved_repo = str(repo.resolve())
+resolved_target = str(target.resolve())
+resolved_binary = str(binary.resolve())
+value = {
+    "schema": "tc-proof-native-build/v1",
+    "worktree": resolved_repo,
+    "target_dir": resolved_target,
+    "cargo_target_dir": resolved_target,
+    "commit": commit,
+    "tree": tree,
+    "binary": resolved_binary,
+    "binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest(),
+}
+receipt.write_text(json.dumps(value, sort_keys=True) + "\n", encoding="utf-8")
+PY
+
+if output="$(
+  env TC_CAMPAIGN_WORKTREE="$repo" \
+      TC_PROOF_TARGET_DIR="$preflight_target" \
+      CARGO_TARGET_DIR= \
+      bash -c 'source "$1"; check_native_proof' _ "$preflight_helper" 2>&1
+)"; then
+  pass "preflight accepts a valid external target and current receipt"
+else
+  fail "preflight rejected valid external target: $output"
+fi
+
+preflight_symlink="$TMP_ROOT/preflight-symlink"
+ln -s "$preflight_target" "$preflight_symlink"
+if output="$(
+  env TC_CAMPAIGN_WORKTREE="$repo" \
+      TC_PROOF_TARGET_DIR="$preflight_symlink" \
+      CARGO_TARGET_DIR= \
+      bash -c 'source "$1"; check_native_proof' _ "$preflight_helper" 2>&1
+)"; then
+  fail "preflight accepted a symlink target"
+fi
+grep -Fq "TC_PROOF_TARGET_DIR must not be a symlink" <<<"$output" \
+  || fail "preflight symlink rejection had unexpected output: $output"
+pass "preflight rejects a symlink target"
+
+preflight_inside="$repo/preflight-target-inside"
+mkdir -p "$preflight_inside"
+if output="$(
+  env TC_CAMPAIGN_WORKTREE="$repo" \
+      TC_PROOF_TARGET_DIR="$preflight_inside" \
+      CARGO_TARGET_DIR= \
+      bash -c 'source "$1"; check_native_proof' _ "$preflight_helper" 2>&1
+)"; then
+  fail "preflight accepted a target inside the worktree"
+fi
+grep -Fq "proof target directory must be external to the worktree" <<<"$output" \
+  || fail "preflight inside-worktree rejection had unexpected output: $output"
+pass "preflight rejects an inside-worktree target"
+
+python3 - "$preflight_target/debug/tc-proof.build.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+value = json.loads(path.read_text(encoding="utf-8"))
+value["tree"] = "0" * 40
+path.write_text(json.dumps(value, sort_keys=True) + "\n", encoding="utf-8")
+PY
+if output="$(
+  env TC_CAMPAIGN_WORKTREE="$repo" \
+      TC_PROOF_TARGET_DIR="$preflight_target" \
+      CARGO_TARGET_DIR= \
+      bash -c 'source "$1"; check_native_proof' _ "$preflight_helper" 2>&1
+)"; then
+  fail "preflight accepted a stale build receipt"
+fi
+grep -Fq "wrong build tree" <<<"$output" \
+  || fail "preflight stale receipt rejection had unexpected output: $output"
+pass "preflight rejects a stale build receipt"
 
 grep -Fq "export TC_PROOF_TARGET_DIR=\"\$target_dir\" CARGO_TARGET_DIR=\"\$target_dir\"" "$DISPATCH" \
   || fail "dispatch does not export the resolved target root"
