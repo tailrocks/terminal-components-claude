@@ -1719,6 +1719,10 @@ fn make_pipe() -> Result<(File, File)> {
     ))
 }
 
+#[expect(
+    clippy::too_many_lines,
+    reason = "observer spawn, pipe wiring, and provider-group capture stay in one supervisor constructor"
+)]
 fn start_observer_supervisor(
     prepared: &PreparedRun,
     member: &PreparedMember,
@@ -1861,10 +1865,10 @@ fn cleanup_deadline(timeout: Duration, label: &str) -> Result<Instant> {
         .ok_or_else(|| VerifierError::new(format!("{label} deadline overflowed")))
 }
 
-fn lock_provider_until<'a>(
-    provider: &'a Mutex<Child>,
+fn lock_provider_until(
+    provider: &Mutex<Child>,
     deadline: Instant,
-) -> Result<MutexGuard<'a, Child>> {
+) -> Result<MutexGuard<'_, Child>> {
     loop {
         match provider.try_lock() {
             Ok(provider) => return Ok(provider),
@@ -4194,6 +4198,13 @@ mod tests {
         use std::io::{BufRead, BufReader};
         use std::os::unix::process::CommandExt;
 
+        struct ProcessGroupGuard(ProcessGroupId);
+        impl Drop for ProcessGroupGuard {
+            fn drop(&mut self) {
+                let _ = kill_process_group(self.0);
+            }
+        }
+
         let mut command = Command::new("/bin/sh");
         command
             .arg("-c")
@@ -4216,12 +4227,6 @@ mod tests {
         }
         let mut child = require_ok!(command.spawn(), "spawn process-group leader");
         let process_group = require_ok!(ProcessGroupId::from_child(&child), "capture pgid");
-        struct ProcessGroupGuard(ProcessGroupId);
-        impl Drop for ProcessGroupGuard {
-            fn drop(&mut self) {
-                let _ = kill_process_group(self.0);
-            }
-        }
         let _guard = ProcessGroupGuard(process_group);
         let mut stdout = BufReader::new(require_some!(child.stdout.take(), "leader stdout"));
         let mut listed = String::new();
@@ -5113,8 +5118,10 @@ finally:
                 let run_dir = fixture.run_dir.clone();
                 let result = fs::read_to_string(&member.result_path)
                     .unwrap_or_else(|read_error| format!("<unreadable: {read_error}>"));
-                std::mem::forget(fixture);
-                panic!("tracked worker launch: {error}; result: {result}; run_dir: {run_dir:?}");
+                let _fixture = std::mem::ManuallyDrop::new(fixture);
+                std::panic::resume_unwind(Box::new(format!(
+                    "tracked worker launch: {error}; result: {result}; run_dir: {run_dir:?}"
+                )));
             }
         };
         assert_eq!(record.exit, 0);
