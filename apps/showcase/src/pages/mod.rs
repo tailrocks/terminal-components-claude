@@ -50,6 +50,8 @@ pub(crate) trait Page: Send {
     fn editing(&self, _ui: &Ui<'_>) -> bool {
         false
     }
+    /// Fast-forward tick-derived state for `--motion paused --frame N`.
+    fn seek_paused(&mut self, _frame: u64) {}
 }
 
 /// Draw a screen frame and hand its inset body to the page.

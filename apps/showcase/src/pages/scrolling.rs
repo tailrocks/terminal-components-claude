@@ -169,6 +169,13 @@ impl ScrollingPage {
         }
     }
 
+    fn seek_log_to_paused_frame(&mut self, frame: u64) {
+        // Tag constructor starts at 400 lines; each paused tick appends one.
+        // Live (non-paused) captures keep the historical 409-line window.
+        let extra = usize::try_from(frame).unwrap_or(usize::MAX);
+        self.log = log_lines(400usize.saturating_add(extra));
+    }
+
     fn note(&mut self, action: Option<&ViewportAction>) {
         if let Some(action) = action {
             self.last = match action {
@@ -190,6 +197,10 @@ impl Default for ScrollingPage {
 impl Page for ScrollingPage {
     fn title(&self) -> &'static str {
         "Scrolling"
+    }
+
+    fn seek_paused(&mut self, frame: u64) {
+        self.seek_log_to_paused_frame(frame);
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {

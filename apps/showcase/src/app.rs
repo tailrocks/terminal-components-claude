@@ -3,10 +3,10 @@
 use crate::render_number::RenderNumber;
 use junie_tui::author::PaintStyle;
 use junie_tui::{
-    ActionKey, App as TuiApp, Brand, Chord, ColorLevel, Cx, Dialog, DialogAction, DialogState,
-    FrameRead, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Moment, NavList, NavListAction,
-    NavListState, Panel, PanelKind, Part, PartRef, Phase, Props, Rect, Response, Size, StateFlags,
-    Status, StatusBar, StatusItem, Theme, TooSmall, Ui, Variant, id, width,
+    ActionKey, App as TuiApp, Brand, Chord, Cx, Dialog, DialogAction, DialogState, FrameRead, Id,
+    Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Moment, NavList, NavListAction, NavListState,
+    Panel, PanelKind, Part, PartRef, Phase, Props, Rect, Response, Size, StateFlags, Status,
+    StatusBar, StatusItem, TooSmall, Ui, Variant, id, width,
 };
 
 use crate::pages::forms::SUBMIT as FORM_SUBMIT;
@@ -49,6 +49,15 @@ const STATUS_RIGHT: [StatusItem<'static>; 2] = [
     StatusItem::new("q quit").priority(10),
     StatusItem::new("? help").priority(5),
 ];
+
+/// Tick delivery mode: `Paused` pins tick-derived glyphs at `--frame N`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Motion {
+    /// Live ticks (tag `full` and `reduced`).
+    Full,
+    /// Fast-forward `N` ticks at startup, then freeze.
+    Paused,
+}
 
 /// Stable page identity used by command-line selection and tests.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -483,6 +492,8 @@ pub struct App {
     inspector: bool,
     quit: bool,
     status: Option<(PageStatus, Moment)>,
+    motion: Motion,
+    tick: u64,
 }
 
 impl core::fmt::Debug for App {
@@ -497,6 +508,8 @@ impl core::fmt::Debug for App {
             .field("inspector", &self.inspector)
             .field("quit", &self.quit)
             .field("status", &self.status.as_ref().map(|(_, since)| since))
+            .field("motion", &self.motion)
+            .field("tick", &self.tick)
             .finish()
     }
 }
@@ -509,11 +522,21 @@ impl App {
 
     /// Construct with a selected initial page.
     pub fn with_page(initial: PageId) -> Self {
+        Self::with_page_motion(initial, Motion::Full, 0)
+    }
+
+    /// Construct with CLI motion/frame. Paused motion seeks every page.
+    pub fn with_page_motion(initial: PageId, motion: Motion, frame: u64) -> Self {
         let mut nav_state = NavListState::new();
         let initial_key = ItemKey::text(initial.slug());
         nav_state.set_current(Some(initial_key));
         nav_state.set_cursor(initial.index(), initial_key);
-        let pages = PageId::ALL.into_iter().map(|kind| page(kind)).collect();
+        let mut pages: Vec<Box<dyn Page>> = PageId::ALL.into_iter().map(page).collect();
+        if motion == Motion::Paused {
+            for page in &mut pages {
+                page.seek_paused(frame);
+            }
+        }
         Self {
             page: initial,
             nav_state,
@@ -523,6 +546,8 @@ impl App {
             inspector: false,
             quit: false,
             status: None,
+            motion,
+            tick: frame,
         }
     }
 
@@ -1138,7 +1163,9 @@ impl TuiApp for App {
             cx.focus(NAV);
         }
         let mut response = Response::ignored();
+        let paused = self.motion == Motion::Paused;
         if cx.update_cause() == junie_tui::UpdateCause::Tick
+            && !paused
             && self.status.as_ref().is_some_and(|(_, since)| {
                 cx.now().saturating_duration_since(*since) > std::time::Duration::from_secs(4)
             })
@@ -1221,10 +1248,11 @@ impl TuiApp for App {
             });
         // The reference global help dialog suspends page ticks, not status
         // expiry. Hidden pages likewise keep domain deadlines without
-        // publishing completion until a later eligible page tick.
-        if !(cx.update_cause() == junie_tui::UpdateCause::Tick && cx.is_open(HELP))
-            && let Some(active) = self.pages.get_mut(self.page.index())
-        {
+        // publishing completion until a later eligible page tick. Paused
+        // motion never delivers ticks after the construction-time seek.
+        let skip_page_tick =
+            cx.update_cause() == junie_tui::UpdateCause::Tick && (cx.is_open(HELP) || paused);
+        if !skip_page_tick && let Some(active) = self.pages.get_mut(self.page.index()) {
             let update = active.update(cx);
             response |= update.response;
             if let Some(status) = update.status {
@@ -1233,7 +1261,7 @@ impl TuiApp for App {
             }
         }
         self.update_help(cx, &mut response);
-        if let Some((_, since)) = &self.status {
+        if !paused && let Some((_, since)) = &self.status {
             let deadline = since
                 .saturating_add(std::time::Duration::from_secs(4))
                 .saturating_add(std::time::Duration::from_nanos(1));
@@ -1320,52 +1348,28 @@ impl TuiApp for App {
 }
 
 /// Parse CLI options and run the migrated binary.
+#[expect(
+    clippy::print_stderr,
+    reason = "CLI diagnostics must use stderr before terminal acquisition"
+)]
 pub(crate) fn run() -> std::io::Result<()> {
-    let mut theme = Theme::junie();
-    let mut page = PageId::Overview;
-    let mut args = std::env::args().skip(1);
-    while let Some(arg) = args.next() {
-        match arg.as_str() {
-            "--theme" => {
-                if let Some(value) = args.next() {
-                    theme = if value.eq_ignore_ascii_case("paper") {
-                        Theme::paper()
-                    } else {
-                        Theme::junie()
-                    };
-                }
-            }
-            "--color" => {
-                if let Some(value) = args.next() {
-                    let level = match value.to_ascii_lowercase().as_str() {
-                        "truecolor" | "24bit" => Some(ColorLevel::TrueColor),
-                        "256" | "ansi256" => Some(ColorLevel::Ansi256),
-                        "16" | "ansi16" => Some(ColorLevel::Ansi16),
-                        "none" | "mono" => Some(ColorLevel::Mono),
-                        _ => None,
-                    };
-                    if let Some(level) = level {
-                        theme = theme.downgrade(level);
-                    }
-                }
-            }
-            "--page" => {
-                if let Some(value) = args.next()
-                    && let Some(selected) = PageId::from_name(&value)
-                {
-                    page = selected;
-                }
-            }
-            _ => {}
+    let options = match crate::cli::parse(std::env::args().skip(1)) {
+        Ok(options) => options,
+        Err(error) => {
+            eprintln!("{error}");
+            return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, error));
         }
-    }
-    junie_tui::run(App::with_page(page), theme)
+    };
+    junie_tui::run(
+        App::with_page_motion(options.page, options.motion, options.frame),
+        options.theme,
+    )
 }
 
 #[cfg(test)]
 mod paint_contract_tests {
     use super::*;
-    use junie_tui::{Color, Family, Modifier, Role, StylePatch, Surface};
+    use junie_tui::{Color, Family, Modifier, Role, StylePatch, Surface, Theme};
 
     fn collision_style(role: Role) -> PaintStyle {
         let mut theme = Theme::junie();

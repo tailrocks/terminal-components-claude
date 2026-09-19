@@ -303,6 +303,7 @@ pub(crate) struct TaskRunnerPage {
     running: bool,
     cancel_state: DialogState,
     message: &'static str,
+    motion_paused: bool,
 }
 
 impl TaskRunnerPage {
@@ -322,6 +323,7 @@ impl TaskRunnerPage {
             running: false,
             cancel_state: DialogState::default(),
             message: "pipeline idle",
+            motion_paused: false,
         }
     }
 
@@ -369,6 +371,13 @@ impl Page for TaskRunnerPage {
         "Task runner"
     }
 
+    fn seek_paused(&mut self, frame: u64) {
+        self.motion_paused = true;
+        for _ in 0..frame {
+            self.advance();
+        }
+    }
+
     fn command(&mut self, _cx: &mut Cx<'_>, action: ActionKey) -> Response<()> {
         if action == RUN_COMMAND && !self.running {
             self.start();
@@ -390,7 +399,7 @@ impl Page for TaskRunnerPage {
             cx.open_layer(CANCEL_DIALOG, cancel_dialog().layer(cx));
         }
         result |= cancel.erase();
-        if self.running {
+        if self.running && !self.motion_paused {
             self.advance();
             cx.request_repaint_after(Duration::from_millis(120));
         }

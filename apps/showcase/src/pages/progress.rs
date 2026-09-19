@@ -109,6 +109,7 @@ pub(crate) struct ProgressPage {
     build: f64,
     paused: bool,
     next_tick: Option<Moment>,
+    motion_paused: bool,
 }
 
 impl ProgressPage {
@@ -118,7 +119,20 @@ impl ProgressPage {
             build: 0.0,
             paused: false,
             next_tick: None,
+            motion_paused: false,
         }
+    }
+
+    fn tick_once(&mut self) -> Option<PageStatus> {
+        let mut status = None;
+        if !self.paused && self.build < 1.0 {
+            self.build = (self.build + 0.006).min(1.0);
+            if self.build >= 1.0 {
+                status = Some(PageStatus("Build finished ✓".to_owned()));
+            }
+        }
+        self.frame = self.frame.wrapping_add(1);
+        status
     }
 }
 
@@ -131,6 +145,14 @@ impl Default for ProgressPage {
 impl Page for ProgressPage {
     fn title(&self) -> &'static str {
         "Progress"
+    }
+
+    fn seek_paused(&mut self, frame: u64) {
+        self.motion_paused = true;
+        self.next_tick = None;
+        for _ in 0..frame {
+            let _ = self.tick_once();
+        }
     }
 
     fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
@@ -147,28 +169,24 @@ impl Page for ProgressPage {
         }
         response |= pause.erase();
 
-        let now = cx.now();
-        let interval = Duration::from_millis(80);
-        let deadline = *self
-            .next_tick
-            .get_or_insert_with(|| now.saturating_add(interval));
-        if cx.update_cause() == junie_tui::UpdateCause::Tick && now >= deadline {
-            // Holla coalesces a delayed wake into one eligible tick. Hidden
-            // time never becomes a loop replaying missed progress steps.
-            if !self.paused && self.build < 1.0 {
-                self.build = (self.build + 0.006).min(1.0);
-                if self.build >= 1.0 {
-                    status = Some(PageStatus("Build finished ✓".to_owned()));
-                }
+        if !self.motion_paused {
+            let now = cx.now();
+            let interval = Duration::from_millis(80);
+            let deadline = *self
+                .next_tick
+                .get_or_insert_with(|| now.saturating_add(interval));
+            if cx.update_cause() == junie_tui::UpdateCause::Tick && now >= deadline {
+                // Holla coalesces a delayed wake into one eligible tick. Hidden
+                // time never becomes a loop replaying missed progress steps.
+                status = self.tick_once();
+                self.next_tick = Some(now.saturating_add(interval));
+                response = response.repaint();
             }
-            self.frame = self.frame.wrapping_add(1);
-            self.next_tick = Some(now.saturating_add(interval));
-            response = response.repaint();
-        }
-        if cx.top_layer() == junie_tui::LayerId::PAGE
-            && let Some(deadline) = self.next_tick
-        {
-            cx.request_repaint_at(deadline);
+            if cx.top_layer() == junie_tui::LayerId::PAGE
+                && let Some(deadline) = self.next_tick
+            {
+                cx.request_repaint_at(deadline);
+            }
         }
         // The update pass builds every indicator the draw pass will render,
         // so each set of props keeps exactly one construction site (§13).
@@ -323,5 +341,19 @@ impl ProgressPage {
         if let Some(rect) = rects.get(1).copied() {
             pause.draw(ui, rect);
         }
+    }
+}
+
+#[cfg(test)]
+mod seek_tests {
+    use super::*;
+
+    #[test]
+    fn paused_frame_80_matches_tag_mid_progress() {
+        let mut page = ProgressPage::new();
+        page.seek_paused(80);
+        assert!((page.build - 0.48).abs() < 1e-9);
+        assert_eq!(page.frame, 80);
+        assert!(page.motion_paused);
     }
 }
