@@ -22,12 +22,12 @@ The current pushed preparation payload before this documentation update is:
 
 ```text
 branch:   refactor/holla-parity
-commit:   247e47d5c00f83685211c98cdef1a281b2af86b4
-tree:     40d76b003cfb7e6f19a818942762d9d9f82e11f6
-parents:  9346c104d9a544c36bd61e48002f037fdc13423d, 28a75786
+commit:   c42c2ae301197baea6376156a17664d5863497b4
+tree:     b841969e714a74740eccb3f7c47eab05cabafed8
+parent:   b62dd9c350c24deb95e6255cdf7b5987dca13514
 local main:   7b27732a8c3c131760ec3438f641cb3c11343a42
 remote main:  7b27732a8c3c131760ec3438f641cb3c11343a42
-remote campaign tip: 247e47d5c00f83685211c98cdef1a281b2af86b4
+remote campaign tip: c42c2ae301197baea6376156a17664d5863497b4
 merge-base with main: 7b27732a8c3c131760ec3438f641cb3c11343a42
 campaign commits ahead of origin/refactor/holla-parity: 0
 ```
@@ -81,7 +81,7 @@ That run executed 302 cases and produced the complete count, but was not
 clean: 298 passed, 4 failed, 2 skipped, 1 leaky, exit 100. No output was
 blessed or normalized.
 
-At current campaign HEAD `247e47d5`, `tests/visual_baseline/` and
+At current campaign HEAD `c42c2ae3`, `tests/visual_baseline/` and
 `.config/nextest.toml` exist. The candidate branch still has no `snapshots/`
 directory and no `parity/evidence.tsv`; those remain protected external oracle
 inputs, not candidate-generated expected output.
@@ -152,12 +152,21 @@ claim isolation from a hostile same-user process.
 
 Current and historical qualification evidence:
 
-- Current taskfmt lint at pushed `247e47d5`: 73/73 packages passed, exit 0;
+- Pre-documentation taskfmt lint at pushed code `247e47d5`: 73/73 packages passed, exit 0;
   log `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-247-direct/all.log`,
   SHA-256 `afecad09ba800c74fc841fd4d830fd8932d80e84894bd18c5bf5660522134124`.
-- Current proof run at `247e47d5`: `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/refactor-proof-current-clean/nextest.log`,
-  SHA-256 `629750c16dcab5fd69bc6a8c082aadbcdc10526f105f2a7f7b2db603f10b4cc6`;
-  2/3 selected tests passed and the provider-hang test failed, exit 100.
+- Proof source `37214cfb` has the current candidate tree
+  `6445c9969ef2f028ff17eb24608de966f1e60b62`. Its focused native nextest run
+  passed 3/3 at
+  `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/final-37214cfb/refactor-proof/nextest.log`
+  (SHA-256 `0d649f4300204a5c9c9e2befe93f0cd88a6fa0ffcb0cf47d8beae0e79f8ef4c7`),
+  and its serial full run passed 43/43 at
+  `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/final-37214cfb/refactor-proof-full-serial/nextest.log`
+  (SHA-256 `77e6f97954eae5b88ef2d5725cdac8cab159381f127cd5172e3d2c646c7f71b4`,
+  `cargo nextest run --locked -j 1 --package refactor-proof`). These are
+  historical to the current documentation payload and require final-tree
+  rebinding. The unqualified `ddce97ec` experiment was reverted: its
+  provider-hang measured 4.395027375s against a strict `<4s` bound.
 - `proof-full-bc4e5980`, `native-preparation-bc4e5980`,
   `adversarial-preparation-bc4e5980`, `taskfmt-lints-bc4e5980`, and
   `final-checks-bc4e5980` are historical runs bound to superseded source;
@@ -184,7 +193,8 @@ passed with SHA-256 `2e3b6e8d8f1f9a9740000b37cb83cec558485df985dadcfd0642052b968
 qualified actionlint 1.7.12 log
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/actionlint-docs-247e47d5/actionlint.log`
 passed with SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
-No final-tree verifier or reviewer receipt exists.
+No final-tree verifier or reviewer receipt exists. No preparation acceptance
+receipt exists.
 
 ## Readiness and navigation
 

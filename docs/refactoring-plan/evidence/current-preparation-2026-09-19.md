@@ -7,18 +7,17 @@ completion claim.
 ## Source and refs
 
 ```text
-current pushed payload:     247e47d5c00f83685211c98cdef1a281b2af86b4
-current pushed tree:        40d76b003cfb7e6f19a818942762d9d9f82e11f6
-merge parents:              9346c104d9a544c36bd61e48002f037fdc13423d,
-                            28a75786
+current pushed payload:     c42c2ae301197baea6376156a17664d5863497b4
+current pushed tree:        b841969e714a74740eccb3f7c47eab05cabafed8
+parent:                     b62dd9c350c24deb95e6255cdf7b5987dca13514
 branch:                     refactor/holla-parity
 local main:                 7b27732a8c3c131760ec3438f641cb3c11343a42
 remote main:                7b27732a8c3c131760ec3438f641cb3c11343a42
-remote campaign tip:       247e47d5c00f83685211c98cdef1a281b2af86b4
+remote campaign tip:       c42c2ae301197baea6376156a17664d5863497b4
 merge-base with main:       7b27732a8c3c131760ec3438f641cb3c11343a42
 ```
 
-The four-document commit containing this index changes the final tree. A
+The documentation commit containing this index changes the final tree. A
 fresh verifier and reviewer must bind the exact post-commit identity. No
 receipt may attest to a future commit containing itself. Final report paths:
 
@@ -54,7 +53,7 @@ The source identity for the complete snapshot producer is
 `89218626011f2f82c4e87c4dfd5868a4c5f3e284` / tree
 `6fccf997cd742071ebcff0e0a00e89404ef95ca8`, with the same snapshot tree.
 
-At current campaign HEAD `247e47d5`, `tests/visual_baseline/` and
+At current campaign HEAD `c42c2ae3`, `tests/visual_baseline/` and
 `.config/nextest.toml` exist. The candidate branch has no `snapshots/`
 directory and no `parity/evidence.tsv`; the imported oracle remains external
 and read-only.
@@ -74,10 +73,10 @@ binary SHA-256: f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
 
 The qualified binary is a regular, single-link executable. Only standalone
 `lint` and `verify` operations are allowed. Current lint evidence, run against
-the pushed `247e47d5` payload before this documentation update:
+the pushed `247e47d5` code payload before this documentation update:
 
 ```text
-run: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-current-2
+run: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-247-direct
 log: all.log
 log SHA-256: afecad09ba800c74fc841fd4d830fd8932d80e84894bd18c5bf5660522134124
 packages: 73
@@ -86,12 +85,14 @@ failed: 0
 exit: 0
 ```
 
-Current native proof evidence:
+Native proof evidence from the identical code tree at `37214cfb`:
 
 | external run | evidence |
 | --- | --- |
-| `refactor-proof-current-clean` | `247e47d5`/`40d76b00`; selected nextest 2/3 passed, provider-hang test failed, exit 100; `nextest.log` SHA-256 `629750c16dcab5fd69bc6a8c082aadbcdc10526f105f2a7f7b2db603f10b4cc6`; `result.txt` SHA-256 `e962a1a60e7302a5ef98dcb334eadae077b231a83ffe1af066927de4bd8750a1` |
+| `final-37214cfb/refactor-proof` | `37214cfb`/`6445c996`; focused nextest 3/3 passed; `nextest.log` SHA-256 `0d649f4300204a5c9c9e2befe93f0cd88a6fa0ffcb0cf47d8beae0e79f8ef4c7` |
+| `final-37214cfb/refactor-proof-full-serial` | `37214cfb`/`6445c996`; serial nextest 43/43 passed; `nextest.log` SHA-256 `77e6f97954eae5b88ef2d5725cdac8cab159381f127cd5172e3d2c646c7f71b4` |
 | `preflight-current-clean` | historical clean run bound to `9346c104`/`00958932`; exit 1 with correct NO-GO refusal; `result.txt` SHA-256 `ad1e78e8c2c5c14fd068befd42fa7774d115dfd83e91f41784ca2a22e56adf12` |
+| `ddce97ec-review` | rejected lifecycle experiment; clippy passed but provider-hang nextest failed at 4.395027375s; raw log SHA-256 `582256c4519180658f4f969afee145c144eb81140cebe2f2813882b40fbaaccd` |
 | `proof-full-bc4e5980`, `native-preparation-bc4e5980`, `adversarial-preparation-bc4e5980`, `final-checks-bc4e5980` | historical runs bound to superseded `bc4e5980`; provenance only |
 
 Raw log hashes:
@@ -164,7 +165,7 @@ verifier evidence. Historical Lychee/actionlint runs bind to
 The detailed calibration report
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/calibration-fe802/CALIBRATION-REPORT.md`
 (SHA-256 `c1c8b3221cd51661eb36cd57a4c850ab3a093cb9a5647b16d39d88c33516d55e`)
-is historical and binds `fe802534`, not current `247e47d5`. It remains NO-GO:
+is historical and binds `fe802534`, not current `c42c2ae3`. It remains NO-GO:
 the complete known-good control did not establish exact parity, including the
 missing TablePro key, HTML executable-path bytes, TablePro structural output,
 Holla elapsed-time output, and unstable settled transitions.
@@ -249,11 +250,14 @@ modified, accepted, masked, or replaced.
 
 ## Platform, ledger, and final decision
 
-Native macOS preparation checks are available under the run root. Current
-selected proof at `247e47d5` recorded 2/3 tests passed and
+Native macOS preparation checks are available under the run root. The proof
+suite at the identical code tree `37214cfb` passed 43/43 under the bounded
+serial command recorded above; it is not yet a final-tree receipt. The
+previous selected proof at `247e47d5` recorded 2/3 tests passed and
 `verifier::tests::provider_hang_after_acceptance_is_bounded_and_rejected`
 failed its under-four-second assertion, exit 100. Fresh Lychee/actionlint are
-pre-documentation evidence. Required native Linux execution was unavailable;
+pre-documentation evidence. Fresh Lychee/actionlint and taskfmt evidence still
+require final-tree rebinding. Required native Linux execution was unavailable;
 no cross-platform pass is claimed. The campaign ledger remains schema-
 controlled and disarmed; no accepted preparation or production receipt exists.
 Any preflight failure due absent current accepted evidence is correct

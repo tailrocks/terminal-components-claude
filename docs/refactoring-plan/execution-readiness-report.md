@@ -12,9 +12,9 @@ The current pushed preparation payload before this documentation update is:
 
 ```text
 branch: refactor/holla-parity
-commit: 247e47d5c00f83685211c98cdef1a281b2af86b4
-tree:   40d76b003cfb7e6f19a818942762d9d9f82e11f6
-parents: 9346c104d9a544c36bd61e48002f037fdc13423d, 28a75786
+commit: c42c2ae301197baea6376156a17664d5863497b4
+tree:   b841969e714a74740eccb3f7c47eab05cabafed8
+parent: b62dd9c350c24deb95e6255cdf7b5987dca13514
 ```
 
 Git facts independently read from refs:
@@ -22,7 +22,7 @@ Git facts independently read from refs:
 ```text
 refs/heads/main:                  7b27732a8c3c131760ec3438f641cb3c11343a42
 refs/remotes/origin/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
-refs/remotes/origin/refactor/...  247e47d5c00f83685211c98cdef1a281b2af86b4
+refs/remotes/origin/refactor/...  c42c2ae301197baea6376156a17664d5863497b4
 merge-base campaign/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
 local commits ahead of remote campaign: 0
 ```
@@ -64,7 +64,7 @@ The import was derived from the peeled tag, has zero symlinks, and was not
 used as a candidate-generated baseline. Protected refs and artifacts are
 unchanged.
 
-At current campaign HEAD `247e47d5`, `tests/visual_baseline/` and
+At current campaign HEAD `c42c2ae3`, `tests/visual_baseline/` and
 `.config/nextest.toml` exist. The candidate branch still lacks `snapshots/`
 and `parity/evidence.tsv`; those remain external protected-oracle inputs.
 
@@ -103,7 +103,7 @@ binary:   /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campai
 SHA-256:  f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
 ```
 
-Current package-lint run at pushed `247e47d5`:
+Pre-documentation package-lint run at pushed code `247e47d5`:
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-247-direct/all.log`;
 73/73 passed, exit 0; log SHA-256
 `afecad09ba800c74fc841fd4d830fd8932d80e84894bd18c5bf5660522134124`.
@@ -113,7 +113,8 @@ Native proof runs:
 
 | run | command/result |
 | --- | --- |
-| `refactor-proof-current-clean` | `247e47d5`/`40d76b00`; selected nextest 2/3 passed, provider-hang test failed, exit 100; log SHA-256 `629750c16dcab5fd69bc6a8c082aadbcdc10526f105f2a7f7b2db603f10b4cc6` |
+| `final-37214cfb/refactor-proof` | `37214cfb`/`6445c996`; focused nextest 3/3 passed; log SHA-256 `0d649f4300204a5c9c9e2befe93f0cd88a6fa0ffcb0cf47d8beae0e79f8ef4c7` |
+| `final-37214cfb/refactor-proof-full-serial` | `37214cfb`/`6445c996`; serial `cargo nextest run --locked -j 1 --package refactor-proof` 43/43 passed; log SHA-256 `77e6f97954eae5b88ef2d5725cdac8cab159381f127cd5172e3d2c646c7f71b4` |
 | `preflight-current-clean` | historical clean run bound to `9346c104`/`00958932`; exit 1 with correct NO-GO refusal; result SHA-256 `ad1e78e8c2c5c14fd068befd42fa7774d115dfd83e91f41784ca2a22e56adf12` |
 | `proof-full-bc4e5980`, `native-preparation-bc4e5980`, `adversarial-preparation-bc4e5980`, `taskfmt-lints-bc4e5980`, `final-checks-bc4e5980` | historical runs bound to superseded `bc4e5980`; provenance only |
 
@@ -148,7 +149,7 @@ taskfmt sealing, trust-path consistency, and observer request-count binding.
 The detailed calibration report
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/calibration-fe802/CALIBRATION-REPORT.md`
 (SHA-256 `c1c8b3221cd51661eb36cd57a4c850ab3a093cb9a5647b16d39d88c33516d55e`)
-is historical: it binds `fe802534`, not current `247e47d5`. Its NO-GO
+is historical: it binds `fe802534`, not current `c42c2ae3`. Its NO-GO
 findings remain provenance and cannot attest to the current or post-document
 tree.
 
@@ -206,7 +207,7 @@ retired lifecycle path was used by this campaign.
 | exact-tag known-good matrix fails | next implementation / proof owner | independently execute all 7,550 keys and 30,200 artifacts with exact-safe executable provenance and zero unexplained mismatch |
 | observed corpus misses one key and HTML path differs | visual harness owner | repair source/harness provenance without normalization or oracle mutation; rerun complete tag control |
 | no accepted current preparation receipt | verifier/reviewer | final clean tree gets independent `VERIFIED` verifier and separate reviewer evidence; no fabricated receipt |
-| unfiltered native proof suite fails | proof owner | stable `cargo nextest` pass for all 38 proof tests under the qualified command |
+| final proof receipt/review is absent | verifier/reviewer | rerun and independently seal native proof evidence for the exact final tree |
 | Linux native evidence unavailable | platform owner | execute required native Linux lane or keep NO-GO |
 | product migration/ownership/parity incomplete | implementation goal | complete reconciled DAG and final architecture/product gates |
 | ledger must stay disarmed | coordinator | preserve `armed=false` until separate explicit dispatch authorization after fresh readiness recheck |
@@ -223,10 +224,11 @@ Resolved preparation defects include stale task graph status metadata, stale
 taskfmt path/version enforcement, missing native receipt binding, incomplete
 worker launch fixture provenance, unbounded observer-provider teardown,
 noncanonical native target names, and ambiguous readiness verdict parsing. The
-current code evidence is not a final GO because proof qualification and
-calibration remain failed.
+proof suite now passes under the bounded serial command, but the current
+documentation payload still requires final-tree rebinding and independent
+receipt/reviewer evidence.
 
-**Decision: NO-GO.** The failed exact-tag calibration, failed unfiltered proof
-suite, absent accepted receipt, unavailable Linux evidence, and unfinished
-product obligations prohibit GO.
+**Decision: NO-GO.** The failed exact-tag calibration, rejected visual
+launcher/trust audit, absent accepted receipt and independent final review,
+unavailable Linux evidence, and unfinished product obligations prohibit GO.
 The next implementation prompt is explicitly not authorized.
