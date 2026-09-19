@@ -19,6 +19,43 @@ def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def qualified_taskfmt() -> tuple[Path, Path, str, str, str]:
+    names = (
+        "TC_TASKFMT",
+        "TC_TASKFMT_SOURCE",
+        "TC_TASKFMT_REVISION",
+        "TC_TASKFMT_VERSION",
+        "TC_TASKFMT_SHA256",
+    )
+    missing = [name for name in names if not os.environ.get(name)]
+    if missing:
+        raise SystemExit(f"missing qualified taskfmt environment: {', '.join(missing)}")
+    taskfmt = Path(os.environ["TC_TASKFMT"])
+    source = Path(os.environ["TC_TASKFMT_SOURCE"])
+    revision = os.environ["TC_TASKFMT_REVISION"]
+    version = os.environ["TC_TASKFMT_VERSION"]
+    sha256 = os.environ["TC_TASKFMT_SHA256"]
+    if not taskfmt.is_absolute() or not taskfmt.is_file() or taskfmt.is_symlink():
+        raise SystemExit(f"qualified taskfmt is not a regular file: {taskfmt}")
+    if taskfmt.stat().st_nlink != 1 or not os.access(taskfmt, os.X_OK):
+        raise SystemExit(f"qualified taskfmt is not a single-link executable: {taskfmt}")
+    actual = digest(taskfmt)
+    if actual != sha256:
+        raise SystemExit(f"qualified taskfmt hash mismatch: {actual} != {sha256}")
+    if not source.is_absolute() or not source.is_dir() or source.is_symlink():
+        raise SystemExit(f"qualified taskfmt source is not a regular directory: {source}")
+    return taskfmt, source, revision, version, sha256
+
+
+def require_regular_file(path: Path, label: str, *, executable: bool = False) -> None:
+    if not path.is_absolute() or path.is_symlink() or not path.is_file():
+        raise SystemExit(f"{label} is not a regular file: {path}")
+    if path.stat().st_nlink != 1:
+        raise SystemExit(f"{label} is not a single-link file: {path}")
+    if executable and not os.access(path, os.X_OK):
+        raise SystemExit(f"{label} is not executable: {path}")
+
+
 def run(
     command: list[str],
     *,
@@ -85,7 +122,12 @@ def write_provider(path: Path) -> None:
     path.chmod(path.stat().st_mode | stat.S_IXUSR)
 
 
-def prepare_fixture(native: Path, source: Path, root: Path) -> tuple[Path, dict[str, dict[str, str]]]:
+def prepare_fixture(
+    native: Path,
+    source: Path,
+    root: Path,
+    taskfmt: tuple[Path, Path, str, str, str],
+) -> tuple[Path, dict[str, dict[str, str]]]:
     candidate = root / "candidate"
     cloned = run(["git", "clone", "--local", "--no-hardlinks", str(source), str(candidate)], cwd=source)
     if cloned.returncode != 0:
@@ -95,6 +137,10 @@ def prepare_fixture(native: Path, source: Path, root: Path) -> tuple[Path, dict[
         raise SystemExit(f"candidate scope lookup failed:\n{scope.stderr}")
     run_dir = root / "run"
     run_dir.mkdir()
+    native_receipt = native.parent / "tc-proof.build.json"
+    require_regular_file(native, "native verifier", executable=True)
+    require_regular_file(native_receipt, "native build receipt")
+    taskfmt_path, taskfmt_source, taskfmt_revision, taskfmt_version, taskfmt_sha256 = taskfmt
     prepared = run(
         [
             str(native),
@@ -115,6 +161,18 @@ def prepare_fixture(native: Path, source: Path, root: Path) -> tuple[Path, dict[
             str(candidate / "tools/refactor-proof/bin/tc-proof"),
             "--comparator",
             str(native),
+            "--native-build-receipt",
+            str(native_receipt),
+            "--taskfmt",
+            str(taskfmt_path),
+            "--taskfmt-source",
+            str(taskfmt_source),
+            "--taskfmt-revision",
+            taskfmt_revision,
+            "--taskfmt-version",
+            taskfmt_version,
+            "--taskfmt-sha256",
+            taskfmt_sha256,
             "--observer-nonce",
             "fixture-observer",
         ],
@@ -165,14 +223,14 @@ def main() -> None:
     )
     if not bundle.is_file() or not os.access(bundle, os.X_OK):
         raise SystemExit(f"tracked proof bundle is not executable: {bundle}")
-    if not native.is_file() or not os.access(native, os.X_OK):
-        raise SystemExit(f"native verifier is not built: {native}")
+    taskfmt = qualified_taskfmt()
+    require_regular_file(native, "native verifier", executable=True)
 
     with tempfile.TemporaryDirectory(prefix="tc-proof-native-launch-") as directory:
         root = Path(directory).resolve()
         provider = root / "observer-provider.py"
         write_provider(provider)
-        run_dir, contexts = prepare_fixture(native, source, root)
+        run_dir, contexts = prepare_fixture(native, source, root, taskfmt)
         context = Path(contexts["CHK-001"]["path"])
         environment = worker_environment(run_dir, native, provider)
 
