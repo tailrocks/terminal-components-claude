@@ -611,6 +611,7 @@ check_proof_preparation() {
 import hashlib
 import json
 import os
+import re
 import stat
 import sys
 from pathlib import Path
