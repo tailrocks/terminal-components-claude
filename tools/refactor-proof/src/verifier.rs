@@ -39,6 +39,7 @@ const OBSERVER_SCHEMA: &str = "tc-proof-observer-capability/v1";
 const NATIVE_HANDOFF_SCHEMA: &str = "tc-proof-native-handoff/v1";
 const NATIVE_BUILD_SCHEMA: &str = "tc-proof-native-build/v1";
 const PREPARATION_RECEIPT_FILE: &str = "proof-preparation.json";
+const NATIVE_TARGET_DIR_NAME: &str = "target";
 const OBSERVER_PROVIDER_ENV: &str = "TC_PROOF_OBSERVER_PROVIDER";
 const EXPECTED_ORACLE_COMMIT: &str = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b";
 const MAX_LAUNCH_TIMEOUT_MS: u64 = 600_000;
@@ -726,6 +727,7 @@ fn native_build_binding(
             .ok_or_else(|| VerifierError::new("native build receipt has no target parent"))?,
         "native build target",
     )?;
+    require_native_target_dir_name(&target_dir)?;
     if target_dir == *run_dir || !target_dir.starts_with(run_dir) {
         return Err(VerifierError::new(
             "native build target must be inside the external run directory",
@@ -1271,14 +1273,9 @@ fn validate_run_inner(
                 "native build target must be a direct run-directory member",
             ));
         }
+        require_native_target_dir_name(target)?;
         regular_dir(target, "native build target")?;
-        expected_root.insert(
-            target
-                .file_name()
-                .ok_or_else(|| VerifierError::new("native build target has no name"))?
-                .to_string_lossy()
-                .into_owned(),
-        );
+        expected_root.insert(NATIVE_TARGET_DIR_NAME.to_string());
     } else if preparation_receipt_present {
         let receipt = parse_json_object(
             &fs::read(immutable_file(
@@ -1291,17 +1288,11 @@ fn validate_run_inner(
             .get("native_build")
             .and_then(Value::as_object)
             .ok_or_else(|| VerifierError::new("native build binding is missing"))?;
-        let target = native_target_from_receipt_path(
+        native_target_from_receipt_path(
             Path::new(required_string(native_build, "receipt")?.as_str()),
             &run_dir,
         )?;
-        expected_root.insert(
-            target
-                .file_name()
-                .ok_or_else(|| VerifierError::new("native build target has no name"))?
-                .to_string_lossy()
-                .into_owned(),
-        );
+        expected_root.insert(NATIVE_TARGET_DIR_NAME.to_string());
     }
     if preparation_receipt_present {
         expected_root.insert(PREPARATION_RECEIPT_FILE.to_string());
@@ -3244,6 +3235,7 @@ fn native_target_from_receipt_path(receipt_path: &Path, run_dir: &Path) -> Resul
             "native build target must be a direct run-directory member",
         ));
     }
+    require_native_target_dir_name(&target)?;
     Ok(target)
 }
 
@@ -3253,15 +3245,21 @@ fn ensure_run_directory_for_preparation(run_dir: &Path, native_target: &Path) ->
             "native build target must be a direct run-directory member",
         ));
     }
-    let expected = BTreeSet::from([native_target
-        .file_name()
-        .ok_or_else(|| VerifierError::new("native build target has no name"))?
-        .to_string_lossy()
-        .into_owned()]);
+    require_native_target_dir_name(native_target)?;
+    let expected = BTreeSet::from([NATIVE_TARGET_DIR_NAME.to_string()]);
     if directory_names(run_dir)? != expected {
         return Err(VerifierError::new(
             "run directory must contain only the verifier-owned native target before preparation",
         ));
+    }
+    Ok(())
+}
+
+fn require_native_target_dir_name(target: &Path) -> Result<()> {
+    if target.file_name().and_then(|name| name.to_str()) != Some(NATIVE_TARGET_DIR_NAME) {
+        return Err(VerifierError::new(format!(
+            "native build target directory must be named {NATIVE_TARGET_DIR_NAME}"
+        )));
     }
     Ok(())
 }
@@ -4355,6 +4353,49 @@ mod tests {
             "mutate build receipt"
         );
         assert!(validate_run(&fixture.run_dir).is_err());
+    }
+
+    #[test]
+    fn preparation_rejects_non_target_direct_native_build_member() {
+        let (fixture, mut options) = require_ok!(fixture_options(), "fixture options");
+        let target = fixture.run_dir.join(NATIVE_TARGET_DIR_NAME);
+        let non_target = fixture.run_dir.join("native-cache");
+        require_ok!(fs::rename(&target, &non_target), "rename native target");
+
+        let build_path = non_target.join("debug/tc-proof.build.json");
+        let binary_path = non_target.join("debug/tc-proof");
+        options.native_build_receipt = build_path.clone();
+        options.comparator = binary_path.clone();
+        let mut build = require_ok!(
+            parse_json_object(
+                &require_ok!(fs::read(&build_path), "build receipt"),
+                "build"
+            ),
+            "parse build receipt"
+        );
+        build.insert(
+            "target_dir".to_string(),
+            Value::String(non_target.to_string_lossy().into_owned()),
+        );
+        build.insert(
+            "cargo_target_dir".to_string(),
+            Value::String(non_target.to_string_lossy().into_owned()),
+        );
+        build.insert(
+            "binary".to_string(),
+            Value::String(binary_path.to_string_lossy().into_owned()),
+        );
+        require_ok!(
+            fs::write(&build_path, canonical_json(&Value::Object(build))),
+            "rewrite build receipt"
+        );
+
+        let error = require_err!(
+            prepare(&options),
+            "non-target native build member must be rejected"
+        );
+        assert!(error.to_string().contains("must be named target"));
+        assert!(!fixture.run_dir.join(PREPARATION_RECEIPT_FILE).exists());
     }
 
     #[test]
