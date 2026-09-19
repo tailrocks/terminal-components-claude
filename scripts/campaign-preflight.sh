@@ -227,8 +227,11 @@ check_taskfmt_identity() {
 	actual_sha="$(shasum -a 256 "$TASKFMT_BIN" | awk '{print $1}')"
 	[[ "$actual_sha" == "$TASKFMT_SHA256" ]] ||
 		fail "taskfmt SHA-256 is $actual_sha; expected $TASKFMT_SHA256"
-	"$TASKFMT_BIN" --version | grep -Fq "git $TASKFMT_REV" ||
-		fail "taskfmt is not latest $TASKFMT_REV"
+	local version
+	version="$("$TASKFMT_BIN" --version)" ||
+		fail "unable to read taskfmt --version: $TASKFMT_BIN"
+	[[ "$version" == "taskfmt $TASKFMT_VERSION (git $TASKFMT_REV)" ]] ||
+		fail "taskfmt --version is '$version'; expected 'taskfmt $TASKFMT_VERSION (git $TASKFMT_REV)'"
 	pass "current taskfmt identity @ $TASKFMT_BIN"
 }
 

@@ -277,8 +277,11 @@ require_taskfmt() {
 	actual_sha="$(shasum -a 256 "$TASKFMT" | awk '{print $1}')"
 	[[ "$actual_sha" == "$TASKFMT_SHA256" ]] ||
 		die "taskfmt SHA-256 is $actual_sha; expected $TASKFMT_SHA256"
-	"$TASKFMT" --version | grep -Fq "git $TASKFMT_REV" ||
-		die "taskfmt is not latest $TASKFMT_REV"
+	local version
+	version="$("$TASKFMT" --version)" ||
+		die "unable to read taskfmt --version: $TASKFMT"
+	[[ "$version" == "taskfmt $TASKFMT_VERSION (git $TASKFMT_REV)" ]] ||
+		die "taskfmt --version is '$version'; expected 'taskfmt $TASKFMT_VERSION (git $TASKFMT_REV)'"
 	[[ -d "$TASKFMT_SOURCE/.git" ]] ||
 		die "taskfmt source is not a git checkout: $TASKFMT_SOURCE"
 	[[ -z "$(git -C "$TASKFMT_SOURCE" status --porcelain)" ]] ||

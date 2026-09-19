@@ -21,13 +21,16 @@ The source checkout was clean when inspected. The binary was built from
 matched the source commit. No old taskfmt checkout, fingerprint command, or
 `experiment.toml` is an authority input.
 
+The authoritative installer is [`scripts/campaign-install-taskfmt.sh`](../../scripts/campaign-install-taskfmt.sh).
+It builds the qualified binary, verifies its source revision, exact
+`--version` string, and SHA-256, then materializes one regular-file inode with
+`nlink=1`. Preflight and dispatch consume the emitted `TC_TASKFMT` path and
+repeat those identity and single-link checks.
+
 ## Current command split
 
-The refactoring uses only the standalone `taskfmt` executable for per-task
-validation and verification. It does not install or invoke `taskfmt-host` or
-`taskfmt-runtime`, and it never uses taskfmt to start or supervise a
-container. The source also exposes lifecycle/progress helpers, but this
-project policy forbids them.
+The refactoring permits only the standalone `taskfmt` `lint` and `verify`
+commands for per-task validation and verification.
 
 Use these commands with `TASKFMT` bound to the qualified standalone binary:
 
