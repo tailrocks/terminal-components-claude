@@ -1,112 +1,121 @@
 # Current preparation evidence — 2026-09-19
 
-This index records the current bounded preparation observations. It is linked
-from the [current readiness report](../execution-readiness-report.md) and the
-[refactoring-plan README](../README.md). It is not a verifier receipt, task
-acceptance, execution authorization, or GO decision.
+This is a bounded preparation index, not a verifier receipt, task acceptance,
+execution authorization, or GO decision. It records the independent verifier
+run for the exact source candidate and the separate calibration evidence. Raw
+evidence remains under the external run roots named below.
 
-## Binding identities
+## 1. Binding identities
 
-The reviewed source payload was a clean worktree at the following identity,
-before this bounded documentation-only correction. This file and the other
-owned documents change the tree; every source-bound receipt must be
-regenerated against the final clean commit/tree. No receipt may attest to
-this future documentation commit from inside that same commit.
-
-| Item | Observed value |
+| Item | Exact value |
 |---|---|
 | Branch | `refactor/holla-parity` |
-| HEAD | `f9801a89cbe0d154f38d184b007fca07d058f39b` |
-| HEAD tree | `550d22547254eb9eee2bd11a74d6e77505c5c913` |
-| `main` / `origin/main` | `7b27732a8c3c131760ec3438f641cb3c11343a42` |
-| Peeled `visual-baseline` tag | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
-| Snapshot tree at the tag | `3f0261c32849e26feda24d87697de4a7ce6b8375` |
-| Campaign ledger | `armed: false`; ignored; no accepted current task rows |
-| Product dispatch | none |
+| Candidate commit | `14aa8ed0469219ff8f6570be7824e5ade39240cc` |
+| Candidate tree | `f3ef0f6badd01161bc24cdfef5161db55ba5d579` |
+| Candidate parent | `96c6c475b5d22193b7539565fa5b4612a88ea007` |
+| Verifier setting | `gpt-5.6-luna/max` |
+| Verifier run | `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-14aa8ed-lagrange` |
+| Verdict file | `.../verifier-14aa8ed-lagrange/VERDICT.md` |
+| Overall verdict | **REJECTED** |
+| Ledger | `.campaign/ledger.json`, schema `campaign-ledger/v1`, 4 rows, `armed=false` |
+| Dispatch / receipt | none / none |
 
-Protected baseline refs, release, grouped store, fixtures, snapshots, and
-expected artifacts were not changed. No product refactoring was dispatched.
+The four-doc commit made after this source candidate is documentation-only. It
+does not change the candidate source binding above, and it does not create a
+proof receipt. Any future execution receipt must bind the exact clean tree it
+actually verifies, including any later documentation tip.
 
-## Frozen oracle
+## 2. Protected oracle identity
 
-The tag-derived oracle inventory is `7,550` matrix keys and `30,200` artifacts:
-four artifacts per key (`ANSI`, plain text, `PNG`, `HTML`), five terminal sizes
-(`72x20`, `80x24`, `100x30`, `120x40`, `160x50`), and five color modes
-(`truecolor`, `256`, `16`, `none`, `nocolor`). The tag-derived suite,
-configuration, grouped store, and fixtures remain read-only inputs.
-
-The latest calibration membership evidence reports `30,200` expected and
-`30,200` actual artifacts, with zero missing and zero extra. Membership is not
-acceptance: one selected test failed and two were skipped.
-
-## Qualified taskfmt
-
-| Item | Observed value |
+| Item | Exact value |
 |---|---|
-| Source | `/Users/donbeave/Projects/taskfmt/task-format` |
-| Revision | `afd3b575dbcc7044620bec4b9493a74eca3e5ef2` |
-| Version | `0.2.0` |
-| Executable | `/tmp/taskfmt-latest-install/bin/taskfmt` |
-| SHA-256 | `f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de` |
+| Tag ref object | `1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5` |
+| Peeled tag commit | `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b` |
+| Baseline tree | `0b1f13431fdfd6060cf9f45a114afa5a99cc6c26` |
+| Snapshot tree | `3f0261c32849e26feda24d87697de4a7ce6b8375` |
+| Inventory | 7,550 keys; 30,200 artifacts; 7,550 each ANSI/plain/PNG/HTML; no other files |
+| Matrix dimensions | `72x20`, `80x24`, `100x30`, `120x40`, `160x50`; `truecolor`, `256`, `16`, `none`, `nocolor` |
 
-The catalog contains `73` numbered packages, `506` checks, `276` dependency
-edges, and maximum DAG depth `35`. Latest standalone taskfmt lint evidence is
-`73/73`; lint does not accept implementation or verifier evidence.
+The tag, branch, release, grouped store, fixtures, snapshots, and expected
+artifacts were observed unchanged. They are read-only policy inputs. No
+candidate output was blessed or substituted.
 
-## Native proof status
+## 3. Proof and taskfmt identities
 
-Proof preparation changes landed in these commits:
+| Item | Exact value |
+|---|---|
+| Native build schema | `tc-proof-native-build/v1` |
+| Native build command | `cargo build --locked --offline -p refactor-proof --bin tc-proof` |
+| Native proof binary | `.../verifier-14aa8ed-lagrange/target/debug/tc-proof` |
+| Native proof binary SHA-256 | `a3b7712ab7c3ea22940ffe915a2328d25767d35e5253e9df82776db0d3b70fcc` |
+| Native build receipt | `.../target/debug/tc-proof.build.json` |
+| Taskfmt source | `/Users/donbeave/Projects/taskfmt/task-format` |
+| Taskfmt revision | `afd3b575dbcc7044620bec4b9493a74eca3e5ef2` |
+| Taskfmt version | `0.2.0` |
+| Taskfmt binary | `/tmp/taskfmt-latest-install/bin/taskfmt` |
+| Taskfmt SHA-256 | `f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de` |
 
-1. `8c9e050c` — native worker and observer ABI binding.
-2. `f4ce758e` — native target paths, build receipt, and dispatcher binding.
-3. `4737da3c` — native proof ABI repair and bundled proof regeneration.
-4. `7639e7ae` — context-index ABI acceptance repair.
-5. `19f6d2eb` — context-index ABI alignment repair.
-6. `12ac27ff` — observer-provider descriptor closure repair; proof parent tree
-   `8d66c95408d7e9e404eaf9019857b33659906e84`. The current proof payload,
-   carried by docs-only HEAD `f9801a89`, has a positive native-launch check
-   that is **UNVERIFIED/PENDING**; no independent verifier has run or
-   accepted it.
+The native proof receipt binds the proof binary to candidate commit
+`14aa8ed0469219ff8f6570be7824e5ade39240cc` and tree
+`f3ef0f6badd01161bc24cdfef5161db55ba5d579`. The external comparator binding
+passes with `TC_PROOF_NATIVE_BINARY` forwarded; it does not grant campaign
+acceptance.
 
-Fresh verifier evidence is at:
+## 4. Independent verifier result
 
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-4737da3c`
+The verifier’s exact conclusion is **REJECTED**. It is not a preparation
+receipt or authorization. The following qualification subchecks passed:
 
-Its explicit `VERDICT.md` result for historical candidate `4737da3c` is
-**REJECTED**, not an acceptance for current HEAD:
+| Check | Result |
+|---|---|
+| `cargo fmt --all -- --check` | exit 0 |
+| Native proof build and receipt | exit 0; candidate commit/tree bound |
+| Locked offline `refactor-proof` nextest | 26 passed, 0 failed, 0 skipped |
+| Python rebundle/source/AST/compile checks | pass; AST sweep covered 46 files |
+| Native proof path contract | exit 0 |
+| Seven bootstrap asset freeze checks | all exit 0; changed 0 |
+| Plan validator | exit 0; 73 task entries; 211 bootstrap assets |
+| DAG derivation | exit 0; 73 tasks; maximum depth 35; no serialization pairs |
+| Standalone taskfmt lint | 73/73 passed, 0 failed |
+| External comparator qualification | 72/72 cases; 141 invocations; 0 failures |
+| Comparator negative controls | 7/7 rejected: relative, missing, symlink, unbound, ambiguous, candidate-worktree, shared-cache-default |
+| Native observer-backed launch/validate | exit 0 |
+| Runner/host/broker bootstrap self-tests | canonical checks exit 0 |
 
-- `cargo fmt --all -- --check` failed.
-- The positive bundled-worker execution emitted a
-  `tc-proof-runner-result/v1` with `status=rejected`, category
-  `CONTEXT_INDEX`, and no observer event.
-- The original positive-launch recorder was interrupted before its command,
-  output, and exit tuple was emitted.
-- Identity, external native build/receipt, locked offline proof nextest
-  (`26 passed, 0 failed, 0 skipped`), rebundle/static checks, `73/73` lints,
-  native prepare, and pre-execution validate passed as focused evidence.
-- Direct-child bypass, full adversarial matrix, dispatcher lint/verify, ledger
-  tests, comparator replay, and final protected-ref recheck were not executed.
+The decisive failures are:
 
-No independent verifier or reviewer has returned an acceptance for the current
-`12ac27ff` proof payload or docs-only `f9801a89` tree. Therefore there is no
-current accepted verifier/reviewer receipt and the proof path is not
-dispatch-ready.
+- Dispatcher lint for TASK-001 exits `0`, native dispatch validation exits
+  `0`, but dispatcher verify exits `1` with `RESULT FAIL` (`pass=3`,
+  `fail=6`). Scope/forbidden-path checks reject preparation/documentation
+  changes outside TASK-001, and the intentional NO-GO checks retain their
+  reserved failure status.
+- `scripts/campaign-preflight.sh` exits `1` and fails closed at the explicit
+  readiness-report **NO-GO** gate. It does not arm or dispatch the ledger.
 
-## Calibration
+Raw decisive files are `dispatch-verify.{stdout,stderr,exit}` and
+`preflight.{stdout,stderr,exit}` under the verifier run root. No independent
+reviewer returned `VERIFIED`; no acceptance receipt was issued.
 
-Raw evidence root:
+### Auxiliary unqualified diagnostic
 
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/calibration-frozen-connections`
+The copied-runner style-timing self-test was run as an auxiliary diagnostic:
 
-Inputs include source base commit `89218626011f2f82c4e87c4dfd5868a4c5f3e284`,
-frozen `pointer.rs`, corrected frozen `connections.rs` blob
-`d4be31bc3cda2ffa205de62a0c43c59ff983ed81`, its SHA-256
-`f5095c284c051ad175d44216ed5e8a7be40af354ee1a59a4af85e6275a677ab2`, and
-external nextest config SHA-256
-`bdbe0a8958a696e4b5108ae190a0c07089f2d7aea91c64a20d52e3346e7092da`.
+```text
+python3 .../style-timing-bootstrap/runner-bootstrap-driver.py --self-test
+```
 
-Targeted calibration passed `3/3`; each targeted root produced `100/100`
-matching artifacts. The full selected run produced:
+It exited `1` with `FileNotFoundError` for the absent sibling
+`runner-bootstrap-index.py`. Raw files are
+`style-runner-bootstrap-072-selftest.{stdout,stderr,exit}`. This is recorded as
+**unqualified**, not hidden and not counted as a pass. The canonical runner
+self-tests passed; this copied-runner diagnostic is not campaign acceptance.
+
+## 5. Calibration and mixed-oracle finding
+
+No product full matrix was run by the current verifier. Existing independent
+calibration evidence is cited, not reused as a fresh pass:
+
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/calibration-frozen-connections/full-run-1/`
 
 | Result | Count |
 |---|---:|
@@ -116,47 +125,41 @@ matching artifacts. The full selected run produced:
 | Skipped | 2 |
 | Exit | 100 |
 
-The failure is
-`tablepro_connections_form_advanced_120x40_truecolor`. Its root had `24/100`
-matching and `76/100` mismatching artifacts: 23 ANSI, 15 plain-text, 15 PNG,
-and 23 HTML artifacts. The raw mismatch list is in
-`calibration-frozen-connections/full-run-1/mismatch-paths.tsv`.
+The sole failed case is
+`tablepro_connections_form_advanced_120x40_truecolor`: 24/100 artifacts
+match and 76/100 mismatch, broken down as 23 ANSI, 15 plain-text, 15 PNG, and
+23 HTML artifacts. No snapshot was blessed, altered, or substituted.
 
-The mismatch is structural, not timing. Historical source comparison records
-the split: commit
+Independent history establishes a mixed frozen-oracle state: commit
 `3570a2ed23444dddf1eddcdcc49b654b169038fe` supplies the responsive
 form-ownership overlay, while source commit
 `89218626011f2f82c4e87c4dfd5868a4c5f3e284` supplies the later responsive
 rendering source. Frozen expected output requires list+form for
 `connections/form_new` and full-pane form ownership for
-`connections/form_advanced`. No source, snapshot, oracle, or expected artifact
-was mutated to reconcile the split.
+`connections/form_advanced`. This explains the historical split; it does not
+permit changing the oracle or accepting the mismatch.
 
-The divergent output was rejected by the frozen oracle with `cells-differ`.
-That is useful negative evidence, not calibration acceptance. The complete
-final parity gate remains unproven.
+## 6. Catalog and remaining product obligations
 
-## Current command outcomes
+The current generated catalog contains 73 task packages, 506 checks, 276
+dependency edges, and maximum DAG depth 35. All task manifests remain
+unaccepted. `TASK-001` and `TASK-070` describe retired/non-qualifying
+host-lifecycle paths; replacement proof work still needs accepted subagent
+evidence. `TASK-071`/`072` remain blocked by accepted proof and dependency
+receipts. Tasks `002–069` and `073` remain pending or blocked by their DAG
+dependencies and missing acceptance evidence.
 
-These are preparation observations only:
+Remaining product obligations include consumer migration, removal of duplicate
+renderers and compatibility painters, component ownership/state/hit-testing
+correctness, all application flows, focus/hover/scroll/selection/layout,
+resize and lifecycle behavior, real PTY setup/cleanup/input/settled-frame
+transitions, strict performance budgets, public API/static/documentation
+checks, native platform checks, and complete oracle parity.
 
-| Check | Result |
-|---|---|
-| `scripts/campaign-preflight.sh` | Exit `1`; explicit report **NO-GO** gate / no current accepted verifier receipt. No arming or dispatch. |
-| `python3 docs/refactoring-plan/evidence/validate-plan.py --summary` | Exit `0`; `passed: true`, `error_count: 0`, `73` task packages, `211` bootstrap assets, maximum depth `35`. |
-| Qualified taskfmt lint | `73/73` packages passed. |
-| Historical candidate verifier (`4737da3c`) | **REJECTED**; see the native proof section. |
-| Current calibration | Targeted `3/3` passed; full selected `301/302` passed, `1` failed, `2` skipped. |
-| Ledger | `armed: false`; no accepted task rows. |
+## 7. Required next evidence
 
-The current preflight failure is stale-ledger state, not permission to repair
-the ledger by fabrication. Preparation evidence must be sealed after the final
-documentation tree is committed, then independently verified and reviewed.
-
-## Required next checks
-
-From the final clean campaign worktree, with external verifier-owned run and
-target paths, rerun:
+From a clean native macOS worktree, with verifier-owned external target and
+run directories:
 
 ```sh
 scripts/campaign-preflight.sh
@@ -169,32 +172,9 @@ cargo fmt --all -- --check
 cargo nextest run --locked --workspace --no-fail-fast
 ```
 
-Then rerun the complete native positive/adversarial proof matrix, obtain an
-independent verifier and reviewer decision, and rerun the tag-derived visual
-calibration/final matrix. Do not use taskfmt lifecycle commands, `cargo test`,
-baseline acceptance/blessing, candidate-generated expected output, or a
-reduced matrix.
-
-## Remaining obligations and blockers
-
-Preparation blockers:
-
-- native proof verifier is explicitly rejected and lacks independent reviewer
-  acceptance;
-- proof positive/adversarial evidence is incomplete;
-- full calibration has one structural failure and two skips;
-- the ledger is disarmed with no current accepted receipts;
-- the frozen suite/store is external read-only input, not active branch gate;
-- source-bound receipts must be regenerated after this documentation commit;
-- full native, behavioral, PTY, performance, API, static, and documentation
-  gates remain to be executed and reviewed.
-
-Remaining product obligations are not preparation acceptance: complete the 73
-task DAG, migrate all consumers, remove duplicate renderers and compatibility
-painters, preserve component ownership and APIs, prove application and PTY
-behavior, satisfy performance budgets, and compare all `7,550` keys and
-`30,200` artifacts exactly.
-
-Verdict: **NO-GO**. The future implementation goal remains **NOT AUTHORIZED
-FOR EXECUTION**. No campaign task was dispatched, no ledger arm occurred, no
-protected baseline input changed, and no push or merge was performed.
+Then obtain accepted independent verifier and reviewer evidence for the native
+positive/adversarial proof matrix, resolve the calibration failure and skips
+without changing the oracle, and run the complete 7,550-key/30,200-artifact
+PTY visual gate. Any stale, missing, rejected, unqualified, unknown, or
+source-mismatched result invalidates the preparation set and keeps the verdict
+**NO-GO**.

@@ -1,182 +1,260 @@
 # Next implementation goal — NOT AUTHORIZED FOR EXECUTION
 
-This file is the complete future `/goal` prompt. It is a plan only. The
-current readiness verdict is **NO-GO**. Do not arm `.campaign/ledger.json`,
-dispatch a task, create task worktrees, or start product refactoring until a
-fresh readiness check returns **GO**.
+This is the complete future `/goal` prompt. It is preparation documentation,
+not permission to run. Current readiness is **NO-GO**; ledger
+`.campaign/ledger.json` is `armed: false`; no task, worktree, receipt, push, or
+merge may be created from this document.
 
-## Current preparation binding
+## 1. Exact starting binding
 
-The source state reviewed by this preparation update is branch
-`refactor/holla-parity`, HEAD
-`f9801a89cbe0d154f38d184b007fca07d058f39b`, tree
-`550d22547254eb9eee2bd11a74d6e77505c5c913`. This bounded documentation
-correction changes the tree; rebind source-bound receipts to the final clean
-tree before any readiness decision.
+The source candidate for all current claims is branch `refactor/holla-parity`,
+commit `14aa8ed0469219ff8f6570be7824e5ade39240cc`, tree
+`f3ef0f6badd01161bc24cdfef5161db55ba5d579`, parent
+`96c6c475b5d22193b7539565fa5b4612a88ea007`. The current independent verifier
+run is:
 
-The immutable oracle is the peeled tag commit
-`4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`, snapshot tree
-`3f0261c32849e26feda24d87697de4a7ce6b8375`, with `7,550` keys and `30,200`
-ANSI/plain/PNG/HTML artifacts. Qualified taskfmt is source revision
-`afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, version `0.2.0`, executable
-SHA-256
+`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-14aa8ed-lagrange/VERDICT.md`
+
+Its verdict is **REJECTED**. Proof qualification subchecks pass, but this
+candidate is not accepted for preparation GO: dispatcher verify exits `1` with
+`RESULT FAIL`, preflight exits `1` at NO-GO, and calibration is unresolved.
+
+The verifier setting is inherited `gpt-5.6-luna/max`. Its verifier-owned proof
+receipt is schema `tc-proof-native-build/v1`, binary SHA-256
+`a3b7712ab7c3ea22940ffe915a2328d25767d35e5253e9df82776db0d3b70fcc`, bound to
+the source candidate commit/tree. Qualified taskfmt is source
+`/Users/donbeave/Projects/taskfmt/task-format`, revision
+`afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, version `0.2.0`, binary
+`/tmp/taskfmt-latest-install/bin/taskfmt`, SHA-256
 `f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de`.
-Proof repairs are in `8c9e050c`, `f4ce758e`, `4737da3c`, `7639e7ae`,
-`19f6d2eb`, and `12ac27ff`. Proof parent `12ac27ff` has tree
-`8d66c95408d7e9e404eaf9019857b33659906e84`; current HEAD `f9801a89` is
-docs-only on top of that proof payload. The current proof's positive
-native-launch check remains **UNVERIFIED/PENDING** pending a fresh verifier;
-no independent verifier has run or accepted it.
-Historical fresh verifier evidence at
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/verifier-4737da3c`
-is **REJECTED** for candidate `4737da3c`; no current independent reviewer
-acceptance exists for the `12ac27ff`/`f9801a89` proof chain.
-Calibration evidence at
-`/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/calibration-frozen-connections`
-has targeted `3/3` passing, but full `302` selected with `301` passed,
-`1` failed, and `2` skipped. The failure is
-`tablepro_connections_form_advanced_120x40_truecolor`, with `76/100`
-artifacts mismatching. The ledger remains `armed: false`.
 
-## Objective
+The protected oracle is tag ref object
+`1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5`, peeled commit
+`4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`, baseline tree
+`0b1f13431fdfd6060cf9f45a114afa5a99cc6c26`, snapshot tree
+`3f0261c32849e26feda24d87697de4a7ce6b8375`, unchanged inventory 7,550 keys
+and 30,200 artifacts: 7,550 each ANSI, plain text, PNG, and HTML. The ledger
+is `campaign-ledger/v1`, has four rows, and is `armed=false`.
 
-Prepare and then complete the `refactor/holla-parity` campaign without changing
-the frozen product oracle. Refactor internals and ownership; preserve all
-rendered, interactive, PTY, lifecycle, performance, and API behavior. Never
-modify `main`, the `visual-baseline` tag/branch/release/store, expected
-artifacts, or the frozen snapshots.
+Current calibration is 302 selected, 301 passed, 1 failed, and 2 skipped. The
+sole failure is `tablepro_connections_form_advanced_120x40_truecolor`, with
+24/100 matching and 76/100 mismatching artifacts. Independent history
+establishes a mixed frozen-oracle state. No oracle, snapshot, expected
+artifact, threshold, timing, or fixture may be changed to hide it.
 
-## Mandatory startup gate
+## 2. Mandatory startup rejection gate
 
-1. Read `AGENTS.md`, this goal, the current readiness report, and all current
-   task contracts. Run the repository preflight from a clean macOS worktree.
-2. Stop immediately unless the report is **GO**, the ledger is explicitly
-   armed by the authorized workflow, the branch and parent are correct, and
-   all dependency receipts are current. **NO-GO never authorizes execution.**
-3. Rebind every receipt to the live clean HEAD and tree. Reject stale, missing,
-   self-attested, candidate-generated, or unknown evidence.
-4. Verify the peeled oracle tag is exactly
-   `4a79c0a2d40fca46fc406b77157ce3b3f12ec16b`.
-5. Verify standalone taskfmt is exactly version `0.2.0`, revision
-   `afd3b575dbcc7044620bec4b9493a74eca3e5ef2`, executable SHA-256
-   `f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de`.
-6. Use native macOS only. No Docker, Podman, containers, mounts, firmlinks,
-   old `/task`, `/work`, `/proof`, or `/run` namespaces. Rust tests use
-   `cargo nextest`; never use `cargo test`.
+At startup, before creating a task worktree or spawning an implementation
+subagent:
 
-## Preparation blockers to resolve first
+1. Read `AGENTS.md`, this goal, the current readiness report, all current
+   contracts, and the generated task graph.
+2. Verify the live branch, expected parent, candidate source identity, clean
+   worktree, protected tag peel/tree, snapshot inventory, taskfmt identity, and
+   ledger schema/armed state.
+3. Reject immediately if the readiness report is **NO-GO**. This includes the
+   current run. **NO-GO never authorizes execution.**
+4. Reject immediately if evidence is stale, missing, self-attested,
+   candidate-generated, unqualified, rejected, blocked, unknown, or bound to
+   any other commit, tree, parent, branch, task, run, oracle, taskfmt binary,
+   proof binary, or configuration.
+5. Reject immediately while the ledger is `armed=false`, has no current
+   accepted dependency rows, or lacks the authorized workflow’s explicit arm.
+6. Reject immediately unless calibration is complete and clean: all 302
+   selected cases pass, zero fail, zero skip, and the full frozen inventory
+   still has exactly 7,550 keys and 30,200 artifacts.
+7. Reject immediately unless the independent verifier and reviewer both return
+   accepted evidence for the exact source tree. The current verifier verdict
+   is **REJECTED**, so startup must stop.
+8. Reject any tag, snapshot, grouped-store, expected-artifact, baseline,
+   ledger, task-contract, or generated-file mutation before execution.
+9. Reject Docker, Podman, containers, images, mounts, firmlinks, and the old
+   `/task`, `/work`, `/proof`, or `/run` namespaces. Rust tests use
+   `cargo nextest`; never `cargo test`.
 
-Repair and independently qualify the rejected native proof path before any
-production task:
+A future GO must be a newly sealed readiness result. It cannot be inferred
+from passing subchecks in a rejected run.
 
-- materialize one immutable context and exact context index per check;
-- bind task, check, run, source HEAD/tree, oracle tag/manifest, report, and
-  taskfmt identities end-to-end;
-- make the compare context/result ABI identical across preparation, launcher,
-  comparator, and task checks;
-- supervise the observer, bind its socket/FD and nonce/request sequence, and
-  reject alternate or stale transports;
-- make result paths verifier-owned capabilities with symlink/hardlink,
-  outside-root, stale, missing, duplicate, and side-effect rejection;
-- wire native preparation and post-run validation into the dispatcher so
-  taskfmt cannot bypass proof; and
-- record independently reproducible positive and negative evidence, including
-  rejection of every malformed, stale, mismatched, or mutated input.
+## 3. Evidence invalidation and sealing
 
-The proof-fix chain through `12ac27ff` does not close these blockers: current
-verifier evidence records a failed format check and a positive bundled-worker result
-rejected for `CONTEXT_INDEX` with no observer event. The full calibration also
-remains failed. Do not reinterpret either result as product work or as a
-reason to weaken the gate.
+Apply these rules to every proof, task, calibration, and review result:
 
-## Exact commands still required before authorization
+- Any change to source, tracked documentation, task manifests, proof code,
+  scripts, fixtures, oracle identity, nextest/taskfmt configuration, tool
+  binary, branch parent, ledger, or protected-ref identity invalidates all
+  source-bound receipts. Rerun from a clean tree; do not edit a receipt.
+- A receipt must bind task/check/run IDs, source commit/tree/parent, scope base,
+  oracle tag/manifest/snapshot tree, taskfmt revision/version/SHA, proof binary
+  path/SHA, context index, observer capability, result paths, and exact raw
+  stdout/stderr/exit tuples.
+- The verifier owns an external `RUN_DIR` and target directory. Contexts,
+  context index, preparation results, observer capability, comparator reports,
+  and taskfmt logs are immutable for one run. Candidate outputs are untrusted
+  until the reviewer accepts them.
+- Every check gets exactly one context and expected result capability. Missing,
+  extra, duplicate, stale, substituted, cross-run, symlinked, hardlinked,
+  outside-root, mutated, empty, replayed, or unknown evidence fails closed.
+- The observer must be verifier-owned, nonce/request bound, supervised, and
+  validated by the native launcher. A worker-written result without the
+  observer event is rejection evidence, not a pass.
+- `REJECTED` or `BLOCKED` verifier/reviewer evidence never becomes a receipt.
+  A passing taskfmt lint, a passing subcheck, a clean worktree, or a copied
+  candidate output never substitutes for accepted task evidence.
+- Calibration is sealed only after the full selected set passes with no skips,
+  the complete 7,550-key/30,200-artifact inventory is present, and the exact
+  frozen oracle is unchanged. Unknown or mixed results remain NO-GO.
+- Never bless, regenerate, rewrite, filter, delete, threshold, or replace a
+  frozen expected artifact. Candidate output stays outside the oracle.
 
-Run from the final clean campaign worktree, with external verifier-owned
-`RUN_DIR` and target paths:
+## 4. Native roles and execution loop
 
-```sh
-scripts/campaign-preflight.sh
-python3 docs/refactoring-plan/evidence/validate-plan.py --summary
-"$TASKFMT" lint "$TASK_DIR"
-"$TASKFMT" verify --root "$WORKTREE" --task-dir "$TASK_DIR" \
-  --base "$SCOPE_BASE" --progress "" --log-dir "$RUN_DIR/taskfmt-logs"
-scripts/campaign-build-proof.sh
-cargo nextest run --locked --workspace --no-fail-fast
+All roles use isolated host-local macOS environments and
+`gpt-5.6-luna/max`:
+
+- **Coordinator:** validates readiness, immutable refs, dependency receipts,
+  scope, DAG scheduling, and compare-and-swap serial integration. It does not
+  implement task-owned product changes or replace subagent evidence.
+- **Implementer:** reads one task contract, edits only declared task paths in
+  one isolated worktree, runs focused checks, and commits with `git commit -s`
+  plus `Co-authored-by: Codex <codex@openai.com>`.
+- **Verifier:** freezes the committed candidate read-only, owns a separate
+  external run/target directory, builds native `tc-proof`, materializes exact
+  contexts/index/observer/result capabilities, runs only standalone taskfmt
+  `lint` and `verify`, runs native behavior and affected-oracle checks, and
+  records raw evidence.
+- **Independent reviewer:** independently checks scope, ancestry, tool/source
+  identities, proof provenance, behavior, visual results, architecture
+  ownership, forbidden mutations, and all raw outcomes. It returns
+  `VERIFIED`, `REJECTED`, or `BLOCKED`.
+
+Required sequence:
+
+```text
+read contracts → clean/source/oracle/tool preflight
+→ implement one scoped task in isolated worktree
+→ signed commit with required trailer
+→ verifier-owned native proof preparation
+→ taskfmt lint and verify only
+→ focused nextest/static/behavior checks
+→ affected frozen replay
+→ independent review
+→ compare-and-swap serial integration
 ```
 
-The verifier must also run the complete native proof positive/adversarial
-matrix, then the tag-derived calibration and final visual gate. A failed,
-unknown, stale, or unreviewed result stops authorization. Do not run a
-taskfmt lifecycle command, `cargo test`, a baseline acceptance command, or a
-reduced final matrix.
+No taskfmt lifecycle, host, runtime, dispatch, monitor, or promotion command
+may orchestrate this sequence.
 
-Import the exact frozen suite, checked-in configuration, and grouped store from
-the read-only tag. If the installed nextest rejects the tag's binary override,
-use only a separately hashed external compatibility config; never edit the
-tag. Re-run all 7,550 keys and 30,200 artifacts: ANSI, plain text, PNG, and
-HTML across five sizes and five color modes, including PTY setup, cleanup,
-resize, input, and settled-frame transitions. The latest targeted Holla case
-passed; the remaining calibration failure is structural TablePro drift. The
-historical split is explicit: `3570a2ed23444dddf1eddcdcc49b654b169038fe`
-supplies responsive form ownership, while
-`89218626011f2f82c4e87c4dfd5868a4c5f3e284` supplies the later responsive
-rendering source; frozen expected output requires list+form for `form_new` and
-full-pane form ownership for `form_advanced`. Resolve that source question
-without changing the oracle. Never bless, rewrite, delete, filter, or weaken
-an expected artifact.
+## 5. Exact DAG waves
 
-## Roles and execution loop
+The generated graph has 73 tasks, 506 checks, 276 dependency edges, and depth
+35. These are exact dependency layers; same-layer parallelism is allowed only
+for independent tasks with disjoint writable paths. Integration remains serial.
 
-Use isolated host-local subagents, all `gpt-5.6-luna` with `max` reasoning:
+~~~text
+L01  001
+L02  070
+L03  071
+L04  072
+L05  002 003 004 005 007
+L06  006
+L07  008
+L08  073
+L09  009 011 012
+L10  010 013 029
+L11  014
+L12  015 016 017 021
+L13  018 022 026
+L14  019 020
+L15  023
+L16  024
+L17  025 027
+L18  028
+L19  030
+L20  031
+L21  032 040 051 058
+L22  033 041 052 059
+L23  034 042 053 060
+L24  035 043 054 061
+L25  036 044 055 062
+L26  037 045 056 063
+L27  038 046 057 064
+L28  039 047
+L29  048
+L30  049
+L31  050
+L32  065 067
+L33  066
+L34  068
+L35  069
+~~~
 
-- coordinator: readiness, immutable refs, DAG, compare-and-swap integration,
-  and final branch gates only;
-- implementer: scoped code and focused tests in one isolated worktree;
-- verifier: frozen committed candidate, separate external run directory, native
-  proof materialization, latest taskfmt `lint`/`verify`, behavior, and affected
-  oracle replay;
-- independent reviewer: scope, ancestry, provenance, ownership, forbidden
-  mutations, behavior, visual evidence, and architecture.
+Operational grouping: proof foundation `001→070→071→072`; oracle/application
+capture `002–008` with generated closure `073`; shared component layers
+`009–031`; Showcase `032–039`; Holla `040–050`; Jackin `051–057`; TablePro
+`058–064`; closure `065–069`. Group labels never override the exact graph.
 
-Do not share writable worktrees, build directories, run directories, stores, or
-snapshots. For every task: inspect → implement → commit with DCO signoff and
-`Co-authored-by: Codex <codex@openai.com>` → verify → review → integrate
-serially. Use only taskfmt `lint` and `verify`; taskfmt never orchestrates,
-creates workspaces, promotes refs, or replaces native proof.
+## 6. Complete product acceptance
 
-The current catalog has 73 numbered packages, 506 checks, 276 dependency edges,
-and maximum depth 35. Respect the generated DAG: proof foundation
-001→070→071→072, oracle/identity 002–008→073, shared layers 009–031,
-Showcase 032–039, Holla 040–050, Jackin 051–057, TablePro 058–064, then
-closure 065–069. Parallel work is allowed only for independent DAG nodes in
-disjoint worktrees; integration is always serial and compare-and-swap.
+Do not call a task, wave, or campaign complete until the exact integrated tree
+has accepted verifier and reviewer evidence. Final acceptance requires all of
+the following:
 
-## Acceptance gates
+- all 73 task contracts lint and verify through the qualified standalone
+  taskfmt, with native proof contexts/results and accepted receipts;
+- full locked workspace `cargo nextest`, formatting/build/doc/API/static
+  checks, documentation/link checks, native macOS platform checks, and clean
+  generated-artifact scans;
+- real component and application paths preserve ownership, public APIs,
+  canonical cells/graphemes/continuations/styles, dimensions, cursor,
+  focus/hover/hit testing, layers, scrolling, selection, layout, editing,
+  cancellation, stale-result handling, and lifecycle semantics;
+- all Showcase, Holla, Jackin, and TablePro routes, menus, dialogs, editors,
+  drawers, overlays, reconnects, resize paths, and completion/cancellation
+  flows pass through actual production code;
+- PTY setup/cleanup, alternate-screen behavior, input delivery, Ctrl/Alt
+  paths, resize, color/NO_COLOR modes, cursor/focus state, and settled-frame
+  transitions are proven;
+- strict existing application/component performance budgets pass with native
+  measurements and no unexplained regression;
+- duplicate-painter, compatibility-layer, ownership, and hidden-renderer
+  scans pass. Hardcoded oracle frames and app-local repaint overlays fail even
+  when pixels match;
+- the exact protected suite compares all 7,550 matrix keys and all 30,200
+  ANSI/plain/PNG/HTML artifacts 1:1 across five sizes, five color modes,
+  every route/state/interaction checkpoint, and the complete PTY settled
+  transition set;
+- the final tree has correct ancestry, clean worktree, exact dependency and
+  proof receipts, no unexpected generated/performance changes, unchanged
+  protected refs/stores, and independent final verifier/reviewer approval.
 
-Do not call any task, wave, or campaign complete until its verifier and
-reviewer return accepted evidence bound to the exact integrated tree. Final
-acceptance requires all taskfmt gates, locked full-workspace `cargo nextest`,
-static/API/documentation checks, real component/application behavior, PTY and
-lifecycle transitions, strict performance baselines, ownership and
-duplicate-painter scans, and clean ancestry/provenance receipts.
+One missing artifact, skipped case, unknown comparison, semantic mismatch,
+behavior mismatch, provenance mismatch, performance failure, or unexplained
+visual drift is a failed gate.
 
-The final visual gate must compare every frozen key and all 30,200 artifacts
-1:1. No unexplained semantic, behavioral, visual, performance, or provenance
-mismatch is acceptable. Compatibility painters, hidden duplicate renderers,
-hardcoded oracle frames, and app-local repaint overlays are failures even if a
-snapshot matches.
+## 7. Baseline and platform protection
 
-## Stop conditions
+The `visual-baseline` tag/ref/release/branch, snapshot tree, grouped store,
+fixtures, and expected artifacts are immutable policy inputs. Read them through
+the exact peeled tag identity recorded above. Never move, retarget, recreate,
+force-push, write, bless, or replace them. Never change fixtures, timing,
+thresholds, inputs, or coverage to hide a mismatch. No Docker/Podman/container
+runtime, mount, firmlink, shared writable store, or old container namespace is
+permitted. GitHub CI/performance evidence is supplementary; it cannot replace
+native macOS proof.
 
-Stop, keep the ledger disarmed, and report **NO-GO** on any failed or unknown
-check; stale parent; dirty candidate; missing receipt; rejected reviewer;
-observer/result side effect; ABI or nonce mismatch; oracle/config/store drift;
-taskfmt identity change; protected-ref mutation; baseline mismatch; container
-use; taskfmt lifecycle invocation; or unsupported attempt to reduce coverage.
-Never manufacture a receipt, bless candidate output, weaken a comparator, or
-continue past a rejected gate.
+## 8. Final merge-readiness, without merge permission
 
-Only after every preparation blocker, task, dependency, independent review,
-behavioral gate, performance gate, and complete frozen visual comparison is
-accepted may the readiness report change to **GO** and the campaign become
-merge-ready.
+The coordinator may report a future branch **merge-ready** only after:
+
+1. readiness changes to GO from a newly sealed, exact-tree report;
+2. all preparation blockers and all 73 DAG tasks have accepted verifier and
+   reviewer evidence;
+3. full behavior, PTY/lifecycle, performance, API/static/docs/platform, and
+   7,550/30,200 visual gates pass;
+4. ancestry, compare-and-swap integration, protected refs, receipt provenance,
+   and clean-tree checks pass; and
+5. an independent final verifier/reviewer confirms the integrated tree.
+
+“Merge-ready” is a status claim, not merge permission. This goal never grants
+permission to merge, push, move refs, arm the ledger, or alter the baseline.
+An authorized outer workflow or human must separately decide any merge.
