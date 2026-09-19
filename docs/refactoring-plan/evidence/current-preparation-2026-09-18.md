@@ -1,3 +1,10 @@
+# SUPERSEDED / HISTORICAL
+
+> This file is retained unchanged as historical provenance only. Its old
+> commit, tree, and evidence claims cannot authorize current execution, task
+> acceptance, ledger arming, or a GO decision. Use the current preparation
+> index: [`current-preparation-2026-09-19.md`](current-preparation-2026-09-19.md).
+
 # Current preparation evidence — 2026-09-18
 
 This index records bounded preparation observations. It is linked from the
