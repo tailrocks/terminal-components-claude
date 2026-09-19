@@ -24,6 +24,16 @@ files, handoffs, continuation prompts, historical reports, or comments.
 - Never move, delete, retarget, recreate, or force-push the `visual-baseline`
   tag or its GitHub release. Never write to the baseline branch, tag, release,
   snapshots, oracle store, or expected artifacts.
+- Always use the latest versions of toolchains, crates, actions, and CLIs
+  **except** frozen oracle pins (`visual-baseline` tag/store, tuisnap rev
+  `2d43458…` for the visual suite, and other campaign-frozen hashes). Latest
+  means regenerate pins; never float `@latest` in YAML.
+- GitHub Actions workflows are generated only by `velnor-workflow`
+  (https://github.com/tailrocks/velnor). Never hand-edit `.github/workflows/**`.
+  Change `.github-gen/velnor-workflow.toml` (or the generator, after
+  multi-agent vision alignment) then regenerate. `.github/workflows/AGENTS.md`
+  is generated: regenerate; do not hand-edit.
+- Keep `cargo nextest`; never `cargo test`.
 - Prefer `rtk` for shell commands. Every commit uses `git commit -s` and
   includes `Co-authored-by: Codex <codex@openai.com>`.
 

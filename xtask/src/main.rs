@@ -6916,7 +6916,7 @@ fn msrv_and_edition_are_unchanged() -> Result<(), String> {
             .rust_version
             .as_ref()
             .map(|v| format!("{}.{}", v.major, v.minor));
-        if msrv.as_deref() != Some("1.88") {
+        if msrv.as_deref() != Some("1.98") {
             errors.push(format!("{}: rust-version {:?}", p.name, p.rust_version));
         }
     }
