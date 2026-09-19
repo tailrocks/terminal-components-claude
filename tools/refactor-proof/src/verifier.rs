@@ -213,10 +213,28 @@ struct PreparedMember {
     comparator_report_path: Option<PathBuf>,
 }
 
+/// Spawn-time process-group id. Captured immediately after `spawn` so later
+/// `wait` reaping cannot redirect group signals through a reused `Child::id()`.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct ProcessGroupId(u32);
+
+impl ProcessGroupId {
+    fn from_child(child: &Child) -> Result<Self> {
+        let pid = child.id();
+        if pid == 0 || pid == 1 {
+            return Err(VerifierError::new(
+                "child pid is not a valid process-group id",
+            ));
+        }
+        Ok(Self(pid))
+    }
+}
+
 struct ObserverSupervisor {
     request_write: Option<File>,
     response_read: Option<File>,
     provider: Arc<Mutex<Child>>,
+    provider_group: ProcessGroupId,
     thread: Option<thread::JoinHandle<Result<Vec<String>>>>,
 }
 
@@ -248,7 +266,7 @@ impl ObserverSupervisor {
 
     fn kill_provider_until(&self, deadline: Instant) -> Result<()> {
         let mut provider = lock_provider_until(&self.provider, deadline)?;
-        terminate_child_until(&mut provider, deadline).map(|_| ())
+        terminate_child_until(&mut provider, self.provider_group, deadline).map(|_| ())
     }
 
     fn wait(mut self, timeout: Duration) -> Result<Vec<String>> {
@@ -1503,19 +1521,43 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
             ));
         }
     };
+    let worker_group = match ProcessGroupId::from_child(&child) {
+        Ok(worker_group) => worker_group,
+        Err(error) => {
+            let _ = child.kill();
+            drop(handoff_read);
+            drop(handoff_write);
+            return Err(report_cleanup_error(
+                error,
+                abort_observer_supervisor(observer_supervisor),
+            ));
+        }
+    };
     observer_supervisor.close_worker_ends();
     drop(handoff_read);
     drop(handoff_write);
     let Some(stdout) = child.stdout.take() else {
         return Err(report_cleanup_error(
             VerifierError::new("stdout pipe unavailable"),
-            cleanup_failed_launch(&mut child, None, None, Some(observer_supervisor)),
+            cleanup_failed_launch(
+                &mut child,
+                worker_group,
+                None,
+                None,
+                Some(observer_supervisor),
+            ),
         ));
     };
     let Some(stderr) = child.stderr.take() else {
         return Err(report_cleanup_error(
             VerifierError::new("stderr pipe unavailable"),
-            cleanup_failed_launch(&mut child, None, None, Some(observer_supervisor)),
+            cleanup_failed_launch(
+                &mut child,
+                worker_group,
+                None,
+                None,
+                Some(observer_supervisor),
+            ),
         ));
     };
     let mut stdout_thread = Some(thread::spawn(|| read_bounded(stdout)));
@@ -1529,6 +1571,7 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
                     VerifierError::new("child timed out"),
                     cleanup_failed_launch(
                         &mut child,
+                        worker_group,
                         stdout_thread.take(),
                         stderr_thread.take(),
                         Some(observer_supervisor),
@@ -1541,6 +1584,7 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
                     error.into(),
                     cleanup_failed_launch(
                         &mut child,
+                        worker_group,
                         stdout_thread.take(),
                         stderr_thread.take(),
                         Some(observer_supervisor),
@@ -1549,6 +1593,18 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
             }
         }
     };
+    if let Err(error) = kill_process_group(worker_group) {
+        return Err(report_cleanup_error(
+            VerifierError::new(format!("process-group termination failed: {error}")),
+            cleanup_failed_launch(
+                &mut child,
+                worker_group,
+                stdout_thread.take(),
+                stderr_thread.take(),
+                Some(observer_supervisor),
+            ),
+        ));
+    }
     let stdout_result = stdout_thread.take().map(join_output).transpose();
     let stderr_result = stderr_thread.take().map(join_output).transpose();
     let observed_result = observer_supervisor.wait(Duration::from_secs(5));
@@ -1725,16 +1781,23 @@ fn start_observer_supervisor(
             VerifierError::new(format!("observer response provider launch failed: {error}"))
         })?
     };
+    let provider_group = match ProcessGroupId::from_child(&child) {
+        Ok(provider_group) => provider_group,
+        Err(error) => {
+            let _ = child.kill();
+            return Err(error);
+        }
+    };
     let Some(stdin) = child.stdin.take() else {
         return Err(report_cleanup_error(
             VerifierError::new("observer response provider stdin unavailable"),
-            terminate_child(&mut child, OBSERVER_CLEANUP_TIMEOUT).map(|_| ()),
+            terminate_child(&mut child, provider_group, OBSERVER_CLEANUP_TIMEOUT).map(|_| ()),
         ));
     };
     let Some(stdout) = child.stdout.take() else {
         return Err(report_cleanup_error(
             VerifierError::new("observer response provider stdout unavailable"),
-            terminate_child(&mut child, OBSERVER_CLEANUP_TIMEOUT).map(|_| ()),
+            terminate_child(&mut child, provider_group, OBSERVER_CLEANUP_TIMEOUT).map(|_| ()),
         ));
     };
     let mut provider = PipeObserverProvider {
@@ -1769,7 +1832,7 @@ fn start_observer_supervisor(
                 "observer supervisor provider cleanup",
             )?;
             let mut child = lock_provider_until(&provider_process_for_supervisor, deadline)?;
-            finish_observer_provider(&mut child, result.is_err())?
+            finish_observer_provider(&mut child, provider_group, result.is_err())?
         };
         if !status.success() {
             return Err(VerifierError::new(format!(
@@ -1783,6 +1846,7 @@ fn start_observer_supervisor(
         request_write: Some(request_write),
         response_read: Some(response_read),
         provider: provider_process,
+        provider_group,
         thread: Some(supervisor),
     })
 }
@@ -1865,24 +1929,30 @@ fn report_cleanup_error(error: VerifierError, cleanup: Result<()>) -> VerifierEr
     }
 }
 
-fn kill_process_group(child: &Child) -> io::Result<()> {
+fn kill_process_group(process_group: ProcessGroupId) -> io::Result<()> {
     #[cfg(unix)]
     {
-        let process_group = libc::pid_t::try_from(child.id()).map_err(|_| {
+        let process_group = libc::pid_t::try_from(process_group.0).map_err(|_| {
             io::Error::new(
                 io::ErrorKind::InvalidInput,
                 "child pid does not fit the native process-group type",
             )
         })?;
-        if process_group <= 0 {
+        let Some(negative) = process_group.checked_neg() else {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                "child pid is not a valid process-group id",
+                "process-group id cannot be negated",
+            ));
+        };
+        if negative == 0 || negative == -1 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "refusing to signal process-group 0 or every process",
             ));
         }
         // SAFETY: worker and provider launch hooks create private groups with
-        // the child pid as the group id before either process can run.
-        if unsafe { libc::kill(-process_group, libc::SIGKILL) } == -1 {
+        // the captured child pid as the group id before either process can run.
+        if unsafe { libc::kill(negative, libc::SIGKILL) } == -1 {
             let error = io::Error::last_os_error();
             if error.raw_os_error() != Some(libc::ESRCH) {
                 return Err(error);
@@ -1890,7 +1960,7 @@ fn kill_process_group(child: &Child) -> io::Result<()> {
         }
     }
     #[cfg(not(unix))]
-    let _ = child;
+    let _ = process_group;
     Ok(())
 }
 
@@ -1923,13 +1993,25 @@ fn wait_for_child_until(child: &mut Child, deadline: Instant, label: &str) -> Re
     }
 }
 
-fn terminate_child_until(child: &mut Child, deadline: Instant) -> Result<ExitStatus> {
-    if let Some(status) = child.try_wait()? {
-        return Ok(status);
+fn terminate_child_until(
+    child: &mut Child,
+    process_group: ProcessGroupId,
+    deadline: Instant,
+) -> Result<ExitStatus> {
+    let reaped = child.try_wait()?;
+    let mut group_error = kill_process_group(process_group).err();
+    let direct_error = if reaped.is_some() {
+        None
+    } else {
+        child.kill().err()
+    };
+    let status = match reaped {
+        Some(status) => status,
+        None => wait_for_child_until(child, deadline, "child")?,
+    };
+    if let Err(error) = kill_process_group(process_group) {
+        group_error = Some(error);
     }
-    let group_error = kill_process_group(child).err();
-    let direct_error = child.kill().err();
-    let status = wait_for_child_until(child, deadline, "child")?;
     if let Some(error) = group_error {
         return Err(VerifierError::new(format!(
             "process-group termination failed: {error}"
@@ -1943,20 +2025,25 @@ fn terminate_child_until(child: &mut Child, deadline: Instant) -> Result<ExitSta
     Ok(status)
 }
 
-fn terminate_child(child: &mut Child, timeout: Duration) -> Result<ExitStatus> {
+fn terminate_child(
+    child: &mut Child,
+    process_group: ProcessGroupId,
+    timeout: Duration,
+) -> Result<ExitStatus> {
     let deadline = cleanup_deadline(timeout, "child termination")?;
-    terminate_child_until(child, deadline)
+    terminate_child_until(child, process_group, deadline)
 }
 
 fn cleanup_failed_launch(
     child: &mut Child,
+    process_group: ProcessGroupId,
     stdout_thread: Option<thread::JoinHandle<Result<Vec<u8>>>>,
     stderr_thread: Option<thread::JoinHandle<Result<Vec<u8>>>>,
     observer_supervisor: Option<ObserverSupervisor>,
 ) -> Result<()> {
     let deadline = cleanup_deadline(OBSERVER_CLEANUP_TIMEOUT, "launch cleanup")?;
     let mut errors = Vec::new();
-    if let Err(error) = terminate_child_until(child, deadline) {
+    if let Err(error) = terminate_child_until(child, process_group, deadline) {
         errors.push(error);
     }
     if let Some(thread) = stdout_thread
@@ -1977,17 +2064,28 @@ fn cleanup_failed_launch(
     combine_cleanup_errors(errors)
 }
 
-fn finish_observer_provider(child: &mut Child, kill: bool) -> Result<ExitStatus> {
+fn finish_observer_provider(
+    child: &mut Child,
+    process_group: ProcessGroupId,
+    kill: bool,
+) -> Result<ExitStatus> {
     if kill {
-        return terminate_child(child, OBSERVER_CLEANUP_TIMEOUT);
+        return terminate_child(child, process_group, OBSERVER_CLEANUP_TIMEOUT);
     }
     let graceful_deadline = cleanup_deadline(
         OBSERVER_PROVIDER_GRACE_TIMEOUT,
         "observer response provider",
     )?;
     match wait_for_child_until(child, graceful_deadline, "observer response provider") {
-        Ok(status) => Ok(status),
-        Err(wait_error) => match terminate_child(child, OBSERVER_CLEANUP_TIMEOUT) {
+        Ok(status) => {
+            let deadline = cleanup_deadline(
+                OBSERVER_CLEANUP_TIMEOUT,
+                "observer response provider group reap",
+            )?;
+            terminate_child_until(child, process_group, deadline)?;
+            Ok(status)
+        }
+        Err(wait_error) => match terminate_child(child, process_group, OBSERVER_CLEANUP_TIMEOUT) {
             Ok(_) => Err(VerifierError::new(format!(
                 "observer response provider did not terminate gracefully: {wait_error}"
             ))),
@@ -4081,6 +4179,89 @@ mod tests {
         assert_eq!(request_write_flags & libc::FD_CLOEXEC, 0);
         assert_eq!(response_read_flags & libc::FD_CLOEXEC, 0);
         assert_ne!(response_write_flags & libc::FD_CLOEXEC, 0);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn kill_process_group_refuses_zero_and_broadcast() {
+        assert!(kill_process_group(ProcessGroupId(0)).is_err());
+        assert!(kill_process_group(ProcessGroupId(1)).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn terminate_child_kills_descendants_after_leader_exit() {
+        use std::io::{BufRead, BufReader};
+        use std::os::unix::process::CommandExt;
+
+        let mut command = Command::new("/bin/sh");
+        command
+            .arg("-c")
+            // Redirect the descendant away from the leader pipe so reading the
+            // pid cannot block on sleep, and so the descendant stays in the
+            // captured group after the leader execs /usr/bin/true.
+            .arg("/bin/sleep 30 </dev/null >/dev/null 2>&1 & printf '%s\\n' \"$!\"; exec /usr/bin/true")
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null());
+        // SAFETY: the pre-exec hook only creates a private process group for
+        // the test leader, using the async-signal-safe setpgid operation.
+        unsafe {
+            command.pre_exec(|| {
+                if libc::setpgid(0, 0) == -1 {
+                    return Err(io::Error::last_os_error());
+                }
+                Ok(())
+            });
+        }
+        let mut child = require_ok!(command.spawn(), "spawn process-group leader");
+        let process_group = require_ok!(ProcessGroupId::from_child(&child), "capture pgid");
+        struct ProcessGroupGuard(ProcessGroupId);
+        impl Drop for ProcessGroupGuard {
+            fn drop(&mut self) {
+                let _ = kill_process_group(self.0);
+            }
+        }
+        let _guard = ProcessGroupGuard(process_group);
+        let mut stdout = BufReader::new(require_some!(child.stdout.take(), "leader stdout"));
+        let mut listed = String::new();
+        require_ok!(stdout.read_line(&mut listed), "read descendant pid");
+        drop(stdout);
+        let status = require_ok!(child.wait(), "reap leader");
+        assert!(
+            status.success(),
+            "leader should exit after exec /usr/bin/true: {status:?}"
+        );
+        let descendant = require_ok!(listed.trim().parse::<libc::pid_t>(), "parse descendant pid");
+        assert!(
+            descendant > 1,
+            "descendant pid {descendant} is not killable"
+        );
+
+        // SAFETY: descendant is the sleep child started in the captured group.
+        let alive = unsafe { libc::kill(descendant, 0) };
+        assert_eq!(alive, 0, "descendant should outlive the reaped leader");
+        let deadline = require_ok!(
+            cleanup_deadline(OBSERVER_CLEANUP_TIMEOUT, "descendant group kill"),
+            "deadline"
+        );
+        require_ok!(
+            terminate_child_until(&mut child, process_group, deadline),
+            "kill captured group after leader reap"
+        );
+        let started = Instant::now();
+        loop {
+            // SAFETY: same descendant pid; ESRCH means the captured group kill landed.
+            let gone = unsafe { libc::kill(descendant, 0) };
+            if gone == -1 && io::Error::last_os_error().raw_os_error() == Some(libc::ESRCH) {
+                break;
+            }
+            assert!(
+                started.elapsed() < Duration::from_secs(1),
+                "descendant {descendant} still exists after captured group kill"
+            );
+            thread::sleep(CLEANUP_POLL_INTERVAL);
+        }
     }
 
     #[test]
