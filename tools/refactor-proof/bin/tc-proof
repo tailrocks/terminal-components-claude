@@ -2024,7 +2024,7 @@ def _load_or_reject(context_path: Path, default_operation: str) -> tuple[dict[st
     return context, context_hash, context.get("operation", default_operation)
 
 
-def _collect_observations(
+def _collect_qualification_observations(
     client: QualificationObserver,
     *,
     operation: str,
@@ -2107,7 +2107,7 @@ def run_qualification_oracle(context_path: Path, namespace: str | None) -> int:
         expected_members = validate_required_members(context)
         client = QualificationObserver.from_env()
         if qualification and qualification.get("family") == "native":
-            events = _collect_observations(
+            events = _collect_qualification_observations(
                 client,
                 operation=operation,
                 source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
@@ -2117,7 +2117,7 @@ def run_qualification_oracle(context_path: Path, namespace: str | None) -> int:
             digests = [client.digest(event) for event in events]
             validate_native_extension(events[0]["payload"], qualification, context["oracle_commit"])
             return finish("passed", None, {"observations": events}, digests, operation, reported)
-        events = _collect_observations(
+        events = _collect_qualification_observations(
             client,
             operation=operation,
             source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
@@ -2150,7 +2150,7 @@ def run_qualification_capture(context_path: Path, lane: str | None) -> int:
         validate_qualification_schema(context)
         expected_members = validate_required_members(context)
         client = QualificationObserver.from_env()
-        events = _collect_observations(
+        events = _collect_qualification_observations(
             client,
             operation=operation,
             source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
@@ -2182,7 +2182,7 @@ def run_qualification_close(context_path: Path) -> int:
         if os.environ.get("TC_PROOF_CONTEXT_INDEX"):
             index, _ = qualification_load_index()
             client = QualificationObserver.from_env()
-            events = _collect_observations(
+            events = _collect_qualification_observations(
                 client,
                 operation=operation,
                 source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
@@ -2196,7 +2196,7 @@ def run_qualification_close(context_path: Path) -> int:
             return finish("passed", None, {"observations": events}, digests, operation, reported)
         validate_close_evidence(context)
         client = QualificationObserver.from_env()
-        events = _collect_observations(
+        events = _collect_qualification_observations(
             client,
             operation=operation,
             source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],

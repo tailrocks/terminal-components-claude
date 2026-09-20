@@ -49,6 +49,18 @@ def main() -> None:
                 raise SystemExit(f"bundle section differs from source: {label(name)}")
     ast.parse(entrypoint.read_text(encoding="utf-8"), filename=str(entrypoint))
     compile(bundled, str(bundle), "exec")
+    tree = ast.parse(bundled, filename=str(bundle))
+    last_collect = None
+    for node in tree.body:
+        if isinstance(node, ast.FunctionDef) and node.name == "_collect_observations":
+            last_collect = node
+    if last_collect is None:
+        raise SystemExit("bundle is missing runner _collect_observations")
+    kwonly = {arg.arg for arg in last_collect.args.kwonlyargs}
+    if "observer_sequence" not in kwonly:
+        raise SystemExit(
+            "bundle overlays runner _collect_observations with incompatible helper"
+        )
     print("rebundle source/AST/compile check: PASS")
 
 
