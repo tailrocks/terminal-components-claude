@@ -22,12 +22,12 @@ The clean payload assessed immediately before this documentation repair is:
 
 ```text
 branch:   refactor/holla-parity
-commit:   baa147d0ae7b291f0fb14962a38324161e52926d
-tree:     95159979dd0d7c7617f68de16c7d46a69e7b17f7
-parent:   afe429c859995885c950333c3522cb2bbd8201b0
+commit:   3701841a34cf790dee5ad0c970fd76955e7916d9
+tree:     26074440bb5bfbad6fa66a28c5e46cc88e2e7d56
+parent:   e2f537d95b2462de6c4f2b517af3e5753e2a7f5e
 local main:   7b27732a8c3c131760ec3438f641cb3c11343a42
 remote main:  7b27732a8c3c131760ec3438f641cb3c11343a42
-remote campaign tip: baa147d0ae7b291f0fb14962a38324161e52926d
+remote campaign tip: 3701841a34cf790dee5ad0c970fd76955e7916d9
 merge-base with main: 7b27732a8c3c131760ec3438f641cb3c11343a42
 campaign commits ahead of origin/refactor/holla-parity: 0
 ```
@@ -55,7 +55,7 @@ commit preparation payload
 ## Intervening commits after the prior preparation payload
 
 The prior preparation payload was `1fb2b71c23edc6dd7b6d81b2e97b6bd5d4265717`.
-The commits through assessed `baa147d0` are unreviewed and are not
+The commits through assessed `3701841a` are unreviewed and are not
 preparation acceptance evidence:
 
 | commit | observed change | disposition |
@@ -71,6 +71,8 @@ preparation acceptance evidence:
 | `356d65e3` | Declared extra gates and generated-workflow inputs | unreviewed CI/toolchain change |
 | `afe429c8` | Retired Rust 1.88 claims and changed related contract text | unreviewed source payload |
 | `baa147d0` | Rebound bless-guard to generated workflow/mise paths | unreviewed CI/xtask change |
+| `e2f537d9` | Split visual size/color bundles into individual native test cases | unreviewed visual-test harness change |
+| `3701841a` | Rebound bless-guard and native gates to generated workflow paths | unreviewed CI/xtask/generated-workflow change |
 
 No listed commit authorizes dispatch or changes `NO-GO`/`armed: false`.
 
@@ -104,7 +106,7 @@ That run executed 302 cases and produced the complete count, but was not
 clean: 298 passed, 4 failed, 2 skipped, 1 leaky, exit 100. No output was
 blessed or normalized.
 
-At the assessed pre-documentation candidate `baa147d0`, `tests/visual_baseline/` and
+At the assessed pre-documentation candidate `3701841a`, `tests/visual_baseline/` and
 `.config/nextest.toml` exist. The candidate branch still has no `snapshots/`
 directory and no `parity/evidence.tsv`; those remain protected external oracle
 inputs, not candidate-generated expected output.
@@ -216,7 +218,7 @@ passed with SHA-256 `2e3b6e8d8f1f9a9740000b37cb83cec558485df985dadcfd0642052b968
 qualified actionlint 1.7.12 log
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/actionlint-docs-247e47d5/actionlint.log`
 passed with SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
-No listed evidence binds assessed `baa147d0`/`9515997`; no exact-source
+No listed evidence binds assessed `3701841a`/`2607444`; no exact-source
 verifier/reviewer receipt or preparation acceptance receipt exists.
 
 ## Readiness and navigation

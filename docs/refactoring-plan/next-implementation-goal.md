@@ -7,9 +7,9 @@ must pass the startup gate below before it can create implementation agents or
 arm dispatch.
 
 This handoff is generated from the assessed pre-documentation source payload
-`baa147d0ae7b291f0fb14962a38324161e52926d` / tree
-`95159979dd0d7c7617f68de16c7d46a69e7b17f7` / parent
-`afe429c859995885c950333c3522cb2bbd8201b0`. The subsequent documentation
+`3701841a34cf790dee5ad0c970fd76955e7916d9` / tree
+`26074440bb5bfbad6fa66a28c5e46cc88e2e7d56` / parent
+`e2f537d95b2462de6c4f2b517af3e5753e2a7f5e`. The subsequent documentation
 repair changes the source tree; this file cannot self-attest that future tree.
 The next run must bind its own clean commit/tree and invalidate every affected
 receipt, result, context, review, and calibration run after any relevant edit.
@@ -35,11 +35,11 @@ Before any implementation agent is spawned, the coordinator must independently:
 2. Re-read Git refs. Bind the actual branch, local/remote `main`, merge-base,
    scope base, clean worktree, final source commit/tree/parent, and dependency
    ancestry. The preparation payload before this generated prompt was
-   `baa147d0ae7b291f0fb14962a38324161e52926d` / tree
-   `95159979dd0d7c7617f68de16c7d46a69e7b17f7`, parent
-   `afe429c859995885c950333c3522cb2bbd8201b0`; local and remote `main` are
+   `3701841a34cf790dee5ad0c970fd76955e7916d9` / tree
+   `26074440bb5bfbad6fa66a28c5e46cc88e2e7d56`, parent
+   `e2f537d95b2462de6c4f2b517af3e5753e2a7f5e`; local and remote `main` are
    `7b27732a8c3c131760ec3438f641cb3c11343a42`, and the assessed remote
-   campaign tip equals `baa147d0`. The documentation repair commit and any
+   campaign tip equals `3701841a`. The documentation repair commit and any
    later edit invalidate that identity. Never trust this embedded value
    without fresh Git reads.
 3. Verify the protected oracle exactly:
