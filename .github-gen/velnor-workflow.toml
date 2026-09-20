@@ -76,6 +76,12 @@ tools = ["rust", "aqua:nextest-rs/nextest/cargo-nextest"]
 tasks = ["workspace-nextest"]
 timeout_minutes = 90
 
+# Cargo permits the junie-tui ⇄ junie-tui-testing *dev*-dependency cycle.
+# CI unit order must not: the library job must not wait on the testing crate.
+[[units]]
+id = "rust-junie-tui"
+depends_on = []
+
 [[declare]]
 primitive = "scheduled-checks"
 file = "ci-extra-gates.yml"

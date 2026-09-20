@@ -10390,6 +10390,65 @@ captures / classification: `(pending — filled when the change lands)`
         );
     }
 
+    /// Extra-gates runs `mise run rustdoc` with POSIX `sh`. An unquoted
+    /// `RUSTDOCFLAGS=-D warnings` assignment is parsed as `warnings` as a
+    /// command (`sh: 1: warnings: not found`).
+    #[test]
+    fn mise_rustdoc_exports_quoted_deny_warnings() {
+        let mise = fs::read_to_string(root().join("mise.toml")).expect("mise.toml");
+        let task = toml_table_body(&mise, "tasks.rustdoc");
+        assert!(
+            !task.contains("RUSTDOCFLAGS=-D warnings"),
+            "unquoted RUSTDOCFLAGS=-D warnings breaks POSIX sh; task:\n{task}"
+        );
+        assert!(
+            task.contains("export RUSTDOCFLAGS=\"-D warnings\""),
+            "mise rustdoc must export quoted RUSTDOCFLAGS; task:\n{task}"
+        );
+        assert!(
+            contains_words(task, &["cargo", "doc"])
+                && contains_words(
+                    task,
+                    &["--locked", "--workspace", "--all-features", "--no-deps"]
+                ),
+            "mise rustdoc must run cargo doc --locked --workspace --all-features --no-deps; task:\n{task}"
+        );
+    }
+
+    /// The library's `[dev-dependencies]` edge on the testing crate is legal
+    /// Cargo, but a mutual `depends_on` in generated `project.toml` is a CI
+    /// cycle (`velnor-workflow plan` refuses it).
+    #[test]
+    fn rust_library_and_testing_ci_units_are_not_cyclic() {
+        let project = fs::read_to_string(root().join(".github/ci/project.toml"))
+            .expect("generated .github/ci/project.toml");
+        let library = toml_array_table_with_id(&project, "unit", "rust-junie-tui");
+        let testing = toml_array_table_with_id(&project, "unit", "rust-junie-tui-testing");
+        let library_depends_on_testing =
+            unit_depends_on_contains(library, "rust-junie-tui-testing");
+        let testing_depends_on_library = unit_depends_on_contains(testing, "rust-junie-tui");
+        assert!(
+            !(library_depends_on_testing && testing_depends_on_library),
+            "rust-junie-tui and rust-junie-tui-testing must not mutually depend;\n library:\n{library}\n testing:\n{testing}"
+        );
+        assert!(
+            !library_depends_on_testing,
+            "library CI unit must not depend on the testing crate:\n{library}"
+        );
+        assert!(
+            testing_depends_on_library,
+            "testing crate CI unit must still depend on the library:\n{testing}"
+        );
+    }
+
+    fn unit_depends_on_contains(body: &str, id: &str) -> bool {
+        let needle = format!("\"{id}\"");
+        body.lines().any(|line| {
+            let trimmed = line.trim_start();
+            trimmed.starts_with("depends_on") && trimmed.contains(&needle)
+        })
+    }
+
     fn toml_array_table_with_id<'a>(text: &'a str, array: &str, id: &str) -> &'a str {
         let header = format!("[[{array}]]\n");
         let id_line = format!("id = \"{id}\"\n");

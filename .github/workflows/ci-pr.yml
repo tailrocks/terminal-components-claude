@@ -221,11 +221,6 @@ jobs:
         rust-toolchain
         rust-toolchain.toml
       mbx_freshness_files: |
-        crates/tui-testing/**/*.rs
-        crates/tui-testing/benches/**
-        crates/tui-testing/examples/**
-        crates/tui-testing/src/**
-        crates/tui-testing/tests/**
         crates/tui/**/*.rs
         crates/tui/README.md
         crates/tui/benches/**
@@ -243,7 +238,6 @@ jobs:
         rust-toolchain
       cargo_root: "crates/tui"
       cargo_net_offline: true
-      unit_dependencies: rust-junie-tui-testing
       unit_admission: github
   github-rust-junie-tui-testing:
     name: "Rust · junie-tui-testing"

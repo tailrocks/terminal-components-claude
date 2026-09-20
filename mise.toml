@@ -43,7 +43,10 @@ run = "cargo run --locked -p xtask -- doc-check"
 
 [tasks.rustdoc]
 description = "Compile rustdoc with warnings denied"
-run = "RUSTDOCFLAGS=-D warnings cargo doc --locked --workspace --all-features --no-deps"
+run = """
+export RUSTDOCFLAGS="-D warnings"
+cargo doc --locked --workspace --all-features --no-deps
+"""
 
 [tasks.lychee]
 description = "Check tracked Markdown links"
