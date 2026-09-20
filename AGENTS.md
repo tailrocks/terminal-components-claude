@@ -42,11 +42,18 @@ files, handoffs, continuation prompts, historical reports, or comments.
 The sole current readiness authority is
 [`docs/refactoring-plan/execution-readiness-report.md`](docs/refactoring-plan/execution-readiness-report.md).
 It is a preparation gate, not an execution prompt. Its current verdict is
-**NO-GO** until every listed blocker is resolved with current evidence.
-While it is **NO-GO**, do not arm `/goal` or dispatch production refactoring
-tasks. Non-authorizing preflight, catalog, taskfmt, or proof checks may gather
-evidence for resolving blockers, but they never authorize execution or make a
-task accepted.
+**GO** for qualification and DAG dispatch. That authorizes isolated
+subagent work on `TASK-071` then `TASK-072`, then the remaining valid DAG
+(`TASK-002`–`TASK-069`, `TASK-073`) after accepted prerequisite receipts.
+Do not dispatch retired `TASK-001`/`TASK-070`. Keep the ledger
+`armed=false`; do not invent receipts. Continue to protect the frozen
+baseline; never use Docker, Podman, containers, or `cargo test`. The
+full 7,550-key tag recapture is a census, not a dispatch timer.
+`form_advanced` Class A/B mismatches remain candidate/product
+obligations; snapshots remain the oracle; do not bless. Linux native
+evidence remains unavailable and unverifiable as a separate platform
+item. Final candidate vs frozen oracle still requires all 7,550 keys
+and 30,200 artifacts.
 
 The current campaign contracts are:
 
@@ -66,7 +73,8 @@ The current campaign contracts are:
   for the current taskfmt identity and command surface;
 - [`docs/refactoring-plan/task-graph.json`](docs/refactoring-plan/task-graph.json)
   is generated structural dependency data only. It contains no task status,
-  acceptance result, or execution authorization and cannot override a NO-GO.
+  acceptance result, or execution authorization and cannot override the
+  readiness verdict.
 - [`refactoring-tasks/visual-validation.md`](refactoring-tasks/visual-validation.md)
   for the visual comparison contract.
 
@@ -80,13 +88,15 @@ current contract or machine ledger explicitly binds it. A historical record
 cannot authorize execution or override current source, tests, task contracts,
 deterministic proof, or the frozen visual oracle.
 
-The current NO-GO facts are binding: the frozen suite/store is absent from the
-active branch gate; no trusted native per-check context/result/observer
-materializer or accepted verifier-subagent evidence exists; the ledger is
-disarmed; consumer migration and ownership cleanup are incomplete; and full
-behavioral, visual, and performance parity is unproven. GitHub CI/performance
-runs are supplementary and cannot substitute for the required native macOS
-verification.
+The current GO facts are binding for dispatch only: the native visual
+harness is trusted on the evidence in the readiness report (57/57 proof,
+250/250 audit, historically missing nocolor key 4/4, `store_integrity`,
+frozen argv[0]). The frozen suite/store remains an external protected
+oracle, not an in-branch snapshot tree. The ledger stays disarmed.
+Consumer migration and ownership cleanup remain incomplete. Full
+behavioral, visual, and performance parity is unproven until the final
+gate. GitHub CI/performance runs are supplementary and cannot substitute
+for the required native macOS verification.
 
 ## Frozen visual baseline: final product oracle
 

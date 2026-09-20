@@ -1,15 +1,16 @@
-# NOT AUTHORIZED FOR EXECUTION
+# Qualification and DAG dispatch authorized
 
-This is the generated next implementation `/goal`, not an authorization.
-Current preparation is **NO-GO**. The campaign ledger must remain
-`armed = false`; no production task may be dispatched. A separate future run
-must pass the startup gate below before it can create implementation agents or
-arm dispatch.
+This is the generated next implementation `/goal`. It does not arm the
+ledger. Current readiness is **GO** for qualification and DAG dispatch per
+[`execution-readiness-report.md`](execution-readiness-report.md). Dispatch
+`TASK-071` then `TASK-072`, then the remaining valid DAG. Do not dispatch
+retired `TASK-001`/`TASK-070`. Ledger stays `armed = false` until a later
+explicit arming step. Do not wait for full 7,550-key tag recapture exit 0.
 
 This handoff is generated from the assessed pre-documentation source payload
-`4abd4d7bac18d4d56b601b257e40de98422382a1` / tree
-`2dc5fdd763321174348a454e866b67eb82dc89ee2` / parent
-`b384179cafa5b5da052cf65d9570b713f29471d5`. The subsequent documentation
+`4118c4f550637f8cb764b9eabb6d31dc3dd649cd` / tree
+`2f939761d675cedda5a04ed0a54c41eac0ee4dd8` / parent
+`a22abb2f000c96cabeaac6ec395bcba32b6b137e`. The subsequent documentation
 repair changes the source tree; this file cannot self-attest that future tree.
 The next run must bind its own clean commit/tree and invalidate every affected
 receipt, result, context, review, and calibration run after any relevant edit.
@@ -35,11 +36,11 @@ Before any implementation agent is spawned, the coordinator must independently:
 2. Re-read Git refs. Bind the actual branch, local/remote `main`, merge-base,
    scope base, clean worktree, final source commit/tree/parent, and dependency
    ancestry. The preparation payload before this generated prompt was
-   `4abd4d7bac18d4d56b601b257e40de98422382a1` / tree
-   `2dc5fdd763321174348a454e866b67eb82dc89ee2`, parent
-   `b384179cafa5b5da052cf65d9570b713f29471d5`; local and remote `main` are
+   `4118c4f550637f8cb764b9eabb6d31dc3dd649cd` / tree
+   `2f939761d675cedda5a04ed0a54c41eac0ee4dd8`, parent
+   `a22abb2f000c96cabeaac6ec395bcba32b6b137e`; local and remote `main` are
    `7b27732a8c3c131760ec3438f641cb3c11343a42`, and the assessed remote
-   campaign tip equals `4abd4d7b`. The documentation rebinding commit and any
+   campaign tip equals `4118c4f5`. The documentation rebinding commit and any
    later edit invalidate that identity. Never trust this embedded value
    without fresh Git reads.
 3. Verify the protected oracle exactly:
@@ -74,39 +75,39 @@ Before any implementation agent is spawned, the coordinator must independently:
 5. Verify the graph exactly: 73 direct packages, 77 recursive contracts, 506
    direct/526 recursive checks, 276 edges, depth 35, 193 conflict pairs, 0
    serialization pairs, no cycles/dangling IDs. `TASK-001`/`TASK-070` remain
-   retired fail-closed; `TASK-071`/`TASK-072` require qualification; valid
-   implementation work is `TASK-002`–`TASK-069` and `TASK-073` unless the
-   current reviewed graph says otherwise.
-6. Require a fresh accepted native preparation receipt for the exact final
-   tree. Materialize contexts/results/logs/calibration outputs only in external
-   verifier-owned native run directories. Validate every source/tree/tool/oracle
-   binding, observer nonce/FD, result schema/hash, dependency receipt, and
-   read-only trust input. The worker cannot authorize its own success. Current
-   evidence is not such a receipt: historical taskfmt/proof runs are not bound
-   to the final tree, exact-tag calibration is failed, AP-01–AP-04 remain open,
-   AP-05 was repaired in `b384179c` but still needs exact-tree confirmation,
-   and the clean preflight exit 1 is bound to historical
-   `9346c104`/`00958932`.
-7. Require a fresh independent verifier and a separate independent reviewer to
-   return `VERIFIED` for the exact final tree. Predetermined report paths:
+   retired fail-closed. `TASK-071`/`TASK-072` are the first dispatchable
+   qualification tasks. Valid implementation work is `TASK-002`–`TASK-069`
+   and `TASK-073` after accepted 071/072 receipts unless the current
+   reviewed graph says otherwise.
+6. Materialize contexts/results/logs/census outputs only in external
+   verifier-owned native run directories. Validate every
+   source/tree/tool/oracle binding, observer nonce/FD, result schema/hash,
+   dependency receipt, and read-only trust input. The worker cannot
+   authorize its own success. Do not invent ledger receipts. Per-task
+   verifier/reviewer evidence remains mandatory; a campaign-wide final-tree
+   seal is not a startup prerequisite.
+7. Independent verifier and reviewer `VERIFIED` evidence is required for
+   each dispatched task and again for the exact final tree. Predetermined
+   final-seal paths remain:
 
    ```text
    /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md
    /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md
    ```
 
-8. Require the complete known-good exact-tag calibration to pass before
-   authorizing product dispatch. The prior control failed all 302 tests and
-   showed 7,549 observed artifacts per type plus a missing key and HTML
-   executable-path bytes. Do not normalize, bless, mask, skip, or replace
-   oracle artifacts. A failure keeps the gate NO-GO.
-9. Require native macOS evidence and authorized native Linux evidence. An
-   unavailable platform is a failed readiness condition, not a pass.
-10. Only after all conditions pass may a separately documented authorization
-    step arm dispatch. This prompt itself never arms the ledger.
+8. Continue the full 7,550-key tag recapture as a **census**, not a
+   dispatch timer. Do not wait for tag exit 0. `form_advanced` Class A/B
+   are candidate/product obligations; snapshots remain the oracle. Do not
+   normalize, bless, mask, skip, or replace oracle artifacts. Halt only on
+   an unexplained Class C mismatch.
+9. Native macOS evidence is required. Linux remains unavailable /
+   unverifiable as a separate platform item; it does not hold this GO.
+10. This prompt never arms the ledger. Keep `armed = false` until a later
+    explicit arming step. Qualification and DAG dispatch are already
+    authorized by the readiness report.
 
-If any gate fails, exit nonzero and do not spawn implementers. This prompt was
-generated while the report is NO-GO and therefore rejects execution now.
+If oracle, taskfmt, graph, or Git identity checks fail, exit nonzero and
+do not spawn implementers. Do not stop on the circular tag-exit-0 demand.
 
 ## Execution plan after authorization
 
