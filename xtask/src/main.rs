@@ -8901,8 +8901,8 @@ fn resolve_rev(rev: &str, source: &str) -> Result<String, String> {
     Err(format!(
         "bless-guard base revision `{rev}` (from {source}) does not resolve. Falling back to HEAD \
          here would compare the tree with itself and pass vacuously, which is the failure this \
-         gate exists to prevent, so the guard stops instead. The mise bless-guard task fetches \
-         history with `git fetch --unshallow || git fetch --all`; locally set BLESS_GUARD_BASE \
+         gate exists to prevent, so the guard stops instead. The mise bless-guard task unshallows \
+         only when `git rev-parse --is-shallow-repository` is true; locally set BLESS_GUARD_BASE \
          to a revision that exists."
     ))
 }
@@ -10296,51 +10296,87 @@ captures / classification: `(pending — filled when the change lands)`
     }
 
     /// §49.6: CI runs bless-guard on **push** as well as pull requests. On the
-    /// push leg there is no `GITHUB_BASE_REF`. The generated extra-gates job
-    /// must set `BLESS_GUARD_BASE` (PR base SHA, else `github.event.before`)
-    /// and invoke `mise run bless-guard`. `cargo run -p xtask -- bless-guard`
-    /// and history fetch live in the mise task, not in workflow YAML.
+    /// push leg there is no `GITHUB_BASE_REF`. Cargo gates run on rust-xtask
+    /// (the job that has rustc). extra-gates is lychee-only. Collapsed rust
+    /// kind env cannot set `BLESS_GUARD_BASE`; the POSIX mise task computes
+    /// it from `GITHUB_BASE_REF` / `GITHUB_SHA` and unshallows only a shallow
+    /// clone. `cargo run -p xtask -- bless-guard` lives in the mise task.
     #[test]
     fn the_ci_push_leg_gives_the_bless_guard_a_base() {
         let root = root();
         assert!(
             !root.join(".github/workflows/ci.yml").is_file(),
-            "retired .github/workflows/ci.yml must stay gone; bless-guard CI is generated extra-gates"
+            "retired .github/workflows/ci.yml must stay gone"
         );
 
         let extra = fs::read_to_string(root.join(".github/workflows/ci-extra-gates.yml"))
             .expect("generated .github/workflows/ci-extra-gates.yml");
         assert!(
             extra.contains("\n  push:\n"),
-            "the extra-gates workflow no longer has a push leg; this check is about that leg"
+            "extra-gates keeps a push leg for lychee"
+        );
+        assert!(
+            extra.contains("run: mise run lychee"),
+            "extra-gates must keep lychee; workflow:\n{extra}"
+        );
+        for cargo_task in [
+            "boundary",
+            "bless-guard",
+            "doc-check",
+            "rustdoc",
+            "perf",
+            "workspace-nextest",
+        ] {
+            let needle = format!("run: mise run {cargo_task}");
+            assert!(
+                !extra.contains(&needle),
+                "extra-gates has no rustc; cargo task `{cargo_task}` must not run there:\n{extra}"
+            );
+        }
+        assert!(
+            !contains_words(&extra, &["-p", "xtask", "--", "bless-guard"]),
+            "workflow YAML must not invoke xtask directly. extra-gates:\n{extra}"
         );
 
-        let job = yaml_job_body(&extra, "bless-guard");
+        let project = fs::read_to_string(root.join(".github/ci/project.toml"))
+            .expect("generated .github/ci/project.toml");
+        let unit = toml_array_table_with_id(&project, "unit", "rust-xtask");
+        for task in [
+            "boundary",
+            "bless-guard",
+            "doc-check",
+            "rustdoc",
+            "perf",
+            "workspace-nextest",
+        ] {
+            let command = format!("mise run {task}");
+            assert!(
+                unit.contains(&command),
+                "rust-xtask must run `{command}` so cargo gates inherit rustc; unit:\n{unit}"
+            );
+        }
         assert!(
-            job.lines()
-                .any(|line| line.trim() == "run: mise run bless-guard"),
-            "bless-guard job must run `mise run bless-guard`; job:\n{job}"
-        );
-        assert!(
-            !contains_words(job, &["-p", "xtask", "--", "bless-guard"]),
-            "workflow YAML must not invoke xtask directly; cargo run lives in the mise task. job:\n{job}"
-        );
-        assert!(
-            job.contains("BLESS_GUARD_BASE:"),
-            "the bless-guard job must set BLESS_GUARD_BASE; without it the push leg diffs \
-             the tree against itself. Job:\n{job}"
-        );
-        assert!(
-            job.contains("github.event.before"),
-            "BLESS_GUARD_BASE on the push leg must use github.event.before — the \
-             commit the push moved the branch off. Job:\n{job}"
+            !unit.contains("mise run lychee"),
+            "lychee needs no cargo; extra-gates owns it. rust-xtask:\n{unit}"
         );
 
         let mise = fs::read_to_string(root.join("mise.toml")).expect("mise.toml");
         let task = toml_table_body(&mise, "tasks.bless-guard");
         assert!(
-            task.contains("git fetch --unshallow || git fetch --all"),
-            "mise bless-guard must fetch history; task:\n{task}"
+            !task.contains("pipefail"),
+            "mise bless-guard must not set pipefail (dash rejects it); task:\n{task}"
+        );
+        assert!(
+            task.contains("git rev-parse --is-shallow-repository"),
+            "mise bless-guard unshallows only a shallow clone; task:\n{task}"
+        );
+        assert!(
+            task.contains("git fetch --unshallow"),
+            "mise bless-guard must fetch history when shallow; task:\n{task}"
+        );
+        assert!(
+            task.contains("GITHUB_BASE_REF") && task.contains("GITHUB_SHA"),
+            "mise bless-guard must compute BLESS_GUARD_BASE from GITHUB_BASE_REF / GITHUB_SHA; task:\n{task}"
         );
         assert!(
             contains_words(task, &["cargo", "run"])
@@ -10349,26 +10385,24 @@ captures / classification: `(pending — filled when the change lands)`
         );
     }
 
-    fn yaml_job_body<'a>(yaml: &'a str, job: &str) -> &'a str {
-        let header = format!("\n  {job}:\n");
-        let start = yaml
-            .find(&header)
-            .unwrap_or_else(|| panic!("generated workflow missing job `{job}`"));
-        let rest = &yaml[start + header.len()..];
-        let mut end = rest.len();
-        let mut offset = 0;
-        for line in rest.lines() {
-            if offset > 0
-                && line.starts_with("  ")
-                && !line.starts_with("    ")
-                && line.ends_with(':')
-            {
-                end = offset;
-                break;
+    fn toml_array_table_with_id<'a>(text: &'a str, array: &str, id: &str) -> &'a str {
+        let header = format!("[[{array}]]\n");
+        let id_line = format!("id = \"{id}\"\n");
+        let mut search = text;
+        loop {
+            let Some(start) = search.find(&header) else {
+                panic!("missing [[{array}]] for {id}");
+            };
+            let rest = &search[start + header.len()..];
+            let body = match rest.find(&format!("\n{header}")) {
+                Some(i) => &rest[..i],
+                None => rest,
+            };
+            if body.starts_with(&id_line) || body.contains(&format!("\n{id_line}")) {
+                return body;
             }
-            offset += line.len() + 1;
+            search = rest;
         }
-        &rest[..end]
     }
 
     fn toml_table_body<'a>(text: &'a str, table: &str) -> &'a str {

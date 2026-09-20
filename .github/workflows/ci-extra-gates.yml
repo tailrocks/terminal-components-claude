@@ -16,68 +16,6 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  boundary:
-    name: Boundary
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Set up Mise
-        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
-        with:
-          install: false
-      - name: Run boundary
-        run: mise run boundary
-  bless-guard:
-    name: "Bless guard"
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    env:
-      BLESS_GUARD_BASE: "${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}"
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Set up Mise
-        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
-        with:
-          install: false
-      - name: Run bless-guard
-        run: mise run bless-guard
-  doc-check:
-    name: "Doc check"
-    runs-on: ubuntu-24.04
-    timeout-minutes: 45
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Set up Mise
-        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
-        with:
-          install: false
-      - name: Run doc-check
-        run: mise run doc-check
-  rustdoc:
-    name: Rustdoc
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Set up Mise
-        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
-        with:
-          install: false
-      - name: Run rustdoc
-        run: mise run rustdoc
   lychee:
     name: "Markdown links"
     runs-on: ubuntu-24.04
@@ -99,24 +37,3 @@ jobs:
           install: false
       - name: Run lychee
         run: mise run lychee
-  perf:
-    name: "Library perf"
-    runs-on: ubuntu-24.04
-    timeout-minutes: 90
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Set up Mise tools
-        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
-        with:
-          install_args: "aqua:nextest-rs/nextest/cargo-nextest"
-          cache: true
-          cache_save: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') }}
-      - name: Set up Mise
-        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
-        with:
-          install: false
-      - name: Run perf
-        run: mise run perf

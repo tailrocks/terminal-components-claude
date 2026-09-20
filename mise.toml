@@ -13,8 +13,25 @@ run = "cargo run --locked -p xtask -- boundary"
 [tasks.bless-guard]
 description = "Classify baseline moves against docs/visual-changes.md"
 run = """
-set -euo pipefail
-git fetch --unshallow || git fetch --all
+set -eu
+if [ "$(git rev-parse --is-shallow-repository)" = "true" ]; then
+  git fetch --unshallow || true
+fi
+if [ -n "${GITHUB_BASE_REF:-}" ]; then
+  git fetch origin "${GITHUB_BASE_REF}" || true
+fi
+if [ -z "${BLESS_GUARD_BASE:-}" ]; then
+  if [ -n "${GITHUB_BASE_REF:-}" ]; then
+    BLESS_GUARD_BASE="origin/${GITHUB_BASE_REF}"
+  elif [ -n "${BASE_SHA:-}" ]; then
+    BLESS_GUARD_BASE="${BASE_SHA}"
+  elif [ -n "${GITHUB_SHA:-}" ]; then
+    BLESS_GUARD_BASE="${GITHUB_SHA}^"
+  fi
+fi
+if [ -n "${BLESS_GUARD_BASE:-}" ]; then
+  export BLESS_GUARD_BASE
+fi
 cargo run --locked -p xtask -- bless-guard
 """
 
@@ -29,13 +46,19 @@ run = "RUSTDOCFLAGS=-D warnings cargo doc --locked --workspace --all-features --
 [tasks.lychee]
 description = "Check tracked Markdown links"
 run = """
-set -euo pipefail
+set -eu
 INPUTS="$(mktemp)"
-trap 'rm -f "$INPUTS"' EXIT
-git ls-files -z | tr '\\0' '\\n' | awk 'tolower($0) ~ /\\.(md|mkd|mdx|mdown|mdwn|mkdn|mkdown|markdown|mdc)$/ { print }' > "$INPUTS"
+LIST="$(mktemp)"
+trap 'rm -f "$INPUTS" "$LIST"' EXIT
+git ls-files > "$LIST"
+awk 'tolower($0) ~ /\\.(md|mkd|mdx|mdown|mdwn|mkdn|mkdown|markdown|mdc)$/ { print }' "$LIST" > "$INPUTS"
 mise exec lychee@0.24.2 -- lychee --config lychee.toml --root-dir "$PWD" --files-from "$INPUTS"
 """
 
 [tasks.perf]
 description = "Library allocation and byte perf (no PERF_BLESS)"
 run = "cargo nextest run --locked -p junie-tui --test perf --test perf_collections --release --test-threads=1"
+
+[tasks.workspace-nextest]
+description = "Compile default-member tests (no visual-baseline oracle)"
+run = "cargo nextest run --locked --all-targets --all-features --no-run"
