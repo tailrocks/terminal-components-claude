@@ -10296,11 +10296,11 @@ captures / classification: `(pending — filled when the change lands)`
     }
 
     /// §49.6: CI runs bless-guard on **push** as well as pull requests. On the
-    /// push leg there is no `GITHUB_BASE_REF`. Cargo gates run on rust-xtask
-    /// (the job that has rustc). extra-gates is lychee-only. Collapsed rust
-    /// kind env cannot set `BLESS_GUARD_BASE`; the POSIX mise task computes
-    /// it from `GITHUB_BASE_REF` / `GITHUB_SHA` and unshallows only a shallow
-    /// clone. `cargo run -p xtask -- bless-guard` lives in the mise task.
+    /// push leg there is no `GITHUB_BASE_REF`. ci-main is `main` only, so
+    /// extra-gates (campaign branch + PR) owns cargo extra-gates. Profile
+    /// `tools = ["rust"]` renders `install_args: rust` before the follow-up
+    /// `install: false` step. Job env plus the POSIX mise task supply
+    /// `BLESS_GUARD_BASE`. `cargo run -p xtask -- bless-guard` lives in mise.
     #[test]
     fn the_ci_push_leg_gives_the_bless_guard_a_base() {
         let root = root();
@@ -10312,8 +10312,8 @@ captures / classification: `(pending — filled when the change lands)`
         let extra = fs::read_to_string(root.join(".github/workflows/ci-extra-gates.yml"))
             .expect("generated .github/workflows/ci-extra-gates.yml");
         assert!(
-            extra.contains("\n  push:\n"),
-            "extra-gates keeps a push leg for lychee"
+            extra.contains("\n  push:\n    branches: [main, \"refactor/holla-parity\"]\n"),
+            "extra-gates push must include the campaign branch; workflow:\n{extra}"
         );
         assert!(
             extra.contains("run: mise run lychee"),
@@ -10329,10 +10329,18 @@ captures / classification: `(pending — filled when the change lands)`
         ] {
             let needle = format!("run: mise run {cargo_task}");
             assert!(
-                !extra.contains(&needle),
-                "extra-gates has no rustc; cargo task `{cargo_task}` must not run there:\n{extra}"
+                extra.contains(&needle),
+                "extra-gates must run cargo task `{cargo_task}` on campaign push:\n{extra}"
             );
         }
+        assert!(
+            extra.contains("install_args: rust\n") || extra.contains("install_args: \"rust "),
+            "extra-gates cargo jobs must install rustc via install_args; workflow:\n{extra}"
+        );
+        assert!(
+            extra.contains("BLESS_GUARD_BASE:"),
+            "extra-gates bless-guard job must set BLESS_GUARD_BASE; workflow:\n{extra}"
+        );
         assert!(
             !contains_words(&extra, &["-p", "xtask", "--", "bless-guard"]),
             "workflow YAML must not invoke xtask directly. extra-gates:\n{extra}"
@@ -10348,17 +10356,14 @@ captures / classification: `(pending — filled when the change lands)`
             "rustdoc",
             "perf",
             "workspace-nextest",
+            "lychee",
         ] {
             let command = format!("mise run {task}");
             assert!(
-                unit.contains(&command),
-                "rust-xtask must run `{command}` so cargo gates inherit rustc; unit:\n{unit}"
+                !unit.contains(&command),
+                "extra-gates owns `{command}`; rust-xtask must not duplicate it:\n{unit}"
             );
         }
-        assert!(
-            !unit.contains("mise run lychee"),
-            "lychee needs no cargo; extra-gates owns it. rust-xtask:\n{unit}"
-        );
 
         let mise = fs::read_to_string(root.join("mise.toml")).expect("mise.toml");
         let task = toml_table_body(&mise, "tasks.bless-guard");

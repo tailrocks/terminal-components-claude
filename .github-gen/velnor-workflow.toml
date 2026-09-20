@@ -22,26 +22,39 @@ exclude = [
 file = ".github/workflows/AGENTS.md"
 source = ".github-gen/sources/workflows-AGENTS.md"
 
-# Cargo gates run on rust-xtask so they inherit rustc from the unit job.
-# scheduled-checks jobs use mise-action `install: false` and never provision
-# a toolchain; extra-gates stays lychee-only. Collapsed rust kind env must
-# agree across units, so rust-xtask cannot set BLESS_GUARD_BASE; the mise
-# task computes it from GITHUB_BASE_REF / GITHUB_SHA.
-[[units]]
-id = "rust-xtask"
-ci_tasks = [
-  "boundary",
-  "bless-guard",
-  "doc-check",
-  "rustdoc",
-  "perf",
-  "workspace-nextest",
-]
-mise_tools = ["aqua:nextest-rs/nextest/cargo-nextest"]
+# `[workflow]` has no extra_branches key; ci-main is default_branch `main`
+# only. scheduled-checks `events` + `branches` is the campaign-push substitute.
+# Profile `tools` renders mise-action `install_args` (rustc via core:rust).
+# The follow-up `install: false` step still runs; it does not install tools.
+[[check_profile]]
+id = "boundary"
+name = "Boundary"
+tools = ["rust"]
+tasks = ["boundary"]
+timeout_minutes = 45
 
-# Repo-wide lychee, including push coverage on the campaign branch.
-# `[workflow]` has no extra_branches / additional_branches / push_branches
-# field; scheduled-checks `events` + `branches` is the typed substitute.
+[[check_profile]]
+id = "bless-guard"
+name = "Bless guard"
+tools = ["rust"]
+tasks = ["bless-guard"]
+timeout_minutes = 45
+env = { BLESS_GUARD_BASE = "${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}" }
+
+[[check_profile]]
+id = "doc-check"
+name = "Doc check"
+tools = ["rust"]
+tasks = ["doc-check"]
+timeout_minutes = 45
+
+[[check_profile]]
+id = "rustdoc"
+name = "Rustdoc"
+tools = ["rust"]
+tasks = ["rustdoc"]
+timeout_minutes = 60
+
 [[check_profile]]
 id = "lychee"
 name = "Markdown links"
@@ -49,12 +62,26 @@ tools = ["aqua:lycheeverse/lychee"]
 tasks = ["lychee"]
 timeout_minutes = 20
 
+[[check_profile]]
+id = "perf"
+name = "Library perf"
+tools = ["rust", "aqua:nextest-rs/nextest/cargo-nextest"]
+tasks = ["perf"]
+timeout_minutes = 90
+
+[[check_profile]]
+id = "workspace-nextest"
+name = "Workspace nextest"
+tools = ["rust", "aqua:nextest-rs/nextest/cargo-nextest"]
+tasks = ["workspace-nextest"]
+timeout_minutes = 90
+
 [[declare]]
 primitive = "scheduled-checks"
 file = "ci-extra-gates.yml"
 
 [declare.args]
 name = "Extra gates"
-profiles = ["lychee"]
+profiles = ["boundary", "bless-guard", "doc-check", "rustdoc", "lychee", "perf", "workspace-nextest"]
 events = ["push", "pull_request"]
 branches = ["main", "refactor/holla-parity"]

@@ -81,3 +81,11 @@ url_api = "https://api.github.com/repos/nextest-rs/nextest/releases/assets/56884
 checksum = "sha256:bfecd545af057adb83be7ddfe135fd067fb9c990544da1ea111e675f45d628a9"
 url = "https://github.com/nextest-rs/nextest/releases/download/cargo-nextest-0.9.145/cargo-nextest-0.9.145-x86_64-pc-windows-msvc.tar.gz"
 url_api = "https://api.github.com/repos/nextest-rs/nextest/releases/assets/568848391"
+
+[[tools.rust]]
+version = "1.98.1"
+backend = "core:rust"
+specifiers = ["1.98.1"]
+
+[tools.rust.options]
+components = "clippy,rustfmt"

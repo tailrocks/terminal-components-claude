@@ -4,7 +4,9 @@
 
 [settings]
 lockfile = true
-idiomatic_version_file_enable_tools = []
+# extra-gates check_profile tools=["rust"] requires [[tools.rust]] in mise.lock.
+# rust-toolchain.toml stays the version pin; mise must read it.
+idiomatic_version_file_enable_tools = ["rust"]
 
 [tasks.boundary]
 description = "Forbidden-pattern and dependency-graph checks"
