@@ -421,8 +421,8 @@ with tempfile.TemporaryDirectory(prefix="tc-proof-qualification-") as directory:
     qualification, paths, oracle, qualified = make_qualification(Path(directory))
     common = {
         "worktree": paths["candidate"],
-        "current_head": "a" * 40,
-        "current_tree": "b" * 40,
+        "current_head": qualification["candidate_commit"],
+        "current_tree": qualification["candidate_tree"],
         "integration_branch": BRANCH,
         "expected_oracle": oracle,
         "expected_taskfmt": paths["taskfmt"],
