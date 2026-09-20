@@ -1,0 +1,52 @@
+schema = "verify/v2"
+task_id = "TASK-074"
+writable_paths = ["tools/refactor-proof/src/verifier.rs", "tools/refactor-proof/runner/__main__.py", "tools/refactor-proof/runner/context.py", "tools/refactor-proof/runner/operations.py", "tools/refactor-proof/runner/validate.py"]
+forbidden_paths = ["refactoring-tasks", "docs/refactoring-plan", "shots", "snapshots", "baseline", "tools/refactor-proof/accounting", "tools/refactor-proof/architecture", "tools/refactor-proof/bin/tc-proof", "tools/refactor-proof/bin/tc-proof-host", "tools/refactor-proof/core", "tools/refactor-proof/src/bin", "tools/refactor-proof/src/compare.rs"]
+
+[[checks]]
+id = "CHK-001"
+phase = "precondition"
+shell = "python3 refactoring-tasks/terminal-components/completion/074/trusted/context-bind/context-bind-driver.py --check-id CHK-001 --context \"$RUN_DIR/contexts/CHK-001.json\" tools/refactor-proof/bin/tc-proof preflight"
+expected = { exit = 0 }
+requirements = ["R-004"]
+acceptance = ["AC-004"]
+
+[[checks]]
+id = "CHK-002"
+phase = "focused"
+shell = "python3 refactoring-tasks/terminal-components/completion/074/trusted/context-bind/context-bind-driver.py --check-id CHK-002 --context \"$RUN_DIR/contexts/CHK-002.json\" --namespace showcase tools/refactor-proof/bin/tc-proof oracle"
+expected = { exit = 0 }
+requirements = ["R-001", "R-003"]
+acceptance = ["AC-001"]
+
+[[checks]]
+id = "CHK-003"
+phase = "focused"
+shell = "python3 refactoring-tasks/terminal-components/completion/074/trusted/context-bind/context-bind-driver.py --check-id CHK-003 --context \"$RUN_DIR/contexts/CHK-003.json\" tools/refactor-proof/bin/tc-proof compare"
+expected = { exit = 0 }
+requirements = ["R-001", "R-003"]
+acceptance = ["AC-006"]
+
+[[checks]]
+id = "CHK-004"
+phase = "regression"
+shell = "python3 refactoring-tasks/terminal-components/completion/074/trusted/context-bind/context-bind-driver.py --check-id CHK-004 --context \"$RUN_DIR/contexts/CHK-004.json\" tools/refactor-proof/bin/tc-proof account-tests"
+expected = { exit = 0 }
+requirements = ["R-002", "R-003"]
+acceptance = ["AC-003"]
+
+[[checks]]
+id = "CHK-005"
+phase = "lint"
+shell = "python3 refactoring-tasks/terminal-components/completion/074/trusted/context-bind/context-bind-driver.py --check-id CHK-005 --context \"$RUN_DIR/contexts/CHK-005.json\" tools/refactor-proof/bin/tc-proof architecture"
+expected = { exit = 0 }
+requirements = ["R-002", "R-003"]
+acceptance = ["AC-002"]
+
+[[checks]]
+id = "CHK-006"
+phase = "gate"
+shell = "python3 refactoring-tasks/terminal-components/completion/074/trusted/context-bind/context-bind-driver.py --check-id CHK-006 --context \"$RUN_DIR/contexts/CHK-006.json\" --gate CHK-002,CHK-003,CHK-004,CHK-005 tools/refactor-proof/bin/tc-proof close"
+expected = { exit = 0 }
+requirements = ["R-005"]
+acceptance = ["AC-005"]
