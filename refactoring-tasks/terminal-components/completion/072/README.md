@@ -34,7 +34,7 @@ Read before editing:
 
 ## Preconditions
 
-- **P-001:** A verifier/reviewer subagent checks `TASK-071` evidence and actual integrated source ancestry, the recorded candidate parent/scope base, current latest taskfmt revision and SHA-256, and the reviewed tui-snap tool pin.
+- **P-001:** A verifier/reviewer subagent checks accepted native `TASK-071` qualification evidence and actual integrated source ancestry, the recorded candidate parent/scope base, current latest taskfmt revision and SHA-256, and the reviewed tui-snap tool pin.
 - **P-002:** The driver, fixture application, worker program, isolation observer and source requirement inputs are immutable outside the coordinator checkout. The submitted executable cannot alter the independent judge or its expected data.
 - **P-003:** Candidate workers have the pinned offline toolchain and owned PTYs where required, with no verification authority, expected artifacts, network, credentials or host socket access.
 
@@ -141,11 +141,11 @@ Then the complete prerequisite behavior remains exact without omitted results
 - **Covers:** `R-003`
 - **Check:** `CHK-008`
 
-### AC-007 — Preserve accepted operation group70
+### AC-007 — Preserve native TASK-071 qualification
 ```gherkin
-Given the protected independently accepted prerequisite corpus
-When all original positive negative and recovery cases execute against the extended dispatcher
-Then the complete prerequisite behavior remains exact without omitted results
+Given the protected native qualification evidence accepted for TASK-071
+When the inherited context-index regression cases execute against the extended dispatcher
+Then native prerequisite behavior remains exact without omitted results or a TASK-070 receipt
 ```
 
 **Verification**
@@ -213,7 +213,7 @@ Then the sole private guarded broker and immutable data are accepted while every
 - **D-003:** Use existing canonical taskfmt standalone verification and current tui-snap primitives. No task orchestration call is allowed; no ref update targets main.
 - **D-004:** Host accepts `architecture-verifier` only after independent qualification and source rebuild. A later task resolves exactly that accepted producer product; no mutable latest path or candidate-written receipt is valid.
 - **D-005:** All commands and result schemas are exactly the fixed proof contract. Unsupported required behavior fails; adding permissive flags or alternative expected data cannot unblock it.
-- **D-006:** Context-index qualification (VF-03) is owned by TASK-070. This package inherits it through **CHK-009** (`--group 070`) per [`trusted/runner-index-receipt-binding.md`](trusted/runner-index-receipt-binding.md); `--group 072` checks alone do not satisfy index membership.
+- **D-006:** Native context-index qualification (VF-03) is owned by `tools/refactor-proof/runner` and accepted through TASK-071's qualification evidence. This package inherits that prerequisite through `task.toml.dependencies` and validates the native index regression through **CHK-009** (`--group 070`) per [`trusted/runner-index-receipt-binding.md`](trusted/runner-index-receipt-binding.md); the group selector is not TASK-070 dispatch, and no retired TASK-070 receipt is a prerequisite. `--group 072` checks alone do not satisfy index membership.
 
 ## Subagent execution
 
@@ -241,7 +241,7 @@ Taskfmt is validation only. No containers, images, mounts, or task orchestration
     - [ ] **2.2** Preserve isolation, identity and ownership boundaries. (`R-002`, `AC-002`, `CHK-006`)
     - [ ] **2.3** Retain the accepted comparator and every required regression. (`R-003`, `AC-003`, `CHK-005`)
     - [ ] **2.4** Preserve accepted group71 with its independent corpus. (`R-003`, `AC-006`, `CHK-008`)
-    - [ ] **2.5** Preserve accepted group70 with its independent corpus. (`R-003`, `AC-007`, `CHK-009`)
+    - [ ] **2.5** Preserve native TASK-071 qualification evidence with its independent corpus. (`R-003`, `AC-007`, `CHK-009`)
     - [ ] **2.6** Preserve exact comparison with its independent corpus. (`R-003`, `AC-008`, `CHK-010`)
     - [ ] **2.7** Qualify the Rust model and actual production architecture corpus through protected execution. (`R-001`, `AC-009`, `CHK-011`)
     - [ ] **2.8** Qualify real style timing paths, raw measurements and forgery controls without a future producer receipt. (`R-001`, `AC-010`, `CHK-012`)
