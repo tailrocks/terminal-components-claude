@@ -1,9 +1,10 @@
 //! Disposable fail-closed negatives for the grouped visual gate.
 //!
 //! Copies the tiny seed fixture, mutates only the copy, and requires nonzero
-//! grouped-check exits for missing artifacts/keys, cell/style drift, and HTML
-//! argv identity. HTML comparison uses `full_render` so `provenance.argv` is
-//! not masked by the cell-match fast path.
+//! grouped-check exits for missing/duplicated keys, missing artifacts,
+//! cell/style/geometry/cursor drift, wrong HTML argv identity, and stale
+//! approved bytes. HTML comparison uses `full_render` so `provenance.argv`
+//! is not masked by the cell-match fast path.
 
 #![expect(
     clippy::print_stderr,
@@ -24,6 +25,7 @@ const SEED: &str = concat!(
 );
 const NAME: &str = "gate/negatives/4x1/truecolor";
 const MISSING_NAME: &str = "gate/missing/4x1/truecolor";
+const DUP_NAME: &str = "gate/negatives/dup/4x1/truecolor";
 const FROZEN_BIN: &str = "/Users/donbeave/Projects/terminal-components-claude/target/debug/holla";
 const WRONG_BIN: &str =
     "/Users/donbeave/Projects/terminal-components-claude/.codex-runs/wrong/target/debug/holla";
@@ -204,6 +206,36 @@ fn mutate_html_argv(html: &str) -> Result<String, TestError> {
     Ok(html.replace(FROZEN_BIN, WRONG_BIN))
 }
 
+fn mutate_geometry(frame: &Frame) -> Frame {
+    Frame::blank(
+        frame.cols.saturating_add(1),
+        frame.rows,
+        frame.provenance.clone(),
+    )
+}
+
+fn mutate_cursor(frame: &Frame) -> Result<Frame, TestError> {
+    let mut mutated = frame.clone();
+    mutated.cursor.x = mutated.cursor.x.saturating_add(1);
+    mutated.cursor.visible = true;
+    Ok(mutated)
+}
+
+fn exclusive_names_exit(store: &GroupedStore, allowed: &[&str]) -> Result<i32, TestError> {
+    let names = store.approved_names().map_err(|error| error.to_string())?;
+    let extra = names
+        .iter()
+        .filter(|name| !allowed.contains(&name.as_str()))
+        .count();
+    let missing = allowed
+        .iter()
+        .filter(|name| !names.iter().any(|have| have == *name))
+        .count();
+    Ok(i32::from(
+        extra != 0 || missing != 0 || names.len() != allowed.len(),
+    ))
+}
+
 #[test]
 fn visual_gate_fails_closed_on_missing_mutated_and_argv() -> Result<(), TestError> {
     let log = log_root();
@@ -222,9 +254,41 @@ fn visual_gate_fails_closed_on_missing_mutated_and_argv() -> Result<(), TestErro
     let (missing_key_exit, missing_key) = gate_exit(&mut renderer, &original, MISSING_NAME, &seed);
     write_case(&log, "missing_key", &missing_key)?;
 
+    let dup_root = scratch.path().join("duplicated-key");
+    let dup_store = clone_store(&original, &dup_root)?;
+    let dup_first = dup_store
+        .check_with_options(&mut renderer, DUP_NAME, &seed, 1.0, &FULL_RENDER)
+        .map_err(|error| error.to_string())?;
+    if dup_first.status() != Status::MissingApproval {
+        return Err(format!("dup seed status {:?}", dup_first.status()).into());
+    }
+    dup_store
+        .accept(DUP_NAME)
+        .map_err(|error| error.to_string())?;
+    let duplicated_exit = exclusive_names_exit(&dup_store, &[NAME])?;
+    write_case(
+        &log,
+        "duplicated_key",
+        &CaseResult {
+            status: "extra-key".into(),
+            html_match: "none".into(),
+            ansi_match: "none".into(),
+            exit: duplicated_exit,
+            note: "approved store contains a second key besides the exclusive set".into(),
+        },
+    )?;
+
     let mutated_frame = mutate_cell_and_style(&seed)?;
     let (mutated_exit, mutated) = gate_exit(&mut renderer, &original, NAME, &mutated_frame);
     write_case(&log, "mutated_cell_style", &mutated)?;
+
+    let geometry_frame = mutate_geometry(&seed);
+    let (geometry_exit, geometry) = gate_exit(&mut renderer, &original, NAME, &geometry_frame);
+    write_case(&log, "mutated_geometry", &geometry)?;
+
+    let cursor_frame = mutate_cursor(&seed)?;
+    let (cursor_exit, cursor) = gate_exit(&mut renderer, &original, NAME, &cursor_frame);
+    write_case(&log, "mutated_cursor", &cursor)?;
 
     let argv_frame = mutate_argv(&seed)?;
     let (argv_exit, argv) = gate_exit(&mut renderer, &original, NAME, &argv_frame);
@@ -241,8 +305,17 @@ fn visual_gate_fails_closed_on_missing_mutated_and_argv() -> Result<(), TestErro
     let (html_file_exit, html_file) = gate_exit(&mut renderer, &html_store, NAME, &seed);
     write_case(&log, "html_argv_file", &html_file)?;
 
+    let stale_root = scratch.path().join("stale-evidence");
+    let stale_store = clone_store(&original, &stale_root)?;
+    let approved_ansi = stale_store.approved_root().join(format!("{NAME}.ansi"));
+    let mut stale_bytes = fs::read(&approved_ansi)?;
+    stale_bytes.extend_from_slice(b"STALE");
+    fs::write(&approved_ansi, stale_bytes)?;
+    let (stale_exit, stale) = gate_exit(&mut renderer, &stale_store, NAME, &seed);
+    write_case(&log, "stale_evidence", &stale)?;
+
     let exits = format!(
-        "missing_artifact={missing_exit}\nmissing_key={missing_key_exit}\nmutated_cell_style={mutated_exit}\nhtml_argv={argv_exit}\nhtml_argv_file={html_file_exit}\n"
+        "missing_artifact={missing_exit}\nmissing_key={missing_key_exit}\nduplicated_key={duplicated_exit}\nmutated_cell_style={mutated_exit}\nmutated_geometry={geometry_exit}\nmutated_cursor={cursor_exit}\nhtml_argv={argv_exit}\nhtml_argv_file={html_file_exit}\nstale_evidence={stale_exit}\n"
     );
     fs::write(log.join("exits.txt"), exits.as_bytes())?;
     eprintln!("visual-gate-negative exits\n{exits}");
@@ -258,11 +331,24 @@ fn visual_gate_fails_closed_on_missing_mutated_and_argv() -> Result<(), TestErro
     );
     assert_eq!(missing_key.status, Status::MissingApproval.as_str());
     assert_ne!(
+        duplicated_exit, 0,
+        "duplicated extra key must fail exclusive inventory"
+    );
+    assert_ne!(
         mutated_exit, 0,
         "mutated cell/style must fail closed: {mutated:?}"
     );
     assert_eq!(mutated.status, Status::CellsDiffer.as_str());
     assert_eq!(mutated.ansi_match, "false");
+    assert_ne!(
+        geometry_exit, 0,
+        "mutated geometry must fail closed: {geometry:?}"
+    );
+    assert_ne!(
+        cursor_exit, 0,
+        "mutated cursor must fail closed: {cursor:?}"
+    );
+    assert_eq!(cursor.html_match, "false");
     assert_ne!(
         argv_exit, 0,
         "HTML argv identity must fail closed: {argv:?}"
@@ -273,5 +359,9 @@ fn visual_gate_fails_closed_on_missing_mutated_and_argv() -> Result<(), TestErro
         "wrong binary path in HTML must fail closed: {html_file:?}"
     );
     assert_eq!(html_file.html_match, "false");
+    assert_ne!(
+        stale_exit, 0,
+        "stale approved bytes must fail closed: {stale:?}"
+    );
     Ok(())
 }

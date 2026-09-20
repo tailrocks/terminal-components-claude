@@ -64,7 +64,38 @@ crate::baseline_case!(tablepro_table_scrolled_right_120x40_truecolor => Case::ne
 // ------------------------------------------------------------------ query --
 
 crate::baseline_case!(tablepro_query_completion_120x40_truecolor => Case::new("tablepro/query/completion/120x40/truecolor", TABLEPRO, &["--connect", "Production"], 120, 40, Color::Truecolor, "Query 1").sends(&["tab", "i", "type:SELECT * FROM ord", "wait:order_items"]));
-crate::baseline_case!(tablepro_query_results_120x40_truecolor => Case::new("tablepro/query/results/120x40/truecolor", TABLEPRO, &["--connect", "Production"], 120, 40, Color::Truecolor, "Query 1").sends(&["tab", "i", "type:SELECT * FROM ord", "enter", "type: WHERE st", "tab", "type: = 'pending' ORDER BY created_at DESC LIMIT 25", "escape", "ctrl-r", "wait:25 rows", "wait:Ctrl+X Explain"]).timeout(15_000));
+crate::baseline_combo_tests!(
+    tablepro_query_results_120x40_truecolor,
+    |cols, rows, color| {
+        crate::support::run_query_results_combo(
+            &Case::new(
+                "tablepro/query/results/120x40/truecolor",
+                TABLEPRO,
+                &["--connect", "Production"],
+                120,
+                40,
+                Color::Truecolor,
+                "Query 1",
+            )
+            .sends(&[
+                "tab",
+                "i",
+                "type:SELECT * FROM ord",
+                "enter",
+                "type: WHERE st",
+                "tab",
+                "type: = 'pending' ORDER BY created_at DESC LIMIT 25",
+                "escape",
+                "ctrl-r",
+                "wait:25 rows",
+            ])
+            .timeout(15_000),
+            cols,
+            rows,
+            color,
+        );
+    }
+);
 crate::baseline_case!(tablepro_query_error_120x40_truecolor => Case::new("tablepro/query/error/120x40/truecolor", TABLEPRO, &["--connect", "Production"], 120, 40, Color::Truecolor, "Query 1").sends(&["tab", "i", "type:SELECT * FROM missing_table", "escape", "ctrl-r", "sleep:800"]));
 crate::baseline_case!(tablepro_query_explain_120x40_truecolor => Case::new("tablepro/query/explain/120x40/truecolor", TABLEPRO, &["--connect", "Production"], 120, 40, Color::Truecolor, "Query 1").sends(&["tab", "i", "type:SELECT * FROM orders", "escape", "ctrl-x", "sleep:500"]));
 crate::baseline_case!(tablepro_query_new_tab_120x40_truecolor => Case::new("tablepro/query/new_tab/120x40/truecolor", TABLEPRO, &["--connect", "Production"], 120, 40, Color::Truecolor, "Query 1").sends(&["ctrl-t", "wait:Query 2"]));

@@ -666,6 +666,30 @@ pub fn run_and_assert(case: &Case) {
     assert_gated(&gate(&case.name, &frame));
 }
 
+/// Query-results captures: auto-complete can swallow the scripted Esc, so the
+/// session stays in EDIT and never shows the non-edit `Ctrl+X Explain` footer
+/// the frozen oracle recorded. One extra Esc after `25 rows` only when that
+/// footer is absent; a second Esc after already leaving edit would move focus
+/// and drift the settled frame.
+pub fn run_query_results_combo(representative: &Case, cols: u16, rows: u16, color: Color) {
+    let case = representative.variant(cols, rows, color);
+    let mut session = spawn_boot(&case);
+    let text = session.snapshot().text();
+    // Only when still in query-edit (`Esc Done`). A bare extra Esc from
+    // navigation mode runs the workbench esc-ladder and lands on the tab
+    // strip, which is not the frozen settled frame.
+    if !text.contains("Ctrl+X Explain") && text.contains("Esc Done") {
+        session
+            .send_key("escape")
+            .unwrap_or_else(|e| panic!("extra escape after query run failed: {e:#}"));
+        std::thread::sleep(Duration::from_millis(120));
+    }
+    session
+        .wait_for_text("Ctrl+X Explain")
+        .unwrap_or_else(|e| panic!("`wait:Ctrl+X Explain` timed out: {e:#}"));
+    settle_and_gate(&mut session, &case.name);
+}
+
 /// One size×color combo of a representative static `Case::new` root.
 /// Sends/timeout come from the representative; the capture name is re-rooted.
 pub fn run_combo(representative: &Case, cols: u16, rows: u16, color: Color) {
