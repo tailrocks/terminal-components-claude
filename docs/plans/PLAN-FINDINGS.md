@@ -47,11 +47,11 @@ Jackin's virtual clock advances by the **route's** nominal interval (`Route::tic
 
 ## Historical missing-gate finding — superseded
 
-At the historical review snapshot, `xtask bless-guard` was absent and the gate could not run. `eeee5046` later added the subcommand and `f28a81e3` hardened it; the current CI invokes it in [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml). This finding is retained as history, not a current missing implementation.
+At the historical review snapshot, `xtask bless-guard` was absent and the gate could not run. `eeee5046` later added the subcommand and `f28a81e3` hardened it; the current generated CI invokes it in [`.github/workflows/ci-extra-gates.yml`](../../.github/workflows/ci-extra-gates.yml). This finding is retained as history, not a current missing implementation. The generated-workflow migration remains separately unreviewed preparation input.
 
 ## MSRV is now a measured fact
 
-`rust-version = "1.88"` was previously a declared field that nothing checked. The CI rebuild pinned the MSRV leg to the exact `1.88.0` toolchain and verified locally on it that `cargo check --workspace --all-targets --all-features` passes. The claim is now backed by a run rather than by a manifest line.
+`rust-version = "1.88"` was previously a declared field that nothing checked. A historical CI rebuild pinned an MSRV leg to the exact `1.88.0` toolchain and verified locally on it that `cargo check --workspace --all-targets --all-features` passed. The current branch instead pins Rust `1.98.1` with workspace `rust-version = "1.98"`; the historical run does not establish current toolchain acceptance, which remains subject to fresh exact-tree review.
 
 ## §26 items that are not expressible as CI steps
 

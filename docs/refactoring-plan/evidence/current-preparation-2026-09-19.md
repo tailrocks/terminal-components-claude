@@ -4,22 +4,24 @@ Status: **NO-GO.** This file is a provenance index, not a verifier receipt,
 task acceptance, dispatch authorization, ledger-arm operation, or product
 completion claim.
 
-## Source and refs
+## Assessed pre-documentation source and refs
 
 ```text
-pre-correction tested payload: 1fb2b71c23edc6dd7b6d81b2e97b6bd5d4265717
-pre-correction tested tree:    51ffdc30306be16bbb5e7aedb49d3daff5f766ef
-parent:                        dc14a1e16edb3aa31a071d8a16857cff2328db1b
+assessed pre-documentation payload: baa147d0ae7b291f0fb14962a38324161e52926d
+assessed pre-documentation tree:    95159979dd0d7c7617f68de16c7d46a69e7b17f7
+parent:                              afe429c859995885c950333c3522cb2bbd8201b0
 branch:                     refactor/holla-parity
 local main:                 7b27732a8c3c131760ec3438f641cb3c11343a42
 remote main:                7b27732a8c3c131760ec3438f641cb3c11343a42
-remote campaign tip:       1fb2b71c23edc6dd7b6d81b2e97b6bd5d4265717
+remote campaign tip:       baa147d0ae7b291f0fb14962a38324161e52926d
 merge-base with main:       7b27732a8c3c131760ec3438f641cb3c11343a42
 ```
 
-The documentation commit containing this index changes the final tree. A
-fresh verifier and reviewer must bind the exact post-commit identity. No
-receipt may attest to a future commit containing itself. Final report paths:
+The worktree was clean at this assessment. This repair is intentionally
+uncommitted and changes only the four canonical documents. Any later
+documentation commit has a different commit/tree and must be independently
+bound. No receipt may attest to a future commit containing itself. Final report
+paths:
 
 ```text
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md
@@ -29,6 +31,12 @@ receipt may attest to a future commit containing itself. Final report paths:
 Any relevant source, documentation, contract, script, schema, tool,
 comparator, oracle, environment, or generated-output change invalidates
 affected evidence.
+
+All results listed below bind to other source commits/trees, not assessed
+`baa147d0`/`9515997`; they are historical provenance, not current passes or
+receipts. The intervening unreviewed commits are `320e9e7d`, `874d1ff4`,
+`9abd3ec3`, `aabd4d75`, `9ce787ed`, `d9ddc94a`, `dca523da`, `d8eb545f`,
+`356d65e3`, `afe429c8`, and `baa147d0`.
 
 ## Oracle identity and inventory
 
@@ -53,12 +61,15 @@ The source identity for the complete snapshot producer is
 `89218626011f2f82c4e87c4dfd5868a4c5f3e284` / tree
 `6fccf997cd742071ebcff0e0a00e89404ef95ca8`, with the same snapshot tree.
 
-At the pre-correction candidate `1fb2b71c`, `tests/visual_baseline/` and
+At the assessed pre-documentation candidate `baa147d0`, `tests/visual_baseline/` and
 `.config/nextest.toml` exist. The candidate branch has no `snapshots/`
 directory and no `parity/evidence.tsv`; the imported oracle remains external
 and read-only.
 
-## Qualified tools and command evidence
+## Qualified tool identity and historical command evidence
+
+No command result below is bound to assessed `baa147d0`/`9515997`; exact-source
+verification is still required.
 
 Taskfmt qualification:
 
@@ -72,8 +83,8 @@ binary SHA-256: f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
 ```
 
 The qualified binary is a regular, single-link executable. Only standalone
-`lint` and `verify` operations are allowed. Pre-documentation lint evidence, run against
-the pushed `247e47d5` code payload before this documentation update:
+`lint` and `verify` operations are allowed. Historical lint evidence, run
+against pushed code `247e47d5` before this repair:
 
 ```text
 run: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-247-direct
@@ -85,7 +96,8 @@ failed: 0
 exit: 0
 ```
 
-Native proof evidence from the identical code tree at `37214cfb`:
+Historical native proof evidence from code tree `37214cfb`, invalid for the
+assessed payload:
 
 | external run | evidence |
 | --- | --- |
@@ -145,7 +157,8 @@ taskfmt sealing, trust-path consistency, and observer request-count binding.
 
 ## Static, documentation, and ledger evidence
 
-Fresh pre-documentation checks at the pushed `247e47d5` payload:
+Historical pre-documentation checks at pushed code `247e47d5`, invalid for the
+assessed payload:
 
 ```text
 Lychee run: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/lychee-docs-247e47d5
@@ -255,8 +268,8 @@ suite at the identical code tree `37214cfb` passed 43/43 under the bounded
 serial command recorded above; it is not yet a final-tree receipt. The
 previous selected proof at `247e47d5` recorded 2/3 tests passed and
 `verifier::tests::provider_hang_after_acceptance_is_bounded_and_rejected`
-failed its under-four-second assertion, exit 100. Fresh Lychee/actionlint are
-pre-documentation evidence. Fresh Lychee/actionlint and taskfmt evidence still
+failed its under-four-second assertion, exit 100. Historical Lychee/actionlint
+are pre-documentation evidence. Exact-source Lychee/actionlint and taskfmt still
 require final-tree rebinding. Required native Linux execution was unavailable;
 no cross-platform pass is claimed. The campaign ledger remains schema-
 controlled and disarmed; no accepted preparation or production receipt exists.

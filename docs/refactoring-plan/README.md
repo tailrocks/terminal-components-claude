@@ -16,18 +16,18 @@ This directory is the canonical preparation package for
 Historical evidence never authorizes execution. The generated structural graph
 contains no status, acceptance result, or dispatch authority.
 
-## Current candidate and branch truth
+## Assessed pre-documentation payload and branch truth
 
-The tested preparation payload immediately before this documentation correction is:
+The clean payload assessed immediately before this documentation repair is:
 
 ```text
 branch:   refactor/holla-parity
-commit:   1fb2b71c23edc6dd7b6d81b2e97b6bd5d4265717
-tree:     51ffdc30306be16bbb5e7aedb49d3daff5f766ef
-parent:   dc14a1e16edb3aa31a071d8a16857cff2328db1b
+commit:   baa147d0ae7b291f0fb14962a38324161e52926d
+tree:     95159979dd0d7c7617f68de16c7d46a69e7b17f7
+parent:   afe429c859995885c950333c3522cb2bbd8201b0
 local main:   7b27732a8c3c131760ec3438f641cb3c11343a42
 remote main:  7b27732a8c3c131760ec3438f641cb3c11343a42
-remote campaign tip: 1fb2b71c23edc6dd7b6d81b2e97b6bd5d4265717
+remote campaign tip: baa147d0ae7b291f0fb14962a38324161e52926d
 merge-base with main: 7b27732a8c3c131760ec3438f641cb3c11343a42
 campaign commits ahead of origin/refactor/holla-parity: 0
 ```
@@ -37,11 +37,12 @@ campaign ref equals this pushed payload. No ref was reset, rewritten,
 force-pushed, pruned, or moved. The directory name `.worktrees/main` was not
 used to identify `main`.
 
-The four canonical documents are source-controlled preparation metadata. Their
-next commit changes the tested payload, so the final verifier must bind the
-exact post-documentation HEAD/tree. Evidence is invalidated by any relevant
-source, documentation, task contract, schema, script, tool, oracle,
-environment, or generated-output change. The evidence-sealing protocol is:
+The four canonical documents are source-controlled preparation metadata. This
+repair changes the assessed payload, so the final verifier must bind the exact
+post-documentation HEAD/tree. Evidence is invalidated by any relevant source,
+documentation, task contract, schema, script, generated workflow, tool,
+comparator, oracle, environment, or generated-output change. The
+evidence-sealing protocol is:
 
 ```text
 commit preparation payload
@@ -50,6 +51,28 @@ commit preparation payload
 → generate external verifier/reviewer reports for that exact tree
 → record their paths and hashes without another tracked edit
 ```
+
+## Intervening commits after the prior preparation payload
+
+The prior preparation payload was `1fb2b71c23edc6dd7b6d81b2e97b6bd5d4265717`.
+The commits through assessed `baa147d0` are unreviewed and are not
+preparation acceptance evidence:
+
+| commit | observed change | disposition |
+| --- | --- | --- |
+| `320e9e7d` | Rebound preparation documents to a CI repair | superseded metadata |
+| `874d1ff4` | Changed visual-baseline CI exclusions and Rust-version handling | unreviewed CI/test-contract change |
+| `9abd3ec3` | Normal revert restoring full workspace/visual coverage | preserve normal revert semantics; unreviewed |
+| `aabd4d75` | Pinned Rust 1.98.1 and added mise/workflow requirements | unreviewed toolchain/CI change |
+| `9ce787ed` | Generated the velnor-workflow Actions layout | unreviewed generated workflow |
+| `d9ddc94a` | Refreshed Cargo.lock pins | unreviewed dependency input |
+| `dca523da` | Regenerated workflow state after lockfile drift | unreviewed generated workflow |
+| `d8eb545f` | Retargeted generated Actions links | unreviewed policy documentation |
+| `356d65e3` | Declared extra gates and generated-workflow inputs | unreviewed CI/toolchain change |
+| `afe429c8` | Retired Rust 1.88 claims and changed related contract text | unreviewed source payload |
+| `baa147d0` | Rebound bless-guard to generated workflow/mise paths | unreviewed CI/xtask change |
+
+No listed commit authorizes dispatch or changes `NO-GO`/`armed: false`.
 
 ## Frozen visual authority
 
@@ -81,7 +104,7 @@ That run executed 302 cases and produced the complete count, but was not
 clean: 298 passed, 4 failed, 2 skipped, 1 leaky, exit 100. No output was
 blessed or normalized.
 
-At the pre-correction candidate `1fb2b71c`, `tests/visual_baseline/` and
+At the assessed pre-documentation candidate `baa147d0`, `tests/visual_baseline/` and
 `.config/nextest.toml` exist. The candidate branch still has no `snapshots/`
 directory and no `parity/evidence.tsv`; those remain protected external oracle
 inputs, not candidate-generated expected output.
@@ -93,7 +116,7 @@ or duplicate renderer cannot satisfy the gate.
 
 ## Catalog, architecture, and remaining product scope
 
-Machine-checked catalog at the tested payload:
+Machine-checked catalog at the assessed payload (structural only):
 
 | measure | value |
 | --- | ---: |
@@ -150,9 +173,9 @@ identity, destructive scratch cleanup, and failed `shfmt -d`. The native
 threat model remains limited to integrity/detection controls; it does not
 claim isolation from a hostile same-user process.
 
-Current and historical qualification evidence:
+Historical qualification evidence — invalid for the assessed payload:
 
-- Pre-documentation taskfmt lint at pushed code `247e47d5`: 73/73 packages passed, exit 0;
+- Historical taskfmt lint at pushed code `247e47d5`: 73/73 packages passed, exit 0;
   log `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-247-direct/all.log`,
   SHA-256 `afecad09ba800c74fc841fd4d830fd8932d80e84894bd18c5bf5660522134124`.
 - Proof source `37214cfb` has the historical code tree
@@ -187,14 +210,14 @@ The clean pre-arm preflight run
 exited 1 with the correct NO-GO refusal. Its result SHA-256 is
 `ad1e78e8c2c5c14fd068befd42fa7774d115dfd83e91f41784ca2a22e56adf12`; it is
 bound to historical `9346c104`/`00958932`, so it cannot authorize the current
-or post-documentation tree. Fresh pre-documentation Lychee log
+or post-documentation tree. Historical pre-documentation Lychee log
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/lychee-docs-247e47d5/lychee.log`
 passed with SHA-256 `2e3b6e8d8f1f9a9740000b37cb83cec558485df985dadcfd0642052b968c956c`;
 qualified actionlint 1.7.12 log
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/actionlint-docs-247e47d5/actionlint.log`
 passed with SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
-No final-tree verifier or reviewer receipt exists. No preparation acceptance
-receipt exists.
+No listed evidence binds assessed `baa147d0`/`9515997`; no exact-source
+verifier/reviewer receipt or preparation acceptance receipt exists.
 
 ## Readiness and navigation
 

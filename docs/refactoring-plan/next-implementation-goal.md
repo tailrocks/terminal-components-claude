@@ -6,6 +6,14 @@ Current preparation is **NO-GO**. The campaign ledger must remain
 must pass the startup gate below before it can create implementation agents or
 arm dispatch.
 
+This handoff is generated from the assessed pre-documentation source payload
+`baa147d0ae7b291f0fb14962a38324161e52926d` / tree
+`95159979dd0d7c7617f68de16c7d46a69e7b17f7` / parent
+`afe429c859995885c950333c3522cb2bbd8201b0`. The subsequent documentation
+repair changes the source tree; this file cannot self-attest that future tree.
+The next run must bind its own clean commit/tree and invalidate every affected
+receipt, result, context, review, and calibration run after any relevant edit.
+
 ## Objective
 
 On `refactor/holla-parity`, complete all valid reconciled refactoring work,
@@ -27,12 +35,13 @@ Before any implementation agent is spawned, the coordinator must independently:
 2. Re-read Git refs. Bind the actual branch, local/remote `main`, merge-base,
    scope base, clean worktree, final source commit/tree/parent, and dependency
    ancestry. The preparation payload before this generated prompt was
-   `1fb2b71c23edc6dd7b6d81b2e97b6bd5d4265717` / tree
-   `51ffdc30306be16bbb5e7aedb49d3daff5f766ef`, parent
-   `dc14a1e16edb3aa31a071d8a16857cff2328db1b`; local and remote `main` are
-   `7b27732a8c3c131760ec3438f641cb3c11343a42`, and the remote campaign tip
-   equals `1fb2b71c`. The documentation correction commit and any later edit invalidate
-   that identity. Never trust this embedded value without fresh Git reads.
+   `baa147d0ae7b291f0fb14962a38324161e52926d` / tree
+   `95159979dd0d7c7617f68de16c7d46a69e7b17f7`, parent
+   `afe429c859995885c950333c3522cb2bbd8201b0`; local and remote `main` are
+   `7b27732a8c3c131760ec3438f641cb3c11343a42`, and the assessed remote
+   campaign tip equals `baa147d0`. The documentation repair commit and any
+   later edit invalidate that identity. Never trust this embedded value
+   without fresh Git reads.
 3. Verify the protected oracle exactly:
 
    ```text
@@ -73,9 +82,10 @@ Before any implementation agent is spawned, the coordinator must independently:
    verifier-owned native run directories. Validate every source/tree/tool/oracle
    binding, observer nonce/FD, result schema/hash, dependency receipt, and
    read-only trust input. The worker cannot authorize its own success. Current
-   evidence is not such a receipt: pre-documentation taskfmt lint is 73/73,
-   the identical code tree has a bounded serial proof pass of 43/43, and the
-   clean preflight exit 1 is bound to historical `9346c104`/`00958932`.
+   evidence is not such a receipt: historical taskfmt/proof runs are not bound
+   to the final tree, exact-tag calibration is failed, AP-01–AP-05 remain open,
+   and the clean preflight exit 1 is bound to historical
+   `9346c104`/`00958932`.
 7. Require a fresh independent verifier and a separate independent reviewer to
    return `VERIFIED` for the exact final tree. Predetermined report paths:
 
@@ -115,6 +125,12 @@ Waves:
 4. Migrate Holla, Showcase, Jackin, and TablePro consumers and remove every
    duplicate renderer, compatibility painter, fixed-grid workaround, copied
    oracle frame, and application-specific substitute for reusable components.
+   Complete the migration with breaking changes where required: remove every
+   legacy path and implementation, duplicate renderer, compatibility shim,
+   alias, and deprecation period. No compatibility bridge may remain hidden
+   behind old names, forwarding APIs, fallback painters, or feature flags.
+   Fix the architectural condition that permits each legacy path; a symptom
+   patch requires an explicit root-cause deferral and independent review.
 5. Execute affected parity replay after every integration checkpoint; rerun the
    full 7,550-key matrix at major milestones.
 6. Run the complete final product gates and obtain independent final
@@ -141,18 +157,23 @@ and application paths.
 Architecture acceptance additionally requires caller-owned state, borrowed
 props, read-only drawing, runtime-owned routing/focus/layers/pointer/cursor,
 correct public API migration, component ownership, reuse, and no hidden
-compatibility implementation. Product output must be 1:1 with the frozen
-oracle, not merely visually similar.
+compatibility implementation. It must also prove that no legacy path,
+duplicate renderer, compatibility painter, shim, alias, forwarding facade, or
+deprecation window remains anywhere in the migrated scope. Breaking API changes
+are acceptable and preferred over retaining compatibility. Product output must
+be 1:1 with the frozen oracle, not merely visually similar.
 
 ## Integration, invalidation, and handoff
 
 Each receipt binds the exact tested commit/tree/parent, scope base, task and
 graph hashes, tool/comparator/oracle identity, environment, run/check IDs,
 dependency ancestry, outputs, observer evidence, and independent decisions.
-Any relevant source, docs, task contract, schema, script, tool, oracle,
-environment, or generated-output change invalidates affected evidence and
-requires requalification. A parallel-agent result never survives integration
-automatically.
+Any relevant source, docs, task contract, schema, script, generated workflow,
+tool, comparator, oracle, environment, or generated-output change invalidates
+affected evidence and requires requalification. A parallel-agent result never
+survives integration automatically. A tool revision, executable hash, oracle
+identity, task-contract hash, or final source/tree change invalidates the
+bound receipt; no ancestor or sibling receipt may authorize the changed tree.
 
 At the end, produce merge-readiness evidence for `main`: clean final tree,
 correct ancestry, complete parity/behavior/architecture/performance/static/

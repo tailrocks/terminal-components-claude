@@ -8,29 +8,30 @@ is a preparation gate, not an implementation prompt. Keep the campaign ledger
 
 ## 1. Exact source and branch truth
 
-The tested preparation payload immediately before this documentation correction is:
+The clean payload assessed immediately before this documentation repair is:
 
 ```text
 branch: refactor/holla-parity
-commit: 1fb2b71c23edc6dd7b6d81b2e97b6bd5d4265717
-tree:   51ffdc30306be16bbb5e7aedb49d3daff5f766ef
-parent: dc14a1e16edb3aa31a071d8a16857cff2328db1b
+commit: baa147d0ae7b291f0fb14962a38324161e52926d
+tree:   95159979dd0d7c7617f68de16c7d46a69e7b17f7
+parent: afe429c859995885c950333c3522cb2bbd8201b0
 ```
 
-Git facts at that pre-correction payload:
+Git facts at that assessed pre-documentation payload:
 
 ```text
 refs/heads/main:                  7b27732a8c3c131760ec3438f641cb3c11343a42
 refs/remotes/origin/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
-refs/remotes/origin/refactor/...  1fb2b71c23edc6dd7b6d81b2e97b6bd5d4265717
+refs/remotes/origin/refactor/...  baa147d0ae7b291f0fb14962a38324161e52926d
 merge-base campaign/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
 local commits ahead of remote campaign: 0
 ```
 
-The final verifier must recompute these values after this documentation
-commit. Any relevant edit invalidates affected evidence. Final exact-tree
-reports must be external and must bind the post-documentation commit/tree;
-their paths are:
+This repair is intentionally uncommitted and changes only the four canonical
+documents. A later documentation commit has a different commit/tree and must
+be independently bound. Any relevant edit invalidates affected evidence.
+Final exact-tree reports must be external and bind that later clean tree; their
+paths are:
 
 ```text
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-verifier-report.md
@@ -38,9 +39,15 @@ their paths are:
 ```
 
 No accepted preparation receipt exists. Historical report hashes and prior
-NO-GO identities are not current bindings. The documentation commit itself
-will change the tested tree; final verification must rebind its post-commit
-identity.
+NO-GO identities are not current bindings. No current pass, receipt, or
+acceptance is claimed.
+
+Intervening commits after prior preparation payload `1fb2b71c` are unreviewed
+and are not preparation acceptance evidence: `320e9e7d`, `874d1ff4`,
+`9abd3ec3` (normal revert restoring full coverage), `aabd4d75`, `9ce787ed`,
+`d9ddc94a`, `dca523da`, `d8eb545f`, `356d65e3`, `afe429c8`, and `baa147d0`.
+They change CI, toolchain, generated workflows, xtask, lockfile, or related
+contract/documentation inputs and require exact-source independent review.
 
 ## 2. Immutable baseline and exact corpus
 
@@ -64,7 +71,7 @@ The import was derived from the peeled tag, has zero symlinks, and was not
 used as a candidate-generated baseline. Protected refs and artifacts are
 unchanged.
 
-At the pre-correction candidate `1fb2b71c`, `tests/visual_baseline/` and
+At the assessed pre-documentation candidate `baa147d0`, `tests/visual_baseline/` and
 `.config/nextest.toml` exist. The candidate branch still lacks `snapshots/`
 and `parity/evidence.tsv`; those remain external protected-oracle inputs.
 
@@ -92,6 +99,10 @@ independent verifier and reviewer evidence after safe serial integration.
 
 ## 4. Preparation qualification
 
+No result below is bound to assessed `baa147d0`/`9515997`; every listed run is
+historical provenance only until an exact-source verifier/reviewer run exists.
+Tool and oracle identities do not turn mismatched results into current passes.
+
 Qualified taskfmt:
 
 ```text
@@ -103,13 +114,13 @@ binary:   /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campai
 SHA-256:  f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
 ```
 
-Pre-documentation package-lint run at pushed code `247e47d5`:
+Historical package-lint run at pushed code `247e47d5`:
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-247-direct/all.log`;
 73/73 passed, exit 0; log SHA-256
 `afecad09ba800c74fc841fd4d830fd8932d80e84894bd18c5bf5660522134124`.
 Lint validates contract format only; it does not accept implementation.
 
-Native proof runs:
+Historical native proof runs, invalid for the assessed payload:
 
 | run | command/result |
 | --- | --- |
@@ -220,13 +231,13 @@ Its SHA-256 is
 `9c26f11628fda8a1feb7b248f7a53b05741bf6dd3eaea1d2746c008d5ed52b06`.
 It must not authorize the current branch.
 
-Resolved preparation defects include stale task graph status metadata, stale
-taskfmt path/version enforcement, missing native receipt binding, incomplete
-worker launch fixture provenance, unbounded observer-provider teardown,
-noncanonical native target names, and ambiguous readiness verdict parsing. The
-proof suite now passes under the bounded serial command, but the current
-documentation payload still requires final-tree rebinding and independent
-receipt/reviewer evidence.
+Prior reports recorded resolved defects including stale task graph status
+metadata, stale taskfmt path/version enforcement, missing native receipt
+binding, incomplete worker launch fixture provenance, unbounded
+observer-provider teardown, noncanonical native target names, and ambiguous
+readiness verdict parsing. Those reports are historical, not current
+acceptance. No proof suite result is bound to assessed `baa147d0`/`9515997`;
+exact-tree proof and independent receipt/reviewer evidence remain absent.
 
 **Decision: NO-GO.** The failed exact-tag calibration, rejected visual
 launcher/trust audit, absent accepted receipt and independent final review,
