@@ -25,6 +25,8 @@ ACCOUNTING_MODULES = [
     "identity.py",
     "fixture.py",
     "extension.py",
+    "observer.py",
+    "qualification.py",
     "dispatch.py",
 ]
 ARCHITECTURE_MODULES = [
@@ -96,9 +98,58 @@ def bundle() -> None:
             f"# ----- architecture/{name} -----\n"
             f"{strip_imports_and_docstring((ARCHITECTURE / name).read_text())}\n\n"
         )
+    # Keep the generated runner entrypoint byte-identical to source. Temporarily
+    # rename __name__ so the bundled `if __name__ == "__main__"` does not fire
+    # before the qualification overlay redefines main(). The extra section
+    # markers are not generated from source modules.
+    parts.append(
+        "# ----- architecture/bundle-guard -----\n"
+        "_bundle_module_name = __name__\n"
+        '__name__ = "_tc_proof_bundle"\n\n'
+    )
     parts.append(
         f"# ----- runner/__main__.py -----\n"
         f"{strip_imports_and_docstring(ENTRYPOINT.read_text())}\n\n"
+    )
+    parts.append(
+        "# ----- architecture/qualification-overlay -----\n"
+        "__name__ = _bundle_module_name\n"
+        "MAX_RESPONSE_BYTES = 30_000_000\n"
+        "_native_runner_main = main\n"
+        "_validated_executable = qualification_validated_executable\n\n"
+        "def main(argv=None):\n"
+        "    args = parse_args(argv or sys.argv[1:])\n"
+        "    if args.approve:\n"
+        "        return finish(\n"
+        '            "rejected",\n'
+        '            "PROTOCOL",\n'
+        "            {},\n"
+        "            [],\n"
+        "            args.operation,\n"
+        '            os.environ.get("TC_PROOF_CONTEXT_SHA256", "0" * 64),\n'
+        "        )\n"
+        "    if args.operation in RUNNER_OPS and os.environ.get("
+        '"TC_PROOF_NATIVE_HANDOFF_FD") is None:\n'
+        '        if os.environ.get("TC_PROOF_NATIVE_LAUNCH") == "1":\n'
+        "            return launch_native_worker(args)\n"
+        "        try:\n"
+        "            context, _, _ = load_context(args.context)\n"
+        "        except Reject as error:\n"
+        "            return finish(\n"
+        '                "rejected",\n'
+        "                error.category,\n"
+        "                {},\n"
+        "                [],\n"
+        "                args.operation,\n"
+        '                os.environ.get("TC_PROOF_CONTEXT_SHA256", "0" * 64),\n'
+        "            )\n"
+        "        if is_qualification_schema(context):\n"
+        '            if args.operation == "architecture":\n'
+        "                return run_architecture(args.context)\n"
+        "            return qualification_dispatch(args)\n"
+        "    return _native_runner_main(argv)\n\n"
+        'if __name__ == "__main__":\n'
+        "    raise SystemExit(main())\n"
     )
     BIN.write_text("".join(parts).rstrip() + "\n")
     BIN.chmod(0o755)

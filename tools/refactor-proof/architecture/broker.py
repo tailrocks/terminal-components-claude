@@ -82,7 +82,7 @@ def validate_broker_observation(body: dict[str, Any], profile: dict[str, Any]) -
                 extra = fields - allowed
                 if extra & {"runtime", "theme", "cache", "extra", "third"}:
                     raise Reject("ARCHITECTURE")
-            if kind == "macro" and "hidden" in str(fact.get("path", "")):
+            if kind == "macro" and "hidden" in str(fact).lower():
                 raise Reject("ARCHITECTURE")
 
         if "pub static SIGNAL_BROKER" in text:
@@ -105,7 +105,9 @@ def validate_broker_observation(body: dict[str, Any], profile: dict[str, Any]) -
             raise Reject("ARCHITECTURE")
         if re.search(r"^struct OnceLock", text, flags=re.M) and "SIGNAL_BROKER" in text:
             raise Reject("ARCHITECTURE")
-        if "fn broken( {" in text:
+        if "fn broken( {" in text or "fn broken({" in text:
+            raise Reject("ARCHITECTURE")
+        if "macro_rules! hidden" in text:
             raise Reject("ARCHITECTURE")
         if re.search(r"fn\s+\w+[^{]*\{[^}]*static SIGNAL_BROKER", text, re.S):
             raise Reject("ARCHITECTURE")

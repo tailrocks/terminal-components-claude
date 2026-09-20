@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 from typing import Any
 
+from ..accounting.observer import QualificationObserver
+from ..accounting.qualification import is_qualification_schema, validate_qualification_schema
 from ..runner.context import Reject, bind_context, load_context, validate_schema, validate_source_authority
 from ..runner.observer import ObserverClient, ObserverError
 from ..runner.result import finish
@@ -21,11 +23,23 @@ def _reported_hash(context_hash: str) -> str:
     return os.environ.get("TC_PROOF_CONTEXT_SHA256", context_hash)
 
 
+def _observer_for(context: dict[str, Any], operation: str) -> QualificationObserver | ObserverClient:
+    if is_qualification_schema(context):
+        return QualificationObserver.from_env()
+    sequence = context.get("observer_sequence")
+    if not isinstance(sequence, list) or not sequence:
+        sequence = [operation]
+    return ObserverClient.from_env(sequence)
+
+
 def _validate_architecture_context(context: dict[str, Any]) -> None:
     profile = context.pop("architecture_profile", None)
     branch_host_projection = context.pop("branch_host_projection", None)
     try:
-        validate_schema(context)
+        if is_qualification_schema(context):
+            validate_qualification_schema(context)
+        else:
+            validate_schema(context)
     finally:
         if profile is not None:
             context["architecture_profile"] = profile
@@ -95,7 +109,7 @@ def run_architecture(context_path: Path) -> int:
         _validate_architecture_context(context)
         validate_source_authority(context, operation)
         profile = context.get("architecture_profile")
-        client = ObserverClient.from_env()
+        client = _observer_for(context, operation)
         event = client.request(
             operation,
             os.environ["TC_PROOF_ORACLE_COMMIT"],

@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from ..runner.context import Reject
+from .broker import validate_broker_observation
 
 
 def _decode(record: dict[str, Any], stream: str) -> bytes:
@@ -84,6 +85,8 @@ def _graph_violations(metadata: dict[str, Any], contract: dict[str, Any]) -> lis
     by_name: dict[str, list[dict[str, Any]]] = {}
     for package in metadata["packages"]:
         by_name.setdefault(package["name"], []).append(package)
+    if "junie-tui" not in by_name:
+        raise Reject("ARCHITECTURE")
     core = by_name["junie-tui"][0]
     root_name = contract.get("package", "junie-tui")
     direct = {dependency["name"] for dependency in core["dependencies"] if dependency["kind"] is None}
