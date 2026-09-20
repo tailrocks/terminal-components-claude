@@ -1,6 +1,37 @@
 [tools]
 "aqua:nextest-rs/nextest/cargo-nextest" = "0.9.145"
+"aqua:lycheeverse/lychee" = "0.24.2"
 
 [settings]
 lockfile = true
 idiomatic_version_file_enable_tools = []
+
+[tasks.boundary]
+description = "Forbidden-pattern and dependency-graph checks"
+run = "cargo run --locked -p xtask -- boundary"
+
+[tasks.bless-guard]
+description = "Classify baseline moves against docs/visual-changes.md"
+run = "cargo run --locked -p xtask -- bless-guard"
+
+[tasks.doc-check]
+description = "Resolve Ident::method references in architecture docs"
+run = "cargo run --locked -p xtask -- doc-check"
+
+[tasks.rustdoc]
+description = "Compile rustdoc with warnings denied"
+run = "RUSTDOCFLAGS=-D warnings cargo doc --locked --workspace --all-features --no-deps"
+
+[tasks.lychee]
+description = "Check tracked Markdown links"
+run = """
+set -euo pipefail
+INPUTS="$(mktemp)"
+trap 'rm -f "$INPUTS"' EXIT
+git ls-files -z | tr '\\0' '\\n' | awk 'tolower($0) ~ /\\.(md|mkd|mdx|mdown|mdwn|mkdn|mkdown|markdown|mdc)$/ { print }' > "$INPUTS"
+mise exec lychee@0.24.2 -- lychee --config lychee.toml --root-dir "$PWD" --files-from "$INPUTS"
+"""
+
+[tasks.perf]
+description = "Library allocation and byte perf (no PERF_BLESS)"
+run = "cargo nextest run --locked -p junie-tui --test perf --test perf_collections --release --test-threads=1"

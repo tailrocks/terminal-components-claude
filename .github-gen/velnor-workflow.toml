@@ -8,6 +8,7 @@ revision = "1048337062ea625fada1b4f7c07f2feed75f60c7"
 # self-hosted runner labels.
 [workflow]
 runners = "github"
+default_branch = "main"
 
 # Nested workspace fixtures and historical evidence crates are not product CI.
 # `tests/visual_baseline` is already ignored (manifests under tests/).
@@ -20,3 +21,62 @@ exclude = [
 [[static_files]]
 file = ".github/workflows/AGENTS.md"
 source = ".github-gen/sources/workflows-AGENTS.md"
+
+# Extra gates on the scanned xtask unit. Affected/full CI already provisions
+# Rust 1.98.1 from rust-toolchain.toml; do not restore an MSRV-1.88 matrix.
+[[units]]
+id = "rust-xtask"
+ci_tasks = ["boundary", "bless-guard", "doc-check", "rustdoc", "lychee"]
+mise_tools = ["aqua:lycheeverse/lychee"]
+
+# Repo-wide extra gates, including push coverage on the campaign branch.
+# `[workflow]` has no extra_branches / additional_branches / push_branches
+# field; scheduled-checks `events` + `branches` is the typed substitute.
+[[check_profile]]
+id = "boundary"
+name = "Boundary"
+tasks = ["boundary"]
+timeout_minutes = 45
+
+[[check_profile]]
+id = "bless-guard"
+name = "Bless guard"
+tasks = ["bless-guard"]
+timeout_minutes = 45
+env = { BLESS_GUARD_BASE = "${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}" }
+
+[[check_profile]]
+id = "doc-check"
+name = "Doc check"
+tasks = ["doc-check"]
+timeout_minutes = 45
+
+[[check_profile]]
+id = "rustdoc"
+name = "Rustdoc"
+tasks = ["rustdoc"]
+timeout_minutes = 60
+
+[[check_profile]]
+id = "lychee"
+name = "Markdown links"
+tools = ["aqua:lycheeverse/lychee"]
+tasks = ["lychee"]
+timeout_minutes = 20
+
+[[check_profile]]
+id = "perf"
+name = "Library perf"
+tools = ["aqua:nextest-rs/nextest/cargo-nextest"]
+tasks = ["perf"]
+timeout_minutes = 90
+
+[[declare]]
+primitive = "scheduled-checks"
+file = "ci-extra-gates.yml"
+
+[declare.args]
+name = "Extra gates"
+profiles = ["boundary", "bless-guard", "doc-check", "rustdoc", "lychee", "perf"]
+events = ["push", "pull_request"]
+branches = ["main", "refactor/holla-parity"]

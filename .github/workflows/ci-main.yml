@@ -554,8 +554,8 @@ jobs:
       full_units: ${{ needs.plan.outputs.full_units }}
       base_sha: ${{ needs.plan.outputs.base_sha }}
       head_sha: ${{ needs.plan.outputs.head_sha }}
-      mise_tools: "aqua:nextest-rs/nextest/cargo-nextest"
-      mbx_compat: "569f5edd59b7"
+      mise_tools: "aqua:nextest-rs/nextest/cargo-nextest aqua:lycheeverse/lychee"
+      mbx_compat: ada5c5db5f9e
       mbx_dependency_files: |
         .cargo/**
         Cargo.lock
