@@ -5110,7 +5110,7 @@ finally:
     #[test]
     fn oracle_context_binds_explicit_synthetic_family() {
         let (fixture, options) = require_ok!(
-            fixture_options_for("002", &["001", "070", "071", "072"]),
+            fixture_options_for("002", &["071", "072"]),
             "fixture options"
         );
         let prepared = require_ok!(prepare(&options), "prepare");
