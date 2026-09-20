@@ -36,7 +36,7 @@ default-filter = "not test(rebuild_review_html)"
 [[profile.default.overrides]]
 filter = "binary(visual_baseline)"
 test-group = "pty"
-# Audit matrices run 25 PTYs in one test; 4×60s killed them under load.
+# One PTY+PNG raster per test (size×color unbundled). Do not raise this.
 slow-timeout = { period = "60s", terminate-after = 10 }
 
 [[profile.default.overrides]]

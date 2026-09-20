@@ -4,8 +4,8 @@
 //! post-flag + 10 audit hole closures). The 5 audit pages
 //! (buttons/diff/forms/inputs/textareas) keep statics only in audit.rs
 //! (`showcase/audit/`, 5×5 matrix — the dedupe rule). Every showcase
-//! representative root runs the shared 5×5 canonical matrix; the pointer
-//! group applies the same matrix to its six resize roots.
+//! representative root expands to one nextest test per size×color; the pointer
+//! group applies the same per-combo tests to its six resize roots.
 //!
 //! Ported verbatim from the retired `tools/tuisnap_baseline.sh` (argv, needles,
 //! sends, `CAP_TIMEOUTs`); only the store names were regrouped

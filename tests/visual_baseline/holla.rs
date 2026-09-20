@@ -586,8 +586,7 @@ crate::baseline_case!(holla_flows_mac_top_files_120x40_truecolor => Case::new("h
 crate::baseline_case!(holla_flows_docker_drift_120x40_truecolor => Case::new("holla/flows/docker/drift/120x40/truecolor", HOLLA, &["--scenario", "docker-cleanup", "--motion", "paused", "--frame", "40"], 120, 40, Color::Truecolor, "holla❯").sends(&["enter", "c", "wait:gate 1 of 2", "right", "enter", "wait:gate 2 of 2", "enter", "type:I UNDERSTAND: REMOVE ALL DOCKER DATA ON devbox", "enter", "tab", "enter", "wait:a new container"]));
 
 // --------------------------------------------------------------------- fade --
-// Wheel scroll-fade over live sessions, centrally expanded by the shared
-// canonical live matrix.
+// Wheel scroll-fade over live sessions, one nextest test per size×color.
 
 /// First occurrence of `needle` as `(row, col)`, waiting until it appears.
 fn find(s: &mut Session, needle: &str) -> (u16, u16) {
@@ -609,9 +608,7 @@ fn wheel_down(s: &mut Session, needle: &str, notches: u32) {
     }
 }
 
-#[test]
-#[ignore = "visual baseline capture; run with --ignored"]
-fn holla_fade_trust_body_wheel_matrix() {
+crate::baseline_combo_tests!(holla_fade_trust_body_wheel_matrix, |cols, rows, color| {
     // The trust definition is the scrollable body (review.rs TRUST_BODY);
     // two notches put the fade at its top edge.
     let case = Case::new(
@@ -628,18 +625,16 @@ fn holla_fade_trust_body_wheel_matrix() {
         "enter",
         "wait:Trust ~/work/team/.holla.toml?",
     ]);
-    support::run_canonical_live(&case, |s, variant| {
+    support::run_live_combo(&case, cols, rows, color, |s, variant| {
         if variant.rows <= 24 {
             wheel_down(s, "Trust scope", 2);
         } else {
             wheel_down(s, "id = \"deploy.preview\"", 2);
         }
     });
-}
+});
 
-#[test]
-#[ignore = "visual baseline capture; run with --ignored"]
-fn holla_fade_cleanup_list_wheel_matrix() {
+crate::baseline_combo_tests!(holla_fade_cleanup_list_wheel_matrix, |cols, rows, color| {
     // The 18 insight categories overflow the list at 120x40; the wheel
     // target is a row that appears only in the list (never in the detail
     // panel, which mirrors the selected category).
@@ -657,7 +652,7 @@ fn holla_fade_cleanup_list_wheel_matrix() {
         "enter",
         "wait:18 categories",
     ]);
-    support::run_canonical_live(&case, |s, case| {
+    support::run_live_combo(&case, cols, rows, color, |s, case| {
         // Rows are clickable children and shadow the list's scroll region in
         // hit_scroll's topmost-wins lookup, so the wheel lands on the blank
         // line below the needle (no child region there) instead.
@@ -667,11 +662,9 @@ fn holla_fade_cleanup_list_wheel_matrix() {
             wheel_below(s, "Yarn cache", 2);
         }
     });
-}
+});
 
-#[test]
-#[ignore = "visual baseline capture; run with --ignored"]
-fn holla_fade_executor_burst_end_matrix() {
+crate::baseline_combo_tests!(holla_fade_executor_burst_end_matrix, |cols, rows, color| {
     // 4500 lines in sixteen ticks: the retention panel states the drop and
     // the tail sits at the bottom; after the burst nothing animates, so the
     // settle captures the exact end frame (h_fade_burst's successor).
@@ -689,5 +682,5 @@ fn holla_fade_executor_burst_end_matrix() {
         "enter",
         "wait:500 earlier lines dropped",
     ]);
-    support::run_canonical_live(&case, |_, _| ());
-}
+    support::run_live_combo(&case, cols, rows, color, |_, _| ());
+});

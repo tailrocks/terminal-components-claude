@@ -14,12 +14,12 @@
 //! the `pointer` module adds the mouse/resize group the CLI could not
 //! express (hover, drag-select, wheel scroll-fade, resize sequences). The
 //! `audit` module generates the 10-fixture × 5 sizes × 5 colours audit
-//! matrix data-drivenly; the audit-flow variant matrices live in
+//! matrix as one nextest test per combo; audit-flow variants live in
 //! `showcase.rs` (keyboard) and `pointer.rs` (drag-select).
 //!
-//! Every capture test is `#[ignore]`d: default `cargo nextest run` compiles
-//! the suite and runs only the cheap non-PTY [`store_integrity`] check. Run
-//! the PTY baseline explicitly:
+//! Every capture test is `#[ignore]`d and is one size×color combo: default
+//! `cargo nextest run` compiles the suite and runs only the cheap non-PTY
+//! [`store_integrity`] check. Run the PTY baseline explicitly:
 //!
 //! ```sh
 //! VISUAL_BASELINE_STORE=.../snapshots cargo nextest run \

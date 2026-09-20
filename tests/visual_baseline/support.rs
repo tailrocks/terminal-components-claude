@@ -65,8 +65,8 @@ pub const CANONICAL_COLORS: [Color; 5] = [
     Color::None,
     Color::NoColorEnv,
 ];
-/// Prefixes for the 9 `audit_matrix` fixtures (`{prefix}/{cols}x{rows}/{color}`).
-/// Accounts is a custom loop with the same name shape ([`AUDIT_PREFIX_JACKIN_ACCOUNTS`]).
+/// Prefixes for the 9 `audit_matrix_tests` fixtures (`{prefix}/{cols}x{rows}/{color}`).
+/// Accounts is a custom combo body with the same name shape ([`AUDIT_PREFIX_JACKIN_ACCOUNTS`]).
 pub const AUDIT_PREFIX_HOLLA_RUST: &str = "holla/audit/rust";
 pub const AUDIT_PREFIX_HOLLA_UPGRADE: &str = "holla/audit/upgrade";
 pub const AUDIT_PREFIX_JACKIN_CAPSULE: &str = "jackin/audit/capsule";
@@ -666,32 +666,44 @@ pub fn run_and_assert(case: &Case) {
     assert_gated(&gate(&case.name, &frame));
 }
 
-/// Expand one representative static `Case::new` root through the full canonical
-/// matrix. The representative's sends/timeout apply to every combo; choose a
-/// representative whose determinism contract is size-independent.
-pub fn run_canonical(representative: &Case) {
-    let mut failures = Vec::new();
-    for &(cols, rows) in &CANONICAL_SIZES {
-        for color in CANONICAL_COLORS {
-            let case = representative.variant(cols, rows, color);
-            let name = case.name.to_string();
-            if !collect_matrix(&name, || run_and_assert(&case)) {
-                failures.push(name);
-            }
-        }
-    }
-    finish_matrix(&failures);
+/// One size×color combo of a representative static `Case::new` root.
+/// Sends/timeout come from the representative; the capture name is re-rooted.
+pub fn run_combo(representative: &Case, cols: u16, rows: u16, color: Color) {
+    run_and_assert(&representative.variant(cols, rows, color));
 }
 
-/// Expand one representative while preserving exact legacy declarations.
+/// One size×color combo, preserving exact legacy declarations for that combo.
 ///
 /// A root may have had distinct settings at specific old size/color combos
 /// (for example, a larger boot frame or an extra readiness wait). Those full
 /// declarations are passed explicitly and win for their exact combo; every
 /// combo without an old declaration inherits the representative. Duplicate
 /// declarations for one combo are a configuration conflict, not a precedence
-/// rule.
-pub fn run_canonical_with_variants(representative: &Case, variants: &[Case]) {
+/// rule. The whole variant table is validated on every combo so a conflict
+/// cannot hide behind an unselected size/color.
+pub fn run_combo_with_variants(
+    representative: &Case,
+    variants: &[Case],
+    cols: u16,
+    rows: u16,
+    color: Color,
+) {
+    run_and_assert(&combo_from_variants(
+        representative,
+        variants,
+        cols,
+        rows,
+        color,
+    ));
+}
+
+fn combo_from_variants(
+    representative: &Case,
+    variants: &[Case],
+    cols: u16,
+    rows: u16,
+    color: Color,
+) -> Case {
     let root = canonical_root(&representative.name).unwrap_or_else(|| {
         panic!(
             "`{}` is not a canonical `<root>/<size>/<color>` capture",
@@ -728,101 +740,62 @@ pub fn run_canonical_with_variants(representative: &Case, variants: &[Case]) {
             variant.color.suffix()
         );
     }
-
-    let mut failures = Vec::new();
-    for &(cols, rows) in &CANONICAL_SIZES {
-        for color in CANONICAL_COLORS {
-            let case = selected
-                .get(&(cols, rows, color.suffix()))
-                .copied()
-                .unwrap_or(representative)
-                .variant(cols, rows, color);
-            let name = case.name.to_string();
-            if !collect_matrix(&name, || run_and_assert(&case)) {
-                failures.push(name);
-            }
-        }
-    }
-    finish_matrix(&failures);
+    selected
+        .get(&(cols, rows, color.suffix()))
+        .copied()
+        .unwrap_or(representative)
+        .variant(cols, rows, color)
 }
 
-/// Expand a live pointer/keyboard/manual-flow root through the same matrix.
-/// `interact` runs after the centrally driven boot + case sends and before the
-/// centrally settled/gated capture.
-pub fn run_canonical_live(representative: &Case, mut interact: impl FnMut(&mut Session, &Case)) {
-    let mut failures = Vec::new();
-    for &(cols, rows) in &CANONICAL_SIZES {
-        for color in CANONICAL_COLORS {
-            let case = representative.variant(cols, rows, color);
-            let name = case.name.to_string();
-            if !collect_matrix(&name, || {
-                let mut session = spawn_boot(&case);
-                interact(&mut session, &case);
-                settle_and_gate(&mut session, &case.name);
-            }) {
-                failures.push(name);
-            }
-        }
-    }
-    finish_matrix(&failures);
-}
-
-/// Expand a representative live root, substituting a compact send chain for
-/// terminal widths at or below `max_cols`. This is for responsive layouts
-/// that need an explicit drawer/detail step which the wide representative's
-/// sends cannot express; coverage remains the full canonical 5×5 matrix.
-pub fn run_canonical_live_with_compact_sends(
+/// One live pointer/keyboard/manual-flow combo. `interact` runs after the
+/// centrally driven boot + case sends and before the settled/gated capture.
+pub fn run_live_combo(
     representative: &Case,
+    cols: u16,
+    rows: u16,
+    color: Color,
+    mut interact: impl FnMut(&mut Session, &Case),
+) {
+    let case = representative.variant(cols, rows, color);
+    let mut session = spawn_boot(&case);
+    interact(&mut session, &case);
+    settle_and_gate(&mut session, &case.name);
+}
+
+/// One live combo, substituting a compact send chain for terminal widths at
+/// or below `max_cols`. This is for responsive layouts that need an explicit
+/// drawer/detail step which the wide representative's sends cannot express.
+pub fn run_live_combo_with_compact_sends(
+    representative: &Case,
+    cols: u16,
+    rows: u16,
+    color: Color,
     max_cols: u16,
     compact_sends: &'static [&'static str],
     mut interact: impl FnMut(&mut Session, &Case),
 ) {
-    let mut failures = Vec::new();
-    for &(cols, rows) in &CANONICAL_SIZES {
-        for color in CANONICAL_COLORS {
-            let mut case = representative.variant(cols, rows, color);
-            if cols <= max_cols {
-                case.sends = compact_sends;
-            }
-            let name = case.name.to_string();
-            if !collect_matrix(&name, || {
-                let mut session = spawn_boot(&case);
-                interact(&mut session, &case);
-                settle_and_gate(&mut session, &case.name);
-            }) {
-                failures.push(name);
-            }
-        }
+    let mut case = representative.variant(cols, rows, color);
+    if cols <= max_cols {
+        case.sends = compact_sends;
     }
-    finish_matrix(&failures);
+    let mut session = spawn_boot(&case);
+    interact(&mut session, &case);
+    settle_and_gate(&mut session, &case.name);
 }
 
-/// Run `body` for each combo of a data-driven matrix without stopping at the
-/// first failure: every combo's actuals are written before the fn panics, so
-/// an intentional-change run regenerates the whole matrix in one pass. The
-/// fn still fails loudly, with every failed combo named.
-pub fn collect_matrix(combo: &str, body: impl FnOnce()) -> bool {
-    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(body)) {
-        Ok(()) => true,
-        Err(e) => {
-            let msg = e
-                .downcast_ref::<String>()
-                .cloned()
-                .or_else(|| e.downcast_ref::<&str>().map(ToString::to_string))
-                .unwrap_or_else(|| "unknown panic".into());
-            eprintln!("matrix combo FAILED {combo}: {msg}");
-            false
-        }
-    }
-}
-
-/// Panic if any [`collect_matrix`] call reported a failure.
-pub fn finish_matrix(failures: &[String]) {
-    assert!(
-        failures.is_empty(),
-        "{} matrix capture(s) failed: {}",
-        failures.len(),
-        failures.join(", ")
+/// One resize combo: the representative keeps its initial PTY geometry; the
+/// capture name and `capture`'s target cols/rows are the combo.
+pub fn run_resize_combo(
+    representative: &Case,
+    cols: u16,
+    rows: u16,
+    color: Color,
+    capture: impl FnOnce(&Case, u16, u16),
+) {
+    capture(
+        &representative.resize_variant(cols, rows, color),
+        cols,
+        rows,
     );
 }
 
@@ -885,30 +858,180 @@ pub fn settle_and_gate(session: &mut Session, name: &str) {
     assert_gated(&gate(name, &frame));
 }
 
-/// One `#[test]` per canonical root, generated from the representative static
-/// case tables so cargo name filters work. The test fn name comes from the
-/// representative capture; `run_canonical` expands `Case.name`'s root to all
-/// 5 sizes × 5 colours.
+/// One `#[test]` per size×color combo. Nested module name is the representative
+/// ident so cargo/nextest filters still match the root; each combo is its own
+/// nextest test so `terminate-after = 10` cannot SIGTERM a 25-raster bundle.
 #[macro_export]
-macro_rules! baseline_case {
-    ($fn_name:ident => $case:expr) => {
-        #[test]
-        #[ignore = "visual baseline capture; run with --ignored"]
-        fn $fn_name() {
-            $crate::support::run_canonical(&$case);
+macro_rules! baseline_combo_tests {
+    ($mod_name:ident, |$cols:ident, $rows:ident, $color:ident| $body:expr) => {
+        #[allow(unused_imports)]
+        mod $mod_name {
+            use super::*;
+
+            fn run($cols: u16, $rows: u16, $color: Color) {
+                $body
+            }
+
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_72x20_truecolor() {
+                run(72, 20, Color::Truecolor);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_72x20_256() {
+                run(72, 20, Color::Ansi256);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_72x20_16() {
+                run(72, 20, Color::Ansi16);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_72x20_none() {
+                run(72, 20, Color::None);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_72x20_nocolor() {
+                run(72, 20, Color::NoColorEnv);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_80x24_truecolor() {
+                run(80, 24, Color::Truecolor);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_80x24_256() {
+                run(80, 24, Color::Ansi256);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_80x24_16() {
+                run(80, 24, Color::Ansi16);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_80x24_none() {
+                run(80, 24, Color::None);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_80x24_nocolor() {
+                run(80, 24, Color::NoColorEnv);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_100x30_truecolor() {
+                run(100, 30, Color::Truecolor);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_100x30_256() {
+                run(100, 30, Color::Ansi256);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_100x30_16() {
+                run(100, 30, Color::Ansi16);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_100x30_none() {
+                run(100, 30, Color::None);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_100x30_nocolor() {
+                run(100, 30, Color::NoColorEnv);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_120x40_truecolor() {
+                run(120, 40, Color::Truecolor);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_120x40_256() {
+                run(120, 40, Color::Ansi256);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_120x40_16() {
+                run(120, 40, Color::Ansi16);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_120x40_none() {
+                run(120, 40, Color::None);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_120x40_nocolor() {
+                run(120, 40, Color::NoColorEnv);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_160x50_truecolor() {
+                run(160, 50, Color::Truecolor);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_160x50_256() {
+                run(160, 50, Color::Ansi256);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_160x50_16() {
+                run(160, 50, Color::Ansi16);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_160x50_none() {
+                run(160, 50, Color::None);
+            }
+            #[test]
+            #[ignore = "visual baseline capture; run with --ignored"]
+            fn c_160x50_nocolor() {
+                run(160, 50, Color::NoColorEnv);
+            }
         }
     };
 }
 
-/// One test per canonical root, with exact declarations for legacy combos.
+/// One nextest test per canonical combo, generated from the representative
+/// static case tables so cargo name filters still match the root.
+#[macro_export]
+macro_rules! baseline_case {
+    ($fn_name:ident => $case:expr) => {
+        $crate::baseline_combo_tests!($fn_name, |cols, rows, color| {
+            $crate::support::run_combo(&$case, cols, rows, color);
+        });
+    };
+}
+
+/// One nextest test per combo, with exact declarations for legacy combos.
 #[macro_export]
 macro_rules! baseline_case_with_variants {
     ($fn_name:ident => $case:expr, [$($variant:expr),* $(,)?] $(,)?) => {
-        #[test]
-        #[ignore = "visual baseline capture; run with --ignored"]
-        fn $fn_name() {
+        $crate::baseline_combo_tests!($fn_name, |cols, rows, color| {
             let variants = [$($variant),*];
-            $crate::support::run_canonical_with_variants(&$case, &variants);
-        }
+            $crate::support::run_combo_with_variants(&$case, &variants, cols, rows, color);
+        });
+    };
+}
+
+/// One nextest test per audit size×color combo.
+#[macro_export]
+macro_rules! audit_matrix_tests {
+    ($fn_name:ident, $prefix:expr, $bin:expr, $args:expr, $needle:expr $(,)?) => {
+        $crate::baseline_combo_tests!($fn_name, |cols, rows, color| {
+            let name = $crate::support::audit_default_name($prefix, cols, rows, color);
+            let case =
+                $crate::support::Case::dynamic(name, $bin, $args, cols, rows, color, $needle);
+            $crate::support::run_and_assert(&case);
+        });
     };
 }
