@@ -8,4 +8,4 @@ pub mod observer;
 pub mod verifier;
 
 pub use json_util::{canonical_json, sha256_bytes, sha256_canonical};
-pub use verifier::{validate_run, validate_run_closed};
+pub use verifier::validate_run;
