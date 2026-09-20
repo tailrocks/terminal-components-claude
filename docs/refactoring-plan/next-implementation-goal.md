@@ -7,9 +7,9 @@ must pass the startup gate below before it can create implementation agents or
 arm dispatch.
 
 This handoff is generated from the assessed pre-documentation source payload
-`68ff91d404e2a562ed8d0e8591758b81452432a9` / tree
-`fb04c7121d2a566aaa9cca19b13d1439fafcb3f9` / parent
-`032d8a836728196945a5e1cfe4e5d979acba1d94`. The subsequent documentation
+`4abd4d7bac18d4d56b601b257e40de98422382a1` / tree
+`2dc5fdd763321174348a454e866b67eb82dc89ee2` / parent
+`b384179cafa5b5da052cf65d9570b713f29471d5`. The subsequent documentation
 repair changes the source tree; this file cannot self-attest that future tree.
 The next run must bind its own clean commit/tree and invalidate every affected
 receipt, result, context, review, and calibration run after any relevant edit.
@@ -35,11 +35,11 @@ Before any implementation agent is spawned, the coordinator must independently:
 2. Re-read Git refs. Bind the actual branch, local/remote `main`, merge-base,
    scope base, clean worktree, final source commit/tree/parent, and dependency
    ancestry. The preparation payload before this generated prompt was
-   `68ff91d404e2a562ed8d0e8591758b81452432a9` / tree
-   `fb04c7121d2a566aaa9cca19b13d1439fafcb3f9`, parent
-   `032d8a836728196945a5e1cfe4e5d979acba1d94`; local and remote `main` are
+   `4abd4d7bac18d4d56b601b257e40de98422382a1` / tree
+   `2dc5fdd763321174348a454e866b67eb82dc89ee2`, parent
+   `b384179cafa5b5da052cf65d9570b713f29471d5`; local and remote `main` are
    `7b27732a8c3c131760ec3438f641cb3c11343a42`, and the assessed remote
-   campaign tip equals `68ff91d4`. The documentation rebinding commit and any
+   campaign tip equals `4abd4d7b`. The documentation rebinding commit and any
    later edit invalidate that identity. Never trust this embedded value
    without fresh Git reads.
 3. Verify the protected oracle exactly:
@@ -64,7 +64,7 @@ Before any implementation agent is spawned, the coordinator must independently:
    revision: afd3b575dbcc7044620bec4b9493a74eca3e5ef2
    source tree: b7d90bd8adbe6c341a08fc485099ee8cf1584431
    version: 0.2.0
-   binary: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/taskfmt-qualified-2026-09-19/install/bin/taskfmt
+   binary: /Users/donbeave/.cargo/bin/taskfmt
    SHA-256: f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
    ```
 
@@ -83,7 +83,8 @@ Before any implementation agent is spawned, the coordinator must independently:
    binding, observer nonce/FD, result schema/hash, dependency receipt, and
    read-only trust input. The worker cannot authorize its own success. Current
    evidence is not such a receipt: historical taskfmt/proof runs are not bound
-   to the final tree, exact-tag calibration is failed, AP-01–AP-05 remain open,
+   to the final tree, exact-tag calibration is failed, AP-01–AP-04 remain open,
+   AP-05 was repaired in `b384179c` but still needs exact-tree confirmation,
    and the clean preflight exit 1 is bound to historical
    `9346c104`/`00958932`.
 7. Require a fresh independent verifier and a separate independent reviewer to

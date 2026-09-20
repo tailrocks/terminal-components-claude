@@ -7,18 +7,18 @@ completion claim.
 ## Assessed pre-documentation source and refs
 
 ```text
-assessed pre-documentation payload: 68ff91d404e2a562ed8d0e8591758b81452432a9
-assessed pre-documentation tree:    fb04c7121d2a566aaa9cca19b13d1439fafcb3f9
-parent:                              032d8a836728196945a5e1cfe4e5d979acba1d94
+assessed pre-documentation payload: 4abd4d7bac18d4d56b601b257e40de98422382a1
+assessed pre-documentation tree:    2dc5fdd763321174348a454e866b67eb82dc89ee2
+parent:                              b384179cafa5b5da052cf65d9570b713f29471d5
 branch:                     refactor/holla-parity
 local main:                 7b27732a8c3c131760ec3438f641cb3c11343a42
 remote main:                7b27732a8c3c131760ec3438f641cb3c11343a42
-remote campaign tip:       68ff91d404e2a562ed8d0e8591758b81452432a9
+remote campaign tip:       4abd4d7bac18d4d56b601b257e40de98422382a1
 merge-base with main:       7b27732a8c3c131760ec3438f641cb3c11343a42
 ```
 
-The worktree was clean at this assessment. This repair is intentionally
-uncommitted and changes only the four canonical documents. Any later
+The worktree was clean at this assessment. This rebinding changes only the
+four canonical documents. Any later
 documentation commit has a different commit/tree and must be independently
 bound. No receipt may attest to a future commit containing itself. Final report
 paths:
@@ -33,11 +33,10 @@ comparator, oracle, environment, or generated-output change invalidates
 affected evidence.
 
 All results listed below bind to other source commits/trees, not assessed
-`68ff91d4`/`fb04c71`; they are historical provenance, not current passes or
-receipts. The intervening unreviewed commits are `320e9e7d`, `874d1ff4`,
-`9abd3ec3`, `aabd4d75`, `9ce787ed`, `d9ddc94a`, `dca523da`, `d8eb545f`,
-`356d65e3`, `afe429c8`, `baa147d0`, `e2f537d9`, `3701841a`, `07f7d724`,
-`cd7b3d85`, and `68ff91d4`.
+`4abd4d7b`/`2dc5fd`; they are historical provenance, not current passes or
+receipts. The later preparation commits are `28dc673b`, `6c8f5905`,
+`5d311e06`, `c21a1fe5`, `6c4535e7`, `b384179c`, and `4abd4d7b`; historical
+evidence cannot be reused across them.
 
 ## Oracle identity and inventory
 
@@ -62,15 +61,15 @@ The source identity for the complete snapshot producer is
 `89218626011f2f82c4e87c4dfd5868a4c5f3e284` / tree
 `6fccf997cd742071ebcff0e0a00e89404ef95ca8`, with the same snapshot tree.
 
-At the assessed pre-documentation candidate `68ff91d4`, `tests/visual_baseline/` and
+At the assessed payload before this documentation rebinding, `tests/visual_baseline/` and
 `.config/nextest.toml` exist. The candidate branch has no `snapshots/`
 directory and no `parity/evidence.tsv`; the imported oracle remains external
 and read-only.
 
 ## Qualified tool identity and historical command evidence
 
-No command result below is bound to assessed `68ff91d4`/`fb04c71`; exact-source
-verification is still required.
+Prior results below are historical; current exact-source qualification is
+listed separately and still requires final-tree verifier/reviewer acceptance.
 
 Taskfmt qualification:
 
@@ -79,20 +78,20 @@ source: /Users/donbeave/Projects/taskfmt/task-format
 revision: afd3b575dbcc7044620bec4b9493a74eca3e5ef2
 source tree: b7d90bd8adbe6c341a08fc485099ee8cf1584431
 version: 0.2.0
-binary: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/taskfmt-qualified-2026-09-19/install/bin/taskfmt
+binary: /Users/donbeave/.cargo/bin/taskfmt
 binary SHA-256: f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
 ```
 
 The qualified binary is a regular, single-link executable. Only standalone
-`lint` and `verify` operations are allowed. Historical lint evidence, run
-against pushed code `247e47d5` before this repair:
+`lint` and `verify` operations are allowed. Current exact-source lint evidence
+at the assessed payload:
 
 ```text
-run: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-247-direct
-log: all.log
-log SHA-256: afecad09ba800c74fc841fd4d830fd8932d80e84894bd18c5bf5660522134124
-packages: 73
-passed: 73
+run: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-4abd4d7b-f978.log
+log: taskfmt-lint-4abd4d7b-f978.log
+log SHA-256: ae211906387b9161213e1fbb640fea14a62616d60a1391c7ba72046c8969ceef
+contracts: 77 (73 numbered + 4 trusted fixtures)
+passed: 77
 failed: 0
 exit: 0
 ```
@@ -107,6 +106,20 @@ assessed payload:
 | `preflight-current-clean` | historical clean run bound to `9346c104`/`00958932`; exit 1 with correct NO-GO refusal; `result.txt` SHA-256 `ad1e78e8c2c5c14fd068befd42fa7774d115dfd83e91f41784ca2a22e56adf12` |
 | `ddce97ec-review` | rejected lifecycle experiment; clippy passed but provider-hang nextest failed at 4.395027375s; raw log SHA-256 `582256c4519180658f4f969afee145c144eb81140cebe2f2813882b40fbaaccd` |
 | `proof-full-bc4e5980`, `native-preparation-bc4e5980`, `adversarial-preparation-bc4e5980`, `final-checks-bc4e5980` | historical runs bound to superseded `bc4e5980`; provenance only |
+
+Current pre-documentation proof source `4abd4d7b` / tree `2dc5fdd7` passed the
+full Rust proof package:
+
+```text
+command: cargo nextest run --locked -j 1 --package refactor-proof
+result: 45 passed, exit 0 (3 binaries)
+log: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/proof-nextest-4abd4d7b.log
+log SHA-256: 6589e2d3aeb67bef443e61d50720f5b8f385b910079c8b71b89dd98cfda15252
+```
+
+AP-05 family/request binding passed 14 native tests, 15 Python protocol tests,
+and the source/AST/bundle check. These results are invalidated by the
+documentation commit and require final-tree reruns.
 
 Raw log hashes:
 
@@ -153,8 +166,10 @@ receipt.
 The independent adversarial audit
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/adversarial-fe802/adversarial-proof-contract-audit-fe802.md`
 (SHA-256 `e92d7f517c05992afefc0d80bc3b4aef5250b22cb17865ddfb136e12b4ab7f19`)
-remains rejected with AP-01–AP-05 open: observer provenance, result closure,
-taskfmt sealing, trust-path consistency, and observer request-count binding.
+remains rejected with AP-01–AP-04 open: observer provenance, result closure,
+taskfmt sealing, and trust-path consistency. AP-05 request-count/family
+binding was repaired in `b384179c`; final exact-tree proof/reviewer evidence
+is still absent.
 
 ## Static, documentation, and ledger evidence
 

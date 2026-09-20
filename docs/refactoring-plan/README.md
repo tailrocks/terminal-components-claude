@@ -16,18 +16,18 @@ This directory is the canonical preparation package for
 Historical evidence never authorizes execution. The generated structural graph
 contains no status, acceptance result, or dispatch authority.
 
-## Assessed pre-documentation payload and branch truth
+## Assessed payload before current documentation rebinding
 
 The clean payload assessed immediately before this documentation rebinding is:
 
 ```text
 branch:   refactor/holla-parity
-commit:   68ff91d404e2a562ed8d0e8591758b81452432a9
-tree:     fb04c7121d2a566aaa9cca19b13d1439fafcb3f9
-parent:   032d8a836728196945a5e1cfe4e5d979acba1d94
+commit:   4abd4d7bac18d4d56b601b257e40de98422382a1
+tree:     2dc5fdd763321174348a454e866b67eb82dc89ee2
+parent:   b384179cafa5b5da052cf65d9570b713f29471d5
 local main:   7b27732a8c3c131760ec3438f641cb3c11343a42
 remote main:  7b27732a8c3c131760ec3438f641cb3c11343a42
-remote campaign tip: 68ff91d404e2a562ed8d0e8591758b81452432a9
+remote campaign tip: 4abd4d7bac18d4d56b601b257e40de98422382a1
 merge-base with main: 7b27732a8c3c131760ec3438f641cb3c11343a42
 campaign commits ahead of origin/refactor/holla-parity: 0
 ```
@@ -54,9 +54,9 @@ commit preparation payload
 
 ## Intervening commits after the prior preparation payload
 
-The prior preparation payload was `1fb2b71c23edc6dd7b6d81b2e97b6bd5d4265717`.
-The commits through assessed `3701841a` are unreviewed and are not
-preparation acceptance evidence:
+The prior documentation payload was `68ff91d404e2a562ed8d0e8591758b81452432a9`.
+The following later commits are preparation changes or evidence rebinding; none
+authorizes dispatch or changes `NO-GO`/`armed: false`:
 
 | commit | observed change | disposition |
 | --- | --- | --- |
@@ -76,6 +76,13 @@ preparation acceptance evidence:
 | `07f7d724` | Regenerated the tracked Python proof bundle from its source modules | preparation fix; requires independent proof review |
 | `cd7b3d85` | Made the closure regression directly runnable from repository root | preparation test fix; requires independent proof review |
 | `68ff91d4` | Put native Rust extra gates on campaign-branch pushes and provision their toolchain | unreviewed generated CI/toolchain change |
+| `28dc673b` | Align campaign policy with generated CI gates | preparation documentation; exact-tree review still required |
+| `6c8f5905` | Bind native worker execution environment | preparation proof fix; AP review still required |
+| `5d311e06` | Remove obsolete context schema alias | preparation proof fix; exact-tree review still required |
+| `c21a1fe5` | Bind observer request sequences | preparation proof fix; AP review still required |
+| `6c4535e7` | Quote rustdoc flags and remove CI unit cycle | preparation CI fix; freshness repair followed |
+| `b384179c` | Bind oracle observer family explicitly | AP-05 code fix; targeted/full proof review still required |
+| `4abd4d7b` | Retain dependent test freshness coverage while breaking CI cycle | preparation CI fix; exact-tree review still required |
 
 No listed commit authorizes dispatch or changes `NO-GO`/`armed: false`.
 
@@ -109,7 +116,7 @@ That run executed 302 cases and produced the complete count, but was not
 clean: 298 passed, 4 failed, 2 skipped, 1 leaky, exit 100. No output was
 blessed or normalized.
 
-At the assessed pre-documentation candidate `68ff91d4`, `tests/visual_baseline/` and
+At the assessed payload before this documentation rebinding, `tests/visual_baseline/` and
 `.config/nextest.toml` exist. The candidate branch still has no `snapshots/`
 directory and no `parity/evidence.tsv`; those remain protected external oracle
 inputs, not candidate-generated expected output.
@@ -159,9 +166,26 @@ source:   /Users/donbeave/Projects/taskfmt/task-format
 revision: afd3b575dbcc7044620bec4b9493a74eca3e5ef2
 tree:     b7d90bd8adbe6c341a08fc485099ee8cf1584431
 version:  0.2.0
-binary:   /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/taskfmt-qualified-2026-09-19/install/bin/taskfmt
+binary:   /Users/donbeave/.cargo/bin/taskfmt
 SHA-256:  f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
 ```
+
+The source checkout was independently re-read at this revision and was clean.
+The current exact-source lint run used this regular single-link binary against
+73 numbered task packages plus four trusted fixture packages (77 recursive
+`verify.toml` contracts):
+
+```text
+run: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-4abd4d7b-f978.log
+result: 77 passed, exit 0
+log SHA-256: ae211906387b9161213e1fbb640fea14a62616d60a1391c7ba72046c8969ceef
+```
+
+A fresh external `cargo build --locked --release --bin taskfmt` from the same
+source produced a different Mach-O UUID/hash (`e0b62ab…`), so it was not used
+as qualified evidence and did not replace the recorded binary. This difference
+is an executable-provenance change requiring requalification, not a silent
+acceptance.
 
 Only standalone `taskfmt lint "$TASK_DIR"` and the documented standalone
 `taskfmt verify --root ... --task-dir ... --base ... --progress "" --log-dir ...`
@@ -178,7 +202,7 @@ identity, destructive scratch cleanup, and failed `shfmt -d`. The native
 threat model remains limited to integrity/detection controls; it does not
 claim isolation from a hostile same-user process.
 
-Historical qualification evidence — invalid for the assessed payload:
+Prior historical qualification evidence — invalid for the assessed payload:
 
 - Historical taskfmt lint at pushed code `247e47d5`: 73/73 packages passed, exit 0;
   log `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-247-direct/all.log`,
@@ -200,11 +224,27 @@ Historical qualification evidence — invalid for the assessed payload:
   `final-checks-bc4e5980` are historical runs bound to superseded source;
   they remain provenance only.
 
+Current pre-documentation proof source `4abd4d7b` / tree `2dc5fdd7` passed the
+full Rust proof package:
+
+```text
+command: cargo nextest run --locked -j 1 --package refactor-proof
+result: 45 passed, exit 0 (3 binaries)
+log: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/proof-nextest-4abd4d7b.log
+log SHA-256: 6589e2d3aeb67bef443e61d50720f5b8f385b910079c8b71b89dd98cfda15252
+```
+
+The AP-05 family/request binding tests also passed: 14 native tests, 15 Python
+protocol tests, and the source/AST/bundle check. These results are invalidated
+by the documentation commit and require final-tree reruns.
+
 The adversarial audit at
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/adversarial-fe802/adversarial-proof-contract-audit-fe802.md`
 (SHA-256 `e92d7f517c05992afefc0d80bc3b4aef5250b22cb17865ddfb136e12b4ab7f19`)
-is rejected with AP-01–AP-05 open: observer provenance, result closure,
-taskfmt sealing, trust-path consistency, and observer request-count binding.
+is rejected with AP-01–AP-04 open: observer provenance, result closure,
+taskfmt sealing, and trust-path consistency. AP-05 request-count/family
+binding was repaired in `b384179c` and passed the targeted native/Python
+protocol tests; final exact-tree verifier/reviewer evidence is still absent.
 
 Raw runs are under
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19`.
@@ -221,7 +261,7 @@ passed with SHA-256 `2e3b6e8d8f1f9a9740000b37cb83cec558485df985dadcfd0642052b968
 qualified actionlint 1.7.12 log
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/actionlint-docs-247e47d5/actionlint.log`
 passed with SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
-No listed evidence binds assessed `68ff91d4`/`fb04c71`; no exact-source
+No listed evidence binds the post-documentation final tree; no exact-source
 verifier/reviewer receipt or preparation acceptance receipt exists.
 
 ## Readiness and navigation

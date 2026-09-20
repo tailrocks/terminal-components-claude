@@ -12,9 +12,9 @@ The clean payload assessed immediately before this documentation rebinding is:
 
 ```text
 branch: refactor/holla-parity
-commit: 68ff91d404e2a562ed8d0e8591758b81452432a9
-tree:   fb04c7121d2a566aaa9cca19b13d1439fafcb3f9
-parent: 032d8a836728196945a5e1cfe4e5d979acba1d94
+commit: 4abd4d7bac18d4d56b601b257e40de98422382a1
+tree:   2dc5fdd763321174348a454e866b67eb82dc89ee
+parent: b384179cafa5b5da052cf65d9570b713f29471d5
 ```
 
 Git facts at that assessed pre-documentation payload:
@@ -22,7 +22,7 @@ Git facts at that assessed pre-documentation payload:
 ```text
 refs/heads/main:                  7b27732a8c3c131760ec3438f641cb3c11343a42
 refs/remotes/origin/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
-refs/remotes/origin/refactor/...  68ff91d404e2a562ed8d0e8591758b81452432a9
+refs/remotes/origin/refactor/...  4abd4d7bac18d4d56b601b257e40de98422382a1
 merge-base campaign/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
 local commits ahead of remote campaign: 0
 ```
@@ -42,13 +42,11 @@ No accepted preparation receipt exists. Historical report hashes and prior
 NO-GO identities are not current bindings. No current pass, receipt, or
 acceptance is claimed.
 
-Intervening commits after prior preparation payload `1fb2b71c` are unreviewed
-and are not preparation acceptance evidence: `320e9e7d`, `874d1ff4`,
-`9abd3ec3` (normal revert restoring full coverage), `aabd4d75`, `9ce787ed`,
-`d9ddc94a`, `dca523da`, `d8eb545f`, `356d65e3`, `afe429c8`, `baa147d0`,
-`e2f537d9`, `3701841a`, `07f7d724`, `cd7b3d85`, and `68ff91d4`.
-They change CI, toolchain, generated workflows, xtask, lockfile, or related
-contract/documentation inputs and require exact-source independent review.
+Later preparation commits after the prior documentation payload are
+`28dc673b`, `6c8f5905`, `5d311e06`, `c21a1fe5`, `6c4535e7`, `b384179c`, and
+`4abd4d7b`. They change policy, native proof, generated CI, or proof tests and
+are not acceptance receipts until the final exact-tree verifier and reviewer
+bind them.
 
 ## 2. Immutable baseline and exact corpus
 
@@ -72,7 +70,7 @@ The import was derived from the peeled tag, has zero symlinks, and was not
 used as a candidate-generated baseline. Protected refs and artifacts are
 unchanged.
 
-At the assessed pre-documentation candidate `68ff91d4`, `tests/visual_baseline/` and
+At the assessed payload before this documentation rebinding, `tests/visual_baseline/` and
 `.config/nextest.toml` exist. The candidate branch still lacks `snapshots/`
 and `parity/evidence.tsv`; those remain external protected-oracle inputs.
 
@@ -100,9 +98,10 @@ independent verifier and reviewer evidence after safe serial integration.
 
 ## 4. Preparation qualification
 
-No result below is bound to assessed `68ff91d4`/`fb04c71`; every listed run is
-historical provenance only until an exact-source verifier/reviewer run exists.
-Tool and oracle identities do not turn mismatched results into current passes.
+Prior results below are historical provenance only; current exact-source
+qualification is listed separately and still needs final-tree verifier/reviewer
+acceptance. Tool and oracle identities do not turn mismatched results into
+current passes.
 
 Qualified taskfmt:
 
@@ -111,11 +110,24 @@ source:   /Users/donbeave/Projects/taskfmt/task-format
 revision: afd3b575dbcc7044620bec4b9493a74eca3e5ef2
 tree:     b7d90bd8adbe6c341a08fc485099ee8cf1584431
 version:  0.2.0
-binary:   /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/taskfmt-qualified-2026-09-19/install/bin/taskfmt
+binary:   /Users/donbeave/.cargo/bin/taskfmt
 SHA-256:  f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
 ```
 
-Historical package-lint run at pushed code `247e47d5`:
+Current exact-source lint evidence at this assessed payload:
+
+```text
+run: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-4abd4d7b-f978.log
+result: 77 recursive contracts passed, exit 0 (73 numbered + 4 trusted fixtures)
+log SHA-256: ae211906387b9161213e1fbb640fea14a62616d60a1391c7ba72046c8969ceef
+```
+
+The same-source fresh external release build produced hash
+`e0b62abaf70490e714cb3ba4912e678522f1402b1258e1e9ffaf3260ec98754b`,
+different from the qualified installed executable, so it was rejected from
+the qualified tool identity rather than silently substituted.
+
+The prior package-lint run at pushed code `247e47d5` remains historical:
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-247-direct/all.log`;
 73/73 passed, exit 0; log SHA-256
 `afecad09ba800c74fc841fd4d830fd8932d80e84894bd18c5bf5660522134124`.
@@ -129,6 +141,20 @@ Historical native proof runs, invalid for the assessed payload:
 | `final-37214cfb/refactor-proof-full-serial` | `37214cfb`/`6445c996`; serial `cargo nextest run --locked -j 1 --package refactor-proof` 43/43 passed; log SHA-256 `77e6f97954eae5b88ef2d5725cdac8cab159381f127cd5172e3d2c646c7f71b4` |
 | `preflight-current-clean` | historical clean run bound to `9346c104`/`00958932`; exit 1 with correct NO-GO refusal; result SHA-256 `ad1e78e8c2c5c14fd068befd42fa7774d115dfd83e91f41784ca2a22e56adf12` |
 | `proof-full-bc4e5980`, `native-preparation-bc4e5980`, `adversarial-preparation-bc4e5980`, `taskfmt-lints-bc4e5980`, `final-checks-bc4e5980` | historical runs bound to superseded `bc4e5980`; provenance only |
+
+Current pre-documentation proof source `4abd4d7b` / tree `2dc5fdd7` passed the
+full Rust proof package:
+
+```text
+command: cargo nextest run --locked -j 1 --package refactor-proof
+result: 45 passed, exit 0 (3 binaries)
+log: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/proof-nextest-4abd4d7b.log
+log SHA-256: 6589e2d3aeb67bef443e61d50720f5b8f385b910079c8b71b89dd98cfda15252
+```
+
+AP-05 family/request binding passed 14 native tests, 15 Python protocol tests,
+and the source/AST/bundle check. These results are invalidated by the
+documentation commit and require final-tree reruns.
 
 The native protocol is non-circular: pin source/tools/contracts/oracle and
 prerequisite receipts, materialize contexts, start the observer, execute the
@@ -153,8 +179,10 @@ and `shfmt -d` failure. It is not a qualification receipt.
 The independent adversarial proof audit
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/adversarial-fe802/adversarial-proof-contract-audit-fe802.md`
 (SHA-256 `e92d7f517c05992afefc0d80bc3b4aef5250b22cb17865ddfb136e12b4ab7f19`)
-remains rejected with AP-01–AP-05 open: observer provenance, result closure,
-taskfmt sealing, trust-path consistency, and observer request-count binding.
+remains rejected with AP-01–AP-04 open: observer provenance, result closure,
+taskfmt sealing, and trust-path consistency. AP-05 request-count/family
+binding was repaired in `b384179c`; targeted native/Python tests pass, but no
+final exact-tree verifier/reviewer receipt exists.
 
 ## 5. Frozen calibration and parity blocker
 
@@ -220,6 +248,8 @@ retired lifecycle path was used by this campaign.
 | observed corpus misses one key and HTML path differs | visual harness owner | repair source/harness provenance without normalization or oracle mutation; rerun complete tag control |
 | no accepted current preparation receipt | verifier/reviewer | final clean tree gets independent `VERIFIED` verifier and separate reviewer evidence; no fabricated receipt |
 | final proof receipt/review is absent | verifier/reviewer | rerun and independently seal native proof evidence for the exact final tree |
+| AP-01–AP-04 remain open | proof owner | close observer provenance, result closure, taskfmt sealing, and trust-path consistency with native Rust evidence and independent review |
+| AP-05 family binding | proof owner | code fix is in `b384179c`; final exact-tree proof/reviewer must confirm it remains bound |
 | Linux native evidence unavailable | platform owner | execute required native Linux lane or keep NO-GO |
 | product migration/ownership/parity incomplete | implementation goal | complete reconciled DAG and final architecture/product gates |
 | ledger must stay disarmed | coordinator | preserve `armed=false` until separate explicit dispatch authorization after fresh readiness recheck |
@@ -237,7 +267,8 @@ metadata, stale taskfmt path/version enforcement, missing native receipt
 binding, incomplete worker launch fixture provenance, unbounded
 observer-provider teardown, noncanonical native target names, and ambiguous
 readiness verdict parsing. Those reports are historical, not current
-acceptance. No proof suite result is bound to assessed `68ff91d4`/`fb04c71`;
+acceptance. No proof suite result is bound to the post-documentation final
+tree;
 exact-tree proof and independent receipt/reviewer evidence remain absent.
 
 **Decision: NO-GO.** The failed exact-tag calibration, rejected visual

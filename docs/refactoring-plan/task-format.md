@@ -49,10 +49,12 @@ container-runtime commands.
 
 ## Catalog result
 
-The latest standalone binary linted all 73 numbered packages with zero errors
-and zero warnings. Do not lint `completion/*` because that also passes the
-group `README.md`, which is not a task package. The package schemas remain
-`task/v5`, `verify/v2`, and `task-meta/v1`; task status remains `pending`.
+The qualified standalone binary linted all 73 numbered packages plus the four
+trusted fixture packages nested under TASK-001, TASK-070, TASK-071, and
+TASK-072: 77 recursive `verify.toml` contracts, zero errors, zero warnings.
+Do not lint `completion/*` because that also passes the group `README.md`,
+which is not a task package. The package schemas remain `task/v5`, `verify/v2`,
+and `task-meta/v1`; task status remains `pending`.
 
 Latest taskfmt validates package shape only. It does not prove command
 availability, host isolation, dependency ancestry, visual-oracle integrity, or
