@@ -12,9 +12,9 @@ The clean payload assessed immediately before this documentation rebinding is:
 
 ```text
 branch: refactor/holla-parity
-commit: cd7b3d8570622f0ff875128d31f2c755503aa4c8
-tree:   06326b65c9a5cd1eac396b1956e158c7d09247cb
-parent: 07f7d724359923046787ece3fa868ee0f9ac011b
+commit: 68ff91d404e2a562ed8d0e8591758b81452432a9
+tree:   fb04c7121d2a566aaa9cca19b13d1439fafcb3f9
+parent: 032d8a836728196945a5e1cfe4e5d979acba1d94
 ```
 
 Git facts at that assessed pre-documentation payload:
@@ -22,7 +22,7 @@ Git facts at that assessed pre-documentation payload:
 ```text
 refs/heads/main:                  7b27732a8c3c131760ec3438f641cb3c11343a42
 refs/remotes/origin/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
-refs/remotes/origin/refactor/...  cd7b3d8570622f0ff875128d31f2c755503aa4c8
+refs/remotes/origin/refactor/...  68ff91d404e2a562ed8d0e8591758b81452432a9
 merge-base campaign/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
 local commits ahead of remote campaign: 0
 ```
@@ -46,7 +46,7 @@ Intervening commits after prior preparation payload `1fb2b71c` are unreviewed
 and are not preparation acceptance evidence: `320e9e7d`, `874d1ff4`,
 `9abd3ec3` (normal revert restoring full coverage), `aabd4d75`, `9ce787ed`,
 `d9ddc94a`, `dca523da`, `d8eb545f`, `356d65e3`, `afe429c8`, `baa147d0`,
-`e2f537d9`, `3701841a`, `07f7d724`, and `cd7b3d85`.
+`e2f537d9`, `3701841a`, `07f7d724`, `cd7b3d85`, and `68ff91d4`.
 They change CI, toolchain, generated workflows, xtask, lockfile, or related
 contract/documentation inputs and require exact-source independent review.
 
@@ -72,7 +72,7 @@ The import was derived from the peeled tag, has zero symlinks, and was not
 used as a candidate-generated baseline. Protected refs and artifacts are
 unchanged.
 
-At the assessed pre-documentation candidate `cd7b3d85`, `tests/visual_baseline/` and
+At the assessed pre-documentation candidate `68ff91d4`, `tests/visual_baseline/` and
 `.config/nextest.toml` exist. The candidate branch still lacks `snapshots/`
 and `parity/evidence.tsv`; those remain external protected-oracle inputs.
 
@@ -100,7 +100,7 @@ independent verifier and reviewer evidence after safe serial integration.
 
 ## 4. Preparation qualification
 
-No result below is bound to assessed `cd7b3d85`/`06326b6`; every listed run is
+No result below is bound to assessed `68ff91d4`/`fb04c71`; every listed run is
 historical provenance only until an exact-source verifier/reviewer run exists.
 Tool and oracle identities do not turn mismatched results into current passes.
 
@@ -237,7 +237,7 @@ metadata, stale taskfmt path/version enforcement, missing native receipt
 binding, incomplete worker launch fixture provenance, unbounded
 observer-provider teardown, noncanonical native target names, and ambiguous
 readiness verdict parsing. Those reports are historical, not current
-acceptance. No proof suite result is bound to assessed `cd7b3d85`/`06326b6`;
+acceptance. No proof suite result is bound to assessed `68ff91d4`/`fb04c71`;
 exact-tree proof and independent receipt/reviewer evidence remain absent.
 
 **Decision: NO-GO.** The failed exact-tag calibration, rejected visual

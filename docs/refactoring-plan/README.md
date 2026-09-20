@@ -22,12 +22,12 @@ The clean payload assessed immediately before this documentation rebinding is:
 
 ```text
 branch:   refactor/holla-parity
-commit:   cd7b3d8570622f0ff875128d31f2c755503aa4c8
-tree:     06326b65c9a5cd1eac396b1956e158c7d09247cb
-parent:   07f7d724359923046787ece3fa868ee0f9ac011b
+commit:   68ff91d404e2a562ed8d0e8591758b81452432a9
+tree:     fb04c7121d2a566aaa9cca19b13d1439fafcb3f9
+parent:   032d8a836728196945a5e1cfe4e5d979acba1d94
 local main:   7b27732a8c3c131760ec3438f641cb3c11343a42
 remote main:  7b27732a8c3c131760ec3438f641cb3c11343a42
-remote campaign tip: cd7b3d8570622f0ff875128d31f2c755503aa4c8
+remote campaign tip: 68ff91d404e2a562ed8d0e8591758b81452432a9
 merge-base with main: 7b27732a8c3c131760ec3438f641cb3c11343a42
 campaign commits ahead of origin/refactor/holla-parity: 0
 ```
@@ -75,6 +75,7 @@ preparation acceptance evidence:
 | `3701841a` | Rebound bless-guard and native gates to generated workflow paths | unreviewed CI/xtask/generated-workflow change |
 | `07f7d724` | Regenerated the tracked Python proof bundle from its source modules | preparation fix; requires independent proof review |
 | `cd7b3d85` | Made the closure regression directly runnable from repository root | preparation test fix; requires independent proof review |
+| `68ff91d4` | Put native Rust extra gates on campaign-branch pushes and provision their toolchain | unreviewed generated CI/toolchain change |
 
 No listed commit authorizes dispatch or changes `NO-GO`/`armed: false`.
 
@@ -108,7 +109,7 @@ That run executed 302 cases and produced the complete count, but was not
 clean: 298 passed, 4 failed, 2 skipped, 1 leaky, exit 100. No output was
 blessed or normalized.
 
-At the assessed pre-documentation candidate `cd7b3d85`, `tests/visual_baseline/` and
+At the assessed pre-documentation candidate `68ff91d4`, `tests/visual_baseline/` and
 `.config/nextest.toml` exist. The candidate branch still has no `snapshots/`
 directory and no `parity/evidence.tsv`; those remain protected external oracle
 inputs, not candidate-generated expected output.
@@ -220,7 +221,7 @@ passed with SHA-256 `2e3b6e8d8f1f9a9740000b37cb83cec558485df985dadcfd0642052b968
 qualified actionlint 1.7.12 log
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/actionlint-docs-247e47d5/actionlint.log`
 passed with SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
-No listed evidence binds assessed `cd7b3d85`/`06326b6`; no exact-source
+No listed evidence binds assessed `68ff91d4`/`fb04c71`; no exact-source
 verifier/reviewer receipt or preparation acceptance receipt exists.
 
 ## Readiness and navigation
