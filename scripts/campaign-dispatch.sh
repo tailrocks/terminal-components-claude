@@ -9,6 +9,11 @@ TASKFMT_SOURCE="${TC_TASKFMT_SOURCE:-/Users/donbeave/Projects/taskfmt/task-forma
 TASKFMT="${TC_TASKFMT:-/tmp/taskfmt-latest-install/bin/taskfmt}"
 ORACLE_TAG="refs/tags/visual-baseline"
 ORACLE_COMMIT="4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"
+# Put host-standard Python ahead of inherited shims.  Keep the remainder of
+# the verifier's qualified toolchain available for checks that invoke cargo or
+# rustup by absolute/provenance-checked paths.  Candidate mise.toml files can
+# no longer select python3 through a mise shim.
+NATIVE_PYTHON_FIRST_PATH="/usr/bin:/bin:/usr/sbin:/sbin${PATH:+:$PATH}"
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 # shellcheck disable=SC1091
@@ -777,7 +782,7 @@ cmd_verify() {
 	export TC_PROOF_NATIVE_TIMEOUT_MS="${TC_PROOF_NATIVE_TIMEOUT_MS:-600000}"
 
 	local taskfmt_status=0
-	"$TASKFMT" verify \
+	PATH="$NATIVE_PYTHON_FIRST_PATH" "$TASKFMT" verify \
 		--root "$WORKTREE" \
 		--task-dir "$dir" \
 		--base "$BASE" \

@@ -41,6 +41,11 @@ const NATIVE_BUILD_SCHEMA: &str = "tc-proof-native-build/v1";
 const PREPARATION_RECEIPT_FILE: &str = "proof-preparation.json";
 const NATIVE_TARGET_DIR_NAME: &str = "target";
 const OBSERVER_PROVIDER_ENV: &str = "TC_PROOF_OBSERVER_PROVIDER";
+// Native proof workers and the independent observer provider must not resolve
+// interpreters through candidate-controlled configuration managers.  The
+// verified comparator and all proof outputs use absolute paths; the worker
+// and provider only need the host-standard Unix tools below.
+const NATIVE_EXECUTION_PATH: &str = "/usr/bin:/bin:/usr/sbin:/sbin";
 const EXPECTED_ORACLE_COMMIT: &str = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b";
 const MAX_LAUNCH_TIMEOUT_MS: u64 = 600_000;
 const MAX_CHILD_OUTPUT_BYTES: usize = 32 * 1024 * 1024;
@@ -1479,6 +1484,7 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
     command
         .args(&options.args)
         .current_dir(&worktree)
+        .env("PATH", NATIVE_EXECUTION_PATH)
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -1760,9 +1766,11 @@ fn start_observer_supervisor(
     let mut child = {
         let mut command = Command::new(&provider);
         command
+            .current_dir(&prepared.run_dir)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
             .stderr(Stdio::null())
+            .env("PATH", NATIVE_EXECUTION_PATH)
             .env_remove(OBSERVER_PROVIDER_ENV);
         #[cfg(unix)]
         // SAFETY: the pre-exec hook only closes inherited file descriptors;
