@@ -25,7 +25,7 @@ def validate_event(event: dict[str, Any], inventory: dict[str, Any], config: dic
 
     required_ids = resolve_required_names(inventory)
     discovered = payload.get("discovered")
-    if not isinstance(discovered, list) or sorted(discovered) != required_ids:
+    if not isinstance(discovered, list) or discovered != required_ids:
         raise Reject("TEST_ACCOUNTING")
 
     results = payload.get("results")
