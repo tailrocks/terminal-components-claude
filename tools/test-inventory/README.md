@@ -5,12 +5,12 @@ and structured result interfaces. It does not scan Rust function names or
 accept a nonzero test count as coverage. It never invokes `cargo test`.
 
 Requirements: Python 3.11+, Git, Cargo/Rust, and cargo-nextest 0.9.143 or a
-newer reviewed version (tested with 1.88 and stable).
+newer reviewed version (tested with rust-toolchain.toml 1.98.1).
 
 ```sh
 python3 tools/test-inventory/inventory.py capture \
   --root "$PWD" --profiles tools/test-inventory/profiles.json \
-  --toolchain 1.88.0 --execute --output /external/evidence/test-capture.json
+  --toolchain 1.98.1 --execute --output /external/evidence/test-capture.json
 python3 tools/test-inventory/inventory.py verify \
   --root "$PWD" --capture /external/evidence/test-capture.json \
   --required tools/test-inventory/required.json

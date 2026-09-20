@@ -84,7 +84,7 @@ intentionally retain the stored value's final four characters. This describes
 display and save sequencing; it does not claim that raw secret bytes never
 exist in transient state or that no secret-derived characters reach a frame.
 
-Requirements: Rust 1.88+, a terminal with mouse support. Truecolor is the
+Requirements: Rust 1.98.1 (`rust-toolchain.toml`; workspace `rust-version = "1.98"`), a terminal with mouse support. Truecolor is the
 primary target (`COLORTERM=truecolor`); 256/16-colour terminals get a mapped
 palette, `NO_COLOR` gives a monochrome fallback. `--color` is a ceiling, not an
 override: it can lower the detected level but never raise it above what the

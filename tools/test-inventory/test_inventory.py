@@ -13,7 +13,7 @@ import inventory as gate
 
 PROFILE = {"id": "fixture-all", "package": "inventory-fixture", "default_features": True,
            "features": [], "all_features": True}
-TOOLCHAIN = os.environ.get("INVENTORY_TEST_TOOLCHAIN", "1.88.0")
+TOOLCHAIN = os.environ.get("INVENTORY_TEST_TOOLCHAIN", "1.98.1")
 
 
 class Parsers(unittest.TestCase):

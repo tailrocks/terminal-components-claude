@@ -22,7 +22,7 @@ harness = true
 # Do not unify onto tools/refactor-proof's later 0a2e490 pin (tiered
 # check_with skips HTML/PNG when ansi/txt match).
 # termpane v0.1.0 (same git tag as the frozen suite) declares rust-version
-# 1.97; compile and run with cargo --ignore-rust-version on rustc 1.88.
+# 1.97; the workspace pin is rust-toolchain.toml 1.98.1 / rust-version 1.98.
 tuisnap = { git = "https://github.com/donbeave/tui-snap.git", rev = "2d43458ad2bc37d76653c22d56e61ee74512d893" }
 
 [lints]

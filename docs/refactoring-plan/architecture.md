@@ -56,8 +56,7 @@ Exact historical test accounting exists but is unfinished: `tools/test-inventory
 These commands are mandatory future implementation gates at the final candidate, with no baseline blessing variables. `BLESS_GUARD_BASE` must resolve the actual integration base, not the candidate itself. Use a dedicated target directory and capture compiler versions, commands, exit codes, and source/lock fingerprints.
 
 ```sh
-rtk cargo +1.88.0 nextest run --locked --workspace --all-targets --all-features --no-run
-rtk cargo +stable nextest run --locked --workspace --all-targets --all-features --no-run
+rtk cargo nextest run --locked --workspace --all-targets --all-features --no-run
 rtk cargo fmt --all --check
 rtk cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 rtk cargo build --locked --workspace --all-targets --all-features
@@ -74,7 +73,7 @@ rtk cargo nextest run --locked -p junie-tui --test perf --test perf_collections 
 rtk cargo run --locked -p xtask -- app-perf
 ```
 
-Use `RUSTFLAGS=-D warnings` and `RUSTDOCFLAGS=-D warnings` for the CI-equivalent source/doc sweep. Stable owns trybuild stderr fixtures; the exact MSRV test command may skip only `architecture::compile_fail_cases_hold`, as current CI does, while compiling every target and running every behavioral test. Both isolated backend-free consumer fixtures are necessary: a workspace feature union can otherwise conceal an unwanted backend dependency. Architecture's public-item source pin does not replace rustdoc compilation or the stronger rustdoc-JSON foreign-type gate. Evidence: `7b27732:.github/workflows/ci.yml:66`, `7b27732:crates/tui/tests/architecture.rs:339`.
+Use `RUSTFLAGS=-D warnings` and `RUSTDOCFLAGS=-D warnings` for the CI-equivalent source/doc sweep. The pin is `rust-toolchain.toml` channel `1.98.1` / workspace `rust-version = "1.98"`. There is no dual `cargo +1.88.0` MSRV job. Trybuild stderr fixtures belong to that pin; compile every target and run every behavioral test, including `architecture::compile_fail_cases_hold`. Generated workflows consume `rust-toolchain.toml`; do not hand-edit `.github/workflows/**`. Both isolated backend-free consumer fixtures are necessary: a workspace feature union can otherwise conceal an unwanted backend dependency. Architecture's public-item source pin does not replace rustdoc compilation or the stronger rustdoc-JSON foreign-type gate. Historical dual-job evidence: `7b27732:.github/workflows/ci.yml:66`; current architecture check: `crates/tui/tests/architecture.rs` `msrv_and_edition_are_unchanged`.
 
 Preserve allocation/byte thresholds, wide/grapheme safety, 100k List/Tree/Picker/Viewport/Steps scaling, O(visible) render/dispatch probes, and bounded cache work. Strict wall-time assertions use the accepted 1.2x baseline and named special ratios; do not silently change denominators or benchmark scenes. The new production-view/canonical-cell and PTY oracle gates supplement these commands, because main's existing digests and `parity_contract` do not establish parity with the new immutable oracle.
 

@@ -95,13 +95,13 @@ Add `crates/tui/tests/completion_009.rs` containing separately named positive an
 - id: A30
 - area: MSRV/dependency policy
 - oracle_state: edition2024 Rust1.88 ratatui
-- main_state: edition2024 Rust1.88 ratatui-core split
+- main_state: edition2024 Rust 1.98.1 (`rust-toolchain.toml`) / `rust-version = "1.98"` ratatui-core split
 - architectural_target: keep floor lint policy exact allowed graph; optional backend
-- status: measured MSRV compile pass
+- status: pin raised to 1.98.1; no dual 1.88 CI
 - remaining_obligation: preserve latest accepted constraints and run full gates
-- available_gates: cargo +1.88.0 check --locked --workspace --all-targets --all-features
-- missing_proof: full stable/MSRV execution and lint/docs sweep at final candidate
-- evidence: 7b27732:Cargo.toml:22;7b27732:.github/workflows/ci.yml:66
+- available_gates: cargo check --locked --workspace --all-targets --all-features (rust-toolchain.toml 1.98.1)
+- missing_proof: full pinned-toolchain execution and lint/docs sweep at final candidate
+- evidence: rust-toolchain.toml; Cargo.toml rust-version 1.98; historical 7b27732:.github/workflows/ci.yml:66
 
 ## Complete assigned historical clauses
 

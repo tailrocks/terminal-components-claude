@@ -16,7 +16,7 @@ The full historical clauses, remaining work and proof requirements are included 
 
 2. Require zero missing, duplicate, skipped, errored, mismatched or unowned scenarios. All four application closures remain green. The global unresolved migration/test set is empty; full unfiltered primary workspace tests and doc tests pass.
 
-3. Run every authoritative build, MSRV1.88, backend-free, examples, rustdoc, format, strict Clippy, dependency, registry, boundary, documentation, baseline-integrity and performance gate using the accepted post-relocation command inventory. Bind exact compiler/toolchain/image/environment fingerprints. Fidelity-tier full visual regression is machine-bound in [`host-context/CHK-005.template.json`](host-context/CHK-005.template.json) (not edit-loop FAST tiers).
+3. Run every authoritative build, MSRV 1.98 / `rust-toolchain.toml` 1.98.1, backend-free, examples, rustdoc, format, strict Clippy, dependency, registry, boundary, documentation, baseline-integrity and performance gate using the accepted post-relocation command inventory. Bind exact compiler/toolchain/image/environment fingerprints. Fidelity-tier full visual regression is machine-bound in [`host-context/CHK-005.template.json`](host-context/CHK-005.template.json) (not edit-loop FAST tiers). There is no dual `cargo +1.88.0` job.
 
 4. Verify original historical artifacts and sealed oracle expectations are unchanged; independently rebuild source/provenance bindings and compare manifest hashes. No baseline came from candidate output; no oracle pin, coordinate, normalization or required membership changed.
 
