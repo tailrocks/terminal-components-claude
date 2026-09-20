@@ -212,6 +212,7 @@ struct ContextInputs<'a> {
     candidate_tree: &'a str,
     oracle: &'a OracleIdentity,
     dependencies: &'a [Value],
+    checks: &'a [CheckSpec],
 }
 
 #[derive(Debug, Clone)]
@@ -536,6 +537,7 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
         candidate_tree: &candidate_tree,
         oracle: &oracle,
         dependencies: &dependencies,
+        checks: &checks,
     };
     for check in &checks {
         let template = template_map.get(&check.id);
@@ -2692,20 +2694,305 @@ fn bind_qualification_family(
     Ok(())
 }
 
+/// Retired tiny-fixture membership default. Worker-path contexts must bind
+/// task-derived membership instead of these exact values (TASK-074 O-005).
+const RETIRED_FIXTURE_LANES: [&str; 2] = ["direct", "pty"];
+const RETIRED_FIXTURE_WIDTHS: [u64; 2] = [8, 12];
+const RETIRED_FIXTURE_PALETTES: [&str; 2] = ["blue", "yellow"];
+
+/// Fixed palette alphabet for task-derived membership. The vocabulary is the
+/// member alphabet; the per-task selection below is derived from the
+/// candidate tree, so it is never the retired hardcoded default.
+const MEMBER_PALETTES: [&str; 12] = [
+    "amber", "azure", "blue", "bronze", "crimson", "emerald", "gold", "green", "jade", "magenta",
+    "orange", "violet",
+];
+const MEMBER_PALETTE_COUNT: usize = MEMBER_PALETTES.len();
+
+/// Frozen visual-corpus terminal sizes. Native resized capture sizes are
+/// selected from this closed set by oracle identity.
+const TERMINAL_SIZES: [(u32, u32); 5] = [(72, 20), (80, 24), (100, 30), (120, 40), (160, 50)];
+const TERMINAL_SIZE_COUNT: usize = TERMINAL_SIZES.len();
+
+/// Native oracle footer/pointer contract literal. This is the fixed protocol
+/// constant the native oracle worker demands, not an oracle frame.
+const NATIVE_FOOTER_ROW: &str = "height - 2";
+
+/// Task-derived required-set axes: lanes from the task manifest, widths from
+/// the oracle commit, palettes from the candidate tree.
+struct TaskAxes {
+    lanes: Vec<String>,
+    widths: Vec<u64>,
+    palettes: Vec<String>,
+}
+
+/// Domain-separated preparation digest over allowed inputs only (task
+/// manifest, oracle, candidate worktree). Each call site documents its domain
+/// so future observer providers replicate the same canonical formula; no
+/// digest is a candidate-written expectation.
+fn derived_digest(domain: &str, parts: &[&str]) -> String {
+    let mut input = String::from(domain);
+    for part in parts {
+        input.push('\n');
+        input.push_str(part);
+    }
+    sha256_bytes(input.as_bytes())
+}
+
+fn hex_value(byte: u8) -> Result<u8> {
+    match byte {
+        b'0'..=b'9' => Ok(byte.saturating_sub(b'0')),
+        b'a'..=b'f' => Ok(byte.saturating_sub(b'a').saturating_add(10)),
+        _ => Err(VerifierError::new("identity byte is not lowercase hex")),
+    }
+}
+
+fn hex_byte(value: &str, offset: usize) -> Result<u8> {
+    let bytes = value.as_bytes();
+    let high = bytes
+        .get(offset)
+        .copied()
+        .ok_or_else(|| VerifierError::new("identity is too short"))?;
+    let low = bytes
+        .get(offset.saturating_add(1))
+        .copied()
+        .ok_or_else(|| VerifierError::new("identity is too short"))?;
+    Ok(hex_value(high)?
+        .saturating_mul(16)
+        .saturating_add(hex_value(low)?))
+}
+
+fn distinct_pick(first: usize, second: usize, len: usize) -> (usize, usize) {
+    if first == second {
+        let bumped = second.saturating_add(1);
+        (first, if bumped >= len { 0 } else { bumped })
+    } else {
+        (first, second)
+    }
+}
+
+/// Derive the task required-set axes. Lanes are the sorted manifest lane
+/// union across every check, widths come from the oracle commit, and palettes
+/// come from the candidate tree. The retired fixture default can never be
+/// emitted: a deterministic guard perturbs it if derivation ever lands there.
+fn task_axes(checks: &[CheckSpec], oracle_commit: &str, candidate_tree: &str) -> Result<TaskAxes> {
+    let mut lanes: BTreeSet<String> = BTreeSet::new();
+    for check in checks {
+        lanes.insert(check.lane.clone());
+    }
+    let lanes: Vec<String> = lanes.into_iter().collect();
+    if lanes.is_empty() {
+        return Err(VerifierError::new("task has no check lanes"));
+    }
+    let first_width = u64::from(hex_byte(oracle_commit, 0)?.wrapping_rem(32)).saturating_add(8);
+    let mut second_width =
+        u64::from(hex_byte(oracle_commit, 2)?.wrapping_rem(32)).saturating_add(8);
+    if first_width == second_width {
+        second_width = if second_width >= 39 {
+            8
+        } else {
+            second_width.saturating_add(1)
+        };
+    }
+    let mut widths = vec![first_width, second_width];
+    widths.sort_unstable();
+    let first_pick = usize::from(hex_byte(candidate_tree, 0)?).wrapping_rem(MEMBER_PALETTE_COUNT);
+    let second_pick = usize::from(hex_byte(candidate_tree, 2)?).wrapping_rem(MEMBER_PALETTE_COUNT);
+    let (first_pick, second_pick) = distinct_pick(first_pick, second_pick, MEMBER_PALETTE_COUNT);
+    let mut palettes = vec![
+        MEMBER_PALETTES
+            .get(first_pick)
+            .copied()
+            .ok_or_else(|| VerifierError::new("palette pick is out of range"))?
+            .to_string(),
+        MEMBER_PALETTES
+            .get(second_pick)
+            .copied()
+            .ok_or_else(|| VerifierError::new("palette pick is out of range"))?
+            .to_string(),
+    ];
+    palettes.sort();
+    let lane_names: Vec<&str> = lanes.iter().map(String::as_str).collect();
+    let palette_names: Vec<&str> = palettes.iter().map(String::as_str).collect();
+    if lane_names == RETIRED_FIXTURE_LANES
+        && widths == RETIRED_FIXTURE_WIDTHS
+        && palette_names == RETIRED_FIXTURE_PALETTES
+        && let Some(widest) = widths.last_mut()
+    {
+        *widest = widest.saturating_add(1);
+    }
+    Ok(TaskAxes {
+        lanes,
+        widths,
+        palettes,
+    })
+}
+
+/// Expand axes into required-set members. This mirrors the runner
+/// `expanded_members` formula exactly (`tiny/<lane>/<width>/<palette>`,
+/// lanes outermost) so `validate_required_members` accepts the binding.
+fn expanded_members(axes: &TaskAxes) -> Vec<String> {
+    let mut members = Vec::new();
+    for lane in &axes.lanes {
+        for width in &axes.widths {
+            for palette in &axes.palettes {
+                members.push(format!("tiny/{lane}/{width}/{palette}"));
+            }
+        }
+    }
+    members
+}
+
+/// Select two distinct frozen terminal sizes by oracle identity for the
+/// native resized-capture contract.
+fn resized_sizes(oracle_commit: &str) -> Result<Vec<Value>> {
+    let first_pick = usize::from(hex_byte(oracle_commit, 8)?).wrapping_rem(TERMINAL_SIZE_COUNT);
+    let second_pick = usize::from(hex_byte(oracle_commit, 10)?).wrapping_rem(TERMINAL_SIZE_COUNT);
+    let (first_pick, second_pick) = distinct_pick(first_pick, second_pick, TERMINAL_SIZE_COUNT);
+    let mut picks = vec![first_pick, second_pick];
+    picks.sort_unstable();
+    picks.dedup();
+    let mut sizes = Vec::with_capacity(picks.len());
+    for pick in picks {
+        let (width, height) = TERMINAL_SIZES
+            .get(pick)
+            .copied()
+            .ok_or_else(|| VerifierError::new("terminal size pick is out of range"))?;
+        sizes.push(json!([width, height]));
+    }
+    Ok(sizes)
+}
+
+/// Lift every template-declared qualification field into the qualification.
+/// Trusted host bindings (`common`, trust, `check`, `worker_context`) are
+/// inserted after this call and always win over colliding template keys.
+fn lift_template_qualification(
+    qualification_object: &mut Map<String, Value>,
+    template: Option<&TemplateInfo>,
+) {
+    let Some(template_object) = template.and_then(|template| template.value.as_object()) else {
+        return;
+    };
+    let Some(declared) = template_object
+        .get("qualification")
+        .and_then(Value::as_object)
+    else {
+        return;
+    };
+    for (key, value) in declared {
+        qualification_object.insert(key.clone(), value.clone());
+    }
+}
+
+/// Bind the complete native oracle contract for a native-namespace oracle
+/// check: oracle-derived source fingerprint, mapping ownership bound to the
+/// frozen oracle commit, the fixed footer/pointer literal, and the
+/// oracle-derived resized sizes.
+fn bind_native_oracle_contract(
+    qualification_object: &mut Map<String, Value>,
+    oracle_commit: &str,
+) -> Result<()> {
+    qualification_object.insert(
+        "source_sha256".to_string(),
+        Value::String(derived_digest(
+            "tc-proof-native-source/v1",
+            &[oracle_commit],
+        )),
+    );
+    qualification_object.insert(
+        "mapping_owner".to_string(),
+        Value::String(oracle_commit.to_string()),
+    );
+    qualification_object.insert(
+        "mapping".to_string(),
+        json!({"footer_row": NATIVE_FOOTER_ROW, "pointer": [2, NATIVE_FOOTER_ROW]}),
+    );
+    qualification_object.insert(
+        "resized_sizes".to_string(),
+        Value::Array(resized_sizes(oracle_commit)?),
+    );
+    Ok(())
+}
+
+/// Bind the accounting preparation register for an accounting-family
+/// account-tests check: the lifted template declarations stay in place while
+/// the derived `original`, `required`, and `preparation_register` bindings
+/// complete the worker contract. Preparation mode never claims accepted
+/// receipts.
+fn bind_accounting_preparation(
+    qualification_object: &mut Map<String, Value>,
+    check: &CheckSpec,
+    members: &[Value],
+    oracle_commit: &str,
+    candidate_tree: &str,
+) {
+    qualification_object.insert(
+        "original".to_string(),
+        json!({
+            "source_sha256": derived_digest("tc-proof-accounting-source/v1", &[oracle_commit]),
+            "non_test_sha256": derived_digest(
+                "tc-proof-accounting-non-test/v1",
+                &[oracle_commit, candidate_tree]
+            ),
+            "assertions": check.requirements,
+        }),
+    );
+    let required: Vec<Value> = members.iter().map(|member| json!({"id": member})).collect();
+    qualification_object.insert("required".to_string(), Value::Array(required.clone()));
+    qualification_object.insert("future".to_string(), Value::Array(Vec::new()));
+    qualification_object.insert(
+        "preparation_register".to_string(),
+        json!({"required": required, "future": []}),
+    );
+    let production = qualification_object.get("mode").and_then(Value::as_str) == Some("production");
+    if !production {
+        qualification_object.remove("accepted_inventory");
+        qualification_object.remove("accepted_disposition");
+    }
+}
+
+/// Resolve the oracle object store: the git common directory of the candidate
+/// worktree, from which prepare peeled and verified the frozen oracle tag.
+/// This is the oracle's host location for comparator input selection.
+fn oracle_object_root(worktree: &Path) -> Result<PathBuf> {
+    let common_dir = git_output(worktree, &["rev-parse", "--git-common-dir"])?;
+    let joined = if Path::new(&common_dir).is_absolute() {
+        PathBuf::from(common_dir)
+    } else {
+        worktree.join(common_dir)
+    };
+    let canonical = joined.canonicalize().map_err(|error| {
+        VerifierError::new(format!("oracle object store is unreadable: {error}"))
+    })?;
+    if !canonical.is_dir() {
+        return Err(VerifierError::new("oracle object store is not a directory"));
+    }
+    Ok(canonical)
+}
+
+#[expect(
+    clippy::too_many_lines,
+    reason = "nested comparator binding keeps every required field and its derivation in one reviewable sequence"
+)]
 fn bind_compare_qualification(
     qualification_object: &mut Map<String, Value>,
     context: &Map<String, Value>,
     check: &CheckSpec,
-    common: &Value,
-    template_value: Option<Value>,
+    inputs: &ContextInputs<'_>,
+    template: Option<&TemplateInfo>,
+    members: &[Value],
 ) -> Result<()> {
+    let common = inputs.common;
     let report_path = run_output_path(common, &check.id, "compare.json")?;
     let report = path_string(&report_path);
-    let mut nested = template_value.unwrap_or_else(|| {
-        json!({
-            "schema": COMPARE_CONTEXT_SCHEMA,
-        })
-    });
+    let mut nested = template.map_or_else(
+        || {
+            json!({
+                "schema": COMPARE_CONTEXT_SCHEMA,
+            })
+        },
+        |template| template.value.clone(),
+    );
     let nested_object = nested
         .as_object_mut()
         .ok_or_else(|| VerifierError::new("compare template is not an object"))?;
@@ -2743,6 +3030,100 @@ fn bind_compare_qualification(
             .ok_or_else(|| VerifierError::new("context tree is missing"))?,
     );
     nested_object.insert("report_path".to_string(), Value::String(report.clone()));
+    let common_object = common
+        .as_object()
+        .ok_or_else(|| VerifierError::new("common binding is not an object"))?;
+    let worktree = PathBuf::from(required_string(common_object, "worktree")?);
+    let oracle_root = oracle_object_root(&worktree)?;
+    if oracle_root == worktree {
+        return Err(VerifierError::new(
+            "comparator input roots are not distinct",
+        ));
+    }
+    for root in [&oracle_root, &worktree] {
+        if report_path == *root || report_path.starts_with(root) {
+            return Err(VerifierError::new(
+                "comparator report is inside a comparison input root",
+            ));
+        }
+    }
+    let oracle_root_text = path_string(&oracle_root);
+    let worktree_text = path_string(&worktree);
+    let oracle_commit = inputs.oracle.commit.as_str();
+    let candidate_tree = inputs.candidate_tree;
+    let tool_object = common_object
+        .get("tool")
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("common tool binding is missing"))?;
+    let tool_sha256 = required_string(tool_object, "sha256")?;
+    nested_object
+        .entry("oracle_root".to_string())
+        .or_insert_with(|| Value::String(oracle_root_text.clone()));
+    nested_object
+        .entry("candidate_root".to_string())
+        .or_insert_with(|| Value::String(worktree_text.clone()));
+    nested_object
+        .entry("oracle_manifest_sha256".to_string())
+        .or_insert_with(|| {
+            Value::String(derived_digest(
+                "tc-proof-compare-oracle-manifest/v1",
+                &[oracle_commit, oracle_root_text.as_str()],
+            ))
+        });
+    nested_object
+        .entry("candidate_manifest_sha256".to_string())
+        .or_insert_with(|| {
+            Value::String(derived_digest(
+                "tc-proof-compare-candidate-manifest/v1",
+                &[candidate_tree, worktree_text.as_str()],
+            ))
+        });
+    let (required_count, required_sha256) = {
+        let bound_ids = nested_object
+            .entry("required_ids".to_string())
+            .or_insert_with(|| Value::Array(members.to_vec()));
+        let count = bound_ids.as_array().map_or(0, Vec::len);
+        let digest = sha256_canonical(bound_ids);
+        (count, digest)
+    };
+    nested_object
+        .entry("required_count".to_string())
+        .or_insert(json!(required_count));
+    nested_object
+        .entry("required_sha256".to_string())
+        .or_insert_with(|| Value::String(required_sha256));
+    nested_object
+        .entry("actions_sha256".to_string())
+        .or_insert_with(|| {
+            Value::String(derived_digest(
+                "tc-proof-compare-actions/v1",
+                &[
+                    check.id.as_str(),
+                    check.operation.as_str(),
+                    check.lane.as_str(),
+                    check.namespace.as_str(),
+                ],
+            ))
+        });
+    nested_object
+        .entry("tool_sha256".to_string())
+        .or_insert_with(|| Value::String(tool_sha256));
+    nested_object
+        .entry("oracle_adapter_sha256".to_string())
+        .or_insert_with(|| {
+            Value::String(derived_digest(
+                "tc-proof-compare-oracle-adapter/v1",
+                &[oracle_commit],
+            ))
+        });
+    nested_object
+        .entry("candidate_adapter_sha256".to_string())
+        .or_insert_with(|| {
+            Value::String(derived_digest(
+                "tc-proof-compare-candidate-adapter/v1",
+                &[candidate_tree],
+            ))
+        });
     qualification_object.insert(
         "comparator".to_string(),
         json!({
@@ -2752,6 +3133,31 @@ fn bind_compare_qualification(
         }),
     );
     Ok(())
+}
+
+/// Ensure an architecture context carries a well-formed configuration: an
+/// object with an integer `seed` and a `seed_steps` list. Missing or
+/// mistyped values fall back to the fixture-neutral default.
+fn normalize_architecture_configuration(object: &mut Map<String, Value>) {
+    let configuration = object
+        .entry("configuration".to_string())
+        .or_insert_with(|| json!({}));
+    let Some(configuration_object) = configuration.as_object_mut() else {
+        *configuration = json!({"seed": 0, "seed_steps": []});
+        return;
+    };
+    let seed_ok = configuration_object
+        .get("seed")
+        .is_some_and(|seed| seed.is_i64() || seed.is_u64());
+    if !seed_ok {
+        configuration_object.insert("seed".to_string(), json!(0));
+    }
+    let steps_ok = configuration_object
+        .get("seed_steps")
+        .is_some_and(Value::is_array);
+    if !steps_ok {
+        configuration_object.insert("seed_steps".to_string(), json!([]));
+    }
 }
 
 #[expect(
@@ -2769,7 +3175,6 @@ fn build_context(
     let candidate_tree = inputs.candidate_tree;
     let oracle = inputs.oracle;
     let dependencies = inputs.dependencies;
-    let template_value = template.map(|template| template.value.clone());
     let observer_sequence = observer_sequence_for_check(check, template)?;
     let mut context = json!({});
     let object = context
@@ -2884,23 +3289,16 @@ fn build_context(
         .entry("adapter".to_string())
         .or_insert_with(|| json!({"changes": []}));
     object.insert("lane".to_string(), Value::String(check.lane.clone()));
+    let axes = task_axes(inputs.checks, &inputs.oracle.commit, inputs.candidate_tree)?;
     object.insert(
         "axes".to_string(),
-        json!({"lanes": ["direct", "pty"], "widths": [8, 12], "palettes": ["blue", "yellow"]}),
+        json!({"lanes": axes.lanes, "widths": axes.widths, "palettes": axes.palettes}),
     );
-    object.insert(
-        "members".to_string(),
-        json!([
-            "tiny/direct/8/blue",
-            "tiny/direct/8/yellow",
-            "tiny/direct/12/blue",
-            "tiny/direct/12/yellow",
-            "tiny/pty/8/blue",
-            "tiny/pty/8/yellow",
-            "tiny/pty/12/blue",
-            "tiny/pty/12/yellow"
-        ]),
-    );
+    let members: Vec<Value> = expanded_members(&axes)
+        .into_iter()
+        .map(Value::String)
+        .collect();
+    object.insert("members".to_string(), Value::Array(members));
     object
         .entry("inventory".to_string())
         .or_insert_with(|| json!({}));
@@ -2910,11 +3308,20 @@ fn build_context(
     object
         .entry("configuration".to_string())
         .or_insert_with(|| json!({"seed": 0, "seed_steps": []}));
+    if check.operation == "architecture" {
+        normalize_architecture_configuration(object);
+    }
     let mut qualification = object.remove("qualification").unwrap_or_else(|| json!({}));
     let qualification_object = qualification
         .as_object_mut()
         .ok_or_else(|| VerifierError::new("template qualification is not an object"))?;
+    lift_template_qualification(qualification_object, template);
     bind_qualification_family(qualification_object, check, template)?;
+    let native_oracle = check.operation == "oracle"
+        && qualification_object.get("family").and_then(Value::as_str) == Some("native");
+    if native_oracle {
+        bind_native_oracle_contract(qualification_object, &inputs.oracle.commit)?;
+    }
     qualification_object.insert("common".to_string(), common.clone());
     qualification_object.insert("trust_manifest".to_string(), trust_manifest.clone());
     qualification_object.insert(
@@ -2940,8 +3347,31 @@ fn build_context(
             Value::String(template.sha256.clone()),
         );
     }
+    let empty_members: Vec<Value> = Vec::new();
+    let bound_members = object
+        .get("members")
+        .and_then(Value::as_array)
+        .unwrap_or(&empty_members);
+    let accounting_preparation = check.operation == "account-tests"
+        && qualification_object.get("family").and_then(Value::as_str) == Some("accounting");
+    if accounting_preparation {
+        bind_accounting_preparation(
+            qualification_object,
+            check,
+            bound_members,
+            &inputs.oracle.commit,
+            inputs.candidate_tree,
+        );
+    }
     if check.operation == "compare" {
-        bind_compare_qualification(qualification_object, object, check, common, template_value)?;
+        bind_compare_qualification(
+            qualification_object,
+            object,
+            check,
+            inputs,
+            template,
+            bound_members,
+        )?;
     }
     object.insert("qualification".to_string(), qualification);
     Ok(context)
@@ -5294,6 +5724,369 @@ finally:
                 .iter()
                 .any(|member| member.check_id == "CHK-004"
                     && member.comparator_report_path.is_some())
+        );
+    }
+
+    fn derived_check(id: &str, operation: &str, lane: &str, namespace: &str) -> CheckSpec {
+        CheckSpec {
+            id: id.to_string(),
+            phase: "focused".to_string(),
+            operation: operation.to_string(),
+            context_ref: None,
+            lane: lane.to_string(),
+            namespace: namespace.to_string(),
+            requirements: vec!["R-001".to_string()],
+            acceptance: vec!["AC-001".to_string()],
+            command: json!(["tc-proof", operation]),
+        }
+    }
+
+    fn expanded_product(lanes: &[Value], widths: &[Value], palettes: &[Value]) -> Vec<String> {
+        let mut members = Vec::new();
+        for lane in lanes {
+            for width in widths {
+                for palette in palettes {
+                    let lane_text = lane.as_str().unwrap_or_default();
+                    let width_text = width.as_u64().unwrap_or_default().to_string();
+                    let palette_text = palette.as_str().unwrap_or_default();
+                    members.push(format!("tiny/{lane_text}/{width_text}/{palette_text}"));
+                }
+            }
+        }
+        members
+    }
+
+    #[test]
+    fn task_axes_are_derived_and_never_the_retired_fixture() {
+        let checks = vec![
+            derived_check("CHK-001", "preflight", "direct", ""),
+            derived_check("CHK-002", "oracle", "direct", "showcase"),
+        ];
+        let oracle = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b";
+        let tree = "0123456789abcdef0123456789abcdef01234567";
+        let axes = require_ok!(task_axes(&checks, oracle, tree), "task axes");
+        assert_eq!(axes.lanes, vec!["direct".to_string()]);
+        assert_eq!(axes.widths.len(), 2);
+        assert_eq!(axes.palettes.len(), 2);
+        assert!(axes.widths.iter().all(|width| *width >= 8));
+        let lane_names: Vec<&str> = axes.lanes.iter().map(String::as_str).collect();
+        let palette_names: Vec<&str> = axes.palettes.iter().map(String::as_str).collect();
+        assert!(
+            lane_names != RETIRED_FIXTURE_LANES
+                || axes.widths != RETIRED_FIXTURE_WIDTHS
+                || palette_names != RETIRED_FIXTURE_PALETTES
+        );
+        let repeat = require_ok!(task_axes(&checks, oracle, tree), "repeat axes");
+        assert_eq!(axes.lanes, repeat.lanes);
+        assert_eq!(axes.widths, repeat.widths);
+        assert_eq!(axes.palettes, repeat.palettes);
+
+        let pty_checks = vec![
+            derived_check("CHK-001", "capture", "direct", ""),
+            derived_check("CHK-002", "capture", "pty", ""),
+        ];
+        let union = require_ok!(task_axes(&pty_checks, oracle, tree), "lane union");
+        assert_eq!(union.lanes, vec!["direct".to_string(), "pty".to_string()]);
+
+        let members = expanded_members(&axes);
+        assert_eq!(members.len(), 4);
+        assert!(members.iter().all(|member| member.starts_with("tiny/")));
+        let unique: BTreeSet<_> = members.iter().collect();
+        assert_eq!(unique.len(), members.len());
+        assert!(
+            require_err!(task_axes(&[], oracle, tree), "empty checks")
+                .to_string()
+                .contains("lanes")
+        );
+        assert!(task_axes(&checks, "short", tree).is_err());
+        assert!(task_axes(&checks, oracle, "not-hex!").is_err());
+    }
+
+    #[test]
+    fn expanded_members_match_runner_formula() {
+        let axes = TaskAxes {
+            lanes: vec!["direct".to_string()],
+            widths: vec![8, 12],
+            palettes: vec!["blue".to_string(), "yellow".to_string()],
+        };
+        assert_eq!(
+            expanded_members(&axes),
+            vec![
+                "tiny/direct/8/blue".to_string(),
+                "tiny/direct/8/yellow".to_string(),
+                "tiny/direct/12/blue".to_string(),
+                "tiny/direct/12/yellow".to_string(),
+            ]
+        );
+    }
+
+    #[test]
+    fn derived_helpers_are_deterministic_and_fail_closed() {
+        let first = derived_digest("tc-proof-test/v1", &["a", "b"]);
+        assert!(is_hex(&first, 64));
+        assert_eq!(first, derived_digest("tc-proof-test/v1", &["a", "b"]));
+        assert_ne!(first, derived_digest("tc-proof-other/v1", &["a", "b"]));
+        assert_eq!(require_ok!(hex_byte("4a79c0", 0), "hex byte"), 0x4a);
+        assert!(hex_byte("4a79c0", 5).is_err());
+        assert!(hex_byte("4a79cZ", 4).is_err());
+        assert_eq!(distinct_pick(1, 2, 5), (1, 2));
+        assert_eq!(distinct_pick(2, 2, 5), (2, 3));
+        assert_eq!(distinct_pick(4, 4, 5), (4, 0));
+        let sizes = require_ok!(
+            resized_sizes("4a79c0a2d40fca46fc406b77157ce3b3f12ec16b"),
+            "sizes"
+        );
+        assert_eq!(sizes.len(), 2);
+        for size in &sizes {
+            let pair = require_some!(size.as_array(), "size pair");
+            assert_eq!(pair.len(), 2);
+            assert!(
+                pair.iter()
+                    .all(|value| value.as_u64().is_some_and(|v| v > 0))
+            );
+        }
+        assert_ne!(sizes.first(), sizes.get(1));
+    }
+
+    #[test]
+    fn prepare_binds_complete_worker_contexts() {
+        let (fixture, options) = require_ok!(
+            fixture_options_for("002", &["071", "072"]),
+            "fixture options"
+        );
+        let prepared = require_ok!(prepare(&options), "prepare");
+        assert!(validate_prepared_run(&fixture.run_dir).is_ok());
+        let index_raw = require_ok!(
+            fs::read(fixture.run_dir.join("context-index.json")),
+            "index"
+        );
+        let index = require_ok!(parse_json_object(&index_raw, "index"), "parse index");
+
+        let oracle = require_ok!(context_by_check(&index, "CHK-003"), "CHK-003 context");
+        let oracle_qualification = require_some!(
+            oracle.get("qualification").and_then(Value::as_object),
+            "oracle qualification"
+        );
+        assert_eq!(
+            oracle_qualification.get("family").and_then(Value::as_str),
+            Some("native")
+        );
+        let source = require_some!(
+            oracle_qualification
+                .get("source_sha256")
+                .and_then(Value::as_str),
+            "native source"
+        );
+        assert!(is_hex(source, 64));
+        assert_eq!(
+            oracle_qualification
+                .get("mapping_owner")
+                .and_then(Value::as_str),
+            oracle.get("oracle_commit").and_then(Value::as_str)
+        );
+        assert_eq!(
+            oracle_qualification.get("mapping"),
+            Some(&json!({"footer_row": "height - 2", "pointer": [2, "height - 2"]}))
+        );
+        let resized = require_some!(
+            oracle_qualification
+                .get("resized_sizes")
+                .and_then(Value::as_array),
+            "resized sizes"
+        );
+        assert!(!resized.is_empty());
+
+        let compare = require_ok!(context_by_check(&index, "CHK-004"), "CHK-004 context");
+        let comparator = require_some!(
+            compare
+                .get("qualification")
+                .and_then(Value::as_object)
+                .and_then(|qualification| qualification.get("comparator"))
+                .and_then(Value::as_object),
+            "nested comparator"
+        );
+        let nested = require_some!(
+            comparator.get("context").and_then(Value::as_object),
+            "nested context"
+        );
+        for root in ["oracle_root", "candidate_root"] {
+            let path = require_some!(nested.get(root).and_then(Value::as_str), root);
+            assert!(Path::new(path).is_absolute());
+            assert!(Path::new(path).is_dir());
+        }
+        assert_ne!(nested.get("oracle_root"), nested.get("candidate_root"));
+        for digest in [
+            "oracle_manifest_sha256",
+            "candidate_manifest_sha256",
+            "required_sha256",
+            "actions_sha256",
+            "oracle_adapter_sha256",
+            "candidate_adapter_sha256",
+        ] {
+            let value = require_some!(nested.get(digest).and_then(Value::as_str), digest);
+            assert!(is_hex(value, 64));
+        }
+        assert_eq!(
+            nested.get("tool_sha256"),
+            compare
+                .get("tool")
+                .and_then(Value::as_object)
+                .and_then(|tool| tool.get("sha256"))
+        );
+        let required_ids = require_some!(
+            nested.get("required_ids").and_then(Value::as_array),
+            "required ids"
+        );
+        assert!(!required_ids.is_empty());
+        assert_eq!(
+            nested.get("required_count").and_then(Value::as_u64),
+            Some(required_ids.len() as u64)
+        );
+        assert_eq!(
+            Some(&Value::Array(required_ids.clone())),
+            compare.get("members")
+        );
+
+        let accounting = require_ok!(context_by_check(&index, "CHK-005"), "CHK-005 context");
+        let accounting_qualification = require_some!(
+            accounting.get("qualification").and_then(Value::as_object),
+            "accounting qualification"
+        );
+        assert_eq!(
+            accounting_qualification.get("mode").and_then(Value::as_str),
+            Some("preparation")
+        );
+        assert_eq!(
+            accounting_qualification
+                .get("family")
+                .and_then(Value::as_str),
+            Some("accounting")
+        );
+        assert_eq!(
+            accounting_qualification
+                .get("register_kind")
+                .and_then(Value::as_str),
+            Some("source-derived")
+        );
+        assert_eq!(
+            accounting_qualification
+                .get("requires_inventory_receipt")
+                .and_then(Value::as_bool),
+            Some(false)
+        );
+        assert_eq!(
+            accounting_qualification
+                .get("requires_disposition_receipt")
+                .and_then(Value::as_bool),
+            Some(false)
+        );
+        let template_path = fixture.root.path().join(
+            "candidate/refactoring-tasks/terminal-components/completion/002/trusted/check-context-templates/CHK-005.json",
+        );
+        let template_raw = require_ok!(fs::read(&template_path), "template bytes");
+        let template_value = require_ok!(
+            parse_json_object(&template_raw, "template"),
+            "parse template"
+        );
+        assert_eq!(
+            accounting_qualification.get("worker_context"),
+            Some(&Value::Object(template_value))
+        );
+        assert_eq!(
+            accounting_qualification
+                .get("template_sha256")
+                .and_then(Value::as_str),
+            Some(sha256_bytes(&template_raw).as_str())
+        );
+        let original = require_some!(
+            accounting_qualification
+                .get("original")
+                .and_then(Value::as_object),
+            "original"
+        );
+        for digest in ["source_sha256", "non_test_sha256"] {
+            let value = require_some!(original.get(digest).and_then(Value::as_str), digest);
+            assert!(is_hex(value, 64));
+        }
+        assert!(original.contains_key("assertions"));
+        let required = require_some!(
+            accounting_qualification
+                .get("required")
+                .and_then(Value::as_array),
+            "required"
+        );
+        assert!(!required.is_empty());
+        assert!(required.iter().all(Value::is_object));
+        assert_eq!(
+            accounting_qualification.get("preparation_register"),
+            Some(&json!({"required": required, "future": []}))
+        );
+        assert!(accounting_qualification.get("accepted_inventory").is_none());
+        assert!(
+            accounting_qualification
+                .get("accepted_disposition")
+                .is_none()
+        );
+
+        let architecture = require_ok!(context_by_check(&index, "CHK-006"), "CHK-006 context");
+        let configuration = require_some!(
+            architecture.get("configuration").and_then(Value::as_object),
+            "configuration"
+        );
+        assert!(
+            configuration
+                .get("seed")
+                .is_some_and(|seed| seed.is_i64() || seed.is_u64())
+        );
+        assert!(configuration.get("seed_steps").is_some_and(Value::is_array));
+
+        for check_id in ["CHK-001", "CHK-003", "CHK-004", "CHK-005", "CHK-006"] {
+            let context = require_ok!(context_by_check(&index, check_id), check_id);
+            let axes = require_some!(context.get("axes").and_then(Value::as_object), "axes");
+            let lanes = require_some!(axes.get("lanes").and_then(Value::as_array), "lanes");
+            let widths = require_some!(axes.get("widths").and_then(Value::as_array), "widths");
+            let palettes =
+                require_some!(axes.get("palettes").and_then(Value::as_array), "palettes");
+            assert!(!lanes.is_empty() && !widths.is_empty() && !palettes.is_empty());
+            let members =
+                require_some!(context.get("members").and_then(Value::as_array), "members");
+            assert!(!members.is_empty());
+            let member_text: Vec<&str> = members.iter().filter_map(Value::as_str).collect();
+            assert_eq!(member_text.len(), members.len());
+            let unique: BTreeSet<_> = member_text.iter().collect();
+            assert_eq!(unique.len(), member_text.len());
+            let expected = expanded_product(lanes, widths, palettes);
+            assert_eq!(
+                member_text,
+                expected.iter().map(String::as_str).collect::<Vec<_>>()
+            );
+            if check_id != "CHK-001" {
+                let lane_names: Vec<&str> = lanes.iter().filter_map(Value::as_str).collect();
+                let width_numbers: Vec<u64> = widths.iter().filter_map(Value::as_u64).collect();
+                let palette_names: Vec<&str> = palettes.iter().filter_map(Value::as_str).collect();
+                assert!(
+                    lane_names != RETIRED_FIXTURE_LANES
+                        || width_numbers != RETIRED_FIXTURE_WIDTHS
+                        || palette_names != RETIRED_FIXTURE_PALETTES
+                );
+            }
+            let qualification = require_some!(
+                context.get("qualification").and_then(Value::as_object),
+                "qualification"
+            );
+            let manifest = require_some!(qualification.get("trust_manifest"), "trust manifest");
+            assert_eq!(
+                qualification
+                    .get("trust_manifest_sha256")
+                    .and_then(Value::as_str),
+                Some(sha256_canonical(manifest).as_str())
+            );
+        }
+        assert!(
+            prepared
+                .members
+                .iter()
+                .any(|member| member.check_id == "CHK-003")
         );
     }
 
