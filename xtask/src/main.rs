@@ -8901,8 +8901,9 @@ fn resolve_rev(rev: &str, source: &str) -> Result<String, String> {
     Err(format!(
         "bless-guard base revision `{rev}` (from {source}) does not resolve. Falling back to HEAD \
          here would compare the tree with itself and pass vacuously, which is the failure this \
-         gate exists to prevent, so the guard stops instead. In CI the checkout needs \
-         `fetch-depth: 0`; locally set BLESS_GUARD_BASE to a revision that exists."
+         gate exists to prevent, so the guard stops instead. The mise bless-guard task fetches \
+         history with `git fetch --unshallow || git fetch --all`; locally set BLESS_GUARD_BASE \
+         to a revision that exists."
     ))
 }
 
@@ -8920,7 +8921,7 @@ fn bless_guard_base_from(
         return resolve_rev(&format!("origin/{}", v.trim()), "GITHUB_BASE_REF");
     }
     Err(
-        "bless-guard has no base revision. Set BLESS_GUARD_BASE explicitly (or provide GITHUB_BASE_REF on a pull request); comparing against HEAD is refused because it passes vacuously. CI checkouts must use `fetch-depth: 0`."
+        "bless-guard has no base revision. Set BLESS_GUARD_BASE explicitly (or provide GITHUB_BASE_REF on a pull request); comparing against HEAD is refused because it passes vacuously."
             .to_owned(),
     )
 }
@@ -10294,47 +10295,99 @@ captures / classification: `(pending — filled when the change lands)`
         .expect("no digest key moved or was added");
     }
 
-    /// §49.6: the guard's base falls back to `HEAD` when nothing sets one, and
-    /// CI runs on **push to `main`** as well as on pull requests. On the push
-    /// leg there is no `GITHUB_BASE_REF`, so without an explicit base a clean
-    /// checkout is diffed against itself and the guard reports `0 moved,
-    /// 0 added` on every direct commit — which is what it did for this whole
-    /// session. The push leg must therefore name a base explicitly.
+    /// §49.6: CI runs bless-guard on **push** as well as pull requests. On the
+    /// push leg there is no `GITHUB_BASE_REF`. The generated extra-gates job
+    /// must set `BLESS_GUARD_BASE` (PR base SHA, else `github.event.before`)
+    /// and invoke `mise run bless-guard`. `cargo run -p xtask -- bless-guard`
+    /// and history fetch live in the mise task, not in workflow YAML.
     #[test]
     fn the_ci_push_leg_gives_the_bless_guard_a_base() {
-        let ci = read(&root().join(".github/workflows/ci.yml"));
+        let root = root();
         assert!(
-            ci.contains("  push:"),
-            "the workflow no longer has a push leg; this check is about that leg"
+            !root.join(".github/workflows/ci.yml").is_file(),
+            "retired .github/workflows/ci.yml must stay gone; bless-guard CI is generated extra-gates"
         );
-        let lines: Vec<&str> = ci.lines().collect();
-        // the `run:` step, not the gate→requirement comment block at the head
-        // of the file, which names the same command
-        let run = lines
-            .iter()
-            .position(|l| {
-                l.trim_start()
-                    .strip_prefix("run: cargo run ")
-                    .is_some_and(|args| {
-                        args.split_whitespace()
-                            .collect::<Vec<_>>()
-                            .windows(4)
-                            .any(|words| words == ["-p", "xtask", "--", "bless-guard"])
-                    })
-            })
-            .expect("ci.yml has a step that runs the bless guard");
-        let start = run.saturating_sub(8);
-        let window = lines.get(start..run).unwrap_or_default().join("\n");
+
+        let extra = fs::read_to_string(root.join(".github/workflows/ci-extra-gates.yml"))
+            .expect("generated .github/workflows/ci-extra-gates.yml");
         assert!(
-            window.contains("BLESS_GUARD_BASE:"),
-            "the bless-guard step must set BLESS_GUARD_BASE; without it the push leg diffs \
-             the tree against itself. Step context:\n{window}"
+            extra.contains("\n  push:\n"),
+            "the extra-gates workflow no longer has a push leg; this check is about that leg"
+        );
+
+        let job = yaml_job_body(&extra, "bless-guard");
+        assert!(
+            job.lines()
+                .any(|line| line.trim() == "run: mise run bless-guard"),
+            "bless-guard job must run `mise run bless-guard`; job:\n{job}"
         );
         assert!(
-            window.contains("github.event.before"),
-            "BLESS_GUARD_BASE on the push leg must be `${{{{ github.event.before }}}}` — the \
-             commit the push moved `main` off. Step context:\n{window}"
+            !contains_words(job, &["-p", "xtask", "--", "bless-guard"]),
+            "workflow YAML must not invoke xtask directly; cargo run lives in the mise task. job:\n{job}"
         );
+        assert!(
+            job.contains("BLESS_GUARD_BASE:"),
+            "the bless-guard job must set BLESS_GUARD_BASE; without it the push leg diffs \
+             the tree against itself. Job:\n{job}"
+        );
+        assert!(
+            job.contains("github.event.before"),
+            "BLESS_GUARD_BASE on the push leg must use github.event.before — the \
+             commit the push moved the branch off. Job:\n{job}"
+        );
+
+        let mise = fs::read_to_string(root.join("mise.toml")).expect("mise.toml");
+        let task = toml_table_body(&mise, "tasks.bless-guard");
+        assert!(
+            task.contains("git fetch --unshallow || git fetch --all"),
+            "mise bless-guard must fetch history; task:\n{task}"
+        );
+        assert!(
+            contains_words(task, &["cargo", "run"])
+                && contains_words(task, &["-p", "xtask", "--", "bless-guard"]),
+            "mise bless-guard must run `cargo run … -p xtask -- bless-guard`; task:\n{task}"
+        );
+    }
+
+    fn yaml_job_body<'a>(yaml: &'a str, job: &str) -> &'a str {
+        let header = format!("\n  {job}:\n");
+        let start = yaml
+            .find(&header)
+            .unwrap_or_else(|| panic!("generated workflow missing job `{job}`"));
+        let rest = &yaml[start + header.len()..];
+        let mut end = rest.len();
+        let mut offset = 0;
+        for line in rest.lines() {
+            if offset > 0
+                && line.starts_with("  ")
+                && !line.starts_with("    ")
+                && line.ends_with(':')
+            {
+                end = offset;
+                break;
+            }
+            offset += line.len() + 1;
+        }
+        &rest[..end]
+    }
+
+    fn toml_table_body<'a>(text: &'a str, table: &str) -> &'a str {
+        let header = format!("[{table}]\n");
+        let start = text
+            .find(&header)
+            .unwrap_or_else(|| panic!("missing [{table}]"));
+        let rest = &text[start + header.len()..];
+        match rest.find("\n[") {
+            Some(i) => &rest[..i],
+            None => rest,
+        }
+    }
+
+    fn contains_words(text: &str, want: &[&str]) -> bool {
+        text.split_whitespace()
+            .collect::<Vec<_>>()
+            .windows(want.len())
+            .any(|words| words == want)
     }
 
     #[test]

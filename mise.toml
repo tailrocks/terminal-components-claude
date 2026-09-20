@@ -12,7 +12,11 @@ run = "cargo run --locked -p xtask -- boundary"
 
 [tasks.bless-guard]
 description = "Classify baseline moves against docs/visual-changes.md"
-run = "cargo run --locked -p xtask -- bless-guard"
+run = """
+set -euo pipefail
+git fetch --unshallow || git fetch --all
+cargo run --locked -p xtask -- bless-guard
+"""
 
 [tasks.doc-check]
 description = "Resolve Ident::method references in architecture docs"

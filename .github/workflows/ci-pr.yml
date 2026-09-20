@@ -444,7 +444,7 @@ jobs:
       base_sha: ${{ needs.plan.outputs.base_sha }}
       head_sha: ${{ needs.plan.outputs.head_sha }}
       mise_tools: "aqua:nextest-rs/nextest/cargo-nextest aqua:lycheeverse/lychee"
-      mbx_compat: ada5c5db5f9e
+      mbx_compat: "571836a39555"
       mbx_dependency_files: |
         .cargo/**
         Cargo.lock

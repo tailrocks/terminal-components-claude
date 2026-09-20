@@ -24,9 +24,11 @@ source = ".github-gen/sources/workflows-AGENTS.md"
 
 # Extra gates on the scanned xtask unit. Affected/full CI already provisions
 # Rust 1.98.1 from rust-toolchain.toml; do not restore an MSRV-1.88 matrix.
+# bless-guard is extra-gates only: that job sets BLESS_GUARD_BASE. The xtask
+# unit cannot, and an env-less invocation fails closed on push.
 [[units]]
 id = "rust-xtask"
-ci_tasks = ["boundary", "bless-guard", "doc-check", "rustdoc", "lychee"]
+ci_tasks = ["boundary", "doc-check", "rustdoc", "lychee"]
 mise_tools = ["aqua:lycheeverse/lychee"]
 
 # Repo-wide extra gates, including push coverage on the campaign branch.
