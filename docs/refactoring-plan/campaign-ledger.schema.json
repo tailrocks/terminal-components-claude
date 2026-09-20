@@ -366,6 +366,61 @@
       "additionalProperties": false,
       "required": ["path", "sha256"],
       "properties": {"path": {"$ref": "#/$defs/absolutePath"}, "sha256": {"$ref": "#/$defs/sha256"}}
+    },
+    "observerSequence": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "contextIndex": {
+      "$anchor": "contextIndex",
+      "type": "object",
+      "description": "tc-proof-context-index/v1. Native observer_sequences must match capability sequences and each context observer_sequence.",
+      "additionalProperties": false,
+      "required": ["schema", "task_id", "run_id", "worktree_commit", "scope_base", "contexts", "results", "observer_sequences", "observer"],
+      "properties": {
+        "schema": {"const": "tc-proof-context-index/v1"},
+        "task_id": {"$ref": "#/$defs/taskId"},
+        "run_id": {"$ref": "#/$defs/absolutePath"},
+        "worktree_commit": {"$ref": "#/$defs/fullSha"},
+        "scope_base": {"$ref": "#/$defs/fullSha"},
+        "contexts": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/artifactReference"}},
+        "results": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/artifactReference"}},
+        "observer_sequences": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {"$ref": "#/$defs/observerSequence"}
+        },
+        "observer": {"$ref": "#/$defs/indexReference"}
+      }
+    },
+    "observerCapability": {
+      "$anchor": "observerCapability",
+      "type": "object",
+      "description": "tc-proof-observer-capability/v1. sequences must equal context-index observer_sequences; provider is the bound executable identity.",
+      "additionalProperties": false,
+      "required": ["schema", "task_id", "run_id", "worktree_commit", "scope_base", "transport", "nonce_sha256", "sequences", "provider"],
+      "properties": {
+        "schema": {"const": "tc-proof-observer-capability/v1"},
+        "task_id": {"$ref": "#/$defs/taskId"},
+        "run_id": {"$ref": "#/$defs/absolutePath"},
+        "worktree_commit": {"$ref": "#/$defs/fullSha"},
+        "scope_base": {"$ref": "#/$defs/fullSha"},
+        "transport": {"const": "inherited-pipe/v1"},
+        "nonce_sha256": {"$ref": "#/$defs/sha256"},
+        "sequences": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {"$ref": "#/$defs/observerSequence"}
+        },
+        "provider": {"$ref": "#/$defs/pathReference"}
+      }
+    },
+    "qualificationFamily": {
+      "$anchor": "qualificationFamily",
+      "description": "Oracle observer family bound into context qualification. native is one oracle request; synthetic is two.",
+      "enum": ["native", "synthetic"]
     }
   }
 }

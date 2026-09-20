@@ -204,6 +204,7 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
             "transport",
             "nonce_sha256",
             "sequences",
+            "provider",
         }
         or capability.get("schema") != "tc-proof-observer-capability/v1"
         or capability.get("task_id") != index["task_id"]

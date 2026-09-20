@@ -126,6 +126,7 @@ def prepare_fixture(
     source: Path,
     root: Path,
     taskfmt: tuple[Path, Path, str, str, str],
+    provider: Path,
 ) -> tuple[Path, dict[str, dict[str, str]], Path]:
     candidate = root / "candidate"
     cloned = run(["git", "clone", "--local", "--no-hardlinks", str(source), str(candidate)], cwd=source)
@@ -192,6 +193,8 @@ def prepare_fixture(
             taskfmt_sha256,
             "--observer-nonce",
             "fixture-observer",
+            "--observer-provider",
+            str(provider),
         ],
         cwd=source,
     )
@@ -241,7 +244,7 @@ def main() -> None:
         root = Path(directory).resolve()
         provider = root / "observer-provider.py"
         write_provider(provider)
-        run_dir, contexts, native = prepare_fixture(source, root, taskfmt)
+        run_dir, contexts, native = prepare_fixture(source, root, taskfmt, provider)
         context = Path(contexts["CHK-001"]["path"])
         environment = worker_environment(run_dir, native, provider)
 

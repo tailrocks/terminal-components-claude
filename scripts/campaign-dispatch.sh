@@ -712,6 +712,11 @@ PY
 prepare_native_contexts() {
 	local dir="$1"
 	local binary="$2"
+	local OBSERVER_PROVIDER="${TC_PROOF_OBSERVER_PROVIDER:-}"
+	[[ -n "$OBSERVER_PROVIDER" && "$OBSERVER_PROVIDER" = /* ]] ||
+		die "set TC_PROOF_OBSERVER_PROVIDER to the bound observer response provider"
+	campaign_require_regular_file "$OBSERVER_PROVIDER" "observer response provider" 1 1 ||
+		die "observer response provider failed trust-path validation: $OBSERVER_PROVIDER"
 	local -a command=(
 		"$binary" prepare
 		--task-dir "$dir"
@@ -728,6 +733,7 @@ prepare_native_contexts() {
 		--taskfmt-revision "$TASKFMT_REV"
 		--taskfmt-version "$TASKFMT_VERSION"
 		--taskfmt-sha256 "$TASKFMT_SHA256"
+		--observer-provider "$OBSERVER_PROVIDER"
 	)
 	if [[ -n "${TC_TASK_DEPENDENCY_RECEIPTS:-}" ]]; then
 		local receipt

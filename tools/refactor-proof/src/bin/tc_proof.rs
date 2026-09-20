@@ -18,8 +18,8 @@ tc-proof prepare --task-dir PATH --run-dir PATH --worktree PATH --scope-base COM
   --oracle-tag refs/tags/visual-baseline --oracle-commit COMMIT --tool PATH --comparator PATH \
   --native-build-receipt PATH --taskfmt PATH --taskfmt-source PATH \
   --taskfmt-revision COMMIT --taskfmt-version VERSION --taskfmt-sha256 SHA256 \
-  [--dependency-receipt PATH] [--run-id ID] [--observer-nonce NONCE] \
-  [--observer-socket PATH]
+  --observer-provider PATH [--dependency-receipt PATH] [--run-id ID] \
+  [--observer-nonce NONCE] [--observer-socket PATH]
 tc-proof validate --run-dir PATH
 tc-proof launch --run-dir PATH --check-id CHK-NNN [--timeout-ms N] -- PROGRAM [ARGS...]
 ";
@@ -82,6 +82,7 @@ fn parse_prepare_args(args: &[String]) -> Result<verifier::PrepareOptions, Strin
     let mut taskfmt_revision = None;
     let mut taskfmt_version = None;
     let mut taskfmt_sha256 = None;
+    let mut observer_provider = None;
     let mut dependency_receipts = Vec::new();
     let mut run_id = None;
     let mut observer_nonce = None;
@@ -140,6 +141,13 @@ fn parse_prepare_args(args: &[String]) -> Result<verifier::PrepareOptions, Strin
             "--taskfmt-sha256" => {
                 taskfmt_sha256 = Some(value_after(args, &mut index, "--taskfmt-sha256")?);
             }
+            "--observer-provider" => {
+                observer_provider = Some(PathBuf::from(value_after(
+                    args,
+                    &mut index,
+                    "--observer-provider",
+                )?));
+            }
             "--dependency-receipt" => dependency_receipts.push(PathBuf::from(value_after(
                 args,
                 &mut index,
@@ -178,6 +186,8 @@ fn parse_prepare_args(args: &[String]) -> Result<verifier::PrepareOptions, Strin
             .ok_or_else(|| "missing --taskfmt-revision".to_string())?,
         taskfmt_version: taskfmt_version.ok_or_else(|| "missing --taskfmt-version".to_string())?,
         taskfmt_sha256: taskfmt_sha256.ok_or_else(|| "missing --taskfmt-sha256".to_string())?,
+        observer_provider: observer_provider
+            .ok_or_else(|| "missing --observer-provider".to_string())?,
         dependency_receipts,
         run_id,
         observer_nonce,

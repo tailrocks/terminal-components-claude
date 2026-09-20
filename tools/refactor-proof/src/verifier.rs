@@ -47,6 +47,10 @@ const OBSERVER_PROVIDER_ENV: &str = "TC_PROOF_OBSERVER_PROVIDER";
 // and provider only need the host-standard Unix tools below.
 const NATIVE_EXECUTION_PATH: &str = "/usr/bin:/bin:/usr/sbin:/sbin";
 const EXPECTED_ORACLE_COMMIT: &str = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b";
+const QUALIFIED_TASKFMT_REVISION: &str = "afd3b575dbcc7044620bec4b9493a74eca3e5ef2";
+const QUALIFIED_TASKFMT_VERSION: &str = "0.2.0";
+const QUALIFIED_TASKFMT_SHA256: &str =
+    "f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de";
 const MAX_LAUNCH_TIMEOUT_MS: u64 = 600_000;
 const MAX_CHILD_OUTPUT_BYTES: usize = 32 * 1024 * 1024;
 const CLEANUP_POLL_INTERVAL: Duration = Duration::from_millis(5);
@@ -84,6 +88,8 @@ pub struct PrepareOptions {
     pub taskfmt_version: String,
     /// Qualified taskfmt executable SHA-256.
     pub taskfmt_sha256: String,
+    /// Independent observer response provider executable.
+    pub observer_provider: PathBuf,
     /// Accepted dependency receipt paths.
     pub dependency_receipts: Vec<PathBuf>,
     /// Stable run identity, or a random value when absent.
@@ -437,6 +443,8 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
     }
     let tool = executable_identity(&options.tool, "proof tool")?;
     let comparator = executable_identity(&options.comparator, "native comparator")?;
+    let observer_provider =
+        executable_identity(&options.observer_provider, "observer response provider")?;
     let taskfmt = options
         .taskfmt
         .as_ref()
@@ -489,6 +497,7 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
             "transport": "inherited-pipe/v1",
             "nonce": observer_nonce,
             "capability": path_string(&run_dir.join("observer.json")),
+            "provider": observer_provider,
         },
         "outputs": {
             "runtime": path_string(&run_dir.join("outputs")),
@@ -590,6 +599,7 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
         "transport": "inherited-pipe/v1",
         "nonce_sha256": sha256_bytes(observer_nonce.as_bytes()),
         "sequences": observer_sequences,
+        "provider": observer_provider,
     });
     let observer_sha256 =
         write_json_new(&observer_path, &observer_capability, "observer capability")?;
@@ -623,9 +633,9 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
     // Validate the complete materialized set before publishing the external
     // preparation receipt.  The receipt is evidence about this already
     // validated run; it cannot make an invalid run valid.
-    let prepared = validate_run_inner(&run_dir, false, Some(&native_target))?;
+    let prepared = validate_run_inner(&run_dir, false, Some(&native_target), false)?;
     write_preparation_receipt(options, &prepared)?;
-    validate_run_inner(&run_dir, true, None)
+    validate_run_inner(&run_dir, true, None, false)
 }
 
 #[expect(
@@ -753,23 +763,59 @@ fn taskfmt_provenance(options: &PrepareOptions) -> Result<Value> {
     {
         return Err(VerifierError::new("taskfmt provenance is malformed"));
     }
+    if options.taskfmt_revision != QUALIFIED_TASKFMT_REVISION
+        || options.taskfmt_version != QUALIFIED_TASKFMT_VERSION
+        || options.taskfmt_sha256 != QUALIFIED_TASKFMT_SHA256
+    {
+        return Err(VerifierError::new(
+            "taskfmt identity is not the qualified standalone pin",
+        ));
+    }
     let source = canonical_input_dir(&options.taskfmt_source, "taskfmt source")?;
     let (revision, _) = git_identity(&source)?;
-    if revision != options.taskfmt_revision {
+    if revision != options.taskfmt_revision || revision != QUALIFIED_TASKFMT_REVISION {
         return Err(VerifierError::new("taskfmt source revision mismatch"));
     }
     require_clean_candidate(&source)?;
     let actual_hash = hash_file(&taskfmt_path)?;
-    if actual_hash != options.taskfmt_sha256 {
+    if actual_hash != options.taskfmt_sha256 || actual_hash != QUALIFIED_TASKFMT_SHA256 {
         return Err(VerifierError::new("taskfmt executable hash mismatch"));
     }
+    let observed = observed_taskfmt_version(&taskfmt_path)?;
+    let expected_observed =
+        format!("taskfmt {QUALIFIED_TASKFMT_VERSION} (git {QUALIFIED_TASKFMT_REVISION})");
+    if observed != expected_observed {
+        return Err(VerifierError::new(format!(
+            "taskfmt --version is '{observed}'; expected '{expected_observed}'"
+        )));
+    }
     Ok(json!({
-        "taskfmt_revision": options.taskfmt_revision,
-        "taskfmt_version": options.taskfmt_version,
+        "taskfmt_revision": QUALIFIED_TASKFMT_REVISION,
+        "taskfmt_version": QUALIFIED_TASKFMT_VERSION,
         "taskfmt_sha256": actual_hash,
         "taskfmt_source": path_string(&source),
         "taskfmt_path": path_string(&taskfmt_path),
     }))
+}
+
+fn observed_taskfmt_version(path: &Path) -> Result<String> {
+    let output = Command::new(path)
+        .arg("--version")
+        .env("PATH", NATIVE_EXECUTION_PATH)
+        .output()
+        .map_err(|error| VerifierError::new(format!("taskfmt --version failed: {error}")))?;
+    if !output.status.success() {
+        return Err(VerifierError::new(
+            "taskfmt --version exited unsuccessfully",
+        ));
+    }
+    let observed = String::from_utf8(output.stdout)
+        .map_err(|error| VerifierError::new(format!("taskfmt --version is not UTF-8: {error}")))?;
+    let observed = observed.trim();
+    if observed.is_empty() || observed.contains('\n') {
+        return Err(VerifierError::new("taskfmt --version is malformed"));
+    }
+    Ok(observed.to_string())
 }
 
 fn native_build_binding(
@@ -1032,8 +1078,11 @@ fn validate_taskfmt_receipt(
         "proof preparation taskfmt",
     )?;
     let revision = required_hex(taskfmt, "taskfmt_revision", 40)?;
-    if required_string(taskfmt, "taskfmt_version")?.is_empty() {
-        return Err(VerifierError::new("taskfmt version is empty"));
+    let version = required_string(taskfmt, "taskfmt_version")?;
+    if revision != QUALIFIED_TASKFMT_REVISION || version != QUALIFIED_TASKFMT_VERSION {
+        return Err(VerifierError::new(
+            "taskfmt receipt is not the qualified standalone pin",
+        ));
     }
     let source = canonical_input_dir(
         Path::new(required_string(taskfmt, "taskfmt_source")?.as_str()),
@@ -1048,8 +1097,20 @@ fn validate_taskfmt_receipt(
         "taskfmt",
     )?
     .canonicalize()?;
-    if !is_executable(&path)? || hash_file(&path)? != required_hex(taskfmt, "taskfmt_sha256", 64)? {
+    let actual_hash = hash_file(&path)?;
+    if !is_executable(&path)?
+        || actual_hash != required_hex(taskfmt, "taskfmt_sha256", 64)?
+        || actual_hash != QUALIFIED_TASKFMT_SHA256
+    {
         return Err(VerifierError::new("taskfmt receipt executable mismatch"));
+    }
+    let observed = observed_taskfmt_version(&path)?;
+    let expected_observed =
+        format!("taskfmt {QUALIFIED_TASKFMT_VERSION} (git {QUALIFIED_TASKFMT_REVISION})");
+    if observed != expected_observed {
+        return Err(VerifierError::new(format!(
+            "taskfmt --version is '{observed}'; expected '{expected_observed}'"
+        )));
     }
     let context_taskfmt = context_taskfmt
         .and_then(Value::as_object)
@@ -1142,7 +1203,19 @@ fn preparation_artifact_map(
 /// Returns a verifier error when the run index, bound artifacts, or directory
 /// contents fail validation.
 pub fn validate_run(run_dir: &Path) -> Result<PreparedRun> {
-    validate_run_inner(run_dir, true, None)
+    validate_run_inner(run_dir, true, None, true)
+}
+
+/// Validate a prepared run before every runtime result exists.
+///
+/// Launch uses this gate. Final `validate_run` requires complete closure.
+///
+/// # Errors
+///
+/// Returns a verifier error when the prepared index, bound artifacts, or
+/// directory contents fail validation.
+pub fn validate_prepared_run(run_dir: &Path) -> Result<PreparedRun> {
+    validate_run_inner(run_dir, true, None, false)
 }
 
 #[expect(
@@ -1153,6 +1226,7 @@ fn validate_run_inner(
     run_dir: &Path,
     require_preparation_receipt: bool,
     native_target: Option<&Path>,
+    require_runtime_closure: bool,
 ) -> Result<PreparedRun> {
     let run_dir = canonical_existing_dir(run_dir, "run directory")?;
     let index_path = immutable_file(&run_dir.join("context-index.json"), "context index")?;
@@ -1190,8 +1264,11 @@ fn validate_run_inner(
     require_readonly_dir(&contexts_dir, "contexts directory")?;
     require_readonly_dir(&results_dir, "results directory")?;
     let outputs_dir = regular_dir(&run_dir.join("outputs"), "runtime output directory")?;
-    let taskfmt_logs = regular_dir(&run_dir.join("taskfmt-logs"), "taskfmt log directory")?;
+    let taskfmt_logs = trust_dir(&run_dir.join("taskfmt-logs"), "taskfmt log directory")?;
     validate_tree_paths(&taskfmt_logs, "taskfmt log directory")?;
+    if require_runtime_closure {
+        seal_taskfmt_logs(&taskfmt_logs)?;
+    }
     let observer_sequences = index
         .get("observer_sequences")
         .and_then(Value::as_object)
@@ -1355,7 +1432,7 @@ fn validate_run_inner(
             "results directory has missing or extra files",
         ));
     }
-    validate_runtime_outputs(&outputs_dir, &members, &run_id, false)?;
+    validate_runtime_outputs(&outputs_dir, &members, &run_id, require_runtime_closure)?;
     let mut expected_root = BTreeSet::from([
         "contexts".to_string(),
         "results".to_string(),
@@ -1442,7 +1519,7 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
             "alternate observer socket binding is rejected",
         ));
     }
-    let prepared = validate_run(&options.run_dir)?;
+    let prepared = validate_prepared_run(&options.run_dir)?;
     let member = prepared
         .members
         .iter()
@@ -1683,7 +1760,7 @@ pub fn launch(options: &LaunchOptions) -> Result<LaunchRecord> {
     }
     let result_raw = fs::read(&member.result_path)?;
     validate_result(member, &prepared, &result_raw, &observed_digests)?;
-    let after = validate_run(&prepared.run_dir)?;
+    let after = validate_prepared_run(&prepared.run_dir)?;
     let after_member = after
         .members
         .iter()
@@ -1784,21 +1861,46 @@ fn make_pipe() -> Result<(File, File)> {
     clippy::too_many_lines,
     reason = "observer spawn, pipe wiring, and provider-group capture stay in one supervisor constructor"
 )]
+fn bound_observer_provider_path(prepared: &PreparedRun) -> Result<PathBuf> {
+    let observer = parse_json_object(
+        &fs::read(immutable_file(
+            &prepared.run_dir.join("observer.json"),
+            "observer capability",
+        )?)?,
+        "observer capability",
+    )?;
+    let provider = observer
+        .get("provider")
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("observer provider identity is missing"))?;
+    validate_bound_observer_provider(provider)
+}
+
+fn reject_observer_provider_env_rebinding(bound: &Path) -> Result<()> {
+    let Some(env_path) = std::env::var_os(OBSERVER_PROVIDER_ENV)
+        .map(PathBuf::from)
+        .filter(|path| !path.as_os_str().is_empty())
+    else {
+        return Ok(());
+    };
+    let env_path = regular_file(&env_path, "observer response provider env")?.canonicalize()?;
+    if env_path != *bound {
+        return Err(VerifierError::new(
+            "observer provider env rebinding is rejected",
+        ));
+    }
+    Ok(())
+}
+
 fn start_observer_supervisor(
     prepared: &PreparedRun,
     member: &PreparedMember,
     nonce: &str,
     oracle_commit: &str,
 ) -> Result<ObserverSupervisor> {
-    let provider = std::env::var_os(OBSERVER_PROVIDER_ENV)
-        .map(PathBuf::from)
-        .filter(|path| !path.as_os_str().is_empty())
-        .ok_or_else(|| {
-            VerifierError::new(
-                "independent observer response provider is unavailable; launch rejected",
-            )
-        })?;
-    regular_file(&provider, "observer response provider")?;
+    let provider_path = bound_observer_provider_path(prepared)?;
+    reject_observer_provider_env_rebinding(&provider_path)?;
+    let before_hash = hash_file(&provider_path)?;
     let (request_read, request_write) = make_pipe()?;
     let (response_read, response_write) = make_pipe()?;
     // Only request_write and response_read belong in the worker. The
@@ -1819,7 +1921,7 @@ fn start_observer_supervisor(
         response_write.as_raw_fd(),
     ];
     let mut child = {
-        let mut command = Command::new(&provider);
+        let mut command = Command::new(&provider_path);
         command
             .current_dir(&prepared.run_dir)
             .stdin(Stdio::piped())
@@ -1901,6 +2003,12 @@ fn start_observer_supervisor(
             let mut child = lock_provider_until(&provider_process_for_supervisor, deadline)?;
             finish_observer_provider(&mut child, provider_group, result.is_err())?
         };
+        let after_hash = hash_file(&provider_path);
+        if after_hash.as_ref().ok() != Some(&before_hash) {
+            return Err(VerifierError::new(format!(
+                "observer response provider hash changed during execution: before={before_hash}; after={after_hash:?}"
+            )));
+        }
         if !status.success() {
             return Err(VerifierError::new(format!(
                 "observer response provider exited unsuccessfully (status={status:?}; observer={})",
@@ -2844,6 +2952,7 @@ fn validate_observer_capability(
             "transport",
             "nonce_sha256",
             "sequences",
+            "provider",
         ],
         "observer capability",
     )?;
@@ -2858,7 +2967,34 @@ fn validate_observer_capability(
     {
         return Err(VerifierError::new("observer capability identity mismatch"));
     }
+    validate_bound_observer_provider(
+        observer
+            .get("provider")
+            .and_then(Value::as_object)
+            .ok_or_else(|| VerifierError::new("observer provider identity is missing"))?,
+    )?;
     Ok(())
+}
+
+fn validate_bound_observer_provider(provider: &Map<String, Value>) -> Result<PathBuf> {
+    exact_keys(provider, &["path", "sha256"], "observer provider")?;
+    let path = regular_file(
+        Path::new(required_string(provider, "path")?.as_str()),
+        "observer response provider",
+    )?
+    .canonicalize()?;
+    if !is_executable(&path)? {
+        return Err(VerifierError::new(
+            "observer response provider is not executable",
+        ));
+    }
+    let actual = hash_file(&path)?;
+    if actual != required_hex(provider, "sha256", 64)? {
+        return Err(VerifierError::new(
+            "observer response provider hash mismatch",
+        ));
+    }
+    Ok(path)
 }
 
 fn validate_preparation_result(
@@ -2899,10 +3035,13 @@ fn validate_preparation_result(
 }
 
 fn validate_tree_paths(root: &Path, label: &str) -> Result<()> {
+    trust_dir(root, label)?;
     for entry in fs::read_dir(root)? {
         let entry = entry?;
         let path = entry.path();
-        let metadata = fs::symlink_metadata(&path)?;
+        let metadata = fs::symlink_metadata(&path).map_err(|error| {
+            VerifierError::new(format!("{label} member is unreadable: {error}"))
+        })?;
         if metadata.file_type().is_symlink() {
             return Err(VerifierError::new(format!(
                 "{label} contains an unsafe link"
@@ -2910,20 +3049,76 @@ fn validate_tree_paths(root: &Path, label: &str) -> Result<()> {
         }
         if metadata.is_dir() {
             validate_tree_paths(&path, label)?;
-        } else if !metadata.is_file() {
-            return Err(VerifierError::new(format!("{label} contains a non-file")));
+        } else {
+            trust_file(&path, label)?;
         }
     }
     Ok(())
+}
+
+fn seal_taskfmt_logs(root: &Path) -> Result<()> {
+    let mut hashed = Vec::new();
+    let mut saw_done = false;
+    seal_taskfmt_log_tree(root, "taskfmt log", &mut hashed, &mut saw_done)?;
+    if hashed.is_empty() {
+        return Err(VerifierError::new("taskfmt logs are missing"));
+    }
+    if !saw_done {
+        return Err(VerifierError::new("taskfmt logs do not end in DONE"));
+    }
+    Ok(())
+}
+
+fn seal_taskfmt_log_tree(
+    root: &Path,
+    label: &str,
+    hashed: &mut Vec<(PathBuf, String)>,
+    saw_done: &mut bool,
+) -> Result<()> {
+    trust_dir(root, label)?;
+    for entry in fs::read_dir(root)? {
+        let entry = entry?;
+        let path = entry.path();
+        let metadata = fs::symlink_metadata(&path).map_err(|error| {
+            VerifierError::new(format!("{label} member is unreadable: {error}"))
+        })?;
+        if metadata.file_type().is_symlink() {
+            return Err(VerifierError::new(format!(
+                "{label} contains an unsafe link"
+            )));
+        }
+        if metadata.is_dir() {
+            seal_taskfmt_log_tree(&path, label, hashed, saw_done)?;
+            continue;
+        }
+        let path = seal_trust_file(&path, label)?;
+        let raw = fs::read(&path)?;
+        if last_nonempty_line(&raw) == Some("DONE") {
+            *saw_done = true;
+        }
+        hashed.push((path, sha256_bytes(&raw)));
+    }
+    Ok(())
+}
+
+fn last_nonempty_line(raw: &[u8]) -> Option<&str> {
+    std::str::from_utf8(raw).ok().and_then(|text| {
+        text.split('\n')
+            .map(str::trim)
+            .filter(|line| !line.is_empty())
+            .next_back()
+    })
 }
 
 fn validate_runtime_outputs(
     outputs_dir: &Path,
     members: &[PreparedMember],
     run_id: &str,
-    require_passed: bool,
+    require_runtime_closure: bool,
 ) -> Result<()> {
+    trust_dir(outputs_dir, "runtime output directory")?;
     let mut expected = BTreeSet::new();
+    let mut close_member = None;
     for member in members {
         expected.insert(
             member
@@ -2933,6 +3128,9 @@ fn validate_runtime_outputs(
                 .to_string_lossy()
                 .into_owned(),
         );
+        if member.operation == "close" {
+            close_member = Some(member);
+        }
         if let Some(report) = &member.comparator_report_path {
             if report.parent() != Some(outputs_dir) {
                 return Err(VerifierError::new("comparator report escaped outputs"));
@@ -2947,19 +3145,45 @@ fn validate_runtime_outputs(
         }
     }
     let actual = directory_names(outputs_dir)?;
-    if !actual.is_subset(&expected) {
+    if require_runtime_closure {
+        if let Some(close) = close_member
+            && !regular_path_exists(&close.result_path)?
+        {
+            return Err(VerifierError::new("close result is missing"));
+        }
+        if actual != expected {
+            return Err(VerifierError::new(
+                "runtime outputs are missing, extra, or not indexed exactly once",
+            ));
+        }
+    } else if !actual.is_subset(&expected) {
         return Err(VerifierError::new("runtime outputs contain extra files"));
     }
     for member in members {
-        if regular_path_exists(&member.result_path)? {
-            validate_result_if_present(member, run_id, require_passed)?;
+        let result_exists = regular_path_exists(&member.result_path)?;
+        if require_runtime_closure && !result_exists {
+            return Err(VerifierError::new(format!(
+                "missing runtime result for {}",
+                member.check_id
+            )));
         }
-        if let Some(report) = &member.comparator_report_path
-            && regular_path_exists(report)?
-        {
-            let report_raw = fs::read(report)?;
-            let _ = parse_json_object(&report_raw, "comparator report")?;
-            set_readonly_file(report)?;
+        if result_exists {
+            validate_result_if_present(member, run_id, require_runtime_closure)?;
+            seal_trust_file(&member.result_path, "runtime result")?;
+        }
+        if let Some(report) = &member.comparator_report_path {
+            let report_exists = regular_path_exists(report)?;
+            if require_runtime_closure && !report_exists {
+                return Err(VerifierError::new(format!(
+                    "missing comparator report for {}",
+                    member.check_id
+                )));
+            }
+            if report_exists {
+                let report_raw = fs::read(trust_file(report, "comparator report")?)?;
+                let _ = parse_json_object(&report_raw, "comparator report")?;
+                seal_trust_file(report, "comparator report")?;
+            }
         }
     }
     Ok(())
@@ -3242,6 +3466,31 @@ fn validate_trust_inputs(
     validate_identity_hash(common, "comparator", "comparator")?;
     if !common.get("taskfmt").is_some_and(Value::is_null) {
         validate_identity_hash(common, "taskfmt", "taskfmt")?;
+    }
+    let observer = common
+        .get("observer")
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("observer binding missing"))?;
+    let provider = observer
+        .get("provider")
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("observer provider identity is missing"))?;
+    let bound_provider = validate_bound_observer_provider(provider)?;
+    let capability_provider = parse_json_object(
+        &fs::read(immutable_file(
+            &run_dir.join("observer.json"),
+            "observer capability",
+        )?)?,
+        "observer capability",
+    )?;
+    let capability_provider = capability_provider
+        .get("provider")
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("observer capability provider is missing"))?;
+    if validate_bound_observer_provider(capability_provider)? != bound_provider {
+        return Err(VerifierError::new(
+            "observer provider is not bound to the capability",
+        ));
     }
     validate_dependency_bindings(common, &worktree)?;
     let oracle = common
@@ -3618,22 +3867,30 @@ fn canonical_existing_dir(path: &Path, label: &str) -> Result<PathBuf> {
         .map_err(|error| VerifierError::new(format!("{label}: {error}")))
 }
 
-fn regular_dir(path: &Path, label: &str) -> Result<PathBuf> {
+fn trust_metadata(path: &Path, label: &str) -> Result<fs::Metadata> {
     validate_path_components(path, label, false)?;
-    if path.is_symlink() || !path.is_dir() {
+    let metadata = fs::symlink_metadata(path)
+        .map_err(|error| VerifierError::new(format!("{label}: {error}")))?;
+    if metadata.file_type().is_symlink() {
+        return Err(VerifierError::new(format!(
+            "{label} path component must not be a symlink: {}",
+            path.display()
+        )));
+    }
+    Ok(metadata)
+}
+
+fn trust_dir(path: &Path, label: &str) -> Result<PathBuf> {
+    let metadata = trust_metadata(path, label)?;
+    if !metadata.is_dir() {
         return Err(VerifierError::new(format!("{label} is absent or unsafe")));
     }
     Ok(path.to_path_buf())
 }
 
-fn regular_file(path: &Path, label: &str) -> Result<PathBuf> {
-    validate_path_components(path, label, false)?;
-    let metadata = fs::symlink_metadata(path)
-        .map_err(|error| VerifierError::new(format!("{label}: {error}")))?;
-    if metadata.file_type().is_symlink()
-        || !metadata.file_type().is_file()
-        || link_count(&metadata) != 1
-    {
+fn trust_file(path: &Path, label: &str) -> Result<PathBuf> {
+    let metadata = trust_metadata(path, label)?;
+    if !metadata.file_type().is_file() || link_count(&metadata) != 1 {
         return Err(VerifierError::new(format!(
             "{label} is not an immutable regular file"
         )));
@@ -3641,8 +3898,22 @@ fn regular_file(path: &Path, label: &str) -> Result<PathBuf> {
     Ok(path.to_path_buf())
 }
 
+fn seal_trust_file(path: &Path, label: &str) -> Result<PathBuf> {
+    let path = trust_file(path, label)?;
+    set_readonly_file(&path)?;
+    immutable_file(&path, label)
+}
+
+fn regular_dir(path: &Path, label: &str) -> Result<PathBuf> {
+    trust_dir(path, label)
+}
+
+fn regular_file(path: &Path, label: &str) -> Result<PathBuf> {
+    trust_file(path, label)
+}
+
 fn immutable_file(path: &Path, label: &str) -> Result<PathBuf> {
-    let path = regular_file(path, label)?;
+    let path = trust_file(path, label)?;
     let metadata = fs::symlink_metadata(&path)?;
     if !permissions_are_readonly(&metadata) {
         return Err(VerifierError::new(format!("{label} is writable")));
@@ -3975,7 +4246,9 @@ fn oracle_identity(worktree: &Path, tag: &str, expected_commit: &str) -> Result<
 }
 
 fn executable_identity(path: &Path, label: &str) -> Result<Value> {
-    let path = regular_file(path, label)?;
+    let path = regular_file(path, label)?.canonicalize().map_err(|error| {
+        VerifierError::new(format!("{label} canonical path is unreadable: {error}"))
+    })?;
     if !is_executable(&path)? {
         return Err(VerifierError::new(format!("{label} is not executable")));
     }
@@ -4532,7 +4805,50 @@ mod tests {
     struct Fixture {
         root: tempfile::TempDir,
         run_dir: PathBuf,
+        observer_provider: PathBuf,
     }
+
+    const QUALIFIED_TASKFMT_PATH: &str = "/tmp/taskfmt-latest-install/bin/taskfmt";
+    const QUALIFIED_TASKFMT_SOURCE: &str = "/Users/donbeave/Projects/taskfmt/task-format";
+
+    fn write_observer_provider_script(path: &Path, body: &str) -> std::result::Result<(), String> {
+        fs::write(path, body).map_err(|error| error.to_string())?;
+        let mut permissions = fs::metadata(path)
+            .map_err(|error| error.to_string())?
+            .permissions();
+        permissions.set_mode(permissions.mode() | 0o111);
+        fs::set_permissions(path, permissions).map_err(|error| error.to_string())
+    }
+
+    const DEFAULT_OBSERVER_PROVIDER: &str = r#"#!/usr/bin/env python3
+import json
+import sys
+from pathlib import Path
+
+try:
+    for line in sys.stdin:
+        request = json.loads(line)
+        response = {
+            "schema": "tc-proof-observation/v1",
+            "nonce": request["nonce"],
+            "run_id": request["run_id"],
+            "task_id": request["task_id"],
+            "check_id": request["check_id"],
+            "request_id": request["request_id"],
+            "operation": request["operation"],
+            "source_commit": request["source_commit"],
+            "tree": request["tree"],
+            "exit": 0,
+            "stdout": "host-observer",
+            "stderr": "",
+            "files": {},
+            "payload": {"schema": "tc-proof-host-event/v1"},
+            "records": [{"schema": "tc-proof-host-record/v1"}],
+        }
+        print(json.dumps(response, sort_keys=True, separators=(",", ":")), flush=True)
+finally:
+    Path(__file__).with_suffix(".closed").write_text("closed", encoding="utf-8")
+"#;
 
     fn fixture() -> std::result::Result<(Fixture, PreparedRun), String> {
         let (fixture, options) = fixture_options()?;
@@ -4564,6 +4880,58 @@ mod tests {
             .map_err(|error| error.to_string())?;
         if !clone.status.success() {
             return Err(String::from_utf8_lossy(&clone.stderr).into_owned());
+        }
+        let worker = candidate.join("tools/refactor-proof/bin/tc-proof");
+        let source_worker = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("bin/tc-proof");
+        fs::copy(&source_worker, &worker).map_err(|error| error.to_string())?;
+        let mut worker_permissions = fs::metadata(&worker)
+            .map_err(|error| error.to_string())?
+            .permissions();
+        worker_permissions.set_mode(worker_permissions.mode() | 0o111);
+        fs::set_permissions(&worker, worker_permissions).map_err(|error| error.to_string())?;
+        let staged = Command::new("git")
+            .args(["-C"])
+            .arg(&candidate)
+            .args(["add", "--", "tools/refactor-proof/bin/tc-proof"])
+            .output()
+            .map_err(|error| error.to_string())?;
+        if !staged.status.success() {
+            return Err(String::from_utf8_lossy(&staged.stderr).into_owned());
+        }
+        let porcelain = Command::new("git")
+            .args(["-C"])
+            .arg(&candidate)
+            .args([
+                "status",
+                "--porcelain",
+                "--",
+                "tools/refactor-proof/bin/tc-proof",
+            ])
+            .output()
+            .map_err(|error| error.to_string())?;
+        if !porcelain.status.success() {
+            return Err(String::from_utf8_lossy(&porcelain.stderr).into_owned());
+        }
+        if !porcelain.stdout.is_empty() {
+            let committed = Command::new("git")
+                .args(["-C"])
+                .arg(&candidate)
+                .args([
+                    "-c",
+                    "user.name=proof-fixture",
+                    "-c",
+                    "user.email=proof-fixture@example.com",
+                    "commit",
+                    "-s",
+                    "--no-gpg-sign",
+                    "-m",
+                    "overlay current dispatcher",
+                ])
+                .output()
+                .map_err(|error| error.to_string())?;
+            if !committed.status.success() {
+                return Err(String::from_utf8_lossy(&committed.stderr).into_owned());
+            }
         }
         let scope =
             git_output(&candidate, &["rev-parse", "HEAD"]).map_err(|error| error.to_string())?;
@@ -4609,14 +4977,9 @@ mod tests {
             "command": ["fixture"],
         });
         fs::write(&build_receipt, canonical_json(&build)).map_err(|error| error.to_string())?;
-        let taskfmt = root.path().join("taskfmt");
-        fs::copy(&current_exe, &taskfmt).map_err(|error| error.to_string())?;
-        let mut permissions = fs::metadata(&taskfmt)
-            .map_err(|error| error.to_string())?
-            .permissions();
-        permissions.set_mode(permissions.mode() | 0o111);
-        fs::set_permissions(&taskfmt, permissions).map_err(|error| error.to_string())?;
-        let worker = candidate.join("tools/refactor-proof/bin/tc-proof");
+        let taskfmt = PathBuf::from(QUALIFIED_TASKFMT_PATH);
+        let observer_provider = root.path().join("observer-provider.py");
+        write_observer_provider_script(&observer_provider, DEFAULT_OBSERVER_PROVIDER)?;
         let options = PrepareOptions {
             task_dir: candidate
                 .join("refactoring-tasks/terminal-components/completion")
@@ -4630,17 +4993,24 @@ mod tests {
             comparator,
             taskfmt: Some(taskfmt.clone()),
             native_build_receipt: build_receipt,
-            taskfmt_source: candidate.clone(),
-            taskfmt_revision: git_output(&candidate, &["rev-parse", "HEAD"])
-                .map_err(|error| error.to_string())?,
-            taskfmt_version: "fixture".to_string(),
-            taskfmt_sha256: hash_file(&taskfmt).map_err(|error| error.to_string())?,
+            taskfmt_source: PathBuf::from(QUALIFIED_TASKFMT_SOURCE),
+            taskfmt_revision: QUALIFIED_TASKFMT_REVISION.to_string(),
+            taskfmt_version: QUALIFIED_TASKFMT_VERSION.to_string(),
+            taskfmt_sha256: QUALIFIED_TASKFMT_SHA256.to_string(),
+            observer_provider: observer_provider.clone(),
             dependency_receipts,
             run_id: None,
             observer_nonce: Some("test-observer".to_string()),
             observer_socket: None,
         };
-        Ok((Fixture { root, run_dir }, options))
+        Ok((
+            Fixture {
+                root,
+                run_dir,
+                observer_provider,
+            },
+            options,
+        ))
     }
 
     #[test]
@@ -4677,7 +5047,7 @@ mod tests {
         };
         assert_eq!(actual, expected);
         assert_eq!(prepared.members.len(), expected.len());
-        assert!(validate_run(&fixture.run_dir).is_ok());
+        assert!(validate_prepared_run(&fixture.run_dir).is_ok());
     }
 
     #[test]
@@ -4868,7 +5238,7 @@ mod tests {
             receipt.get("schema").and_then(Value::as_str),
             Some(PREPARATION_RECEIPT_SCHEMA)
         );
-        assert!(validate_run(&fixture.run_dir).is_ok());
+        assert!(validate_prepared_run(&fixture.run_dir).is_ok());
         assert!(validate_preparation_receipt(&prepared).is_ok());
         let root_names = require_ok!(directory_names(&fixture.run_dir), "run root names");
         assert_eq!(
@@ -4910,7 +5280,7 @@ mod tests {
             "mutate receipt"
         );
         require_ok!(set_readonly_file(&receipt_path), "restore receipt readonly");
-        assert!(validate_run(&fixture.run_dir).is_err());
+        assert!(validate_prepared_run(&fixture.run_dir).is_err());
     }
 
     #[test]
@@ -4920,7 +5290,7 @@ mod tests {
             fs::remove_file(fixture.run_dir.join(PREPARATION_RECEIPT_FILE)),
             "delete receipt"
         );
-        let error = require_err!(validate_run(&fixture.run_dir), "missing receipt");
+        let error = require_err!(validate_prepared_run(&fixture.run_dir), "missing receipt");
         assert!(error.to_string().contains("receipt"));
     }
 
@@ -4941,13 +5311,13 @@ mod tests {
             symlink(&symlink_target, &receipt_path),
             "replace receipt with symlink"
         );
-        assert!(validate_run(&symlink_fixture.run_dir).is_err());
+        assert!(validate_prepared_run(&symlink_fixture.run_dir).is_err());
 
         let (hardlink_fixture, _) = require_ok!(fixture(), "hardlink fixture");
         let receipt_path = hardlink_fixture.run_dir.join(PREPARATION_RECEIPT_FILE);
         let hardlink = hardlink_fixture.root.path().join("receipt-hardlink.json");
         require_ok!(fs::hard_link(&receipt_path, &hardlink), "hardlink receipt");
-        assert!(validate_run(&hardlink_fixture.run_dir).is_err());
+        assert!(validate_prepared_run(&hardlink_fixture.run_dir).is_err());
     }
 
     #[test]
@@ -4978,7 +5348,7 @@ mod tests {
             "mutate taskfmt provenance"
         );
         require_ok!(set_readonly_file(&receipt_path), "restore receipt readonly");
-        assert!(validate_run(&fixture.run_dir).is_err());
+        assert!(validate_prepared_run(&fixture.run_dir).is_err());
     }
 
     #[test]
@@ -5004,7 +5374,7 @@ mod tests {
             fs::write(&build_path, canonical_json(&Value::Object(build))),
             "mutate build receipt"
         );
-        assert!(validate_run(&fixture.run_dir).is_err());
+        assert!(validate_prepared_run(&fixture.run_dir).is_err());
     }
 
     #[test]
@@ -5085,7 +5455,7 @@ mod tests {
             "legacy index JSON"
         );
         require_ok!(fs::write(&index_path, legacy_index), "write legacy index");
-        assert!(validate_run(&fixture.run_dir).is_err());
+        assert!(validate_prepared_run(&fixture.run_dir).is_err());
     }
 
     #[test]
@@ -5095,7 +5465,7 @@ mod tests {
             fs::write(fixture.run_dir.join("outputs/extra.json"), b"{}"),
             "extra output"
         );
-        assert!(validate_run(&fixture.run_dir).is_err());
+        assert!(validate_prepared_run(&fixture.run_dir).is_err());
     }
 
     #[test]
@@ -5113,7 +5483,7 @@ mod tests {
         );
         let alias = fixture.root.path().join("context-alias");
         require_ok!(fs::hard_link(&context_path, &alias), "hard link");
-        assert!(validate_run(&fixture.run_dir).is_err());
+        assert!(validate_prepared_run(&fixture.run_dir).is_err());
         let _ = fs::remove_file(&alias);
         let other = require_some!(
             prepared
@@ -5124,7 +5494,7 @@ mod tests {
         );
         require_ok!(fs::remove_file(&context_path), "remove context");
         require_ok!(std::os::unix::fs::symlink(other, &context_path), "symlink");
-        assert!(validate_run(&fixture.run_dir).is_err());
+        assert!(validate_prepared_run(&fixture.run_dir).is_err());
     }
 
     #[test]
@@ -5139,7 +5509,7 @@ mod tests {
             "make index writable"
         );
         require_ok!(fs::write(&index_path, b"{}"), "mutate index");
-        assert!(validate_run(&fixture.run_dir).is_err());
+        assert!(validate_prepared_run(&fixture.run_dir).is_err());
     }
 
     #[expect(
@@ -5261,7 +5631,7 @@ mod tests {
         require_ok_error!(set_readonly_dir(&results_dir), "restore results readonly");
 
         require_err_error!(
-            validate_run(&fixture.run_dir),
+            validate_prepared_run(&fixture.run_dir),
             "mutated context was accepted"
         )
     }
@@ -5325,69 +5695,23 @@ mod tests {
         let prepared = require_ok!(prepare(&options), "fixture preparation");
         let member = require_some!(prepared.members.first(), "first member");
         assert_eq!(member.operation, "preflight");
-        let provider = fixture.root.path().join("observer-provider.py");
-        let provider_closed = provider.with_extension("closed");
-        require_ok!(
-            fs::write(
-                &provider,
-                r#"#!/usr/bin/env python3
-import json
-import sys
-from pathlib import Path
+        let provider_closed = fixture.observer_provider.with_extension("closed");
 
-try:
-    for line in sys.stdin:
-        request = json.loads(line)
-        response = {
-            "schema": "tc-proof-observation/v1",
-            "nonce": request["nonce"],
-            "run_id": request["run_id"],
-            "task_id": request["task_id"],
-            "check_id": request["check_id"],
-            "request_id": request["request_id"],
-            "operation": request["operation"],
-            "source_commit": request["source_commit"],
-            "tree": request["tree"],
-            "exit": 0,
-            "stdout": "host-observer",
-            "stderr": "",
-            "files": {},
-            "payload": {"schema": "tc-proof-host-event/v1"},
-            "records": [{"schema": "tc-proof-host-record/v1"}],
-        }
-        print(json.dumps(response, sort_keys=True, separators=(",", ":")), flush=True)
-finally:
-    Path(__file__).with_suffix(".closed").write_text("closed", encoding="utf-8")
-"#
-            ),
-            "observer provider"
-        );
-        let mut provider_permissions =
-            require_ok!(fs::metadata(&provider), "observer provider metadata").permissions();
-        provider_permissions.set_mode(provider_permissions.mode() | 0o111);
-        require_ok!(
-            fs::set_permissions(&provider, provider_permissions),
-            "make observer provider executable"
-        );
-
-        let launch_result = {
-            let _provider_env = ObserverProviderEnvGuard::set(&provider);
-            launch(&LaunchOptions {
-                run_dir: fixture.run_dir.clone(),
-                check_id: member.check_id.clone(),
-                observer_socket: None,
-                timeout: Duration::from_secs(10),
-                program: fixture
-                    .root
-                    .path()
-                    .join("candidate/tools/refactor-proof/bin/tc-proof"),
-                args: vec![
-                    "preflight".to_string(),
-                    "--context".to_string(),
-                    member.context_path.to_string_lossy().into_owned(),
-                ],
-            })
-        };
+        let launch_result = launch(&LaunchOptions {
+            run_dir: fixture.run_dir.clone(),
+            check_id: member.check_id.clone(),
+            observer_socket: None,
+            timeout: Duration::from_secs(10),
+            program: fixture
+                .root
+                .path()
+                .join("candidate/tools/refactor-proof/bin/tc-proof"),
+            args: vec![
+                "preflight".to_string(),
+                "--context".to_string(),
+                member.context_path.to_string_lossy().into_owned(),
+            ],
+        });
 
         let record = match launch_result {
             Ok(record) => record,
@@ -5406,7 +5730,7 @@ finally:
         );
         let result_metadata = require_ok!(fs::metadata(&member.result_path), "result metadata");
         assert!(permissions_are_readonly(&result_metadata));
-        assert!(validate_run(&fixture.run_dir).is_ok());
+        assert!(validate_prepared_run(&fixture.run_dir).is_ok());
     }
 
     #[test]
@@ -5415,13 +5739,9 @@ finally:
             fixture_options_for("060", &["TASK-059", "TASK-022"]),
             "fixture options"
         );
-        let prepared = require_ok!(prepare(&options), "fixture preparation");
-        let member = require_some!(prepared.members.first(), "first member");
-        let provider = fixture.root.path().join("hanging-observer-provider.py");
-        let accepted = provider.with_extension("accepted");
         require_ok!(
-            fs::write(
-                &provider,
+            write_observer_provider_script(
+                &fixture.observer_provider,
                 r#"#!/usr/bin/env python3
 import json
 import sys
@@ -5433,37 +5753,30 @@ for line in sys.stdin:
     Path(__file__).with_suffix(".accepted").write_text("accepted", encoding="utf-8")
     while True:
         time.sleep(1)
-"#
+"#,
             ),
             "hanging observer provider"
         );
-        let mut provider_permissions =
-            require_ok!(fs::metadata(&provider), "observer provider metadata").permissions();
-        provider_permissions.set_mode(provider_permissions.mode() | 0o111);
-        require_ok!(
-            fs::set_permissions(&provider, provider_permissions),
-            "make hanging observer provider executable"
-        );
+        let accepted = fixture.observer_provider.with_extension("accepted");
+        let prepared = require_ok!(prepare(&options), "fixture preparation");
+        let member = require_some!(prepared.members.first(), "first member");
 
         let started = Instant::now();
-        let launch_result = {
-            let _provider_env = ObserverProviderEnvGuard::set(&provider);
-            launch(&LaunchOptions {
-                run_dir: fixture.run_dir.clone(),
-                check_id: member.check_id.clone(),
-                observer_socket: None,
-                timeout: Duration::from_secs(1),
-                program: fixture
-                    .root
-                    .path()
-                    .join("candidate/tools/refactor-proof/bin/tc-proof"),
-                args: vec![
-                    "preflight".to_string(),
-                    "--context".to_string(),
-                    member.context_path.to_string_lossy().into_owned(),
-                ],
-            })
-        };
+        let launch_result = launch(&LaunchOptions {
+            run_dir: fixture.run_dir.clone(),
+            check_id: member.check_id.clone(),
+            observer_socket: None,
+            timeout: Duration::from_secs(1),
+            program: fixture
+                .root
+                .path()
+                .join("candidate/tools/refactor-proof/bin/tc-proof"),
+            args: vec![
+                "preflight".to_string(),
+                "--context".to_string(),
+                member.context_path.to_string_lossy().into_owned(),
+            ],
+        });
         let elapsed = started.elapsed();
         let error = require_err!(
             launch_result,
@@ -5646,5 +5959,378 @@ for line in sys.stdin:
         drop(response_read);
         let error = require_err!(require_ok!(supervisor.join(), "supervisor join"), "replay");
         assert!(error.to_string().contains("replay"));
+    }
+
+    fn write_done_log(run_dir: &Path) -> std::result::Result<(), String> {
+        let path = run_dir.join("taskfmt-logs/verify.log");
+        fs::write(&path, "taskfmt verify\nDONE\n").map_err(|error| error.to_string())
+    }
+
+    fn write_member_result(
+        member: &PreparedMember,
+        run_id: &str,
+        status: &str,
+    ) -> std::result::Result<(), String> {
+        let digest = "a".repeat(64);
+        let result = json!({
+            "schema": RESULT_SCHEMA,
+            "run_id": run_id,
+            "operation": member.operation,
+            "context_sha256": member.context_sha256,
+            "status": status,
+            "category": if status == "passed" { Value::Null } else { Value::String("PROTOCOL".into()) },
+            "observation_digests": [digest],
+            "outputs": {},
+        });
+        fs::write(&member.result_path, canonical_json(&result))
+            .map_err(|error| error.to_string())?;
+        if let Some(report) = &member.comparator_report_path {
+            fs::write(report, b"{}").map_err(|error| error.to_string())?;
+        }
+        Ok(())
+    }
+
+    fn write_complete_runtime_closure(prepared: &PreparedRun) -> std::result::Result<(), String> {
+        write_done_log(&prepared.run_dir)?;
+        for member in &prepared.members {
+            write_member_result(member, &prepared.run_id, "passed")?;
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn observer_provider_byte_mutation_is_rejected() {
+        let (fixture, prepared) = require_ok!(fixture(), "fixture");
+        let member = require_some!(prepared.members.first(), "first member");
+        let mut raw = require_ok!(fs::read(&fixture.observer_provider), "provider bytes");
+        raw.push(b'x');
+        require_ok!(
+            fs::write(&fixture.observer_provider, raw),
+            "mutate provider bytes"
+        );
+        let error = require_err!(
+            launch(&LaunchOptions {
+                run_dir: fixture.run_dir,
+                check_id: member.check_id.clone(),
+                observer_socket: None,
+                timeout: Duration::from_secs(5),
+                program: PathBuf::from("/bin/true"),
+                args: Vec::new(),
+            }),
+            "mutated provider bytes must be rejected"
+        );
+        assert!(
+            error.to_string().contains("hash"),
+            "expected hash rejection, got {error}"
+        );
+    }
+
+    #[test]
+    fn observer_provider_binary_replacement_is_rejected() {
+        let (fixture, prepared) = require_ok!(fixture(), "fixture");
+        let member = require_some!(prepared.members.first(), "first member");
+        require_ok!(
+            fs::copy("/bin/sh", &fixture.observer_provider),
+            "replace provider binary"
+        );
+        let mut permissions = require_ok!(
+            fs::metadata(&fixture.observer_provider),
+            "replacement metadata"
+        )
+        .permissions();
+        permissions.set_mode(permissions.mode() | 0o111);
+        require_ok!(
+            fs::set_permissions(&fixture.observer_provider, permissions),
+            "replacement executable"
+        );
+        let error = require_err!(
+            launch(&LaunchOptions {
+                run_dir: fixture.run_dir,
+                check_id: member.check_id.clone(),
+                observer_socket: None,
+                timeout: Duration::from_secs(5),
+                program: PathBuf::from("/bin/true"),
+                args: Vec::new(),
+            }),
+            "replaced provider binary must be rejected"
+        );
+        assert!(
+            error.to_string().contains("hash"),
+            "expected hash rejection, got {error}"
+        );
+    }
+
+    #[test]
+    fn observer_provider_wrong_hash_is_rejected() {
+        let (fixture, _) = require_ok!(fixture(), "fixture");
+        let observer_path = fixture.run_dir.join("observer.json");
+        let mut permissions =
+            require_ok!(fs::metadata(&observer_path), "observer metadata").permissions();
+        permissions.set_mode(0o644);
+        require_ok!(
+            fs::set_permissions(&observer_path, permissions),
+            "make observer writable"
+        );
+        let mut observer = require_ok!(
+            parse_json_object(
+                &require_ok!(fs::read(&observer_path), "observer bytes"),
+                "observer",
+            ),
+            "observer JSON"
+        );
+        let provider = require_some!(
+            observer.get_mut("provider").and_then(Value::as_object_mut),
+            "provider object"
+        );
+        provider.insert("sha256".to_string(), Value::String("0".repeat(64)));
+        require_ok!(
+            fs::write(&observer_path, canonical_json(&Value::Object(observer))),
+            "write wrong provider hash"
+        );
+        require_ok!(
+            set_readonly_file(&observer_path),
+            "restore observer readonly"
+        );
+        let error = require_err!(
+            validate_prepared_run(&fixture.run_dir),
+            "wrong provider hash must be rejected"
+        );
+        assert!(
+            error.to_string().contains("hash"),
+            "expected hash rejection, got {error}"
+        );
+    }
+
+    #[test]
+    fn observer_provider_env_rebinding_is_rejected() {
+        let (fixture, prepared) = require_ok!(fixture(), "fixture");
+        let member = require_some!(prepared.members.first(), "first member");
+        let other = fixture.root.path().join("other-provider");
+        require_ok!(
+            fs::copy(&fixture.observer_provider, &other),
+            "copy provider"
+        );
+        let mut permissions =
+            require_ok!(fs::metadata(&other), "other provider metadata").permissions();
+        permissions.set_mode(permissions.mode() | 0o111);
+        require_ok!(fs::set_permissions(&other, permissions), "other executable");
+        let error = {
+            let _env = ObserverProviderEnvGuard::set(&other);
+            require_err!(
+                launch(&LaunchOptions {
+                    run_dir: fixture.run_dir,
+                    check_id: member.check_id.clone(),
+                    observer_socket: None,
+                    timeout: Duration::from_secs(5),
+                    program: PathBuf::from("/bin/true"),
+                    args: Vec::new(),
+                }),
+                "env rebinding must be rejected"
+            )
+        };
+        assert!(
+            error.to_string().contains("rebinding"),
+            "expected rebinding rejection, got {error}"
+        );
+    }
+
+    #[test]
+    fn final_validate_rejects_omitted_runtime_result() {
+        let (fixture, options) = require_ok!(
+            fixture_options_for("060", &["TASK-059", "TASK-022"]),
+            "fixture options"
+        );
+        let prepared = require_ok!(prepare(&options), "prepare");
+        require_ok!(write_done_log(&fixture.run_dir), "DONE log");
+        for member in prepared.members.iter().skip(1) {
+            require_ok!(
+                write_member_result(member, &prepared.run_id, "passed"),
+                "runtime result"
+            );
+        }
+        let error = require_err!(
+            validate_run(&fixture.run_dir),
+            "omitted result must fail final validate"
+        );
+        assert!(
+            error.to_string().contains("runtime")
+                || error.to_string().contains("missing")
+                || error.to_string().contains("indexed"),
+            "expected omitted-result rejection, got {error}"
+        );
+    }
+
+    #[test]
+    fn final_validate_rejects_rejected_result_when_taskfmt_exits_zero() {
+        let (fixture, options) = require_ok!(
+            fixture_options_for("060", &["TASK-059", "TASK-022"]),
+            "fixture options"
+        );
+        let prepared = require_ok!(prepare(&options), "prepare");
+        require_ok!(write_done_log(&fixture.run_dir), "DONE log");
+        for member in &prepared.members {
+            let status = if member.operation == "close" {
+                "rejected"
+            } else {
+                "passed"
+            };
+            require_ok!(
+                write_member_result(member, &prepared.run_id, status),
+                "runtime result"
+            );
+        }
+        let error = require_err!(
+            validate_run(&fixture.run_dir),
+            "rejected close result must fail even with DONE"
+        );
+        assert!(
+            error.to_string().contains("status")
+                || error.to_string().contains("result")
+                || error.to_string().contains("identity"),
+            "expected rejected-result rejection, got {error}"
+        );
+    }
+
+    #[test]
+    fn final_validate_rejects_forged_runtime_outputs() {
+        let (fixture, options) = require_ok!(
+            fixture_options_for("060", &["TASK-059", "TASK-022"]),
+            "fixture options"
+        );
+        let prepared = require_ok!(prepare(&options), "prepare");
+        require_ok!(write_complete_runtime_closure(&prepared), "closure");
+        require_ok!(
+            fs::write(fixture.run_dir.join("outputs/forged.json"), b"{}"),
+            "forged output"
+        );
+        let error = require_err!(
+            validate_run(&fixture.run_dir),
+            "forged output must fail final validate"
+        );
+        assert!(
+            error.to_string().contains("runtime")
+                || error.to_string().contains("extra")
+                || error.to_string().contains("indexed"),
+            "expected forged-output rejection, got {error}"
+        );
+    }
+
+    #[test]
+    fn final_validate_accepts_complete_passed_closure() {
+        let (fixture, options) = require_ok!(
+            fixture_options_for("060", &["TASK-059", "TASK-022"]),
+            "fixture options"
+        );
+        let prepared = require_ok!(prepare(&options), "prepare");
+        require_ok!(write_complete_runtime_closure(&prepared), "closure");
+        require_ok!(validate_run(&fixture.run_dir), "complete closure");
+        assert!(
+            prepared
+                .members
+                .iter()
+                .any(|member| member.operation == "close"),
+            "TASK-060 fixture must include a close check"
+        );
+    }
+
+    #[test]
+    fn native_prepare_output_passes_validate_proof_preparation() {
+        let (fixture, options) = require_ok!(fixture_options(), "fixture options");
+        require_ok!(prepare(&options), "prepare");
+        let scripts = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../scripts");
+        let receipt = fixture.run_dir.join(PREPARATION_RECEIPT_FILE);
+        let commit = require_ok!(
+            git_output(&options.worktree, &["rev-parse", "HEAD"]),
+            "candidate commit"
+        );
+        let tree = require_ok!(
+            git_output(&options.worktree, &["rev-parse", "HEAD^{tree}"]),
+            "candidate tree"
+        );
+        let output = require_ok!(
+            Command::new("/usr/bin/python3")
+                .current_dir(&scripts)
+                .env("PYTHONPATH", &scripts)
+                .args([
+                    "-c",
+                    "import json, sys\nfrom pathlib import Path\nfrom campaign_ledger import validate_proof_preparation\nprep = json.loads(Path(sys.argv[1]).read_text())\nvalidate_proof_preparation(prep, worktree=sys.argv[2], current_head=sys.argv[3], current_tree=sys.argv[4], run_dir=sys.argv[5], expected_taskfmt=prep['taskfmt'])\n",
+                    receipt.to_str().unwrap_or(""),
+                    options.worktree.to_str().unwrap_or(""),
+                    &commit,
+                    &tree,
+                    fixture.run_dir.to_str().unwrap_or(""),
+                ])
+                .output(),
+            "ledger validate"
+        );
+        assert!(
+            output.status.success(),
+            "validate_proof_preparation failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    #[test]
+    fn taskfmt_caller_argv_version_is_not_trusted() {
+        let (fixture, mut options) = require_ok!(fixture_options(), "fixture options");
+        options.taskfmt_version = "fixture".to_string();
+        let error = require_err!(prepare(&options), "caller argv version must be rejected");
+        assert!(
+            error.to_string().contains("qualified") || error.to_string().contains("version"),
+            "expected qualified-version rejection, got {error}"
+        );
+        let _ = fixture;
+    }
+
+    #[test]
+    fn taskfmt_log_symlink_is_rejected_by_trust_path() {
+        let (fixture, prepared) = require_ok!(fixture(), "fixture");
+        require_ok!(write_complete_runtime_closure(&prepared), "closure");
+        let log = fixture.run_dir.join("taskfmt-logs/verify.log");
+        let alias = fixture.root.path().join("verify-alias.log");
+        require_ok!(fs::copy(&log, &alias), "copy log");
+        require_ok!(fs::remove_file(&log), "remove log");
+        require_ok!(std::os::unix::fs::symlink(&alias, &log), "symlink log");
+        let error = require_err!(
+            validate_run(&fixture.run_dir),
+            "symlinked taskfmt log must be rejected"
+        );
+        assert!(
+            error.to_string().contains("symlink")
+                || error.to_string().contains("unsafe")
+                || error.to_string().contains("immutable"),
+            "expected trust-path rejection, got {error}"
+        );
+    }
+
+    #[test]
+    fn comparator_report_hardlink_is_rejected_by_trust_path() {
+        let (fixture, options) = require_ok!(
+            fixture_options_for("060", &["TASK-059", "TASK-022"]),
+            "fixture options"
+        );
+        let prepared = require_ok!(prepare(&options), "prepare");
+        require_ok!(write_complete_runtime_closure(&prepared), "closure");
+        let fallback = require_some!(prepared.members.first(), "first member")
+            .result_path
+            .clone();
+        let report = prepared
+            .members
+            .iter()
+            .find_map(|member| member.comparator_report_path.clone())
+            .unwrap_or(fallback);
+        let alias = fixture.root.path().join("report-hardlink.json");
+        require_ok!(fs::hard_link(&report, &alias), "hardlink report");
+        let error = require_err!(
+            validate_run(&fixture.run_dir),
+            "hardlinked comparator report must be rejected"
+        );
+        assert!(
+            error.to_string().contains("immutable")
+                || error.to_string().contains("hard")
+                || error.to_string().contains("link")
+                || error.to_string().contains("unsafe"),
+            "expected trust-path rejection, got {error}"
+        );
     }
 }

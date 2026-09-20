@@ -89,6 +89,12 @@ def assert_proof_schema_contract() -> None:
         defs["proofPreparation"]["properties"]["taskfmt"]["$ref"]
         == "#/$defs/proofTaskfmt"
     )
+    assert defs["contextIndex"]["$anchor"] == "contextIndex"
+    assert "observer_sequences" in defs["contextIndex"]["required"]
+    assert defs["observerCapability"]["$anchor"] == "observerCapability"
+    assert "sequences" in defs["observerCapability"]["required"]
+    assert "provider" in defs["observerCapability"]["required"]
+    assert defs["qualificationFamily"]["enum"] == ["native", "synthetic"]
 
 
 def make_ledger(root: Path) -> dict[str, Any]:
@@ -252,6 +258,9 @@ def make_preparation(root: Path) -> tuple[dict[str, Any], Path, Path, dict[str, 
     taskfmt_path.parent.mkdir()
     taskfmt_path.write_bytes(b"qualified-taskfmt")
     taskfmt_path.chmod(0o755)
+    observer_provider_path = root / "observer-provider"
+    observer_provider_path.write_bytes(b"independent-observer-provider")
+    observer_provider_path.chmod(0o755)
     worktree = worktree.resolve()
     run = run.resolve()
     taskfmt_source = taskfmt_source.resolve()
@@ -310,6 +319,10 @@ def make_preparation(root: Path) -> tuple[dict[str, Any], Path, Path, dict[str, 
             "transport": "inherited-pipe/v1",
             "nonce": nonce,
             "capability": str(observer_path),
+            "provider": {
+                "path": str(observer_provider_path.resolve()),
+                "sha256": file_sha256(observer_provider_path),
+            },
         },
         "outputs": {
             "runtime": str(run / "outputs"),
@@ -339,6 +352,7 @@ def make_preparation(root: Path) -> tuple[dict[str, Any], Path, Path, dict[str, 
         "worktree_commit": SHA,
         "scope_base": BASE,
         "operation": "preflight",
+        "observer_sequence": ["preflight"],
         "tree": TREE,
         "oracle_commit": ORACLE_COMMIT,
         "oracle_tree": ORACLE_TREE,
@@ -371,6 +385,11 @@ def make_preparation(root: Path) -> tuple[dict[str, Any], Path, Path, dict[str, 
         "scope_base": BASE,
         "transport": "inherited-pipe/v1",
         "nonce_sha256": hashlib.sha256(nonce.encode()).hexdigest(),
+        "sequences": {"CHK-001": ["preflight"]},
+        "provider": {
+            "path": str(observer_provider_path.resolve()),
+            "sha256": file_sha256(observer_provider_path),
+        },
     }
     write_json(observer_path, observer)
     index = {
@@ -393,6 +412,7 @@ def make_preparation(root: Path) -> tuple[dict[str, Any], Path, Path, dict[str, 
                 "sha256": file_sha256(result_path),
             }
         ],
+        "observer_sequences": {"CHK-001": ["preflight"]},
         "observer": {
             "path": str(observer_path),
             "sha256": file_sha256(observer_path),
@@ -427,6 +447,7 @@ def make_preparation(root: Path) -> tuple[dict[str, Any], Path, Path, dict[str, 
 
 
 def main() -> None:
+    assert_proof_schema_contract()
     with tempfile.TemporaryDirectory(prefix="campaign-ledger-") as directory:
         root = Path(directory)
         ledger = make_ledger(root)

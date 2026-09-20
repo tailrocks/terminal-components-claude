@@ -365,6 +365,7 @@ def validate_index_close_outputs(
         "transport",
         "nonce_sha256",
         "sequences",
+        "provider",
     } or (
         capability.get("schema") != "tc-proof-observer-capability/v1"
         or capability.get("task_id") != index["task_id"]

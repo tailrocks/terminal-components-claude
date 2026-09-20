@@ -59,6 +59,7 @@ def _fixture(base_dir: Path | None = None) -> tuple[Path, dict[str, object], dic
                 "worktree_commit": worktree_commit,
                 "scope_base": scope_base,
                 "operation": "direct",
+                "observer_sequence": ["direct"],
                 "qualification": {},
             }
         )
@@ -89,6 +90,8 @@ def _fixture(base_dir: Path | None = None) -> tuple[Path, dict[str, object], dic
         "scope_base": scope_base,
         "transport": "inherited-pipe/v1",
         "nonce_sha256": "c" * 64,
+        "sequences": {check_id: ["direct"] for check_id in ("CHK-001", "CHK-002")},
+        "provider": {"path": "/usr/bin/true", "sha256": "e" * 64},
     }
     observer_path = root / "observer.json"
     observer_hash = _write_json(observer_path, observer)
@@ -100,6 +103,7 @@ def _fixture(base_dir: Path | None = None) -> tuple[Path, dict[str, object], dic
         "scope_base": scope_base,
         "contexts": contexts,
         "results": results,
+        "observer_sequences": {check_id: ["direct"] for check_id in ("CHK-001", "CHK-002")},
         "observer": {"path": str(observer_path), "sha256": observer_hash},
     }
 
