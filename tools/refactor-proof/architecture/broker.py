@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import base64
+import json
 import re
 from typing import Any
 
 from ..runner.context import Reject
+
+ADJ13_POLICY = "ADJ-13-private-unix-signal-broker/v1"
 
 SESSION = "crates/tui/src/runtime/session.rs"
 STORAGE = "static SIGNAL_BROKER: std::sync::OnceLock<std::sync::Mutex<SignalBroker>>"
@@ -82,7 +86,7 @@ def validate_broker_observation(body: dict[str, Any], profile: dict[str, Any]) -
                 extra = fields - allowed
                 if extra & {"runtime", "theme", "cache", "extra", "third"}:
                     raise Reject("ARCHITECTURE")
-            if kind == "macro" and "hidden" in str(fact).lower():
+            if kind == "macro" and "hidden" in str(fact.get("path", "")).lower():
                 raise Reject("ARCHITECTURE")
 
         if "pub static SIGNAL_BROKER" in text:
@@ -141,3 +145,28 @@ def validate_broker_observation(body: dict[str, Any], profile: dict[str, Any]) -
             raise Reject("ARCHITECTURE")
         if "mod broker_backend" in session and not _has_effective_guard(session.split("mod broker_backend", 1)[0]):
             raise Reject("ARCHITECTURE")
+
+
+def _decode_record_stream(record: dict[str, Any], stream: str) -> bytes:
+    try:
+        return base64.b64decode(record[stream])
+    except (KeyError, TypeError, ValueError):
+        raise Reject("ARCHITECTURE") from None
+
+
+def validate_broker_event(event: dict[str, Any], profile: dict[str, Any]) -> None:
+    """Architecture-event arm for the ADJ-13 broker profile."""
+    payload = event.get("payload") or {}
+    records = payload.get("records")
+    if not isinstance(records, list) or len(records) != 1 or not isinstance(records[0], dict):
+        raise Reject("ARCHITECTURE")
+    record = records[0]
+    if record.get("exit") != 0:
+        raise Reject("ARCHITECTURE")
+    try:
+        body = json.loads(_decode_record_stream(record, "stdout"))
+    except (json.JSONDecodeError, TypeError, ValueError):
+        raise Reject("ARCHITECTURE") from None
+    if not isinstance(body, dict) or body.get("schema") != "tc-protected-source-syntax/v1":
+        raise Reject("ARCHITECTURE")
+    validate_broker_observation(body, profile)

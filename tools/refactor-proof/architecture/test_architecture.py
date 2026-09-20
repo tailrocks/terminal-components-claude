@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+import base64
+import json
 import sys
 import tempfile
 import types
@@ -29,7 +31,12 @@ def _install_packages() -> None:
 
 _install_packages()
 
-from refactor_proof.architecture.broker import validate_broker_observation  # noqa: E402
+from refactor_proof.architecture.broker import (  # noqa: E402
+    ADJ13_POLICY,
+    SESSION,
+    validate_broker_event,
+    validate_broker_observation,
+)
 from refactor_proof.architecture.dispatch import (  # noqa: E402
     _validate_architecture_context,
     _validate_event,
@@ -336,6 +343,68 @@ class BrokerTests(unittest.TestCase):
         }
         validate_broker_observation(body, profile)
 
+    def test_unrelated_macro_tokens_with_hidden_are_accepted(self) -> None:
+        source = (
+            '#[cfg(all(unix, feature = "crossterm"))]\n'
+            "static SIGNAL_BROKER: std::sync::OnceLock<std::sync::Mutex<SignalBroker>> = std::sync::OnceLock::new();\n"
+            '#[cfg(all(unix, feature = "crossterm"))]\n'
+            "struct SignalBroker { inactive: bool, pending: bool, leased: bool }\n"
+        )
+        body = {
+            "files": [
+                {
+                    "path": "crates/tui/src/components/grid.rs",
+                    "source": "fn geometry() { assert_eq!(g.hidden_left, 0); }\n",
+                    "facts": [
+                        {
+                            "kind": "macro",
+                            "path": "assert_eq",
+                            "tokens": "g.hidden_left, 0",
+                        }
+                    ],
+                },
+                {
+                    "path": "crates/tui/src/runtime/session.rs",
+                    "source": source,
+                    "facts": [
+                        {"kind": "static", "name": "SIGNAL_BROKER", "visibility": "", "type": "OnceLock<Mutex<SignalBroker>>"},
+                        {
+                            "kind": "struct",
+                            "name": "SignalBroker",
+                            "visibility": "",
+                            "fields": [{"name": "inactive"}, {"name": "pending"}, {"name": "leased"}],
+                        },
+                    ],
+                },
+            ]
+        }
+        profile = {
+            "required_files": ["crates/tui/src/components/grid.rs", "crates/tui/src/runtime/session.rs"],
+            "exception_path": "crates/tui/src/runtime/session.rs",
+        }
+        validate_broker_observation(body, profile)
+
+
+def _syntax_event(files: list[dict]) -> dict:
+    body = {"schema": "tc-protected-source-syntax/v1", "files": files}
+    record = {
+        "exit": 0,
+        "stdout": base64.b64encode(json.dumps(body).encode()).decode(),
+        "stderr": base64.b64encode(b"").decode(),
+    }
+    return {"exit": 0, "payload": {"kind": "source-policy", "records": [record]}}
+
+
+def _adj13_profile(required: list[str]) -> dict:
+    return {
+        "schema": "tc-architecture-source-profile/v1",
+        "kind": "source-policy",
+        "policy": ADJ13_POLICY,
+        "source_roots": ["crates/tui/src"],
+        "required_files": required,
+        "exception_path": SESSION,
+    }
+
 
 class DispatchTests(unittest.TestCase):
     def test_qualification_schema_allows_architecture_profile(self) -> None:
@@ -369,6 +438,62 @@ class DispatchTests(unittest.TestCase):
         with self.assertRaises(Reject) as raised:
             _validate_event(event, context, None)
         self.assertEqual(raised.exception.category, "PERFORMANCE")
+
+    def test_adj13_policy_uses_broker_event_arm(self) -> None:
+        source = (
+            '#[cfg(all(unix, feature = "crossterm"))]\n'
+            "static SIGNAL_BROKER: std::sync::OnceLock<std::sync::Mutex<SignalBroker>> = std::sync::OnceLock::new();\n"
+            '#[cfg(all(unix, feature = "crossterm"))]\n'
+            "struct SignalBroker { inactive: bool, pending: bool, leased: bool }\n"
+        )
+        event = _syntax_event(
+            [
+                {
+                    "path": SESSION,
+                    "source": source,
+                    "facts": [
+                        {"kind": "static", "name": "SIGNAL_BROKER", "visibility": "", "type": "OnceLock<Mutex<SignalBroker>>"},
+                        {
+                            "kind": "struct",
+                            "name": "SignalBroker",
+                            "visibility": "",
+                            "fields": [{"name": "inactive"}, {"name": "pending"}, {"name": "leased"}],
+                        },
+                    ],
+                }
+            ]
+        )
+        _validate_event(event, {}, _adj13_profile([SESSION]))
+        validate_broker_event(event, _adj13_profile([SESSION]))
+
+    def test_adj13_policy_rejects_second_singleton_through_dispatch(self) -> None:
+        source = (
+            '#[cfg(all(unix, feature = "crossterm"))]\n'
+            "static SIGNAL_BROKER: std::sync::OnceLock<std::sync::Mutex<SignalBroker>> = std::sync::OnceLock::new();\n"
+            "static SECOND_BROKER: std::sync::OnceLock<std::sync::Mutex<SignalBroker>> = std::sync::OnceLock::new();\n"
+            "struct SignalBroker { inactive: bool, pending: bool, leased: bool }\n"
+        )
+        event = _syntax_event(
+            [
+                {
+                    "path": SESSION,
+                    "source": source,
+                    "facts": [
+                        {"kind": "static", "name": "SIGNAL_BROKER", "visibility": "", "type": "OnceLock<Mutex<SignalBroker>>"},
+                        {"kind": "static", "name": "SECOND_BROKER", "visibility": "", "type": "OnceLock<Mutex<SignalBroker>>"},
+                        {
+                            "kind": "struct",
+                            "name": "SignalBroker",
+                            "visibility": "",
+                            "fields": [{"name": "inactive"}, {"name": "pending"}, {"name": "leased"}],
+                        },
+                    ],
+                }
+            ]
+        )
+        with self.assertRaises(Reject) as raised:
+            _validate_event(event, {}, _adj13_profile([SESSION]))
+        self.assertEqual(raised.exception.category, "ARCHITECTURE")
 
 
 if __name__ == "__main__":

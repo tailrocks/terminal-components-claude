@@ -12,6 +12,7 @@ from ..runner.context import Reject, bind_context, load_context, validate_schema
 from ..runner.observer import ObserverClient, ObserverError
 from ..runner.result import finish
 from .actual import validate_actual_event
+from .broker import ADJ13_POLICY, validate_broker_event
 from .extension import validate_performance_event
 from .fixture import validate_fixture_event
 from .rust_model import analyze_standalone, validate_runtime, validate_standalone_event
@@ -54,6 +55,9 @@ def _validate_event(event: dict[str, Any], context: dict[str, Any], profile: dic
         return
     if profile is None:
         validate_fixture_event(event, context.get("configuration", {}))
+        return
+    if profile.get("policy") == ADJ13_POLICY:
+        validate_broker_event(event, profile)
         return
     schema = profile.get("schema")
     if schema == "tc-architecture-rust-profile/v1":

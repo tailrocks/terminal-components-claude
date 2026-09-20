@@ -209,11 +209,14 @@ def validate_source_policy(event: dict[str, Any], profile: dict[str, Any]) -> No
     body = json.loads(_decode(record, "stdout"))
     if body.get("schema") != "tc-protected-source-syntax/v1":
         raise Reject("ARCHITECTURE")
+    policy = profile.get("policy", "")
+    if policy == "ADJ-13-private-unix-signal-broker/v1":
+        validate_broker_observation(body, profile)
+        return
     observed = [entry["path"] for entry in body.get("files", [])]
     required = profile.get("required_files") or profile.get("source_roots") or []
     if observed != required:
         raise Reject("ARCHITECTURE")
-    policy = profile.get("policy", "")
     sources = _read_source_texts(profile)
     if policy == "complete-production-source-inventory":
         _validate_inventory(body, profile, sources)
@@ -229,8 +232,6 @@ def validate_source_policy(event: dict[str, Any], profile: dict[str, Any]) -> No
         _validate_legacy_policy(body, sources)
     elif policy == "gate-dispatch-wrapper-table-join":
         _validate_gate_join(body, profile, sources)
-    elif policy == "ADJ-13-private-unix-signal-broker/v1":
-        validate_broker_observation(body, profile)
     else:
         raise Reject("ARCHITECTURE")
 
