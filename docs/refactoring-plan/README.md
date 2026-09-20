@@ -37,7 +37,7 @@ campaign ref equals this pushed payload. No ref was reset, rewritten,
 force-pushed, pruned, or moved. The directory name `.worktrees/main` was not
 used to identify `main`.
 
-The four canonical documents are source-controlled preparation metadata. This
+The five tracked canonical documents are source-controlled preparation metadata. This
 repair changes the assessed payload, so the final verifier must bind the exact
 post-documentation HEAD/tree. Evidence is invalidated by any relevant source,
 documentation, task contract, schema, script, generated workflow, tool,

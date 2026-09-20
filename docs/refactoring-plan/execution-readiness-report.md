@@ -27,7 +27,7 @@ merge-base campaign/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
 local commits ahead of remote campaign: 0
 ```
 
-This documentation rebinding changes only the four canonical documents. The
+This documentation rebinding changes only the five tracked canonical documents. The
 commit containing this package must be independently bound by final evidence;
 any relevant edit invalidates affected evidence.
 Final exact-tree reports must be external and bind that later clean tree; their

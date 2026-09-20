@@ -18,7 +18,7 @@ merge-base with main:       7b27732a8c3c131760ec3438f641cb3c11343a42
 ```
 
 The worktree was clean at this assessment. This rebinding changes only the
-four canonical documents. Any later
+five tracked canonical documents. Any later
 documentation commit has a different commit/tree and must be independently
 bound. No receipt may attest to a future commit containing itself. Final report
 paths:
