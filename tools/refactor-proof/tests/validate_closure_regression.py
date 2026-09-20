@@ -6,9 +6,17 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+# Keep the regression command runnable from the repository root, matching the
+# documented native qualification command. The bundled worker is not an
+# installed Python package; import its source tree explicitly for this test.
+PROOF_ROOT = Path(__file__).resolve().parents[1]
+if str(PROOF_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROOF_ROOT))
 
 from runner.context import ALLOWED_V1_KEYS, Reject
 from runner.validate import validate_index_close_outputs
