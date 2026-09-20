@@ -2504,17 +2504,29 @@ fn observer_sequence_for_check(
             "observer sequence cannot be derived for an external operation",
         ));
     }
-    let native_oracle = template
+    if check.operation != "oracle" {
+        return Ok(vec![check.operation.clone()]);
+    }
+    match observer_family_for_check(template)? {
+        "native" => Ok(vec![check.operation.clone()]),
+        "synthetic" => Ok(vec![check.operation.clone(), check.operation.clone()]),
+        _ => Err(VerifierError::new("oracle observer family is invalid")),
+    }
+}
+
+fn observer_family_for_check(template: Option<&TemplateInfo>) -> Result<&'static str> {
+    let family = template
         .and_then(|template| template.value.as_object())
         .and_then(|value| value.get("qualification"))
         .and_then(Value::as_object)
         .and_then(|qualification| qualification.get("family"))
-        .and_then(Value::as_str)
-        == Some("native");
-    if check.operation == "oracle" && !native_oracle {
-        Ok(vec![check.operation.clone(), check.operation.clone()])
-    } else {
-        Ok(vec![check.operation.clone()])
+        .and_then(Value::as_str);
+    match family {
+        Some("native") => Ok("native"),
+        None => Ok("synthetic"),
+        Some(_) => Err(VerifierError::new(
+            "oracle template must declare native or omit its qualification family",
+        )),
     }
 }
 
@@ -2677,6 +2689,12 @@ fn build_context(
     let qualification_object = qualification
         .as_object_mut()
         .ok_or_else(|| VerifierError::new("template qualification is not an object"))?;
+    if check.operation == "oracle" {
+        qualification_object.insert(
+            "family".to_string(),
+            Value::String(observer_family_for_check(template)?.to_string()),
+        );
+    }
     qualification_object.insert("common".to_string(), common.clone());
     qualification_object.insert("trust_manifest".to_string(), trust_manifest.clone());
     qualification_object.insert(
@@ -3136,13 +3154,18 @@ fn observer_sequence_from_context(
         let family = context
             .get("qualification")
             .and_then(Value::as_object)
-            .and_then(|qualification| qualification.get("worker_context"))
-            .and_then(Value::as_object)
-            .and_then(|worker_context| worker_context.get("qualification"))
-            .and_then(Value::as_object)
             .and_then(|qualification| qualification.get("family"))
             .and_then(Value::as_str);
-        if (family == Some("native")) != (sequence.len() == 1) {
+        let expected_len = match family {
+            Some("native") => 1,
+            Some("synthetic") => 2,
+            _ => {
+                return Err(VerifierError::new(
+                    "oracle observer family is missing or invalid",
+                ));
+            }
+        };
+        if sequence.len() != expected_len {
             return Err(VerifierError::new(
                 "oracle observer sequence does not match qualification family",
             ));
@@ -4711,6 +4734,102 @@ mod tests {
         assert_eq!(
             index.get("schema").and_then(Value::as_str),
             Some(INDEX_SCHEMA)
+        );
+    }
+
+    #[test]
+    fn oracle_context_binds_explicit_synthetic_family() {
+        let (fixture, options) = require_ok!(
+            fixture_options_for("002", &["001", "070", "071", "072"]),
+            "fixture options"
+        );
+        let prepared = require_ok!(prepare(&options), "prepare");
+        let index_raw = require_ok!(
+            fs::read(fixture.run_dir.join("context-index.json")),
+            "index"
+        );
+        let index = require_ok!(parse_json_object(&index_raw, "index"), "parse index");
+        let oracle_entry = require_some!(
+            index
+                .get("contexts")
+                .and_then(Value::as_array)
+                .and_then(|entries| {
+                    entries.iter().find(|entry| {
+                        entry.get("check_id").and_then(Value::as_str) == Some("CHK-003")
+                    })
+                }),
+            "oracle context entry"
+        );
+        let context_path = require_some!(oracle_entry.get("path").and_then(Value::as_str), "path");
+        let context_raw = require_ok!(fs::read(context_path), "context");
+        let context = require_ok!(parse_json_object(&context_raw, "context"), "parse context");
+        assert_eq!(
+            context.get("operation").and_then(Value::as_str),
+            Some("oracle")
+        );
+        assert_eq!(
+            context.get("observer_sequence").and_then(Value::as_array),
+            Some(&vec![
+                Value::String("oracle".to_string()),
+                Value::String("oracle".to_string())
+            ]),
+        );
+        assert_eq!(
+            context
+                .get("qualification")
+                .and_then(Value::as_object)
+                .and_then(|qualification| qualification.get("family"))
+                .and_then(Value::as_str),
+            Some("synthetic"),
+        );
+        assert!(
+            prepared
+                .members
+                .iter()
+                .any(|member| member.check_id == "CHK-003")
+        );
+    }
+
+    #[test]
+    fn oracle_observer_family_is_explicit_and_fail_closed() {
+        let check = CheckSpec {
+            id: "CHK-003".to_string(),
+            phase: "focused".to_string(),
+            operation: "oracle".to_string(),
+            context_ref: None,
+            lane: "direct".to_string(),
+            namespace: String::new(),
+            requirements: Vec::new(),
+            acceptance: Vec::new(),
+            command: json!(["tc-proof", "oracle"]),
+        };
+        let template = |family: &str| TemplateInfo {
+            path: PathBuf::from("/tmp/template.json"),
+            sha256: String::new(),
+            value: json!({"qualification": {"family": family}}),
+        };
+        assert_eq!(
+            observer_sequence_for_check(&check, Some(&template("native")))
+                .expect("native sequence"),
+            vec!["oracle"],
+        );
+        assert_eq!(
+            observer_sequence_for_check(&check, None).expect("synthetic sequence"),
+            vec!["oracle", "oracle"],
+        );
+        assert!(observer_sequence_for_check(&check, Some(&template("accounting"))).is_err());
+
+        let mut missing = Map::new();
+        missing.insert("observer_sequence".to_string(), json!(["oracle", "oracle"]));
+        missing.insert("qualification".to_string(), json!({}));
+        assert!(observer_sequence_from_context(&missing, "oracle").is_err());
+
+        let mut synthetic = Map::new();
+        synthetic.insert("observer_sequence".to_string(), json!(["oracle", "oracle"]));
+        synthetic.insert("qualification".to_string(), json!({"family": "synthetic"}));
+        assert_eq!(
+            observer_sequence_from_context(&synthetic, "oracle").expect("synthetic context"),
+            vec!["oracle", "oracle"],
         );
     }
 

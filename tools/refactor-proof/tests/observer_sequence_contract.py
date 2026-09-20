@@ -120,9 +120,21 @@ class ObserverSequenceTests(unittest.TestCase):
 
     def test_synthetic_oracle_declares_two_requests(self) -> None:
         self.assertEqual(
-            validate_oracle_sequence(_context(["oracle", "oracle"]), "oracle"),
+            validate_oracle_sequence(
+                _context(["oracle", "oracle"], "synthetic"), "oracle"
+            ),
             ["oracle", "oracle"],
         )
+
+    def test_missing_oracle_family_is_rejected(self) -> None:
+        with self.assertRaises(Reject) as raised:
+            validate_oracle_sequence(_context(["oracle", "oracle"]), "oracle")
+        self.assertEqual(raised.exception.category, "PROTOCOL")
+
+    def test_unknown_oracle_family_is_rejected(self) -> None:
+        with self.assertRaises(Reject) as raised:
+            validate_oracle_sequence(_context(["oracle", "oracle"], "accounting"), "oracle")
+        self.assertEqual(raised.exception.category, "PROTOCOL")
 
     def test_missing_sequence_is_rejected(self) -> None:
         context = _context(["oracle"])
@@ -148,7 +160,7 @@ class ObserverSequenceTests(unittest.TestCase):
 
     def test_synthetic_family_cannot_claim_native_sequence(self) -> None:
         with self.assertRaises(Reject) as raised:
-            validate_oracle_sequence(_context(["oracle"], "accounting"), "oracle")
+            validate_oracle_sequence(_context(["oracle"], "synthetic"), "oracle")
         self.assertEqual(raised.exception.category, "PROTOCOL")
 
     def test_missing_second_observation_is_rejected(self) -> None:

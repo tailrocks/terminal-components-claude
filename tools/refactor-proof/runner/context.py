@@ -130,19 +130,12 @@ def validate_oracle_sequence(context: dict[str, Any], operation: Any) -> list[st
     if operation != "oracle" or any(item != "oracle" for item in sequence):
         raise Reject("PROTOCOL")
     qualification = context.get("qualification")
-    family = None
-    if isinstance(qualification, dict):
-        family = qualification.get("family")
-        worker_context = qualification.get("worker_context")
-        if family is None and isinstance(worker_context, dict):
-            nested = worker_context.get("qualification")
-            if isinstance(nested, dict):
-                family = nested.get("family")
+    family = qualification.get("family") if isinstance(qualification, dict) else None
     if len(sequence) == 1:
         if family != "native":
             raise Reject("PROTOCOL")
     elif len(sequence) == 2:
-        if family == "native":
+        if family != "synthetic":
             raise Reject("PROTOCOL")
     else:
         raise Reject("PROTOCOL")
