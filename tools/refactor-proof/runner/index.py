@@ -8,7 +8,7 @@ import stat
 from pathlib import Path
 from typing import Any
 
-from .context import ALLOWED_V1_KEYS, Reject, V1_SCHEMA, V2_EXTRA_KEYS, load_context
+from .context import ALLOWED_V1_KEYS, Reject, V1_SCHEMA, load_context
 from .json_util import load_path, sha256_bytes
 
 
@@ -90,7 +90,7 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
         raise Reject("CONTEXT_INDEX")
     check_id = os.environ.get("TC_PROOF_CHECK_ID")
     optional = {"qualification", "architecture_profile", "branch_host_projection"}
-    required_child = (ALLOWED_V1_KEYS | V2_EXTRA_KEYS) - optional
+    required_child = ALLOWED_V1_KEYS - optional
     member_fields = {
         "check_id",
         "path",
