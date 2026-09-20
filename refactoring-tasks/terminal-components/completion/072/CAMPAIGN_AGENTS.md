@@ -18,6 +18,23 @@ operator, container, or taskfmt lifecycle instructions.
 - Never mutate `visual-baseline`, write the frozen oracle, merge `main`, or
   force-push.
 
+## Retired TASK-001 / TASK-070
+
+TASK-001 and TASK-070 stay retired fail-closed. Do not dispatch them, resurrect
+Docker or `/task` `/work` `/proof` `/run` host lifecycle, or treat their
+packages as accepted producer receipts. Former host/runner/lifecycle
+obligations now live in:
+
+- `scripts/campaign-build-proof.sh`
+- `docs/refactoring-plan/path-contract.md`
+- `docs/refactoring-plan/proof-contract.md`
+- `tools/refactor-proof/src`
+- `tools/refactor-proof/runner`
+- `tools/refactor-proof/bin`
+
+Native qualification prerequisites for production tasks are TASK-071 and
+TASK-072.
+
 ## Taskfmt boundary
 
 Use only the standalone latest taskfmt `0.2.0` at revision

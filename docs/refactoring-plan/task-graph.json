@@ -1,6 +1,6 @@
 {
   "catalog": {
-    "dependency_edges": 276,
+    "dependency_edges": 264,
     "direct_checks": 506,
     "direct_task_packages": 73,
     "nested_bootstrap_contracts": [
@@ -5935,8 +5935,6 @@
     },
     {
       "base_dependencies": [
-        "TASK-001",
-        "TASK-070",
         "TASK-071",
         "TASK-072"
       ],
@@ -5946,8 +5944,6 @@
     },
     {
       "base_dependencies": [
-        "TASK-001",
-        "TASK-070",
         "TASK-071",
         "TASK-072"
       ],
@@ -5957,8 +5953,6 @@
     },
     {
       "base_dependencies": [
-        "TASK-001",
-        "TASK-070",
         "TASK-071",
         "TASK-072"
       ],
@@ -5968,8 +5962,6 @@
     },
     {
       "base_dependencies": [
-        "TASK-001",
-        "TASK-070",
         "TASK-071",
         "TASK-072"
       ],
@@ -5983,7 +5975,6 @@
         "TASK-003",
         "TASK-004",
         "TASK-005",
-        "TASK-070",
         "TASK-071",
         "TASK-072"
       ],
@@ -5993,8 +5984,6 @@
     },
     {
       "base_dependencies": [
-        "TASK-001",
-        "TASK-070",
         "TASK-071",
         "TASK-072"
       ],
@@ -6006,7 +5995,6 @@
       "base_dependencies": [
         "TASK-007",
         "TASK-006",
-        "TASK-070",
         "TASK-071",
         "TASK-072"
       ],
@@ -13925,8 +13913,6 @@
           "CHK-007"
         ],
         "required_dependencies": [
-          "TASK-001",
-          "TASK-070",
           "TASK-071",
           "TASK-072"
         ],
@@ -13938,8 +13924,6 @@
         "refactoring-tasks/terminal-components/completion/002/verify.toml"
       ],
       "dependencies": [
-        "TASK-001",
-        "TASK-070",
         "TASK-071",
         "TASK-072"
       ],
@@ -14073,16 +14057,6 @@
         {
           "receipt": "accepted-ancestry-bound-dependency-receipt",
           "source": "task.toml.dependencies",
-          "task_id": "TASK-001"
-        },
-        {
-          "receipt": "accepted-ancestry-bound-dependency-receipt",
-          "source": "task.toml.dependencies",
-          "task_id": "TASK-070"
-        },
-        {
-          "receipt": "accepted-ancestry-bound-dependency-receipt",
-          "source": "task.toml.dependencies",
           "task_id": "TASK-071"
         },
         {
@@ -14099,8 +14073,6 @@
           "CHK-007"
         ],
         "required_dependencies": [
-          "TASK-001",
-          "TASK-070",
           "TASK-071",
           "TASK-072"
         ],
@@ -14112,8 +14084,6 @@
         "refactoring-tasks/terminal-components/completion/003/verify.toml"
       ],
       "dependencies": [
-        "TASK-001",
-        "TASK-070",
         "TASK-071",
         "TASK-072"
       ],
@@ -14304,16 +14274,6 @@
         {
           "receipt": "accepted-ancestry-bound-dependency-receipt",
           "source": "task.toml.dependencies",
-          "task_id": "TASK-001"
-        },
-        {
-          "receipt": "accepted-ancestry-bound-dependency-receipt",
-          "source": "task.toml.dependencies",
-          "task_id": "TASK-070"
-        },
-        {
-          "receipt": "accepted-ancestry-bound-dependency-receipt",
-          "source": "task.toml.dependencies",
           "task_id": "TASK-071"
         },
         {
@@ -14330,8 +14290,6 @@
           "CHK-007"
         ],
         "required_dependencies": [
-          "TASK-001",
-          "TASK-070",
           "TASK-071",
           "TASK-072"
         ],
@@ -14343,8 +14301,6 @@
         "refactoring-tasks/terminal-components/completion/004/verify.toml"
       ],
       "dependencies": [
-        "TASK-001",
-        "TASK-070",
         "TASK-071",
         "TASK-072"
       ],
@@ -14489,16 +14445,6 @@
         {
           "receipt": "accepted-ancestry-bound-dependency-receipt",
           "source": "task.toml.dependencies",
-          "task_id": "TASK-001"
-        },
-        {
-          "receipt": "accepted-ancestry-bound-dependency-receipt",
-          "source": "task.toml.dependencies",
-          "task_id": "TASK-070"
-        },
-        {
-          "receipt": "accepted-ancestry-bound-dependency-receipt",
-          "source": "task.toml.dependencies",
           "task_id": "TASK-071"
         },
         {
@@ -14515,8 +14461,6 @@
           "CHK-007"
         ],
         "required_dependencies": [
-          "TASK-001",
-          "TASK-070",
           "TASK-071",
           "TASK-072"
         ],
@@ -14528,8 +14472,6 @@
         "refactoring-tasks/terminal-components/completion/005/verify.toml"
       ],
       "dependencies": [
-        "TASK-001",
-        "TASK-070",
         "TASK-071",
         "TASK-072"
       ],
@@ -14732,16 +14674,6 @@
         {
           "receipt": "accepted-ancestry-bound-dependency-receipt",
           "source": "task.toml.dependencies",
-          "task_id": "TASK-001"
-        },
-        {
-          "receipt": "accepted-ancestry-bound-dependency-receipt",
-          "source": "task.toml.dependencies",
-          "task_id": "TASK-070"
-        },
-        {
-          "receipt": "accepted-ancestry-bound-dependency-receipt",
-          "source": "task.toml.dependencies",
           "task_id": "TASK-071"
         },
         {
@@ -14762,7 +14694,6 @@
           "TASK-003",
           "TASK-004",
           "TASK-005",
-          "TASK-070",
           "TASK-071",
           "TASK-072"
         ],
@@ -14778,7 +14709,6 @@
         "TASK-003",
         "TASK-004",
         "TASK-005",
-        "TASK-070",
         "TASK-071",
         "TASK-072"
       ],
@@ -14908,11 +14838,6 @@
         {
           "receipt": "accepted-ancestry-bound-dependency-receipt",
           "source": "task.toml.dependencies",
-          "task_id": "TASK-070"
-        },
-        {
-          "receipt": "accepted-ancestry-bound-dependency-receipt",
-          "source": "task.toml.dependencies",
           "task_id": "TASK-071"
         },
         {
@@ -14929,8 +14854,6 @@
           "CHK-007"
         ],
         "required_dependencies": [
-          "TASK-001",
-          "TASK-070",
           "TASK-071",
           "TASK-072"
         ],
@@ -14942,8 +14865,6 @@
         "refactoring-tasks/terminal-components/completion/007/verify.toml"
       ],
       "dependencies": [
-        "TASK-001",
-        "TASK-070",
         "TASK-071",
         "TASK-072"
       ],
@@ -15000,16 +14921,6 @@
         {
           "receipt": "accepted-ancestry-bound-dependency-receipt",
           "source": "task.toml.dependencies",
-          "task_id": "TASK-001"
-        },
-        {
-          "receipt": "accepted-ancestry-bound-dependency-receipt",
-          "source": "task.toml.dependencies",
-          "task_id": "TASK-070"
-        },
-        {
-          "receipt": "accepted-ancestry-bound-dependency-receipt",
-          "source": "task.toml.dependencies",
           "task_id": "TASK-071"
         },
         {
@@ -15028,7 +14939,6 @@
         "required_dependencies": [
           "TASK-007",
           "TASK-006",
-          "TASK-070",
           "TASK-071",
           "TASK-072"
         ],
@@ -15042,7 +14952,6 @@
       "dependencies": [
         "TASK-007",
         "TASK-006",
-        "TASK-070",
         "TASK-071",
         "TASK-072"
       ],
@@ -15277,11 +15186,6 @@
           "receipt": "accepted-ancestry-bound-dependency-receipt",
           "source": "task.toml.dependencies",
           "task_id": "TASK-006"
-        },
-        {
-          "receipt": "accepted-ancestry-bound-dependency-receipt",
-          "source": "task.toml.dependencies",
-          "task_id": "TASK-070"
         },
         {
           "receipt": "accepted-ancestry-bound-dependency-receipt",
@@ -16395,7 +16299,7 @@
           "crates/tui/src/components/input.rs",
           "crates/tui/src/components/textarea.rs",
           "crates/tui/src/components/field.rs",
-          "crates/tui/src/components/field_control.rs",
+          "crates/tui/src/field_control.rs",
           "crates/tui/src/secret.rs",
           "crates/tui/src/validate.rs",
           "crates/tui/tests/completion_016.rs"
@@ -23596,14 +23500,15 @@
           "parity",
           "Cargo.lock",
           "AGENTS.md",
-          "CLAUDE.md"
+          "CLAUDE.md",
+          ".github/workflows"
         ],
         "scope_source": "refactoring-tasks/terminal-components/completion/066/verify.toml",
         "writable_paths": [
           "tools/test-inventory",
           "crates/tui/tests/render.rs",
           "crates/tui/tests/render_components.rs",
-          ".github/workflows/ci.yml",
+          ".github-gen/velnor-workflow.toml",
           "xtask/src/main.rs",
           "crates/tui/tests/showcase_buttons.rs"
         ]

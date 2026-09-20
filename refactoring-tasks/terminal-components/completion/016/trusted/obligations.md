@@ -38,7 +38,7 @@ Add `crates/tui/tests/completion_016.rs` containing separately named positive an
 
 - family: field-chrome
 - reference_implementation: O:src/widgets/input.rs;textarea.rs;select.rs field chrome
-- main_implementation: M:crates/tui/src/components/field.rs;field_control.rs
+- main_implementation: M:crates/tui/src/components/field.rs;M:crates/tui/src/field_control.rs
 - architectural_target: Field chrome only; one child Id and focus stop
 - visual_status: unverified
 - interaction_status: unverified

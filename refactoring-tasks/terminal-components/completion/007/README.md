@@ -15,7 +15,7 @@ Every accepted historical and immutable-oracle test obligation resolves to an ex
 
 Visual acceptance is currently blocked: this branch lacks the grouped store and PTY suite. A verifier subagent must import them read-only from the immutable `visual-baseline` tag into the external run before using [`visual-validation.md`](../../../visual-validation.md). Never write `snapshots/`, bless output, or mutate the tag.
 
-This is a later execution task. The current planning goal only creates this immutable package. UI authority is `02f5294bfdbf38004cc49130d0aff1d01f31434c`; architecture starts from `7b27732a8c3c131760ec3438f641cb3c11343a42`. The accepted producer product is `test-inventory`. Task dependencies are `TASK-001`, `TASK-070`, `TASK-071`, `TASK-072`. Dependency status alone never proves integrated source ancestry or trusted product acceptance. Follow the subagent-only host-local workflow in proof-contract.md; use standalone taskfmt only for this package's lint and verify evidence.
+This is a later execution task. The current planning goal only creates this immutable package. UI authority is `02f5294bfdbf38004cc49130d0aff1d01f31434c`; architecture starts from `7b27732a8c3c131760ec3438f641cb3c11343a42`. The accepted producer product is `test-inventory`. Task dependencies are `TASK-071`, `TASK-072`. TASK-001 and TASK-070 stay retired fail-closed and cannot supply accepted producer receipts. Former host/runner/lifecycle obligations now live in `scripts/campaign-build-proof.sh`, [`path-contract.md`](../../../../docs/refactoring-plan/path-contract.md), [`proof-contract.md`](../../../../docs/refactoring-plan/proof-contract.md), and `tools/refactor-proof/{src,runner,bin}`. Dependency status alone never proves integrated source ancestry or trusted product acceptance. Follow the subagent-only host-local workflow in proof-contract.md; use standalone taskfmt only for this package's lint and verify evidence.
 
 Read before editing:
 
@@ -148,7 +148,7 @@ Then every owned product artifact binds the correct source and complete actual e
 
 - **D-001:** The UI oracle and architecture source have separate authority; never substitute main output for an expected frame.
 - **D-002:** This task produces `test-inventory`. Only verifier and reviewer subagents can approve evidence after independent checks; the coordinator cannot edit receipts or task metadata.
-- **D-003:** Use the existing proof-contract operation interface and canonical taskfmt standalone gate. Runner operations belong to TASK-070, accounting to TASK-071 and architecture verification to TASK-072; do not invent private bypass scripts.
+- **D-003:** Use the existing proof-contract operation interface and canonical taskfmt standalone gate. Native comparator/runner/close live in `tools/refactor-proof/{src,runner,bin}` and `scripts/campaign-build-proof.sh`; accounting qualification is TASK-071 and architecture verification is TASK-072. TASK-001 and TASK-070 remain retired fail-closed packages. Do not invent private bypass scripts.
 - **D-004:** Preserve original source/fixture/test identities and exact finite membership. Artifact absence, invalid data and unimplemented required cases fail closed.
 - **D-005:** Trusted candidate capture output and trusted expected oracle output occupy separate authority domains. This preparation task cannot approve changed candidate UX.
 

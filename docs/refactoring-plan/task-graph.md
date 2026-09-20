@@ -2,7 +2,7 @@
 
 This graph is generated from the canonical task index, every direct and nested task contract, and traceability. It is structural planning data only: it contains no task status, acceptance result, ledger mutation, or dispatch authorization.
 
-The graph contains 73 direct tasks, 77 recursive verify.toml contracts, 506 direct checks, 526 recursive checks, and 276 dependency edges.
+The graph contains 73 direct tasks, 77 recursive verify.toml contracts, 506 direct checks, 526 recursive checks, and 264 dependency edges.
 
 The maximum dependency depth is 35 with 24 equally deepest dependency paths. Complete machine-checkable metadata is in task-graph.json.
 
@@ -14,7 +14,7 @@ The maximum dependency depth is 35 with 24 equally deepest dependency paths. Com
 | Recursive verify.toml contracts | 77 | all package descendants |
 | Direct checks | 506 | direct contracts |
 | Recursive checks | 526 | direct plus nested contracts |
-| Dependency edges | 276 | task.toml dependencies |
+| Dependency edges | 264 | task.toml dependencies |
 | Shared traceability interfaces | 584 | traceability.tsv source/task membership |
 | Writable-scope conflict pairs | 193 | direct verify.toml writable paths |
 | Incomparable writable-scope locks | 0 | conflicts without a dependency ordering |

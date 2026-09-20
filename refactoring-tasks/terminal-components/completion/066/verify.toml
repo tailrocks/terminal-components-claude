@@ -1,7 +1,7 @@
 schema = "verify/v2"
 task_id = "TASK-066"
-writable_paths = ["tools/test-inventory","crates/tui/tests/render.rs","crates/tui/tests/render_components.rs",".github/workflows/ci.yml","xtask/src/main.rs","crates/tui/tests/showcase_buttons.rs"]
-forbidden_paths = ["docs/refactoring-plan","refactoring-tasks","tools/refactor-proof","tools/refactor-proof-adapters","tools/test-disposition","baseline","shots", "snapshots","parity","Cargo.lock","AGENTS.md","CLAUDE.md"]
+writable_paths = ["tools/test-inventory","crates/tui/tests/render.rs","crates/tui/tests/render_components.rs",".github-gen/velnor-workflow.toml","xtask/src/main.rs","crates/tui/tests/showcase_buttons.rs"]
+forbidden_paths = ["docs/refactoring-plan","refactoring-tasks","tools/refactor-proof","tools/refactor-proof-adapters","tools/test-disposition","baseline","shots", "snapshots","parity","Cargo.lock","AGENTS.md","CLAUDE.md",".github/workflows"]
 
 [[checks]]
 id = "CHK-001"
