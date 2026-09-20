@@ -10439,6 +10439,12 @@ captures / classification: `(pending — filled when the change lands)`
             testing_depends_on_library,
             "testing crate CI unit must still depend on the library:\n{testing}"
         );
+        assert!(
+            library.contains("crates/tui-testing/**/*.rs")
+                && library.contains("crates/tui-testing/src/**")
+                && library.contains("crates/tui-testing/tests/**"),
+            "library CI unit must retain testing-crate impact and freshness coverage:\n{library}"
+        );
     }
 
     fn unit_depends_on_contains(body: &str, id: &str) -> bool {

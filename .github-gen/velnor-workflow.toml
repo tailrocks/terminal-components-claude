@@ -80,6 +80,30 @@ timeout_minutes = 90
 # CI unit order must not: the library job must not wait on the testing crate.
 [[units]]
 id = "rust-junie-tui"
+# Keep the dev-dependency's source in this unit's impact/freshness closure
+# without reintroducing the CI scheduling edge that forms a cycle.
+watch = [
+  ".cargo/**",
+  "Cargo.lock",
+  "Cargo.toml",
+  "crates/tui/**/*.rs",
+  "crates/tui/Cargo.toml",
+  "crates/tui/README.md",
+  "crates/tui/benches/**",
+  "crates/tui/examples/**",
+  "crates/tui/src/**",
+  "crates/tui/tests/**",
+  "crates/tui-testing/**/*.rs",
+  "crates/tui-testing/Cargo.toml",
+  "crates/tui-testing/benches/**",
+  "crates/tui-testing/examples/**",
+  "crates/tui-testing/src/**",
+  "crates/tui-testing/tests/**",
+  "mise.lock",
+  "mise.toml",
+  "rust-toolchain",
+  "rust-toolchain.toml",
+]
 depends_on = []
 
 [[declare]]
