@@ -419,6 +419,7 @@ def _validate_result_shape(result: Mapping[str, Any], field: str = "result") -> 
         "schema",
         "task_id",
         "base",
+        "candidate_commit",
         "candidate_tree_sha",
         "integration_commit",
         "run_id",
@@ -436,6 +437,7 @@ def _validate_result_shape(result: Mapping[str, Any], field: str = "result") -> 
             "schema",
             "task_id",
             "base",
+            "candidate_commit",
             "candidate_tree_sha",
             "integration_commit",
             "run_id",
@@ -452,6 +454,7 @@ def _validate_result_shape(result: Mapping[str, Any], field: str = "result") -> 
         _reject(f"{field}.schema is not {RESULT_SCHEMA}")
     _task_id(result["task_id"], f"{field}.task_id")
     _full_sha(result["base"], f"{field}.base")
+    _full_sha(result["candidate_commit"], f"{field}.candidate_commit")
     _full_sha(result["candidate_tree_sha"], f"{field}.candidate_tree_sha")
     _full_sha(result["integration_commit"], f"{field}.integration_commit")
     _absolute_path(result["run_id"], f"{field}.run_id")
@@ -475,6 +478,7 @@ def _validate_reviewer_shape(
         "schema",
         "task_id",
         "base",
+        "candidate_commit",
         "candidate_tree_sha",
         "integration_commit",
         "run_id",
@@ -491,6 +495,7 @@ def _validate_reviewer_shape(
             "schema",
             "task_id",
             "base",
+            "candidate_commit",
             "candidate_tree_sha",
             "integration_commit",
             "run_id",
@@ -506,6 +511,7 @@ def _validate_reviewer_shape(
         _reject(f"{field}.schema is not {REVIEW_SCHEMA}")
     _task_id(reviewer["task_id"], f"{field}.task_id")
     _full_sha(reviewer["base"], f"{field}.base")
+    _full_sha(reviewer["candidate_commit"], f"{field}.candidate_commit")
     _full_sha(reviewer["candidate_tree_sha"], f"{field}.candidate_tree_sha")
     _full_sha(reviewer["integration_commit"], f"{field}.integration_commit")
     _absolute_path(reviewer["run_id"], f"{field}.run_id")
@@ -524,6 +530,7 @@ def _validate_receipt_shape(receipt: Mapping[str, Any], field: str) -> None:
         "product",
         "dependencies",
         "base",
+        "candidate_commit",
         "candidate_tree_sha",
         "integration_commit",
         "run_id",
@@ -544,6 +551,7 @@ def _validate_receipt_shape(receipt: Mapping[str, Any], field: str) -> None:
             "product",
             "dependencies",
             "base",
+            "candidate_commit",
             "candidate_tree_sha",
             "integration_commit",
             "run_id",
@@ -561,6 +569,7 @@ def _validate_receipt_shape(receipt: Mapping[str, Any], field: str) -> None:
     _string(receipt["product"], f"{field}.product")
     _task_dependencies(receipt["dependencies"], f"{field}.dependencies")
     _full_sha(receipt["base"], f"{field}.base")
+    _full_sha(receipt["candidate_commit"], f"{field}.candidate_commit")
     _full_sha(receipt["candidate_tree_sha"], f"{field}.candidate_tree_sha")
     _full_sha(receipt["integration_commit"], f"{field}.integration_commit")
     _absolute_path(receipt["run_id"], f"{field}.run_id")
@@ -585,6 +594,7 @@ def _validate_task_row_shape(row: Mapping[str, Any], field: str) -> None:
         "task_id",
         "status",
         "parent_sha",
+        "candidate_commit",
         "candidate_tree_sha",
         "verifier_verdict",
         "reviewer_verdict",
@@ -601,7 +611,7 @@ def _validate_task_row_shape(row: Mapping[str, Any], field: str) -> None:
     task_id = _task_id(row["task_id"], f"{field}.task_id")
     if row["status"] not in TASK_STATUSES:
         _reject(f"{field}.status is not a known task status")
-    for name in ("parent_sha", "candidate_tree_sha"):
+    for name in ("parent_sha", "candidate_commit", "candidate_tree_sha"):
         if name in row:
             _full_sha(row[name], f"{field}.{name}")
     if "verifier_verdict" in row and row["verifier_verdict"] not in VERDICTS:
@@ -626,6 +636,7 @@ def _validate_task_row_shape(row: Mapping[str, Any], field: str) -> None:
             row,
             (
                 "parent_sha",
+                "candidate_commit",
                 "candidate_tree_sha",
                 "verifier_verdict",
                 "reviewer_verdict",
@@ -808,6 +819,7 @@ def _validate_accepted_binding(
     comparisons = (
         (receipt["task_id"], task_id, "task_id"),
         (receipt["base"], row["parent_sha"], "base/parent_sha"),
+        (receipt["candidate_commit"], row["candidate_commit"], "candidate_commit"),
         (receipt["candidate_tree_sha"], row["candidate_tree_sha"], "candidate_tree_sha"),
         (receipt["run_id"], row["run_id"], "run_id"),
         (receipt["dependencies"], row["dependencies"], "dependencies"),
@@ -820,7 +832,14 @@ def _validate_accepted_binding(
     result = receipt["result"]
     reviewer = receipt["reviewer"]
     for source, name in ((result, "result"), (reviewer, "reviewer")):
-        for key in ("task_id", "base", "candidate_tree_sha", "integration_commit", "run_id"):
+        for key in (
+            "task_id",
+            "base",
+            "candidate_commit",
+            "candidate_tree_sha",
+            "integration_commit",
+            "run_id",
+        ):
             if source[key] != receipt[key]:
                 _reject(f"{field}.{name}.{key} is not bound to the receipt")
     if reviewer["result_sha256"] != result["sha256"]:
@@ -973,6 +992,7 @@ def _validate_receipt_files(
             "schema",
             "task_id",
             "base",
+            "candidate_commit",
             "candidate_tree_sha",
             "integration_commit",
             "run_id",
@@ -987,6 +1007,7 @@ def _validate_receipt_files(
             "schema",
             "task_id",
             "base",
+            "candidate_commit",
             "candidate_tree_sha",
             "integration_commit",
             "run_id",
@@ -997,7 +1018,14 @@ def _validate_receipt_files(
     )
     if evidence["schema"] != EVIDENCE_SCHEMA:
         _reject(f"{field}.evidence.schema is not {EVIDENCE_SCHEMA}")
-    for key in ("task_id", "base", "candidate_tree_sha", "integration_commit", "run_id"):
+    for key in (
+        "task_id",
+        "base",
+        "candidate_commit",
+        "candidate_tree_sha",
+        "integration_commit",
+        "run_id",
+    ):
         if evidence[key] != receipt[key]:
             _reject(f"{field}.evidence.{key} is not bound to receipt")
     if evidence["result_sha256"] != receipt["result"]["sha256"]:
@@ -1025,6 +1053,7 @@ def _validate_receipt_files(
     for key in (
         "task_id",
         "base",
+        "candidate_commit",
         "candidate_tree_sha",
         "integration_commit",
         "run_id",
@@ -1049,6 +1078,7 @@ def _validate_receipt_files(
             "schema",
             "task_id",
             "base",
+            "candidate_commit",
             "candidate_tree_sha",
             "integration_commit",
             "run_id",
@@ -1064,6 +1094,7 @@ def _validate_receipt_files(
             "schema",
             "task_id",
             "base",
+            "candidate_commit",
             "candidate_tree_sha",
             "integration_commit",
             "run_id",
@@ -1078,6 +1109,7 @@ def _validate_receipt_files(
     for key in (
         "task_id",
         "base",
+        "candidate_commit",
         "candidate_tree_sha",
         "integration_commit",
         "run_id",
@@ -1187,6 +1219,23 @@ def _git_identity(repository_root: Path, ref: str, field: str) -> dict[str, str]
             _reject(f"cannot resolve {field} {ref}{suffix}")
         values[name] = _full_sha(completed.stdout.strip(), f"{field}.{name}")
     return values
+
+
+def _validate_commit_tree_identity(
+    repository_root: Path,
+    commit: str,
+    tree: str,
+    field: str,
+) -> None:
+    """Prove that a recorded commit names the recorded root tree."""
+
+    commit = _full_sha(commit, f"{field}.commit")
+    tree = _tree_sha(tree, f"{field}.tree")
+    actual = _git_identity(repository_root, commit, field)
+    if actual["commit"] != commit:
+        _reject(f"{field}.commit is not a commit object")
+    if actual["tree"] != tree:
+        _reject(f"{field}.tree does not match {field}.commit^{{tree}}")
 
 
 def _identity_expected(
@@ -1758,6 +1807,12 @@ def validate_preparation_qualification(
     _qualification_directory(candidate, "worktree")
     if candidate.resolve() != root:
         _reject("worktree and repository_root must identify the same candidate")
+    _validate_commit_tree_identity(
+        root,
+        current_head,
+        current_tree,
+        "current candidate",
+    )
     if preparation["integration_ref"] != f"refs/heads/{integration_branch}":
         _reject("preparation integration_ref is not the integration branch")
     if preparation["candidate_commit"] != current_head:
@@ -1935,6 +1990,12 @@ def validate_preflight_ledger(
     root = Path(repository_root).resolve()
     if not root.is_dir():
         _reject(f"repository root is not a directory: {root}")
+    _validate_commit_tree_identity(
+        root,
+        current_head,
+        current_tree,
+        "current integration",
+    )
     if catalog_identity is None:
         _reject("current catalog identity is required")
     expected_catalog = _identity_expected(
@@ -2007,11 +2068,17 @@ def validate_preflight_ledger(
             _reject(f"task {task_id} has no accepted independent reviewer")
         _validate_receipt_files(receipt, root, field=f"task {task_id}")
         integration_commit = receipt["integration_commit"]
+        _validate_commit_tree_identity(
+            root,
+            row["candidate_commit"],
+            row["candidate_tree_sha"],
+            f"task {task_id} candidate",
+        )
         if not _is_ancestor(root, integration_commit, current_head):
             _reject(f"task {task_id} receipt is not bound to current HEAD ancestry")
-        if not _is_ancestor(root, row["parent_sha"], row["candidate_tree_sha"]):
+        if not _is_ancestor(root, row["parent_sha"], row["candidate_commit"]):
             _reject(f"task {task_id} parent is not an ancestor of candidate")
-        if not _is_ancestor(root, row["candidate_tree_sha"], integration_commit):
+        if not _is_ancestor(root, row["candidate_commit"], integration_commit):
             _reject(f"task {task_id} candidate is not an ancestor of integration commit")
         accepted[task_id] = row
 
@@ -2419,6 +2486,12 @@ def _validate_preparation_file(
     if current_tree is None:
         _reject("proof preparation current tree is required")
     current_tree = _tree_sha(current_tree, "current_tree")
+    _validate_commit_tree_identity(
+        expected_worktree,
+        preparation["commit"],
+        current_tree,
+        "proof preparation candidate",
+    )
     _full_sha(preparation["scope_base"], "proof preparation.scope_base")
     run_path = _qualification_run(
         preparation["run_id"], field="proof preparation.run_id", candidate=worktree_path

@@ -5,6 +5,7 @@ from __future__ import annotations
 import copy
 import hashlib
 import json
+import subprocess
 import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -73,6 +74,24 @@ def canonical_json_sha256(value: Any) -> str:
     ).hexdigest()
 
 
+def git(root: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", "-C", str(root), *args],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+
+
+def seal_git_fixture(root: Path) -> tuple[str, str]:
+    git(root, "init", "-q")
+    git(root, "config", "user.email", "ledger-fixture@example.invalid")
+    git(root, "config", "user.name", "Ledger Fixture")
+    git(root, "add", "-A")
+    git(root, "commit", "-q", "-m", "fixture")
+    return git(root, "rev-parse", "HEAD"), git(root, "rev-parse", "HEAD^{tree}")
+
+
 def assert_proof_schema_contract() -> None:
     schema_path = (
         Path(__file__).resolve().parents[1]
@@ -95,10 +114,16 @@ def assert_proof_schema_contract() -> None:
     assert "sequences" in defs["observerCapability"]["required"]
     assert "provider" in defs["observerCapability"]["required"]
     assert defs["qualificationFamily"]["enum"] == ["native", "synthetic"]
+    for name in ("task", "result", "reviewer", "receipt"):
+        assert "candidate_commit" in defs[name]["properties"]
 
 
 def make_ledger(root: Path) -> dict[str, Any]:
     root.mkdir(parents=True, exist_ok=True)
+    catalog_manifest = root / "catalog-manifest.json"
+    catalog_manifest.write_text("catalog\n", encoding="utf-8")
+    SHA, TREE = seal_git_fixture(root)
+    BASE = SHA
     run = root / "run-001"
     run.mkdir(parents=True)
     result_path = run / "result.json"
@@ -107,7 +132,8 @@ def make_ledger(root: Path) -> dict[str, Any]:
         "schema": RESULT_SCHEMA,
         "task_id": "TASK-001",
         "base": BASE,
-        "candidate_tree_sha": SHA,
+        "candidate_commit": SHA,
+        "candidate_tree_sha": TREE,
         "integration_commit": SHA,
         "run_id": str(run),
         "exit": 0,
@@ -121,7 +147,8 @@ def make_ledger(root: Path) -> dict[str, Any]:
         "schema": REVIEW_SCHEMA,
         "task_id": "TASK-001",
         "base": BASE,
-        "candidate_tree_sha": SHA,
+        "candidate_commit": SHA,
+        "candidate_tree_sha": TREE,
         "integration_commit": SHA,
         "run_id": str(run),
         "verdict": "VERIFIED",
@@ -135,23 +162,22 @@ def make_ledger(root: Path) -> dict[str, Any]:
         "schema": EVIDENCE_SCHEMA,
         "task_id": "TASK-001",
         "base": BASE,
-        "candidate_tree_sha": SHA,
+        "candidate_commit": SHA,
+        "candidate_tree_sha": TREE,
         "integration_commit": SHA,
         "run_id": str(run),
         "result_sha256": result_hash,
         "reviewer_evidence_sha256": reviewer_hash,
     }
     write_json(evidence_path, evidence)
-    catalog_manifest = root / "catalog-manifest.json"
-    catalog_manifest.write_text("catalog\n", encoding="utf-8")
-
     receipt = {
         "schema": RECEIPT_SCHEMA,
         "task_id": "TASK-001",
         "product": "qualified-preparation-fixture",
         "dependencies": [],
         "base": BASE,
-        "candidate_tree_sha": SHA,
+        "candidate_commit": SHA,
+        "candidate_tree_sha": TREE,
         "integration_commit": SHA,
         "run_id": str(run),
         "receipt_sha256": file_sha256(evidence_path),
@@ -174,7 +200,8 @@ def make_ledger(root: Path) -> dict[str, Any]:
         "task_id": "TASK-001",
         "status": "integrated",
         "parent_sha": BASE,
-        "candidate_tree_sha": SHA,
+        "candidate_commit": SHA,
+        "candidate_tree_sha": TREE,
         "verifier_verdict": "VERIFIED",
         "reviewer_verdict": "VERIFIED",
         "receipt_key": "task-001",
@@ -204,19 +231,26 @@ def make_ledger(root: Path) -> dict[str, Any]:
 
 
 def validate_fixture(ledger: dict[str, Any], root: Path) -> None:
+    current_head = git(root, "rev-parse", "HEAD")
+    current_tree = git(root, "rev-parse", "HEAD^{tree}")
+    catalog_manifest = root / "catalog-manifest.json"
+    catalog_identity = {
+        "commit": current_head,
+        "tree": current_tree,
+        "manifest": {
+            "path": "catalog-manifest.json",
+            "sha256": file_sha256(catalog_manifest),
+        },
+    }
     validate_preflight_ledger(
         ledger,
         BRANCH,
-        current_head=SHA,
-        current_tree=TREE,
+        current_head=current_head,
+        current_tree=current_tree,
         expected_taskfmt=TASKFMT,
         dependency_graph={"TASK-001": {"dependencies": []}},
         repository_root=root,
-        catalog_identity={
-            "commit": SHA,
-            "tree": TREE,
-            "manifest": ledger["catalog"]["manifest"],
-        },
+        catalog_identity=catalog_identity,
     )
 
 
@@ -252,6 +286,11 @@ def make_preparation(root: Path) -> tuple[dict[str, Any], Path, Path, dict[str, 
     worker.parent.mkdir(parents=True)
     worker.write_bytes(b"candidate-proof-worker")
     worker.chmod(0o755)
+    (worktree / "catalog-manifest.json").write_text("catalog\n", encoding="utf-8")
+    (worktree / "task-graph.json").write_text("graph\n", encoding="utf-8")
+    global BASE, SHA, TREE
+    SHA, TREE = seal_git_fixture(worktree)
+    BASE = SHA
     taskfmt_source = root / "taskfmt-source"
     taskfmt_source.mkdir()
     taskfmt_path = taskfmt_source / "bin/taskfmt"
@@ -455,6 +494,21 @@ def main() -> None:
         if len(accepted_verifier_rows(ledger)) != 1:
             raise RuntimeError("valid bound receipt was not returned")
 
+    expect_reject(
+        "candidate tree identity",
+        lambda ledger, root: mutate_task_identity(
+            ledger, root, commit=ledger["tasks"][0]["candidate_commit"], tree="f" * 40
+        ),
+        expected="does not match",
+    )
+    expect_reject(
+        "candidate commit identity",
+        lambda ledger, root: mutate_task_identity(
+            ledger, root, commit="e" * 40, tree=ledger["tasks"][0]["candidate_tree_sha"]
+        ),
+        expected="cannot resolve",
+    )
+
     minimal = {
         "tasks": [{"task_id": "TASK-001", "status": "verified", "verifier_verdict": "VERIFIED"}]
     }
@@ -502,14 +556,14 @@ def main() -> None:
             validate_preflight_ledger(
                 ledger,
                 BRANCH,
-                current_head=SHA,
-                current_tree=TREE,
+                current_head=ledger["integration_head"],
+                current_tree=ledger["catalog"]["tree"],
                 expected_taskfmt=TASKFMT,
                 dependency_graph={"TASK-001": {"dependencies": ["TASK-002"]}},
                 repository_root=root,
                 catalog_identity={
-                    "commit": SHA,
-                    "tree": TREE,
+                    "commit": ledger["catalog"]["commit"],
+                    "tree": ledger["catalog"]["tree"],
                     "manifest": ledger["catalog"]["manifest"],
                 },
             )
@@ -601,6 +655,62 @@ def main() -> None:
 def validate_current_head_mutation(ledger: dict[str, Any]) -> None:
     # Keep the mutation explicit so the test remains effective under -O.
     ledger["integration_head"] = "e" * 40
+
+
+def mutate_task_identity(
+    ledger: dict[str, Any], root: Path, *, commit: str, tree: str
+) -> None:
+    row = ledger["tasks"][0]
+    receipt = ledger["receipts"][row["receipt_key"]]
+    row.update({"candidate_commit": commit, "candidate_tree_sha": tree})
+    receipt.update({"candidate_commit": commit, "candidate_tree_sha": tree})
+
+    result_path = Path(receipt["result"]["path"])
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    result.update({"candidate_commit": commit, "candidate_tree_sha": tree})
+    write_json(result_path, result)
+    result_hash = file_sha256(result_path)
+
+    reviewer_path = Path(receipt["reviewer"]["evidence"])
+    reviewer = json.loads(reviewer_path.read_text(encoding="utf-8"))
+    reviewer.update(
+        {
+            "candidate_commit": commit,
+            "candidate_tree_sha": tree,
+            "result_sha256": result_hash,
+        }
+    )
+    write_json(reviewer_path, reviewer)
+    reviewer_hash = file_sha256(reviewer_path)
+
+    evidence_path = root / receipt["evidence"]
+    evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    evidence.update(
+        {
+            "candidate_commit": commit,
+            "candidate_tree_sha": tree,
+            "result_sha256": result_hash,
+            "reviewer_evidence_sha256": reviewer_hash,
+        }
+    )
+    write_json(evidence_path, evidence)
+
+    receipt["receipt_sha256"] = file_sha256(evidence_path)
+    receipt["result"].update(
+        {
+            "candidate_commit": commit,
+            "candidate_tree_sha": tree,
+            "sha256": result_hash,
+        }
+    )
+    receipt["reviewer"].update(
+        {
+            "candidate_commit": commit,
+            "candidate_tree_sha": tree,
+            "result_sha256": result_hash,
+            "evidence_sha256": reviewer_hash,
+        }
+    )
 
 
 def expect_legacy_reject(
@@ -727,7 +837,27 @@ def qualification_tests() -> None:
         root = Path(directory)
         qualification, paths, oracle, qualified = make_qualification(root)
         taskfmt = paths["taskfmt"]
+        preparation = json.loads(
+            (paths["proof"] / "proof-preparation.json").read_text(encoding="utf-8")
+        )
         validate_preparation_qualification(qualification, worktree=paths["candidate"], current_head=SHA, current_tree=TREE, integration_branch=BRANCH, expected_oracle=oracle, expected_taskfmt=taskfmt, repository_root=paths["candidate"], now=qualified + timedelta(seconds=1))
+        mismatched_tree = "f" * 40 if TREE != "f" * 40 else "e" * 40
+        try:
+            validate_proof_preparation(
+                preparation,
+                worktree=paths["candidate"],
+                current_head=SHA,
+                current_tree=mismatched_tree,
+                run_dir=paths["proof"],
+                expected_taskfmt=taskfmt,
+            )
+        except LedgerValidationError as error:
+            if "does not match" not in str(error):
+                raise RuntimeError(
+                    f"mismatched candidate tree rejected for wrong reason: {error}"
+                ) from error
+        else:
+            raise RuntimeError("candidate commit/tree mismatch was accepted")
         taskfmt_path = Path(taskfmt["taskfmt_path"])
         taskfmt_hardlink = taskfmt_path.with_name("taskfmt-hardlink")
         taskfmt_hardlink.hardlink_to(taskfmt_path)
@@ -746,10 +876,45 @@ def qualification_tests() -> None:
         validate_ledger_schema(weak_ledger)
         ledger = make_ledger(root / "ledger-fixture")
         ledger["toolchain"] = dict(taskfmt)
-        ledger["catalog"]["manifest"] = qualification["catalog"]["manifest"]
+        ledger["integration_head"] = qualification["candidate_commit"]
+        ledger["catalog"].update(
+            {
+                "commit": qualification["catalog"]["commit"],
+                "tree": qualification["catalog"]["tree"],
+                "manifest": qualification["catalog"]["manifest"],
+            }
+        )
         ledger["tasks"][0]["status"] = "blocked"
         ledger["preparation"] = qualification
         validate_preflight_ledger(ledger, BRANCH, current_head=SHA, current_tree=TREE, expected_oracle=oracle, expected_taskfmt=taskfmt, dependency_graph={"TASK-001": {"dependencies": []}}, repository_root=paths["candidate"], catalog_identity=qualification["catalog"], task_graph_identity=qualification["task_graph"], now=qualified + timedelta(seconds=1))
+        empty_disarmed = make_ledger(root / "empty-ledger")
+        empty_disarmed["integration_head"] = qualification["candidate_commit"]
+        empty_disarmed["catalog"].update(
+            {
+                "commit": qualification["catalog"]["commit"],
+                "tree": qualification["catalog"]["tree"],
+                "manifest": qualification["catalog"]["manifest"],
+            }
+        )
+        empty_disarmed["toolchain"] = dict(taskfmt)
+        empty_disarmed["tasks"] = []
+        empty_disarmed["receipts"] = {}
+        empty_disarmed["preparation"] = qualification
+        validate_preflight_ledger(
+            empty_disarmed,
+            BRANCH,
+            current_head=qualification["candidate_commit"],
+            current_tree=qualification["candidate_tree"],
+            expected_oracle=oracle,
+            expected_taskfmt=taskfmt,
+            dependency_graph={"TASK-001": {"dependencies": []}},
+            repository_root=paths["candidate"],
+            catalog_identity=qualification["catalog"],
+            task_graph_identity=qualification["task_graph"],
+            now=qualified + timedelta(seconds=1),
+        )
+        if empty_disarmed["armed"] is not False:
+            raise RuntimeError("empty qualification fixture was not disarmed")
         dispatched = copy.deepcopy(ledger)
         dispatched["tasks"][0]["status"] = "dispatched"
         try:
@@ -792,6 +957,27 @@ def qualification_tests() -> None:
             pass
         else:
             raise RuntimeError("wrong candidate tree was accepted")
+        wrong_commit = copy.deepcopy(qualification)
+        wrong_commit["candidate_commit"] = "e" * 40
+        try:
+            validate_preparation_qualification(
+                wrong_commit,
+                worktree=paths["candidate"],
+                current_head=SHA,
+                current_tree=TREE,
+                integration_branch=BRANCH,
+                expected_oracle=oracle,
+                expected_taskfmt=taskfmt,
+                repository_root=paths["candidate"],
+                now=qualified + timedelta(seconds=1),
+            )
+        except LedgerValidationError as error:
+            if "commit" not in str(error):
+                raise RuntimeError(
+                    f"wrong candidate commit rejected for wrong reason: {error}"
+                ) from error
+        else:
+            raise RuntimeError("wrong candidate commit was accepted")
         wrong_oracle = dict(oracle)
         wrong_oracle["tree"] = "1" * 40
         try:

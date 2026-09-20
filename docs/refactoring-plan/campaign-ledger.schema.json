@@ -190,7 +190,8 @@
       "properties": {
         "task_id": {"$ref": "#/$defs/taskId"},
         "status": {"enum": ["pending", "dispatched", "verified", "integrated", "blocked"]},
-        "parent_sha": {"$ref": "#/$defs/fullSha"},
+        "parent_sha": {"$ref": "#/$defs/fullSha", "description": "Parent commit; ancestry checks use commits only."},
+        "candidate_commit": {"$ref": "#/$defs/fullSha", "description": "Candidate commit; its ^{tree} must equal candidate_tree_sha."},
         "candidate_tree_sha": {"$ref": "#/$defs/fullSha"},
         "verifier_verdict": {"enum": ["VERIFIED", "REJECTED", "BLOCKED", "NOT_RUN"]},
         "reviewer_verdict": {"enum": ["VERIFIED", "REJECTED", "BLOCKED", "NOT_RUN"]},
@@ -205,7 +206,7 @@
       "allOf": [
         {
           "if": {"properties": {"status": {"enum": ["verified", "integrated"]}}, "required": ["status"]},
-          "then": {"required": ["parent_sha", "candidate_tree_sha", "verifier_verdict", "reviewer_verdict", "receipt_key", "dependencies", "run_id"]}
+          "then": {"required": ["parent_sha", "candidate_commit", "candidate_tree_sha", "verifier_verdict", "reviewer_verdict", "receipt_key", "dependencies", "run_id"]}
         },
         {
           "if": {"properties": {"status": {"const": "integrated"}}, "required": ["status"]},
@@ -216,11 +217,12 @@
     "result": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schema", "task_id", "base", "candidate_tree_sha", "integration_commit", "run_id", "exit", "last_line", "status", "path", "sha256", "recorded_at"],
+      "required": ["schema", "task_id", "base", "candidate_commit", "candidate_tree_sha", "integration_commit", "run_id", "exit", "last_line", "status", "path", "sha256", "recorded_at"],
       "properties": {
         "schema": {"const": "campaign-task-result/v1"},
         "task_id": {"$ref": "#/$defs/taskId"},
         "base": {"$ref": "#/$defs/fullSha"},
+        "candidate_commit": {"$ref": "#/$defs/fullSha"},
         "candidate_tree_sha": {"$ref": "#/$defs/fullSha"},
         "integration_commit": {"$ref": "#/$defs/fullSha"},
         "run_id": {"$ref": "#/$defs/absolutePath"},
@@ -235,11 +237,12 @@
     "reviewer": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schema", "task_id", "base", "candidate_tree_sha", "integration_commit", "run_id", "verdict", "evidence", "evidence_sha256", "result_sha256", "recorded_at"],
+      "required": ["schema", "task_id", "base", "candidate_commit", "candidate_tree_sha", "integration_commit", "run_id", "verdict", "evidence", "evidence_sha256", "result_sha256", "recorded_at"],
       "properties": {
         "schema": {"const": "campaign-review/v1"},
         "task_id": {"$ref": "#/$defs/taskId"},
         "base": {"$ref": "#/$defs/fullSha"},
+        "candidate_commit": {"$ref": "#/$defs/fullSha"},
         "candidate_tree_sha": {"$ref": "#/$defs/fullSha"},
         "integration_commit": {"$ref": "#/$defs/fullSha"},
         "run_id": {"$ref": "#/$defs/absolutePath"},
@@ -253,13 +256,14 @@
     "receipt": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schema", "task_id", "product", "dependencies", "base", "candidate_tree_sha", "integration_commit", "run_id", "receipt_sha256", "evidence", "result", "reviewer", "recorded_at"],
+      "required": ["schema", "task_id", "product", "dependencies", "base", "candidate_commit", "candidate_tree_sha", "integration_commit", "run_id", "receipt_sha256", "evidence", "result", "reviewer", "recorded_at"],
       "properties": {
         "schema": {"const": "campaign-receipt/v2"},
         "task_id": {"$ref": "#/$defs/taskId"},
         "product": {"type": "string", "minLength": 1},
         "dependencies": {"$ref": "#/$defs/dependencyList"},
         "base": {"$ref": "#/$defs/fullSha"},
+        "candidate_commit": {"$ref": "#/$defs/fullSha"},
         "candidate_tree_sha": {"$ref": "#/$defs/fullSha"},
         "integration_commit": {"$ref": "#/$defs/fullSha"},
         "run_id": {"$ref": "#/$defs/absolutePath"},
