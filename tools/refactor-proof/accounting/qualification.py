@@ -13,6 +13,7 @@ from ..runner.context import (
     load_context,
     validate_close_evidence,
     validate_dependencies,
+    validate_oracle_namespace,
     validate_required_members,
     validate_source_authority,
     validate_tool,
@@ -335,12 +336,12 @@ def run_qualification_oracle(context_path: Path, namespace: str | None) -> int:
     digests: list[str] = []
     try:
         _guard_qualification(context, context_hash)
-        if namespace != "synthetic":
-            raise Reject("PROTOCOL")
+        qualification = context.get("qualification")
+        family = qualification.get("family") if isinstance(qualification, dict) else None
+        validate_oracle_namespace(namespace, family)
         validate_source_authority(context, operation)
         validate_qualification_schema(context)
         expected_members = validate_required_members(context)
-        qualification = context.get("qualification")
         client = QualificationObserver.from_env()
         if qualification and qualification.get("family") == "native":
             events = _collect_observations(

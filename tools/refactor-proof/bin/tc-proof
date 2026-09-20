@@ -311,6 +311,7 @@ ALLOWED_V1_KEYS = {
     "observer_sequence",
 }
 OPTIONAL_EXTENSION_KEYS = {"architecture_profile", "branch_host_projection"}
+NATIVE_ORACLE_NAMESPACES = frozenset({"showcase", "holla", "jackin", "tablepro"})
 OBSERVER_OPERATIONS = {
     "account-tests",
     "architecture",
@@ -414,6 +415,16 @@ def validate_oracle_sequence(context: dict[str, Any], operation: Any) -> list[st
     else:
         raise Reject("PROTOCOL")
     return sequence
+
+
+def validate_oracle_namespace(namespace: str | None, family: object) -> None:
+    """Accept synthetic or native app namespaces; reject unknown names."""
+    if family == "native":
+        if namespace not in NATIVE_ORACLE_NAMESPACES:
+            raise Reject("PROTOCOL")
+        return
+    if namespace != "synthetic":
+        raise Reject("PROTOCOL")
 
 
 def validate_tool(context: dict[str, Any]) -> None:
@@ -1298,13 +1309,13 @@ def run_oracle(context_path: Path, namespace: str | None) -> int:
     digests: list[str] = []
     try:
         _guard_context(context, context_hash)
-        if namespace != "synthetic":
-            raise Reject("PROTOCOL")
+        qualification = context.get("qualification")
+        family = qualification.get("family") if isinstance(qualification, dict) else None
+        validate_oracle_namespace(namespace, family)
         validate_source_authority(context, operation)
         validate_schema(context)
         expected_members = validate_required_members(context)
         observer_sequence = validate_oracle_sequence(context, operation)
-        qualification = context.get("qualification")
         client = ObserverClient.from_env(observer_sequence)
         if len(observer_sequence) == 1:
             events = _collect_observations(
@@ -2088,12 +2099,12 @@ def run_qualification_oracle(context_path: Path, namespace: str | None) -> int:
     digests: list[str] = []
     try:
         _guard_qualification(context, context_hash)
-        if namespace != "synthetic":
-            raise Reject("PROTOCOL")
+        qualification = context.get("qualification")
+        family = qualification.get("family") if isinstance(qualification, dict) else None
+        validate_oracle_namespace(namespace, family)
         validate_source_authority(context, operation)
         validate_qualification_schema(context)
         expected_members = validate_required_members(context)
-        qualification = context.get("qualification")
         client = QualificationObserver.from_env()
         if qualification and qualification.get("family") == "native":
             events = _collect_observations(

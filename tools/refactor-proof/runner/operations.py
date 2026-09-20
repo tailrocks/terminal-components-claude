@@ -12,6 +12,7 @@ from .context import (
     load_context,
     validate_dependencies,
     validate_observer_sequence,
+    validate_oracle_namespace,
     validate_oracle_sequence,
     validate_required_members,
     validate_schema,
@@ -184,13 +185,13 @@ def run_oracle(context_path: Path, namespace: str | None) -> int:
     digests: list[str] = []
     try:
         _guard_context(context, context_hash)
-        if namespace != "synthetic":
-            raise Reject("PROTOCOL")
+        qualification = context.get("qualification")
+        family = qualification.get("family") if isinstance(qualification, dict) else None
+        validate_oracle_namespace(namespace, family)
         validate_source_authority(context, operation)
         validate_schema(context)
         expected_members = validate_required_members(context)
         observer_sequence = validate_oracle_sequence(context, operation)
-        qualification = context.get("qualification")
         client = ObserverClient.from_env(observer_sequence)
         if len(observer_sequence) == 1:
             events = _collect_observations(

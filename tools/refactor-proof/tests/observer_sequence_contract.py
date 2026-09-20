@@ -27,6 +27,7 @@ from runner.context import (  # noqa: E402
     bind_context,
     load_context,
     validate_observer_sequence,
+    validate_oracle_namespace,
     validate_oracle_sequence,
 )
 from runner.json_util import canonical, sha256_bytes  # noqa: E402
@@ -161,6 +162,23 @@ class ObserverSequenceTests(unittest.TestCase):
     def test_synthetic_family_cannot_claim_native_sequence(self) -> None:
         with self.assertRaises(Reject) as raised:
             validate_oracle_sequence(_context(["oracle"], "synthetic"), "oracle")
+        self.assertEqual(raised.exception.category, "PROTOCOL")
+
+    def test_native_family_accepts_app_namespaces(self) -> None:
+        for namespace in ("showcase", "holla", "jackin", "tablepro"):
+            validate_oracle_namespace(namespace, "native")
+
+    def test_native_family_rejects_unknown_and_synthetic_namespaces(self) -> None:
+        for namespace in ("synthetic", "components", None, "", "unknown"):
+            with self.assertRaises(Reject) as raised:
+                validate_oracle_namespace(namespace, "native")
+            self.assertEqual(raised.exception.category, "PROTOCOL")
+
+    def test_synthetic_family_accepts_only_synthetic_namespace(self) -> None:
+        validate_oracle_namespace("synthetic", "synthetic")
+        validate_oracle_namespace("synthetic", None)
+        with self.assertRaises(Reject) as raised:
+            validate_oracle_namespace("showcase", "synthetic")
         self.assertEqual(raised.exception.category, "PROTOCOL")
 
     def test_missing_second_observation_is_rejected(self) -> None:

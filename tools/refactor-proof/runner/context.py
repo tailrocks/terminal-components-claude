@@ -37,6 +37,7 @@ ALLOWED_V1_KEYS = {
     "observer_sequence",
 }
 OPTIONAL_EXTENSION_KEYS = {"architecture_profile", "branch_host_projection"}
+NATIVE_ORACLE_NAMESPACES = frozenset({"showcase", "holla", "jackin", "tablepro"})
 OBSERVER_OPERATIONS = {
     "account-tests",
     "architecture",
@@ -140,6 +141,16 @@ def validate_oracle_sequence(context: dict[str, Any], operation: Any) -> list[st
     else:
         raise Reject("PROTOCOL")
     return sequence
+
+
+def validate_oracle_namespace(namespace: str | None, family: object) -> None:
+    """Accept synthetic or native app namespaces; reject unknown names."""
+    if family == "native":
+        if namespace not in NATIVE_ORACLE_NAMESPACES:
+            raise Reject("PROTOCOL")
+        return
+    if namespace != "synthetic":
+        raise Reject("PROTOCOL")
 
 
 def validate_tool(context: dict[str, Any]) -> None:

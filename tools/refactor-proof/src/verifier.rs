@@ -31,6 +31,7 @@ use crate::json_util::{canonical_json, parse_json_bytes_strict, sha256_bytes, sh
 /// envelope; the index, contexts, preparation results, and observer capability
 /// all use this same binding.
 const CONTEXT_SCHEMA: &str = "tc-proof-context/v1";
+const COMPARE_CONTEXT_SCHEMA: &str = "tc-proof-compare-context/v1";
 const INDEX_SCHEMA: &str = "tc-proof-context-index/v1";
 const RESULT_SCHEMA: &str = "tc-proof-runner-result/v1";
 const PREPARATION_RESULT_SCHEMA: &str = "tc-proof-preparation-result/v1";
@@ -2615,27 +2616,142 @@ fn observer_sequence_for_check(
     if check.operation != "oracle" {
         return Ok(vec![check.operation.clone()]);
     }
-    match observer_family_for_check(template)? {
+    match observer_family_for_check(check, template)? {
         "native" => Ok(vec![check.operation.clone()]),
         "synthetic" => Ok(vec![check.operation.clone(), check.operation.clone()]),
         _ => Err(VerifierError::new("oracle observer family is invalid")),
     }
 }
 
-fn observer_family_for_check(template: Option<&TemplateInfo>) -> Result<&'static str> {
-    let family = template
+fn template_qualification_family(template: Option<&TemplateInfo>) -> Option<&str> {
+    template
         .and_then(|template| template.value.as_object())
         .and_then(|value| value.get("qualification"))
         .and_then(Value::as_object)
         .and_then(|qualification| qualification.get("family"))
-        .and_then(Value::as_str);
-    match family {
+        .and_then(Value::as_str)
+}
+
+fn is_synthetic_oracle_namespace(namespace: &str) -> bool {
+    namespace.is_empty() || namespace == "synthetic"
+}
+
+fn observer_family_for_check(
+    check: &CheckSpec,
+    template: Option<&TemplateInfo>,
+) -> Result<&'static str> {
+    match template_qualification_family(template) {
         Some("native") => Ok("native"),
-        None => Ok("synthetic"),
+        Some("synthetic") => Ok("synthetic"),
+        None => {
+            if is_synthetic_oracle_namespace(&check.namespace) {
+                Ok("synthetic")
+            } else {
+                Ok("native")
+            }
+        }
         Some(_) => Err(VerifierError::new(
             "oracle template must declare native or omit its qualification family",
         )),
     }
+}
+
+fn apply_template_overlays(object: &mut Map<String, Value>, template: Option<&TemplateInfo>) {
+    let Some(template_object) = template.and_then(|template| template.value.as_object()) else {
+        return;
+    };
+    for key in [
+        "adapter",
+        "inventory",
+        "evidence",
+        "configuration",
+        "architecture_profile",
+        "branch_host_projection",
+    ] {
+        if let Some(value) = template_object.get(key) {
+            object.insert(key.to_string(), value.clone());
+        }
+    }
+}
+
+fn bind_qualification_family(
+    qualification_object: &mut Map<String, Value>,
+    check: &CheckSpec,
+    template: Option<&TemplateInfo>,
+) -> Result<()> {
+    if check.operation == "oracle" {
+        qualification_object.insert(
+            "family".to_string(),
+            Value::String(observer_family_for_check(check, template)?.to_string()),
+        );
+        return Ok(());
+    }
+    if let Some(family) = template_qualification_family(template) {
+        qualification_object.insert("family".to_string(), Value::String(family.to_string()));
+    }
+    Ok(())
+}
+
+fn bind_compare_qualification(
+    qualification_object: &mut Map<String, Value>,
+    context: &Map<String, Value>,
+    check: &CheckSpec,
+    common: &Value,
+    template_value: Option<Value>,
+) -> Result<()> {
+    let report_path = run_output_path(common, &check.id, "compare.json")?;
+    let report = path_string(&report_path);
+    let mut nested = template_value.unwrap_or_else(|| {
+        json!({
+            "schema": COMPARE_CONTEXT_SCHEMA,
+        })
+    });
+    let nested_object = nested
+        .as_object_mut()
+        .ok_or_else(|| VerifierError::new("compare template is not an object"))?;
+    nested_object.insert(
+        "schema".to_string(),
+        Value::String(COMPARE_CONTEXT_SCHEMA.to_string()),
+    );
+    nested_object.insert(
+        "run_id".to_string(),
+        context
+            .get("run_id")
+            .cloned()
+            .ok_or_else(|| VerifierError::new("context run_id is missing"))?,
+    );
+    nested_object.insert(
+        "task_id".to_string(),
+        context
+            .get("task_id")
+            .cloned()
+            .ok_or_else(|| VerifierError::new("context task_id is missing"))?,
+    );
+    nested_object.insert("check_id".to_string(), Value::String(check.id.clone()));
+    nested_object.insert(
+        "oracle_commit".to_string(),
+        context
+            .get("oracle_commit")
+            .cloned()
+            .ok_or_else(|| VerifierError::new("context oracle_commit is missing"))?,
+    );
+    nested_object.insert(
+        "candidate_source_tree".to_string(),
+        context
+            .get("tree")
+            .cloned()
+            .ok_or_else(|| VerifierError::new("context tree is missing"))?,
+    );
+    nested_object.insert("report_path".to_string(), Value::String(report.clone()));
+    qualification_object.insert(
+        "comparator".to_string(),
+        json!({
+            "schema": COMPARE_CONTEXT_SCHEMA,
+            "context": nested,
+            "report_path": report,
+        }),
+    );
+    Ok(())
 }
 
 #[expect(
@@ -2763,6 +2879,7 @@ fn build_context(
         "dependencies".to_string(),
         Value::Array(dependencies.to_vec()),
     );
+    apply_template_overlays(object, template);
     object
         .entry("adapter".to_string())
         .or_insert_with(|| json!({"changes": []}));
@@ -2797,12 +2914,7 @@ fn build_context(
     let qualification_object = qualification
         .as_object_mut()
         .ok_or_else(|| VerifierError::new("template qualification is not an object"))?;
-    if check.operation == "oracle" {
-        qualification_object.insert(
-            "family".to_string(),
-            Value::String(observer_family_for_check(template)?.to_string()),
-        );
-    }
+    bind_qualification_family(qualification_object, check, template)?;
     qualification_object.insert("common".to_string(), common.clone());
     qualification_object.insert("trust_manifest".to_string(), trust_manifest.clone());
     qualification_object.insert(
@@ -2828,54 +2940,8 @@ fn build_context(
             Value::String(template.sha256.clone()),
         );
     }
-    if let Some(template_value) = template_value
-        && check.operation == "compare"
-    {
-        let report_path = run_output_path(common, &check.id, "compare.json")?;
-        let mut comparator = template_value;
-        if let Some(comparator_object) = comparator.as_object_mut() {
-            comparator_object.insert(
-                "run_id".to_string(),
-                object
-                    .get("run_id")
-                    .cloned()
-                    .ok_or_else(|| VerifierError::new("context run_id is missing"))?,
-            );
-            comparator_object.insert(
-                "task_id".to_string(),
-                object
-                    .get("task_id")
-                    .cloned()
-                    .ok_or_else(|| VerifierError::new("context task_id is missing"))?,
-            );
-            comparator_object.insert("check_id".to_string(), Value::String(check.id.clone()));
-            comparator_object.insert(
-                "oracle_commit".to_string(),
-                object
-                    .get("oracle_commit")
-                    .cloned()
-                    .ok_or_else(|| VerifierError::new("context oracle_commit is missing"))?,
-            );
-            comparator_object.insert(
-                "candidate_source_tree".to_string(),
-                object
-                    .get("tree")
-                    .cloned()
-                    .ok_or_else(|| VerifierError::new("context tree is missing"))?,
-            );
-            comparator_object.insert(
-                "report_path".to_string(),
-                Value::String(path_string(&report_path)),
-            );
-        }
-        qualification_object.insert(
-            "comparator".to_string(),
-            json!({
-                "schema": "tc-proof-compare-context/v1",
-                "context": comparator,
-                "report_path": path_string(&report_path),
-            }),
-        );
+    if check.operation == "compare" {
+        bind_compare_qualification(qualification_object, object, check, common, template_value)?;
     }
     object.insert("qualification".to_string(), qualification);
     Ok(context)
@@ -5107,6 +5173,30 @@ finally:
         );
     }
 
+    fn context_by_check(
+        index: &Map<String, Value>,
+        check_id: &str,
+    ) -> std::result::Result<Map<String, Value>, String> {
+        let entry = index
+            .get("contexts")
+            .and_then(Value::as_array)
+            .and_then(|entries| {
+                entries
+                    .iter()
+                    .find(|entry| entry.get("check_id").and_then(Value::as_str) == Some(check_id))
+            })
+            .ok_or_else(|| format!("missing {check_id} context entry"))?;
+        let context_path = entry
+            .get("path")
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("missing {check_id} path"))?;
+        parse_json_object(
+            &fs::read(context_path).map_err(|error| error.to_string())?,
+            "context",
+        )
+        .map_err(|error| error.to_string())
+    }
+
     #[test]
     fn oracle_context_binds_explicit_synthetic_family() {
         let (fixture, options) = require_ok!(
@@ -5119,30 +5209,14 @@ finally:
             "index"
         );
         let index = require_ok!(parse_json_object(&index_raw, "index"), "parse index");
-        let oracle_entry = require_some!(
-            index
-                .get("contexts")
-                .and_then(Value::as_array)
-                .and_then(|entries| {
-                    entries.iter().find(|entry| {
-                        entry.get("check_id").and_then(Value::as_str) == Some("CHK-003")
-                    })
-                }),
-            "oracle context entry"
-        );
-        let context_path = require_some!(oracle_entry.get("path").and_then(Value::as_str), "path");
-        let context_raw = require_ok!(fs::read(context_path), "context");
-        let context = require_ok!(parse_json_object(&context_raw, "context"), "parse context");
+        let context = require_ok!(context_by_check(&index, "CHK-003"), "CHK-003 context");
         assert_eq!(
             context.get("operation").and_then(Value::as_str),
             Some("oracle")
         );
         assert_eq!(
             context.get("observer_sequence").and_then(Value::as_array),
-            Some(&vec![
-                Value::String("oracle".to_string()),
-                Value::String("oracle".to_string())
-            ]),
+            Some(&vec![Value::String("oracle".to_string())]),
         );
         assert_eq!(
             context
@@ -5150,13 +5224,76 @@ finally:
                 .and_then(Value::as_object)
                 .and_then(|qualification| qualification.get("family"))
                 .and_then(Value::as_str),
-            Some("synthetic"),
+            Some("native"),
+        );
+        assert_eq!(
+            context
+                .get("qualification")
+                .and_then(Value::as_object)
+                .and_then(|qualification| qualification.get("check"))
+                .and_then(Value::as_object)
+                .and_then(|check| check.get("namespace"))
+                .and_then(Value::as_str),
+            Some("showcase"),
+        );
+
+        let compare = require_ok!(context_by_check(&index, "CHK-004"), "CHK-004 context");
+        let comparator = require_some!(
+            compare
+                .get("qualification")
+                .and_then(Value::as_object)
+                .and_then(|qualification| qualification.get("comparator"))
+                .and_then(Value::as_object),
+            "nested comparator"
+        );
+        assert_eq!(
+            comparator.get("schema").and_then(Value::as_str),
+            Some(COMPARE_CONTEXT_SCHEMA)
+        );
+        assert_eq!(
+            comparator
+                .get("context")
+                .and_then(Value::as_object)
+                .and_then(|nested| nested.get("schema"))
+                .and_then(Value::as_str),
+            Some(COMPARE_CONTEXT_SCHEMA)
+        );
+        let report_path = require_some!(
+            comparator.get("report_path").and_then(Value::as_str),
+            "comparator report_path"
+        );
+        assert_eq!(
+            Path::new(report_path)
+                .file_name()
+                .and_then(|name| name.to_str()),
+            Some("CHK-004.compare.json")
+        );
+        assert_eq!(
+            Path::new(report_path).parent().map(PathBuf::from),
+            Some(fixture.run_dir.join("outputs"))
+        );
+
+        let accounting = require_ok!(context_by_check(&index, "CHK-005"), "CHK-005 context");
+        assert_eq!(
+            accounting
+                .get("qualification")
+                .and_then(Value::as_object)
+                .and_then(|qualification| qualification.get("family"))
+                .and_then(Value::as_str),
+            Some("accounting"),
         );
         assert!(
             prepared
                 .members
                 .iter()
                 .any(|member| member.check_id == "CHK-003")
+        );
+        assert!(
+            prepared
+                .members
+                .iter()
+                .any(|member| member.check_id == "CHK-004"
+                    && member.comparator_report_path.is_some())
         );
     }
 
@@ -5187,7 +5324,36 @@ finally:
             observer_sequence_for_check(&check, None).expect("synthetic sequence"),
             vec!["oracle", "oracle"],
         );
+        assert_eq!(
+            observer_family_for_check(&check, None).expect("empty namespace stays synthetic"),
+            "synthetic",
+        );
         assert!(observer_sequence_for_check(&check, Some(&template("accounting"))).is_err());
+
+        let native_namespace = CheckSpec {
+            namespace: "showcase".to_string(),
+            command: json!(["tc-proof", "oracle", "--namespace", "showcase"]),
+            ..check.clone()
+        };
+        assert_eq!(
+            observer_family_for_check(&native_namespace, None).expect("app namespace is native"),
+            "native",
+        );
+        assert_eq!(
+            observer_sequence_for_check(&native_namespace, None)
+                .expect("native namespace sequence"),
+            vec!["oracle"],
+        );
+        let synthetic_namespace = CheckSpec {
+            namespace: "synthetic".to_string(),
+            command: json!(["tc-proof", "oracle", "--namespace", "synthetic"]),
+            ..check.clone()
+        };
+        assert_eq!(
+            observer_family_for_check(&synthetic_namespace, None)
+                .expect("synthetic namespace stays synthetic"),
+            "synthetic",
+        );
 
         let mut missing = Map::new();
         missing.insert("observer_sequence".to_string(), json!(["oracle", "oracle"]));
@@ -5199,6 +5365,29 @@ finally:
         synthetic.insert("qualification".to_string(), json!({"family": "synthetic"}));
         assert_eq!(
             observer_sequence_from_context(&synthetic, "oracle").expect("synthetic context"),
+            vec!["oracle", "oracle"],
+        );
+    }
+
+    #[test]
+    fn empty_namespace_oracle_stays_synthetic() {
+        let check = CheckSpec {
+            id: "CHK-003".to_string(),
+            phase: "focused".to_string(),
+            operation: "oracle".to_string(),
+            context_ref: None,
+            lane: "direct".to_string(),
+            namespace: String::new(),
+            requirements: Vec::new(),
+            acceptance: Vec::new(),
+            command: json!(["tc-proof", "oracle"]),
+        };
+        assert_eq!(
+            observer_family_for_check(&check, None).expect("empty namespace family"),
+            "synthetic",
+        );
+        assert_eq!(
+            observer_sequence_for_check(&check, None).expect("empty namespace sequence"),
             vec!["oracle", "oracle"],
         );
     }
