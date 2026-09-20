@@ -8,13 +8,13 @@ is a preparation gate, not an implementation prompt. Keep the campaign ledger
 
 ## 1. Exact source and branch truth
 
-The clean payload assessed immediately before this documentation repair is:
+The clean payload assessed immediately before this documentation rebinding is:
 
 ```text
 branch: refactor/holla-parity
-commit: 3701841a34cf790dee5ad0c970fd76955e7916d9
-tree:   26074440bb5bfbad6fa66a28c5e46cc88e2e7d56
-parent: e2f537d95b2462de6c4f2b517af3e5753e2a7f5e
+commit: cd7b3d8570622f0ff875128d31f2c755503aa4c8
+tree:   06326b65c9a5cd1eac396b1956e158c7d09247cb
+parent: 07f7d724359923046787ece3fa868ee0f9ac011b
 ```
 
 Git facts at that assessed pre-documentation payload:
@@ -22,14 +22,14 @@ Git facts at that assessed pre-documentation payload:
 ```text
 refs/heads/main:                  7b27732a8c3c131760ec3438f641cb3c11343a42
 refs/remotes/origin/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
-refs/remotes/origin/refactor/...  3701841a34cf790dee5ad0c970fd76955e7916d9
+refs/remotes/origin/refactor/...  cd7b3d8570622f0ff875128d31f2c755503aa4c8
 merge-base campaign/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
 local commits ahead of remote campaign: 0
 ```
 
-This repair is intentionally uncommitted and changes only the four canonical
-documents. A later documentation commit has a different commit/tree and must
-be independently bound. Any relevant edit invalidates affected evidence.
+This documentation rebinding changes only the four canonical documents. The
+commit containing this package must be independently bound by final evidence;
+any relevant edit invalidates affected evidence.
 Final exact-tree reports must be external and bind that later clean tree; their
 paths are:
 
@@ -46,7 +46,7 @@ Intervening commits after prior preparation payload `1fb2b71c` are unreviewed
 and are not preparation acceptance evidence: `320e9e7d`, `874d1ff4`,
 `9abd3ec3` (normal revert restoring full coverage), `aabd4d75`, `9ce787ed`,
 `d9ddc94a`, `dca523da`, `d8eb545f`, `356d65e3`, `afe429c8`, `baa147d0`,
-`e2f537d9`, and `3701841a`.
+`e2f537d9`, `3701841a`, `07f7d724`, and `cd7b3d85`.
 They change CI, toolchain, generated workflows, xtask, lockfile, or related
 contract/documentation inputs and require exact-source independent review.
 
@@ -72,7 +72,7 @@ The import was derived from the peeled tag, has zero symlinks, and was not
 used as a candidate-generated baseline. Protected refs and artifacts are
 unchanged.
 
-At the assessed pre-documentation candidate `3701841a`, `tests/visual_baseline/` and
+At the assessed pre-documentation candidate `cd7b3d85`, `tests/visual_baseline/` and
 `.config/nextest.toml` exist. The candidate branch still lacks `snapshots/`
 and `parity/evidence.tsv`; those remain external protected-oracle inputs.
 
@@ -100,7 +100,7 @@ independent verifier and reviewer evidence after safe serial integration.
 
 ## 4. Preparation qualification
 
-No result below is bound to assessed `3701841a`/`2607444`; every listed run is
+No result below is bound to assessed `cd7b3d85`/`06326b6`; every listed run is
 historical provenance only until an exact-source verifier/reviewer run exists.
 Tool and oracle identities do not turn mismatched results into current passes.
 
@@ -237,7 +237,7 @@ metadata, stale taskfmt path/version enforcement, missing native receipt
 binding, incomplete worker launch fixture provenance, unbounded
 observer-provider teardown, noncanonical native target names, and ambiguous
 readiness verdict parsing. Those reports are historical, not current
-acceptance. No proof suite result is bound to assessed `3701841a`/`2607444`;
+acceptance. No proof suite result is bound to assessed `cd7b3d85`/`06326b6`;
 exact-tree proof and independent receipt/reviewer evidence remain absent.
 
 **Decision: NO-GO.** The failed exact-tag calibration, rejected visual

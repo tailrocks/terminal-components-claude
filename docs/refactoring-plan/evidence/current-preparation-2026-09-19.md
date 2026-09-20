@@ -7,13 +7,13 @@ completion claim.
 ## Assessed pre-documentation source and refs
 
 ```text
-assessed pre-documentation payload: 3701841a34cf790dee5ad0c970fd76955e7916d9
-assessed pre-documentation tree:    26074440bb5bfbad6fa66a28c5e46cc88e2e7d56
-parent:                              e2f537d95b2462de6c4f2b517af3e5753e2a7f5e
+assessed pre-documentation payload: cd7b3d8570622f0ff875128d31f2c755503aa4c8
+assessed pre-documentation tree:    06326b65c9a5cd1eac396b1956e158c7d09247cb
+parent:                              07f7d724359923046787ece3fa868ee0f9ac011b
 branch:                     refactor/holla-parity
 local main:                 7b27732a8c3c131760ec3438f641cb3c11343a42
 remote main:                7b27732a8c3c131760ec3438f641cb3c11343a42
-remote campaign tip:       3701841a34cf790dee5ad0c970fd76955e7916d9
+remote campaign tip:       cd7b3d8570622f0ff875128d31f2c755503aa4c8
 merge-base with main:       7b27732a8c3c131760ec3438f641cb3c11343a42
 ```
 
@@ -33,10 +33,11 @@ comparator, oracle, environment, or generated-output change invalidates
 affected evidence.
 
 All results listed below bind to other source commits/trees, not assessed
-`3701841a`/`2607444`; they are historical provenance, not current passes or
+`cd7b3d85`/`06326b6`; they are historical provenance, not current passes or
 receipts. The intervening unreviewed commits are `320e9e7d`, `874d1ff4`,
 `9abd3ec3`, `aabd4d75`, `9ce787ed`, `d9ddc94a`, `dca523da`, `d8eb545f`,
-`356d65e3`, `afe429c8`, `baa147d0`, `e2f537d9`, and `3701841a`.
+`356d65e3`, `afe429c8`, `baa147d0`, `e2f537d9`, `3701841a`, `07f7d724`,
+and `cd7b3d85`.
 
 ## Oracle identity and inventory
 
@@ -61,14 +62,14 @@ The source identity for the complete snapshot producer is
 `89218626011f2f82c4e87c4dfd5868a4c5f3e284` / tree
 `6fccf997cd742071ebcff0e0a00e89404ef95ca8`, with the same snapshot tree.
 
-At the assessed pre-documentation candidate `3701841a`, `tests/visual_baseline/` and
+At the assessed pre-documentation candidate `cd7b3d85`, `tests/visual_baseline/` and
 `.config/nextest.toml` exist. The candidate branch has no `snapshots/`
 directory and no `parity/evidence.tsv`; the imported oracle remains external
 and read-only.
 
 ## Qualified tool identity and historical command evidence
 
-No command result below is bound to assessed `3701841a`/`2607444`; exact-source
+No command result below is bound to assessed `cd7b3d85`/`06326b6`; exact-source
 verification is still required.
 
 Taskfmt qualification:
