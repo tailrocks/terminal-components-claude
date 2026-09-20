@@ -34,8 +34,20 @@ ALLOWED_V1_KEYS = {
     "evidence",
     "configuration",
     "qualification",
+    "observer_sequence",
 }
 OPTIONAL_EXTENSION_KEYS = {"architecture_profile", "branch_host_projection"}
+OBSERVER_OPERATIONS = {
+    "account-tests",
+    "architecture",
+    "capture",
+    "close",
+    "compare",
+    "oracle",
+    "preflight",
+    "required",
+    "external",
+}
 
 
 class Reject(Exception):
@@ -85,6 +97,56 @@ def validate_schema(context: dict[str, Any]) -> None:
         raise Reject("CONTEXT_INDEX")
     if context.get("check_id") != os.environ.get("TC_PROOF_CHECK_ID"):
         raise Reject("CONTEXT_INDEX")
+    validate_observer_sequence(context, context.get("operation"))
+
+
+def validate_observer_sequence(context: dict[str, Any], operation: Any) -> list[str]:
+    """Validate the host-bound, ordered observer request contract.
+
+    The sequence is part of the hashed context.  It is deliberately required
+    rather than inferred from the operation or qualification family: native
+    oracle checks declare ``["oracle"]`` and synthetic oracle checks declare
+    ``["oracle", "oracle"]``.  No pre-sequence context is accepted.
+    """
+    sequence = context.get("observer_sequence")
+    if (
+        not isinstance(sequence, list)
+        or not sequence
+        or len(sequence) > 8
+        or any(
+            not isinstance(item, str) or item not in OBSERVER_OPERATIONS
+            for item in sequence
+        )
+        or operation not in OBSERVER_OPERATIONS
+        or sequence[0] != operation
+    ):
+        raise Reject("PROTOCOL")
+    return list(sequence)
+
+
+def validate_oracle_sequence(context: dict[str, Any], operation: Any) -> list[str]:
+    """Validate the exact native/synthetic oracle cardinality contract."""
+    sequence = validate_observer_sequence(context, operation)
+    if operation != "oracle" or any(item != "oracle" for item in sequence):
+        raise Reject("PROTOCOL")
+    qualification = context.get("qualification")
+    family = None
+    if isinstance(qualification, dict):
+        family = qualification.get("family")
+        worker_context = qualification.get("worker_context")
+        if family is None and isinstance(worker_context, dict):
+            nested = worker_context.get("qualification")
+            if isinstance(nested, dict):
+                family = nested.get("family")
+    if len(sequence) == 1:
+        if family != "native":
+            raise Reject("PROTOCOL")
+    elif len(sequence) == 2:
+        if family == "native":
+            raise Reject("PROTOCOL")
+    else:
+        raise Reject("PROTOCOL")
+    return sequence
 
 
 def validate_tool(context: dict[str, Any]) -> None:

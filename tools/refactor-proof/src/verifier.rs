@@ -211,6 +211,7 @@ struct ContextInputs<'a> {
 struct PreparedMember {
     check_id: String,
     operation: String,
+    observer_sequence: Vec<String>,
     context_path: PathBuf,
     context_sha256: String,
     preparation_result_path: PathBuf,
@@ -325,10 +326,10 @@ struct ObserverBinding<'a> {
     run_id: &'a str,
     task_id: &'a str,
     check_id: &'a str,
-    operation: &'a str,
     tree: &'a str,
     oracle_commit: &'a str,
     nonce: &'a str,
+    sequence: &'a [String],
 }
 
 /// Prepared run identity returned by validation.
@@ -529,6 +530,7 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
     for check in &checks {
         let template = template_map.get(&check.id);
         let context = build_context(check, template, &context_inputs)?;
+        let observer_sequence = observer_sequence_for_check(check, template)?;
         let context_path = contexts_dir.join(format!("{}.json", check.id));
         let context_sha256 = write_json_new(&context_path, &context, "context")?;
         let preparation_result_path = preparation_results_dir.join(format!("{}.json", check.id));
@@ -551,6 +553,7 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
         members.push(PreparedMember {
             check_id: check.id.clone(),
             operation: check.operation.clone(),
+            observer_sequence,
             context_path,
             context_sha256,
             preparation_result_path,
@@ -562,6 +565,22 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
     set_readonly_dir(&preparation_results_dir)?;
 
     let observer_path = run_dir.join("observer.json");
+    let observer_sequences = members
+        .iter()
+        .map(|member| {
+            (
+                member.check_id.clone(),
+                Value::Array(
+                    member
+                        .observer_sequence
+                        .iter()
+                        .cloned()
+                        .map(Value::String)
+                        .collect(),
+                ),
+            )
+        })
+        .collect::<Map<String, Value>>();
     let observer_capability = json!({
         "schema": OBSERVER_SCHEMA,
         "task_id": verify.task_id,
@@ -570,6 +589,7 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
         "scope_base": scope_base,
         "transport": "inherited-pipe/v1",
         "nonce_sha256": sha256_bytes(observer_nonce.as_bytes()),
+        "sequences": observer_sequences,
     });
     let observer_sha256 =
         write_json_new(&observer_path, &observer_capability, "observer capability")?;
@@ -596,6 +616,7 @@ pub fn prepare(options: &PrepareOptions) -> Result<PreparedRun> {
             "sha256": member.context_sha256,
         })).collect::<Vec<_>>(),
         "results": result_bindings,
+        "observer_sequences": observer_sequences,
         "observer": {"path": path_string(&observer_path), "sha256": observer_sha256},
     });
     write_json_new(&run_dir.join("context-index.json"), &index, "context index")?;
@@ -1147,6 +1168,7 @@ fn validate_run_inner(
             "scope_base",
             "contexts",
             "results",
+            "observer_sequences",
             "observer",
         ],
         "context index",
@@ -1170,6 +1192,10 @@ fn validate_run_inner(
     let outputs_dir = regular_dir(&run_dir.join("outputs"), "runtime output directory")?;
     let taskfmt_logs = regular_dir(&run_dir.join("taskfmt-logs"), "taskfmt log directory")?;
     validate_tree_paths(&taskfmt_logs, "taskfmt log directory")?;
+    let observer_sequences = index
+        .get("observer_sequences")
+        .and_then(Value::as_object)
+        .ok_or_else(|| VerifierError::new("observer sequences are missing"))?;
     let preparation_receipt_path = run_dir.join(PREPARATION_RECEIPT_FILE);
     let preparation_receipt_present = regular_path_exists(&preparation_receipt_path)?;
     if require_preparation_receipt && !preparation_receipt_present {
@@ -1188,6 +1214,11 @@ fn validate_run_inner(
     {
         return Err(VerifierError::new("context/result check sets differ"));
     }
+    if observer_sequences.keys().collect::<BTreeSet<_>>()
+        != context_entries.keys().collect::<BTreeSet<_>>()
+    {
+        return Err(VerifierError::new("observer sequence check sets differ"));
+    }
 
     let observer_binding = index
         .get("observer")
@@ -1202,7 +1233,14 @@ fn validate_run_inner(
     )?;
     let observer_raw = fs::read(immutable_file(&observer_path, "observer capability")?)?;
     let observer = parse_json_object(&observer_raw, "observer capability")?;
-    validate_observer_capability(&observer, &task_id, &run_id, &worktree_commit, &scope_base)?;
+    validate_observer_capability(
+        &observer,
+        &task_id,
+        &run_id,
+        &worktree_commit,
+        &scope_base,
+        observer_sequences,
+    )?;
     if sha256_bytes(&observer_raw) != required_hex(observer_binding, "sha256", 64)? {
         return Err(VerifierError::new("observer capability hash mismatch"));
     }
@@ -1225,6 +1263,22 @@ fn validate_run_inner(
             &scope_base,
             check_id,
         )?;
+        let sequence = observer_sequence_from_context(&context, &operation)?;
+        let indexed_sequence = observer_sequences
+            .get(check_id)
+            .and_then(Value::as_array)
+            .ok_or_else(|| VerifierError::new("observer sequence is missing from index"))?;
+        if indexed_sequence
+            != &sequence
+                .iter()
+                .cloned()
+                .map(Value::String)
+                .collect::<Vec<_>>()
+        {
+            return Err(VerifierError::new(
+                "observer sequence is not bound to context/index",
+            ));
+        }
         let tree = required_hex(&context, "tree", 40)?;
         if candidate_tree
             .replace(tree.clone())
@@ -1266,6 +1320,7 @@ fn validate_run_inner(
         members.push(PreparedMember {
             check_id: check_id.clone(),
             operation,
+            observer_sequence: sequence,
             context_path,
             context_sha256: context_hash.clone(),
             preparation_result_path,
@@ -1820,7 +1875,7 @@ fn start_observer_supervisor(
     let run_id = prepared.run_id.clone();
     let task_id = prepared.task_id.clone();
     let check_id = member.check_id.clone();
-    let operation = member.operation.clone();
+    let sequence = member.observer_sequence.clone();
     let tree = prepared.candidate_tree.clone();
     let nonce = nonce.to_owned();
     let oracle_commit = oracle_commit.to_owned();
@@ -1830,10 +1885,10 @@ fn start_observer_supervisor(
             run_id: &run_id,
             task_id: &task_id,
             check_id: &check_id,
-            operation: &operation,
             tree: &tree,
             oracle_commit: &oracle_commit,
             nonce: &nonce,
+            sequence: &sequence,
         };
         let result = observe_worker(request_read, response_write, &mut provider, &binding);
         let observer_error = result.as_ref().err().map(ToString::to_string);
@@ -2140,7 +2195,7 @@ fn observe_worker<P: ObserverProvider>(
     provider: &mut P,
     binding: &ObserverBinding<'_>,
 ) -> Result<Vec<String>> {
-    let expected = if binding.operation == "oracle" { 2 } else { 1 };
+    let expected = binding.sequence.len();
     let mut reader = BufReader::new(request_read);
     let mut writer = BufWriter::new(response_write);
     let mut observed_digests = Vec::with_capacity(expected);
@@ -2173,7 +2228,7 @@ fn observe_worker<P: ObserverProvider>(
             || required_string(&request, "task_id")? != binding.task_id
             || required_string(&request, "check_id")? != binding.check_id
             || request.get("request_id").and_then(Value::as_u64) != Some(request_id as u64)
-            || required_string(&request, "operation")? != binding.operation
+            || required_string(&request, "operation")? != binding.sequence[request_id]
             || required_string(&request, "source_commit")? != binding.oracle_commit
             || required_string(&request, "tree")? != binding.tree
         {
@@ -2228,7 +2283,7 @@ fn validate_observer_response(
         || required_string(response, "task_id")? != binding.task_id
         || required_string(response, "check_id")? != binding.check_id
         || response.get("request_id").and_then(Value::as_u64) != Some(request_id)
-        || required_string(response, "operation")? != binding.operation
+        || required_string(response, "operation")? != binding.sequence[request_id as usize]
         || required_string(response, "source_commit")? != binding.oracle_commit
         || required_string(response, "tree")? != binding.tree
         || response.get("exit").and_then(Value::as_i64) != Some(0)
@@ -2440,6 +2495,29 @@ fn discover_templates(
     Ok(templates)
 }
 
+fn observer_sequence_for_check(
+    check: &CheckSpec,
+    template: Option<&TemplateInfo>,
+) -> Result<Vec<String>> {
+    if check.operation.is_empty() {
+        return Err(VerifierError::new(
+            "observer sequence cannot be derived for an external operation",
+        ));
+    }
+    let native_oracle = template
+        .and_then(|template| template.value.as_object())
+        .and_then(|value| value.get("qualification"))
+        .and_then(Value::as_object)
+        .and_then(|qualification| qualification.get("family"))
+        .and_then(Value::as_str)
+        == Some("native");
+    if check.operation == "oracle" && !native_oracle {
+        Ok(vec![check.operation.clone(), check.operation.clone()])
+    } else {
+        Ok(vec![check.operation.clone()])
+    }
+}
+
 #[expect(
     clippy::too_many_lines,
     reason = "context construction mirrors the exact schema and preserves field-binding order"
@@ -2456,6 +2534,7 @@ fn build_context(
     let oracle = inputs.oracle;
     let dependencies = inputs.dependencies;
     let template_value = template.map(|template| template.value.clone());
+    let observer_sequence = observer_sequence_for_check(check, template)?;
     let mut context = json!({});
     let object = context
         .as_object_mut()
@@ -2508,6 +2587,16 @@ fn build_context(
     object.insert(
         "operation".to_string(),
         Value::String(check.operation.clone()),
+    );
+    object.insert(
+        "observer_sequence".to_string(),
+        Value::Array(
+            observer_sequence
+                .iter()
+                .cloned()
+                .map(Value::String)
+                .collect(),
+        ),
     );
     object.insert(
         "tree".to_string(),
@@ -2724,6 +2813,7 @@ fn validate_observer_capability(
     run_id: &str,
     worktree_commit: &str,
     scope_base: &str,
+    observer_sequences: &Map<String, Value>,
 ) -> Result<()> {
     exact_keys(
         observer,
@@ -2735,6 +2825,7 @@ fn validate_observer_capability(
             "scope_base",
             "transport",
             "nonce_sha256",
+            "sequences",
         ],
         "observer capability",
     )?;
@@ -2745,6 +2836,7 @@ fn validate_observer_capability(
         || required_string(observer, "scope_base")? != scope_base
         || required_string(observer, "transport")? != "inherited-pipe/v1"
         || !is_hex(&required_string(observer, "nonce_sha256")?, 64)
+        || observer.get("sequences") != Some(&Value::Object(observer_sequences.clone()))
     {
         return Err(VerifierError::new("observer capability identity mismatch"));
     }
@@ -2875,6 +2967,7 @@ fn validate_context(
         "worktree_commit",
         "scope_base",
         "operation",
+        "observer_sequence",
         "tree",
         "oracle_commit",
         "oracle_tree",
@@ -2936,6 +3029,7 @@ fn validate_context(
         return Err(VerifierError::new("context tool digest mismatch"));
     }
     let operation = required_string(context, "operation")?;
+    let _ = observer_sequence_from_context(context, &operation)?;
     let common = qualification
         .get("common")
         .and_then(Value::as_object)
@@ -3005,6 +3099,60 @@ fn validate_context(
         }
     }
     Ok(operation)
+}
+
+fn observer_sequence_from_context(
+    context: &Map<String, Value>,
+    operation: &str,
+) -> Result<Vec<String>> {
+    let sequence = context
+        .get("observer_sequence")
+        .and_then(Value::as_array)
+        .ok_or_else(|| VerifierError::new("context observer sequence is missing"))?;
+    if sequence.is_empty() || sequence.len() > 8 {
+        return Err(VerifierError::new(
+            "context observer sequence length is invalid",
+        ));
+    }
+    let sequence = sequence
+        .iter()
+        .map(|value| {
+            let operation = value
+                .as_str()
+                .filter(|operation| !operation.is_empty())
+                .ok_or_else(|| VerifierError::new("context observer sequence is invalid"))?;
+            Ok(operation.to_owned())
+        })
+        .collect::<Result<Vec<_>>>()?;
+    if sequence.first().map(String::as_str) != Some(operation) {
+        return Err(VerifierError::new(
+            "context observer sequence starts with the wrong operation",
+        ));
+    }
+    if operation == "oracle" {
+        if sequence.iter().any(|item| item != "oracle") || sequence.len() > 2 {
+            return Err(VerifierError::new("oracle observer sequence is invalid"));
+        }
+        let family = context
+            .get("qualification")
+            .and_then(Value::as_object)
+            .and_then(|qualification| qualification.get("worker_context"))
+            .and_then(Value::as_object)
+            .and_then(|worker_context| worker_context.get("qualification"))
+            .and_then(Value::as_object)
+            .and_then(|qualification| qualification.get("family"))
+            .and_then(Value::as_str);
+        if (family == Some("native")) != (sequence.len() == 1) {
+            return Err(VerifierError::new(
+                "oracle observer sequence does not match qualification family",
+            ));
+        }
+    } else if sequence != [operation.to_owned()] {
+        return Err(VerifierError::new(
+            "non-oracle observer sequence must contain exactly its operation",
+        ));
+    }
+    Ok(sequence)
 }
 
 fn validate_trust_inputs(
@@ -4107,14 +4255,15 @@ mod tests {
         oracle_commit: &'a str,
         nonce: &'a str,
     ) -> ObserverBinding<'a> {
+        let sequence = Box::leak(vec![operation.to_string()].into_boxed_slice());
         ObserverBinding {
             run_id: "/run",
             task_id: "TASK-001",
             check_id: "CHK-001",
-            operation,
             tree,
             oracle_commit,
             nonce,
+            sequence,
         }
     }
 
@@ -4491,6 +4640,7 @@ mod tests {
                 "scope_base",
                 "contexts",
                 "results",
+                "observer_sequences",
                 "observer",
             ])
         );
@@ -5127,9 +5277,7 @@ finally:
                 let result = fs::read_to_string(&member.result_path)
                     .unwrap_or_else(|read_error| format!("<unreadable: {read_error}>"));
                 let _fixture = std::mem::ManuallyDrop::new(fixture);
-                std::panic::resume_unwind(Box::new(format!(
-                    "tracked worker launch: {error}; result: {result}; run_dir: {run_dir:?}"
-                )));
+                panic!("tracked worker launch: {error}; result: {result}; run_dir: {run_dir:?}");
             }
         };
         assert_eq!(record.exit, 0);

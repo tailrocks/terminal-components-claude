@@ -41,6 +41,7 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
         "scope_base",
         "contexts",
         "results",
+        "observer_sequences",
         "observer",
     }:
         raise Reject("CONTEXT_INDEX")
@@ -66,11 +67,16 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
         raise Reject("CONTEXT_INDEX")
     if len(contexts) != len(results) or any(not isinstance(member, dict) for member in contexts + results):
         raise Reject("CONTEXT_INDEX")
+    observer_sequences = index.get("observer_sequences")
+    if not isinstance(observer_sequences, dict):
+        raise Reject("CONTEXT_INDEX")
     check_ids = [member.get("check_id") for member in contexts]
     result_ids = [member.get("check_id") for member in results]
     if any(not isinstance(check_id, str) or re.fullmatch(r"CHK-[0-9]{3}", check_id) is None for check_id in check_ids):
         raise Reject("CONTEXT_INDEX")
     if len(set(check_ids)) != len(contexts) or sorted(check_ids) != sorted(result_ids):
+        raise Reject("CONTEXT_INDEX")
+    if set(observer_sequences) != set(check_ids):
         raise Reject("CONTEXT_INDEX")
     contexts_dir = index_root / "contexts"
     results_dir = index_root / "results"
@@ -164,6 +170,10 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
         }
         if any(child.get(key) != value for key, value in bindings.items()):
             raise Reject("CONTEXT_INDEX")
+        sequence = child.get("observer_sequence")
+        indexed_sequence = observer_sequences.get(member["check_id"])
+        if not isinstance(sequence, list) or sequence != indexed_sequence:
+            raise Reject("CONTEXT_INDEX")
         if member["check_id"] == check_id:
             selected = member
     if selected is None:
@@ -193,6 +203,7 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
             "scope_base",
             "transport",
             "nonce_sha256",
+            "sequences",
         }
         or capability.get("schema") != "tc-proof-observer-capability/v1"
         or capability.get("task_id") != index["task_id"]
@@ -202,6 +213,7 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
         or capability.get("transport") != "inherited-pipe/v1"
         or not isinstance(capability.get("nonce_sha256"), str)
         or re.fullmatch(r"[0-9a-f]{64}", capability["nonce_sha256"]) is None
+        or capability.get("sequences") != observer_sequences
         or sha256_bytes(observer_path.read_bytes()) != observer["sha256"]
     ):
         raise Reject("CONTEXT_INDEX")

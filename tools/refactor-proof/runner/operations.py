@@ -11,6 +11,8 @@ from .context import (
     bind_context,
     load_context,
     validate_dependencies,
+    validate_observer_sequence,
+    validate_oracle_sequence,
     validate_required_members,
     validate_schema,
     validate_source_authority,
@@ -80,15 +82,17 @@ def run_preflight(context_path: Path) -> int:
         validate_schema(context)
         validate_tool(context)
         validate_dependencies(context)
+        observer_sequence = validate_observer_sequence(context, operation)
         if context.get("candidate_success"):
             raise Reject("CLOSURE")
-        client = ObserverClient.from_env()
+        client = ObserverClient.from_env(observer_sequence)
         event = _request_observation(
             client,
             operation=operation,
             source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
             tree=os.environ["TC_PROOF_SOURCE_TREE"],
         )
+        client.require_complete()
         digest = client.digest(event)
         return finish("passed", None, {"validated": True, "observations": [event]}, [digest], operation, reported)
     except Reject as error:
@@ -107,13 +111,15 @@ def run_required(context_path: Path) -> int:
         _guard_context(context, context_hash)
         validate_schema(context)
         members = validate_required_members(context)
-        client = ObserverClient.from_env()
+        observer_sequence = validate_observer_sequence(context, operation)
+        client = ObserverClient.from_env(observer_sequence)
         event = _request_observation(
             client,
             operation=operation,
             source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
             tree=os.environ["TC_PROOF_SOURCE_TREE"],
         )
+        client.require_complete()
         digest = client.digest(event)
         return finish(
             "passed",
@@ -132,13 +138,12 @@ def run_required(context_path: Path) -> int:
 def _collect_observations(
     client: ObserverClient,
     *,
-    operation: str,
+    observer_sequence: list[str],
     source_commit: str,
     tree: str,
-    count: int,
 ) -> list[dict[str, Any]]:
     events = []
-    for _ in range(count):
+    for operation in observer_sequence:
         events.append(
             _request_observation(
                 client,
@@ -147,6 +152,7 @@ def _collect_observations(
                 tree=tree,
             )
         )
+    client.require_complete()
     return events
 
 
@@ -183,25 +189,24 @@ def run_oracle(context_path: Path, namespace: str | None) -> int:
         validate_source_authority(context, operation)
         validate_schema(context)
         expected_members = validate_required_members(context)
+        observer_sequence = validate_oracle_sequence(context, operation)
         qualification = context.get("qualification")
-        client = ObserverClient.from_env()
-        if qualification and qualification.get("family") == "native":
+        client = ObserverClient.from_env(observer_sequence)
+        if len(observer_sequence) == 1:
             events = _collect_observations(
                 client,
-                operation=operation,
+                observer_sequence=observer_sequence,
                 source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
                 tree=os.environ["TC_PROOF_SOURCE_TREE"],
-                count=1,
             )
             digests = [client.digest(event) for event in events]
             validate_native_extension(events[0]["payload"], qualification, context["oracle_commit"])
             return finish("passed", None, {"observations": events}, digests, operation, reported)
         events = _collect_observations(
             client,
-            operation=operation,
+            observer_sequence=observer_sequence,
             source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
             tree=os.environ["TC_PROOF_SOURCE_TREE"],
-            count=2,
         )
         digests = [client.digest(event) for event in events]
         validate_oracle_repeat(events)
@@ -228,13 +233,13 @@ def run_capture(context_path: Path, lane: str | None) -> int:
         validate_source_authority(context, operation)
         validate_schema(context)
         expected_members = validate_required_members(context)
-        client = ObserverClient.from_env()
+        observer_sequence = validate_observer_sequence(context, operation)
+        client = ObserverClient.from_env(observer_sequence)
         events = _collect_observations(
             client,
-            operation=operation,
+            observer_sequence=observer_sequence,
             source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
             tree=os.environ["TC_PROOF_SOURCE_TREE"],
-            count=1,
         )
         digests = [client.digest(event) for event in events]
         _validate_execution_events(events, context, expected_members, operation)
@@ -260,13 +265,13 @@ def run_close(context_path: Path) -> int:
         validate_schema(context)
         if os.environ.get("TC_PROOF_CONTEXT_INDEX"):
             index, _ = load_index()
-            client = ObserverClient.from_env()
+            observer_sequence = validate_observer_sequence(context, operation)
+            client = ObserverClient.from_env(observer_sequence)
             events = _collect_observations(
                 client,
-                operation=operation,
+                observer_sequence=observer_sequence,
                 source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
                 tree=os.environ["TC_PROOF_SOURCE_TREE"],
-                count=1,
             )
             digests = [client.digest(event) for event in events]
             output_dir = Path(os.environ["TC_PROOF_RESULT"]).parent

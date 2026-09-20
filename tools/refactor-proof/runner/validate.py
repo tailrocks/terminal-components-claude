@@ -114,6 +114,7 @@ _INDEX_KEYS = {
     "scope_base",
     "contexts",
     "results",
+    "observer_sequences",
     "observer",
 }
 _MEMBER_KEYS = {"check_id", "path", "sha256"}
@@ -278,7 +279,10 @@ def validate_index_close_outputs(
 
     contexts = index.get("contexts")
     results = index.get("results")
+    observer_sequences = index.get("observer_sequences")
     if not isinstance(contexts, list) or not contexts or not isinstance(results, list) or len(contexts) != len(results):
+        raise Reject("CLOSURE")
+    if not isinstance(observer_sequences, dict):
         raise Reject("CLOSURE")
     context_ids = [row.get("check_id") if isinstance(row, dict) else None for row in contexts]
     result_ids = [row.get("check_id") if isinstance(row, dict) else None for row in results]
@@ -287,6 +291,8 @@ def validate_index_close_outputs(
         or context_ids != result_ids
         or len(set(context_ids)) != len(context_ids)
     ):
+        raise Reject("CLOSURE")
+    if set(observer_sequences) != set(context_ids):
         raise Reject("CLOSURE")
     if current_check_id is None:
         current_check_id = os.environ.get("TC_PROOF_CHECK_ID")
@@ -314,6 +320,7 @@ def validate_index_close_outputs(
             or context.get("check_id") != check_id
             or not isinstance(context.get("operation"), str)
             or not context["operation"]
+            or context.get("observer_sequence") != observer_sequences.get(check_id)
         ):
             raise Reject("CLOSURE")
         context_entries[check_id] = (context_path, context_hash, context)
@@ -357,6 +364,7 @@ def validate_index_close_outputs(
         "scope_base",
         "transport",
         "nonce_sha256",
+        "sequences",
     } or (
         capability.get("schema") != "tc-proof-observer-capability/v1"
         or capability.get("task_id") != index["task_id"]
@@ -365,6 +373,7 @@ def validate_index_close_outputs(
         or capability.get("scope_base") != index["scope_base"]
         or capability.get("transport") != "inherited-pipe/v1"
         or not _hex(capability.get("nonce_sha256"), 64)
+        or capability.get("sequences") != observer_sequences
     ):
         raise Reject("CLOSURE")
 

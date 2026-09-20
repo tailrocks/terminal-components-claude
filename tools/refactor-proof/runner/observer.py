@@ -33,17 +33,29 @@ class ObserverError(Exception):
 
 
 class ObserverClient:
-    def __init__(self, nonce: str, run_id: str, task_id: str, check_id: str, request_fd: int, response_fd: int) -> None:
+    def __init__(
+        self,
+        nonce: str,
+        run_id: str,
+        task_id: str,
+        check_id: str,
+        request_fd: int,
+        response_fd: int,
+        observer_sequence: list[str],
+    ) -> None:
+        if not observer_sequence or any(not isinstance(item, str) for item in observer_sequence):
+            raise ObserverError("observer sequence is invalid")
         self.nonce = nonce
         self.run_id = run_id
         self.task_id = task_id
         self.check_id = check_id
+        self.observer_sequence = tuple(observer_sequence)
         self.request_id = 0
         self._request = os.fdopen(request_fd, "wb")
         self._response = os.fdopen(response_fd, "rb")
 
     @classmethod
-    def from_env(cls) -> ObserverClient:
+    def from_env(cls, observer_sequence: list[str]) -> ObserverClient:
         nonce = os.environ.get("TC_PROOF_OBSERVER_NONCE")
         request_fd = os.environ.get("TC_PROOF_OBSERVER_REQUEST_FD")
         response_fd = os.environ.get("TC_PROOF_OBSERVER_RESPONSE_FD")
@@ -59,11 +71,17 @@ class ObserverClient:
                 os.environ["TC_PROOF_CHECK_ID"],
                 int(request_fd),
                 int(response_fd),
+                observer_sequence,
             )
         except (OSError, ValueError) as error:
             raise ObserverError(str(error)) from error
 
     def request(self, operation: str, source_commit: str, tree: str) -> dict[str, Any]:
+        if self.request_id >= len(self.observer_sequence):
+            raise ObserverError("observer request sequence exhausted")
+        expected_operation = self.observer_sequence[self.request_id]
+        if operation != expected_operation:
+            raise ObserverError("observer request sequence mismatch")
         payload = {
             "schema": "tc-proof-runner-observe/v1",
             "nonce": self.nonce,
@@ -78,9 +96,12 @@ class ObserverClient:
         line = canonical(payload) + b"\n"
         if len(line) > MAX_REQUEST_BYTES:
             raise ObserverError("observer request exceeds 4096-byte bound")
-        self._request.write(line)
-        self._request.flush()
-        raw = self._response.readline(MAX_RESPONSE_BYTES + 1)
+        try:
+            self._request.write(line)
+            self._request.flush()
+            raw = self._response.readline(MAX_RESPONSE_BYTES + 1)
+        except OSError as error:
+            raise ObserverError("observer transport failed") from error
         if not raw or not raw.endswith(b"\n"):
             raise ObserverError("observer response incomplete")
         if len(raw) > MAX_RESPONSE_BYTES:
@@ -123,6 +144,17 @@ class ObserverClient:
             raise ObserverError("observer response payload is invalid")
         self.request_id += 1
         return event
+
+    def require_complete(self) -> None:
+        if self.request_id != len(self.observer_sequence):
+            raise ObserverError("observer request sequence incomplete")
+
+    def close(self) -> None:
+        for stream in (self._request, self._response):
+            try:
+                stream.close()
+            except OSError:
+                pass
 
     def digest(self, event: dict[str, Any]) -> str:
         return sha256_canonical(event)

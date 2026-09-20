@@ -97,17 +97,29 @@ class ObserverError(Exception):
 
 
 class ObserverClient:
-    def __init__(self, nonce: str, run_id: str, task_id: str, check_id: str, request_fd: int, response_fd: int) -> None:
+    def __init__(
+        self,
+        nonce: str,
+        run_id: str,
+        task_id: str,
+        check_id: str,
+        request_fd: int,
+        response_fd: int,
+        observer_sequence: list[str],
+    ) -> None:
+        if not observer_sequence or any(not isinstance(item, str) for item in observer_sequence):
+            raise ObserverError("observer sequence is invalid")
         self.nonce = nonce
         self.run_id = run_id
         self.task_id = task_id
         self.check_id = check_id
+        self.observer_sequence = tuple(observer_sequence)
         self.request_id = 0
         self._request = os.fdopen(request_fd, "wb")
         self._response = os.fdopen(response_fd, "rb")
 
     @classmethod
-    def from_env(cls) -> ObserverClient:
+    def from_env(cls, observer_sequence: list[str]) -> ObserverClient:
         nonce = os.environ.get("TC_PROOF_OBSERVER_NONCE")
         request_fd = os.environ.get("TC_PROOF_OBSERVER_REQUEST_FD")
         response_fd = os.environ.get("TC_PROOF_OBSERVER_RESPONSE_FD")
@@ -123,11 +135,17 @@ class ObserverClient:
                 os.environ["TC_PROOF_CHECK_ID"],
                 int(request_fd),
                 int(response_fd),
+                observer_sequence,
             )
         except (OSError, ValueError) as error:
             raise ObserverError(str(error)) from error
 
     def request(self, operation: str, source_commit: str, tree: str) -> dict[str, Any]:
+        if self.request_id >= len(self.observer_sequence):
+            raise ObserverError("observer request sequence exhausted")
+        expected_operation = self.observer_sequence[self.request_id]
+        if operation != expected_operation:
+            raise ObserverError("observer request sequence mismatch")
         payload = {
             "schema": "tc-proof-runner-observe/v1",
             "nonce": self.nonce,
@@ -142,9 +160,12 @@ class ObserverClient:
         line = canonical(payload) + b"\n"
         if len(line) > MAX_REQUEST_BYTES:
             raise ObserverError("observer request exceeds 4096-byte bound")
-        self._request.write(line)
-        self._request.flush()
-        raw = self._response.readline(MAX_RESPONSE_BYTES + 1)
+        try:
+            self._request.write(line)
+            self._request.flush()
+            raw = self._response.readline(MAX_RESPONSE_BYTES + 1)
+        except OSError as error:
+            raise ObserverError("observer transport failed") from error
         if not raw or not raw.endswith(b"\n"):
             raise ObserverError("observer response incomplete")
         if len(raw) > MAX_RESPONSE_BYTES:
@@ -187,6 +208,17 @@ class ObserverClient:
             raise ObserverError("observer response payload is invalid")
         self.request_id += 1
         return event
+
+    def require_complete(self) -> None:
+        if self.request_id != len(self.observer_sequence):
+            raise ObserverError("observer request sequence incomplete")
+
+    def close(self) -> None:
+        for stream in (self._request, self._response):
+            try:
+                stream.close()
+            except OSError:
+                pass
 
     def digest(self, event: dict[str, Any]) -> str:
         return sha256_canonical(event)
@@ -276,8 +308,20 @@ ALLOWED_V1_KEYS = {
     "evidence",
     "configuration",
     "qualification",
+    "observer_sequence",
 }
 OPTIONAL_EXTENSION_KEYS = {"architecture_profile", "branch_host_projection"}
+OBSERVER_OPERATIONS = {
+    "account-tests",
+    "architecture",
+    "capture",
+    "close",
+    "compare",
+    "oracle",
+    "preflight",
+    "required",
+    "external",
+}
 
 
 class Reject(Exception):
@@ -327,6 +371,56 @@ def validate_schema(context: dict[str, Any]) -> None:
         raise Reject("CONTEXT_INDEX")
     if context.get("check_id") != os.environ.get("TC_PROOF_CHECK_ID"):
         raise Reject("CONTEXT_INDEX")
+    validate_observer_sequence(context, context.get("operation"))
+
+
+def validate_observer_sequence(context: dict[str, Any], operation: Any) -> list[str]:
+    """Validate the host-bound, ordered observer request contract.
+
+    The sequence is part of the hashed context.  It is deliberately required
+    rather than inferred from the operation or qualification family: native
+    oracle checks declare ``["oracle"]`` and synthetic oracle checks declare
+    ``["oracle", "oracle"]``.  No pre-sequence context is accepted.
+    """
+    sequence = context.get("observer_sequence")
+    if (
+        not isinstance(sequence, list)
+        or not sequence
+        or len(sequence) > 8
+        or any(
+            not isinstance(item, str) or item not in OBSERVER_OPERATIONS
+            for item in sequence
+        )
+        or operation not in OBSERVER_OPERATIONS
+        or sequence[0] != operation
+    ):
+        raise Reject("PROTOCOL")
+    return list(sequence)
+
+
+def validate_oracle_sequence(context: dict[str, Any], operation: Any) -> list[str]:
+    """Validate the exact native/synthetic oracle cardinality contract."""
+    sequence = validate_observer_sequence(context, operation)
+    if operation != "oracle" or any(item != "oracle" for item in sequence):
+        raise Reject("PROTOCOL")
+    qualification = context.get("qualification")
+    family = None
+    if isinstance(qualification, dict):
+        family = qualification.get("family")
+        worker_context = qualification.get("worker_context")
+        if family is None and isinstance(worker_context, dict):
+            nested = worker_context.get("qualification")
+            if isinstance(nested, dict):
+                family = nested.get("family")
+    if len(sequence) == 1:
+        if family != "native":
+            raise Reject("PROTOCOL")
+    elif len(sequence) == 2:
+        if family == "native":
+            raise Reject("PROTOCOL")
+    else:
+        raise Reject("PROTOCOL")
+    return sequence
 
 
 def validate_tool(context: dict[str, Any]) -> None:
@@ -496,6 +590,7 @@ _INDEX_KEYS = {
     "scope_base",
     "contexts",
     "results",
+    "observer_sequences",
     "observer",
 }
 _MEMBER_KEYS = {"check_id", "path", "sha256"}
@@ -660,7 +755,10 @@ def validate_index_close_outputs(
 
     contexts = index.get("contexts")
     results = index.get("results")
+    observer_sequences = index.get("observer_sequences")
     if not isinstance(contexts, list) or not contexts or not isinstance(results, list) or len(contexts) != len(results):
+        raise Reject("CLOSURE")
+    if not isinstance(observer_sequences, dict):
         raise Reject("CLOSURE")
     context_ids = [row.get("check_id") if isinstance(row, dict) else None for row in contexts]
     result_ids = [row.get("check_id") if isinstance(row, dict) else None for row in results]
@@ -669,6 +767,8 @@ def validate_index_close_outputs(
         or context_ids != result_ids
         or len(set(context_ids)) != len(context_ids)
     ):
+        raise Reject("CLOSURE")
+    if set(observer_sequences) != set(context_ids):
         raise Reject("CLOSURE")
     if current_check_id is None:
         current_check_id = os.environ.get("TC_PROOF_CHECK_ID")
@@ -696,6 +796,7 @@ def validate_index_close_outputs(
             or context.get("check_id") != check_id
             or not isinstance(context.get("operation"), str)
             or not context["operation"]
+            or context.get("observer_sequence") != observer_sequences.get(check_id)
         ):
             raise Reject("CLOSURE")
         context_entries[check_id] = (context_path, context_hash, context)
@@ -739,6 +840,7 @@ def validate_index_close_outputs(
         "scope_base",
         "transport",
         "nonce_sha256",
+        "sequences",
     } or (
         capability.get("schema") != "tc-proof-observer-capability/v1"
         or capability.get("task_id") != index["task_id"]
@@ -747,6 +849,7 @@ def validate_index_close_outputs(
         or capability.get("scope_base") != index["scope_base"]
         or capability.get("transport") != "inherited-pipe/v1"
         or not _hex(capability.get("nonce_sha256"), 64)
+        or capability.get("sequences") != observer_sequences
     ):
         raise Reject("CLOSURE")
 
@@ -846,6 +949,7 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
         "scope_base",
         "contexts",
         "results",
+        "observer_sequences",
         "observer",
     }:
         raise Reject("CONTEXT_INDEX")
@@ -871,11 +975,16 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
         raise Reject("CONTEXT_INDEX")
     if len(contexts) != len(results) or any(not isinstance(member, dict) for member in contexts + results):
         raise Reject("CONTEXT_INDEX")
+    observer_sequences = index.get("observer_sequences")
+    if not isinstance(observer_sequences, dict):
+        raise Reject("CONTEXT_INDEX")
     check_ids = [member.get("check_id") for member in contexts]
     result_ids = [member.get("check_id") for member in results]
     if any(not isinstance(check_id, str) or re.fullmatch(r"CHK-[0-9]{3}", check_id) is None for check_id in check_ids):
         raise Reject("CONTEXT_INDEX")
     if len(set(check_ids)) != len(contexts) or sorted(check_ids) != sorted(result_ids):
+        raise Reject("CONTEXT_INDEX")
+    if set(observer_sequences) != set(check_ids):
         raise Reject("CONTEXT_INDEX")
     contexts_dir = index_root / "contexts"
     results_dir = index_root / "results"
@@ -969,6 +1078,10 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
         }
         if any(child.get(key) != value for key, value in bindings.items()):
             raise Reject("CONTEXT_INDEX")
+        sequence = child.get("observer_sequence")
+        indexed_sequence = observer_sequences.get(member["check_id"])
+        if not isinstance(sequence, list) or sequence != indexed_sequence:
+            raise Reject("CONTEXT_INDEX")
         if member["check_id"] == check_id:
             selected = member
     if selected is None:
@@ -998,6 +1111,7 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
             "scope_base",
             "transport",
             "nonce_sha256",
+            "sequences",
         }
         or capability.get("schema") != "tc-proof-observer-capability/v1"
         or capability.get("task_id") != index["task_id"]
@@ -1007,6 +1121,7 @@ def validate_index(context: dict[str, Any], context_hash: str) -> None:
         or capability.get("transport") != "inherited-pipe/v1"
         or not isinstance(capability.get("nonce_sha256"), str)
         or re.fullmatch(r"[0-9a-f]{64}", capability["nonce_sha256"]) is None
+        or capability.get("sequences") != observer_sequences
         or sha256_bytes(observer_path.read_bytes()) != observer["sha256"]
     ):
         raise Reject("CONTEXT_INDEX")
@@ -1086,15 +1201,17 @@ def run_preflight(context_path: Path) -> int:
         validate_schema(context)
         validate_tool(context)
         validate_dependencies(context)
+        observer_sequence = validate_observer_sequence(context, operation)
         if context.get("candidate_success"):
             raise Reject("CLOSURE")
-        client = ObserverClient.from_env()
+        client = ObserverClient.from_env(observer_sequence)
         event = _request_observation(
             client,
             operation=operation,
             source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
             tree=os.environ["TC_PROOF_SOURCE_TREE"],
         )
+        client.require_complete()
         digest = client.digest(event)
         return finish("passed", None, {"validated": True, "observations": [event]}, [digest], operation, reported)
     except Reject as error:
@@ -1113,13 +1230,15 @@ def run_required(context_path: Path) -> int:
         _guard_context(context, context_hash)
         validate_schema(context)
         members = validate_required_members(context)
-        client = ObserverClient.from_env()
+        observer_sequence = validate_observer_sequence(context, operation)
+        client = ObserverClient.from_env(observer_sequence)
         event = _request_observation(
             client,
             operation=operation,
             source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
             tree=os.environ["TC_PROOF_SOURCE_TREE"],
         )
+        client.require_complete()
         digest = client.digest(event)
         return finish(
             "passed",
@@ -1138,13 +1257,12 @@ def run_required(context_path: Path) -> int:
 def _collect_observations(
     client: ObserverClient,
     *,
-    operation: str,
+    observer_sequence: list[str],
     source_commit: str,
     tree: str,
-    count: int,
 ) -> list[dict[str, Any]]:
     events = []
-    for _ in range(count):
+    for operation in observer_sequence:
         events.append(
             _request_observation(
                 client,
@@ -1153,6 +1271,7 @@ def _collect_observations(
                 tree=tree,
             )
         )
+    client.require_complete()
     return events
 
 
@@ -1189,25 +1308,24 @@ def run_oracle(context_path: Path, namespace: str | None) -> int:
         validate_source_authority(context, operation)
         validate_schema(context)
         expected_members = validate_required_members(context)
+        observer_sequence = validate_oracle_sequence(context, operation)
         qualification = context.get("qualification")
-        client = ObserverClient.from_env()
-        if qualification and qualification.get("family") == "native":
+        client = ObserverClient.from_env(observer_sequence)
+        if len(observer_sequence) == 1:
             events = _collect_observations(
                 client,
-                operation=operation,
+                observer_sequence=observer_sequence,
                 source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
                 tree=os.environ["TC_PROOF_SOURCE_TREE"],
-                count=1,
             )
             digests = [client.digest(event) for event in events]
             validate_native_extension(events[0]["payload"], qualification, context["oracle_commit"])
             return finish("passed", None, {"observations": events}, digests, operation, reported)
         events = _collect_observations(
             client,
-            operation=operation,
+            observer_sequence=observer_sequence,
             source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
             tree=os.environ["TC_PROOF_SOURCE_TREE"],
-            count=2,
         )
         digests = [client.digest(event) for event in events]
         validate_oracle_repeat(events)
@@ -1234,13 +1352,13 @@ def run_capture(context_path: Path, lane: str | None) -> int:
         validate_source_authority(context, operation)
         validate_schema(context)
         expected_members = validate_required_members(context)
-        client = ObserverClient.from_env()
+        observer_sequence = validate_observer_sequence(context, operation)
+        client = ObserverClient.from_env(observer_sequence)
         events = _collect_observations(
             client,
-            operation=operation,
+            observer_sequence=observer_sequence,
             source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
             tree=os.environ["TC_PROOF_SOURCE_TREE"],
-            count=1,
         )
         digests = [client.digest(event) for event in events]
         _validate_execution_events(events, context, expected_members, operation)
@@ -1266,13 +1384,13 @@ def run_close(context_path: Path) -> int:
         validate_schema(context)
         if os.environ.get("TC_PROOF_CONTEXT_INDEX"):
             index, _ = load_index()
-            client = ObserverClient.from_env()
+            observer_sequence = validate_observer_sequence(context, operation)
+            client = ObserverClient.from_env(observer_sequence)
             events = _collect_observations(
                 client,
-                operation=operation,
+                observer_sequence=observer_sequence,
                 source_commit=os.environ["TC_PROOF_ORACLE_COMMIT"],
                 tree=os.environ["TC_PROOF_SOURCE_TREE"],
-                count=1,
             )
             digests = [client.digest(event) for event in events]
             output_dir = Path(os.environ["TC_PROOF_RESULT"]).parent
