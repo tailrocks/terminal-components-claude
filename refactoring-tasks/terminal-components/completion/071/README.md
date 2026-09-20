@@ -21,12 +21,12 @@ The accounting operation executes every required source-qualified test and enfor
 
 Visual acceptance is currently blocked: this branch lacks the grouped store and PTY suite. A verifier subagent must import them read-only from the immutable `visual-baseline` tag into the external run before using [`visual-validation.md`](../../../visual-validation.md). Never write `snapshots/`, bless output, or mutate the tag.
 
-TASK-001 qualifies comparison and the thin verifier core only. This package owns the distinct `test-accounting` operation implementation. Its independently fixed group71 fixture contract establishes acceptance; the implementation cannot judge itself. This package is a later execution contract, not authorization to implement terminal-components during the planning goal.
+This package owns the distinct `test-accounting` operation implementation. Its independently fixed group71 fixture contract establishes acceptance; the implementation cannot judge itself. This package is a later execution contract, not authorization to implement terminal-components during the planning goal. Task dependencies are none; native proof qualification replaces a TASK-070 receipt. TASK-001 and TASK-070 stay retired fail-closed and cannot supply accepted producer receipts. Former host/runner/lifecycle obligations now live in `scripts/campaign-build-proof.sh`, [`path-contract.md`](../../../../docs/refactoring-plan/path-contract.md), [`proof-contract.md`](../../../../docs/refactoring-plan/proof-contract.md), and `tools/refactor-proof/{src,runner,bin}`. Dependency status alone never proves integrated source ancestry or trusted product acceptance.
 
 Read before editing:
 
 - `CAMPAIGN_AGENTS.md`: repository scope and integration constraints; this task-local AGENTS.md defines subagent execution and verification.
-- `../../../../docs/refactoring-plan/proof-contract.md` and `../../../../docs/refactoring-plan/architecture-adjudication.md`.
+- `../../../../docs/refactoring-plan/path-contract.md`, `../../../../docs/refactoring-plan/proof-contract.md`, and `../../../../docs/refactoring-plan/architecture-adjudication.md`.
 - `trusted/runner-bootstrap/runner-bootstrap-protocol.md` and the exact group71 fixture/driver source.
 - `trusted/source-obligations.tsv`: all mapped clauses, exact historical source revisions, remaining-work and named-test obligations bind their requirement/acceptance/check IDs.
 - `trusted/proof-bootstrap/proof-comparator-protocol.md` and the historical
@@ -34,9 +34,10 @@ Read before editing:
 
 ## Preconditions
 
-- **P-001:** A verifier/reviewer subagent checks `TASK-070` evidence and actual integrated source ancestry, the recorded candidate parent/scope base, current latest taskfmt revision and SHA-256, and the reviewed tui-snap tool pin.
+- **P-001:** A verifier/reviewer subagent checks native proof qualification (no TASK-070 receipt) from `scripts/campaign-build-proof.sh`, [`path-contract.md`](../../../../docs/refactoring-plan/path-contract.md), [`proof-contract.md`](../../../../docs/refactoring-plan/proof-contract.md), and `tools/refactor-proof/{src,runner,bin}`, plus actual integrated source ancestry, the recorded candidate parent/scope base, current latest taskfmt revision and SHA-256, and the reviewed tui-snap tool pin. TASK-001 and TASK-070 stay retired fail-closed.
 - **P-002:** The driver, fixture application, worker program, isolation observer and source requirement inputs are immutable outside the coordinator checkout. The submitted executable cannot alter the independent judge or its expected data.
 - **P-003:** Candidate workers have the pinned offline toolchain and owned PTYs where required, with no verification authority, expected artifacts, network, credentials or host socket access.
+- **Host-local verifier inputs:** The verifier subagent resolves the comparator at `$WORKTREE/tools/refactor-proof/bin/tc-proof` and per-check contexts under `$RUN_DIR/contexts/`; taskfmt receives explicit `--task-dir`, `--root`, `--base`, and `--log-dir` paths. No mounts are involved.
 
 ## Scope
 
@@ -126,9 +127,9 @@ Then no R-004 prohibited action or candidate-controlled definition of success is
 - **Type:** gate
 - **Check:** `CHK-007`
 
-### AC-006 — Preserve accepted operation group70
+### AC-006 — Preserve native group70 runner corpus
 ```gherkin
-Given the protected independently accepted prerequisite corpus
+Given the protected independently accepted native runner corpus
 When all original positive negative and recovery cases execute against the extended dispatcher
 Then the complete prerequisite behavior remains exact without omitted results
 ```
@@ -156,10 +157,10 @@ Then the complete prerequisite behavior remains exact without omitted results
 
 - **D-001:** The independently reviewed runner-bootstrap group71 driver and its fixtures judge this product. No self-test or printed success marker is acceptance.
 - **D-002:** UI oracle remains `02f5294bfdbf38004cc49130d0aff1d01f31434c`; architectural starting point remains `7b27732a8c3c131760ec3438f641cb3c11343a42`.
-- **D-003:** Use existing canonical taskfmt standalone verification and current tui-snap primitives. No task orchestration call is allowed; no ref update targets main.
+- **D-003:** Use the existing proof-contract operation interface and canonical taskfmt standalone gate. Native comparator/runner/close live in `tools/refactor-proof/{src,runner,bin}` and `scripts/campaign-build-proof.sh`. TASK-001 and TASK-070 remain retired fail-closed packages. Do not invent private bypass scripts.
 - **D-004:** Host accepts `test-accounting` only after independent qualification and source rebuild. A later task resolves exactly that accepted producer product; no mutable latest path or candidate-written receipt is valid.
 - **D-005:** All commands and result schemas are exactly the fixed proof contract. Unsupported required behavior fails; adding permissive flags or alternative expected data cannot unblock it.
-- **D-006:** Context-index qualification (VF-03) is owned by TASK-070. This package inherits it through **CHK-008** (`--group 070`) per [`trusted/runner-index-receipt-binding.md`](trusted/runner-index-receipt-binding.md); `--group 071` checks alone do not satisfy index membership.
+- **D-006:** Context-index qualification (VF-03) lives in native `tools/refactor-proof/runner` (built by `scripts/campaign-build-proof.sh`). This package qualifies it through **CHK-008** (`--group 070`) per [`trusted/runner-index-receipt-binding.md`](trusted/runner-index-receipt-binding.md); `--group 071` checks alone do not satisfy index membership. TASK-070 remains retired fail-closed and cannot supply a producer receipt.
 
 ## Subagent execution
 
@@ -186,7 +187,7 @@ Taskfmt is validation only. No containers, images, mounts, or task orchestration
     - [ ] **2.1** Implement the complete group71 observable behavior. (`R-001`, `AC-001`, `CHK-004`)
     - [ ] **2.2** Preserve isolation, identity and ownership boundaries. (`R-002`, `AC-002`, `CHK-006`)
     - [ ] **2.3** Retain the accepted comparator and every required regression. (`R-003`, `AC-003`, `CHK-005`)
-    - [ ] **2.4** Preserve accepted group70 with its independent corpus. (`R-003`, `AC-006`, `CHK-008`)
+    - [ ] **2.4** Preserve native group70 runner corpus with its independent fixtures. (`R-003`, `AC-006`, `CHK-008`)
     - [ ] **2.5** Preserve exact comparison with its independent corpus. (`R-003`, `AC-007`, `CHK-009`)
 - [ ] **3** Qualify the fixed executable.
     - [ ] **3.1** Run every independent case and the complete gate with actual logs. (`R-005`, `AC-005`, `CHK-007`)

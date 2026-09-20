@@ -1,6 +1,6 @@
 schema = "verify/v2"
 task_id = "TASK-001"
-writable_paths = ["tools/refactor-proof"]
+writable_paths = ["tools/refactor-proof/src"]
 forbidden_paths = ["refactoring-tasks","docs/refactoring-plan","shots", "snapshots","baseline"]
 
 # TASK-001 is retained as a historical contract, but its host lifecycle was

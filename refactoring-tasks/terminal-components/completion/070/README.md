@@ -11,7 +11,12 @@ kind: feature
 > and its nested `taskfmt init` flow are not part of the current campaign.
 > `verify.toml` fails closed until a verifier/reviewer subagent replaces that
 > contract with host-local standalone taskfmt `lint`/`verify` evidence. The
-> trusted host-bootstrap fixture is historical evidence only.
+> trusted host-bootstrap fixture is historical evidence only. This package
+> cannot supply an accepted producer receipt. Former host/runner/lifecycle
+> obligations now live in `scripts/campaign-build-proof.sh`,
+> [`path-contract.md`](../../../../docs/refactoring-plan/path-contract.md),
+> [`proof-contract.md`](../../../../docs/refactoring-plan/proof-contract.md),
+> and `tools/refactor-proof/{src,runner,bin}`.
 
 ## Goal
 
@@ -44,8 +49,7 @@ Read before editing:
 
 In scope:
 
-- `tools/refactor-proof/runner` for the stated operation and narrow directly necessary tests.
-- `tools/refactor-proof/bin/tc-proof` for the stated operation and narrow directly necessary tests.
+- `tools/refactor-proof/runner` for the stated historical runner surface and narrow directly necessary tests. Native `tools/refactor-proof/bin/tc-proof` is a shared proof home, not a TASK-070 receipt product.
 - Independent qualification outputs in verifier-subagent-owned external run directories; no production application changes.
 
 Out of scope:

@@ -1,6 +1,6 @@
 {
   "catalog": {
-    "dependency_edges": 264,
+    "dependency_edges": 263,
     "direct_checks": 506,
     "direct_task_packages": 73,
     "nested_bootstrap_contracts": [
@@ -1713,119 +1713,80 @@
   ],
   "dependency_depth": {
     "TASK-001": 1,
-    "TASK-002": 5,
-    "TASK-003": 5,
-    "TASK-004": 5,
-    "TASK-005": 5,
-    "TASK-006": 6,
-    "TASK-007": 5,
-    "TASK-008": 7,
-    "TASK-009": 9,
-    "TASK-010": 10,
-    "TASK-011": 9,
-    "TASK-012": 9,
-    "TASK-013": 10,
-    "TASK-014": 11,
-    "TASK-015": 12,
-    "TASK-016": 12,
-    "TASK-017": 12,
-    "TASK-018": 13,
-    "TASK-019": 14,
-    "TASK-020": 14,
-    "TASK-021": 12,
-    "TASK-022": 13,
-    "TASK-023": 15,
-    "TASK-024": 16,
-    "TASK-025": 17,
-    "TASK-026": 13,
-    "TASK-027": 17,
-    "TASK-028": 18,
-    "TASK-029": 10,
-    "TASK-030": 19,
-    "TASK-031": 20,
-    "TASK-032": 21,
-    "TASK-033": 22,
-    "TASK-034": 23,
-    "TASK-035": 24,
-    "TASK-036": 25,
-    "TASK-037": 26,
-    "TASK-038": 27,
-    "TASK-039": 28,
-    "TASK-040": 21,
-    "TASK-041": 22,
-    "TASK-042": 23,
-    "TASK-043": 24,
-    "TASK-044": 25,
-    "TASK-045": 26,
-    "TASK-046": 27,
-    "TASK-047": 28,
-    "TASK-048": 29,
-    "TASK-049": 30,
-    "TASK-050": 31,
-    "TASK-051": 21,
-    "TASK-052": 22,
-    "TASK-053": 23,
-    "TASK-054": 24,
-    "TASK-055": 25,
-    "TASK-056": 26,
-    "TASK-057": 27,
-    "TASK-058": 21,
-    "TASK-059": 22,
-    "TASK-060": 23,
-    "TASK-061": 24,
-    "TASK-062": 25,
-    "TASK-063": 26,
-    "TASK-064": 27,
-    "TASK-065": 32,
-    "TASK-066": 33,
-    "TASK-067": 32,
-    "TASK-068": 34,
-    "TASK-069": 35,
+    "TASK-002": 3,
+    "TASK-003": 3,
+    "TASK-004": 3,
+    "TASK-005": 3,
+    "TASK-006": 4,
+    "TASK-007": 3,
+    "TASK-008": 5,
+    "TASK-009": 7,
+    "TASK-010": 8,
+    "TASK-011": 7,
+    "TASK-012": 7,
+    "TASK-013": 8,
+    "TASK-014": 9,
+    "TASK-015": 10,
+    "TASK-016": 10,
+    "TASK-017": 10,
+    "TASK-018": 11,
+    "TASK-019": 12,
+    "TASK-020": 12,
+    "TASK-021": 10,
+    "TASK-022": 11,
+    "TASK-023": 13,
+    "TASK-024": 14,
+    "TASK-025": 15,
+    "TASK-026": 11,
+    "TASK-027": 15,
+    "TASK-028": 16,
+    "TASK-029": 8,
+    "TASK-030": 17,
+    "TASK-031": 18,
+    "TASK-032": 19,
+    "TASK-033": 20,
+    "TASK-034": 21,
+    "TASK-035": 22,
+    "TASK-036": 23,
+    "TASK-037": 24,
+    "TASK-038": 25,
+    "TASK-039": 26,
+    "TASK-040": 19,
+    "TASK-041": 20,
+    "TASK-042": 21,
+    "TASK-043": 22,
+    "TASK-044": 23,
+    "TASK-045": 24,
+    "TASK-046": 25,
+    "TASK-047": 26,
+    "TASK-048": 27,
+    "TASK-049": 28,
+    "TASK-050": 29,
+    "TASK-051": 19,
+    "TASK-052": 20,
+    "TASK-053": 21,
+    "TASK-054": 22,
+    "TASK-055": 23,
+    "TASK-056": 24,
+    "TASK-057": 25,
+    "TASK-058": 19,
+    "TASK-059": 20,
+    "TASK-060": 21,
+    "TASK-061": 22,
+    "TASK-062": 23,
+    "TASK-063": 24,
+    "TASK-064": 25,
+    "TASK-065": 30,
+    "TASK-066": 31,
+    "TASK-067": 30,
+    "TASK-068": 32,
+    "TASK-069": 33,
     "TASK-070": 2,
-    "TASK-071": 3,
-    "TASK-072": 4,
-    "TASK-073": 8
+    "TASK-071": 1,
+    "TASK-072": 2,
+    "TASK-073": 6
   },
   "file_conflicts": [
-    {
-      "ordering": [
-        "TASK-001",
-        "TASK-070"
-      ],
-      "overlap_count": 2,
-      "parallel_allowed": false,
-      "relation": "transitive-dependency",
-      "tasks": [
-        "TASK-001",
-        "TASK-070"
-      ]
-    },
-    {
-      "ordering": [
-        "TASK-001",
-        "TASK-071"
-      ],
-      "overlap_count": 2,
-      "parallel_allowed": false,
-      "relation": "transitive-dependency",
-      "tasks": [
-        "TASK-001",
-        "TASK-071"
-      ]
-    },
-    {
-      "ordering": [
-        "TASK-001",
-        "TASK-072"
-      ],
-      "overlap_count": 2,
-      "parallel_allowed": false,
-      "relation": "transitive-dependency",
-      "tasks": [
-        "TASK-001",
-        "TASK-072"
-      ]
-    },
     {
       "ordering": [
         "TASK-007",
@@ -4259,32 +4220,6 @@
     },
     {
       "ordering": [
-        "TASK-070",
-        "TASK-071"
-      ],
-      "overlap_count": 1,
-      "parallel_allowed": false,
-      "relation": "transitive-dependency",
-      "tasks": [
-        "TASK-070",
-        "TASK-071"
-      ]
-    },
-    {
-      "ordering": [
-        "TASK-070",
-        "TASK-072"
-      ],
-      "overlap_count": 1,
-      "parallel_allowed": false,
-      "relation": "transitive-dependency",
-      "tasks": [
-        "TASK-070",
-        "TASK-072"
-      ]
-    },
-    {
-      "ordering": [
         "TASK-071",
         "TASK-072"
       ],
@@ -4299,7 +4234,7 @@
   ],
   "integration_checkpoints": [
     {
-      "dependency_depth": 6,
+      "dependency_depth": 4,
       "gate_check_ids": [
         "CHK-007"
       ],
@@ -4310,7 +4245,7 @@
       "task_id": "TASK-006"
     },
     {
-      "dependency_depth": 20,
+      "dependency_depth": 18,
       "gate_check_ids": [
         "CHK-007"
       ],
@@ -4321,7 +4256,7 @@
       "task_id": "TASK-031"
     },
     {
-      "dependency_depth": 28,
+      "dependency_depth": 26,
       "gate_check_ids": [
         "CHK-007"
       ],
@@ -4332,7 +4267,7 @@
       "task_id": "TASK-039"
     },
     {
-      "dependency_depth": 31,
+      "dependency_depth": 29,
       "gate_check_ids": [
         "CHK-007"
       ],
@@ -4343,7 +4278,7 @@
       "task_id": "TASK-050"
     },
     {
-      "dependency_depth": 27,
+      "dependency_depth": 25,
       "gate_check_ids": [
         "CHK-007"
       ],
@@ -4354,7 +4289,7 @@
       "task_id": "TASK-057"
     },
     {
-      "dependency_depth": 27,
+      "dependency_depth": 25,
       "gate_check_ids": [
         "CHK-007"
       ],
@@ -4365,7 +4300,7 @@
       "task_id": "TASK-064"
     },
     {
-      "dependency_depth": 32,
+      "dependency_depth": 30,
       "gate_check_ids": [
         "CHK-007"
       ],
@@ -4376,7 +4311,7 @@
       "task_id": "TASK-065"
     },
     {
-      "dependency_depth": 33,
+      "dependency_depth": 31,
       "gate_check_ids": [
         "CHK-007"
       ],
@@ -4387,7 +4322,7 @@
       "task_id": "TASK-066"
     },
     {
-      "dependency_depth": 32,
+      "dependency_depth": 30,
       "gate_check_ids": [
         "CHK-007"
       ],
@@ -4398,7 +4333,7 @@
       "task_id": "TASK-067"
     },
     {
-      "dependency_depth": 34,
+      "dependency_depth": 32,
       "gate_check_ids": [
         "CHK-007"
       ],
@@ -4409,7 +4344,7 @@
       "task_id": "TASK-068"
     },
     {
-      "dependency_depth": 35,
+      "dependency_depth": 33,
       "gate_check_ids": [
         "CHK-007"
       ],
@@ -4420,7 +4355,7 @@
       "task_id": "TASK-069"
     },
     {
-      "dependency_depth": 8,
+      "dependency_depth": 6,
       "gate_check_ids": [
         "CHK-007"
       ],
@@ -4649,9 +4584,7 @@
     "TASK-070": [
       "TASK-001"
     ],
-    "TASK-071": [
-      "TASK-070"
-    ],
+    "TASK-071": [],
     "TASK-072": [
       "TASK-071"
     ],
@@ -4659,7 +4592,7 @@
       "TASK-008"
     ]
   },
-  "maximum_dependency_depth": 35,
+  "maximum_dependency_depth": 33,
   "migration_boundaries": [
     {
       "edges": [
@@ -5278,7 +5211,8 @@
         "parallel candidates are independently verified before the join"
       ],
       "tasks": [
-        "TASK-001"
+        "TASK-001",
+        "TASK-071"
       ],
       "workstreams": [
         "B"
@@ -5294,38 +5228,7 @@
         "parallel candidates are independently verified before the join"
       ],
       "tasks": [
-        "TASK-070"
-      ],
-      "workstreams": [
-        "B"
-      ]
-    },
-    {
-      "candidate_parallel": true,
-      "dependency_depth": 3,
-      "file_conflicts": [],
-      "requires": [
-        "all verification_dependencies have accepted ancestry-bound receipts",
-        "each candidate uses an isolated worktree and run directory",
-        "parallel candidates are independently verified before the join"
-      ],
-      "tasks": [
-        "TASK-071"
-      ],
-      "workstreams": [
-        "B"
-      ]
-    },
-    {
-      "candidate_parallel": true,
-      "dependency_depth": 4,
-      "file_conflicts": [],
-      "requires": [
-        "all verification_dependencies have accepted ancestry-bound receipts",
-        "each candidate uses an isolated worktree and run directory",
-        "parallel candidates are independently verified before the join"
-      ],
-      "tasks": [
+        "TASK-070",
         "TASK-072"
       ],
       "workstreams": [
@@ -5334,7 +5237,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 5,
+      "dependency_depth": 3,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5354,7 +5257,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 6,
+      "dependency_depth": 4,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5370,7 +5273,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 7,
+      "dependency_depth": 5,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5386,7 +5289,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 8,
+      "dependency_depth": 6,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5402,7 +5305,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 9,
+      "dependency_depth": 7,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5420,7 +5323,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 10,
+      "dependency_depth": 8,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5438,7 +5341,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 11,
+      "dependency_depth": 9,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5454,7 +5357,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 12,
+      "dependency_depth": 10,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5473,7 +5376,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 13,
+      "dependency_depth": 11,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5491,7 +5394,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 14,
+      "dependency_depth": 12,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5508,7 +5411,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 15,
+      "dependency_depth": 13,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5524,7 +5427,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 16,
+      "dependency_depth": 14,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5540,7 +5443,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 17,
+      "dependency_depth": 15,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5557,7 +5460,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 18,
+      "dependency_depth": 16,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5573,7 +5476,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 19,
+      "dependency_depth": 17,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5589,7 +5492,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 20,
+      "dependency_depth": 18,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5605,7 +5508,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 21,
+      "dependency_depth": 19,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5627,7 +5530,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 22,
+      "dependency_depth": 20,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5649,7 +5552,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 23,
+      "dependency_depth": 21,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5671,7 +5574,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 24,
+      "dependency_depth": 22,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5693,7 +5596,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 25,
+      "dependency_depth": 23,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5715,7 +5618,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 26,
+      "dependency_depth": 24,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5737,7 +5640,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 27,
+      "dependency_depth": 25,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5759,7 +5662,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 28,
+      "dependency_depth": 26,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5777,7 +5680,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 29,
+      "dependency_depth": 27,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5793,7 +5696,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 30,
+      "dependency_depth": 28,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5809,7 +5712,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 31,
+      "dependency_depth": 29,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5825,7 +5728,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 32,
+      "dependency_depth": 30,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5842,7 +5745,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 33,
+      "dependency_depth": 31,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5858,7 +5761,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 34,
+      "dependency_depth": 32,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5874,7 +5777,7 @@
     },
     {
       "candidate_parallel": true,
-      "dependency_depth": 35,
+      "dependency_depth": 33,
       "file_conflicts": [],
       "requires": [
         "all verification_dependencies have accepted ancestry-bound receipts",
@@ -5890,8 +5793,6 @@
     }
   ],
   "representative_critical_path": [
-    "TASK-001",
-    "TASK-070",
     "TASK-071",
     "TASK-072",
     "TASK-002",
@@ -6677,9 +6578,7 @@
       "task_id": "TASK-070"
     },
     {
-      "base_dependencies": [
-        "TASK-070"
-      ],
+      "base_dependencies": [],
       "recovery": "Discard an unintegrated candidate and retry from the accepted parent; never recover by widening writable scope or mutating forbidden paths.",
       "scope_source": "refactoring-tasks/terminal-components/completion/071/verify.toml",
       "task_id": "TASK-071"
@@ -13884,7 +13783,7 @@
         ],
         "scope_source": "refactoring-tasks/terminal-components/completion/001/verify.toml",
         "writable_paths": [
-          "tools/refactor-proof"
+          "tools/refactor-proof/src"
         ]
       },
       "key": "B-HARNESS",
@@ -24586,8 +24485,7 @@
         ],
         "scope_source": "refactoring-tasks/terminal-components/completion/070/verify.toml",
         "writable_paths": [
-          "tools/refactor-proof/runner",
-          "tools/refactor-proof/bin/tc-proof"
+          "tools/refactor-proof/runner"
         ]
       },
       "key": "B-RUNNER",
@@ -24627,9 +24525,7 @@
         "gate_check_ids": [
           "CHK-007"
         ],
-        "required_dependencies": [
-          "TASK-070"
-        ],
+        "required_dependencies": [],
         "requires_all_dependencies": true,
         "requires_final_product_success_to_start": false,
         "requires_own_receipt_to_start": false
@@ -24638,9 +24534,7 @@
         "refactoring-tasks/terminal-components/completion/071/verify.toml",
         "refactoring-tasks/terminal-components/completion/071/trusted/proof-bootstrap/host-bootstrap-fixture/verify.toml"
       ],
-      "dependencies": [
-        "TASK-070"
-      ],
+      "dependencies": [],
       "direct_check_count": 7,
       "direct_contract": {
         "check_count": 7,
@@ -24701,13 +24595,7 @@
       },
       "shared_interface_count": 8,
       "title": "Implement qualified exact test execution accounting",
-      "verification_dependencies": [
-        {
-          "receipt": "accepted-ancestry-bound-dependency-receipt",
-          "source": "task.toml.dependencies",
-          "task_id": "TASK-070"
-        }
-      ],
+      "verification_dependencies": [],
       "wave": "B"
     },
     "TASK-072": {

@@ -50,7 +50,7 @@ Read before editing:
 
 In scope:
 
-- `tools/refactor-proof` for this task's stated product and directly necessary tests.
+- `tools/refactor-proof/src` for remaining comparator maintenance. Native runner/bin/accounting/architecture homes are outside this retired package.
 - Independently inspectable qualified-harness evidence and exact provenance; write generated run outputs only to host-assigned directories.
 
 Out of scope:
