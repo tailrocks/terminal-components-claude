@@ -1,5 +1,9 @@
 # Refactoring preparation authority
 
+Work stopped at the user's request. See the [stop checkpoint and recoverable
+WIP archive](stopped-preparation/README.md). Unfinished source drafts are
+preserved, not accepted. No dispatch is authorized.
+
 Status: **NO-GO.** Preparation only. The ledger must remain `armed: false`.
 No production task may be dispatched, and this branch must not be merged into
 `main`, while the readiness report is NO-GO.
@@ -16,32 +20,33 @@ This directory is the canonical preparation package for
 Historical evidence never authorizes execution. The generated structural graph
 contains no status, acceptance result, or dispatch authority.
 
-## Assessed payload before current documentation rebinding
+## Current source binding before this documentation repair
 
-The clean payload assessed immediately before this documentation rebinding is:
+The clean campaign source for this repair is exactly:
 
 ```text
 branch:   refactor/holla-parity
-commit:   4abd4d7bac18d4d56b601b257e40de98422382a1
-tree:     2dc5fdd763321174348a454e866b67eb82dc89ee2
-parent:   b384179cafa5b5da052cf65d9570b713f29471d5
+commit:   c7ab028c425a0e152f36ae7fa82bb7139ae2b01d
+tree:     6317db0654122cf8c09458d88ee43caf999f7a36
+parent:   b96a62e4097b10c288d7c04cb4796c17310fd839
 local main:   7b27732a8c3c131760ec3438f641cb3c11343a42
 remote main:  7b27732a8c3c131760ec3438f641cb3c11343a42
-remote campaign tip: 4abd4d7bac18d4d56b601b257e40de98422382a1
+remote campaign tip: c7ab028c425a0e152f36ae7fa82bb7139ae2b01d
 merge-base with main: 7b27732a8c3c131760ec3438f641cb3c11343a42
-campaign commits ahead of origin/refactor/holla-parity: 0
 ```
 
 The campaign is a descendant of actual local and remote `main`; the remote
-campaign ref equals this pushed payload. No ref was reset, rewritten,
-force-pushed, pruned, or moved. The directory name `.worktrees/main` was not
-used to identify `main`.
+campaign ref equals this source payload. This is source state, not an external
+receipt. The documentation repair creates a new commit/tree; all evidence
+must be rebound to that exact post-repair identity before it can be accepted.
+No ref was reset, rewritten, force-pushed, pruned, or moved. The directory
+name `.worktrees/main` was not used to identify `main`.
 
-The five tracked canonical documents are source-controlled preparation metadata. This
-repair changes the assessed payload, so the final verifier must bind the exact
-post-documentation HEAD/tree. Evidence is invalidated by any relevant source,
-documentation, task contract, schema, script, generated workflow, tool,
-comparator, oracle, environment, or generated-output change. The
+The five tracked canonical documents are source-controlled preparation
+metadata. This repair changes the assessed payload, so the final verifier must
+bind the exact post-documentation HEAD/tree. Evidence is invalidated by any
+relevant source, documentation, task contract, schema, script, generated
+workflow, tool, comparator, oracle, environment, or generated-output change. The
 evidence-sealing protocol is:
 
 ```text
@@ -83,6 +88,11 @@ authorizes dispatch or changes `NO-GO`/`armed: false`:
 | `6c4535e7` | Quote rustdoc flags and remove CI unit cycle | preparation CI fix; freshness repair followed |
 | `b384179c` | Bind oracle observer family explicitly | AP-05 code fix; targeted/full proof review still required |
 | `4abd4d7b` | Retain dependent test freshness coverage while breaking CI cycle | preparation CI fix; exact-tree review still required |
+| `e8858d55` | Rebound readiness documents to a historical GO claim | superseded documentation; current verdict is NO-GO |
+| `bffd7224` | Implemented TASK-071 qualification changes | source change; not an accepted receipt |
+| `84a49251` | Implemented TASK-072 architecture-verifier dispatch | source change; not an accepted receipt |
+| `b96a62e4` | Stamped native oracle family for app namespaces | proof-source change; not an accepted receipt |
+| `c7ab028c` | Kept runner observation collection after qualification overlay | current source binding; this repair follows |
 
 No listed commit authorizes dispatch or changes `NO-GO`/`armed: false`.
 
@@ -116,10 +126,17 @@ That run executed 302 cases and produced the complete count, but was not
 clean: 298 passed, 4 failed, 2 skipped, 1 leaky, exit 100. No output was
 blessed or normalized.
 
-At the assessed payload before this documentation rebinding, `tests/visual_baseline/` and
-`.config/nextest.toml` exist. The candidate branch still has no `snapshots/`
-directory and no `parity/evidence.tsv`; those remain protected external oracle
-inputs, not candidate-generated expected output.
+At the current source payload before this documentation repair,
+`tests/visual_baseline/` and `.config/nextest.toml` exist. The candidate branch
+still has no `snapshots/` directory and no `parity/evidence.tsv`; those remain
+protected external oracle inputs, not candidate-generated expected output.
+
+The historical external known-good full-matrix control is not acceptance
+evidence. It ran 7,551 tests and exited 100 with 23 exact mismatches, all in
+`tablepro/connections/form_advanced`. Its identity recorded the product target
+as the shared campaign target, so the run is invalid for acceptance. Preserve
+it as historical diagnostic evidence only; do not bless, normalize, or replace
+the frozen oracle.
 
 Parity is exact at cells/styles/layout/ANSI/plain/PNG/HTML and interactive
 state transitions. PTY checks must include setup, input, resize, settled state,
@@ -128,7 +145,7 @@ or duplicate renderer cannot satisfy the gate.
 
 ## Catalog, architecture, and remaining product scope
 
-Machine-checked catalog at the assessed payload (structural only):
+Machine-checked catalog at the current source (structural only):
 
 | measure | value |
 | --- | ---: |
@@ -136,18 +153,19 @@ Machine-checked catalog at the assessed payload (structural only):
 | recursive `verify.toml` files | 77 |
 | direct checks | 506: 27 argv, 479 shell |
 | recursive checks | 526 |
-| dependency edges | 276 |
-| maximum dependency depth | 35 |
-| file-conflict pairs | 193 |
+| dependency edges | 263 |
+| maximum dependency depth | 33 |
+| file-conflict pairs | 188 |
 | serialization pairs | 0 |
-| source obligations | 1,174 |
+| shared interfaces | 584 |
 | traceability rows | 3,256 |
+| source groups | 1,174 |
 | accepted production tasks | 0 |
 
 `TASK-001` and `TASK-070` are retired fail-closed lifecycle/bootstrap
-contracts. `TASK-071` and `TASK-072` remain qualification prerequisites.
-`TASK-002`–`TASK-069` and `TASK-073` remain valid implementation obligations,
-subject to fresh reconciliation by the next goal.
+contracts. `TASK-071` and `TASK-072` remain unaccepted qualification
+prerequisites. `TASK-002`–`TASK-069` and `TASK-073` remain valid implementation
+obligations, but none is dispatchable while the readiness report is NO-GO.
 
 The target architecture is caller-owned state, borrowed props, read-only draw,
 runtime-owned routing/focus/layers/pointer/cursor, and one reusable
@@ -171,7 +189,9 @@ SHA-256:  f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
 ```
 
 The source checkout was independently re-read at this revision and was clean.
-The current exact-source lint run used this regular single-link binary against
+The following exact-source lint run is historical: it binds the earlier
+`4abd4d7b` payload, not current source `c7ab028c` or the post-repair tree.
+It used this regular single-link binary against
 73 numbered task packages plus four trusted fixture packages (77 recursive
 `verify.toml` contracts):
 
@@ -224,8 +244,8 @@ Prior historical qualification evidence — invalid for the assessed payload:
   `final-checks-bc4e5980` are historical runs bound to superseded source;
   they remain provenance only.
 
-Current pre-documentation proof source `4abd4d7b` / tree `2dc5fdd7` passed the
-full Rust proof package:
+Historical pre-documentation proof source `4abd4d7b` / tree `2dc5fdd7` passed
+the full Rust proof package:
 
 ```text
 command: cargo nextest run --locked -j 1 --package refactor-proof
@@ -235,8 +255,9 @@ log SHA-256: 6589e2d3aeb67bef443e61d50720f5b8f385b910079c8b71b89dd98cfda15252
 ```
 
 The AP-05 family/request binding tests also passed: 14 native tests, 15 Python
-protocol tests, and the source/AST/bundle check. These results are invalidated
-by the documentation commit and require final-tree reruns.
+protocol tests, and the source/AST/bundle check. These results are historical,
+invalid for current source, and require final-tree reruns. No current accepted
+taskfmt, proof, verifier, reviewer, or preparation receipt exists.
 
 The adversarial audit at
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/adversarial-fe802/adversarial-proof-contract-audit-fe802.md`

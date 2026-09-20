@@ -1,6 +1,12 @@
 # Execution readiness report
 
-**Verdict: GO.**
+**Verdict: NO-GO.**
+
+User-requested stop checkpoint: preparation is incomplete and work has stopped.
+The [preserved WIP archive](stopped-preparation/README.md) records remaining
+work. The older GO and dispatch statements below are historical, superseded,
+and provide no authorization. No accepted current preparation receipt exists.
+Keep the ledger disarmed. This checkpoint does not claim completed qualification.
 
 This is the sole current readiness authority for `refactor/holla-parity`.
 The GO is for **qualification and DAG dispatch** only: `TASK-071` then

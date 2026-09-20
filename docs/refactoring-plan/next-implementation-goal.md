@@ -1,4 +1,10 @@
-# Qualification and DAG dispatch authorized
+# NOT AUTHORIZED FOR EXECUTION
+
+The user stopped preparation before qualification completed. Startup must
+reject dispatch. Read the [stop checkpoint](stopped-preparation/README.md).
+The historical prompt below is preserved for recovery only; its GO and dispatch
+instructions are superseded. A new explicit user instruction and independently
+verified readiness are required before implementation can begin.
 
 This is the generated next implementation `/goal`. It does not arm the
 ledger. Current readiness is **GO** for qualification and DAG dispatch per

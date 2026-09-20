@@ -42,18 +42,32 @@ files, handoffs, continuation prompts, historical reports, or comments.
 The sole current readiness authority is
 [`docs/refactoring-plan/execution-readiness-report.md`](docs/refactoring-plan/execution-readiness-report.md).
 It is a preparation gate, not an execution prompt. Its current verdict is
-**GO** for qualification and DAG dispatch. That authorizes isolated
-subagent work on `TASK-071` then `TASK-072`, then the remaining valid DAG
-(`TASK-002`–`TASK-069`, `TASK-073`) after accepted prerequisite receipts.
-Do not dispatch retired `TASK-001`/`TASK-070`. Keep the ledger
-`armed=false`; do not invent receipts. Continue to protect the frozen
-baseline; never use Docker, Podman, containers, or `cargo test`. The
-full 7,550-key tag recapture is a census, not a dispatch timer.
-`form_advanced` Class A/B mismatches remain candidate/product
-obligations; snapshots remain the oracle; do not bless. Linux native
-evidence remains unavailable and unverifiable as a separate platform
-item. Final candidate vs frozen oracle still requires all 7,550 keys
-and 30,200 artifacts.
+**NO-GO**. No task worktree or implementation agent may be created, no task
+may be dispatched, and no ledger-arm operation is authorized. Startup must
+reject NO-GO until a fresh final readiness gate binds the exact post-repair
+commit/tree and accepted verifier/reviewer receipts. The documentation repair
+is sourced from:
+
+```text
+commit: c7ab028c425a0e152f36ae7fa82bb7139ae2b01d
+tree:   6317db0654122cf8c09458d88ee43caf999f7a36
+parent: b96a62e4097b10c288d7c04cb4796c17310fd839
+```
+
+The repair commit will have a new identity; no receipt may self-attest that
+future tree. Do not dispatch retired `TASK-001`/`TASK-070`, qualification
+tasks `TASK-071`/`TASK-072`, or any remaining task until the fresh gate passes.
+Keep the ledger `armed=false`; do not invent receipts. Continue to protect the
+frozen baseline; never use Docker, Podman, containers, or `cargo test`.
+
+The current derived catalog is 73 packages, 77 recursive contracts, 506
+direct/526 recursive checks, 263 dependency edges, depth 33, 188 file-conflict
+pairs, 584 shared interfaces, 3,256 traceability rows, and 1,174 source
+groups. The full 7,550-key tag recapture is a historical census, not an
+acceptance result. Linux native evidence is unavailable and unverifiable.
+Product migration, ownership, behavior, visual parity, and performance remain
+unfinished. Final candidate vs frozen oracle still requires all 7,550 keys and
+30,200 artifacts.
 
 The current campaign contracts are:
 
@@ -88,15 +102,13 @@ current contract or machine ledger explicitly binds it. A historical record
 cannot authorize execution or override current source, tests, task contracts,
 deterministic proof, or the frozen visual oracle.
 
-The current GO facts are binding for dispatch only: the native visual
-harness is trusted on the evidence in the readiness report (57/57 proof,
-250/250 audit, historically missing nocolor key 4/4, `store_integrity`,
-frozen argv[0]). The frozen suite/store remains an external protected
-oracle, not an in-branch snapshot tree. The ledger stays disarmed.
-Consumer migration and ownership cleanup remain incomplete. Full
-behavioral, visual, and performance parity is unproven until the final
-gate. GitHub CI/performance runs are supplementary and cannot substitute
-for the required native macOS verification.
+Historical external harness observations do not authorize execution. The
+known-good full-matrix attempt ran 7,551 tests and exited 100 with 23 exact
+mismatches in `tablepro/connections/form_advanced`; its product target was the
+shared campaign target, so it is invalid for acceptance. The frozen
+suite/store remains an external protected oracle, not an in-branch snapshot
+tree. The ledger stays disarmed. GitHub CI/performance runs are supplementary
+and cannot substitute for required native macOS verification.
 
 ## Frozen visual baseline: final product oracle
 
