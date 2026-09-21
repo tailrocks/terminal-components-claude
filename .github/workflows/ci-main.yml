@@ -379,6 +379,7 @@ jobs:
       unit_trust: untrusted-ok
       unit_admission: github-hosted
       validation_phases: "fmt,clippy,test"
+      full_history: true
       toolchain: "1.98.1"
   github-hosted-rust-junie-tui-testing:
     name: "Rust · junie-tui-testing · github-hosted — rust-junie-tui-testing"
