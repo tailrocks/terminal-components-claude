@@ -1,0 +1,4 @@
+# Process-per-test isolation matches the repository visual/PTY contract.
+[profile.default]
+fail-fast = false
+slow-timeout = { period = "60s" }
