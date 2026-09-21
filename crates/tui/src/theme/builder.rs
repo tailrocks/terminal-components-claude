@@ -12,7 +12,9 @@ use ratatui_core::style::Color;
 use super::Theme;
 use super::border::BorderSet;
 use super::downgrade::{MonoRule, lab_of, luminance, rgb_of};
-use super::glyph::{ASCII_RULE_ACTIVE, ASCII_RULE_QUIET, ASCII_SCROLLBAR, GlyphRole};
+use super::glyph::{
+    ASCII_GLYPHS, ASCII_RULE_ACTIVE, ASCII_RULE_QUIET, ASCII_SCROLLBAR, ASCII_SPINNER, GlyphRole,
+};
 use super::recipe::Family;
 use super::role::{FG_STEPS, SURFACE_LEVELS};
 use super::tokens::{ColorTokens, Density, MotionTokens, SizeTokens, SpaceTokens};
@@ -217,39 +219,49 @@ impl ThemeBuilder {
         self
     }
 
-    /// Rebind every glyph whose Junie default falls in the box-drawing block
-    /// (`U+2500..=U+257F`) to its ASCII equivalent: the quiet rule (`-`), the
-    /// active rule (`=`) and the scrollbar track (`|`), thumb (`#`) and caps
-    /// (`|`).
+    /// Rebind the whole glyph table to the exact ADJ-06 ASCII mapping: all
+    /// 42 [`GlyphRole`]s, the typed quiet/active `line` sets (`-`/`=`),
+    /// the typed `scrollbar` set (`|` track and caps, `#` thumb) and the
+    /// ten-frame ASCII spinner sequence.
     ///
-    /// The whole typed `line` and `scrollbar` sets are replaced, not the four
-    /// glyphs a [`GlyphRole`] names, so the seam junctions of `line::Set` and
-    /// `scrollbar::Set`'s `begin`/`end` — which no role reaches — are covered
-    /// too (Adjudication O2).
+    /// The whole typed `line` and `scrollbar` sets are replaced, not just the
+    /// four glyphs a [`GlyphRole`] names, so the seam junctions of `line::Set`
+    /// and `scrollbar::Set`'s `begin`/`end` — which no role reaches — are
+    /// covered too (Adjudication O2). The spinner keeps the default ten-frame
+    /// cycle length and every timing token; only the frames change.
     ///
-    /// This is the box-drawing block **only**: the remaining ~31 roles (`›`,
-    /// `✓`, `…`, `×`, the spinner frames) stay unicode, and a full `GlyphSet`
-    /// ASCII table is a separate visual-design decision (§24 M2 risk 3).
+    /// This is the glyph table **only**: the border set, the colour tokens
+    /// and every caller-owned string are untouched, so "whole ASCII glyph
+    /// table" is not "every application cell is ASCII": user text, syntax data
+    /// and explicit custom slots remain caller content.
     ///
-    /// Idempotent, and "last write wins": call [`ThemeBuilder::glyph`]
-    /// **after** this to override any of them.
+    /// Idempotent, and "last write wins": call [`ThemeBuilder::glyph`] or
+    /// [`ThemeBuilder::motion`] **after** this to override any of them, and
+    /// calling this after an explicit override replaces that override — a
+    /// whole-set call, like [`ThemeBuilder::mono_rules`]. A later caller
+    /// override may intentionally contain Unicode.
     #[must_use]
     pub fn ascii_glyphs(mut self) -> Self {
         let g = &mut self.theme.design.glyphs;
         g.set_rule_quiet(ASCII_RULE_QUIET);
         g.set_rule_active(ASCII_RULE_ACTIVE);
         g.set_scrollbar(ASCII_SCROLLBAR);
+        for (role, ascii) in ASCII_GLYPHS {
+            g.set(role, ascii);
+        }
+        self.theme.design.motion.spinner_frames = &ASCII_SPINNER;
         self
     }
 
     /// Set the border glyph set.
     ///
     /// Choosing [`border::ASCII`](crate::theme::border::ASCII) also applies
-    /// [`ThemeBuilder::ascii_glyphs`]: the rules and the scrollbar come from
-    /// typed `line`/`scrollbar` sets rather than from the border set, and an
-    /// "ASCII theme" that still paints `─` in a divider is ASCII at the edges
-    /// and unicode everywhere else — the outcome §24 M2 called worse than
-    /// either consistent choice (`theme::ascii_theme_renders_without_box_drawing_glyphs`).
+    /// [`ThemeBuilder::ascii_glyphs`]: the glyph table, the typed
+    /// `line`/`scrollbar` sets and the spinner come from the design tokens
+    /// rather than from the border set, and an "ASCII theme" that still paints
+    /// `─` in a divider is ASCII at the edges and unicode everywhere else —
+    /// the outcome §24 M2 called worse than either consistent choice
+    /// (`theme::ascii_theme_renders_without_box_drawing_glyphs`).
     ///
     /// The swap is sticky: `borders_set(ASCII).borders_set(PLAIN)` keeps the
     /// ASCII rules, because restoring the theme's own glyphs would clobber a

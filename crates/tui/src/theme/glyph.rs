@@ -297,6 +297,69 @@ pub(crate) const ASCII_RULE_QUIET: line::Set<'static> = line::Set {
     cross: "+",
 };
 
+/// The complete opt-in ASCII table (ADJ-06): one `(role, glyph)` pair per
+/// [`GlyphRole`], in declaration order.
+///
+/// Every glyph is a single ASCII byte that fills one cell. Roles that share
+/// a glyph occur in distinct semantic contexts; role identity — including
+/// every discriminant — is preserved even where glyphs collide. Applied by
+/// [`ThemeBuilder::ascii_glyphs`](crate::theme::ThemeBuilder::ascii_glyphs)
+/// together with the typed sets above.
+pub(crate) const ASCII_GLYPHS: [(GlyphRole, &str); 42] = [
+    (GlyphRole::FocusBar, "|"),
+    (GlyphRole::Chosen, ">"),
+    (GlyphRole::Checked, "v"),
+    (GlyphRole::CheckboxOn, "x"),
+    // A visible reserved blank, not an empty string: the box keeps its width.
+    (GlyphRole::CheckboxOff, " "),
+    (GlyphRole::RadioOn, "*"),
+    (GlyphRole::RadioOff, "o"),
+    (GlyphRole::SwitchKnob, "#"),
+    (GlyphRole::Dirty, "*"),
+    (GlyphRole::Inserted, "+"),
+    (GlyphRole::Deleted, "-"),
+    (GlyphRole::Error, "!"),
+    (GlyphRole::WarningMark, "?"),
+    (GlyphRole::Collapsed, ">"),
+    (GlyphRole::Expanded, "v"),
+    (GlyphRole::SortAsc, "^"),
+    (GlyphRole::SortDesc, "v"),
+    (GlyphRole::Filtered, "F"),
+    (GlyphRole::PrimaryMark, "*"),
+    (GlyphRole::Bullet, "."),
+    (GlyphRole::FollowRef, ">"),
+    (GlyphRole::MoreRows, "+"),
+    (GlyphRole::OverflowLeft, "<"),
+    (GlyphRole::OverflowRight, ">"),
+    // `~`, not three dots: three dots change the reserved width.
+    (GlyphRole::Ellipsis, "~"),
+    (GlyphRole::Close, "x"),
+    (GlyphRole::PathSep, "/"),
+    (GlyphRole::EnvProduction, "P"),
+    (GlyphRole::EnvStaging, "S"),
+    (GlyphRole::RuleQuiet, "-"),
+    (GlyphRole::RuleActive, "="),
+    (GlyphRole::ScrollTrack, "|"),
+    (GlyphRole::ScrollThumb, "#"),
+    (GlyphRole::ProgressDone, "v"),
+    (GlyphRole::ProgressPaused, "="),
+    (GlyphRole::NewTab, "+"),
+    (GlyphRole::PressLeft, "["),
+    (GlyphRole::PressRight, "]"),
+    (GlyphRole::SecretMask, "*"),
+    (GlyphRole::SelectClosed, "v"),
+    (GlyphRole::SelectOpen, "^"),
+    // No historical ASCII counterpart: `K` keeps the header glyph
+    // distinguishable from the compact [`GlyphRole::PrimaryMark`].
+    (GlyphRole::PrimaryKey, "K"),
+];
+
+/// The ASCII spinner sequence (ADJ-06): exactly ten frames, so the default
+/// cycle length and every timing token survive conversion. Consecutive
+/// frames, including wraparound, differ. A changing sequence, not a static
+/// `*`, and its cadence is not redesigned.
+pub(crate) const ASCII_SPINNER: [&str; 10] = ["|", "/", "-", "\\", "|", "/", "-", "\\", "|", "/"];
+
 /// ASCII active rule: `=` horizontal, `|` vertical, `+` at every junction.
 ///
 /// An active rule must read **heavier** than a quiet one (`DESIGN.md:557`).
