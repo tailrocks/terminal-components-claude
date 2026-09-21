@@ -49,7 +49,29 @@ def regular_bytes(path: Path, label: str) -> bytes:
         metadata = path.lstat()
     except FileNotFoundError:
         fail(f"missing {label}: {path}")
-    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+    if stat.S_ISLNK(metadata.st_mode):
+        # Agent-instruction symlinks (CLAUDE.md -> AGENTS.md) are first-class
+        # tracked files: resolve one level, confined to the repository. Chains,
+        # absolute targets, and escapes keep failing closed below.
+        try:
+            target = Path(os.readlink(path))
+        except OSError as error:
+            fail(f"cannot read {label} link {path}: {error}")
+        if target.is_absolute():
+            fail(f"{label} link escapes the repository: {path}")
+        resolved = (path.parent / target).resolve()
+        try:
+            resolved.relative_to(ROOT)
+        except ValueError:
+            fail(f"{label} link escapes the repository: {path}")
+        try:
+            metadata = resolved.lstat()
+        except OSError as error:
+            fail(f"cannot inspect {label} {path}: {error}")
+        if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+            fail(f"{label} is not a regular file: {path}")
+        path = resolved
+    elif not stat.S_ISREG(metadata.st_mode):
         fail(f"{label} is not a regular file: {path}")
     try:
         return path.read_bytes()

@@ -1018,10 +1018,18 @@ fn provenance_dimensions(record: &Value, key: &str) -> Option<(u16, u16)> {
 }
 
 fn capture_path_matches(info: &serde_json::Map<String, Value>, relative: &str) -> bool {
-    let expected = root().join(relative);
-    let expected = expected.to_string_lossy();
-    info.get("path").and_then(Value::as_str) == Some(relative)
-        && info.get("resolved_path").and_then(Value::as_str) == Some(expected.as_ref())
+    if info.get("path").and_then(Value::as_str) != Some(relative) {
+        return false;
+    }
+    let Some(resolved) = info.get("resolved_path").and_then(Value::as_str) else {
+        return false;
+    };
+    // Portable across checkouts: the bless machine's absolute root differs on
+    // every machine, so only the layout suffix is comparable. Component-wise
+    // `ends_with` still rejects flat-vs-nested drift.
+    let resolved = resolved.replace('\\', "/");
+    let relative = relative.replace('\\', "/");
+    Path::new(&resolved).ends_with(Path::new(&relative))
 }
 
 fn capture_legacy_path_matches(info: &serde_json::Map<String, Value>, relative: &str) -> bool {
@@ -1266,7 +1274,11 @@ fn validate_capture_provenance(
                 "{name}: application stderr is not recorded as empty"
             ));
         }
+        // The run-owned stderr file lives in gitignored `.capture-state`: it
+        // exists only where captures ran. Enforce emptiness when present; on
+        // fresh checkouts the recorded empty triple above is the evidence.
         if let Some(stderr_path) = stderr_path
+            && root().join(&stderr_path).exists()
             && let Err(error) = validate_empty_capture_file(&root().join(stderr_path))
         {
             errors.push(format!("{name}: {error}"));
@@ -8956,6 +8968,55 @@ mod tests {
 
     #[cfg(unix)]
     use std::os::unix::fs::symlink;
+
+    fn capture_info(path: &str, resolved_path: Option<&str>) -> serde_json::Map<String, Value> {
+        let mut info = serde_json::Map::new();
+        info.insert(
+            "path".to_owned(),
+            Value::String(path.to_owned()),
+        );
+        if let Some(resolved) = resolved_path {
+            info.insert(
+                "resolved_path".to_owned(),
+                Value::String(resolved.to_owned()),
+            );
+        }
+        info
+    }
+
+    #[test]
+    fn capture_path_matches_accepts_foreign_checkout_roots() {
+        // Committed provenance is blessed on the integration machine but
+        // validated on every checkout (notably CI): only the layout suffix
+        // of the absolute resolved path is comparable.
+        let info = capture_info(
+            "shots/showcase_junie_truecolor_80x24/ansi",
+            Some("/Users/donbeave/Projects/terminal-components-main/shots/showcase_junie_truecolor_80x24/ansi"),
+        );
+        assert!(capture_path_matches(
+            &info,
+            "shots/showcase_junie_truecolor_80x24/ansi"
+        ));
+    }
+
+    #[test]
+    fn capture_path_matches_still_rejects_layout_drift() {
+        // Flat-vs-nested drift changes the suffix, so it still fails.
+        let flat = capture_info(
+            "shots/showcase_junie_truecolor_80x24/ansi",
+            Some("/elsewhere/shots/showcase_junie_truecolor_80x24.ansi"),
+        );
+        assert!(!capture_path_matches(
+            &flat,
+            "shots/showcase_junie_truecolor_80x24/ansi"
+        ));
+        // A missing resolved path fails closed.
+        let missing = capture_info("shots/showcase_junie_truecolor_80x24/ansi", None);
+        assert!(!capture_path_matches(
+            &missing,
+            "shots/showcase_junie_truecolor_80x24/ansi"
+        ));
+    }
 
     #[test]
     fn doc_section_parser_reaches_the_authoritative_tail() {
