@@ -1,0 +1,52 @@
+schema = "verify/v2"
+task_id = "TASK-079"
+writable_paths = ["crates/tui/src/theme/builder.rs"]
+forbidden_paths = ["refactoring-tasks", "docs/refactoring-plan", "shots", "snapshots", "baseline", "parity", "tools/refactor-proof", "tools/refactor-proof-adapters", "tools/test-inventory", "tools/test-disposition", "archives", "crates/tui/src/theme/mod.rs", "crates/tui/src/theme/border.rs", "crates/tui/src/theme/builtin", "crates/tui/src/theme/downgrade.rs", "crates/tui/src/theme/glyph.rs", "crates/tui/src/theme/palettes.rs", "crates/tui/src/theme/patch.rs", "crates/tui/src/theme/recipe.rs", "crates/tui/src/theme/resolve.rs", "crates/tui/src/theme/role.rs", "crates/tui/src/theme/tokens.rs", "crates/tui/src/scroll.rs", "crates/tui/src/components/scroll_region.rs", "crates/tui/src/ui/paint.rs", "crates/tui/src/author.rs", "crates/tui/tests/completion_014.rs", "crates/tui/tests/completion_079.rs"]
+
+[[checks]]
+id = "CHK-001"
+phase = "precondition"
+shell = "tools/refactor-proof/bin/tc-proof preflight --context \"$RUN_DIR/contexts/CHK-001.json\""
+expected = { exit = 0 }
+requirements = ["R-004"]
+acceptance = ["AC-004"]
+
+[[checks]]
+id = "CHK-002"
+phase = "focused"
+shell = "cargo nextest run --locked -p junie-tui --lib fade_mix_oracle_"
+expected = { exit = 0 }
+requirements = ["R-001", "R-002"]
+acceptance = ["AC-001"]
+
+[[checks]]
+id = "CHK-003"
+phase = "focused"
+shell = "cargo nextest run --locked -p junie-tui --lib theme::"
+expected = { exit = 0 }
+requirements = ["R-003"]
+acceptance = ["AC-002"]
+
+[[checks]]
+id = "CHK-005"
+phase = "regression"
+shell = "python3 refactoring-tasks/terminal-components/completion/079/trusted/acct-presence/acct-presence-driver.py --check-id CHK-005 --context \"$RUN_DIR/contexts/CHK-005.json\" tools/refactor-proof/bin/tc-proof account-tests"
+expected = { exit = 0 }
+requirements = ["R-003"]
+acceptance = ["AC-003"]
+
+[[checks]]
+id = "CHK-006"
+phase = "lint"
+shell = "tools/refactor-proof/bin/tc-proof architecture --context \"$RUN_DIR/contexts/CHK-006.json\""
+expected = { exit = 0 }
+requirements = ["R-004"]
+acceptance = ["AC-006"]
+
+[[checks]]
+id = "CHK-007"
+phase = "gate"
+shell = "tools/refactor-proof/bin/tc-proof close --context \"$RUN_DIR/contexts/CHK-007.json\""
+expected = { exit = 0 }
+requirements = ["R-001", "R-002", "R-003", "R-004"]
+acceptance = ["AC-005"]
