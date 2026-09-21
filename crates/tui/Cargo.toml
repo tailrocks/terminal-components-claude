@@ -19,7 +19,7 @@ default = ["crossterm"]
 # Terminal session (`TerminalSession`, `run()`, `DefaultTerminal`): the only code that names a
 # backend. `--no-default-features` compiles the whole paint/theme/layout/text/collection core
 # and the runtime without it (§22 §1.2 "core is backend-free").
-crossterm = ["dep:ratatui-crossterm"]
+crossterm = ["dep:ratatui-crossterm", "dep:signal-hook"]
 # Runtime/Ui inspection surface for the test harness (§17.0 A1, A2). Never in a release binary.
 testing = []
 
@@ -29,6 +29,11 @@ ratatui-crossterm = { workspace = true, optional = true }
 unicode-width.workspace = true
 unicode-segmentation.workspace = true
 bitflags.workspace = true
+
+# TASK-009/ADJ-13: the Unix job-control signal broker only. Backend-free and
+# non-Unix builds never see this dependency.
+[target.'cfg(unix)'.dependencies]
+signal-hook = { workspace = true, optional = true }
 
 [dev-dependencies]
 junie-tui-testing.workspace = true

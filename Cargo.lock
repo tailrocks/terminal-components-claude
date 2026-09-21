@@ -1068,6 +1068,7 @@ dependencies = [
  "junie-tui-testing",
  "ratatui-core",
  "ratatui-crossterm",
+ "signal-hook",
  "trybuild",
  "unicode-segmentation",
  "unicode-width",

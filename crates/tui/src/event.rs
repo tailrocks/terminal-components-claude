@@ -388,6 +388,115 @@ mod tests {
         }
     }
 
+    /// TASK-009 W-009-06: every terminal mouse kind/button across every
+    /// SHIFT/CONTROL/ALT mask, both wheel axes, and key Press/Repeat/Release.
+    #[test]
+    #[cfg(feature = "crossterm")]
+    fn normalization_covers_every_button_modifier_wheel_and_key_kind() {
+        use KeyModifiers as M;
+        let masks = [
+            M::NONE,
+            M::SHIFT,
+            M::CONTROL,
+            M::SHIFT | M::CONTROL,
+            M::ALT,
+            M::SHIFT | M::ALT,
+            M::CONTROL | M::ALT,
+            M::SHIFT | M::CONTROL | M::ALT,
+        ];
+        let buttons = [
+            (MouseEventKind::Moved, Some(MouseKind::Move)),
+            (
+                MouseEventKind::Down(MouseButton::Left),
+                Some(MouseKind::Down),
+            ),
+            (MouseEventKind::Up(MouseButton::Left), Some(MouseKind::Up)),
+            (
+                MouseEventKind::Drag(MouseButton::Left),
+                Some(MouseKind::Drag),
+            ),
+            (
+                MouseEventKind::Down(MouseButton::Right),
+                Some(MouseKind::Secondary),
+            ),
+            (
+                MouseEventKind::Up(MouseButton::Right),
+                Some(MouseKind::SecondaryUp),
+            ),
+            (MouseEventKind::Down(MouseButton::Middle), None),
+            (MouseEventKind::Up(MouseButton::Middle), None),
+            (MouseEventKind::Drag(MouseButton::Middle), None),
+            (MouseEventKind::Drag(MouseButton::Right), None),
+            (
+                MouseEventKind::ScrollUp,
+                Some(MouseKind::Wheel(Axis::V, -1)),
+            ),
+            (
+                MouseEventKind::ScrollDown,
+                Some(MouseKind::Wheel(Axis::V, 1)),
+            ),
+            (
+                MouseEventKind::ScrollLeft,
+                Some(MouseKind::Wheel(Axis::H, -1)),
+            ),
+            (
+                MouseEventKind::ScrollRight,
+                Some(MouseKind::Wheel(Axis::H, 1)),
+            ),
+        ];
+        for mods in masks {
+            for (kind, expected) in &buttons {
+                match (Input::from_crossterm(mouse(*kind, mods)), expected) {
+                    (Some(Input::Mouse(m)), Some(want)) => {
+                        assert_eq!(m.kind, *want, "{kind:?} with {mods:?}");
+                        assert_eq!(m.mods, mods, "{kind:?} must carry modifiers");
+                        assert_eq!(m.pos, Position::new(3, 4));
+                    }
+                    (None, None) => {}
+                    (got, want) => panic!("{kind:?} with {mods:?}: got {got:?}, want {want:?}"),
+                }
+            }
+            for code in [KeyCode::Char('a'), KeyCode::Enter, KeyCode::F(5)] {
+                let key = |kind| {
+                    Event::Key(KeyEvent {
+                        code: code.into(),
+                        modifiers: mods.into(),
+                        kind,
+                        state: KeyEventState::NONE,
+                    })
+                };
+                let press = key(KeyEventKind::Press);
+                let repeat = key(KeyEventKind::Repeat);
+                let release = key(KeyEventKind::Release);
+                assert_eq!(
+                    Input::from_crossterm(press),
+                    Some(Input::Key(Key { code, mods })),
+                    "{code:?} press with {mods:?}"
+                );
+                assert_eq!(
+                    Input::from_crossterm(repeat),
+                    Some(Input::Key(Key { code, mods })),
+                    "{code:?} repeat with {mods:?}"
+                );
+                assert_eq!(
+                    Input::from_crossterm(release),
+                    None,
+                    "{code:?} release with {mods:?} must drop"
+                );
+            }
+        }
+        assert_eq!(
+            Input::from_crossterm(Event::Resize(100, 30)),
+            Some(Input::Resize(100, 30))
+        );
+        assert!(matches!(
+            Input::from_crossterm(Event::Paste("x".to_owned())),
+            Some(Input::Paste(_))
+        ));
+        assert_eq!(Input::from_crossterm(Event::FocusGained), None);
+        assert_eq!(Input::from_crossterm(Event::FocusLost), None);
+    }
+
     #[test]
     fn chord_matches_shifted_chars_and_display_is_readable() {
         let k = Key {

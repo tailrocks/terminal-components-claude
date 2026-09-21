@@ -51,7 +51,8 @@ pub use id::{Id, ItemKey, Part, PartRef};
 // runtime
 #[cfg(feature = "crossterm")]
 pub use runtime::session::{
-    DefaultTerminal, TerminalSession, chain_panic_hook, run, run_with_feedback_clock,
+    DefaultTerminal, TerminalColorPolicy, TerminalSession, chain_panic_hook, run,
+    run_with_feedback_clock, run_with_feedback_clock_and_color,
 };
 pub use runtime::{
     ActivationFeedback, ActivationKey, App, ClockError, FeedbackClock, FeedbackClockError, Moment,
