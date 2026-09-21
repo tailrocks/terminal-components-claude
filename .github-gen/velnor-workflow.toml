@@ -46,6 +46,14 @@ CARGO_TERM_COLOR = "always"
 RUSTFLAGS = "-D warnings"
 RUSTDOCFLAGS = "-D warnings"
 
+# Dev-dependency cycle breaker: crates/tui dev-depends on junie-tui-testing
+# (trybuild/compile-fail harnesses) while the harness depends on the library.
+# Cargo tolerates the dev-cycle; the CI DAG cannot. Cut the test-only edge —
+# each unit job's own cargo invocation still builds what its tests need.
+[[units]]
+id = "rust-junie-tui"
+depends_on = []
+
 # Declared MSRV floor proof (§22.5): plain `cargo check` on the explicit
 # 1.88.0 leg (minimal profile: no pin components leak onto the floor), never
 # a +toolchain command. Shallow checkout: no diff-aware command runs here.
