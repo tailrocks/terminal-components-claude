@@ -101,7 +101,7 @@ pub use tree::{
     NodeKind, Tree, TreeAction, TreeBranchActivation, TreeBranchClick, TreeCmd, TreeNode, TreeState,
 };
 pub use viewport::{
-    CellPos, TextViewport, ViewportAction, ViewportCmd, ViewportLine, ViewportState,
+    CellPos, ProjectedText, TextViewport, ViewportAction, ViewportCmd, ViewportLine, ViewportState,
 };
 #[cfg(feature = "testing")]
 pub use viewport::{ViewportWorkProbe, ViewportWorkSnapshot};
