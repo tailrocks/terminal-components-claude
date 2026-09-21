@@ -1619,6 +1619,33 @@ fn read_bytes(root: &Path, relative: &str, label: &str) -> Result<Vec<u8>, Strin
     let path = safe_join(root, relative)?;
     let metadata = fs::symlink_metadata(&path)
         .map_err(|error| format!("cannot inspect {label} {relative}: {error}"))?;
+    // Agent-instruction symlinks (CLAUDE.md -> AGENTS.md) are first-class
+    // tracked files: resolve one level, confined to the repository. Chains,
+    // absolute targets, and escapes keep failing closed below.
+    let path = if metadata.file_type().is_symlink() {
+        let target = fs::read_link(&path)
+            .map_err(|error| format!("cannot read {label} link {relative}: {error}"))?;
+        let target = target.to_str().ok_or_else(|| {
+            format!("{label} link target is not UTF-8: {relative}")
+        })?;
+        let resolved = if Path::new(target).is_absolute() {
+            return Err(format!("{label} link escapes the repository: {relative}"));
+        } else if let Some(parent) = Path::new(relative).parent() {
+            parent.join(target)
+        } else {
+            PathBuf::from(target)
+        };
+        let resolved = resolved.to_str().ok_or_else(|| {
+            format!("{label} link target is not UTF-8: {relative}")
+        })?;
+        safe_join(root, resolved)?
+    } else if !metadata.is_file() {
+        return Err(format!("{label} is not a regular file: {relative}"));
+    } else {
+        path
+    };
+    let metadata = fs::symlink_metadata(&path)
+        .map_err(|error| format!("cannot inspect {label} {relative}: {error}"))?;
     if metadata.file_type().is_symlink() || !metadata.is_file() {
         return Err(format!("{label} is not a regular file: {relative}"));
     }
