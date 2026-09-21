@@ -225,10 +225,12 @@ enum SeamAlign {
 ///
 /// ## Layout
 /// [`SplitModel`] does the arithmetic: `gap` cells between the panes, the
-/// minima honoured, and **when both minima cannot fit the first pane wins
-/// on both axes** — which is also the narrow-collapse mode, so a caller
-/// that wants a single pane below a width sets `min_second` and lets the
-/// model collapse. `measure` reports the minima plus the gap. `draw`
+/// minima honoured, and **when both minima cannot fit a vertical split keeps
+/// the first (top) pane while a horizontal split keeps the second (right)
+/// pane** — the source `Split::{vertical, horizontal}` rule (W-012-08),
+/// which is also the narrow-collapse mode: a caller that wants a single pane
+/// below a width sets the minima and lets the model collapse. `measure`
+/// reports the minima plus the gap. `draw`
 /// passes the two pane rects to its body; both are `Rect::ZERO`-safe and either may be
 /// empty (maximised or collapsed). A degenerate `area` registers nothing
 /// and passes two origin-anchored empty rects to the body (R5).
@@ -979,20 +981,28 @@ mod tests {
     }
 
     /// The minima are enforced once, in [`SplitModel`], and the component
-    /// inherits the documented rule: when both minima cannot fit, the first
-    /// pane wins on **both** axes. A caller relies on this for
-    /// narrow-collapse, so it is asserted through the component's own API and
-    /// not only through the layout primitive.
+    /// inherits the source rule (W-012-08): when both minima cannot fit, a
+    /// vertical split keeps the first (top) pane and a horizontal split keeps
+    /// the second (right) pane. A caller relies on this for narrow-collapse,
+    /// so it is asserted through the component's own API and not only through
+    /// the layout primitive.
     #[test]
-    fn the_first_pane_wins_when_the_minima_do_not_fit() {
-        for axis in [SplitAxis::Horizontal, SplitAxis::Vertical] {
-            let sp = SplitPane::new(ID, axis).min_first(30).min_second(30);
-            let st = SplitPaneState::default();
-            let (a, b) = sp.panes(st, AREA);
-            assert_eq!(a, AREA, "{axis:?}: the first pane did not take the area");
-            assert!(b.is_empty(), "{axis:?}: the second pane survived");
-            assert!(sp.seam(st, AREA).is_empty(), "{axis:?}: a seam survived");
-        }
+    fn minima_failure_keeps_the_source_side_per_axis() {
+        let st = SplitPaneState::default();
+        let v = SplitPane::new(ID, SplitAxis::Vertical)
+            .min_first(30)
+            .min_second(30);
+        let (a, b) = v.panes(st, AREA);
+        assert_eq!(a, AREA, "vertical: the first pane did not take the area");
+        assert!(b.is_empty(), "vertical: the second pane survived");
+        assert!(v.seam(st, AREA).is_empty(), "vertical: a seam survived");
+        let h = SplitPane::new(ID, SplitAxis::Horizontal)
+            .min_first(30)
+            .min_second(30);
+        let (a, b) = h.panes(st, AREA);
+        assert_eq!(b, AREA, "horizontal: the second pane did not take the area");
+        assert!(a.is_empty(), "horizontal: the first pane survived");
+        assert!(h.seam(st, AREA).is_empty(), "horizontal: a seam survived");
     }
 
     /// A reference split is not a live drag target.

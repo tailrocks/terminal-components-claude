@@ -381,7 +381,9 @@ pub enum SplitAxis {
 }
 
 /// A two-pane split model: percent of the first pane, minima, maximise state
-/// and axis. When both minima cannot fit, **the first pane wins on both axes**.
+/// and axis. When both minima cannot fit, a vertical split keeps the first
+/// (top) pane and a horizontal split keeps the second (right) pane — the
+/// source `Split::{vertical, horizontal}` rule (W-012-08).
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct SplitModel {
     /// Percent of the usable length given to the first pane, `5..=95`.
@@ -492,8 +494,15 @@ impl SplitModel {
             Maximized::None => {
                 let usable = self.length(area).saturating_sub(gap);
                 if usable < self.min_first.saturating_add(self.min_second) {
-                    // not enough room for both: the first pane wins on both axes
-                    return (area, self.collapsed(area, true));
+                    // not enough room for both: the source rule keeps the
+                    // first (top) pane on a vertical split and the second
+                    // (right) pane on a horizontal one (W-012-08). The empty
+                    // pane stays an anchored contained rect, the percent is
+                    // untouched, and the arithmetic stays saturating.
+                    return match self.axis {
+                        SplitAxis::Vertical => (area, self.collapsed(area, true)),
+                        SplitAxis::Horizontal => (self.collapsed(area, false), area),
+                    };
                 }
                 let first =
                     (u32::from(usable).saturating_mul(u32::from(self.percent)) / 100) as u16;
@@ -834,16 +843,29 @@ mod tests {
         }
     }
 
+    /// W-012-08: the source `Split::{vertical, horizontal}` rule for a minima
+    /// failure — a vertical split keeps the first (top) pane, a horizontal
+    /// split keeps the second (right) pane. The survivor takes the whole
+    /// area; the empty pane is anchored inside it, never `Rect::ZERO`; the
+    /// percent survives the collapse.
     #[test]
-    fn split_first_pane_wins_on_both_axes_when_minima_do_not_fit() {
+    fn split_minima_failure_keeps_the_source_side_per_axis() {
         let v = SplitModel::new(SplitAxis::Vertical, 60, 5, 5);
         let (a, b) = v.layout(Rect::new(0, 0, 80, 8), 1);
         assert_eq!(a.height, 8);
         assert!(b.is_empty());
+        // the W-012-08 probe: minima 50/50 against 80 available
+        let v50 = SplitModel::new(SplitAxis::Vertical, 60, 50, 50);
+        let (a, b) = v50.layout(Rect::new(0, 0, 80, 80), 1);
+        assert_eq!(a, Rect::new(0, 0, 80, 80));
+        assert_eq!(b, Rect::new(0, 80, 80, 0));
+        assert_eq!(v50.percent, 60);
         let h = SplitModel::new(SplitAxis::Horizontal, 60, 50, 50);
         let (a, b) = h.layout(Rect::new(0, 0, 80, 8), 1);
-        assert_eq!(a.width, 80);
-        assert!(b.is_empty());
+        assert_eq!(b, Rect::new(0, 0, 80, 8));
+        assert_eq!(a, Rect::new(0, 0, 0, 8));
+        assert!(a.is_empty());
+        assert_eq!(h.percent, 60);
         // normal case and the seam
         let (a, b) = v.layout(Rect::new(0, 0, 80, 30), 1);
         assert_eq!((a.height, b.height), (17, 12));
@@ -879,10 +901,15 @@ mod tests {
         hmax.toggle_max(Maximized::First);
         hmax.toggle_max(Maximized::Second);
         assert_eq!(hmax.layout(area, 1).0, Rect::new(3, 2, 0, 6));
-        // and the collapsed one, where the minima do not fit
+        // and the collapsed ones, where the minima do not fit: vertical
+        // keeps the first pane, horizontal keeps the second (W-012-08)
         let tight = SplitModel::new(SplitAxis::Vertical, 60, 50, 50);
         assert_eq!(tight.layout(area, 1).1, Rect::new(3, 8, 10, 0));
         assert!(tight.layout(area, 1).1.is_empty());
+        let tight_h = SplitModel::new(SplitAxis::Horizontal, 60, 50, 50);
+        assert_eq!(tight_h.layout(area, 1).0, Rect::new(3, 2, 0, 6));
+        assert!(tight_h.layout(area, 1).0.is_empty());
+        assert_eq!(tight_h.layout(area, 1).1, area);
 
         let inside = |r: Rect, area: Rect, what: &str, model: &SplitModel| {
             assert!(
