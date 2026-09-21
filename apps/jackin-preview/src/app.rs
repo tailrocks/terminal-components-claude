@@ -4,21 +4,28 @@
 //! public facade.  Domain and simulation state stay in sibling modules.
 
 use junie_tui::author::PaintStyle;
-use std::{collections::BTreeMap, mem, time::Duration};
+use std::{
+    cell::RefCell,
+    collections::{BTreeMap, hash_map::DefaultHasher},
+    hash::{Hash, Hasher},
+    mem,
+    time::Duration,
+};
 
 use junie_tui::{
     ActionKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx, Dialog, DialogAction,
     DialogState, FrameRead, HelpAction, HelpOverlay, HelpOverlayState, HelpSection, Hint, HintBar,
     HintLayer, Id, Intent, Item, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, List,
-    ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState, Moment, Panel, Part,
-    PartRef, Phase, Picker, PickerAction, PickerState, Position, Reconcile, Rect, Response,
-    SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction, TextInput,
-    TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction, ViewportLine,
-    ViewportState,
+    ListAction, ListState, Menu, MenuAction, MenuBar, MenuItem, MenuState, Modifier, Moment, Panel,
+    Part, PartRef, Phase, Picker, PickerAction, PickerState, Position, ProjectedText, Reconcile,
+    Rect, Response, SecretPolicy, StatusBar, StatusItem, Tabs, TabsAction, TabsState, TextAction,
+    TextInput, TextInputState, TextViewport, TooSmall, Ui, UpdateCause, Variant, ViewportAction,
+    ViewportLine, ViewportState,
 };
 
 use crate::domain::account::{
-    Account, CredentialSource, DetectedKind, DuplicateProbe, ValidationState, fingerprint, tail_of,
+    Account, AccountRegistry, CredentialSource, DetectedKind, DuplicateProbe, ValidationState,
+    fingerprint, tail_of,
 };
 use crate::domain::agent::{Agent, Provider};
 use crate::domain::instance::{DaemonSnapshot, InstanceStatus};
@@ -41,7 +48,7 @@ use crate::screens::{
 };
 use crate::sim::launch::{BUILD_LOG, LaunchEvent, LaunchPlan, LaunchRun, Stage};
 use crate::sim::provider;
-use crate::sim::pty::{Daemon, PaneId, SplitDir};
+use crate::sim::pty::{Daemon, Maximized, Pane, PaneId, PaneNode, SplitDir, Tab};
 use crate::sim::world::{World, world_for};
 
 /// One cached projection binds domain identity, collection identity, and presentation.
@@ -372,6 +379,104 @@ impl AsItem for AgentOption {
     }
 }
 
+/// Cached capsule per-frame projections: scrollback text, tab labels, pane
+/// titles and pane geometry. Rebuilt only when the fingerprinted inputs
+/// change, so steady-state draws borrow instead of allocating.
+///
+/// The cache lives behind [`RefCell`] because draws are `&self`: both update
+/// and draw phases ensure entries on demand. Fingerprints hash every byte the
+/// corresponding builder reads, so a hit always matches a fresh build (up to
+/// a 64-bit hash collision, which self-heals on the next input change).
+#[derive(Debug, Clone, Default)]
+struct CapsuleFrameCaches {
+    /// Scrollback projection per pane, valid while the term revision matches.
+    transcripts: BTreeMap<PaneId, (u64, ProjectedText)>,
+    /// Tab strip labels with the fingerprint of everything they read.
+    tabs: Option<(u64, Vec<String>)>,
+    /// Framed pane titles with per-pane fingerprints.
+    titles: BTreeMap<PaneId, (u64, String)>,
+    /// Pane geometry with the fingerprint of topology plus area.
+    layouts: Option<(u64, Vec<(PaneId, Rect)>)>,
+}
+
+/// Static hint-bar content, built once per [`App`] so draws borrow instead of
+/// allocating. Process-global statics are banned (rule 18); ownership here
+/// keeps every hint layer an ordinary App field.
+#[derive(Debug, Clone)]
+struct HintLayerSet {
+    help: HintLayer,
+    default: HintLayer,
+    capsule_help: HintLayer,
+    capsule_menu: HintLayer,
+    capsule_prefix: HintLayer,
+    capsule_inspect: HintLayer,
+    capsule_default: HintLayer,
+}
+
+impl HintLayerSet {
+    fn layer(hints: Vec<Hint>) -> HintLayer {
+        HintLayer {
+            hints,
+            badge: None,
+            status: None,
+            centered: false,
+        }
+    }
+
+    fn hint(key: junie_tui::HintKey, label: &'static str, priority: u8) -> Hint {
+        Hint {
+            key,
+            label,
+            priority,
+        }
+    }
+}
+
+impl Default for HintLayerSet {
+    fn default() -> Self {
+        use junie_tui::HintKey;
+        Self {
+            help: Self::layer(vec![Self::hint(
+                HintKey::Chord(Chord::key(KeyCode::Esc)),
+                "Close",
+                90,
+            )]),
+            default: Self::layer(vec![Self::hint(
+                HintKey::Chord(Chord::key(KeyCode::Enter)),
+                "Choose",
+                90,
+            )]),
+            capsule_help: Self::layer(vec![Self::hint(
+                HintKey::Chord(Chord::key(KeyCode::Esc)),
+                "Close",
+                90,
+            )]),
+            capsule_menu: Self::layer(vec![
+                Self::hint(HintKey::Chord(Chord::key(KeyCode::Esc)), "Close", 90),
+                Self::hint(HintKey::Chord(Chord::key(KeyCode::Enter)), "Choose", 80),
+                Self::hint(HintKey::Chord(Chord::key(KeyCode::F(10))), "Menu", 70),
+            ]),
+            capsule_prefix: Self::layer(vec![
+                Self::hint(
+                    HintKey::Chord(Chord::key(KeyCode::Char('c'))),
+                    "New tab",
+                    90,
+                ),
+                Self::hint(HintKey::Chord(Chord::key(KeyCode::Char('d'))), "Detach", 80),
+            ]),
+            capsule_inspect: Self::layer(vec![
+                Self::hint(HintKey::Chord(Chord::key(KeyCode::Tab)), "Open diff", 90),
+                Self::hint(HintKey::Chord(Chord::key(KeyCode::Esc)), "Close", 80),
+            ]),
+            capsule_default: Self::layer(vec![Self::hint(
+                HintKey::Chord(Chord::with(KeyCode::Char('B'), KeyModifiers::CONTROL)),
+                "prefix",
+                90,
+            )]),
+        }
+    }
+}
+
 /// The Jackin Preview application.
 #[derive(Debug, Clone)]
 pub struct App {
@@ -440,6 +545,8 @@ pub struct App {
     capsule_viewport_revisions: BTreeMap<PaneId, u64>,
     capsule_viewport_retained: BTreeMap<PaneId, usize>,
     capsule_viewport_focused: bool,
+    capsule_frame: RefCell<CapsuleFrameCaches>,
+    hint_layers: HintLayerSet,
     capsule_tab_title: String,
     capsule_tab_title_index: usize,
     capsule_tab_title_dialog: bool,
@@ -610,6 +717,8 @@ impl App {
             capsule_viewport_revisions: BTreeMap::new(),
             capsule_viewport_retained: BTreeMap::new(),
             capsule_viewport_focused: false,
+            capsule_frame: RefCell::default(),
+            hint_layers: HintLayerSet::default(),
             capsule_tab_title: String::new(),
             capsule_tab_title_index: 0,
             capsule_tab_title_dialog: false,
@@ -719,6 +828,21 @@ impl App {
             .collect()
     }
 
+    /// Whether the launch affordance has any candidate, without building them.
+    ///
+    /// Exactly `!self.launch_candidates().is_empty()`: candidate discovery
+    /// maps offers 1:1 and the role never affects offer configuredness (see
+    /// [`World::has_offered_agents`]). Per-frame update/draw must call this;
+    /// only the agent picker needs the full [`Self::launch_candidates`] list.
+    fn launch_available(&self) -> bool {
+        let id = self
+            .manager
+            .selected()
+            .or_else(|| self.world.workspaces.first().map(|workspace| workspace.id));
+        let workspace = id.and_then(|id| self.world.workspace(id));
+        self.world.has_offered_agents(workspace)
+    }
+
     fn selected_instance_id(&self) -> Option<String> {
         match self.manager.selected_row() {
             ManagerRowKey::Instance(id) => Some(id.clone()),
@@ -733,11 +857,21 @@ impl App {
     }
 
     fn active_running_instance_id(&self) -> Option<String> {
-        self.active_instance.as_ref().and_then(|id| {
-            self.world
+        Self::active_running_instance_id_ref(&self.active_instance, &self.world).map(str::to_owned)
+    }
+
+    /// Borrow the active running instance id without allocating. Hot
+    /// draw paths must use this instead of the owned
+    /// [`Self::active_running_instance_id`].
+    fn active_running_instance_id_ref<'a>(
+        active_instance: &'a Option<String>,
+        world: &'a World,
+    ) -> Option<&'a str> {
+        active_instance.as_ref().and_then(|id| {
+            world
                 .instance(id)
                 .filter(|instance| instance.status == InstanceStatus::Running)
-                .map(|instance| instance.id.clone())
+                .map(|instance| instance.id.as_str())
         })
     }
 
@@ -1786,6 +1920,353 @@ impl App {
         }
     }
 
+    /// Project one terminal transcript into owned viewport text.
+    ///
+    /// One single-run line per transcript line renders exactly like the
+    /// previous per-frame `ViewportLine::Plain` join; the caller keeps the
+    /// projection while the term revision matches.
+    fn project_term(term: &crate::sim::pty::TextViewport, out: &mut ProjectedText) {
+        out.clear();
+        let mut joined = String::new();
+        for line in &term.lines {
+            joined.clear();
+            for span in line {
+                joined.push_str(span.text.as_str());
+            }
+            out.push_line([(joined.as_str(), None, Modifier::empty())]);
+        }
+    }
+
+    /// Ensure the cached projection of `pane`'s scrollback, rebuilding only
+    /// when the term revision changed. Every runtime transcript mutation
+    /// bumps the revision, so a hit always matches a fresh projection.
+    fn ensure_capsule_transcript(caches: &mut CapsuleFrameCaches, pane: &Pane) {
+        let revision = pane.term.revision();
+        let fresh = caches
+            .transcripts
+            .get(&pane.id)
+            .is_some_and(|(cached, _)| *cached == revision);
+        if !fresh {
+            let mut text = ProjectedText::default();
+            Self::project_term(&pane.term, &mut text);
+            caches.transcripts.insert(pane.id, (revision, text));
+        }
+    }
+
+    /// Hash one pane-tree topology: structure, splits and leaf ids in visual
+    /// order. Allocation-free; covers everything [`PaneNode::layout`] reads.
+    fn hash_topology(hasher: &mut DefaultHasher, node: &PaneNode) {
+        match node {
+            PaneNode::Leaf(id) => {
+                hasher.write_u8(0);
+                hasher.write_u64(*id);
+            }
+            PaneNode::Split {
+                dir,
+                split,
+                first,
+                second,
+            } => {
+                hasher.write_u8(1);
+                hasher.write_u8(match dir {
+                    SplitDir::Horizontal => 0,
+                    SplitDir::Vertical => 1,
+                });
+                hasher.write_u16(split.percent);
+                hasher.write_u16(split.min_first);
+                hasher.write_u16(split.min_second);
+                hasher.write_u8(match split.maximized {
+                    Maximized::None => 0,
+                    Maximized::First => 1,
+                    Maximized::Second => 2,
+                });
+                Self::hash_topology(hasher, first);
+                Self::hash_topology(hasher, second);
+            }
+        }
+    }
+
+    /// Hash one leaf pane's contribution to tab labels: agent, resolved
+    /// account display name and attention state. Mirrors exactly what
+    /// [`Daemon::tab_label`] and [`Daemon::tab_state`] read per pane.
+    fn hash_tab_pane(
+        hasher: &mut DefaultHasher,
+        daemon: &Daemon,
+        accounts: &AccountRegistry,
+        pane_id: PaneId,
+    ) {
+        hasher.write_u64(pane_id);
+        let Some(pane) = daemon.pane(pane_id) else {
+            hasher.write_u8(0);
+            return;
+        };
+        hasher.write_u8(1);
+        match pane.proc.agent {
+            None => hasher.write_u8(0),
+            Some(agent) => {
+                hasher.write_u8(1);
+                hasher.write(agent.label().as_bytes());
+            }
+        }
+        match pane.proc.account.as_ref().and_then(|id| accounts.get(id)) {
+            None => hasher.write_u8(0),
+            Some(account) => {
+                hasher.write_u8(1);
+                hasher.write(account.display_name.as_bytes());
+            }
+        }
+        pane.state().hash(hasher);
+    }
+
+    /// Hash every tab label input of one tab in visual leaf order.
+    fn hash_tab_labels(
+        hasher: &mut DefaultHasher,
+        daemon: &Daemon,
+        accounts: &AccountRegistry,
+        node: &PaneNode,
+    ) {
+        match node {
+            PaneNode::Leaf(id) => Self::hash_tab_pane(hasher, daemon, accounts, *id),
+            PaneNode::Split { first, second, .. } => {
+                Self::hash_tab_labels(hasher, daemon, accounts, first);
+                Self::hash_tab_labels(hasher, daemon, accounts, second);
+            }
+        }
+    }
+
+    /// Fingerprint of everything [`Self::build_capsule_tabs`] reads, without
+    /// allocating. A hit guarantees the cached labels match a fresh build.
+    fn capsule_tabs_fingerprint(
+        world: &World,
+        instance_id: Option<&str>,
+        tab_title: &str,
+        tab_title_index: usize,
+    ) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        match instance_id.and_then(|id| world.daemons.get(id)) {
+            None => hasher.write_u8(0),
+            Some(daemon) => {
+                hasher.write_u8(1);
+                hasher.write_usize(daemon.tabs.len());
+                hasher.write_usize(daemon.active);
+                for tab in &daemon.tabs {
+                    match &tab.custom_label {
+                        None => hasher.write_u8(0),
+                        Some(label) => {
+                            hasher.write_u8(1);
+                            hasher.write(label.as_bytes());
+                        }
+                    }
+                    Self::hash_tab_labels(&mut hasher, daemon, &world.accounts, &tab.root);
+                }
+            }
+        }
+        hasher.write(tab_title.as_bytes());
+        hasher.write_usize(tab_title_index);
+        hasher.finish()
+    }
+
+    /// Build the tab strip labels. Pure in its inputs; see
+    /// [`Self::capsule_tabs_fingerprint`] for the cached equivalent.
+    fn build_capsule_tabs(
+        world: &World,
+        instance_id: Option<&str>,
+        tab_title: &str,
+        tab_title_index: usize,
+    ) -> Vec<String> {
+        let mut dynamic = instance_id
+            .and_then(|id| world.daemons.get(id))
+            .map(|daemon| {
+                daemon
+                    .tabs
+                    .iter()
+                    .enumerate()
+                    .map(|(index, tab)| {
+                        let mut label = daemon.tab_label(tab, &|pane| {
+                            pane.proc
+                                .account
+                                .as_ref()
+                                .and_then(|id| world.accounts.get(id))
+                                .map(|account| account.display_name.clone())
+                        });
+                        if index == daemon.active {
+                            let glyph = Self::pane_state_glyph(daemon.tab_state(tab));
+                            if !glyph.is_empty() {
+                                label.push(' ');
+                                label.push_str(glyph);
+                            }
+                        }
+                        label
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        if dynamic.is_empty() {
+            dynamic.push("Mix (3) ●".into());
+        }
+        if dynamic.len() < 2 {
+            dynamic.push("Shell".into());
+        }
+        if !tab_title.is_empty()
+            && let Some(label) = dynamic.get_mut(tab_title_index)
+        {
+            *label = tab_title.to_owned();
+        }
+        if dynamic.len() < 3 {
+            dynamic.push("docs ●".into());
+        }
+        dynamic
+            .into_iter()
+            .enumerate()
+            .map(|(index, label)| format!("{} {label}", index.saturating_add(1)))
+            .collect()
+    }
+
+    /// Ensure the cached tab strip labels, rebuilding only when the
+    /// fingerprinted inputs changed.
+    fn ensure_capsule_tabs(
+        caches: &mut CapsuleFrameCaches,
+        world: &World,
+        instance_id: Option<&str>,
+        tab_title: &str,
+        tab_title_index: usize,
+    ) {
+        let fingerprint =
+            Self::capsule_tabs_fingerprint(world, instance_id, tab_title, tab_title_index);
+        let fresh = caches
+            .tabs
+            .as_ref()
+            .is_some_and(|(cached, _)| *cached == fingerprint);
+        if !fresh {
+            caches.tabs = Some((
+                fingerprint,
+                Self::build_capsule_tabs(world, instance_id, tab_title, tab_title_index),
+            ));
+        }
+    }
+
+    /// Fingerprint of one framed pane title's inputs: agent label, resolved
+    /// account display name and attention state.
+    fn pane_title_fingerprint(accounts: &AccountRegistry, pane: &Pane) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        hasher.write_u64(pane.id);
+        match pane.proc.agent {
+            None => hasher.write_u8(0),
+            Some(agent) => {
+                hasher.write_u8(1);
+                hasher.write(agent.label().as_bytes());
+            }
+        }
+        match pane.proc.account.as_ref().and_then(|id| accounts.get(id)) {
+            None => hasher.write_u8(0),
+            Some(account) => {
+                hasher.write_u8(1);
+                hasher.write(account.display_name.as_bytes());
+            }
+        }
+        pane.state().hash(&mut hasher);
+        hasher.finish()
+    }
+
+    /// Build one framed pane title from its label and state glyph.
+    fn build_pane_title(accounts: &AccountRegistry, pane: &Pane) -> String {
+        let label = pane
+            .proc
+            .account
+            .as_ref()
+            .and_then(|id| accounts.get(id))
+            .map_or_else(
+                || pane.label(),
+                |account| format!("{} ({})", pane.label(), account.display_name),
+            );
+        let glyph = Self::pane_state_glyph(pane.state());
+        if glyph.is_empty() {
+            format!(" {label} ")
+        } else {
+            format!(" {label} {glyph} ")
+        }
+    }
+
+    /// Ensure one cached pane title, rebuilding only when its inputs changed.
+    fn ensure_pane_title(caches: &mut CapsuleFrameCaches, accounts: &AccountRegistry, pane: &Pane) {
+        let fingerprint = Self::pane_title_fingerprint(accounts, pane);
+        let fresh = caches
+            .titles
+            .get(&pane.id)
+            .is_some_and(|(cached, _)| *cached == fingerprint);
+        if !fresh {
+            caches.titles.insert(
+                pane.id,
+                (fingerprint, Self::build_pane_title(accounts, pane)),
+            );
+        }
+    }
+
+    /// Fingerprint of pane geometry: topology, zoom and container area.
+    fn pane_layouts_fingerprint(tab: &Tab, area: Rect) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        Self::hash_topology(&mut hasher, &tab.root);
+        match tab.zoomed {
+            None => hasher.write_u8(0),
+            Some(id) => {
+                hasher.write_u8(1);
+                hasher.write_u64(id);
+            }
+        }
+        hasher.write_u16(area.x);
+        hasher.write_u16(area.y);
+        hasher.write_u16(area.width);
+        hasher.write_u16(area.height);
+        hasher.finish()
+    }
+
+    /// Build leaf pane geometry for a container area.
+    fn build_pane_layouts(tab: &Tab, area: Rect) -> Vec<(PaneId, Rect)> {
+        let mut layouts = Vec::new();
+        if let Some(zoomed) = tab.zoomed {
+            layouts.push((zoomed, area));
+        } else {
+            tab.root
+                .layout(area, &mut layouts, &mut Vec::new(), &mut Vec::new());
+        }
+        layouts
+    }
+
+    /// Ensure cached pane geometry, rebuilding only when topology, zoom or
+    /// area changed.
+    fn ensure_pane_layouts(caches: &mut CapsuleFrameCaches, tab: &Tab, area: Rect) {
+        let fingerprint = Self::pane_layouts_fingerprint(tab, area);
+        let fresh = caches
+            .layouts
+            .as_ref()
+            .is_some_and(|(cached, _)| *cached == fingerprint);
+        if !fresh {
+            caches.layouts = Some((fingerprint, Self::build_pane_layouts(tab, area)));
+        }
+    }
+
+    /// Ensure transcript and title projections for every leaf of a pane tree,
+    /// without allocating the leaf list.
+    fn ensure_tab_projections(
+        caches: &mut CapsuleFrameCaches,
+        daemon: &Daemon,
+        accounts: &AccountRegistry,
+        node: &PaneNode,
+    ) {
+        match node {
+            PaneNode::Leaf(id) => {
+                if let Some(pane) = daemon.pane(*id) {
+                    Self::ensure_capsule_transcript(caches, pane);
+                    Self::ensure_pane_title(caches, accounts, pane);
+                }
+            }
+            PaneNode::Split { first, second, .. } => {
+                Self::ensure_tab_projections(caches, daemon, accounts, first);
+                Self::ensure_tab_projections(caches, daemon, accounts, second);
+            }
+        }
+    }
+
     fn update_capsule_viewports(&mut self, cx: &mut Cx<'_>, result: &mut Response<()>) {
         let Some(instance_id) = self.active_running_instance_id() else {
             return;
@@ -1796,24 +2277,20 @@ impl App {
         let Some(tab) = daemon.active_tab() else {
             return;
         };
+        Self::ensure_tab_projections(
+            self.capsule_frame.get_mut(),
+            daemon,
+            &self.world.accounts,
+            &tab.root,
+        );
         let sources = tab
             .leaves()
             .into_iter()
             .filter_map(|pane_id| {
                 daemon.pane(pane_id).map(|pane| {
-                    let lines = pane
-                        .term
-                        .lines
-                        .iter()
-                        .map(|line| {
-                            line.iter()
-                                .map(|span| span.text.as_str())
-                                .collect::<String>()
-                        })
-                        .collect::<Vec<_>>();
                     (
                         pane_id,
-                        lines,
+                        pane.term.lines.len(),
                         pane.term.caret,
                         tab.focused == pane_id,
                         pane.term.revision(),
@@ -1831,9 +2308,17 @@ impl App {
             .retain(|pane_id, _| pane_ids.contains(pane_id));
         self.capsule_viewport_retained
             .retain(|pane_id, _| pane_ids.contains(pane_id));
+        self.capsule_frame
+            .get_mut()
+            .transcripts
+            .retain(|pane_id, _| pane_ids.contains(pane_id));
+        self.capsule_frame
+            .get_mut()
+            .titles
+            .retain(|pane_id, _| pane_ids.contains(pane_id));
 
         let mut focused_pane = None;
-        for (pane_id, lines, caret, focused, revision, retained) in sources {
+        for (pane_id, line_count, caret, focused, revision, retained) in sources {
             let id = Self::capsule_viewport_id(pane_id);
             let clicked = cx.intents(id).any(|intent| {
                 matches!(
@@ -1848,7 +2333,7 @@ impl App {
                 .capsule_viewport_lengths
                 .get(&pane_id)
                 .copied()
-                .unwrap_or(lines.len());
+                .unwrap_or(line_count);
             let previous_retained = self
                 .capsule_viewport_retained
                 .get(&pane_id)
@@ -1859,7 +2344,7 @@ impl App {
             let dropped = retained.saturating_sub(previous_retained);
             if dropped > 0 {
                 state.retained(dropped);
-            } else if previous_len > lines.len() {
+            } else if previous_len > line_count {
                 state.clear_selection();
                 state.invalidate();
             }
@@ -1867,12 +2352,12 @@ impl App {
                 state.invalidate();
             }
             state.set_caret(focused.then_some(caret).flatten());
-            let viewport_lines = lines
-                .iter()
-                .map(|line| ViewportLine::Plain(line.as_str()))
-                .collect::<Vec<_>>();
+            let frame = self.capsule_frame.borrow();
+            let Some((_, projected)) = frame.transcripts.get(&pane_id) else {
+                continue;
+            };
             let viewport_response =
-                Self::capsule_viewport(pane_id).update(cx, state, &viewport_lines);
+                Self::capsule_viewport(pane_id).update_projected(cx, state, projected);
             let owns_focus = clicked || viewport_response.focused();
             let viewport_action = viewport_response.action_ref().cloned();
             *result |= viewport_response.erase();
@@ -1881,7 +2366,9 @@ impl App {
                 Some(ViewportAction::SelectionChanged) => {
                     let mut text = String::new();
                     self.capsule_viewports.get(&pane_id).and_then(|state| {
-                        state.copy_into(&viewport_lines, &mut text).then_some(text)
+                        state
+                            .copy_from_projected(projected, &mut text)
+                            .then_some(text)
                     })
                 }
                 _ => None,
@@ -1893,7 +2380,7 @@ impl App {
             if owns_focus {
                 focused_pane = Some(pane_id);
             }
-            self.capsule_viewport_lengths.insert(pane_id, lines.len());
+            self.capsule_viewport_lengths.insert(pane_id, line_count);
             self.capsule_viewport_revisions.insert(pane_id, revision);
             self.capsule_viewport_retained.insert(pane_id, retained);
         }
@@ -1906,16 +2393,21 @@ impl App {
     fn update_overlays(&mut self, cx: &mut Cx<'_>) -> Response<()> {
         let mut result = Response::ignored();
 
-        Self::with_capsule_help(|sections| {
-            let help = HelpOverlay::new(CAPSULE_HELP, "Capsule", sections);
-            let response = help.update(cx, &mut self.capsule_help_state);
-            let closed = matches!(response.action_ref(), Some(HelpAction::Closed(_)));
-            result |= response.erase();
-            if closed {
-                self.capsule_help_open = false;
-                self.status = None;
-            }
-        });
+        // The help overlay is the only `CAPSULE_HELP` opener and clears this
+        // flag on its Closed action, so a closed overlay has no update work:
+        // skipping it avoids rebuilding static hint content on every update.
+        if self.capsule_help_open {
+            Self::with_capsule_help(|sections| {
+                let help = HelpOverlay::new(CAPSULE_HELP, "Capsule", sections);
+                let response = help.update(cx, &mut self.capsule_help_state);
+                let closed = matches!(response.action_ref(), Some(HelpAction::Closed(_)));
+                result |= response.erase();
+                if closed {
+                    self.capsule_help_open = false;
+                    self.status = None;
+                }
+            });
+        }
 
         let info = Self::container_info_dialog();
         let response = info.update(cx, &mut self.container_info_state);
@@ -2191,7 +2683,7 @@ impl App {
             self.prelude = PreludeState::default();
             result |= Response::changed();
         }
-        let launch_disabled = self.launch_candidates().is_empty();
+        let launch_disabled = !self.launch_available();
         let button = Self::launch_button(launch_disabled).update(cx);
         let chosen = button.activated();
         result |= button.erase();
@@ -3141,8 +3633,21 @@ impl App {
             }
             result |= Response::changed();
         }
-        let tabs = self.capsule_tabs();
-        let tabs_response = Tabs::new(CAPSULE_TABS).update(cx, &mut self.tabs_state, &tabs);
+        Self::ensure_capsule_tabs(
+            self.capsule_frame.get_mut(),
+            &self.world,
+            Self::active_running_instance_id_ref(&self.active_instance, &self.world),
+            &self.capsule_tab_title,
+            self.capsule_tab_title_index,
+        );
+        let tabs_response = {
+            let frame = self.capsule_frame.borrow();
+            let tabs = frame
+                .tabs
+                .as_ref()
+                .map_or(&[] as &[String], |(_, tabs)| tabs.as_slice());
+            Tabs::new(CAPSULE_TABS).update(cx, &mut self.tabs_state, tabs)
+        };
         if let Some(TabsAction::Activated(ItemKey::Index(index))) =
             tabs_response.action_ref().copied()
         {
@@ -5002,7 +5507,7 @@ impl App {
                 ..area
             },
         );
-        Self::launch_button(self.launch_candidates().is_empty()).draw(
+        Self::launch_button(!self.launch_available()).draw(
             ui,
             Rect {
                 y: area.bottom().saturating_sub(1),
@@ -5671,57 +6176,6 @@ impl App {
         }
     }
 
-    fn capsule_tabs(&self) -> Vec<String> {
-        let mut dynamic = self
-            .active_running_instance_id()
-            .and_then(|id| self.world.daemons.get(&id))
-            .map(|daemon| {
-                let accounts = self.world.accounts.clone();
-                daemon
-                    .tabs
-                    .iter()
-                    .enumerate()
-                    .map(|(index, tab)| {
-                        let mut label = daemon.tab_label(tab, &|pane| {
-                            pane.proc
-                                .account
-                                .as_ref()
-                                .and_then(|id| accounts.get(id))
-                                .map(|account| account.display_name.clone())
-                        });
-                        if index == daemon.active {
-                            let glyph = Self::pane_state_glyph(daemon.tab_state(tab));
-                            if !glyph.is_empty() {
-                                label.push(' ');
-                                label.push_str(glyph);
-                            }
-                        }
-                        label
-                    })
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_default();
-        if dynamic.is_empty() {
-            dynamic.push("Mix (3) ●".into());
-        }
-        if dynamic.len() < 2 {
-            dynamic.push("Shell".into());
-        }
-        if !self.capsule_tab_title.is_empty()
-            && let Some(label) = dynamic.get_mut(self.capsule_tab_title_index)
-        {
-            *label = self.capsule_tab_title.clone();
-        }
-        if dynamic.len() < 3 {
-            dynamic.push("docs ●".into());
-        }
-        dynamic
-            .into_iter()
-            .enumerate()
-            .map(|(index, label)| format!("{} {label}", index.saturating_add(1)))
-            .collect()
-    }
-
     fn pane_state_glyph(state: crate::domain::instance::AgentState) -> &'static str {
         match state {
             crate::domain::instance::AgentState::Blocked => "●",
@@ -5730,17 +6184,6 @@ impl App {
             crate::domain::instance::AgentState::Idle => "◆",
             crate::domain::instance::AgentState::Unknown => "",
         }
-    }
-
-    fn capsule_pane_label(&self, pane: &crate::sim::pty::Pane) -> String {
-        pane.proc
-            .account
-            .as_ref()
-            .and_then(|id| self.world.accounts.get(id))
-            .map_or_else(
-                || pane.label(),
-                |account| format!("{} ({})", pane.label(), account.display_name),
-            )
     }
 
     fn historical_capsule_frame(&self) -> bool {
@@ -5766,11 +6209,12 @@ impl App {
     fn draw_capsule_panes(&self, ui: &mut Ui<'_>, area: Rect) {
         let style = ui.surface_style();
         ui.fill(area, style);
-        let Some(instance_id) = self.active_running_instance_id() else {
+        let instance_id = Self::active_running_instance_id_ref(&self.active_instance, &self.world);
+        let Some(instance_id) = instance_id else {
             paint_lines(ui, area, &["Capsule is empty"]);
             return;
         };
-        let Some(daemon) = self.world.daemons.get(&instance_id) else {
+        let Some(daemon) = self.world.daemons.get(instance_id) else {
             paint_lines(ui, area, &["Daemon unavailable"]);
             return;
         };
@@ -5778,30 +6222,29 @@ impl App {
             paint_lines(ui, area, &["No sessions"]);
             return;
         };
-        let framed = tab.leaves().len() > 1 || tab.zoomed.is_some();
-        let mut layouts = Vec::new();
-        if let Some(zoomed) = tab.zoomed {
-            layouts.push((zoomed, area));
-        } else {
-            tab.root
-                .layout(area, &mut layouts, &mut Vec::new(), &mut Vec::new());
+        let framed = tab.leaf_count() > 1 || tab.zoomed.is_some();
+        {
+            let mut frame = self.capsule_frame.borrow_mut();
+            Self::ensure_tab_projections(&mut frame, daemon, &self.world.accounts, &tab.root);
+            Self::ensure_pane_layouts(&mut frame, tab, area);
         }
-        for (pane_id, pane_area) in layouts {
+        let frame = self.capsule_frame.borrow();
+        let layouts = frame
+            .layouts
+            .as_ref()
+            .map_or(&[] as &[(PaneId, Rect)], |(_, layouts)| layouts.as_slice());
+        for &(pane_id, pane_area) in layouts {
             if pane_area.width < 4 || pane_area.height < 3 {
                 continue;
             }
-            let Some(pane) = daemon.pane(pane_id) else {
+            if daemon.pane(pane_id).is_none() {
                 continue;
-            };
+            }
             let focused = tab.focused == pane_id;
             let inner = if framed {
                 let inner = ui.frame(pane_area, style);
-                let label = self.capsule_pane_label(pane);
-                let glyph = Self::pane_state_glyph(pane.state());
-                let title = if glyph.is_empty() {
-                    format!(" {label} ")
-                } else {
-                    format!(" {label} {glyph} ")
+                let Some((_, title)) = frame.titles.get(&pane_id) else {
+                    continue;
                 };
                 ui.paint_str(
                     Rect::new(
@@ -5810,7 +6253,7 @@ impl App {
                         pane_area.width.saturating_sub(4),
                         1,
                     ),
-                    &title,
+                    title,
                     style,
                 );
                 inner
@@ -5820,30 +6263,19 @@ impl App {
             if inner.is_empty() {
                 continue;
             }
-            let transcript = pane
-                .term
-                .lines
-                .iter()
-                .map(|line| {
-                    line.iter()
-                        .map(|span| span.text.as_str())
-                        .collect::<String>()
-                })
-                .collect::<Vec<_>>();
+            let Some((_, projected)) = frame.transcripts.get(&pane_id) else {
+                continue;
+            };
             let viewport_area = Rect {
                 height: inner.height.saturating_sub(u16::from(focused)),
                 ..inner
             };
-            let viewport_lines = transcript
-                .iter()
-                .map(|line| ViewportLine::Plain(line.as_str()))
-                .collect::<Vec<_>>();
             let state = self
                 .capsule_viewports
                 .get(&pane_id)
                 .cloned()
                 .unwrap_or_default();
-            Self::capsule_viewport(pane_id).draw(ui, viewport_area, &state, &viewport_lines);
+            Self::capsule_viewport(pane_id).draw_projected(ui, viewport_area, &state, projected);
             if focused && !inner.is_empty() {
                 let input_y = if self.historical_capsule_frame() {
                     inner.bottom().saturating_sub(3)
@@ -5860,12 +6292,25 @@ impl App {
     }
 
     fn draw_capsule(&self, ui: &mut Ui<'_>, area: Rect) {
-        let tabs = self.capsule_tabs();
-        let tab_area = Rect {
-            height: area.height.min(2),
-            ..area
-        };
-        Tabs::new(CAPSULE_TABS).draw(ui, tab_area, &self.tabs_state, &tabs);
+        Self::ensure_capsule_tabs(
+            &mut self.capsule_frame.borrow_mut(),
+            &self.world,
+            Self::active_running_instance_id_ref(&self.active_instance, &self.world),
+            &self.capsule_tab_title,
+            self.capsule_tab_title_index,
+        );
+        {
+            let frame = self.capsule_frame.borrow();
+            let tabs = frame
+                .tabs
+                .as_ref()
+                .map_or(&[] as &[String], |(_, tabs)| tabs.as_slice());
+            let tab_area = Rect {
+                height: area.height.min(2),
+                ..area
+            };
+            Tabs::new(CAPSULE_TABS).draw(ui, tab_area, &self.tabs_state, tabs);
+        }
         let pane_area = Rect {
             y: area.y.saturating_add(2),
             height: area.height.saturating_sub(2),
@@ -6010,92 +6455,18 @@ impl App {
                 .draw(ui, Rect::new(area.x, footer_y, area.width, 1));
         }
 
-        let hints = if self.capsule_help_open {
-            HintLayer {
-                hints: vec![Hint {
-                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Esc)),
-                    label: "Close",
-                    priority: 90,
-                }],
-                badge: None,
-                status: None,
-                centered: false,
-            }
+        let hints: &HintLayer = if self.capsule_help_open {
+            &self.hint_layers.capsule_help
         } else if self.capsule_menu_state.is_open() || self.capsule_tab_menu_open {
-            HintLayer {
-                hints: vec![
-                    Hint {
-                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Esc)),
-                        label: "Close",
-                        priority: 90,
-                    },
-                    Hint {
-                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Enter)),
-                        label: "Choose",
-                        priority: 80,
-                    },
-                    Hint {
-                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::F(10))),
-                        label: "Menu",
-                        priority: 70,
-                    },
-                ],
-                badge: None,
-                status: None,
-                centered: false,
-            }
+            &self.hint_layers.capsule_menu
         } else if self.capsule_prefix {
-            HintLayer {
-                hints: vec![
-                    Hint {
-                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('c'))),
-                        label: "New tab",
-                        priority: 90,
-                    },
-                    Hint {
-                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Char('d'))),
-                        label: "Detach",
-                        priority: 80,
-                    },
-                ],
-                badge: None,
-                status: None,
-                centered: false,
-            }
+            &self.hint_layers.capsule_prefix
         } else if self.inspect_files {
-            HintLayer {
-                hints: vec![
-                    Hint {
-                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Tab)),
-                        label: "Open diff",
-                        priority: 90,
-                    },
-                    Hint {
-                        key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Esc)),
-                        label: "Close",
-                        priority: 80,
-                    },
-                ],
-                badge: None,
-                status: None,
-                centered: false,
-            }
+            &self.hint_layers.capsule_inspect
         } else {
-            HintLayer {
-                hints: vec![Hint {
-                    key: junie_tui::HintKey::Chord(Chord::with(
-                        KeyCode::Char('B'),
-                        KeyModifiers::CONTROL,
-                    )),
-                    label: "prefix",
-                    priority: 90,
-                }],
-                badge: None,
-                status: None,
-                centered: false,
-            }
+            &self.hint_layers.capsule_default
         };
-        HintBar::new(APP.sub("capsule-hint"), &hints).draw(
+        HintBar::new(APP.sub("capsule-hint"), hints).draw(
             ui,
             Rect::new(area.x, footer_y.saturating_add(1), area.width, 1),
         );
@@ -6120,11 +6491,13 @@ impl App {
     }
 
     fn draw_layers(&self, ui: &mut Ui<'_>) {
-        Self::with_capsule_help(|sections| {
-            let help = HelpOverlay::new(CAPSULE_HELP, "Capsule", sections);
-            let _ = ui.layer(CAPSULE_HELP, |ui, area| {
+        // `Ui::layer` skips the closure for closed layers: build overlay
+        // content inside so hidden overlays cost nothing per frame.
+        let _ = ui.layer(CAPSULE_HELP, |ui, area| {
+            Self::with_capsule_help(|sections| {
+                let help = HelpOverlay::new(CAPSULE_HELP, "Capsule", sections);
                 help.draw(ui, area, &self.capsule_help_state)
-            });
+            })
         });
         let _ = ui.layer(CAPSULE_TAB_MENU, |ui, area| {
             Self::capsule_tab_context(self.capsule_tab_menu_pos).draw(
@@ -6142,8 +6515,8 @@ impl App {
             )
         });
         let info = Self::container_info_dialog();
-        let info_lines = self.container_info_lines();
         let _ = ui.layer(CAPSULE_CONTAINER_INFO, |ui, area| {
+            let info_lines = self.container_info_lines();
             info.draw(ui, area, &self.container_info_state, |ui, body| {
                 paint_lines(ui, body, &info_lines)
             })
@@ -6326,28 +6699,10 @@ impl TuiApp for App {
             }
             return;
         }
-        let hints = if self.help_open {
-            HintLayer {
-                hints: vec![Hint {
-                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Esc)),
-                    label: "Close",
-                    priority: 90,
-                }],
-                badge: None,
-                status: None,
-                centered: false,
-            }
+        let hints: &HintLayer = if self.help_open {
+            &self.hint_layers.help
         } else {
-            HintLayer {
-                hints: vec![Hint {
-                    key: junie_tui::HintKey::Chord(Chord::key(KeyCode::Enter)),
-                    label: "Choose",
-                    priority: 90,
-                }],
-                badge: None,
-                status: None,
-                centered: false,
-            }
+            &self.hint_layers.default
         };
         Self::shell_panel(&self.shell_meta).draw(ui, full, |ui, inner| {
             let header_height = inner.height.min(3);
@@ -6385,7 +6740,7 @@ impl TuiApp for App {
                 );
             }
         });
-        HintBar::new(APP.sub("hint"), &hints).draw(
+        HintBar::new(APP.sub("hint"), hints).draw(
             ui,
             Rect {
                 y: full.bottom().saturating_sub(1),

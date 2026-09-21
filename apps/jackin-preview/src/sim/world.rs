@@ -489,6 +489,43 @@ impl World {
             .filter(|(_, offer)| offer.configured)
             .collect()
     }
+
+    /// Whether `agent` has any account in scope, without building the offer.
+    ///
+    /// This is exactly [`Self::offer_for`]`.configured`: every effective
+    /// account with a matching provider lands in either the ready or the
+    /// blocked list, so the offer is configured iff such an account exists.
+    /// The role only selects the preselected account, never configuredness.
+    pub fn has_offer_for(&self, agent: Agent, workspace: Option<&Workspace>) -> bool {
+        let provider = agent.provider();
+        if let Some(workspace) = workspace {
+            self.accounts.accounts.iter().any(|account| {
+                if account.provider != provider {
+                    return false;
+                }
+                let inherited = account.default_for_provider
+                    && !workspace.accounts.disabled_defaults.contains(&account.id);
+                let enabled = workspace.accounts.enabled.contains(&account.id);
+                inherited || enabled
+            })
+        } else {
+            self.accounts.default_for(provider).is_some()
+                || self.accounts.discovered_current(provider).is_some()
+        }
+    }
+
+    /// Whether any agent has an account in scope, without building offers.
+    ///
+    /// Equivalent to `!self.offered_agents(workspace, role).is_empty()` for
+    /// every `role`; the [`Self::has_offer_for`] contract covers each agent.
+    /// Hot paths (per-frame launch affordances) must call this instead of
+    /// [`Self::offered_agents`]: it allocates nothing and short-circuits on
+    /// the first agent with an account.
+    pub fn has_offered_agents(&self, workspace: Option<&Workspace>) -> bool {
+        Agent::ALL
+            .into_iter()
+            .any(|agent| self.has_offer_for(agent, workspace))
+    }
 }
 
 /// Build the complete deterministic world for one preview scenario.
@@ -578,6 +615,33 @@ pub struct AgentOffer {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn has_offered_agents_matches_offered_agents_emptiness() {
+        for scenario in [Scenario::FirstUse, Scenario::Returning, Scenario::HardCases] {
+            let world = world_for(scenario);
+            let mut scopes: Vec<Option<&Workspace>> = vec![None];
+            scopes.extend(world.workspaces.iter().map(Some));
+            for workspace in scopes {
+                for agent in Agent::ALL {
+                    assert_eq!(
+                        world.has_offer_for(agent, workspace),
+                        world
+                            .offer_for(agent, workspace, Some("chainargos/the-architect"))
+                            .configured,
+                        "scenario {scenario:?} agent {agent:?}"
+                    );
+                }
+                for role in [None, Some("chainargos/the-architect"), Some("no/such-role")] {
+                    assert_eq!(
+                        world.has_offered_agents(workspace),
+                        !world.offered_agents(workspace, role).is_empty(),
+                        "scenario {scenario:?} role {role:?}"
+                    );
+                }
+            }
+        }
+    }
 
     #[test]
     fn scenarios_seed_stable_world_shapes() {
