@@ -176,6 +176,17 @@ impl PaneNode {
         }
     }
 
+    /// Count leaves without allocating; hot paths must prefer this over
+    /// [`Self::leaves`] when only the count (or its comparison) is needed.
+    pub fn leaf_count(&self) -> usize {
+        match self {
+            Self::Leaf(_) => 1,
+            Self::Split { first, second, .. } => {
+                first.leaf_count().saturating_add(second.leaf_count())
+            }
+        }
+    }
+
     /// Populate leaf geometry and split seams for a container.
     pub fn layout(
         &self,
@@ -368,6 +379,11 @@ impl Tab {
     /// Return leaf panes in visual order.
     pub fn leaves(&self) -> Vec<PaneId> {
         self.root.leaves()
+    }
+
+    /// Count leaf panes without allocating.
+    pub fn leaf_count(&self) -> usize {
+        self.root.leaf_count()
     }
 }
 
