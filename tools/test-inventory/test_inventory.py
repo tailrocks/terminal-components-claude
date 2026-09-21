@@ -38,6 +38,49 @@ class Parsers(unittest.TestCase):
             with self.assertRaises(gate.Invalid):
                 gate.executed(summary, ["a"], statuses)
 
+    def test_bind_listing_stays_pending_and_rejects_cargo_test(self):
+        env = gate.safe_env()
+        self.assertEqual(env.get("MISE_NO_CONFIG"), "1")
+        self.assertNotIn("PERF_BLESS", env)
+        self.assertEqual(gate.cargo_subcommand(["cargo", "+1.98.1", "--version"]), None)
+        self.assertEqual(gate.cargo_subcommand(["cargo", "+1.98.1", "nextest", "list"]), "nextest")
+        self.assertEqual(gate.cargo_subcommand(["cargo", "test", "--lib"]), "test")
+        captured = {
+            "schema": 1,
+            "classification": "captured-not-approved",
+            "source_sha256": "a" * 64,
+            "lock_sha256": "b" * 64,
+            "cargo": "cargo 1.98.1",
+            "rustc": "rustc 1.98.1",
+            "profiles": [PROFILE],
+            "blocked": [],
+            "classifications": [],
+            "commands": [
+                {"argv": ["cargo", "+1.98.1", "--version"]},
+                {"argv": ["cargo", "+1.98.1", "metadata", "--locked"]},
+                {"argv": ["cargo", "+1.98.1", "nextest", "list", "--locked"]},
+            ],
+            "targets": [{
+                "profile": PROFILE["id"], "package": "inventory-fixture", "kind": "lib",
+                "target": "inventory_fixture", "listed": ["library", "gated"], "executed": None,
+            }],
+        }
+        required = {"schema": 1, "approval": "pending", "profiles": [PROFILE],
+                    "obligations": [{"source_id": "x", "review": None, "destinations": []}]}
+        listing, bound = gate.bind_listing(captured, required)
+        self.assertEqual(listing["approval"], "pending")
+        self.assertFalse(listing["executed"])
+        self.assertEqual(bound["approval"], "pending")
+        self.assertEqual(bound["targets"][0]["identities"], ["library", "gated"])
+        self.assertEqual(bound["obligations"][0]["destinations"], [])
+        bad = copy.deepcopy(captured)
+        bad["commands"].append({"argv": ["cargo", "test", "--lib"]})
+        with self.assertRaises(gate.Invalid):
+            gate.bind_listing(bad, required)
+        reviewed = dict(required, approval="reviewed")
+        with self.assertRaises(gate.Invalid):
+            gate.bind_listing(captured, reviewed)
+
     def test_duplicate_profile_command_fails(self):
         duplicate = dict(PROFILE, id="renamed")
         with self.assertRaises(gate.Invalid):
@@ -271,6 +314,24 @@ class ExecutionContext(unittest.TestCase):
                              for i in range(len(c["argv"]) - 1))]
             self.assertEqual(len(direct), 1)
             self.assertTrue(all(c["cwd"] == str(root.resolve()) for c in cap["commands"]))
+
+
+class BoundListing(unittest.TestCase):
+    def test_committed_listing_is_pending_nextest_names(self):
+        root = Path(__file__).resolve().parent
+        listing_path = root / "listing.json"
+        required_path = root / "required.json"
+        if not listing_path.is_file():
+            self.skipTest("listing.json not bound yet")
+        listing = json.loads(listing_path.read_text())
+        required = json.loads(required_path.read_text())
+        self.assertEqual(listing["approval"], "pending")
+        self.assertEqual(required["approval"], "pending")
+        self.assertFalse(listing["executed"])
+        self.assertEqual(len(listing["targets"]), len(required["targets"]))
+        self.assertTrue(listing["targets"])
+        self.assertTrue(all(o.get("destinations") == [] for o in required["obligations"]))
+        self.assertTrue(any("doctest" in b.get("reason", "") for b in listing["blocked"]))
 
 
 if __name__ == "__main__":

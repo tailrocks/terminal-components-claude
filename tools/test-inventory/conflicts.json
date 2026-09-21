@@ -1,0 +1,661 @@
+{
+  "schema": 1,
+  "classification": "oracle-conflict-inputs-for-task-008",
+  "approval": "pending",
+  "note": "Source-classified assertion spans. Discovery never grants edit or expected-outcome authority.",
+  "conflicts": [
+    {
+      "package": "holla",
+      "kind": "lib",
+      "target": "holla_app",
+      "identity": "app::tests::home_escape_clears_scope_before_canonical_query",
+      "path": "apps/holla/src/app.rs",
+      "line": 1252,
+      "origin": "fn-test",
+      "classification": "oracle-conflict",
+      "ignored": null,
+      "blob_sha256": "612e8077aaa67f2426de014954c5a78d3c0ab644198ddecc089d714378072d86",
+      "macro": null,
+      "assertions": [
+        {
+          "kind": "assert",
+          "line": 1254,
+          "byte_start": 48935,
+          "byte_end": 48970,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 1257,
+          "byte_start": 49056,
+          "byte_end": 49099,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 1259,
+          "byte_start": 49152,
+          "byte_end": 49195,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 1260,
+          "byte_start": 49205,
+          "byte_end": 49250,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 1262,
+          "byte_start": 49303,
+          "byte_end": 49345,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 1264,
+          "byte_start": 49399,
+          "byte_end": 49447,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 1265,
+          "byte_start": 49457,
+          "byte_end": 49575,
+          "classification": "oracle-conflict"
+        }
+      ],
+      "byte_start": 48820,
+      "byte_end": 49582,
+      "end_line": 1270
+    },
+    {
+      "package": "holla",
+      "kind": "lib",
+      "target": "holla_app",
+      "identity": "app::tests::home_hint_casing_preserves_lowercase_physical_shortcuts",
+      "path": "apps/holla/src/app.rs",
+      "line": 1202,
+      "origin": "fn-test",
+      "classification": "oracle-conflict",
+      "ignored": null,
+      "blob_sha256": "612e8077aaa67f2426de014954c5a78d3c0ab644198ddecc089d714378072d86",
+      "macro": null,
+      "assertions": [
+        {
+          "kind": "assert",
+          "line": 1206,
+          "byte_start": 46743,
+          "byte_end": 46783,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 1207,
+          "byte_start": 46793,
+          "byte_end": 46827,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 1209,
+          "byte_start": 46866,
+          "byte_end": 46907,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 1210,
+          "byte_start": 46917,
+          "byte_end": 46946,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 1213,
+          "byte_start": 47036,
+          "byte_end": 47078,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 1214,
+          "byte_start": 47088,
+          "byte_end": 47130,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 1215,
+          "byte_start": 47140,
+          "byte_end": 47170,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 1217,
+          "byte_start": 47223,
+          "byte_end": 47264,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 1218,
+          "byte_start": 47274,
+          "byte_end": 47334,
+          "classification": "oracle-conflict"
+        }
+      ],
+      "byte_start": 46546,
+      "byte_end": 47341,
+      "end_line": 1219
+    },
+    {
+      "package": "holla",
+      "kind": "lib",
+      "target": "holla_app",
+      "identity": "scenario::tests::names_round_trip",
+      "path": "apps/holla/src/scenario.rs",
+      "line": 107,
+      "origin": "fn-test",
+      "classification": "oracle-conflict",
+      "ignored": null,
+      "blob_sha256": "8915bc16576e7cb10c3afa0509fc7404a74f7a79b8c8e4211f12e1ff65f18624",
+      "macro": null,
+      "assertions": [
+        {
+          "kind": "assert_eq",
+          "line": 109,
+          "byte_start": 3708,
+          "byte_end": 3758,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 111,
+          "byte_start": 3778,
+          "byte_end": 3813,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 112,
+          "byte_start": 3823,
+          "byte_end": 3879,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 113,
+          "byte_start": 3889,
+          "byte_end": 3956,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 114,
+          "byte_start": 3966,
+          "byte_end": 4020,
+          "classification": "oracle-conflict"
+        }
+      ],
+      "byte_start": 3639,
+      "byte_end": 4027,
+      "end_line": 115
+    },
+    {
+      "package": "junie-tui",
+      "kind": "test",
+      "target": "keyboard_editor",
+      "identity": "default_pointer_path_still_repositions_caret_and_can_be_reenabled",
+      "path": "crates/tui/tests/keyboard_editor.rs",
+      "line": 147,
+      "origin": "fn-test",
+      "classification": "oracle-conflict",
+      "ignored": null,
+      "blob_sha256": "0a4e57558df6987c0f75ff79f74eeb8630c8bcb199d7632a65fcda97073d2b56",
+      "macro": null,
+      "assertions": [
+        {
+          "kind": "assert_ne",
+          "line": 154,
+          "byte_start": 4899,
+          "byte_end": 4969,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 157,
+          "byte_start": 5031,
+          "byte_end": 5088,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 160,
+          "byte_start": 5149,
+          "byte_end": 5256,
+          "classification": "oracle-conflict"
+        }
+      ],
+      "byte_start": 4585,
+      "byte_end": 5259,
+      "end_line": 164
+    },
+    {
+      "package": "junie-tui",
+      "kind": "test",
+      "target": "keyboard_editor",
+      "identity": "keyboard_only_fallback_keeps_caret_without_taking_navigation_focus",
+      "path": "crates/tui/tests/keyboard_editor.rs",
+      "line": 193,
+      "origin": "fn-test",
+      "classification": "oracle-conflict",
+      "ignored": null,
+      "blob_sha256": "0a4e57558df6987c0f75ff79f74eeb8630c8bcb199d7632a65fcda97073d2b56",
+      "macro": null,
+      "assertions": [
+        {
+          "kind": "assert_eq",
+          "line": 198,
+          "byte_start": 6597,
+          "byte_end": 6632,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 199,
+          "byte_start": 6638,
+          "byte_end": 6743,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 204,
+          "byte_start": 6801,
+          "byte_end": 6868,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 205,
+          "byte_start": 6874,
+          "byte_end": 6909,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 206,
+          "byte_start": 6915,
+          "byte_end": 6977,
+          "classification": "oracle-conflict"
+        }
+      ],
+      "byte_start": 6392,
+      "byte_end": 6980,
+      "end_line": 207
+    },
+    {
+      "package": "junie-tui",
+      "kind": "test",
+      "target": "keyboard_editor",
+      "identity": "owner_policy_covers_parts_before_and_after_declaration_and_cancels_capture",
+      "path": "crates/tui/tests/keyboard_editor.rs",
+      "line": 260,
+      "origin": "fn-test",
+      "classification": "oracle-conflict",
+      "ignored": null,
+      "blob_sha256": "0a4e57558df6987c0f75ff79f74eeb8630c8bcb199d7632a65fcda97073d2b56",
+      "macro": null,
+      "assertions": [
+        {
+          "kind": "assert_eq",
+          "line": 265,
+          "byte_start": 8761,
+          "byte_end": 8805,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 268,
+          "byte_start": 8867,
+          "byte_end": 8903,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 269,
+          "byte_start": 8909,
+          "byte_end": 9015,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 273,
+          "byte_start": 9021,
+          "byte_end": 9134,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 278,
+          "byte_start": 9140,
+          "byte_end": 9325,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 285,
+          "byte_start": 9331,
+          "byte_end": 9374,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 286,
+          "byte_start": 9380,
+          "byte_end": 9476,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 293,
+          "byte_start": 9580,
+          "byte_end": 9610,
+          "classification": "oracle-conflict"
+        }
+      ],
+      "byte_start": 8515,
+      "byte_end": 9613,
+      "end_line": 294
+    },
+    {
+      "package": "junie-tui",
+      "kind": "test",
+      "target": "keyboard_editor",
+      "identity": "pointer_disabled_editor_keeps_geometry_caret_typing_and_paste",
+      "path": "crates/tui/tests/keyboard_editor.rs",
+      "line": 119,
+      "origin": "fn-test",
+      "classification": "oracle-conflict",
+      "ignored": null,
+      "blob_sha256": "0a4e57558df6987c0f75ff79f74eeb8630c8bcb199d7632a65fcda97073d2b56",
+      "macro": null,
+      "assertions": [
+        {
+          "kind": "assert_eq",
+          "line": 121,
+          "byte_start": 3640,
+          "byte_end": 3683,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 122,
+          "byte_start": 3689,
+          "byte_end": 3794,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 126,
+          "byte_start": 3800,
+          "byte_end": 3985,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 133,
+          "byte_start": 3991,
+          "byte_end": 4048,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 137,
+          "byte_start": 4181,
+          "byte_end": 4240,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 140,
+          "byte_start": 4335,
+          "byte_end": 4406,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 142,
+          "byte_start": 4452,
+          "byte_end": 4504,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 143,
+          "byte_start": 4510,
+          "byte_end": 4572,
+          "classification": "oracle-conflict"
+        }
+      ],
+      "byte_start": 3534,
+      "byte_end": 4575,
+      "end_line": 144
+    },
+    {
+      "package": "junie-tui",
+      "kind": "test",
+      "target": "keyboard_editor",
+      "identity": "retained_paste_uses_new_keyboard_publication_and_admissibility_barriers",
+      "path": "crates/tui/tests/keyboard_editor.rs",
+      "line": 167,
+      "origin": "fn-test",
+      "classification": "oracle-conflict",
+      "ignored": null,
+      "blob_sha256": "0a4e57558df6987c0f75ff79f74eeb8630c8bcb199d7632a65fcda97073d2b56",
+      "macro": null,
+      "assertions": [
+        {
+          "kind": "assert",
+          "line": 173,
+          "byte_start": 5554,
+          "byte_end": 5619,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 180,
+          "byte_start": 5950,
+          "byte_end": 6008,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 188,
+          "byte_start": 6253,
+          "byte_end": 6311,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 189,
+          "byte_start": 6317,
+          "byte_end": 6379,
+          "classification": "oracle-conflict"
+        }
+      ],
+      "byte_start": 5269,
+      "byte_end": 6382,
+      "end_line": 190
+    },
+    {
+      "package": "junie-tui",
+      "kind": "test",
+      "target": "keyboard_editor",
+      "identity": "warm_scene_and_live_keyboard_publication_allocate_nothing",
+      "path": "crates/tui/tests/keyboard_editor.rs",
+      "line": 297,
+      "origin": "fn-test",
+      "classification": "oracle-conflict",
+      "ignored": null,
+      "blob_sha256": "0a4e57558df6987c0f75ff79f74eeb8630c8bcb199d7632a65fcda97073d2b56",
+      "macro": null,
+      "assertions": [
+        {
+          "kind": "assert_eq",
+          "line": 304,
+          "byte_start": 9902,
+          "byte_end": 9949,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 315,
+          "byte_start": 10274,
+          "byte_end": 10321,
+          "classification": "oracle-conflict"
+        }
+      ],
+      "byte_start": 9623,
+      "byte_end": 10324,
+      "end_line": 316
+    },
+    {
+      "package": "junie-tui",
+      "kind": "test",
+      "target": "viewport",
+      "identity": "bootstrap_and_aborted_first_paint_have_no_viewport",
+      "path": "crates/tui/tests/viewport.rs",
+      "line": 31,
+      "origin": "fn-test",
+      "classification": "oracle-conflict",
+      "ignored": null,
+      "blob_sha256": "d8258e69ee5e525b6123cc6c4d03bac66a9bcaa827242c874975d445154259a5",
+      "macro": null,
+      "assertions": [
+        {
+          "kind": "assert_eq",
+          "line": 33,
+          "byte_start": 1127,
+          "byte_end": 1162,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 35,
+          "byte_start": 1197,
+          "byte_end": 1236,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 38,
+          "byte_start": 1339,
+          "byte_end": 1374,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 39,
+          "byte_start": 1380,
+          "byte_end": 1419,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 41,
+          "byte_start": 1453,
+          "byte_end": 1482,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 42,
+          "byte_start": 1488,
+          "byte_end": 1533,
+          "classification": "oracle-conflict"
+        }
+      ],
+      "byte_start": 1000,
+      "byte_end": 1536,
+      "end_line": 43
+    },
+    {
+      "package": "junie-tui",
+      "kind": "test",
+      "target": "viewport",
+      "identity": "resize_updates_current_viewport_before_replacing_published_geometry",
+      "path": "crates/tui/tests/viewport.rs",
+      "line": 45,
+      "origin": "fn-test",
+      "classification": "oracle-conflict",
+      "ignored": null,
+      "blob_sha256": "d8258e69ee5e525b6123cc6c4d03bac66a9bcaa827242c874975d445154259a5",
+      "macro": null,
+      "assertions": [
+        {
+          "kind": "assert_eq",
+          "line": 52,
+          "byte_start": 1881,
+          "byte_end": 1929,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 53,
+          "byte_start": 1935,
+          "byte_end": 1967,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 54,
+          "byte_start": 1973,
+          "byte_end": 2013,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert",
+          "line": 55,
+          "byte_start": 2019,
+          "byte_end": 2057,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 58,
+          "byte_start": 2202,
+          "byte_end": 2234,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 59,
+          "byte_start": 2240,
+          "byte_end": 2280,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 61,
+          "byte_start": 2317,
+          "byte_end": 2361,
+          "classification": "oracle-conflict"
+        },
+        {
+          "kind": "assert_eq",
+          "line": 63,
+          "byte_start": 2421,
+          "byte_end": 2469,
+          "classification": "oracle-conflict"
+        }
+      ],
+      "byte_start": 1545,
+      "byte_end": 2472,
+      "end_line": 64
+    }
+  ]
+}

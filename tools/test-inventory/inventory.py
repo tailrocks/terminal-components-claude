@@ -77,6 +77,59 @@ def nextest_listed(text, package_id, kind, target):
     return names
 
 
+def nextest_ignored(text, package_id, kind, target):
+    payload = None
+    for line in reversed(text.splitlines()):
+        try:
+            candidate = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(candidate, dict) and "rust-suites" in candidate:
+            payload = candidate
+            break
+    require(payload is not None, "missing nextest listing JSON")
+    names = nextest_listed(text, package_id, kind, target)
+    ignored = []
+    for suite in payload["rust-suites"].values():
+        cases = suite.get("testcases", {})
+        if not isinstance(cases, dict):
+            continue
+        for name in names:
+            info = cases.get(name)
+            if isinstance(info, dict) and info.get("ignored"):
+                ignored.append(name)
+    unique(ignored, "ignored listed identity")
+    return ignored
+
+
+def cargo_subcommand(argv):
+    if not argv:
+        return None
+    name = Path(argv[0]).name
+    if name == "rustc":
+        return "rustc"
+    if name != "cargo":
+        return name
+    index = 1
+    if index < len(argv) and argv[index].startswith("+"):
+        index += 1
+    if index >= len(argv):
+        return None
+    if argv[index].startswith("-"):
+        return None
+    return argv[index]
+
+
+def require_nextest_capture(captured):
+    require(captured.get("schema") == 1, "unknown schema")
+    require(captured.get("classification") == "captured-not-approved", "capture is not listing evidence")
+    require(captured.get("commands"), "capture recorded no commands")
+    for command in captured["commands"]:
+        sub = cargo_subcommand(command["argv"])
+        require(sub in {"rustc", "metadata", "nextest", None}, "capture invoked non-nextest cargo " + str(sub))
+        require("test" not in command["argv"] or sub == "nextest", "capture invoked cargo test")
+
+
 def executed(text, names, status_log=None):
     if status_log is None:
         events = []
@@ -143,7 +196,10 @@ def safe_env():
                "SYSTEMROOT", "USERPROFILE", "SSL_CERT_FILE", "SSL_CERT_DIR")
     env = {key: os.environ[key] for key in allowed if key in os.environ}
     env.update({"LC_ALL": "C", "CARGO_TERM_COLOR": "never", "RUST_BACKTRACE": "0",
-                "NEXTEST_USER_CONFIG_FILE": "none"})
+                "NEXTEST_USER_CONFIG_FILE": "none", "MISE_NO_CONFIG": "1"})
+    cargo_home = env.get("CARGO_HOME")
+    if cargo_home and env.get("PATH"):
+        env["PATH"] = str(Path(cargo_home) / "bin") + os.pathsep + env["PATH"]
     return env
 
 
@@ -353,6 +409,62 @@ def capture(root, profiles, output, execute, toolchain):
     return result
 
 
+def bind_listing(captured, required):
+    require_nextest_capture(captured)
+    require(required.get("schema") == 1, "unknown schema")
+    require(required.get("approval") == "pending", "required.json must stay pending until capture is reviewed")
+    require(required["profiles"] == captured["profiles"], "feature profile matrix differs")
+    executed = False
+    targets = []
+    seen = []
+    for row in captured["targets"]:
+        key = (row["profile"], row["package"], row["kind"], row["target"])
+        seen.append(key)
+        unique(row["listed"], "listed test identity")
+        if row.get("executed") is not None:
+            executed = True
+        targets.append({
+            "profile": row["profile"],
+            "package": row["package"],
+            "kind": row["kind"],
+            "target": row["target"],
+            "identities": list(row["listed"]),
+            "ignored": {},
+            **({"empty_reason": "nextest listed zero tests for this compiled target"}
+               if not row["listed"] else {}),
+        })
+    unique(seen, "captured target")
+    listing = {
+        "schema": 1,
+        "classification": "listed-not-approved",
+        "approval": "pending",
+        "executed": executed,
+        "source_sha256": captured["source_sha256"],
+        "lock_sha256": captured["lock_sha256"],
+        "cargo": captured["cargo"],
+        "rustc": captured["rustc"],
+        "profiles": captured["profiles"],
+        "blocked": captured.get("blocked", []),
+        "classifications": captured.get("classifications", []),
+        "targets": [{"profile": t["profile"], "package": t["package"], "kind": t["kind"],
+                     "target": t["target"], "listed": t["identities"]} for t in targets],
+    }
+    bound = dict(required)
+    bound["approval"] = "pending"
+    bound["targets"] = targets
+    for obligation in bound["obligations"]:
+        require(obligation.get("review") in (None, ""), "pending required.json cannot carry reviews")
+        require(obligation.get("destinations") == [], "pending required.json cannot carry destinations")
+    return listing, bound
+
+
+def write_json(path, payload):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w") as stream:
+        json.dump(payload, stream, indent=2)
+        stream.write("\n")
+
+
 def verify(captured, required, catalog):
     require(captured["schema"] == required["schema"] == 1, "unknown schema")
     require(not captured["blocked"], "capture has blocked target coverage")
@@ -410,12 +522,77 @@ def main():
     check.add_argument("--required", type=Path, required=True)
     check.add_argument("--catalog", type=Path, default=Path(__file__).with_name("historical.json"))
     check.add_argument("--root", type=Path, required=True)
+    disc = sub.add_parser("discover")
+    disc.add_argument("--root", type=Path, required=True)
+    disc.add_argument("--output", type=Path, required=True)
+    disc.add_argument("--seed", type=Path)
+    rec_cmd = sub.add_parser("reconcile")
+    rec_cmd.add_argument("--root", type=Path, required=True)
+    rec_cmd.add_argument("--discovery", type=Path, required=True)
+    rec_cmd.add_argument("--required", type=Path, default=Path(__file__).with_name("required.json"))
+    rec_cmd.add_argument("--catalog", type=Path, default=Path(__file__).with_name("historical.json"))
+    rec_cmd.add_argument("--canonical", type=Path, required=True)
+    rec_cmd.add_argument("--output", type=Path, required=True)
+    bind = sub.add_parser("bind-listing")
+    bind.add_argument("--root", type=Path, required=True)
+    bind.add_argument("--capture", type=Path, required=True)
+    bind.add_argument("--required", type=Path, required=True)
+    bind.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     try:
         if args.command == "capture":
             result = capture(args.root.resolve(), json.loads(args.profiles.read_text()),
                              args.output, args.execute, args.toolchain)
             print(f"captured {len(result['targets'])} targets; {len(result['blocked'])} blockers; not approved")
+        elif args.command == "discover":
+            import source_discovery
+            root = args.root.resolve()
+            output = args.output
+            if output.exists():
+                raise Invalid("refuse existing output")
+            in_tree = output.resolve().is_relative_to(root)
+            allowed = (root / "tools/test-inventory").resolve()
+            require(not in_tree or output.resolve().is_relative_to(allowed),
+                    "discovery evidence must be outside source tree or under tools/test-inventory")
+            seed = args.seed.read_text() if args.seed else None
+            if seed is None:
+                default_seed = root / "docs/refactoring-plan/inline-test-source-scope.md"
+                if default_seed.is_file():
+                    seed = default_seed.read_text()
+            result = source_discovery.discover(root, seed)
+            source_discovery.write_discovery(result, output, root)
+            print(f"discovered {len(result['identities'])} identities; {len(result['blockers'])} blockers; not executed")
+        elif args.command == "reconcile":
+            import reconcile as rec
+            root = args.root.resolve()
+            output = args.output
+            in_tree = output.resolve().is_relative_to(root)
+            allowed = (root / "tools/test-inventory").resolve()
+            require(not in_tree or output.resolve().is_relative_to(allowed),
+                    "reconcile evidence must be outside source tree or under tools/test-inventory")
+            result = rec.reconcile(
+                json.loads(args.catalog.read_text()),
+                json.loads(args.discovery.read_text()),
+                rec.load_canonical(args.canonical),
+                json.loads(args.required.read_text()),
+            )
+            rec.write_reconcile(result, output)
+            print(f"reconciled {result['matched']} identities; {result['unresolved']} unresolved; approval pending")
+        elif args.command == "bind-listing":
+            root = args.root.resolve()
+            output = args.output
+            in_tree = output.resolve().is_relative_to(root)
+            allowed = (root / "tools/test-inventory").resolve()
+            require(not in_tree or output.resolve().is_relative_to(allowed),
+                    "listing bind must be outside source tree or under tools/test-inventory")
+            require(args.required.resolve().is_relative_to(allowed),
+                    "required.json bind is limited to tools/test-inventory")
+            captured = json.loads(args.capture.read_text())
+            listing, bound = bind_listing(captured, json.loads(args.required.read_text()))
+            require(bound["approval"] == "pending", "bind-listing cannot approve required.json")
+            write_json(output, listing)
+            write_json(args.required, bound)
+            print(f"bound {len(listing['targets'])} listed targets; approval pending; executed={listing['executed']}")
         else:
             captured = json.loads(args.capture.read_text())
             require(captured["source_sha256"] == source_fingerprint(args.root.resolve(), safe_env()),
