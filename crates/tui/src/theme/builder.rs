@@ -442,6 +442,49 @@ fn blend(top: Color, bottom: Color, alpha: f64) -> Color {
     Color::Rgb(mix(t.0, b.0), mix(t.1, b.1), mix(t.2, b.2))
 }
 
+/// Outcome of [`fade_mix`]: the per-cell color branch of the oracle fade
+/// (TASK-079; TASK-014 R-001 consumes this through its TASK-011 edge).
+///
+/// `Blended(c)` paints `c`. `ApplyDim` keeps `fg` and the caller adds `DIM`.
+/// `Unchanged` keeps `fg` as-is.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum FadeOutcome {
+    Blended(Color),
+    ApplyDim,
+    Unchanged,
+}
+
+/// Mix `fg` toward `bg` at `amount` by the pinned oracle `f32`
+/// transcription: `((f as f32) * a + (b as f32) * (1.0 - a)).round()`,
+/// clamped to `[0.0, 255.0]` and cast per channel.
+///
+/// `(Rgb, Rgb)` pairs blend at the caller-supplied amount (`0.55` outer,
+/// `0.80` inner). Any pair with a non-`Rgb` side yields `ApplyDim` at exactly
+/// `0.55f32` and `Unchanged` otherwise, failing closed on illegal amounts.
+/// Exact same-literal comparison is used; no epsilon.
+#[expect(
+    clippy::float_cmp,
+    reason = "D-004: the row is encoded by the exact f32 amount; an epsilon would misroute rows"
+)]
+pub(crate) fn fade_mix(fg: Color, bg: Color, amount: f32) -> FadeOutcome {
+    let (Color::Rgb(f_red, f_green, f_blue), Color::Rgb(b_red, b_green, b_blue)) = (fg, bg) else {
+        if amount == 0.55f32 {
+            return FadeOutcome::ApplyDim;
+        }
+        return FadeOutcome::Unchanged;
+    };
+    let mix = |f: u8, b: u8| {
+        (f32::from(f) * amount + f32::from(b) * (1.0 - amount))
+            .round()
+            .clamp(0.0, 255.0) as u8
+    };
+    FadeOutcome::Blended(Color::Rgb(
+        mix(f_red, b_red),
+        mix(f_green, b_green),
+        mix(f_blue, b_blue),
+    ))
+}
+
 /// WCAG contrast ratio.
 pub(crate) fn contrast(a: Color, b: Color) -> f64 {
     let (Some(a), Some(b)) = (rgb_of(a), rgb_of(b)) else {
@@ -744,5 +787,137 @@ mod tests {
             Color::Rgb(1, 1, 1)
         );
         assert!((contrast(Color::White, Color::Black) - 21.0).abs() < 0.01);
+    }
+
+    /// Pinned oracle fade transcription (TASK-079 O-001): `f32` ops in this
+    /// order, round half away from zero, clamp, cast.
+    fn oracle_mix(f: u8, b: u8, a: f32) -> u8 {
+        (f32::from(f) * a + f32::from(b) * (1.0 - a))
+            .round()
+            .clamp(0.0, 255.0) as u8
+    }
+
+    #[test]
+    fn fade_mix_oracle_outer_matches_pinned_vector() {
+        let fg = Color::Rgb(120, 160, 200);
+        let bg = Color::Rgb(20, 40, 60);
+        assert_eq!(
+            fade_mix(fg, bg, 0.55),
+            FadeOutcome::Blended(Color::Rgb(75, 106, 137))
+        );
+    }
+
+    #[test]
+    fn fade_mix_oracle_inner_matches_pinned_vector() {
+        let fg = Color::Rgb(120, 160, 200);
+        let bg = Color::Rgb(20, 40, 60);
+        assert_eq!(
+            fade_mix(fg, bg, 0.80),
+            FadeOutcome::Blended(Color::Rgb(100, 136, 172))
+        );
+    }
+
+    #[test]
+    fn fade_mix_oracle_sweep_matches_transcription() {
+        for amount in [0.55f32, 0.80f32] {
+            for f in 0..=255u8 {
+                for b in 0..=255u8 {
+                    let expected = oracle_mix(f, b, amount);
+                    assert_eq!(
+                        fade_mix(Color::Rgb(f, f, f), Color::Rgb(b, b, b), amount),
+                        FadeOutcome::Blended(Color::Rgb(expected, expected, expected)),
+                        "f={f} b={b} amount={amount}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn fade_mix_oracle_non_rgb_branch_matrix() {
+        use Color::{
+            Black, Blue, Cyan, DarkGray, Gray, Green, LightBlue, LightCyan, LightGreen,
+            LightMagenta, LightRed, LightYellow, Magenta, Red, White, Yellow,
+        };
+        let named = [
+            Black,
+            Red,
+            Green,
+            Yellow,
+            Blue,
+            Magenta,
+            Cyan,
+            Gray,
+            DarkGray,
+            LightRed,
+            LightGreen,
+            LightYellow,
+            LightBlue,
+            LightMagenta,
+            LightCyan,
+            White,
+        ];
+        assert_eq!(named.len(), 16);
+        let mut colors: Vec<Color> = Vec::with_capacity(16 + 256 + 1 + 5);
+        colors.extend(named);
+        colors.extend((0..=255u8).map(Color::Indexed));
+        colors.push(Color::Reset);
+        let rgb_samples = [
+            Color::Rgb(0, 0, 0),
+            Color::Rgb(255, 255, 255),
+            Color::Rgb(120, 160, 200),
+            Color::Rgb(20, 40, 60),
+            Color::Rgb(1, 2, 3),
+        ];
+        colors.extend(rgb_samples);
+
+        for (amount, expected_non_rgb) in [
+            (0.55f32, FadeOutcome::ApplyDim),
+            (0.80f32, FadeOutcome::Unchanged),
+        ] {
+            for fg in &colors {
+                for bg in &colors {
+                    let outcome = fade_mix(*fg, *bg, amount);
+                    match (*fg, *bg) {
+                        (
+                            Color::Rgb(f_red, f_green, f_blue),
+                            Color::Rgb(b_red, b_green, b_blue),
+                        ) => {
+                            assert_eq!(
+                                outcome,
+                                FadeOutcome::Blended(Color::Rgb(
+                                    oracle_mix(f_red, b_red, amount),
+                                    oracle_mix(f_green, b_green, amount),
+                                    oracle_mix(f_blue, b_blue, amount),
+                                )),
+                                "fg={fg:?} bg={bg:?} amount={amount}"
+                            );
+                        }
+                        _ => {
+                            assert_eq!(
+                                outcome, expected_non_rgb,
+                                "fg={fg:?} bg={bg:?} amount={amount}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
+
+        let non_rgb_pairs = [
+            (Red, Blue),
+            (Color::Reset, Color::Reset),
+            (Color::Indexed(0), Color::Rgb(1, 2, 3)),
+            (Color::Rgb(1, 2, 3), White),
+        ];
+        for amount in [0.0f32, 0.7f32, 1.0f32] {
+            for (fg, bg) in non_rgb_pairs {
+                assert_eq!(
+                    fade_mix(fg, bg, amount),
+                    FadeOutcome::Unchanged,
+                    "fg={fg:?} bg={bg:?} amount={amount}"
+                );
+            }
+        }
     }
 }
