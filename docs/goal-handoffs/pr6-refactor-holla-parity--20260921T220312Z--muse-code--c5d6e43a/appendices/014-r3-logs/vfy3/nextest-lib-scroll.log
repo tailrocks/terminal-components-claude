@@ -1,0 +1,148 @@
+   Compiling rustversion v1.0.23
+   Compiling castaway v0.2.4
+   Compiling compact_str v0.9.1
+   Compiling ratatui-core v0.1.2
+   Compiling ratatui-crossterm v0.1.2
+   Compiling junie-tui v0.1.0 (/private/tmp/tc-014-vfy3/candidate/crates/tui)
+warning: methods `len`, `peak`, and `capacity` are never used
+  --> crates/tui/src/text/clusters.rs:64:25
+   |
+50 | impl ClusterScratch {
+   | ------------------- methods in this implementation
+...
+64 |     pub(crate) const fn len(&self) -> usize {
+   |                         ^^^
+...
+75 |     pub(crate) const fn peak(&self) -> usize {
+   |                         ^^^^
+...
+80 |     pub(crate) fn capacity(&self) -> usize {
+   |                   ^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `text_scratch` is never read
+  --> crates/tui/src/ui/mod.rs:94:5
+   |
+70 | pub(crate) struct FrameState {
+   |                   ---------- field in this struct
+...
+94 |     text_scratch: ClusterScratch,
+   |     ^^^^^^^^^^^^
+   |
+   = note: `FrameState` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: method `paint_display` is never used
+   --> crates/tui/src/ui/paint.rs:249:19
+    |
+ 84 | impl Ui<'_> {
+    | ----------- method in this implementation
+...
+249 |     pub(crate) fn paint_display(
+    |                   ^^^^^^^^^^^^^
+
+warning: struct `StreamGuard` is never constructed
+   --> crates/tui/src/ui/paint.rs:584:8
+    |
+584 | struct StreamGuard<'a, 'f> {
+    |        ^^^^^^^^^^^
+
+warning: associated items `take` and `paint` are never used
+   --> crates/tui/src/ui/paint.rs:590:8
+    |
+589 | impl<'a, 'f> StreamGuard<'a, 'f> {
+    | -------------------------------- associated items in this implementation
+590 |     fn take(ui: &'a mut Ui<'f>) -> Self {
+    |        ^^^^
+...
+599 |     fn paint(&mut self, area: Rect, value: &impl core::fmt::Display, style: PaintStyle) -> u16 {
+    |        ^^^^^
+
+warning: struct `StreamWriter` is never constructed
+   --> crates/tui/src/ui/paint.rs:629:8
+    |
+629 | struct StreamWriter<'m, 's, 'a, 'f> {
+    |        ^^^^^^^^^^^^
+
+   Compiling junie-tui-testing v0.1.0 (/private/tmp/tc-014-vfy3/candidate/crates/tui-testing)
+warning: `junie-tui` (lib) generated 6 warnings
+warning: field `peak` is never read
+   --> crates/tui/src/ui/paint.rs:920:9
+    |
+918 |     struct ScratchDiag {
+    |            ----------- field in this struct
+919 |         len: usize,
+920 |         peak: usize,
+    |         ^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `junie-tui` (lib test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.34s
+────────────
+ Nextest run ID 66e569e5-c35a-4de5-a590-cfca26859b18 with nextest profile: default
+    Starting 38 tests across 1 binary (752 tests skipped)
+        PASS [   0.014s] ( 1/38) junie-tui components::grid::tests::reference_grid_makes_its_nested_scroll_region_inert
+        PASS [   0.015s] ( 2/38) junie-tui components::viewport::tests::nested_scrollbar_resolves_through_the_viewport_family
+        PASS [   0.015s] ( 3/38) junie-tui components::scroll_region::tests::thumb_drag_preserves_the_grab_offset
+        PASS [   0.016s] ( 4/38) junie-tui components::textarea::tests::parts_include_every_owned_scroll_region_part
+        PASS [   0.016s] ( 5/38) junie-tui components::viewport::tests::a_reference_viewport_makes_its_nested_scroll_region_inert
+        PASS [   0.016s] ( 6/38) junie-tui components::scroll_region::tests::direct_reference_press_targets_only_the_thumb
+        FAIL [   0.015s] ( 7/38) junie-tui components::viewport::tests::the_text_width_reserves_a_scrollbar_column_only_on_overflow
+  stdout ───
+
+    running 1 test
+    test components::viewport::tests::the_text_width_reserves_a_scrollbar_column_only_on_overflow ... FAILED
+
+    failures:
+
+    failures:
+        components::viewport::tests::the_text_width_reserves_a_scrollbar_column_only_on_overflow
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 789 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'components::viewport::tests::the_text_width_reserves_a_scrollbar_column_only_on_overflow' (259868240) panicked at crates/tui/src/components/viewport.rs:2446:9:
+    assertion `left == right` failed: no overflow keeps the full width
+      left: 22
+     right: 24
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   0.017s] ( 8/38) junie-tui components::steps::tests::every_override_channel_is_forwarded_to_scrollbar
+        PASS [   0.018s] ( 9/38) junie-tui components::scroll_region::tests::container_patch_paints_even_without_overflow
+        PASS [   0.018s] (10/38) junie-tui components::textarea::tests::a_reference_text_area_leaves_the_owned_scroll_region_inert
+        PASS [   0.018s] (11/38) junie-tui components::form::tests::scroll_reveals_the_focused_field_from_update_not_draw
+        PASS [   0.019s] (12/38) junie-tui components::scroll_region::tests::owner_state_never_leaks_into_the_scrollbar
+        PASS [   0.019s] (13/38) junie-tui components::scroll_region::tests::slot_addressable_parts_are_exactly_track_and_thumb
+        PASS [   0.019s] (14/38) junie-tui components::scroll_region::tests::a_reference_scroll_region_registers_nothing
+        PASS [   0.019s] (15/38) junie-tui collection::reconcile::tests::reconcile_clamps_the_scroll_offset
+        PASS [   0.019s] (16/38) junie-tui components::diff::tests::view_renders_and_scrolls_without_draw_mutation
+        PASS [   0.021s] (17/38) junie-tui components::grid::tests::nested_scroll_overrides_and_actions_slot_change_the_declared_parts
+        PASS [   0.021s] (18/38) junie-tui components::scroll_region::tests::scrollbar_paints_typed_caps_outside_the_thumb
+        PASS [   0.011s] (19/38) junie-tui hit::tests::hit_scroll_returns_the_innermost_handler_of_the_axis
+        PASS [   0.012s] (20/38) junie-tui hit::tests::hit_scroll_returns_a_region_at_zero_headroom
+        PASS [   0.011s] (21/38) junie-tui hit::tests::hit_scroll_skips_regions_that_do_not_handle_the_axis
+        PASS [   0.012s] (22/38) junie-tui scroll::tests::clamps_offset_to_content
+        PASS [   0.012s] (23/38) junie-tui scroll::tests::wheel_at_the_boundary_is_consumed_without_repaint
+        PASS [   0.014s] (24/38) junie-tui scroll::tests::ensure_visible_on_next_layout_is_set_only_by_cursor_motion
+        PASS [   0.013s] (25/38) junie-tui scroll::tests::track_position_round_trips
+        PASS [   0.015s] (26/38) junie-tui scroll::tests::ensure_visible_moves_minimally
+        PASS [   0.013s] (27/38) junie-tui ui::paint::tests::scroll_edges_fade_only_hidden_edges_and_clear_at_boundaries
+        PASS [   0.013s] (28/38) junie-tui ui::paint::tests::scroll_edges_except_keeps_named_rows_on_container_plane
+        PASS [   0.016s] (29/38) junie-tui scroll::tests::thumb_covers_track_proportionally
+        PASS [   0.014s] (30/38) junie-tui text::editor::tests::hscroll_follows_the_cursor
+        PASS [   0.017s] (31/38) junie-tui scroll::tests::fields_are_private_and_every_mutator_clamps
+        PASS [   0.013s] (32/38) junie-tui ui::paint::tests::scroll_edges_never_change_glyphs_geometry_or_clip
+        PASS [   0.019s] (33/38) junie-tui scroll::tests::zero_viewports_retain_reveal_until_usable_layout
+        PASS [   0.016s] (34/38) junie-tui ui::paint::tests::scroll_edges_leave_emphasised_cells_and_cursor_row_whole
+        PASS [   0.018s] (35/38) junie-tui ui::paint::tests::scroll_edges_dim_outer_row_only_without_rgb
+        PASS [   0.012s] (36/38) junie-tui ui::paint::tests::scroll_edges_tall_two_rows_short_none
+        PASS [   0.013s] (37/38) junie-tui ui::paint::tests::scroll_edges_tied_backgrounds_resolve_to_last_majority
+        PASS [   0.021s] (38/38) junie-tui theme::downgrade::tests::mono_pressed_reaches_the_scrollbar_thumb
+────────────
+     Summary [   0.041s] 38 tests run: 37 passed, 1 failed, 752 skipped
+        FAIL [   0.015s] ( 7/38) junie-tui components::viewport::tests::the_text_width_reserves_a_scrollbar_column_only_on_overflow
+error: test run failed
+mbx[cache]: 8 hits, 0 misses; 0 B downloaded, 0 B uploaded, 0 B stored locally
+mbx[savings]: 4.7 TiB logical of old files removed while you were busy compiling other things.

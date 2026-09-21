@@ -1,0 +1,77 @@
+   Compiling rustversion v1.0.23
+   Compiling castaway v0.2.4
+   Compiling compact_str v0.9.1
+   Compiling ratatui-core v0.1.2
+   Compiling ratatui-crossterm v0.1.2
+   Compiling junie-tui v0.1.0 (/private/tmp/tc-014-vfy3/candidate/crates/tui)
+warning: methods `len`, `peak`, and `capacity` are never used
+  --> crates/tui/src/text/clusters.rs:64:25
+   |
+50 | impl ClusterScratch {
+   | ------------------- methods in this implementation
+...
+64 |     pub(crate) const fn len(&self) -> usize {
+   |                         ^^^
+...
+75 |     pub(crate) const fn peak(&self) -> usize {
+   |                         ^^^^
+...
+80 |     pub(crate) fn capacity(&self) -> usize {
+   |                   ^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `text_scratch` is never read
+  --> crates/tui/src/ui/mod.rs:94:5
+   |
+70 | pub(crate) struct FrameState {
+   |                   ---------- field in this struct
+...
+94 |     text_scratch: ClusterScratch,
+   |     ^^^^^^^^^^^^
+   |
+   = note: `FrameState` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: method `paint_display` is never used
+   --> crates/tui/src/ui/paint.rs:249:19
+    |
+ 84 | impl Ui<'_> {
+    | ----------- method in this implementation
+...
+249 |     pub(crate) fn paint_display(
+    |                   ^^^^^^^^^^^^^
+
+warning: struct `StreamGuard` is never constructed
+   --> crates/tui/src/ui/paint.rs:584:8
+    |
+584 | struct StreamGuard<'a, 'f> {
+    |        ^^^^^^^^^^^
+
+warning: associated items `take` and `paint` are never used
+   --> crates/tui/src/ui/paint.rs:590:8
+    |
+589 | impl<'a, 'f> StreamGuard<'a, 'f> {
+    | -------------------------------- associated items in this implementation
+590 |     fn take(ui: &'a mut Ui<'f>) -> Self {
+    |        ^^^^
+...
+599 |     fn paint(&mut self, area: Rect, value: &impl core::fmt::Display, style: PaintStyle) -> u16 {
+    |        ^^^^^
+
+warning: struct `StreamWriter` is never constructed
+   --> crates/tui/src/ui/paint.rs:629:8
+    |
+629 | struct StreamWriter<'m, 's, 'a, 'f> {
+    |        ^^^^^^^^^^^^
+
+   Compiling junie-tui-testing v0.1.0 (/private/tmp/tc-014-vfy3/candidate/crates/tui-testing)
+warning: `junie-tui` (lib) generated 6 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.27s
+────────────
+ Nextest run ID fc11f2e1-b983-4cf3-b513-67ca0150b8ce with nextest profile: default
+    Starting 1 test across 1 binary (44 tests skipped)
+        PASS [  10.816s] (1/1) junie-tui::architecture architecture::no_deprecated_or_legacy_api_usage
+────────────
+     Summary [  10.816s] 1 test run: 1 passed, 44 skipped
+mbx[cache]: 8 hits, 0 misses; 0 B downloaded, 0 B uploaded, 0 B stored locally
+mbx[savings]: your deleted worktrees left 3.9 TiB logical behind. left. past tense.

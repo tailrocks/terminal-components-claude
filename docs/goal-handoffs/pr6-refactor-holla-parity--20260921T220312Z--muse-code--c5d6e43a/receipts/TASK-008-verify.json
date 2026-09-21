@@ -1,0 +1,366 @@
+{
+  "base": "d372b79c37577957367a02cd7229ca19d7b1fa5d",
+  "candidate_commit": "a0bf0f941d1f0365e784e75e4aa028d9d1d16964",
+  "candidate_tree": "4a246ee2f848b0fec28646510c912caae15cbcd9",
+  "commands": [
+    {
+      "exit": 0,
+      "log": "git worktree add --detach /private/tmp/tc-goal-b518/verify-008 a0bf0f94...; HEAD=a0bf0f941d1f0365e784e75e4aa028d9d1d16964 tree=4a246ee2f848b0fec28646510c912caae15cbcd9 parent=d372b79c37577957367a02cd7229ca19d7b1fa5d; status --porcelain empty (clean, read-only thereafter, re-verified clean after all gates). Never touched other agents' dirs; no pkill.",
+      "name": "setup.worktree_add"
+    },
+    {
+      "exit": 0,
+      "log": "mkdir -p /private/tmp/tc-goal-b518/run-008/target/verifier-logs; fresh dir, run root holds only target/ before preparation",
+      "name": "setup.mkdir_run_dir"
+    },
+    {
+      "exit": 0,
+      "log": "diff -r frozen task package vs campaign checkout package empty (exit 0); read task.toml + verify.toml + README.md + AGENTS.md + CAMPAIGN_AGENTS.md + trusted/obligations.md + trusted/source-obligations.tsv + trusted/inline-test-source-scope.md + trusted/external-test-source-scope.md + trusted/branch-test-disposition-bindings.tsv + trusted/check-context-templates/CHK-003/004/005.json fully first",
+      "name": "setup.task_package_read"
+    },
+    {
+      "exit": 0,
+      "log": "taskfmt --version + shasum + taskfmt-source rev-parse: 0.2.0 / afd3b575dbcc7044620bec4b9493a74eca3e5ef2 / f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de (matches qualified identity)",
+      "name": "setup.taskfmt_identity"
+    },
+    {
+      "exit": 0,
+      "log": "/private/tmp/tc-goal-b518/run-008/target/verifier-logs/verifier-build.log (16.37s; scripts/campaign-build-proof.sh: cargo build --locked --offline -p refactor-proof --bin tc-proof, CARGO_TARGET_DIR=$RUN_DIR/target from frozen worktree; receipt commit/tree/worktree/target-bound; binary sha f12ebeae... still matches receipt after shared-target nextest)",
+      "name": "setup.build_candidate_tc_proof"
+    },
+    {
+      "exit": 0,
+      "log": "cp observer-provider-006r3.py observer-provider-008.py + label-only sed (2 lines: PROVIDER + docstring title); diff exit 1 with exactly those 2 hunks; py_compile exit 0; sha256 08d10f3dda9f53ab3ec8c55b016b05a938317ba5c16eb54bcb9e876571eeb2ac",
+      "name": "setup.observer_provider_copy"
+    },
+    {
+      "exit": 0,
+      "log": "secrets.token_hex(24) > $RUN_DIR/target/verifier-logs/nonce-008.txt 18164cf019239af39ebeb448a86c1bc7221b782a1f1198f2 (verifier-owned, under target/ so prepare membership holds)",
+      "name": "setup.nonce_generate"
+    },
+    {
+      "exit": 0,
+      "log": "/private/tmp/tc-goal-b518/run-008/target/verifier-logs/verifier-lint.out (stderr empty): PACKAGE 008/README.md (frozen); SUMMARY errors=0 warnings=0; LINT PASS",
+      "name": "gateA.taskfmt_lint"
+    },
+    {
+      "exit": 0,
+      "log": "/private/tmp/tc-goal-b518/run-008/target/verifier-logs/verifier-prepare.out (stderr empty): native binary, full canonical flags incl. --observer-nonce + 4 coordinator --dependency-receipt (007/006/071/072); scope-base d372b79c; oracle refs/tags/visual-baseline@4a79c0a2; task_id TASK-008 run_id=RUN_DIR candidate_tree 4a246ee2 index 84a01dea... trust 3dd17608...",
+      "name": "gateC.prepare_fresh"
+    },
+    {
+      "exit": 0,
+      "log": "/private/tmp/tc-goal-b518/run-008/target/verifier-logs/verifier-verify.out (stderr empty): CHECK config PASS, task_lint PASS, scope PASS, forbidden_paths PASS, forbidden_patterns PASS, CHK-001..007 PASS; SUMMARY pass=11 fail=0 RESULT PASS DONE",
+      "name": "gateB.taskfmt_verify"
+    },
+    {
+      "exit": 1,
+      "log": "/private/tmp/tc-goal-b518/run-008/target/verifier-logs/verifier-launch-failclosed.err: tc-proof launch: result already exists; replay rejected (expected fail-closed; outputs 7 before/after)",
+      "name": "gateC.launch_failclosed_CHK001_replay",
+      "note": "Expected fail-closed shape; gate impact none."
+    },
+    {
+      "exit": 1,
+      "log": "/private/tmp/tc-goal-b518/run-008/target/verifier-logs/verifier-validate.err: tc-proof validate: taskfmt logs do not end in DONE (expected supplementary shape as 002r4/003/004/005/006r3/007: taskfmt prints DONE to stdout, never into a taskfmt-logs/ file; verify stdout ends RESULT PASS + DONE; zero gate impact)",
+      "name": "supplementary.tc_proof_validate",
+      "note": "Informational only."
+    },
+    {
+      "exit": 0,
+      "log": "/private/tmp/tc-goal-b518/run-008/target/verifier-logs/verifier-disposition-unittest.err (verbose on stderr; stdout empty): Ran 15 tests in 0.212s OK (15 ...ok)",
+      "name": "gateD.test_disposition_unittest"
+    },
+    {
+      "exit": 100,
+      "log": "/private/tmp/tc-goal-b518/run-008/target/verifier-logs/verifier-nextest-tui.err (summary on stderr; stdout 0 bytes): 2589 tests run: 2585 passed, 4 failed, 5 skipped (nextest-filtered). All 4 FAIL = recorded stage-map future-failed owner TASK-021 (retention_fixes_up_selection_and_caret, the_text_width_reserves_a_scrollbar_column_only_on_overflow, no_viewport_gutter_text_paints_from_the_area_origin, tabs_expand_in_geometry_but_copy_as_source_bytes). Zero unrecorded failures.",
+      "name": "gateD.cargo_nextest_junie_tui",
+      "note": "Exit 100 is the task-designed staged-failure signal (R-003 future-owner failures remain visibly failed); accepted by CHK-004/005 preparation register. Never cargo test."
+    },
+    {
+      "exit": 100,
+      "log": "/private/tmp/tc-goal-b518/run-008/target/verifier-logs/verifier-nextest-holla.err (summary on stderr; stdout 0 bytes): 173 tests run: 170 passed (1 slow), 3 failed, 0 skipped. All 3 FAIL = recorded stage-map future-failed (home_hint_casing_preserves_lowercase_physical_shortcuts owner TASK-041, home_escape_clears_query_before_scope owner TASK-041 relocated from home_escape_clears_scope_before_canonical_query, scenario names_round_trip owner TASK-049). Zero unrecorded failures.",
+      "name": "gateD.cargo_nextest_holla",
+      "note": "Exit 100 is the task-designed staged-failure signal; accepted by CHK-004/005. Never cargo test."
+    },
+    {
+      "exit": 0,
+      "log": "git diff a0bf0f94^..a0bf0f94: 14 files (3 M + 11 A), 9685 insertions(+), 46 deletions(-); programmatic check: writable_misses=0, forbidden_hits=0; all 3 production edits (apps/holla/src/app.rs, apps/holla/src/scenario.rs, crates/tui/src/components/viewport.rs) explicitly listed in writable_paths",
+      "name": "gateE.scope_stat"
+    },
+    {
+      "exit": 0,
+      "log": "All 11 diff hunks across the 3 production files carry 'mod tests' context and sit inside test modules (app.rs hunks @1203/1245 after mod-tests:1043; scenario.rs @108 after mod-tests:103; viewport.rs 8 hunks @2284-2594 after cfg(test):1726); sample shows only test doc-comments/renames/assertion replacements matching verdicts V-001/V-002/V-003/V-012..V-015; patch-manifest.json binds exactly 8 span patches across exactly these 3 files (app.rs 2, scenario.rs 1, viewport.rs 5); CHK-006 architecture PASS enforces unchanged outside-span bytes",
+      "name": "gateE.test_only_spans"
+    },
+    {
+      "exit": 0,
+      "log": "cmp parent-blob vs archives/test-authority original: MATCH for all 3 (apps/holla/src/app.rs, apps/holla/src/scenario.rs, crates/tui/src/components/viewport.rs)",
+      "name": "gateE.archive_fidelity"
+    },
+    {
+      "exit": 0,
+      "log": "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com> present (exact); Co-authored-by: Codex <codex@openai.com> present; author/committer Alexey Zhokhov <alexey@zhokhov.com>",
+      "name": "gateE.trailers"
+    },
+    {
+      "exit": 0,
+      "log": "refs/tags/visual-baseline peeled 4a79c0a2d40fca46fc406b77157ce3b3f12ec16b (matches frozen oracle; unmutated); candidate touches no snapshot/oracle paths",
+      "name": "gateE.oracle_tag"
+    },
+    {
+      "exit": 0,
+      "log": "candidate parent d372b79c37577957367a02cd7229ca19d7b1fa5d equals refactor/holla-parity tip d372b79c (directly integrable; scope-base matches parent)",
+      "name": "integrity.ancestry"
+    },
+    {
+      "exit": 0,
+      "log": "status --porcelain empty after all gates; native binary sha256 f12ebeae... still equals build-receipt binary_sha256 after shared-target nextest; run-root membership exact (context-index.json, contexts, observer.json, outputs, proof-preparation.json, results, target, taskfmt-logs)",
+      "name": "integrity.worktree_clean_and_binary"
+    }
+  ],
+  "dependency_receipts": [
+    "/tmp/tc-goal-b518/receipts/TASK-007.json",
+    "/tmp/tc-goal-b518/receipts/TASK-006.json",
+    "/tmp/tc-goal-b518/receipts/TASK-071.json",
+    "/tmp/tc-goal-b518/receipts/TASK-072.json"
+  ],
+  "dependency_receipts_note": "All four read fully: accepted=true, integrated=true (007 dde02859, 006 d372b79c, 071 bffd7224, 072 b71c4d04); coordinator acceptance shape; passed as --dependency-receipt x4 to prepare. Never *-verify.json/*-review.json.",
+  "env": {
+    "PATH": "/Users/donbeave/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "PATH_note": "Clean PATH, no mise shims. cargo 1.98.1 + cargo-nextest 0.9.143 from /Users/donbeave/.cargo/bin. python3 /opt/homebrew/bin/python3 3.14.7.",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "RUN_DIR": "/private/tmp/tc-goal-b518/run-008",
+    "TC_PROOF_NATIVE_BINARY": "/private/tmp/tc-goal-b518/run-008/target/debug/tc-proof",
+    "cargo_version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+    "nextest_version": "cargo-nextest 0.9.143",
+    "python_version": "Python 3.14.7",
+    "verify_env": "RUN_DIR + TC_PROOF_CONTEXT_INDEX[_SHA256=84a01dea...] + TC_PROOF_NATIVE_LAUNCH=1 + TC_PROOF_NATIVE_LAUNCHER=<native> + TC_PROOF_NATIVE_TIMEOUT_MS=600000 + TC_PROOF_OBSERVER_PROVIDER=<008 provider> + TC_PROOF_NATIVE_BINARY=<native>; per-check TC_PROOF_RUN_ID/TASK_ID/CHECK_ID/CONTEXT_SHA256/RESULT/SOURCE_TREE/ORACLE_COMMIT/OBSERVER_NONCE bound by native launcher per launch."
+  },
+  "evidence_paths": {
+    "DISCLAIMER": "taskfmt-logs/ holds only taskfmt-owned logs; verifier-owned logs live in target/verifier-logs/ because prepare/validate enforce exact run-root membership (target/ contents never enumerated).",
+    "build_receipt": "/private/tmp/tc-goal-b518/run-008/target/debug/tc-proof.build.json",
+    "context_index": "/private/tmp/tc-goal-b518/run-008/context-index.json (sha256 84a01dea78954b67311e0c223709cde96b41d9bbeecfa44213dbbf2e161cba66)",
+    "contexts": "/private/tmp/tc-goal-b518/run-008/contexts/CHK-001.json..CHK-007.json",
+    "observer_capability": "/private/tmp/tc-goal-b518/run-008/observer.json",
+    "observer_provider_tool": "/private/tmp/tc-goal-b518/observer-provider-008.py",
+    "outputs": "/private/tmp/tc-goal-b518/run-008/outputs/ (7 files: CHK-001..007.result.json)",
+    "proof_preparation": "/private/tmp/tc-goal-b518/run-008/proof-preparation.json",
+    "results": "/private/tmp/tc-goal-b518/run-008/results/CHK-001.json..CHK-007.json",
+    "run_dir": "/private/tmp/tc-goal-b518/run-008",
+    "taskfmt_logs": "/private/tmp/tc-goal-b518/run-008/taskfmt-logs/ (CHK-001..007.log, scope.log, task_lint.log, forbidden_paths.log, forbidden_patterns.log)",
+    "verifier_logs": "/private/tmp/tc-goal-b518/run-008/target/verifier-logs/",
+    "worktree": "/private/tmp/tc-goal-b518/verify-008 (frozen, detached at a0bf0f94, read-only, clean before and after)"
+  },
+  "gates": {
+    "A_lint": {
+      "exit": 0,
+      "output": "PACKAGE 008/README.md (frozen); SUMMARY errors=0 warnings=0; LINT PASS",
+      "result": "PASS"
+    },
+    "B_verify": {
+      "checks": [
+        "config PASS",
+        "task_lint PASS",
+        "scope PASS",
+        "forbidden_paths PASS",
+        "forbidden_patterns PASS",
+        "CHK-001 PASS",
+        "CHK-002 PASS",
+        "CHK-003 PASS",
+        "CHK-004 PASS",
+        "CHK-005 PASS",
+        "CHK-006 PASS",
+        "CHK-007 PASS"
+      ],
+      "exit": 0,
+      "result": "PASS",
+      "summary": "pass=11 fail=0 RESULT PASS DONE"
+    },
+    "C_prepare_launch": {
+      "failclosed_replay": {
+        "exit": 1,
+        "outputs_count_after": 7,
+        "outputs_count_before": 7,
+        "stderr": "tc-proof launch: result already exists; replay rejected"
+      },
+      "launch_via_verify": {
+        "chk_accounting": "CHK-003/004/005 status passed, operation account-tests, 4 passed runs each (tiny/direct/18+33 x amber+blue), archive_sha256 bound, observation nonce 18164cf0... = verifier nonce, source_commit oracle 4a79c0a2, run_id bound",
+        "close": "CHK-007 status passed; records bind all 6 prior checks with context_sha256+result_sha256",
+        "result_counts_after_verify": "outputs=7 (CHK-001..007.result.json), all schema tc-proof-runner-result/v1, status passed, 1 observation digest each"
+      },
+      "prepare": {
+        "contexts": 7,
+        "exit": 0,
+        "index_sha256": "84a01dea78954b67311e0c223709cde96b41d9bbeecfa44213dbbf2e161cba66",
+        "observer_sequences": {
+          "CHK-001": [
+            "preflight"
+          ],
+          "CHK-002": [
+            "required"
+          ],
+          "CHK-003": [
+            "account-tests"
+          ],
+          "CHK-004": [
+            "account-tests"
+          ],
+          "CHK-005": [
+            "account-tests"
+          ],
+          "CHK-006": [
+            "architecture"
+          ],
+          "CHK-007": [
+            "close"
+          ]
+        },
+        "outputs_count_after": 0,
+        "qualification": "CHK-003/004/005 mode=preparation family=accounting register_kind=post-migration (per trusted templates); requires_inventory_receipt=false requires_disposition_receipt=false",
+        "results": 7,
+        "tool_sha256": "0182b2d70c64c4a3b3173fc4bac7c3404a024cc6965849431e120b41cf9c8ba1 (frozen candidate bundle, post-077; matches 006r3/077)",
+        "trust_sha256": "3dd17608600dfd7871aa7c846f15b143908d223ab3b3ce36d179d383c055ef50"
+      },
+      "result": "PASS",
+      "validate": {
+        "exit": 1,
+        "note": "Supplementary; same shape as all prior PASS runs (DONE on taskfmt stdout only). Zero gate impact.",
+        "stderr": "tc-proof validate: taskfmt logs do not end in DONE"
+      }
+    },
+    "D_nextest": {
+      "disposition_unittest": {
+        "command": "cd $WORKTREE/tools/test-disposition && python3 -m unittest -v test_disposition (frozen worktree, clean PATH, PYTHONDONTWRITEBYTECODE=1)",
+        "exit": 0,
+        "failed": 0,
+        "passed": 15,
+        "run": 15
+      },
+      "holla": {
+        "command": "cd $WORKTREE && CARGO_TARGET_DIR=$RUN_DIR/target cargo nextest run --locked --offline -p holla (frozen worktree, clean PATH)",
+        "exit": 100,
+        "failed": 3,
+        "failed_accounting": "all 3 stage-map future-failed (V-001 replace owner TASK-041 requires TASK-040; V-002 relocate owner TASK-041; V-003 replace owner TASK-049)",
+        "failed_identities": [
+          "app::tests::home_hint_casing_preserves_lowercase_physical_shortcuts",
+          "app::tests::home_escape_clears_query_before_scope",
+          "scenario::tests::names_round_trip"
+        ],
+        "passed": 170,
+        "run": 173,
+        "skipped": 0
+      },
+      "junie_tui": {
+        "command": "cd $WORKTREE && CARGO_TARGET_DIR=$RUN_DIR/target cargo nextest run --locked --offline -p junie-tui (frozen worktree, clean PATH)",
+        "exit": 100,
+        "failed": 4,
+        "failed_accounting": "all 4 stage-map future-failed owner TASK-021 (verdicts V-012 replace, V-013/V-014/V-015 relocate)",
+        "failed_identities": [
+          "components::viewport::tests::retention_fixes_up_selection_and_caret",
+          "components::viewport::tests::the_text_width_reserves_a_scrollbar_column_only_on_overflow",
+          "components::viewport::tests::no_viewport_gutter_text_paints_from_the_area_origin",
+          "components::viewport::tests::tabs_expand_in_geometry_but_copy_as_source_bytes"
+        ],
+        "passed": 2585,
+        "run": 2589,
+        "skipped": 5
+      },
+      "note": "Focused scope only (tools/test-disposition + junie-tui + holla); whole-workspace suite NOT run per instructions. Nextest exits 100 are the task-designed R-003 staged-failure signal: observed failures (4 tui + 3 holla) exactly equal the 7 recorded stage-map future-failed entries with fixed closing owners (TASK-021 x4, TASK-041 x2, TASK-049 x1); zero unrecorded failures; all compatible assertions pass.",
+      "result": "PASS"
+    },
+    "E_scope_provenance": {
+      "archive_fidelity": "3/3 archived originals byte-match parent blobs",
+      "branch_tip_match": "parent equals refactor/holla-parity tip",
+      "co_authored_by": "Co-authored-by: Codex <codex@openai.com> present",
+      "diff_stat": "14 files changed, 9685 insertions(+), 46 deletions(-); 3 M + 11 A",
+      "forbidden_hits": 0,
+      "parent": "d372b79c37577957367a02cd7229ca19d7b1fa5d",
+      "parent_match": true,
+      "production_edits_explicit": true,
+      "production_edits_test_only": "all 11 hunks inside mod-tests regions; patch-manifest 8 spans across exactly these 3 files; CHK-006 PASS",
+      "result": "PASS",
+      "signed_off_by": "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com> present (exact)",
+      "visual_baseline_tag_peeled": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b (matches frozen oracle identity; unmutated)",
+      "writable_set": "all 14 within 008 writable set (programmatic writable_misses=0)"
+    }
+  },
+  "native_binary_sha256": "f12ebeae9acb2c135b689a30606beed409efe3fd218bae6d8425e02d72f4a247",
+  "observer_provider": {
+    "note": "Copy of 006r3 provider; diff vs 006r3 is label-only (PROVIDER + docstring title lines). Task-agnostic: all bindings echoed from prepare-bound contexts. Lives outside RUN_DIR because prepare/validate enforce exact run-root membership (same accepted layout as prior verifiers).",
+    "path": "/private/tmp/tc-goal-b518/observer-provider-008.py",
+    "sha256": "08d10f3dda9f53ab3ec8c55b016b05a938317ba5c16eb54bcb9e876571eeb2ac"
+  },
+  "per_check_table": [
+    {
+      "check": "config",
+      "result": "PASS"
+    },
+    {
+      "check": "task_lint",
+      "result": "PASS"
+    },
+    {
+      "check": "scope",
+      "result": "PASS"
+    },
+    {
+      "check": "forbidden_paths",
+      "result": "PASS"
+    },
+    {
+      "check": "forbidden_patterns",
+      "result": "PASS"
+    },
+    {
+      "check": "CHK-001 preflight",
+      "result": "PASS"
+    },
+    {
+      "check": "CHK-002 required",
+      "result": "PASS"
+    },
+    {
+      "check": "CHK-003 account-tests/preparation",
+      "note": "4/4 runs passed (tiny/direct/18+33 x amber+blue)",
+      "result": "PASS"
+    },
+    {
+      "check": "CHK-004 account-tests/preparation",
+      "note": "4/4 runs passed",
+      "result": "PASS"
+    },
+    {
+      "check": "CHK-005 account-tests/preparation",
+      "note": "4/4 runs passed",
+      "result": "PASS"
+    },
+    {
+      "check": "CHK-006 architecture",
+      "result": "PASS"
+    },
+    {
+      "check": "CHK-007 close",
+      "note": "records bind all 6 prior checks with context+result digests",
+      "result": "PASS"
+    }
+  ],
+  "recorded_by": "verifier-subagent TASK-008",
+  "run_dir": "/private/tmp/tc-goal-b518/run-008",
+  "scope_base": "d372b79c37577957367a02cd7229ca19d7b1fa5d",
+  "task_dir": "/private/tmp/tc-goal-b518/verify-008/refactoring-tasks/terminal-components/completion/008",
+  "task_dir_note": "frozen candidate task package (task.toml + verify.toml + README + AGENTS + trusted/obligations, source-obligations, inline/external scope, disposition bindings, CHK-003/004/005 templates read first; diff -r vs campaign checkout empty)",
+  "task_id": "TASK-008",
+  "taskfmt": {
+    "checkout_rev": "afd3b575dbcc7044620bec4b9493a74eca3e5ef2",
+    "identity_match": true,
+    "path": "/private/tmp/taskfmt-latest-install/bin/taskfmt",
+    "revision": "afd3b575dbcc7044620bec4b9493a74eca3e5ef2",
+    "sha256": "f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de",
+    "source": "/Users/donbeave/Projects/taskfmt/task-format",
+    "version": "0.2.0",
+    "version_output": "taskfmt 0.2.0 (git afd3b575dbcc7044620bec4b9493a74eca3e5ef2)"
+  },
+  "verdict": "PASS",
+  "worktree": "/private/tmp/tc-goal-b518/verify-008",
+  "worktree_note": "frozen, detached at a0bf0f94, read-only, status --porcelain empty before and after all gates"
+}

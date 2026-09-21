@@ -1,0 +1,62 @@
+{
+  "task_id": "TASK-006",
+  "round": "r3",
+  "candidate_commit": "d372b79c37577957367a02cd7229ca19d7b1fa5d",
+  "parent": "c8b37b5430195e3662935291e5f538634d7ad598",
+  "verdict": "VERIFIED",
+  "recorded_by": "reviewer-subagent TASK-006 r3",
+  "scope": {
+    "result": "PASS",
+    "files_changed": 21,
+    "insertions": 6813,
+    "writable_set": "tools/refactor-proof-adapters/components",
+    "outside_writable": 0,
+    "forbidden_hits": 0,
+    "patch_vs_6e0c0bc1": "byte-identical (cmp exit 0, 224419 bytes each; -x exclusion moot)",
+    "subtree_hash": "f65fd70ef458bd8b3bd67b362382c38265a9e29e identical in both candidates",
+    "parent_match": true,
+    "oracle_tag_peeled": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b (matches frozen oracle; unmutated)"
+  },
+  "correctness_architecture": {
+    "result": "PASS",
+    "families": "54 via include_str-pinned component-parity.tsv, fail-closed parse (exact 54 unique rows in order)",
+    "lanes": "42 Direct / 5 Composition / 7 Architecture (lib.rs consts + membership test lane_split_is_42_5_7)",
+    "testing_registry": "Architecture-only, rationale cites TASK-073+TASK-031 binding, no screenshot/direct-capture/PTY identity (disposition.rs:262-264,281; test testing_registry_is_architecture_only_with_task_073_and_031_binding)",
+    "prod_paths": "Fixtures construct real widgets, route real Input through update, paint through draw, Runtime::new + present/settle loop (fixtures.rs:327-375); capture() fail-closed on non-Direct lane and non-applicable state",
+    "no_hardcoded_frames": true,
+    "no_oracle_reads": "only include_str of component-parity.tsv (authority doc); no visual-baseline/snapshots/include_bytes access",
+    "no_renderer_substitution": "no mock/fake/stub render, no TestBackend",
+    "no_unsafe": true,
+    "no_unwrap_expect_in_src": "only #[expect] lint attribute; expect() confined to tests/",
+    "no_weakened_asserts": "no todo/ignore/assert-true; return Ok paths are early-return guards in fixture drivers",
+    "no_scratch_files": true,
+    "facets": "FADE_HEIGHTS=[3,4,11,12] with documented picker/scroll-panel exceptions; 4 color levels (TrueColor/Ansi256/Ansi16/Mono); 120x40 + 40x10 sizes; FadePosition + ViewportMutation axes",
+    "union": "components/ prefix enforced, 4 app-namespace collision guards, duplicate-identity fail-closed"
+  },
+  "verifier_evidence_audit": {
+    "result": "PASS",
+    "taskfmt_verify": "stdout ends SUMMARY pass=11 fail=0 / RESULT PASS / DONE; DONE on stdout only (no DONE in taskfmt-logs files, expected shape)",
+    "chk003": "CHK-003.log exit=0 launch envelope; CHK-003.result.json status passed, operation oracle, 1 observation digest",
+    "chk004": "CHK-004.compare.json required=4 checked=4 passed=4 failures=[]; result status passed",
+    "all_outputs": "7/7 CHK result.json status passed; 8 output files total",
+    "nextest": "19 run / 19 passed / 0 skipped (verifier-nextest.err Summary [16.501s]); matches 7+6+4+2 in-repo #[test] counts",
+    "scope_log": "21 ok lines, all under writable set; forbidden_paths.log all-ok; forbidden_patterns.log empty",
+    "r2_to_r3_delta": "explained ONLY by accepted 077 repair (parent c8b37b54 adds 'components' to NATIVE_ORACLE_NAMESPACES 5-member allowlist) + mechanical refresh; candidate content patch byte-identical to 6e0c0bc1 (cmp exit 0), subtree hash identical"
+  },
+  "commit_hygiene": {
+    "result": "PASS",
+    "signed_off_by": "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com> exactly once",
+    "co_authored_by": "Co-authored-by: Codex <codex@openai.com> present",
+    "message": "feat(components): reusable oracle-complete observation adapter for the 54 component families — accurate; cherry-pick trailer references 6e0c0bc1, patch cmp confirms"
+  },
+  "findings": [],
+  "evidence_paths": {
+    "review_worktree": "/private/tmp/tc-goal-b518/review-006r3 (detached at d372b79c, read-only, clean)",
+    "scratch": "/private/tmp/tc-goal-b518/review-006r3-scratch (patch-6e0c0bc1.diff, patch-d372b79c.diff)",
+    "verify_receipt": "/tmp/tc-goal-b518/receipts/TASK-006-verify-r3.json",
+    "taskfmt_logs": "/private/tmp/tc-goal-b518/run-006r3/taskfmt-logs/",
+    "verifier_logs": "/private/tmp/tc-goal-b518/run-006r3/target/verifier-logs/",
+    "outputs": "/private/tmp/tc-goal-b518/run-006r3/outputs/"
+  },
+  "verdict_reason": "Scope clean (21/21 in writable set, patch byte-identical to 6e0c0bc1, oracle unmutated); architecture sound (54 families, 42/5/7 lanes, testing-registry bound to TASK-073/031, production-path fixtures, no shortcuts); verifier evidence independently re-confirmed (11/11 taskfmt, 19/19 nextest, CHK-003 oracle PASS via 077 allowlist, CHK-004 4/4); hygiene exact."
+}

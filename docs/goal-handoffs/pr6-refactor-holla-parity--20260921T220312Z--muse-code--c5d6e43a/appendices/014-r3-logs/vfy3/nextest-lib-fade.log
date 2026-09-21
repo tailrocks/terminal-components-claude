@@ -1,0 +1,93 @@
+   Compiling rustversion v1.0.23
+   Compiling castaway v0.2.4
+   Compiling compact_str v0.9.1
+   Compiling ratatui-core v0.1.2
+   Compiling ratatui-crossterm v0.1.2
+   Compiling junie-tui v0.1.0 (/private/tmp/tc-014-vfy3/candidate/crates/tui)
+warning: methods `len`, `peak`, and `capacity` are never used
+  --> crates/tui/src/text/clusters.rs:64:25
+   |
+50 | impl ClusterScratch {
+   | ------------------- methods in this implementation
+...
+64 |     pub(crate) const fn len(&self) -> usize {
+   |                         ^^^
+...
+75 |     pub(crate) const fn peak(&self) -> usize {
+   |                         ^^^^
+...
+80 |     pub(crate) fn capacity(&self) -> usize {
+   |                   ^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `text_scratch` is never read
+  --> crates/tui/src/ui/mod.rs:94:5
+   |
+70 | pub(crate) struct FrameState {
+   |                   ---------- field in this struct
+...
+94 |     text_scratch: ClusterScratch,
+   |     ^^^^^^^^^^^^
+   |
+   = note: `FrameState` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: method `paint_display` is never used
+   --> crates/tui/src/ui/paint.rs:249:19
+    |
+ 84 | impl Ui<'_> {
+    | ----------- method in this implementation
+...
+249 |     pub(crate) fn paint_display(
+    |                   ^^^^^^^^^^^^^
+
+warning: struct `StreamGuard` is never constructed
+   --> crates/tui/src/ui/paint.rs:584:8
+    |
+584 | struct StreamGuard<'a, 'f> {
+    |        ^^^^^^^^^^^
+
+warning: associated items `take` and `paint` are never used
+   --> crates/tui/src/ui/paint.rs:590:8
+    |
+589 | impl<'a, 'f> StreamGuard<'a, 'f> {
+    | -------------------------------- associated items in this implementation
+590 |     fn take(ui: &'a mut Ui<'f>) -> Self {
+    |        ^^^^
+...
+599 |     fn paint(&mut self, area: Rect, value: &impl core::fmt::Display, style: PaintStyle) -> u16 {
+    |        ^^^^^
+
+warning: struct `StreamWriter` is never constructed
+   --> crates/tui/src/ui/paint.rs:629:8
+    |
+629 | struct StreamWriter<'m, 's, 'a, 'f> {
+    |        ^^^^^^^^^^^^
+
+   Compiling junie-tui-testing v0.1.0 (/private/tmp/tc-014-vfy3/candidate/crates/tui-testing)
+warning: `junie-tui` (lib) generated 6 warnings
+warning: field `peak` is never read
+   --> crates/tui/src/ui/paint.rs:920:9
+    |
+918 |     struct ScratchDiag {
+    |            ----------- field in this struct
+919 |         len: usize,
+920 |         peak: usize,
+    |         ^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `junie-tui` (lib test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.87s
+────────────
+ Nextest run ID 8195fb25-fd8f-4934-9528-4c112d3b77b0 with nextest profile: default
+    Starting 5 tests across 1 binary (785 tests skipped)
+        PASS [   0.050s] (1/5) junie-tui theme::builder::tests::fade_mix_oracle_inner_matches_pinned_vector
+        PASS [   0.052s] (2/5) junie-tui theme::builder::tests::fade_mix_oracle_outer_matches_pinned_vector
+        PASS [   0.053s] (3/5) junie-tui ui::paint::tests::scroll_edges_fade_only_hidden_edges_and_clear_at_boundaries
+        PASS [   0.054s] (4/5) junie-tui theme::builder::tests::fade_mix_oracle_non_rgb_branch_matrix
+        PASS [   0.060s] (5/5) junie-tui theme::builder::tests::fade_mix_oracle_sweep_matches_transcription
+────────────
+     Summary [   0.061s] 5 tests run: 5 passed, 785 skipped
+mbx[cache]: 7 hits, 1 misses; 0 B downloaded, 0 B uploaded, 20.9 MiB stored locally
+mbx[savings]: 2.2 TiB of outputs, one copy, several very confident checkouts.

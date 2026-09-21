@@ -1,0 +1,76 @@
+{
+  "task": "TASK-076",
+  "role": "verifier",
+  "candidate": "b905cb70813348af3fe62dbde2d3a29bf768879a",
+  "parent_scope_base": "7427427ad7824d17466559c84862ef32e1d5d8d7",
+  "frozen_worktree": "/private/tmp/tc-goal-b518/verify-076",
+  "run_dir": "/private/tmp/tc-goal-b518/run-076v",
+  "taskfmt": {
+    "path": "/Users/donbeave/.cargo/bin/taskfmt",
+    "version": "0.2.0",
+    "rev": "afd3b575dbcc7044620bec4b9493a74eca3e5ef2",
+    "sha256": "f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de",
+    "checkout_rev": "afd3b575dbcc7044620bec4b9493a74eca3e5ef2",
+    "identity_match": true
+  },
+  "python": "/opt/homebrew/bin/python3 (3.14.7, clean PATH without mise shims)",
+  "gates": {
+    "A_lint": {
+      "cmd": "taskfmt lint <frozen>/refactoring-tasks/terminal-components/completion/076",
+      "exit": 0,
+      "log": "/private/tmp/tc-goal-b518/run-076v/gateA-lint.log"
+    },
+    "B_verify_r1_mise_PATH": {
+      "cmd": "taskfmt verify --root <frozen> --task-dir <frozen>/076 --base 7427427a --progress '' --log-dir $RUN_DIR/taskfmt-logs",
+      "exit": 1,
+      "note": "environment-only failure: mise shims intercepted python3 and refused untrusted mise.toml in the fresh worktree; no check logic ran",
+      "log": "/private/tmp/tc-goal-b518/run-076v/gateB-verify.log"
+    },
+    "B_verify_r2_clean_PATH": {
+      "cmd": "same, with PATH=/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+      "exit": 0,
+      "per_check": {
+        "config": "PASS", "task_lint": "PASS", "scope": "PASS",
+        "forbidden_paths": "PASS", "forbidden_patterns": "PASS",
+        "CHK-001": "PASS", "CHK-002": "PASS", "CHK-003": "PASS"
+      },
+      "log": "/private/tmp/tc-goal-b518/run-076v/gateB-verify-r2.log",
+      "check_logs": "/private/tmp/tc-goal-b518/run-076v/taskfmt-logs/"
+    },
+    "C_freshness": {
+      "rebundle_check": {"cmd": "python3 tools/refactor-proof/tests/rebundle_check.py (frozen root)", "exit": 0, "log": "/private/tmp/tc-goal-b518/run-076v/gateC-rebundle-check.log"},
+      "regen_run": {"cmd": "python3 tools/refactor-proof/architecture/rebundle.py (in disposable copy $RUN_DIR/regen-copy @ b905cb70)", "exit": 0, "log": "/private/tmp/tc-goal-b518/run-076v/gateC-regen-run.log"},
+      "byte_diff": {"cmd": "cmp regen-copy/.../bin/tc-proof frozen/.../bin/tc-proof", "exit": 0},
+      "sha256_regenerated": "d59ae497766f83ac768e0b87ba1c1c0e48e042142113b491ef95ae20fbef307d",
+      "sha256_tracked": "d59ae497766f83ac768e0b87ba1c1c0e48e042142113b491ef95ae20fbef307d",
+      "mode_both": "755",
+      "regen_copy_git_status": "clean",
+      "log": "/private/tmp/tc-goal-b518/run-076v/gateC-sha256.log"
+    },
+    "D_functional": {
+      "ast_parse": {"exit": 0, "log": "/private/tmp/tc-goal-b518/run-076v/gateD-astparse.log"},
+      "supervision_probe_fresh": {"exit": 0, "log": "/private/tmp/tc-goal-b518/run-076v/gateD-supervision.log"},
+      "regeneration_probe_fresh": {"exit": 0, "log": "/private/tmp/tc-goal-b518/run-076v/gateD-regenprobe.log"},
+      "help_smoke": {"cmd": "./tools/refactor-proof/bin/tc-proof --help (direct exec, tests shebang+exec bit)", "exit": 0, "log": "/private/tmp/tc-goal-b518/run-076v/gateD-help.log"},
+      "note": "no tc-proof prepare/preflight: contract provides no 076 contexts and forbids oracle contact; --help smoke per delegation"
+    },
+    "E_negative_stale_parent_7427427a": {
+      "CHK-001": {"exit": 1, "detail": "bundle runner entrypoint differs from source", "log": "/private/tmp/tc-goal-b518/run-076v/gateE-stale-chk001.log"},
+      "CHK-002": {"exit": 1, "detail": "os.execv present, no run_compare", "log": "/private/tmp/tc-goal-b518/run-076v/gateE-stale-chk002.log"},
+      "CHK-003": {"exit": 1, "detail": "staged d59ae497766f83ac != tracked 3b0f172f9ebe0615 (staged == candidate: generator determinism confirmed)", "log": "/private/tmp/tc-goal-b518/run-076v/gateE-stale-chk003.log"},
+      "worktree": "/private/tmp/tc-goal-b518/run-076v/stale-copy"
+    },
+    "F_scope_provenance": {
+      "diff_stat": "tools/refactor-proof/bin/tc-proof | 83 insertions, 3 deletions; 1 file changed",
+      "name_only": ["tools/refactor-proof/bin/tc-proof"],
+      "source_changes": "none",
+      "baseline_oracle_mutation": "none (no refs/tags/stores touched; worktree adds only)",
+      "signoff": "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com> + Co-authored-by: Codex <codex@openai.com>",
+      "spotcheck": {"cmd": "stripped runner/__main__.py contained in bundle + section strip-equal + run_compare/no-execv", "exit": 0, "result": "contained=True section_equal=True supervision=True", "log": "/private/tmp/tc-goal-b518/run-076v/gateF-spotcheck2.log"},
+      "note": "first spot-check attempt returned False due to verifier-script bug (spurious __name__ rename the generator does not apply); corrected replication passes; authoritative CHK-001 passed throughout",
+      "logs": ["/private/tmp/tc-goal-b518/run-076v/gateF-diffstat.log", "/private/tmp/tc-goal-b518/run-076v/gateF-nameonly.log", "/private/tmp/tc-goal-b518/run-076v/gateF-hunks.log", "/private/tmp/tc-goal-b518/run-076v/gateF-commitmsg.log"]
+    }
+  },
+  "frozen_pristine": "git status --porcelain empty after all gates (verified 3x)",
+  "verdict": "PASS"
+}

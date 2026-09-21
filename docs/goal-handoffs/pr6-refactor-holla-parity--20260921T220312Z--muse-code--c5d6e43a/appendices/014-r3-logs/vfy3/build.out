@@ -1,0 +1,2 @@
+native tc-proof comparator: /private/tmp/tc-014-vfy3/run/target/debug/tc-proof
+native tc-proof build receipt: /private/tmp/tc-014-vfy3/run/target/debug/tc-proof.build.json

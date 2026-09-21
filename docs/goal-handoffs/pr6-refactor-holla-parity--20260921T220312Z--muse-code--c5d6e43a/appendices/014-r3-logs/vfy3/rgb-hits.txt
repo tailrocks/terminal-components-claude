@@ -1,0 +1,11 @@
+crates/tui/src/ui/paint.rs:1456
+crates/tui/src/ui/paint.rs:1457
+crates/tui/src/ui/paint.rs:1479
+crates/tui/src/ui/paint.rs:1562
+crates/tui/src/ui/paint.rs:1575
+crates/tui/src/ui/paint.rs:1585
+crates/tui/src/ui/paint.rs:1592
+crates/tui/src/ui/paint.rs:1628
+crates/tui/src/ui/paint.rs:1629
+crates/tui/src/ui/paint.rs:1667
+crates/tui/src/ui/paint.rs:1683

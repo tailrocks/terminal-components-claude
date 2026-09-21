@@ -1,0 +1,437 @@
+{
+    "adapter": {
+        "changes": []
+    },
+    "axes": {
+        "lanes": [
+            "direct",
+            "pty"
+        ],
+        "palettes": [
+            "magenta",
+            "orange"
+        ],
+        "widths": [
+            18,
+            33
+        ]
+    },
+    "bundle": "refs/tags/visual-baseline",
+    "bundle_sha256": "dd1df64115ad97feb40cdd1b888356d2461483c7f6372ad8b183364fb317b036",
+    "check_id": "CHK-007",
+    "configuration": {
+        "seed": 0,
+        "seed_steps": []
+    },
+    "dependencies": [
+        {
+            "accepted": true,
+            "integrated": true,
+            "integration_commit": "926264a1f26b04845c3d54ea3c046831c61e9071",
+            "path": "/tmp/tc-goal-b518/receipts/TASK-013.json",
+            "sha256": "8f0f7da6cae086d604c3b30787be4dd67190d0dbac6ac454fa2adcdf236a6555",
+            "task_id": "TASK-013"
+        },
+        {
+            "accepted": true,
+            "integrated": true,
+            "integration_commit": "100db11ed58b1e892201b1edb3f8b719346f00b9",
+            "path": "/tmp/tc-goal-b518/receipts/TASK-010.json",
+            "sha256": "dd8edbc2bfa8a061e4ca77c5184742a9fd2993aa981a6467175db41c93954a55",
+            "task_id": "TASK-010"
+        },
+        {
+            "accepted": true,
+            "integrated": true,
+            "integration_commit": "12f7f3bf9ab2fe0d1b78db13934358a5ff0bf9ab",
+            "path": "/tmp/tc-goal-b518/receipts/TASK-011.json",
+            "sha256": "2269417f5ba4d4dbd67ba15a34a1045059e2cf2c52802ec11a7f6aa40cdb1076",
+            "task_id": "TASK-011"
+        },
+        {
+            "accepted": true,
+            "integrated": true,
+            "integration_commit": "b4d2c0d057511510893b6b8809a4ec682635e62e",
+            "path": "/tmp/tc-goal-b518/receipts/TASK-012.json",
+            "sha256": "156eaeb9b1e5e980453f4f2046105d1ddadf2c5dc2409a19dae163abf7ae1607",
+            "task_id": "TASK-012"
+        },
+        {
+            "accepted": true,
+            "integrated": true,
+            "integration_commit": "a0bf0f941d1f0365e784e75e4aa028d9d1d16964",
+            "path": "/tmp/tc-goal-b518/receipts/TASK-008.json",
+            "sha256": "a5932f67edff14c73f51396fed978d7a3c97811f0692ac0550cdc79e76b6f517",
+            "task_id": "TASK-008"
+        },
+        {
+            "accepted": true,
+            "integrated": true,
+            "integration_commit": "1756c341bbdc71b92e22c672c8df2d06c9b17043",
+            "path": "/tmp/tc-goal-b518/receipts/TASK-073.json",
+            "sha256": "fc6f3ca8325817d6258a96767b1dab6d3a53ef86f164a7592fcd48b25a1a99ad",
+            "task_id": "TASK-073"
+        }
+    ],
+    "evidence": [],
+    "inventory": {},
+    "lane": "direct",
+    "members": [
+        "tiny/direct/18/magenta",
+        "tiny/direct/18/orange",
+        "tiny/direct/33/magenta",
+        "tiny/direct/33/orange",
+        "tiny/pty/18/magenta",
+        "tiny/pty/18/orange",
+        "tiny/pty/33/magenta",
+        "tiny/pty/33/orange"
+    ],
+    "observer_sequence": [
+        "close"
+    ],
+    "operation": "close",
+    "oracle_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+    "oracle_tree": "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26",
+    "qualification": {
+        "check": {
+            "acceptance": [
+                "AC-005"
+            ],
+            "command_sha256": "1f241181b958006c6b225d7e5c277bfbec797dde858894a17a6bf56962636beb",
+            "context_reference": "CHK-007.json",
+            "lane": "direct",
+            "namespace": "",
+            "phase": "gate",
+            "requirements": [
+                "R-005"
+            ]
+        },
+        "common": {
+            "candidate_commit": "018498542c4170a3b49ff48db3e6477caa952488",
+            "candidate_tree": "9ae1cf03afcc7fcc4827e9b703f3ab55f4c7f6af",
+            "comparator": {
+                "path": "/private/tmp/tc-014-impl/run/target/debug/tc-proof",
+                "sha256": "1041331fea6e8ac6e60872fc62e709460faf0060e9b45e4607be88b949d4f804"
+            },
+            "dependencies": [
+                {
+                    "accepted": true,
+                    "integrated": true,
+                    "integration_commit": "926264a1f26b04845c3d54ea3c046831c61e9071",
+                    "path": "/tmp/tc-goal-b518/receipts/TASK-013.json",
+                    "sha256": "8f0f7da6cae086d604c3b30787be4dd67190d0dbac6ac454fa2adcdf236a6555",
+                    "task_id": "TASK-013"
+                },
+                {
+                    "accepted": true,
+                    "integrated": true,
+                    "integration_commit": "100db11ed58b1e892201b1edb3f8b719346f00b9",
+                    "path": "/tmp/tc-goal-b518/receipts/TASK-010.json",
+                    "sha256": "dd8edbc2bfa8a061e4ca77c5184742a9fd2993aa981a6467175db41c93954a55",
+                    "task_id": "TASK-010"
+                },
+                {
+                    "accepted": true,
+                    "integrated": true,
+                    "integration_commit": "12f7f3bf9ab2fe0d1b78db13934358a5ff0bf9ab",
+                    "path": "/tmp/tc-goal-b518/receipts/TASK-011.json",
+                    "sha256": "2269417f5ba4d4dbd67ba15a34a1045059e2cf2c52802ec11a7f6aa40cdb1076",
+                    "task_id": "TASK-011"
+                },
+                {
+                    "accepted": true,
+                    "integrated": true,
+                    "integration_commit": "b4d2c0d057511510893b6b8809a4ec682635e62e",
+                    "path": "/tmp/tc-goal-b518/receipts/TASK-012.json",
+                    "sha256": "156eaeb9b1e5e980453f4f2046105d1ddadf2c5dc2409a19dae163abf7ae1607",
+                    "task_id": "TASK-012"
+                },
+                {
+                    "accepted": true,
+                    "integrated": true,
+                    "integration_commit": "a0bf0f941d1f0365e784e75e4aa028d9d1d16964",
+                    "path": "/tmp/tc-goal-b518/receipts/TASK-008.json",
+                    "sha256": "a5932f67edff14c73f51396fed978d7a3c97811f0692ac0550cdc79e76b6f517",
+                    "task_id": "TASK-008"
+                },
+                {
+                    "accepted": true,
+                    "integrated": true,
+                    "integration_commit": "1756c341bbdc71b92e22c672c8df2d06c9b17043",
+                    "path": "/tmp/tc-goal-b518/receipts/TASK-073.json",
+                    "sha256": "fc6f3ca8325817d6258a96767b1dab6d3a53ef86f164a7592fcd48b25a1a99ad",
+                    "task_id": "TASK-073"
+                }
+            ],
+            "files": {
+                "task_readme": {
+                    "path": "/private/tmp/tc-014-impl/wt/refactoring-tasks/terminal-components/completion/014/README.md",
+                    "sha256": "6532b2a700396a8bbe5c7e2eae7d8feb022f8f95d24864916d226f709f212e1e"
+                },
+                "task_toml": {
+                    "path": "/private/tmp/tc-014-impl/wt/refactoring-tasks/terminal-components/completion/014/task.toml",
+                    "sha256": "1ef5fe1b675207e208bf7a33a9c54b6f0bf052fddb60e26b788a883dfbcbef18"
+                },
+                "templates": {
+                    "CHK-005": {
+                        "path": "/private/tmp/tc-014-impl/wt/refactoring-tasks/terminal-components/completion/014/trusted/check-context-templates/CHK-005.json",
+                        "sha256": "24a6bc1b894c2365f29df1f5e57458db81e92364a1c8b1076c17a5631056fa13"
+                    }
+                },
+                "verify_toml": {
+                    "path": "/private/tmp/tc-014-impl/wt/refactoring-tasks/terminal-components/completion/014/verify.toml",
+                    "sha256": "0bfd7b64c3acf30cc6240c7ba6dc3cd2b71175120141411bf928e00ebd3de9a3"
+                }
+            },
+            "observer": {
+                "capability": "/private/tmp/tc-014-impl/run/observer.json",
+                "nonce": "c7ebc86a6f9df9fbe44733bdd92551bba819aa8177acf2f8",
+                "provider": {
+                    "path": "/private/tmp/tc-014-impl/observer-provider-014.py",
+                    "sha256": "747ea486981bd5e190dcb9fedda82e3a64e937a775802288808931914a562e1e"
+                },
+                "transport": "inherited-pipe/v1"
+            },
+            "oracle": {
+                "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+                "tag": "refs/tags/visual-baseline",
+                "tag_ref_sha256": "dd1df64115ad97feb40cdd1b888356d2461483c7f6372ad8b183364fb317b036",
+                "tree": "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26"
+            },
+            "outputs": {
+                "runtime": "/private/tmp/tc-014-impl/run/outputs",
+                "taskfmt_logs": "/private/tmp/tc-014-impl/run/taskfmt-logs"
+            },
+            "run_dir": "/private/tmp/tc-014-impl/run",
+            "run_id": "/private/tmp/tc-014-impl/run",
+            "scope_base": "926264a1f26b04845c3d54ea3c046831c61e9071",
+            "task_id": "TASK-014",
+            "taskfmt": {
+                "path": "/Users/donbeave/.cargo/bin/taskfmt",
+                "sha256": "f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de"
+            },
+            "tool": {
+                "path": "/private/tmp/tc-014-impl/wt/tools/refactor-proof/bin/tc-proof",
+                "sha256": "0182b2d70c64c4a3b3173fc4bac7c3404a024cc6965849431e120b41cf9c8ba1"
+            },
+            "worktree": "/private/tmp/tc-014-impl/wt"
+        },
+        "trust_manifest": {
+            "checks": [
+                {
+                    "acceptance": [
+                        "AC-004"
+                    ],
+                    "check_id": "CHK-001",
+                    "command_sha256": "3b06160541f9d151c71322b186077e2ccbb41c5666992917c372e27ecd1e4d72",
+                    "context_reference": "CHK-001.json",
+                    "operation": "preflight",
+                    "phase": "precondition",
+                    "requirements": [
+                        "R-004"
+                    ]
+                },
+                {
+                    "acceptance": [
+                        "AC-006"
+                    ],
+                    "check_id": "CHK-002",
+                    "command_sha256": "865f03d0c9f7460a895398a579d8f69b971cce723f6019f49066ed3c922d3f8a",
+                    "context_reference": "CHK-002.json",
+                    "operation": "capture",
+                    "phase": "focused",
+                    "requirements": [
+                        "R-001"
+                    ]
+                },
+                {
+                    "acceptance": [
+                        "AC-007"
+                    ],
+                    "check_id": "CHK-003",
+                    "command_sha256": "32de73dcfb6c3400f10053fa33029ad7c4f0244eff76271ec5bac1a1e70ba392",
+                    "context_reference": "CHK-003.json",
+                    "operation": "capture",
+                    "phase": "focused",
+                    "requirements": [
+                        "R-001"
+                    ]
+                },
+                {
+                    "acceptance": [
+                        "AC-001"
+                    ],
+                    "check_id": "CHK-004",
+                    "command_sha256": "fda065e45200873bc5e1c63090adcdedee91ee143e04703a6b216981489a6684",
+                    "context_reference": "CHK-004.json",
+                    "operation": "compare",
+                    "phase": "focused",
+                    "requirements": [
+                        "R-001"
+                    ]
+                },
+                {
+                    "acceptance": [
+                        "AC-003"
+                    ],
+                    "check_id": "CHK-005",
+                    "command_sha256": "c4be17fccf11a5bb5b3120f5efeff4d4d1c248fb4f5e4c640fdc2f2d3643be6a",
+                    "context_reference": "CHK-005.json",
+                    "operation": "account-tests",
+                    "phase": "regression",
+                    "requirements": [
+                        "R-003"
+                    ]
+                },
+                {
+                    "acceptance": [
+                        "AC-002"
+                    ],
+                    "check_id": "CHK-006",
+                    "command_sha256": "7ca44302c4d4d4e2391f8ecd6d435117486194d3f8fd3abbbe2a3f8d2947cda9",
+                    "context_reference": "CHK-006.json",
+                    "operation": "architecture",
+                    "phase": "lint",
+                    "requirements": [
+                        "R-002"
+                    ]
+                },
+                {
+                    "acceptance": [
+                        "AC-005"
+                    ],
+                    "check_id": "CHK-007",
+                    "command_sha256": "1f241181b958006c6b225d7e5c277bfbec797dde858894a17a6bf56962636beb",
+                    "context_reference": "CHK-007.json",
+                    "operation": "close",
+                    "phase": "gate",
+                    "requirements": [
+                        "R-005"
+                    ]
+                }
+            ],
+            "common": {
+                "candidate_commit": "018498542c4170a3b49ff48db3e6477caa952488",
+                "candidate_tree": "9ae1cf03afcc7fcc4827e9b703f3ab55f4c7f6af",
+                "comparator": {
+                    "path": "/private/tmp/tc-014-impl/run/target/debug/tc-proof",
+                    "sha256": "1041331fea6e8ac6e60872fc62e709460faf0060e9b45e4607be88b949d4f804"
+                },
+                "dependencies": [
+                    {
+                        "accepted": true,
+                        "integrated": true,
+                        "integration_commit": "926264a1f26b04845c3d54ea3c046831c61e9071",
+                        "path": "/tmp/tc-goal-b518/receipts/TASK-013.json",
+                        "sha256": "8f0f7da6cae086d604c3b30787be4dd67190d0dbac6ac454fa2adcdf236a6555",
+                        "task_id": "TASK-013"
+                    },
+                    {
+                        "accepted": true,
+                        "integrated": true,
+                        "integration_commit": "100db11ed58b1e892201b1edb3f8b719346f00b9",
+                        "path": "/tmp/tc-goal-b518/receipts/TASK-010.json",
+                        "sha256": "dd8edbc2bfa8a061e4ca77c5184742a9fd2993aa981a6467175db41c93954a55",
+                        "task_id": "TASK-010"
+                    },
+                    {
+                        "accepted": true,
+                        "integrated": true,
+                        "integration_commit": "12f7f3bf9ab2fe0d1b78db13934358a5ff0bf9ab",
+                        "path": "/tmp/tc-goal-b518/receipts/TASK-011.json",
+                        "sha256": "2269417f5ba4d4dbd67ba15a34a1045059e2cf2c52802ec11a7f6aa40cdb1076",
+                        "task_id": "TASK-011"
+                    },
+                    {
+                        "accepted": true,
+                        "integrated": true,
+                        "integration_commit": "b4d2c0d057511510893b6b8809a4ec682635e62e",
+                        "path": "/tmp/tc-goal-b518/receipts/TASK-012.json",
+                        "sha256": "156eaeb9b1e5e980453f4f2046105d1ddadf2c5dc2409a19dae163abf7ae1607",
+                        "task_id": "TASK-012"
+                    },
+                    {
+                        "accepted": true,
+                        "integrated": true,
+                        "integration_commit": "a0bf0f941d1f0365e784e75e4aa028d9d1d16964",
+                        "path": "/tmp/tc-goal-b518/receipts/TASK-008.json",
+                        "sha256": "a5932f67edff14c73f51396fed978d7a3c97811f0692ac0550cdc79e76b6f517",
+                        "task_id": "TASK-008"
+                    },
+                    {
+                        "accepted": true,
+                        "integrated": true,
+                        "integration_commit": "1756c341bbdc71b92e22c672c8df2d06c9b17043",
+                        "path": "/tmp/tc-goal-b518/receipts/TASK-073.json",
+                        "sha256": "fc6f3ca8325817d6258a96767b1dab6d3a53ef86f164a7592fcd48b25a1a99ad",
+                        "task_id": "TASK-073"
+                    }
+                ],
+                "files": {
+                    "task_readme": {
+                        "path": "/private/tmp/tc-014-impl/wt/refactoring-tasks/terminal-components/completion/014/README.md",
+                        "sha256": "6532b2a700396a8bbe5c7e2eae7d8feb022f8f95d24864916d226f709f212e1e"
+                    },
+                    "task_toml": {
+                        "path": "/private/tmp/tc-014-impl/wt/refactoring-tasks/terminal-components/completion/014/task.toml",
+                        "sha256": "1ef5fe1b675207e208bf7a33a9c54b6f0bf052fddb60e26b788a883dfbcbef18"
+                    },
+                    "templates": {
+                        "CHK-005": {
+                            "path": "/private/tmp/tc-014-impl/wt/refactoring-tasks/terminal-components/completion/014/trusted/check-context-templates/CHK-005.json",
+                            "sha256": "24a6bc1b894c2365f29df1f5e57458db81e92364a1c8b1076c17a5631056fa13"
+                        }
+                    },
+                    "verify_toml": {
+                        "path": "/private/tmp/tc-014-impl/wt/refactoring-tasks/terminal-components/completion/014/verify.toml",
+                        "sha256": "0bfd7b64c3acf30cc6240c7ba6dc3cd2b71175120141411bf928e00ebd3de9a3"
+                    }
+                },
+                "observer": {
+                    "capability": "/private/tmp/tc-014-impl/run/observer.json",
+                    "nonce": "c7ebc86a6f9df9fbe44733bdd92551bba819aa8177acf2f8",
+                    "provider": {
+                        "path": "/private/tmp/tc-014-impl/observer-provider-014.py",
+                        "sha256": "747ea486981bd5e190dcb9fedda82e3a64e937a775802288808931914a562e1e"
+                    },
+                    "transport": "inherited-pipe/v1"
+                },
+                "oracle": {
+                    "commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+                    "tag": "refs/tags/visual-baseline",
+                    "tag_ref_sha256": "dd1df64115ad97feb40cdd1b888356d2461483c7f6372ad8b183364fb317b036",
+                    "tree": "0b1f13431fdfd6060cf9f45a114afa5a99cc6c26"
+                },
+                "outputs": {
+                    "runtime": "/private/tmp/tc-014-impl/run/outputs",
+                    "taskfmt_logs": "/private/tmp/tc-014-impl/run/taskfmt-logs"
+                },
+                "run_dir": "/private/tmp/tc-014-impl/run",
+                "run_id": "/private/tmp/tc-014-impl/run",
+                "scope_base": "926264a1f26b04845c3d54ea3c046831c61e9071",
+                "task_id": "TASK-014",
+                "taskfmt": {
+                    "path": "/Users/donbeave/.cargo/bin/taskfmt",
+                    "sha256": "f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de"
+                },
+                "tool": {
+                    "path": "/private/tmp/tc-014-impl/wt/tools/refactor-proof/bin/tc-proof",
+                    "sha256": "0182b2d70c64c4a3b3173fc4bac7c3404a024cc6965849431e120b41cf9c8ba1"
+                },
+                "worktree": "/private/tmp/tc-014-impl/wt"
+            },
+            "schema": "tc-proof-trust-manifest/v1"
+        },
+        "trust_manifest_sha256": "5f7a0e444e1845de02abc3294938ca4a46685c7a7bda9746f34a13d63e0bf9fc"
+    },
+    "run_id": "/private/tmp/tc-014-impl/run",
+    "schema": "tc-proof-context/v1",
+    "scope_base": "926264a1f26b04845c3d54ea3c046831c61e9071",
+    "task_id": "TASK-014",
+    "tool": {
+        "path": "/private/tmp/tc-014-impl/wt/tools/refactor-proof/bin/tc-proof",
+        "sha256": "0182b2d70c64c4a3b3173fc4bac7c3404a024cc6965849431e120b41cf9c8ba1"
+    },
+    "tree": "9ae1cf03afcc7fcc4827e9b703f3ab55f4c7f6af",
+    "worktree_commit": "018498542c4170a3b49ff48db3e6477caa952488"
+}

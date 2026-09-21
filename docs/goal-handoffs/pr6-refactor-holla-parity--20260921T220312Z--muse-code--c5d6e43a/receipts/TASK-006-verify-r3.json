@@ -1,0 +1,334 @@
+{
+ "base": "c8b37b5430195e3662935291e5f538634d7ad598",
+ "candidate_commit": "d372b79c37577957367a02cd7229ca19d7b1fa5d",
+ "candidate_tree": "f73ed6c9d825104b5c400bb58d250a7cbfd1b518",
+ "commands": [
+  {
+   "exit": 0,
+   "log": "git worktree add --detach /private/tmp/tc-goal-b518/verify-006r3 d372b79c...; HEAD=d372b79c37577957367a02cd7229ca19d7b1fa5d tree=f73ed6c9d825104b5c400bb58d250a7cbfd1b518; status --porcelain empty (clean, read-only thereafter, re-verified clean after all gates). Never touched other agents' dirs; no pkill.",
+   "name": "setup.worktree_add"
+  },
+  {
+   "exit": 0,
+   "log": "mkdir -p /private/tmp/tc-goal-b518/run-006r3/target/verifier-logs; fresh dir, run root holds only target/ before preparation",
+   "name": "setup.mkdir_run_dir"
+  },
+  {
+   "exit": 0,
+   "log": "taskfmt --version + shasum + taskfmt-source rev-parse: 0.2.0 / afd3b575dbcc7044620bec4b9493a74eca3e5ef2 / f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de (matches qualified identity)",
+   "name": "setup.taskfmt_identity"
+  },
+  {
+   "exit": 0,
+   "log": "diff -r frozen task package vs subagent checkout package empty (exit 0); read task.toml + verify.toml + README.md + AGENTS.md + trusted/obligations.md + trusted/source-obligations.tsv + trusted/check-context-templates/CHK-005.json fully first",
+   "name": "setup.task_package_read"
+  },
+  {
+   "exit": 0,
+   "log": "/private/tmp/tc-goal-b518/run-006r3/target/verifier-logs/verifier-lint.out",
+   "name": "gateA.taskfmt_lint"
+  },
+  {
+   "exit": 0,
+   "log": "/private/tmp/tc-goal-b518/run-006r3/target/verifier-logs/verifier-build.log (18.99s; scripts/campaign-build-proof.sh: cargo build --locked --offline -p refactor-proof --bin tc-proof, CARGO_TARGET_DIR=$RUN_DIR/target from frozen worktree; receipt commit/tree/worktree/target-bound; binary sha 67d2133d... still matches receipt after shared-target nextest)",
+   "name": "setup.build_candidate_tc_proof"
+  },
+  {
+   "exit": 0,
+   "log": "cp observer-provider-006r2.py observer-provider-006r3.py + label-only edit (2 lines: PROVIDER + docstring title); diff exit 1 with exactly those 2 hunks; py_compile COMPILE_OK; sha256 dd32b84550339d464862094410c026174398c024e896309a7a83e1296086b6b1",
+   "name": "setup.observer_provider_copy"
+  },
+  {
+   "exit": 0,
+   "log": "secrets.token_hex(24) > $RUN_DIR/target/verifier-logs/nonce-006r3.txt (48 hex chars; verifier-owned, under target/ so prepare membership holds)",
+   "name": "setup.nonce_generate"
+  },
+  {
+   "exit": 0,
+   "log": "/private/tmp/tc-goal-b518/run-006r3/target/verifier-logs/verifier-prepare.out (native binary, full canonical flags incl. --observer-nonce + 6 coordinator --dependency-receipt; scope-base c8b37b54; index cae03f07..., trust 614703f2...)",
+   "name": "gateC.prepare_fresh"
+  },
+  {
+   "exit": 0,
+   "log": "/private/tmp/tc-goal-b518/run-006r3/target/verifier-logs/verifier-verify.out (stderr empty): CHECK config PASS, task_lint PASS, scope PASS, forbidden_paths PASS, forbidden_patterns PASS, CHK-001..007 PASS; SUMMARY pass=11 fail=0 RESULT PASS DONE",
+   "name": "gateB.taskfmt_verify"
+  },
+  {
+   "exit": 1,
+   "log": "/private/tmp/tc-goal-b518/run-006r3/target/verifier-logs/verifier-launch-failclosed.err: tc-proof launch: result already exists; replay rejected (expected fail-closed; outputs 8 before/after)",
+   "name": "gateC.launch_failclosed_CHK001_replay"
+  },
+  {
+   "exit": 1,
+   "log": "/private/tmp/tc-goal-b518/run-006r3/target/verifier-logs/verifier-validate.err: tc-proof validate: taskfmt logs do not end in DONE (expected supplementary shape as 002r4: taskfmt prints DONE to stdout, never into a taskfmt-logs/ file; verify stdout ends RESULT PASS + DONE; zero gate impact)",
+   "name": "supplementary.tc_proof_validate"
+  },
+  {
+   "exit": 0,
+   "log": "/private/tmp/tc-goal-b518/run-006r3/target/verifier-logs/verifier-nextest.err (summary on stderr; stdout 0 bytes)",
+   "name": "gateD.cargo_nextest_components"
+  },
+  {
+   "exit": 0,
+   "log": "git diff d372b79c^..d372b79c --stat: 21 files, 6813 insertions(+), all under tools/refactor-proof-adapters/components, zero outside writable set, zero forbidden (dir-boundary anchored)",
+   "name": "gateE.scope_stat"
+  },
+  {
+   "exit": 0,
+   "log": "cmp patch-6e0c0bc1.diff patch-d372b79c.diff exit 0 (224419 bytes each, byte-identical outright; -x exclusion moot); components subtree f65fd70ef458bd8b3bd67b362382c38265a9e29e identical in both candidates",
+   "name": "gateE.patch_identity"
+  },
+  {
+   "exit": 0,
+   "log": "refs/tags/visual-baseline peeled 4a79c0a2d40fca46fc406b77157ce3b3f12ec16b (matches frozen oracle; unmutated)",
+   "name": "gateE.oracle_tag"
+  },
+  {
+   "exit": 0,
+   "log": "merge-base --is-ancestor HEAD ok for all six: 57b411b6 (002), 2e48cbe3 (003), 731e688a (004), 117a8121 (005), bffd7224 (071), b71c4d04 (072)",
+   "name": "integrity.ancestry"
+  },
+  {
+   "exit": 0,
+   "log": "status --porcelain empty after all gates; native binary sha256 still equals build-receipt binary_sha256 after shared-target nextest",
+   "name": "integrity.worktree_clean_and_binary"
+  }
+ ],
+ "dependency_receipts": [
+  "/tmp/tc-goal-b518/receipts/TASK-002.json",
+  "/tmp/tc-goal-b518/receipts/TASK-003.json",
+  "/tmp/tc-goal-b518/receipts/TASK-004.json",
+  "/tmp/tc-goal-b518/receipts/TASK-005.json",
+  "/tmp/tc-goal-b518/receipts/TASK-071.json",
+  "/tmp/tc-goal-b518/receipts/TASK-072.json"
+ ],
+ "dependency_receipts_note": "All six are coordinator acceptance records (accepted=true, integrated=true with 40-hex integration_commit), read fully. prepare exit 0 proves acceptance; no role (*-verify/*-review) receipts used.",
+ "env": {
+  "PATH": "/Users/donbeave/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+  "PATH_note": "Clean PATH, no mise shims. cargo 1.98.1 + cargo-nextest 0.9.143 from /Users/donbeave/.cargo/bin. python3 /opt/homebrew/bin/python3 3.14.7.",
+  "PYTHONDONTWRITEBYTECODE": "1",
+  "RUN_DIR": "/private/tmp/tc-goal-b518/run-006r3",
+  "TC_PROOF_NATIVE_BINARY": "/private/tmp/tc-goal-b518/run-006r3/target/debug/tc-proof",
+  "cargo_version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+  "nextest_version": "cargo-nextest 0.9.143",
+  "python_version": "Python 3.14.7",
+  "verify_env": "RUN_DIR + TC_PROOF_CONTEXT_INDEX[_SHA256=cae03f07...] + TC_PROOF_NATIVE_LAUNCH=1 + TC_PROOF_NATIVE_LAUNCHER=<native> + TC_PROOF_NATIVE_TIMEOUT_MS=600000 + TC_PROOF_OBSERVER_PROVIDER=<006r3 provider> + TC_PROOF_NATIVE_BINARY=<native>; per-check TC_PROOF_RUN_ID/TASK_ID/CHECK_ID/CONTEXT_SHA256/RESULT/SOURCE_TREE/ORACLE_COMMIT/OBSERVER_NONCE bound by native launcher per launch."
+ },
+ "evidence_paths": {
+  "DISCLAIMER": "taskfmt-logs/ holds only taskfmt-owned logs; verifier-owned logs live in target/verifier-logs/ because prepare/validate enforce exact run-root membership (target/ contents never enumerated).",
+  "build_receipt": "/private/tmp/tc-goal-b518/run-006r3/target/debug/tc-proof.build.json",
+  "compare_report": "/private/tmp/tc-goal-b518/run-006r3/outputs/CHK-004.compare.json (required=4 checked=4 passed=4 failures=[])",
+  "context_index": "/private/tmp/tc-goal-b518/run-006r3/context-index.json (sha256 cae03f072a299f02a157d7c8967feaeb8a356dec48855764c346f79322411090)",
+  "contexts": "/private/tmp/tc-goal-b518/run-006r3/contexts/CHK-001.json..CHK-007.json",
+  "observer_capability": "/private/tmp/tc-goal-b518/run-006r3/observer.json",
+  "observer_provider_tool": "/private/tmp/tc-goal-b518/observer-provider-006r3.py",
+  "outputs": "/private/tmp/tc-goal-b518/run-006r3/outputs/ (8 files: 7 CHK-*.result.json + CHK-004.compare.json)",
+  "proof_preparation": "/private/tmp/tc-goal-b518/run-006r3/proof-preparation.json",
+  "results": "/private/tmp/tc-goal-b518/run-006r3/results/CHK-001.json..CHK-007.json",
+  "run_dir": "/private/tmp/tc-goal-b518/run-006r3",
+  "taskfmt_logs": "/private/tmp/tc-goal-b518/run-006r3/taskfmt-logs/ (CHK-001..007.log, scope.log, task_lint.log, forbidden_paths.log, forbidden_patterns.log)",
+  "verifier_logs": "/private/tmp/tc-goal-b518/run-006r3/target/verifier-logs/",
+  "worktree": "/private/tmp/tc-goal-b518/verify-006r3 (frozen, detached at d372b79c, read-only, clean before and after)"
+ },
+ "gates": {
+  "A_lint": {
+   "exit": 0,
+   "output": "PACKAGE 006/README.md (frozen); SUMMARY errors=0 warnings=0; LINT PASS",
+   "result": "PASS"
+  },
+  "B_verify": {
+   "checks": [
+    "config PASS",
+    "task_lint PASS",
+    "scope PASS",
+    "forbidden_paths PASS",
+    "forbidden_patterns PASS",
+    "CHK-001 PASS",
+    "CHK-002 PASS",
+    "CHK-003 PASS (oracle --namespace components: rc=0, status passed, 1 observation digest; 077 allowlist repair confirmed)",
+    "CHK-004 PASS",
+    "CHK-005 PASS",
+    "CHK-006 PASS",
+    "CHK-007 PASS"
+   ],
+   "exit": 0,
+   "result": "PASS",
+   "summary": "pass=11 fail=0 RESULT PASS DONE"
+  },
+  "C_prepare_launch": {
+   "failclosed_replay": {
+    "exit": 1,
+    "outputs_count_after": 8,
+    "outputs_count_before": 8,
+    "stderr": "tc-proof launch: result already exists; replay rejected"
+   },
+   "launch_via_verify": {
+    "chk003_result": "status passed, category null; observation binds source_commit=4a79c0a2 (oracle), tree=f73ed6c9 (candidate), run-bound nonce; native+resized frames attached",
+    "chk004_result": "status passed; compare.json required=4 checked=4 passed=4 failures=[]",
+    "chk007_result": "status passed (close validates all prior outputs; no cascade)",
+    "result_counts_after_verify": "outputs=8 (7 CHK result.json + CHK-004.compare.json); all 7 status passed with 1 observation digest each"
+   },
+   "prepare": {
+    "contexts": 7,
+    "exit": 0,
+    "index_sha256": "cae03f072a299f02a157d7c8967feaeb8a356dec48855764c346f79322411090",
+    "observer_sequences": {
+     "CHK-001": [
+      "preflight"
+     ],
+     "CHK-002": [
+      "required"
+     ],
+     "CHK-003": [
+      "oracle"
+     ],
+     "CHK-004": [
+      "compare"
+     ],
+     "CHK-005": [
+      "account-tests"
+     ],
+     "CHK-006": [
+      "architecture"
+     ],
+     "CHK-007": [
+      "close"
+     ]
+    },
+    "oracle_chk003": "family native + single-observer sequence [oracle], namespace components, lane direct, resized_sizes [[72,20],[100,30]], source_sha256 77048135... (same oracle source as r2)",
+    "outputs_count_after": 0,
+    "results": 7,
+    "run_root_after": [
+     "context-index.json",
+     "contexts",
+     "observer.json",
+     "outputs",
+     "proof-preparation.json",
+     "results",
+     "target",
+     "taskfmt-logs"
+    ],
+    "tool_sha256": "0182b2d70c64c4a3b3173fc4bac7c3404a024cc6965849431e120b41cf9c8ba1 (frozen candidate bundle, post-077; matches 077 receipt tracked_sha256)",
+    "trust_note": "Non-empty trust digest (binds post-077 tool bundle 0182b2d7... + scope c8b37b54); accepted by the native validator since all 7 checks launched+passed. r2's empty-input trust hash was a same-run observation with zero gate impact; not comparable across runs.",
+    "trust_sha256": "614703f27898bd0491399f4bb7d188e79c63b87a3510ce866c07351b8d646763"
+   },
+   "result": "PASS",
+   "validate": {
+    "exit": 1,
+    "note": "Supplementary; same shape as 002r4 PASS run (DONE on taskfmt stdout only). Zero gate impact.",
+    "stderr": "tc-proof validate: taskfmt logs do not end in DONE"
+   }
+  },
+  "D_nextest": {
+   "exit": 0,
+   "failed": 0,
+   "manifest": "tools/refactor-proof-adapters/components/Cargo.toml (package oracle-components, standalone workspace, --locked --all-targets, CARGO_TARGET_DIR=$RUN_DIR/target, cwd=frozen components dir)",
+   "note": "cargo nextest only; never cargo test.",
+   "passed": 19,
+   "result": "PASS",
+   "run": 19,
+   "skipped": 0,
+   "summary": "Summary [16.501s] 19 tests run: 19 passed, 0 skipped"
+  },
+  "E_scope_provenance": {
+   "co_authored_by": "Co-authored-by: Codex <codex@openai.com> present",
+   "diff_stat": "21 files changed, 6813 insertions(+)",
+   "forbidden_hits": 0,
+   "message_note": "cherry-pick trailer references 6e0c0bc1; patch cmp exit 0 byte-identical",
+   "outside_writable": 0,
+   "parent": "c8b37b5430195e3662935291e5f538634d7ad598",
+   "parent_match": true,
+   "result": "PASS",
+   "signed_off_by": "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com> exactly once (1/1 Signed-off-by lines)",
+   "visual_baseline_tag_peeled": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b (matches frozen oracle identity; unmutated)",
+   "writable_set": "all 21 under tools/refactor-proof-adapters/components"
+  }
+ },
+ "native_binary_note": "Debug build embeds absolute RUN_DIR paths, so its hash differs from r2's 7af38842...; receipt-bound and re-verified after shared-target nextest.",
+ "native_binary_sha256": "67d2133de0160ff823e6b4a73784a2c3c70e7e83acb9bd1cfb0adc5111faab8e",
+ "observer_provider": {
+  "note": "Copy of r2 006r2 provider; diff vs 006r2 is label-only (PROVIDER + docstring title lines). Fully task-agnostic: all bindings echoed from prepare-bound contexts. Lives outside RUN_DIR because prepare/validate enforce exact run-root membership.",
+  "path": "/private/tmp/tc-goal-b518/observer-provider-006r3.py",
+  "sha256": "dd32b84550339d464862094410c026174398c024e896309a7a83e1296086b6b1"
+ },
+ "parent_note": "077 tip (fix(proof): accept components native oracle namespace); mechanical refresh of 6e0c0bc1",
+ "per_check_table": [
+  {
+   "check": "config",
+   "result": "PASS"
+  },
+  {
+   "check": "task_lint",
+   "result": "PASS"
+  },
+  {
+   "check": "scope",
+   "result": "PASS"
+  },
+  {
+   "check": "forbidden_paths",
+   "result": "PASS"
+  },
+  {
+   "check": "forbidden_patterns",
+   "result": "PASS"
+  },
+  {
+   "check": "CHK-001 preflight",
+   "note": "rc=0, status passed, 1 observation digest",
+   "result": "PASS"
+  },
+  {
+   "check": "CHK-002 required",
+   "note": "rc=0, status passed, 1 observation digest",
+   "result": "PASS"
+  },
+  {
+   "check": "CHK-003 oracle/native components",
+   "note": "rc=0: status passed, 1 observation digest; 077 5-member allowlist accepts ('components','native'); r2 PROTOCOL reject resolved",
+   "result": "PASS"
+  },
+  {
+   "check": "CHK-004 compare",
+   "note": "rc=0: compare.json 4/4 passed + result.json status passed",
+   "result": "PASS"
+  },
+  {
+   "check": "CHK-005 account-tests",
+   "note": "rc=0, status passed, 1 observation digest (preparation-mode accounting register)",
+   "result": "PASS"
+  },
+  {
+   "check": "CHK-006 architecture",
+   "note": "rc=0, status passed, 1 observation digest",
+   "result": "PASS"
+  },
+  {
+   "check": "CHK-007 close",
+   "note": "rc=0: status passed; no cascade (all priors passed)",
+   "result": "PASS"
+  }
+ ],
+ "recorded_by": "verifier-subagent TASK-006 r3",
+ "run_dir": "/private/tmp/tc-goal-b518/run-006r3",
+ "scope_base": "c8b37b5430195e3662935291e5f538634d7ad598",
+ "task_dir": "/private/tmp/tc-goal-b518/verify-006r3/refactoring-tasks/terminal-components/completion/006",
+ "task_dir_note": "frozen candidate task package (task.toml + verify.toml + README + AGENTS + trusted/ incl. obligations, source-obligations.tsv header-only 285B, CHK-005 template read fully first; diff -r vs subagent checkout package empty, exit 0)",
+ "task_id": "TASK-006",
+ "taskfmt": {
+  "checkout_rev": "afd3b575dbcc7044620bec4b9493a74eca3e5ef2",
+  "identity_match": true,
+  "path": "/private/tmp/taskfmt-latest-install/bin/taskfmt",
+  "revision": "afd3b575dbcc7044620bec4b9493a74eca3e5ef2",
+  "sha256": "f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de",
+  "source": "/Users/donbeave/Projects/taskfmt/task-format",
+  "version": "0.2.0",
+  "version_output": "taskfmt 0.2.0 (git afd3b575dbcc7044620bec4b9493a74eca3e5ef2)"
+ },
+ "tool_bundle_note": "Frozen $WORKTREE/tools/refactor-proof/bin/tc-proof matches the post-077 regenerated bundle (077 receipt tracked_sha256); runner/context.py:40 carries the 5-member allowlist incl. components.",
+ "tool_bundle_sha256": "0182b2d70c64c4a3b3173fc4bac7c3404a024cc6965849431e120b41cf9c8ba1",
+ "verdict": "PASS",
+ "verdict_reason": "All gates PASS: A lint exit 0; B verify exit 0, SUMMARY pass=11 fail=0, RESULT PASS, DONE, CHK-003 oracle --namespace components PASS (077 allowlist repair confirmed); C prepare exit 0 + fail-closed replay exit 1 as expected; D nextest 19/19 exit 0; E scope 21 files in writable set, patch byte-identical to 6e0c0bc1 (cmp exit 0), Signed-off-by exact, oracle tag unmutated.",
+ "worktree": "/private/tmp/tc-goal-b518/verify-006r3",
+ "worktree_note": "frozen, detached at d372b79c, read-only, status --porcelain empty before and after all gates"
+}

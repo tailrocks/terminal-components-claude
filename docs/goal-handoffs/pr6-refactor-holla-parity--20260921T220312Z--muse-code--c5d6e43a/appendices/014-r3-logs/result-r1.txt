@@ -1,0 +1,10 @@
+{
+    "check_id": "CHK-002",
+    "context_sha256": "0e24dd79067f67bc7159cd5c87d850ffb8fa0a6de883c55f37eb87a423cb2ee2",
+    "run_id": "/private/tmp/tc-014-impl/run",
+    "schema": "tc-proof-preparation-result/v1",
+    "scope_base": "926264a1f26b04845c3d54ea3c046831c61e9071",
+    "status": "ready",
+    "task_id": "TASK-014",
+    "worktree_commit": "018498542c4170a3b49ff48db3e6477caa952488"
+}

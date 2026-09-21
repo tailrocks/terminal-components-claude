@@ -1,0 +1,205 @@
+   Compiling serde_core v1.0.229
+   Compiling rustversion v1.0.23
+   Compiling zmij v1.0.23
+   Compiling winnow v1.0.4
+   Compiling target-tuple v1.0.2
+   Compiling serde_json v1.0.151
+   Compiling serde v1.0.229
+   Compiling toml_writer v1.1.2+spec-1.1.0
+   Compiling memchr v2.8.3
+   Compiling termcolor v1.4.1
+   Compiling serde_derive v1.0.229
+   Compiling glob v0.3.4
+   Compiling toml_parser v1.1.3+spec-1.1.0
+   Compiling castaway v0.2.4
+   Compiling compact_str v0.9.1
+   Compiling ratatui-core v0.1.2
+   Compiling ratatui-crossterm v0.1.2
+   Compiling junie-tui v0.1.0 (/private/tmp/tc-014-vfy3/parent/crates/tui)
+   Compiling serde_spanned v1.1.1
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+   Compiling toml v1.1.6+spec-1.1.0
+   Compiling trybuild v1.0.121
+warning: methods `len`, `peak`, and `capacity` are never used
+  --> crates/tui/src/text/clusters.rs:64:25
+   |
+50 | impl ClusterScratch {
+   | ------------------- methods in this implementation
+...
+64 |     pub(crate) const fn len(&self) -> usize {
+   |                         ^^^
+...
+75 |     pub(crate) const fn peak(&self) -> usize {
+   |                         ^^^^
+...
+80 |     pub(crate) fn capacity(&self) -> usize {
+   |                   ^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: enum `FadeOutcome` is never used
+   --> crates/tui/src/theme/builder.rs:451:17
+    |
+451 | pub(crate) enum FadeOutcome {
+    |                 ^^^^^^^^^^^
+
+warning: function `fade_mix` is never used
+   --> crates/tui/src/theme/builder.rs:469:15
+    |
+469 | pub(crate) fn fade_mix(fg: Color, bg: Color, amount: f32) -> FadeOutcome {
+    |               ^^^^^^^^
+
+warning: field `text_scratch` is never read
+  --> crates/tui/src/ui/mod.rs:94:5
+   |
+70 | pub(crate) struct FrameState {
+   |                   ---------- field in this struct
+...
+94 |     text_scratch: ClusterScratch,
+   |     ^^^^^^^^^^^^
+   |
+   = note: `FrameState` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: method `paint_display` is never used
+   --> crates/tui/src/ui/paint.rs:247:19
+    |
+ 82 | impl Ui<'_> {
+    | ----------- method in this implementation
+...
+247 |     pub(crate) fn paint_display(
+    |                   ^^^^^^^^^^^^^
+
+warning: struct `StreamGuard` is never constructed
+   --> crates/tui/src/ui/paint.rs:431:8
+    |
+431 | struct StreamGuard<'a, 'f> {
+    |        ^^^^^^^^^^^
+
+warning: associated items `take` and `paint` are never used
+   --> crates/tui/src/ui/paint.rs:437:8
+    |
+436 | impl<'a, 'f> StreamGuard<'a, 'f> {
+    | -------------------------------- associated items in this implementation
+437 |     fn take(ui: &'a mut Ui<'f>) -> Self {
+    |        ^^^^
+...
+446 |     fn paint(&mut self, area: Rect, value: &impl core::fmt::Display, style: PaintStyle) -> u16 {
+    |        ^^^^^
+
+warning: struct `StreamWriter` is never constructed
+   --> crates/tui/src/ui/paint.rs:476:8
+    |
+476 | struct StreamWriter<'m, 's, 'a, 'f> {
+    |        ^^^^^^^^^^^^
+
+   Compiling junie-tui-testing v0.1.0 (/private/tmp/tc-014-vfy3/parent/crates/tui-testing)
+warning: `junie-tui` (lib) generated 8 warnings
+warning: field `peak` is never read
+   --> crates/tui/src/ui/paint.rs:765:9
+    |
+763 |     struct ScratchDiag {
+    |            ----------- field in this struct
+764 |         len: usize,
+765 |         peak: usize,
+    |         ^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `junie-tui` (lib test) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.68s
+────────────
+ Nextest run ID 31cd293d-5941-4dda-b66f-3e052f96722b with nextest profile: default
+    Starting 4 tests across 1 binary (779 tests skipped)
+        FAIL [   0.022s] (1/4) junie-tui components::viewport::tests::tabs_expand_in_geometry_but_copy_as_source_bytes
+  stdout ───
+
+    running 1 test
+    test components::viewport::tests::tabs_expand_in_geometry_but_copy_as_source_bytes ... FAILED
+
+    failures:
+
+    failures:
+        components::viewport::tests::tabs_expand_in_geometry_but_copy_as_source_bytes
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 782 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'components::viewport::tests::tabs_expand_in_geometry_but_copy_as_source_bytes' (259974028) panicked at crates/tui/src/components/viewport.rs:2597:9:
+    assertion `left == right` failed: the tab copies as its source byte
+      left: "    if"
+     right: "\tif"
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        FAIL [   0.024s] (2/4) junie-tui components::viewport::tests::retention_fixes_up_selection_and_caret
+  stdout ───
+
+    running 1 test
+    test components::viewport::tests::retention_fixes_up_selection_and_caret ... FAILED
+
+    failures:
+
+    failures:
+        components::viewport::tests::retention_fixes_up_selection_and_caret
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 782 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'components::viewport::tests::retention_fixes_up_selection_and_caret' (259974030) panicked at crates/tui/src/components/viewport.rs:2323:9:
+    assertion `left == right` failed: the caret's line was evicted
+      left: Some(CellPos { line: 0, col: 0 })
+     right: None
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        FAIL [   0.026s] (3/4) junie-tui components::viewport::tests::the_text_width_reserves_a_scrollbar_column_only_on_overflow
+  stdout ───
+
+    running 1 test
+    test components::viewport::tests::the_text_width_reserves_a_scrollbar_column_only_on_overflow ... FAILED
+
+    failures:
+
+    failures:
+        components::viewport::tests::the_text_width_reserves_a_scrollbar_column_only_on_overflow
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 782 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'components::viewport::tests::the_text_width_reserves_a_scrollbar_column_only_on_overflow' (259974029) panicked at crates/tui/src/components/viewport.rs:2446:9:
+    assertion `left == right` failed: no overflow keeps the full width
+      left: 22
+     right: 24
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        FAIL [   0.026s] (4/4) junie-tui components::viewport::tests::no_viewport_gutter_text_paints_from_the_area_origin
+  stdout ───
+
+    running 1 test
+    test components::viewport::tests::no_viewport_gutter_text_paints_from_the_area_origin ... FAILED
+
+    failures:
+
+    failures:
+        components::viewport::tests::no_viewport_gutter_text_paints_from_the_area_origin
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 782 filtered out; finished in 0.00s
+
+  stderr ───
+
+    thread 'components::viewport::tests::no_viewport_gutter_text_paints_from_the_area_origin' (259974031) panicked at crates/tui/src/components/viewport.rs:2484:9:
+    assertion `left == right` failed
+      left: "▎"
+     right: "h"
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+────────────
+     Summary [   0.030s] 4 tests run: 0 passed, 4 failed, 779 skipped
+        FAIL [   0.022s] (1/4) junie-tui components::viewport::tests::tabs_expand_in_geometry_but_copy_as_source_bytes
+        FAIL [   0.024s] (2/4) junie-tui components::viewport::tests::retention_fixes_up_selection_and_caret
+        FAIL [   0.026s] (3/4) junie-tui components::viewport::tests::the_text_width_reserves_a_scrollbar_column_only_on_overflow
+        FAIL [   0.026s] (4/4) junie-tui components::viewport::tests::no_viewport_gutter_text_paints_from_the_area_origin
+error: test run failed
+mbx[cache]: 31 hits, 3 misses; 0 B downloaded, 0 B uploaded, 56.2 MiB stored locally
+mbx[savings]: the checkouts are gone. their 3.9 TiB logical has gone to join them.

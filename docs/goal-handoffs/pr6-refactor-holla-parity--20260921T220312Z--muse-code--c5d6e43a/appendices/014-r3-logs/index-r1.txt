@@ -1,0 +1,108 @@
+{
+    "contexts": [
+        {
+            "check_id": "CHK-001",
+            "path": "/private/tmp/tc-014-impl/run/contexts/CHK-001.json",
+            "sha256": "6a90d8e864e656b0a2c535dd0618ed4a13320216c1f77242bbfb4ee6e0e91356"
+        },
+        {
+            "check_id": "CHK-002",
+            "path": "/private/tmp/tc-014-impl/run/contexts/CHK-002.json",
+            "sha256": "0e24dd79067f67bc7159cd5c87d850ffb8fa0a6de883c55f37eb87a423cb2ee2"
+        },
+        {
+            "check_id": "CHK-003",
+            "path": "/private/tmp/tc-014-impl/run/contexts/CHK-003.json",
+            "sha256": "fa90ec10842db1bfa336dcb29d85c4f2e8cd3ffb10bd1535b179e1aadebbd14d"
+        },
+        {
+            "check_id": "CHK-004",
+            "path": "/private/tmp/tc-014-impl/run/contexts/CHK-004.json",
+            "sha256": "7775fde167204432a9a8cb2294545095cf7f66a186e17c62819ce6b51e53c2f6"
+        },
+        {
+            "check_id": "CHK-005",
+            "path": "/private/tmp/tc-014-impl/run/contexts/CHK-005.json",
+            "sha256": "aafff9a643b1965b3a35de6b6ca345d9bcd097d8b43d511b5b9b3426ec276f22"
+        },
+        {
+            "check_id": "CHK-006",
+            "path": "/private/tmp/tc-014-impl/run/contexts/CHK-006.json",
+            "sha256": "e720b547b7bbb4625957437e8e13259c7d78df6feb4c7c1f7b629872623e7b0b"
+        },
+        {
+            "check_id": "CHK-007",
+            "path": "/private/tmp/tc-014-impl/run/contexts/CHK-007.json",
+            "sha256": "08f8dea7d5443de81f8b996d2a2863d35dbc975b7282d79e716da79036d1f5c9"
+        }
+    ],
+    "observer": {
+        "path": "/private/tmp/tc-014-impl/run/observer.json",
+        "sha256": "a607fa7467b26d487125ac3028859265c9b0a02eafe9440828efdb374f55ac36"
+    },
+    "observer_sequences": {
+        "CHK-001": [
+            "preflight"
+        ],
+        "CHK-002": [
+            "capture"
+        ],
+        "CHK-003": [
+            "capture"
+        ],
+        "CHK-004": [
+            "compare"
+        ],
+        "CHK-005": [
+            "account-tests"
+        ],
+        "CHK-006": [
+            "architecture"
+        ],
+        "CHK-007": [
+            "close"
+        ]
+    },
+    "results": [
+        {
+            "check_id": "CHK-001",
+            "path": "/private/tmp/tc-014-impl/run/results/CHK-001.json",
+            "sha256": "be7a00f344e74d816c3d36460063838f080a5869a5e1a4629336599bddc7dfd9"
+        },
+        {
+            "check_id": "CHK-002",
+            "path": "/private/tmp/tc-014-impl/run/results/CHK-002.json",
+            "sha256": "b79f8c72e1ef45695c971c411441272f0b55fbc5d56a7b4b1ae8f0eadd2bb52c"
+        },
+        {
+            "check_id": "CHK-003",
+            "path": "/private/tmp/tc-014-impl/run/results/CHK-003.json",
+            "sha256": "587a43325ccd829c03443847d4f943912718405efedaf6e46f5e268fef1c8c5d"
+        },
+        {
+            "check_id": "CHK-004",
+            "path": "/private/tmp/tc-014-impl/run/results/CHK-004.json",
+            "sha256": "2ac47880f65b6d9254a4165e4d45c163435314ab389b04ce566b973235a2ab3c"
+        },
+        {
+            "check_id": "CHK-005",
+            "path": "/private/tmp/tc-014-impl/run/results/CHK-005.json",
+            "sha256": "7fdd50d5e7dfde03f3064f8c492bf9f5fc22dffbeb3a3ccd2aa5e91f3b36de0c"
+        },
+        {
+            "check_id": "CHK-006",
+            "path": "/private/tmp/tc-014-impl/run/results/CHK-006.json",
+            "sha256": "6600c55322fc425b4a4bfa8174ac6817b42b485cc4931f15e2a41003ef97aa7a"
+        },
+        {
+            "check_id": "CHK-007",
+            "path": "/private/tmp/tc-014-impl/run/results/CHK-007.json",
+            "sha256": "ece9a3c31181feac216f5c430ebb81ee0f863c200e1508cc059fe2b278d5b243"
+        }
+    ],
+    "run_id": "/private/tmp/tc-014-impl/run",
+    "schema": "tc-proof-context-index/v1",
+    "scope_base": "926264a1f26b04845c3d54ea3c046831c61e9071",
+    "task_id": "TASK-014",
+    "worktree_commit": "018498542c4170a3b49ff48db3e6477caa952488"
+}

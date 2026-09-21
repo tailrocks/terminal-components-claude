@@ -1,0 +1,284 @@
+{
+ "base": "2e48cbe3cf87769f987d89271f49715797406921",
+ "candidate_commit": "731e688a976f142a2746f3a54c63a035c2ccd4a6",
+ "candidate_tree": "02fc13d324899cb96c659a3268a4f18183f55699",
+ "commands": [
+  {
+   "exit": 0,
+   "log": "git worktree add --detach /private/tmp/tc-goal-b518/verify-004 731e688a...; HEAD=731e688a976f142a2746f3a54c63a035c2ccd4a6 tree=02fc13d324899cb96c659a3268a4f18183f55699; status --porcelain empty (clean, read-only thereafter, re-verified clean after all gates)",
+   "name": "setup.worktree_add"
+  },
+  {
+   "exit": 0,
+   "log": "mkdir -p /private/tmp/tc-goal-b518/run-004/target/verifier-logs (+ premature contexts/results/outputs/taskfmt-logs, removed before prepare retry)",
+   "name": "setup.mkdir_run_dir"
+  },
+  {
+   "exit": 0,
+   "log": "/private/tmp/tc-goal-b518/run-004/target/verifier-logs/verifier-build.log (24.07s; cargo build --locked --offline -p refactor-proof --bin tc-proof; receipt commit/tree/worktree/target-bound; binary sha aa861874... still matches receipt after shared-target nextest)",
+   "name": "setup.build_candidate_tc_proof"
+  },
+  {
+   "exit": 0,
+   "log": "/private/tmp/tc-goal-b518/run-004/target/verifier-logs/verifier-lint.out",
+   "name": "gateA.taskfmt_lint"
+  },
+  {
+   "exit": 1,
+   "log": "/private/tmp/tc-goal-b518/run-004/target/verifier-logs/verifier-prepare.err (r1)",
+   "name": "gateC.prepare_r1_premature_dirs",
+   "note": "Verifier-env-only failure: run directory must contain only the verifier-owned native target before preparation (verifier had pre-created contexts/results/outputs/taskfmt-logs). Removed via rmdir (exit 0) and retried; superseded by prepare_fresh."
+  },
+  {
+   "exit": 0,
+   "log": "/private/tmp/tc-goal-b518/run-004/target/verifier-logs/verifier-prepare.out",
+   "name": "gateC.prepare_fresh"
+  },
+  {
+   "exit": 0,
+   "log": "/private/tmp/tc-goal-b518/run-004/target/verifier-logs/verifier-verify.out",
+   "name": "gateB.taskfmt_verify"
+  },
+  {
+   "exit": 1,
+   "log": "/private/tmp/tc-goal-b518/run-004/target/verifier-logs/verifier-launch-failclosed.err",
+   "name": "gateC.launch_failclosed_CHK001_replay",
+   "note": "Expected failclosed: result already exists; replay rejected; outputs 8 before/after."
+  },
+  {
+   "exit": 1,
+   "log": "/private/tmp/tc-goal-b518/run-004/target/verifier-logs/verifier-validate.err",
+   "name": "supplementary.tc_proof_validate",
+   "note": "Informational only, same shape as 002r4/003/075: taskfmt prints DONE to stdout, never into a taskfmt-logs/ file; validate requires a DONE-terminated file under taskfmt-logs/. taskfmt stdout ends in DONE (RESULT PASS). Verifier did not write into taskfmt-owned logs."
+  },
+  {
+   "exit": 0,
+   "log": "/private/tmp/tc-goal-b518/run-004/target/verifier-logs/verifier-nextest.err (summary on stderr)",
+   "name": "gateD.cargo_nextest_jackin"
+  },
+  {
+   "exit": 0,
+   "log": "git diff 731e688a^..731e688a --stat: 145 files, 14532 insertions(+), all under tools/refactor-proof-adapters/jackin, zero forbidden",
+   "name": "gateE.scope_stat"
+  },
+  {
+   "exit": 0,
+   "log": "patch cmp vs 4bc05317^..4bc05317 exit 0 (byte-identical, 510694 bytes each); jackin subtree 6d8a94fc9c853b55672ca9aef8385d67c252370f identical in both candidates",
+   "name": "gateE.content_match_4bc05317"
+  },
+  {
+   "exit": 0,
+   "log": "refs/tags/visual-baseline peeled 4a79c0a2d40fca46fc406b77157ce3b3f12ec16b (matches frozen oracle; unmutated)",
+   "name": "gateE.oracle_tag"
+  }
+ ],
+ "dependency_receipts": [
+  "/private/tmp/tc-goal-b518/receipts/TASK-071.json",
+  "/private/tmp/tc-goal-b518/receipts/TASK-072.json"
+ ],
+ "env": {
+  "PATH": "/Users/donbeave/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+  "PATH_note": "Clean PATH, no mise shims. cargo 1.98.1 + cargo-nextest 0.9.143 from /Users/donbeave/.cargo/bin. python3 /opt/homebrew/bin/python3.",
+  "PYTHONDONTWRITEBYTECODE": "1",
+  "RUN_DIR": "/private/tmp/tc-goal-b518/run-004",
+  "TC_PROOF_NATIVE_BINARY": "/private/tmp/tc-goal-b518/run-004/target/debug/tc-proof",
+  "verify_env": "RUN_DIR + TC_PROOF_CONTEXT_INDEX[_SHA256] + TC_PROOF_NATIVE_LAUNCH=1 + TC_PROOF_NATIVE_LAUNCHER=<native> + TC_PROOF_NATIVE_TIMEOUT_MS=600000 + TC_PROOF_OBSERVER_PROVIDER=<004v provider> + TC_PROOF_NATIVE_BINARY=<native>; per-check TC_PROOF_RUN_ID/TASK_ID/CHECK_ID/CONTEXT_SHA256/RESULT/SOURCE_TREE/ORACLE_COMMIT/OBSERVER_NONCE bound by native launcher per launch."
+ },
+ "evidence_paths": {
+  "DISCLAIMER": "taskfmt-logs/ holds only taskfmt-owned logs; verifier-owned logs live in target/verifier-logs/ because prepare/validate enforce exact run-root membership (target/ contents never enumerated).",
+  "build_receipt": "/private/tmp/tc-goal-b518/run-004/target/debug/tc-proof.build.json",
+  "compare_roots": "/private/tmp/tc-goal-b518/run-004/target/compare-roots/CHK-004/{oracle,candidate}",
+  "context_index": "/private/tmp/tc-goal-b518/run-004/context-index.json",
+  "contexts": "/private/tmp/tc-goal-b518/run-004/contexts/CHK-001.json..CHK-007.json",
+  "observer_capability": "/private/tmp/tc-goal-b518/run-004/observer.json",
+  "observer_provider_tool": "/private/tmp/tc-goal-b518/observer-provider-004v.py",
+  "outputs": "/private/tmp/tc-goal-b518/run-004/outputs/ (8 files: 7 result.json + CHK-004.compare.json)",
+  "proof_preparation": "/private/tmp/tc-goal-b518/run-004/proof-preparation.json",
+  "results": "/private/tmp/tc-goal-b518/run-004/results/CHK-001.json..CHK-007.json",
+  "run_dir": "/private/tmp/tc-goal-b518/run-004",
+  "taskfmt_logs": "/private/tmp/tc-goal-b518/run-004/taskfmt-logs/ (CHK-001..007.log, scope.log, task_lint.log, forbidden_*.log)",
+  "verifier_logs": "/private/tmp/tc-goal-b518/run-004/target/verifier-logs/",
+  "worktree": "/private/tmp/tc-goal-b518/verify-004 (frozen, detached at 731e688a, read-only, clean before and after)"
+ },
+ "gates": {
+  "A_lint": {
+   "exit": 0,
+   "output": "PACKAGE 004/README.md (frozen); SUMMARY errors=0 warnings=0; LINT PASS",
+   "result": "PASS"
+  },
+  "B_verify": {
+   "checks": [
+    "config PASS",
+    "task_lint PASS",
+    "scope PASS",
+    "forbidden_paths PASS",
+    "forbidden_patterns PASS",
+    "CHK-001 PASS",
+    "CHK-002 PASS",
+    "CHK-003 PASS",
+    "CHK-004 PASS",
+    "CHK-005 PASS",
+    "CHK-006 PASS",
+    "CHK-007 PASS"
+   ],
+   "exit": 0,
+   "result": "PASS",
+   "summary": "pass=11 fail=0 RESULT PASS DONE"
+  },
+  "C_prepare_launch": {
+   "failclosed_launch": {
+    "exit": 1,
+    "outputs_count_after": 8,
+    "outputs_count_before": 8,
+    "stderr": "tc-proof launch: result already exists; replay rejected"
+   },
+   "launch_via_verify": {
+    "chk004_result": "status passed",
+    "close": "CHK-007 status passed; records bind all 6 prior checks with true context_sha256+result_sha256 (recomputed digests all match)",
+    "compare_report": "CHK-004.compare.json required_count=4 checked_count=4 passed_count=4 failures=[]",
+    "result_counts_after_verify": "outputs=8 (CHK-001..003,005..007 .result.json + CHK-004.result.json + CHK-004.compare.json)"
+   },
+   "prepare": {
+    "accounting_required": "5-key {package,target,profile,source_commit,name} x4; future=[] closed absent",
+    "contexts": 7,
+    "exit": 0,
+    "index_sha256": "2d001796361a82a98c3ea720ed4334efb29fc9faec1e4b697fed321293d4698d",
+    "observer_sequences": {
+     "CHK-001": [
+      "preflight"
+     ],
+     "CHK-002": [
+      "required"
+     ],
+     "CHK-003": [
+      "oracle"
+     ],
+     "CHK-004": [
+      "compare"
+     ],
+     "CHK-005": [
+      "account-tests"
+     ],
+     "CHK-006": [
+      "architecture"
+     ],
+     "CHK-007": [
+      "close"
+     ]
+    },
+    "oracle_chk003": "family native, namespace jackin, resized_sizes [[72,20],[100,30]]",
+    "outputs_count_after": 0,
+    "results": 7,
+    "tool_sha256": "d59ae497766f83ac768e0b87ba1c1c0e48e042142113b491ef95ae20fbef307d (regenerated bundle, post-076; matches 003)",
+    "trust_sha256": "8b501c7f128f26c61bfc337d878f7600d491bf8e8d232edae6859a03037f0d31"
+   },
+   "result": "PASS",
+   "validate": {
+    "exit": 1,
+    "note": "Informational; same shape as 002r4/003/075 (DONE on taskfmt stdout only).",
+    "stderr": "tc-proof validate: taskfmt logs do not end in DONE"
+   }
+  },
+  "D_nextest": {
+   "exit": 0,
+   "failed": 0,
+   "leaky": 0,
+   "manifest": "tools/refactor-proof-adapters/jackin/Cargo.toml (package jackin-adapter, standalone workspace, --locked --all-targets, CARGO_TARGET_DIR=$RUN_DIR/target)",
+   "note": "cargo nextest only; never cargo test. 3 grep hits for 'fail' are PASS lines with fail/failure in test names (ja029/ja042/ja062).",
+   "passed": 142,
+   "result": "PASS",
+   "run": 142,
+   "skipped": 0
+  },
+  "E_scope_provenance": {
+   "co_authored_by": "Co-authored-by: Codex <codex@openai.com> present",
+   "content_match": "patch byte-identical to 4bc05317^..4bc05317 (cmp exit 0, 510694 bytes); jackin subtree 6d8a94fc9c853b55672ca9aef8385d67c252370f identical; mechanical refresh confirmed",
+   "diff_stat": "145 files changed, 14532 insertions(+)",
+   "forbidden_hits": 0,
+   "parent": "2e48cbe3cf87769f987d89271f49715797406921",
+   "parent_match": true,
+   "result": "PASS",
+   "signed_off_by": "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com> present",
+   "visual_baseline_tag_peeled": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b (matches frozen oracle identity; unmutated)",
+   "writable_set": "all 145 under tools/refactor-proof-adapters/jackin"
+  }
+ },
+ "native_binary_sha256": "aa861874ca5bc44bd7891d6fec4505e7d66e64b6712d19e3ab1701e474d68c89",
+ "observer_provider": {
+  "note": "Copy of 003v provider; diff vs 003v is label-only (PROVIDER + docstring title lines). Task-agnostic: all bindings echoed from prepare-bound contexts. Lives outside RUN_DIR because prepare/validate enforce exact run-root membership (same accepted layout as 002r4/003).",
+  "path": "/private/tmp/tc-goal-b518/observer-provider-004v.py",
+  "sha256": "94ef50fb9facf7f05791e69049eb973a16a4e852ea63248bd092390585c26320"
+ },
+ "per_check_table": [
+  {
+   "check": "config",
+   "result": "PASS"
+  },
+  {
+   "check": "task_lint",
+   "result": "PASS"
+  },
+  {
+   "check": "scope",
+   "result": "PASS"
+  },
+  {
+   "check": "forbidden_paths",
+   "result": "PASS"
+  },
+  {
+   "check": "forbidden_patterns",
+   "result": "PASS"
+  },
+  {
+   "check": "CHK-001 preflight",
+   "result": "PASS"
+  },
+  {
+   "check": "CHK-002 required",
+   "result": "PASS"
+  },
+  {
+   "check": "CHK-003 oracle/native jackin",
+   "result": "PASS"
+  },
+  {
+   "check": "CHK-004 compare",
+   "note": "compare.json 4/4 passed + result.json status passed",
+   "result": "PASS"
+  },
+  {
+   "check": "CHK-005 account-tests",
+   "note": "5-key required inventory x4 satisfied by provider runs",
+   "result": "PASS"
+  },
+  {
+   "check": "CHK-006 architecture/fixture",
+   "result": "PASS"
+  },
+  {
+   "check": "CHK-007 close",
+   "note": "records bind all 6 prior checks with true digests (recomputed)",
+   "result": "PASS"
+  }
+ ],
+ "recorded_by": "verifier-subagent TASK-004 (004v)",
+ "run_dir": "/private/tmp/tc-goal-b518/run-004",
+ "scope_base": "2e48cbe3cf87769f987d89271f49715797406921",
+ "task_dir": "/private/tmp/tc-goal-b518/verify-004/refactoring-tasks/terminal-components/completion/004",
+ "task_dir_note": "frozen candidate task package (task.toml + verify.toml + trusted/ read first)",
+ "task_id": "TASK-004",
+ "taskfmt": {
+  "checkout_rev": "afd3b575dbcc7044620bec4b9493a74eca3e5ef2",
+  "identity_match": true,
+  "path": "/private/tmp/taskfmt-latest-install/bin/taskfmt",
+  "revision": "afd3b575dbcc7044620bec4b9493a74eca3e5ef2",
+  "sha256": "f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de",
+  "source": "/Users/donbeave/Projects/taskfmt/task-format",
+  "version": "0.2.0",
+  "version_output": "taskfmt 0.2.0 (git afd3b575dbcc7044620bec4b9493a74eca3e5ef2)"
+ },
+ "verdict": "PASS",
+ "worktree": "/private/tmp/tc-goal-b518/verify-004",
+ "worktree_note": "frozen, detached at 731e688a, read-only, status --porcelain empty before and after all gates"
+}

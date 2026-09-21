@@ -1,0 +1,275 @@
+   Compiling rustversion v1.0.23
+   Compiling castaway v0.2.4
+   Compiling compact_str v0.9.1
+   Compiling ratatui-core v0.1.2
+   Compiling ratatui-crossterm v0.1.2
+   Compiling junie-tui v0.1.0 (/private/tmp/tc-014-vfy3/candidate/crates/tui)
+warning: methods `len`, `peak`, and `capacity` are never used
+  --> crates/tui/src/text/clusters.rs:64:25
+   |
+50 | impl ClusterScratch {
+   | ------------------- methods in this implementation
+...
+64 |     pub(crate) const fn len(&self) -> usize {
+   |                         ^^^
+...
+75 |     pub(crate) const fn peak(&self) -> usize {
+   |                         ^^^^
+...
+80 |     pub(crate) fn capacity(&self) -> usize {
+   |                   ^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `text_scratch` is never read
+  --> crates/tui/src/ui/mod.rs:94:5
+   |
+70 | pub(crate) struct FrameState {
+   |                   ---------- field in this struct
+...
+94 |     text_scratch: ClusterScratch,
+   |     ^^^^^^^^^^^^
+   |
+   = note: `FrameState` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: method `paint_display` is never used
+   --> crates/tui/src/ui/paint.rs:249:19
+    |
+ 84 | impl Ui<'_> {
+    | ----------- method in this implementation
+...
+249 |     pub(crate) fn paint_display(
+    |                   ^^^^^^^^^^^^^
+
+warning: struct `StreamGuard` is never constructed
+   --> crates/tui/src/ui/paint.rs:584:8
+    |
+584 | struct StreamGuard<'a, 'f> {
+    |        ^^^^^^^^^^^
+
+warning: associated items `take` and `paint` are never used
+   --> crates/tui/src/ui/paint.rs:590:8
+    |
+589 | impl<'a, 'f> StreamGuard<'a, 'f> {
+    | -------------------------------- associated items in this implementation
+590 |     fn take(ui: &'a mut Ui<'f>) -> Self {
+    |        ^^^^
+...
+599 |     fn paint(&mut self, area: Rect, value: &impl core::fmt::Display, style: PaintStyle) -> u16 {
+    |        ^^^^^
+
+warning: struct `StreamWriter` is never constructed
+   --> crates/tui/src/ui/paint.rs:629:8
+    |
+629 | struct StreamWriter<'m, 's, 'a, 'f> {
+    |        ^^^^^^^^^^^^
+
+   Compiling junie-tui-testing v0.1.0 (/private/tmp/tc-014-vfy3/candidate/crates/tui-testing)
+warning: `junie-tui` (lib) generated 6 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.05s
+────────────
+ Nextest run ID 656ae7ab-70f0-41ba-b957-7a9ad2957f16 with nextest profile: default
+    Starting 45 tests across 1 binary
+        PASS [   0.015s] ( 1/45) junie-tui::architecture architecture::every_foreign_type_in_the_public_surface_is_re_exported
+        PASS [   6.179s] ( 2/45) junie-tui::architecture architecture::app_baselines_exist
+        PASS [   6.188s] ( 3/45) junie-tui::architecture architecture::capability_has_no_unicode_field
+        PASS [   6.231s] ( 4/45) junie-tui::architecture architecture::closure_bearing_draw_signatures_are_exact
+        FAIL [   6.419s] ( 5/45) junie-tui::architecture architecture::every_named_test_exists
+  stdout ───
+
+    running 1 test
+    test architecture::every_named_test_exists ... FAILED
+
+    failures:
+
+    failures:
+        architecture::every_named_test_exists
+
+    test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 44 filtered out; finished in 6.41s
+
+  stderr ───
+
+    thread 'architecture::every_named_test_exists' (259884121) panicked at crates/tui/tests/architecture.rs:56:5:
+    every_named_test_exists failed:
+    every_named_test_exists: 391 names in §16.1/§16.2/§16.4/§16.5/§16.6, 388 present, 2 deferred (xtask/named_tests_allow.txt)
+    FAIL every_named_test_exists
+    named tests missing (add the test, or defer it in xtask/named_tests_allow.txt with the owning slice):
+      split_first_pane_wins_on_both_axes_when_minima_do_not_fit
+    xtask: 1 check(s) failed: every_named_test_exists
+
+    note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+        PASS [   6.987s] ( 6/45) junie-tui::architecture architecture::binary_names_are_preserved
+        PASS [   6.995s] ( 7/45) junie-tui::architecture architecture::cache_types_are_derived_only
+        PASS [   7.019s] ( 8/45) junie-tui::architecture architecture::draw_takes_shared_self
+        PASS [   7.022s] ( 9/45) junie-tui::architecture architecture::conformance_covers_every_public_component
+        PASS [   7.357s] (10/45) junie-tui::architecture architecture::capture_matrix_contract
+        PASS [   8.018s] (11/45) junie-tui::architecture architecture::doc_check_resolves_every_reference
+        PASS [   8.099s] (12/45) junie-tui::architecture architecture::all_examples_compile
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/unicode-ident/3616139cb739f2c6/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/allocator-api2/2c03c97161c6a8b9/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/equivalent/db1e28139ffcffd8/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/parking_lot_core/458ef9be35b66c95/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/ident_case/349e977c7cb1ee8b/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/cfg-if/0515914bb0980da8/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/rustversion/f836b37424784f94/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/rustix/3cf92587a747c828/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/smallvec/af4af0d344c2f80f/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/strsim/82eda7ca3a6a6a6d/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/signal-hook/aaafeb66a04cb5d1/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/foldhash/9c9decabb8a1aa16/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/thiserror/5cfb75d25e511bfa/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/quote/6e71c847a2780580/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/libc/b42a89a2df8f52b1/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/unicode-segmentation/37251099f0227178/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/cfg-if/0515914bb0980da8/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/equivalent/db1e28139ffcffd8/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/foldhash/9c9decabb8a1aa16/out
+        PASS [   8.426s] (13/45) junie-tui::architecture architecture::app_libs_are_not_published_and_are_not_depended_on_by_the_library
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/proc-macro2/a7b798ab6f3dd5f9/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/bitflags/90b4ed67ad86dab5/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/unicode-ident/3616139cb739f2c6/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/ident_case/349e977c7cb1ee8b/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/unicode-segmentation/bbbd5d947660eee6/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/scopeguard/3a41779fa778667f/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/log/c8af6554c8d3474f/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/either/8ed8548e062536c4/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/heck/a2d30ea35c7716d6/out
+        PASS [   2.394s] (14/45) junie-tui::architecture architecture::field_kind_has_no_type_parameters
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/smallvec/af4af0d344c2f80f/out
+        PASS [   2.400s] (15/45) junie-tui::architecture architecture::grid_model_public_surface_is_exact
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/scopeguard/3a41779fa778667f/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/bitflags/90b4ed67ad86dab5/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/instability/928e1efca9302cfb/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/static_assertions/83acbe5070aa56ce/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/parking_lot_core/458ef9be35b66c95/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/quote/6e71c847a2780580/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/lock_api/7f3859b4255e2e43/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/heck/a2d30ea35c7716d6/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/signal-hook/aaafeb66a04cb5d1/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/static_assertions/83acbe5070aa56ce/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/log/c8af6554c8d3474f/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/ryu/066205e748827099/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/strsim/82eda7ca3a6a6a6d/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/itoa/2d2baf64329ab09f/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/allocator-api2/2c03c97161c6a8b9/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/litrs/7a1f777c0f09d881/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/either/8ed8548e062536c4/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/unicode-width/6f4d592fe9962b80/out
+        PASS [   1.627s] (16/45) junie-tui::architecture architecture::no_domain_vocabulary_in_the_library
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/hashbrown/4ac56f79d344eede/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/lock_api/7f3859b4255e2e43/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/itertools/59adaa0213afabde/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/rustversion/f836b37424784f94/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/ryu/066205e748827099/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/proc-macro2/a7b798ab6f3dd5f9/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/rustix/3cf92587a747c828/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/itoa/2d2baf64329ab09f/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/libc/b42a89a2df8f52b1/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/instability/928e1efca9302cfb/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/unicode-segmentation/bbbd5d947660eee6/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/indoc/8d71a7f74b05e775/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/thiserror/5cfb75d25e511bfa/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/unicode-width/6f4d592fe9962b80/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/hashbrown/6e76c05080e9286e/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/unicode-segmentation/37251099f0227178/out
+        PASS [   1.390s] (17/45) junie-tui::architecture architecture::no_fn_pointer_extension_points
+        PASS [   9.427s] (18/45) junie-tui::architecture architecture::applications_depend_only_on_the_library_facade
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/convert_case/35c5fb22b64815c3/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/thiserror/5c720d4228aa258e/out/probe
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/litrs/7a1f777c0f09d881/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/thiserror/5c720d4228aa258e/out/probe
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/proc-macro2/dd3d1dfd8c9ece87/out/probe
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/rustversion/61e1ebd600af1328/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/libc/26c717b1ab223ee6/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/document-features/83d9045078c4c509/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/convert_case/35c5fb22b64815c3/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/proc-macro2/dd3d1dfd8c9ece87/out/probe
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/indoc/8d71a7f74b05e775/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/hashbrown/4ac56f79d344eede/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/proc-macro2/4d1a9d90b0d35477/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/hashbrown/6e76c05080e9286e/out
+        PASS [   2.972s] (19/45) junie-tui::architecture architecture::library_has_no_application_dependency
+        PASS [   3.610s] (20/45) junie-tui::architecture architecture::legacy_forced_state_apis_are_absent
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/libc/26c717b1ab223ee6/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/mio/9b13cf18dbad3f8d/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/parking_lot_core/fc30976cc490c094/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/lru/611bce0dabc8b4f8/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/errno/ac51b808e00c0e14/out
+        PASS [   3.257s] (21/45) junie-tui::architecture architecture::msrv_and_edition_are_unchanged
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/document-features/83d9045078c4c509/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/errno/ac51b808e00c0e14/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/lru/611bce0dabc8b4f8/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/parking_lot_core/fc30976cc490c094/out
+        PASS [   1.774s] (22/45) junie-tui::architecture architecture::no_public_geometry_or_cache
+        PASS [   0.057s] (23/45) junie-tui::architecture architecture::public_items_are_documented
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/parking_lot/b713af0158e4a74e/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/proc-macro2/4d1a9d90b0d35477/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/rustversion/61e1ebd600af1328/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/rustix/f0f8d10232f3ac1d/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/signal-hook-registry/c13713ae301db468/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/mio/9b13cf18dbad3f8d/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/quote/e6a043720699612e/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/castaway/71d1999cea37a632/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/parking_lot/b713af0158e4a74e/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/itertools/59adaa0213afabde/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/signal-hook-registry/c13713ae301db468/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/quote/e6a043720699612e/out
+        PASS [   2.195s] (24/45) junie-tui::architecture architecture::no_raw_background_parameter
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/unicode-truncate/62a38fefd7efe9df/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/syn/3020ccbbadc087e3/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/syn/fabfdd7da8613a65/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/signal-hook/70872e038e8d5010/out
+        PASS [   1.492s] (25/45) junie-tui::architecture architecture::no_todo_or_unimplemented
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/unicode-truncate/62a38fefd7efe9df/out
+        PASS [   3.954s] (26/45) junie-tui::architecture architecture::no_boolean_capability_parameter_on_grid
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/castaway/71d1999cea37a632/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/signal-hook/70872e038e8d5010/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/compact_str/03775281ff00ac79/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/rustix/f0f8d10232f3ac1d/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/signal-hook-mio/2ae4de0e2f3170ab/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/signal-hook-mio/2ae4de0e2f3170ab/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/compact_str/03775281ff00ac79/out
+        PASS [   5.542s] (27/45) junie-tui::architecture architecture::examples_are_external_consumers
+        PASS [   0.026s] (28/45) junie-tui::architecture derived_hint_bar_is_exported_from_the_root_facade
+        PASS [   2.780s] (29/45) junie-tui::architecture architecture::no_static_bound_in_component_surface
+        PASS [   2.219s] (30/45) junie-tui::architecture architecture::no_unsafe
+        PASS [   1.779s] (31/45) junie-tui::architecture architecture::ratatui_crossterm_is_named_in_exactly_two_files
+        PASS [   2.887s] (32/45) junie-tui::architecture architecture::no_unreachable_spin_loops
+        PASS [   4.215s] (33/45) junie-tui::architecture architecture::no_generic_component_copies_in_applications
+        PASS [   1.597s] (34/45) junie-tui::architecture architecture::reference_rendering_is_ui_scoped
+        PASS [   1.518s] (35/45) junie-tui::architecture architecture::workspace_root_is_virtual
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/syn/3020ccbbadc087e3/out
+        PASS [   2.583s] (36/45) junie-tui::architecture architecture::palette_literals_are_confined_to_theme_builtins
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/derive_more-impl/d46ad824cfb921f9/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/strum_macros/0c44961a92cc06c0/out
+        PASS [   4.253s] (37/45) junie-tui::architecture architecture::no_owns_or_locate_in_applications
+        PASS [  12.828s] (38/45) junie-tui::architecture architecture::dependency_graph_is_exactly_the_declared_set
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/derive_more-impl/d46ad824cfb921f9/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/derive_more/31807fb6b2b94c7b/out
+        PASS [   2.402s] (39/45) junie-tui::architecture architecture::showcase_covers_every_public_component
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/syn/fabfdd7da8613a65/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/derive_more/31807fb6b2b94c7b/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/darling_core/a9410bef7afad958/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/thiserror-impl/f3e0312650bc0311/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/crossterm/88df8789c3b7fd65/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/strum_macros/0c44961a92cc06c0/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/strum/5bafe50067dbb211/out
+        PASS [  13.660s] (40/45) junie-tui::architecture architecture::baseline_moves_are_classified
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/strum/5bafe50067dbb211/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /private/var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/thiserror-impl/f3e0312650bc0311/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/thiserror/9d5185a6cdaec1a9/out
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/crossterm/88df8789c3b7fd65/out
+        PASS [  14.366s] (41/45) junie-tui::architecture architecture::compile_fail_cases_hold
+mbx[warning]: result was not stored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/thiserror/9d5185a6cdaec1a9/out
+mbx[warning]: prediction was not restored: absolute path has no stable cache mapping: /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/terminal-components-rustdoc-14469-1790028059908338000/debug/build/kasuari/a344f0b23c33da2b/out
+        PASS [   4.862s] (42/45) junie-tui::architecture architecture::props_are_built_once
+        PASS [  18.039s] (43/45) junie-tui::architecture architecture::every_component_doc_has_the_standard_sections
+        PASS [  21.462s] (44/45) junie-tui::architecture architecture::core_is_backend_free
+        PASS [  15.263s] (45/45) junie-tui::architecture architecture::no_deprecated_or_legacy_api_usage
+────────────
+     Summary [  22.286s] 45 tests run: 44 passed, 1 failed, 0 skipped
+        FAIL [   6.419s] ( 5/45) junie-tui::architecture architecture::every_named_test_exists
+error: test run failed
+mbx[cache]: 289 hits, 16 misses, 15 not looked up, 1 bypassed; 0 B downloaded, 0 B uploaded, 133.3 MiB stored locally
+mbx[savings]: 3.9 TiB logical of outputs had survived their checkouts. an unnatural state, now corrected.

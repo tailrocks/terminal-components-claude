@@ -1,0 +1,68 @@
+{
+ "task_id": "TASK-077",
+ "role": "independent_reviewer",
+ "candidate": "c8b37b5430195e3662935291e5f538634d7ad598",
+ "parent": "7a79fdf1409958f5e38b388966eb7d8902ed5351",
+ "verdict": "VERIFIED",
+ "review_worktree": "/private/tmp/tc-goal-b518/review-077",
+ "scratch": "/private/tmp/tc-goal-b518/review-077-scratch",
+ "verifier_receipt": "/tmp/tc-goal-b518/receipts/TASK-077-verify.json",
+ "findings": [
+  {
+   "id": "R-001",
+   "area": "scope",
+   "result": "PASS",
+   "detail": "Diff 7a79fdf1..c8b37b54 touches exactly 2 files, 1 line each: runner/context.py:40 and bin/tc-proof:314, both adding only the 'components' member to NATIVE_ORACLE_NAMESPACES. Modes unchanged (100755 bundle, 100644 source). No task package, baseline, or oracle mutation; taskfmt forbidden_paths 25/25 untouched; scope log ok on both files only."
+  },
+  {
+   "id": "R-002",
+   "area": "generated-only",
+   "result": "PASS",
+   "detail": "Independent regeneration: copied proof tree to scratch, ran architecture/rebundle.py, byte-identical to tracked bundle (cmp identical; sha256 0182b2d70c64c4a3b3173fc4bac7c3404a024cc6965849431e120b41cf9c8ba1 matches verifier's tracked+staged shas). No hand edits."
+  },
+  {
+   "id": "R-003",
+   "area": "correctness-minimality",
+   "result": "PASS",
+   "detail": "Only the set literal changed; validate_oracle_namespace gate code untouched (native membership branch + synthetic exact-match branch intact). Independent disposable-process probe of tracked bundle: 5-member exact allowlist; components/native accepted; bogus/empty/None native rejected Reject(PROTOCOL); synthetic/synthetic accepted; components+ bogus/synthetic rejected PROTOCOL."
+  },
+  {
+   "id": "R-004",
+   "area": "contract-quality",
+   "result": "PASS",
+   "detail": "077 contract pins fix without loopholes: CHK-001 exact-set AST in source+bundle + authoritative freshness; CHK-002 full accept/reject matrix incl. exact Reject type+category and synthetic rule; CHK-003 byte-identical qualified-regen + staged-carries-fix + exec bits; writable paths exactly the 2 files; O-004 prohibitions explicit. Negative controls non-vacuous: stale CHK-001 exit 1 missing=['components'] in source+bundle; stale CHK-002 exit 1 (4-member + components/native Reject PROTOCOL); stale freshness exit 0 by design (fresh-but-unfixed)."
+  },
+  {
+   "id": "R-005",
+   "area": "verifier-evidence-audit",
+   "result": "PASS",
+   "detail": "Spot-checked receipt vs logs: gate A lint PASS exit 0; gate B 7/7 PASS exit 0 with per-check logs CHK-001/002/003 exit=0 and matching stdout; gate C freshness PASS, cmp exit 0 empty log, regen shas cross-match independent regen; gate E exits/diagnoses match negative_control claims; gate F namestatus/numstat/parents/trailers match independent git inspection."
+  },
+  {
+   "id": "R-006",
+   "area": "commit-hygiene",
+   "result": "PASS",
+   "detail": "Trailers exactly: one Co-authored-by Codex <codex@openai.com> + one Signed-off-by Alexey Zhokhov <alexey@zhokhov.com>, nothing else. Message 'fix(proof): accept components native oracle namespace (077)' accurate. Single parent 7a79fdf1 correct. Peeled visual-baseline tag 4a79c0a2 matches oracle identity (1ee5ebd is the annotated tag object, not a mismatch). Review worktree untouched (status clean)."
+  }
+ ],
+ "evidence_paths": [
+  "/private/tmp/tc-goal-b518/review-077-scratch/tracked-sha.txt",
+  "/private/tmp/tc-goal-b518/review-077-scratch/regen-sha.txt",
+  "/private/tmp/tc-goal-b518/review-077-scratch/reviewer-e2e.log",
+  "/private/tmp/tc-goal-b518/run-077v/gateA-lint.log",
+  "/private/tmp/tc-goal-b518/run-077v/gateB-verify.log",
+  "/private/tmp/tc-goal-b518/run-077v/taskfmt-logs/CHK-001.log",
+  "/private/tmp/tc-goal-b518/run-077v/taskfmt-logs/CHK-002.log",
+  "/private/tmp/tc-goal-b518/run-077v/taskfmt-logs/CHK-003.log",
+  "/private/tmp/tc-goal-b518/run-077v/taskfmt-logs/scope.log",
+  "/private/tmp/tc-goal-b518/run-077v/taskfmt-logs/forbidden_paths.log",
+  "/private/tmp/tc-goal-b518/run-077v/gateC-regen.log",
+  "/private/tmp/tc-goal-b518/run-077v/gateC-cmp.log",
+  "/private/tmp/tc-goal-b518/run-077v/gateD-gate.log",
+  "/private/tmp/tc-goal-b518/run-077v/gateD-e2e.log",
+  "/private/tmp/tc-goal-b518/run-077v/gateE-allowlist.log",
+  "/private/tmp/tc-goal-b518/run-077v/gateE-gate.log",
+  "/private/tmp/tc-goal-b518/run-077v/gateF-trailers.log",
+  "/private/tmp/tc-goal-b518/run-077v/gateF-namestatus.log"
+ ]
+}

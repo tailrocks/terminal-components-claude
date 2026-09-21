@@ -1,0 +1,44 @@
+# cmd: git branch -a | cat
+* refactor/holla-parity
+  baseline-canonical-5x5
+  + catalog-remap/071-native-qualification
+  + catalog-remap/prereq-repair
+  main
+  + prep-launcher-repair-20260920
+  + prep-wave1-verify
+  + proof-merge/ap-visual-20260920
+  + proof-merge/ap-visual-onto-3c249
+  + proof-repair/adapter-membership
+  + proof-repair/ap-01-05-20260920
+  + proof-repair/bundle-collect-observations
+  + proof-repair/native-required
+  + proof-repair/visual-harness-20260920
+  + task-001-bootstrap
+  + task-002/cas-onto-b96a62e4
+  + task-002/cas-onto-c7ab028c
+  + task-002/impl-20260921
+  + task-002/oracle-showcase
+  + task-003/cas-onto-b96a62e4
+  + task-003/cas-onto-c7ab028c
+  + task-003/impl-20260921
+  + task-003/oracle-holla
+  + task-004/impl-20260921
+  task-004/jackin-adapter
+  + task-005/impl-20260921
+  + task-005/oracle-tablepro
+  + task-007/impl-20260921
+  + task-007/source-discovery
+  + task-071/account-tests
+  + task-071/cas-onto-e8858d55
+  + task-072/architecture
+  + visual-baseline
+  + visual-baseline-suite
+  remote-only (8):
+    goal-checkpoint/014-r1
+    goal-checkpoint/014-r3
+    goal-checkpoint/079-r1
+    goal-checkpoint/079-r2
+    red-main/perf-fix-forward
+    rollout/agent-policy
+    rollout/velnor-wave
+    visual-baseline

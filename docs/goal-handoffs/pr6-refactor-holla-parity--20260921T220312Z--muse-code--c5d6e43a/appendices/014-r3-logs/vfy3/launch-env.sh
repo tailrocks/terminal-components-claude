@@ -1,0 +1,11 @@
+export PATH="/Users/donbeave/.cargo/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+export RUN_DIR=/private/tmp/tc-014-vfy3/run
+export WORKTREE=/private/tmp/tc-014-vfy3/candidate
+export TASK_DIR=$WORKTREE/refactoring-tasks/terminal-components/completion/014
+export SCOPE_BASE=227f21b6ba8a289ae585aa009b1a7d749a92aaf2
+export TC_PROOF_NATIVE_LAUNCH=1
+export TC_PROOF_NATIVE_LAUNCHER=$RUN_DIR/target/debug/tc-proof
+export TC_PROOF_NATIVE_BINARY=$RUN_DIR/target/debug/tc-proof
+export TC_PROOF_CONTEXT_INDEX=$RUN_DIR/context-index.json
+export TC_PROOF_CONTEXT_INDEX_SHA256=12b90087252fc71ec195f73595e66e894044590c19d92bea46a60f924f43a642
+export TC_PROOF_NATIVE_TIMEOUT_MS=600000

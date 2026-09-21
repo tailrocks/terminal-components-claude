@@ -1,0 +1,15 @@
+CHECK config PASS /tmp/tc-014-r3/wt/refactoring-tasks/terminal-components/completion/014/verify.toml
+CHECK task_lint PASS
+CHECK scope PASS
+CHECK forbidden_paths PASS
+CHECK forbidden_patterns PASS
+CHECK CHK-001 PASS
+CHECK CHK-002 PASS
+CHECK CHK-003 PASS
+CHECK CHK-004 PASS
+CHECK CHK-005 PASS
+CHECK CHK-006 PASS
+CHECK CHK-007 PASS
+SUMMARY pass=11 fail=0 log_dir=/private/tmp/tc-014-r3/run-verify/taskfmt-logs
+RESULT PASS
+DONE

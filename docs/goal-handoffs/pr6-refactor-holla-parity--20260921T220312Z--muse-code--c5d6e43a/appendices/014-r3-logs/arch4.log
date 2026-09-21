@@ -1,0 +1,97 @@
+warning: methods `len`, `peak`, and `capacity` are never used
+  --> crates/tui/src/text/clusters.rs:64:25
+   |
+50 | impl ClusterScratch {
+   | ------------------- methods in this implementation
+...
+64 |     pub(crate) const fn len(&self) -> usize {
+   |                         ^^^
+...
+75 |     pub(crate) const fn peak(&self) -> usize {
+   |                         ^^^^
+...
+80 |     pub(crate) fn capacity(&self) -> usize {
+   |                   ^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `text_scratch` is never read
+  --> crates/tui/src/ui/mod.rs:94:5
+   |
+70 | pub(crate) struct FrameState {
+   |                   ---------- field in this struct
+...
+94 |     text_scratch: ClusterScratch,
+   |     ^^^^^^^^^^^^
+   |
+   = note: `FrameState` has a derived impl for the trait `Debug`, but this is intentionally ignored during dead code analysis
+
+warning: method `paint_display` is never used
+   --> crates/tui/src/ui/paint.rs:249:19
+    |
+ 84 | impl Ui<'_> {
+    | ----------- method in this implementation
+...
+249 |     pub(crate) fn paint_display(
+    |                   ^^^^^^^^^^^^^
+
+warning: struct `StreamGuard` is never constructed
+   --> crates/tui/src/ui/paint.rs:584:8
+    |
+584 | struct StreamGuard<'a, 'f> {
+    |        ^^^^^^^^^^^
+
+warning: associated items `take` and `paint` are never used
+   --> crates/tui/src/ui/paint.rs:590:8
+    |
+589 | impl<'a, 'f> StreamGuard<'a, 'f> {
+    | -------------------------------- associated items in this implementation
+590 |     fn take(ui: &'a mut Ui<'f>) -> Self {
+    |        ^^^^
+...
+599 |     fn paint(&mut self, area: Rect, value: &impl core::fmt::Display, style: PaintStyle) -> u16 {
+    |        ^^^^^
+
+warning: struct `StreamWriter` is never constructed
+   --> crates/tui/src/ui/paint.rs:629:8
+    |
+629 | struct StreamWriter<'m, 's, 'a, 'f> {
+    |        ^^^^^^^^^^^^
+
+warning: `junie-tui` (lib) generated 6 warnings
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.24s
+────────────
+ Nextest run ID 779e1df9-5809-49ad-8784-731660688409 with nextest profile: default
+    Starting 3 tests across 1 binary (42 tests skipped)
+       START [         ] (1/3) junie-tui::architecture architecture::no_todo_or_unimplemented
+
+running 1 test
+ok   no_todo_or_unimplemented
+
+test architecture::no_todo_or_unimplemented ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 44 filtered out; finished in 0.95s
+
+        PASS [   0.977s] (1/3) junie-tui::architecture architecture::no_todo_or_unimplemented
+       START [         ] (2/3) junie-tui::architecture architecture::no_unreachable_spin_loops
+
+running 1 test
+ok   no_unreachable_spin_loops
+
+test architecture::no_unreachable_spin_loops ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 44 filtered out; finished in 0.82s
+
+        PASS [   0.839s] (2/3) junie-tui::architecture architecture::no_unreachable_spin_loops
+       START [         ] (3/3) junie-tui::architecture architecture::no_unsafe
+
+running 1 test
+ok   no_unsafe
+
+test architecture::no_unsafe ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 44 filtered out; finished in 0.76s
+
+        PASS [   0.776s] (3/3) junie-tui::architecture architecture::no_unsafe
+────────────
+     Summary [   2.593s] 3 tests run: 3 passed, 42 skipped

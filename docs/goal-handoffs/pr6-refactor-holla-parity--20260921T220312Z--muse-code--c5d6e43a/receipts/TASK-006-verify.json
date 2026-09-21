@@ -1,0 +1,276 @@
+{
+ "base": "dde02859233f6fd80e9bd5f216c4eddafbf8dea0",
+ "candidate_commit": "6e0c0bc198c7d30d9f54ecae3de24536f6817830",
+ "candidate_tree": "6f0efd2381001b08dc19bb7bd5b0b96ae587c370",
+ "commands": [
+  {
+   "exit": 0,
+   "log": "git worktree add --detach /private/tmp/tc-goal-b518/verify-006 6e0c0bc1...; HEAD=6e0c0bc198c7d30d9f54ecae3de24536f6817830 tree=6f0efd2381001b08dc19bb7bd5b0b96ae587c370; status --porcelain empty (clean, read-only thereafter, re-verified clean after all gates). Never touched other agents' dirs; no pkill.",
+   "name": "setup.worktree_add"
+  },
+  {
+   "exit": 0,
+   "log": "mkdir -p /private/tmp/tc-goal-b518/run-006/target/verifier-logs; run root holds only target/ before preparation",
+   "name": "setup.mkdir_run_dir"
+  },
+  {
+   "exit": 0,
+   "log": "taskfmt --version + sha256 + taskfmt-source rev-parse: 0.2.0 / afd3b575dbcc7044620bec4b9493a74eca3e5ef2 / f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de (matches qualified identity)",
+   "name": "setup.taskfmt_identity"
+  },
+  {
+   "exit": 0,
+   "log": "/private/tmp/tc-goal-b518/run-006/target/verifier-logs/verifier-lint.out",
+   "name": "gateA.taskfmt_lint"
+  },
+  {
+   "exit": 0,
+   "log": "/private/tmp/tc-goal-b518/run-006/target/verifier-logs/verifier-build.log (15.22s; scripts/campaign-build-proof.sh: cargo build --locked --offline -p refactor-proof --bin tc-proof, CARGO_TARGET_DIR=$RUN_DIR/target from frozen worktree; receipt commit/tree/worktree/target-bound; binary sha b6520add... still matches receipt after shared-target nextest)",
+   "name": "setup.build_candidate_tc_proof"
+  },
+  {
+   "exit": 0,
+   "log": "cp observer-provider-005v.py observer-provider-006.py + label-only edit (2 lines: PROVIDER + docstring title); diff exit 1 with exactly those 2 hunks; py_compile COMPILE_OK; sha256 7a0b5b83d6236579b87bb6a8f73b689cedad0297ade79a0bf325bb508a9825c0",
+   "name": "setup.observer_provider_copy"
+  },
+  {
+   "exit": 0,
+   "log": "secrets.token_hex(24) > $RUN_DIR/target/verifier-logs/nonce-006.txt (48 hex chars; verifier-owned, under target/ so prepare membership holds)",
+   "name": "setup.nonce_generate"
+  },
+  {
+   "exit": 1,
+   "log": "/private/tmp/tc-goal-b518/run-006/target/verifier-logs/verifier-prepare.out (empty) + verifier-prepare.err: `tc-proof prepare: dependency receipt is not accepted and integrated`. Native binary, full canonical flags incl. --observer-nonce + 6 --dependency-receipt (002-005 review VERIFIED + 071/072 coordinator). Run root untouched (target/ only).",
+   "name": "gateC.prepare_review_receipts"
+  },
+  {
+   "exit": 1,
+   "log": "/private/tmp/tc-goal-b518/run-006/target/verifier-logs/verifier-prepare-verifyreceipts.err: identical `dependency receipt is not accepted and integrated` with 002-005 verifier PASS receipts. Confirms no available 002-005 file satisfies prepare; run root untouched.",
+   "name": "gateC.prepare_verify_receipts_variant"
+  },
+  {
+   "exit": 1,
+   "log": "/private/tmp/tc-goal-b518/run-006/target/verifier-logs/verifier-launch-noprepare.err: `tc-proof launch: context index path component is unreadable: .../context-index.json: No such file or directory`. Fail-closed without prepared contexts, as required.",
+   "name": "gateC.launch_noprepare"
+  },
+  {
+   "exit": 1,
+   "log": "/private/tmp/tc-goal-b518/run-006/target/verifier-logs/verifier-verify.out: CHECK config PASS, task_lint PASS, scope PASS, forbidden_paths PASS, forbidden_patterns PASS, CHK-001..007 FAIL rc=1 (missing $RUN_DIR/contexts/CHK-*.json / context-index.json); SUMMARY pass=4 fail=7 RESULT FAIL (no DONE)",
+   "name": "gateB.taskfmt_verify"
+  },
+  {
+   "exit": 0,
+   "log": "/private/tmp/tc-goal-b518/run-006/target/verifier-logs/verifier-nextest.err (summary on stderr; stdout 0 bytes)",
+   "name": "gateD.cargo_nextest_components"
+  },
+  {
+   "exit": 0,
+   "log": "git diff 6e0c0bc1^..6e0c0bc1 --stat: 21 files, 6813 insertions(+), all under tools/refactor-proof-adapters/components, zero outside writable set, zero forbidden",
+   "name": "gateE.scope_stat"
+  },
+  {
+   "exit": 0,
+   "log": "refs/tags/visual-baseline peeled 4a79c0a2d40fca46fc406b77157ce3b3f12ec16b (matches frozen oracle; unmutated)",
+   "name": "gateE.oracle_tag"
+  },
+  {
+   "exit": 0,
+   "log": "merge-base --is-ancestor HEAD ok for all six: 57b411b6 (002), 2e48cbe3 (003), 731e688a (004), 117a8121 (005), bffd7224 (071), b71c4d04 (072)",
+   "name": "integrity.ancestry_diagnostic"
+  },
+  {
+   "exit": 0,
+   "log": "status --porcelain empty after all gates; native binary sha256 still equals build-receipt binary_sha256 after shared-target nextest",
+   "name": "integrity.worktree_clean_and_binary"
+  }
+ ],
+ "dependency_receipts": [
+  "/private/tmp/tc-goal-b518/receipts/TASK-002-review-r4.json",
+  "/private/tmp/tc-goal-b518/receipts/TASK-003-review.json",
+  "/private/tmp/tc-goal-b518/receipts/TASK-004-review.json",
+  "/private/tmp/tc-goal-b518/receipts/TASK-005-review.json",
+  "/private/tmp/tc-goal-b518/receipts/TASK-071.json",
+  "/private/tmp/tc-goal-b518/receipts/TASK-072.json"
+ ],
+ "dependency_receipts_note": "All read fully. 071/072: accepted=true, integrated=true (bffd7224, b71c4d04). 002-005: strongest available are reviewer VERIFIED (verdict=VERIFIED satisfies the accepted half only; no integrated flag, no integration_commit). Verifier PASS receipts satisfy neither half. tc-proof prepare (tools/refactor-proof/src/verifier.rs dependency_receipts) requires accepted AND integrated=true plus a 40-hex integration_commit ancestor of HEAD for every task.toml dependency; no 002-005 file meets this. Ancestry itself is satisfied: all six integration candidates (57b411b6, 2e48cbe3, 731e688a, 117a8121, bffd7224, b71c4d04) are merge-base ancestors of 6e0c0bc1. Only the coordinator accepted+integrated attestation for 002-005 is missing.",
+ "env": {
+  "PATH": "/Users/donbeave/.cargo/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+  "PATH_note": "Clean PATH, no mise shims. cargo 1.98.1 + cargo-nextest 0.9.143 from /Users/donbeave/.cargo/bin. python3 /opt/homebrew/bin/python3 3.14.7.",
+  "PYTHONDONTWRITEBYTECODE": "1",
+  "RUN_DIR": "/private/tmp/tc-goal-b518/run-006",
+  "TC_PROOF_NATIVE_BINARY": "/private/tmp/tc-goal-b518/run-006/target/debug/tc-proof",
+  "cargo_version": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+  "nextest_version": "cargo-nextest 0.9.143",
+  "python_version": "Python 3.14.7",
+  "verify_env": "RUN_DIR + TC_PROOF_NATIVE_LAUNCH=1 + TC_PROOF_NATIVE_LAUNCHER=<native> + TC_PROOF_NATIVE_TIMEOUT_MS=600000 + TC_PROOF_OBSERVER_PROVIDER=<006 provider> + TC_PROOF_NATIVE_BINARY=<native>; TC_PROOF_CONTEXT_INDEX* unset (prepare never succeeded, no index exists)."
+ },
+ "evidence_paths": {
+  "DISCLAIMER": "taskfmt-logs/ holds only taskfmt-owned logs; verifier-owned logs live in target/verifier-logs/ because prepare/validate enforce exact run-root membership (target/ contents never enumerated).",
+  "build_receipt": "/private/tmp/tc-goal-b518/run-006/target/debug/tc-proof.build.json",
+  "context_index": "absent (prepare never succeeded)",
+  "contexts": "absent (prepare never succeeded)",
+  "observer_provider_tool": "/private/tmp/tc-goal-b518/observer-provider-006.py",
+  "outputs": "absent (prepare never succeeded)",
+  "results": "absent (prepare never succeeded)",
+  "run_dir": "/private/tmp/tc-goal-b518/run-006",
+  "taskfmt_logs": "/private/tmp/tc-goal-b518/run-006/taskfmt-logs/ (CHK-001..007.log, scope.log, task_lint.log, forbidden_*.log)",
+  "verifier_logs": "/private/tmp/tc-goal-b518/run-006/target/verifier-logs/",
+  "worktree": "/private/tmp/tc-goal-b518/verify-006 (frozen, detached at 6e0c0bc1, read-only, clean before and after)"
+ },
+ "gates": {
+  "A_lint": {
+   "exit": 0,
+   "output": "PACKAGE 006/README.md (frozen); SUMMARY errors=0 warnings=0; LINT PASS",
+   "result": "PASS"
+  },
+  "B_verify": {
+   "checks": [
+    "config PASS",
+    "task_lint PASS",
+    "scope PASS",
+    "forbidden_paths PASS",
+    "forbidden_patterns PASS",
+    "CHK-001 FAIL (no prepared context)",
+    "CHK-002 FAIL (no prepared context)",
+    "CHK-003 FAIL (no prepared context)",
+    "CHK-004 FAIL (no context index)",
+    "CHK-005 FAIL (no prepared context)",
+    "CHK-006 FAIL (no prepared context)",
+    "CHK-007 FAIL (no prepared context)"
+   ],
+   "exit": 1,
+   "result": "FAIL",
+   "summary": "pass=4 fail=7 RESULT FAIL (no DONE)"
+  },
+  "C_prepare_launch": {
+   "launch_noprepare": {
+    "exit": 1,
+    "stderr": "tc-proof launch: context index path component is unreadable: /private/tmp/tc-goal-b518/run-006/context-index.json: No such file or directory (os error 2)"
+   },
+   "note": "No launch channel exists without prepared contexts; both launch-relevant attempts fail closed as required. No contexts/results/outputs/index were produced.",
+   "prepare_review_receipts": {
+    "contexts": 0,
+    "exit": 1,
+    "outputs_count_after": 0,
+    "results": 0,
+    "run_root_after": [
+     "target"
+    ],
+    "stderr": "tc-proof prepare: dependency receipt is not accepted and integrated"
+   },
+   "prepare_verify_receipts_variant": {
+    "exit": 1,
+    "stderr": "tc-proof prepare: dependency receipt is not accepted and integrated"
+   },
+   "result": "FAIL"
+  },
+  "D_nextest": {
+   "exit": 0,
+   "failed": 0,
+   "manifest": "tools/refactor-proof-adapters/components/Cargo.toml (package oracle-components, standalone workspace, --locked --all-targets, CARGO_TARGET_DIR=$RUN_DIR/target)",
+   "note": "cargo nextest only; never cargo test.",
+   "passed": 19,
+   "result": "PASS",
+   "run": 19,
+   "skipped": 0,
+   "summary": "Summary [13.698s] 19 tests run: 19 passed, 0 skipped"
+  },
+  "E_scope_provenance": {
+   "co_authored_by": "Co-authored-by: Codex <codex@openai.com> present",
+   "diff_stat": "21 files changed, 6813 insertions(+)",
+   "forbidden_hits": 0,
+   "outside_writable": 0,
+   "parent": "dde02859233f6fd80e9bd5f216c4eddafbf8dea0",
+   "parent_match": true,
+   "result": "PASS",
+   "signed_off_by": "Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com> exactly once (1/1 Signed-off-by lines)",
+   "visual_baseline_tag_peeled": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b (matches frozen oracle identity; unmutated)",
+   "writable_set": "all 21 under tools/refactor-proof-adapters/components"
+  }
+ },
+ "native_binary_sha256": "b6520add02aa39d7d91901d7a2f9496985ef14cdf1ed1e322f02a0566a246f37",
+ "observer_provider": {
+  "note": "Copy of 005v provider; diff vs 005v is label-only (PROVIDER + docstring title lines). Fully task-agnostic: all bindings echoed from prepare-bound contexts. Lives outside RUN_DIR because prepare/validate enforce exact run-root membership (same accepted layout as 002r4/003/004/005).",
+  "path": "/private/tmp/tc-goal-b518/observer-provider-006.py",
+  "sha256": "7a0b5b83d6236579b87bb6a8f73b689cedad0297ade79a0bf325bb508a9825c0"
+ },
+ "per_check_table": [
+  {
+   "check": "config",
+   "result": "PASS"
+  },
+  {
+   "check": "task_lint",
+   "result": "PASS"
+  },
+  {
+   "check": "scope",
+   "result": "PASS"
+  },
+  {
+   "check": "forbidden_paths",
+   "result": "PASS"
+  },
+  {
+   "check": "forbidden_patterns",
+   "result": "PASS"
+  },
+  {
+   "check": "CHK-001 preflight",
+   "note": "rc=1: contexts/CHK-001.json missing (prepare blocked)",
+   "result": "FAIL"
+  },
+  {
+   "check": "CHK-002 required",
+   "note": "rc=1: contexts/CHK-002.json missing (prepare blocked)",
+   "result": "FAIL"
+  },
+  {
+   "check": "CHK-003 oracle/native components",
+   "note": "rc=1: contexts/CHK-003.json missing (prepare blocked)",
+   "result": "FAIL"
+  },
+  {
+   "check": "CHK-004 compare",
+   "note": "rc=1: context-index.json missing (prepare blocked)",
+   "result": "FAIL"
+  },
+  {
+   "check": "CHK-005 account-tests",
+   "note": "rc=1: contexts/CHK-005.json missing (prepare blocked)",
+   "result": "FAIL"
+  },
+  {
+   "check": "CHK-006 architecture",
+   "note": "rc=1: contexts/CHK-006.json missing (prepare blocked)",
+   "result": "FAIL"
+  },
+  {
+   "check": "CHK-007 close",
+   "note": "rc=1: contexts/CHK-007.json missing (prepare blocked)",
+   "result": "FAIL"
+  }
+ ],
+ "recorded_by": "verifier-subagent TASK-006",
+ "run_dir": "/private/tmp/tc-goal-b518/run-006",
+ "scope_base": "dde02859233f6fd80e9bd5f216c4eddafbf8dea0",
+ "task_dir": "/private/tmp/tc-goal-b518/verify-006/refactoring-tasks/terminal-components/completion/006",
+ "task_dir_note": "frozen candidate task package (task.toml + verify.toml + README + trusted/ incl. obligations, CHK-005 template read first; diff -r vs subagent checkout package empty)",
+ "task_id": "TASK-006",
+ "taskfmt": {
+  "checkout_rev": "afd3b575dbcc7044620bec4b9493a74eca3e5ef2",
+  "identity_match": true,
+  "path": "/private/tmp/taskfmt-latest-install/bin/taskfmt",
+  "revision": "afd3b575dbcc7044620bec4b9493a74eca3e5ef2",
+  "sha256": "f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de",
+  "source": "/Users/donbeave/Projects/taskfmt/task-format",
+  "version": "0.2.0",
+  "version_output": "taskfmt 0.2.0 (git afd3b575dbcc7044620bec4b9493a74eca3e5ef2)"
+ },
+ "tool_bundle_note": "Frozen $WORKTREE/tools/refactor-proof/bin/tc-proof sha matches the post-076 regenerated bundle (same as 003/004/005 runs).",
+ "tool_bundle_sha256": "d59ae497766f83ac768e0b87ba1c1c0e48e042142113b491ef95ae20fbef307d",
+ "verdict": "FAIL",
+ "verdict_reason": "Gate C prepare fails fail-closed (exit 1, both receipt variants): no accepted+integrated dependency receipt exists for TASK-002/003/004/005, so no contexts/index exist and all 7 CHK checks in Gate B fail. Gates A, D, E PASS. The blocker is missing coordinator attestation, not a candidate defect; the verifier cannot invent receipts.",
+ "worktree": "/private/tmp/tc-goal-b518/verify-006",
+ "worktree_note": "frozen, detached at 6e0c0bc1, read-only, status --porcelain empty before and after all gates"
+}
