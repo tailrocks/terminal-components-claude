@@ -1976,6 +1976,13 @@ fn apply_style_delta(ui: &Ui<'_>, base: PaintStyle, delta: StylePatch) -> PaintS
     if delta.is_empty() {
         return base;
     }
+    // Time only the existing bind expression through the same caller-owned
+    // seam.
+    #[cfg(feature = "testing")]
+    let top = ui.timed(crate::ui::StyleTimingEntry::GridBind, || {
+        crate::theme::resolve::bind(ui.theme_ref(), delta, None, ui.surface()).style
+    });
+    #[cfg(not(feature = "testing"))]
     let top = crate::theme::resolve::bind(ui.theme_ref(), delta, None, ui.surface()).style;
     base.patch(top)
 }

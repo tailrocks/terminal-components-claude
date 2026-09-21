@@ -4269,6 +4269,11 @@ fn conflicting_visible_bindings_are_reported() {
 /// `0×0` case across the whole registry, extended by §26 N1 to a
 /// `LayerSize::Fixed(0, h)` request, which is an **empty layer** and never
 /// the screen.
+///
+/// Generated from the same [`registered_cases`] registry as the PARTS sweep:
+/// the loop drives every registered subject, so removing an invocation or
+/// registering a new subject without a degenerate arm fails here rather
+/// than silently skipping coverage (TASK-073 HM07).
 #[test]
 fn draw_registers_nothing_when_it_cannot_draw() {
     fn degenerate<C: Conformance>() {
@@ -4288,40 +4293,66 @@ fn draw_registers_nothing_when_it_cannot_draw() {
             assert_eq!(ring, 0, "{}: {area:?} left {ring} ring entries", C::NAME);
         }
     }
-    degenerate::<ProbeCase>();
-    degenerate::<ButtonCase>();
-    degenerate::<TextInputCase>();
-    degenerate::<FieldCase>();
-    degenerate::<ListCase>();
-    degenerate::<TabsCase>();
-    degenerate::<DialogCase>();
-    degenerate::<ScrollRegionCase>();
-    degenerate::<PropsCase>();
-    degenerate::<PropsListCase>();
-    degenerate::<TextAreaCase>();
-    degenerate::<SelectCase>();
-    degenerate::<RadioGroupCase>();
-    degenerate::<CheckboxCase>();
-    degenerate::<ToggleCase>();
-    degenerate::<ChipBarCase>();
-    degenerate::<StatusBarCase>();
-    degenerate::<HintBarCase>();
-    degenerate::<KeyHintCase>();
-    degenerate::<ProgressBarCase>();
-    degenerate::<SpinnerCase>();
-    degenerate::<MeterCase>();
-    degenerate::<EmptyCase>();
-    degenerate::<BrandCase>();
-    degenerate::<PanelCase>();
-    degenerate::<SplitPaneCase>();
-    degenerate::<TextViewportCase>();
-    degenerate::<DiffViewCase>();
-    degenerate::<CodeEditorCase>();
-    degenerate::<TreeCase>();
-    degenerate::<NavListCase>();
-    degenerate::<StepsCase>();
-    degenerate::<TooSmallCase>();
-    degenerate::<GridCase>();
+    fn degenerate_by_name(name: &str) {
+        match name {
+            "probe" => degenerate::<ProbeCase>(),
+            "button" => degenerate::<ButtonCase>(),
+            "text_input" => degenerate::<TextInputCase>(),
+            "field" => degenerate::<FieldCase>(),
+            "list" => degenerate::<ListCase>(),
+            "tabs" => degenerate::<TabsCase>(),
+            "dialog" => degenerate::<DialogCase>(),
+            "scroll_region" => degenerate::<ScrollRegionCase>(),
+            "props" => degenerate::<PropsCase>(),
+            "props_list" => degenerate::<PropsListCase>(),
+            "text_area" => degenerate::<TextAreaCase>(),
+            "select" => degenerate::<SelectCase>(),
+            "radio_group" => degenerate::<RadioGroupCase>(),
+            "checkbox" => degenerate::<CheckboxCase>(),
+            "toggle" => degenerate::<ToggleCase>(),
+            "chip_bar" => degenerate::<ChipBarCase>(),
+            "status_bar" => degenerate::<StatusBarCase>(),
+            "hint_bar" => degenerate::<HintBarCase>(),
+            "derived_hint_bar" => degenerate::<DerivedHintBarCase>(),
+            "key_hint" => degenerate::<KeyHintCase>(),
+            "progress_bar" => degenerate::<ProgressBarCase>(),
+            "spinner" => degenerate::<SpinnerCase>(),
+            "meter" => degenerate::<MeterCase>(),
+            "empty" => degenerate::<EmptyCase>(),
+            "brand" => degenerate::<BrandCase>(),
+            "panel" => degenerate::<PanelCase>(),
+            "split_pane" => degenerate::<SplitPaneCase>(),
+            "text_viewport" => degenerate::<TextViewportCase>(),
+            "diff_view" => degenerate::<DiffViewCase>(),
+            "code_editor" => degenerate::<CodeEditorCase>(),
+            "tree" => degenerate::<TreeCase>(),
+            "nav_list" => degenerate::<NavListCase>(),
+            "steps" => degenerate::<StepsCase>(),
+            "too_small" => degenerate::<TooSmallCase>(),
+            "grid" => degenerate::<GridCase>(),
+            "filter_list" => degenerate::<FilterListCase>(),
+            "picker" => degenerate::<PickerCase>(),
+            "completion" => degenerate::<CompletionCase>(),
+            "context_menu" => degenerate::<ContextMenuCase>(),
+            "help_overlay" => degenerate::<HelpOverlayCase>(),
+            "menu_bar" => degenerate::<MenuBarCase>(),
+            "picker_chain" => degenerate::<PickerChainCase>(),
+            "wizard" => degenerate::<WizardCase>(),
+            "form" => degenerate::<FormCase>(),
+            _ => panic!(
+                "degenerate registry has unhandled case {name:?}: register its degenerate arm"
+            ),
+        }
+    }
+    let registered = registered_cases();
+    for name in &registered {
+        degenerate_by_name(name);
+    }
+    assert_eq!(
+        registered.len(),
+        44,
+        "conformance registry size changed: update degenerate_by_name"
+    );
 
     // §26 N1: a zero-size request resolves to `Rect::ZERO`, so the layer's
     // content is clipped away and registers nothing either.
@@ -4373,7 +4404,13 @@ impl junie_tui::App for ZeroLayer {
 mod registry {
     use super::*;
 
-    /// The parts a case resolves in one draw.
+    /// The component-owned parts a case resolves in one draw.
+    ///
+    /// Uses the truthful attributed observation (TASK-073): caller-row-owned
+    /// custom parts stay row-owned and do not pollute the component-owned
+    /// set whose union must equal `PARTS` at TASK-031. This foundation
+    /// qualifies the infrastructure with the existing subset check; final
+    /// equality is TASK-031's.
     fn styled<C: Conformance>() -> Vec<Part> {
         let f = Fixture::default();
         let mut scene = Scene::new(C::NAME, f.theme.clone(), f.color, 40, 12);
@@ -4381,12 +4418,7 @@ mod registry {
         let mut out = Vec::new();
         scene.draw(|ui, _| {
             C::draw(ui, f.area, &st, &f);
-            out = ui
-                .styled_parts()
-                .iter()
-                .filter(|(o, _)| *o == C::id())
-                .map(|(_, p)| *p)
-                .collect();
+            out = ui.component_owned_parts(C::id());
         });
         out.sort();
         out.dedup();
@@ -4401,6 +4433,57 @@ mod registry {
                 C::NAME,
                 C::PARTS
             );
+        }
+    }
+
+    fn check_by_name(name: &str) {
+        match name {
+            "probe" => check::<ProbeCase>(&[]),
+            "button" => check::<ButtonCase>(&[]),
+            "text_input" => check::<TextInputCase>(&[]),
+            // the chrome and its control register under one id
+            "field" => check::<FieldCase>(TextInput::PARTS),
+            "list" => check::<ListCase>(&[]),
+            "tabs" => check::<TabsCase>(&[]),
+            "dialog" => check::<DialogCase>(&[]),
+            "scroll_region" => check::<ScrollRegionCase>(&[]),
+            "props" => check::<PropsCase>(&[]),
+            "props_list" => check::<PropsListCase>(&[]),
+            "text_area" => check::<TextAreaCase>(&[]),
+            "select" => check::<SelectCase>(&[]),
+            "radio_group" => check::<RadioGroupCase>(&[]),
+            "checkbox" => check::<CheckboxCase>(&[]),
+            "toggle" => check::<ToggleCase>(&[]),
+            "chip_bar" => check::<ChipBarCase>(&[]),
+            "status_bar" => check::<StatusBarCase>(&[]),
+            "hint_bar" => check::<HintBarCase>(&[]),
+            "derived_hint_bar" => check::<DerivedHintBarCase>(&[]),
+            "key_hint" => check::<KeyHintCase>(&[]),
+            "progress_bar" => check::<ProgressBarCase>(&[]),
+            "spinner" => check::<SpinnerCase>(&[]),
+            "meter" => check::<MeterCase>(&[]),
+            "empty" => check::<EmptyCase>(&[]),
+            "brand" => check::<BrandCase>(&[]),
+            "panel" => check::<PanelCase>(&[]),
+            "split_pane" => check::<SplitPaneCase>(&[]),
+            "text_viewport" => check::<TextViewportCase>(&[]),
+            "diff_view" => check::<DiffViewCase>(&[]),
+            "code_editor" => check::<CodeEditorCase>(&[]),
+            "tree" => check::<TreeCase>(&[]),
+            "nav_list" => check::<NavListCase>(&[]),
+            "steps" => check::<StepsCase>(&[]),
+            "too_small" => check::<TooSmallCase>(&[]),
+            "grid" => check::<GridCase>(&[]),
+            "filter_list" => check::<FilterListCase>(&[]),
+            "picker" => check::<PickerCase>(&[]),
+            "completion" => check::<CompletionCase>(&[]),
+            "context_menu" => check::<ContextMenuCase>(&[]),
+            "help_overlay" => check::<HelpOverlayCase>(&[]),
+            "menu_bar" => check::<MenuBarCase>(&[]),
+            "picker_chain" => check::<PickerChainCase>(&[]),
+            "wizard" => check::<WizardCase>(&[]),
+            "form" => check::<FormCase>(Field::<TextInput<'static>>::PARTS),
+            _ => panic!("parts registry has unhandled case {name:?}: register its parts arm"),
         }
     }
 
@@ -4457,48 +4540,21 @@ mod registry {
         );
     }
 
+    /// Generated from the same [`registered_cases`] registry as the degenerate
+    /// sweep: the loop drives every registered subject, including the
+    /// historical Probe/Dialog/Props/PropsList omissions, so removing an
+    /// invocation or registering a new subject without a parts arm fails
+    /// here rather than silently skipping coverage (TASK-073 HM07).
     #[test]
     fn declared_parts_are_the_parts_actually_styled() {
-        check::<ButtonCase>(&[]);
-        check::<TextInputCase>(&[]);
-        // the chrome and its control register under one id
-        check::<FieldCase>(TextInput::PARTS);
-        check::<ListCase>(&[]);
-        check::<TabsCase>(&[]);
-        check::<ScrollRegionCase>(&[]);
-        check::<TextAreaCase>(&[]);
-        check::<SelectCase>(&[]);
-        check::<RadioGroupCase>(&[]);
-        check::<CheckboxCase>(&[]);
-        check::<ToggleCase>(&[]);
-        check::<ChipBarCase>(&[]);
-        check::<StatusBarCase>(&[]);
-        check::<HintBarCase>(&[]);
-        check::<DerivedHintBarCase>(&[]);
-        check::<KeyHintCase>(&[]);
-        check::<ProgressBarCase>(&[]);
-        check::<SpinnerCase>(&[]);
-        check::<MeterCase>(&[]);
-        check::<EmptyCase>(&[]);
-        check::<BrandCase>(&[]);
-        check::<PanelCase>(&[]);
-        check::<SplitPaneCase>(&[]);
-        check::<TextViewportCase>(&[]);
-        check::<DiffViewCase>(&[]);
-        check::<CodeEditorCase>(&[]);
-        check::<TreeCase>(&[]);
-        check::<NavListCase>(&[]);
-        check::<StepsCase>(&[]);
-        check::<TooSmallCase>(&[]);
-        check::<GridCase>(&[]);
-        check::<FilterListCase>(&[]);
-        check::<PickerCase>(&[]);
-        check::<CompletionCase>(&[]);
-        check::<ContextMenuCase>(&[]);
-        check::<HelpOverlayCase>(&[]);
-        check::<MenuBarCase>(&[]);
-        check::<PickerChainCase>(&[]);
-        check::<WizardCase>(&[]);
-        check::<FormCase>(Field::<TextInput<'static>>::PARTS);
+        let registered = registered_cases();
+        for name in &registered {
+            check_by_name(name);
+        }
+        assert_eq!(
+            registered.len(),
+            44,
+            "conformance registry size changed: update check_by_name"
+        );
     }
 }

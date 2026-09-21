@@ -274,6 +274,12 @@ impl Ui<'_> {
         if steps == 0 {
             return;
         }
+        // Fail closed under timing: color-binding paint branches inside
+        // `dim_layer` are outside the censused entry set. A reached
+        // `dim_layer` records an uncovered-path witness rather than being
+        // silently zero or timing the whole paint operation.
+        #[cfg(feature = "testing")]
+        self.note_uncovered_binding();
         let area = area.intersection(self.frame.screen);
         let theme = self.theme_ref();
         let surface = self.surface;

@@ -17,6 +17,26 @@ use crate::response::StateFlags;
 use crate::text::{Span, width};
 use crate::theme::{Align, Family, GlyphRole, Role, Slot, StylePatch, Variant};
 use crate::ui::{FrameRead, Ui};
+#[cfg(feature = "testing")]
+use crate::ui::{StyleProvenance, caller_is_library_production};
+
+/// Truthful provenance for the current `RowUi`/`ColumnsUi` call.
+///
+/// `#[track_caller]` propagates the external call site through every
+/// `#[track_caller]` frame in between, so a library-default row
+/// (`DefaultRow` in `crates/tui/src/`) reports component-owned while an
+/// external row callback (integration test, verifier fixture, application)
+/// reports caller-row-owned. The `Part` value never decides.
+#[cfg(feature = "testing")]
+#[track_caller]
+fn provenance_for_caller() -> StyleProvenance {
+    let file = core::panic::Location::caller().file();
+    if caller_is_library_production(file) {
+        StyleProvenance::ComponentOwned
+    } else {
+        StyleProvenance::CallerRowOwned
+    }
+}
 
 /// Maximum columns `RowUi::columns` lays out without allocating.
 ///
@@ -138,6 +158,7 @@ impl<'u> RowUi<'u> {
         }
     }
 
+    #[cfg_attr(feature = "testing", track_caller)]
     fn style_of(&mut self, part: Part) -> PaintStyle {
         let r = match (part, self.label_patch) {
             (Part::LABEL, Some(patch)) => {
@@ -147,20 +168,33 @@ impl<'u> RowUi<'u> {
             _ => self.ui.style(self.family, self.variant, part, self.flags),
         };
         #[cfg(feature = "testing")]
-        self.ui
-            .note_styled(self.owner, self.family, self.variant, part, r);
+        {
+            let provenance = provenance_for_caller();
+            self.ui
+                .note_attributed(self.owner, self.family, self.variant, part, r, provenance);
+        }
         r.style
     }
 
     /// Paint a marker glyph at the left, then a gap. A resolved `Set`
     /// overrides `g`; `Clear` suppresses the marker while keeping its cell.
+    #[cfg_attr(feature = "testing", track_caller)]
     pub fn marker(&mut self, g: GlyphRole) {
         let r = self
             .ui
             .style(self.family, self.variant, Part::MARKER, self.flags);
         #[cfg(feature = "testing")]
-        self.ui
-            .note_styled(self.owner, self.family, self.variant, Part::MARKER, r);
+        {
+            let provenance = provenance_for_caller();
+            self.ui.note_attributed(
+                self.owner,
+                self.family,
+                self.variant,
+                Part::MARKER,
+                r,
+                provenance,
+            );
+        }
         let area = self.remaining();
         let cell = Rect {
             width: area.width.min(1),
@@ -184,10 +218,23 @@ impl<'u> RowUi<'u> {
 
     /// Paint the focus gutter (`GlyphRole::FocusBar` when the recipe says so,
     /// else a blank gutter cell).
+    #[cfg_attr(feature = "testing", track_caller)]
     pub fn gutter(&mut self) {
         let r = self
             .ui
             .style(self.family, self.variant, Part::GUTTER, self.flags);
+        #[cfg(feature = "testing")]
+        {
+            let provenance = provenance_for_caller();
+            self.ui.note_attributed(
+                self.owner,
+                self.family,
+                self.variant,
+                Part::GUTTER,
+                r,
+                provenance,
+            );
+        }
         let area = self.remaining();
         let cell = Rect {
             width: area.width.min(1),
@@ -210,19 +257,32 @@ impl<'u> RowUi<'u> {
 
     /// Paint the label into what is left, ending with the ellipsis glyph
     /// when it does not fit (the legacy `fit` contract, now allocation-free).
+    #[cfg_attr(feature = "testing", track_caller)]
     pub fn label(&mut self, s: &str) {
         let st = self.style_of(Part::LABEL);
         self.label_in(s, st);
     }
 
     /// Paint the label with an instance patch.
+    #[cfg_attr(feature = "testing", track_caller)]
     pub fn label_patched(&mut self, s: &str, p: &StylePatch) {
         let patch = self.label_patch.map_or(*p, |forwarded| forwarded.merge(*p));
-        let st = self
+        let r = self
             .ui
-            .style_patched(self.family, self.variant, Part::LABEL, self.flags, &patch)
-            .style;
-        self.label_in(s, st);
+            .style_patched(self.family, self.variant, Part::LABEL, self.flags, &patch);
+        #[cfg(feature = "testing")]
+        {
+            let provenance = provenance_for_caller();
+            self.ui.note_attributed(
+                self.owner,
+                self.family,
+                self.variant,
+                Part::LABEL,
+                r,
+                provenance,
+            );
+        }
+        self.label_in(s, r.style);
     }
 
     fn label_in(&mut self, s: &str, st: PaintStyle) {
@@ -246,6 +306,7 @@ impl<'u> RowUi<'u> {
     }
 
     /// Paint role-carrying spans as the label (`Buffer::set_line`).
+    #[cfg_attr(feature = "testing", track_caller)]
     pub fn label_spans(&mut self, spans: &[Span<'_>]) {
         let st = self.style_of(Part::LABEL);
         let area = self.remaining();
@@ -254,6 +315,7 @@ impl<'u> RowUi<'u> {
     }
 
     /// Format the label in place (0 allocations).
+    #[cfg_attr(feature = "testing", track_caller)]
     pub fn label_fmt(&mut self, args: fmt::Arguments<'_>) {
         let st = self.style_of(Part::LABEL);
         let area = self.remaining();
@@ -270,6 +332,7 @@ impl<'u> RowUi<'u> {
 
     /// Right-aligned meta text, dropped all-or-none when it does not fit
     /// after a two-cell gap (`DESIGN.md:478`).
+    #[cfg_attr(feature = "testing", track_caller)]
     pub fn meta(&mut self, s: &str) {
         let need = width(s);
         let area = self.remaining();
@@ -289,16 +352,29 @@ impl<'u> RowUi<'u> {
 
     /// Right-aligned trailing text with an instance patch (dropped when it
     /// does not fit).
+    #[cfg_attr(feature = "testing", track_caller)]
     pub fn trailing(&mut self, s: &str, p: &StylePatch) {
         let need = width(s);
         let area = self.remaining();
         if need == 0 || need > area.width {
             return;
         }
-        let st = self
+        let r = self
             .ui
-            .style_patched(self.family, self.variant, Part::META, self.flags, p)
-            .style;
+            .style_patched(self.family, self.variant, Part::META, self.flags, p);
+        #[cfg(feature = "testing")]
+        {
+            let provenance = provenance_for_caller();
+            self.ui.note_attributed(
+                self.owner,
+                self.family,
+                self.variant,
+                Part::META,
+                r,
+                provenance,
+            );
+        }
+        let st = r.style;
         let cell = Rect {
             x: area.right().saturating_sub(need),
             y: area.y,
@@ -311,6 +387,7 @@ impl<'u> RowUi<'u> {
 
     /// Reserve `width` columns from the right for `p`; `label` fills what
     /// is left.
+    #[cfg_attr(feature = "testing", track_caller)]
     pub fn part(&mut self, p: Part, width: u16) -> CellUi<'_> {
         let area = self.remaining();
         let w = width.min(area.width);
@@ -323,9 +400,45 @@ impl<'u> RowUi<'u> {
         self.right = self.right.saturating_add(w).saturating_add(1);
         let r = self.ui.style(self.family, self.variant, p, self.flags);
         #[cfg(feature = "testing")]
-        self.ui
-            .note_styled(self.owner, self.family, self.variant, p, r);
+        {
+            let provenance = provenance_for_caller();
+            self.ui
+                .note_attributed(self.owner, self.family, self.variant, p, r, provenance);
+        }
         CellUi::with_resolved_glyph(self.ui.reborrow(), cell, r.style, r.glyph)
+    }
+
+    /// Resolve a custom part from library production source (testing-only).
+    ///
+    /// Deliberately NOT `#[track_caller]`: the inner `part` call site is this
+    /// library frame, so provenance is component-owned even for custom parts.
+    /// Lets negative tests reject name-based ownership (which would
+    /// misattribute this as caller-row-owned merely because the part is
+    /// custom).
+    #[cfg(feature = "testing")]
+    #[doc(hidden)]
+    pub fn library_custom_for_testing(&mut self, part: Part, width: u16) {
+        let _ = self.part(part, width);
+    }
+
+    /// Open a nested row borrowing this row's `Ui` (testing-only).
+    ///
+    /// Lets integration witnesses exercise nested `RowUi`/`ColumnsUi` scope
+    /// propagation and restoration without reaching into private fields. The
+    /// nested row borrows through a shorter reborrow, so normal return and
+    /// unwinding both restore the outer row without cleanup code.
+    #[cfg(feature = "testing")]
+    #[doc(hidden)]
+    pub fn nested_row_for_testing(
+        &mut self,
+        owner: Id,
+        family: Family,
+        variant: Variant,
+        flags: StateFlags,
+        key: ItemKey,
+        row: Rect,
+    ) -> RowUi<'_> {
+        RowUi::new(&mut self.ui, owner, family, variant, flags, key, row)
     }
 
     /// Split what is left into columns.
@@ -334,11 +447,13 @@ impl<'u> RowUi<'u> {
     /// **silently ignored** so the row can never allocate (§12.2, MI-8). A
     /// component that needs more columns than the cap is a design error, not
     /// a runtime one: split the row.
+    #[cfg_attr(feature = "testing", track_caller)]
     pub fn columns(&mut self, widths: &[Track]) -> ColumnsUi<'_> {
         self.columns_with_gap(widths, self.ui.design().space.column_gap)
     }
 
     /// Split remaining space with an explicit gap, retaining the same track cap.
+    #[cfg_attr(feature = "testing", track_caller)]
     pub fn columns_with_gap(&mut self, widths: &[Track], gap: u16) -> ColumnsUi<'_> {
         let area = self.remaining();
         let mut sizes = [0u16; MAX_COLUMNS];
@@ -655,6 +770,15 @@ impl Drop for CellUi<'_> {
         if let Some(r) = self.tone {
             delta = delta.set_fg(r);
         }
+        // Time only the existing bind expression, not surrounding Drop
+        // alignment or painting.
+        #[cfg(feature = "testing")]
+        let st = self
+            .ui
+            .timed(crate::ui::StyleTimingEntry::CellDropBind, || {
+                crate::theme::resolve::bind(theme, delta, self.patch.as_ref(), surface).style
+            });
+        #[cfg(not(feature = "testing"))]
         let st = crate::theme::resolve::bind(theme, delta, self.patch.as_ref(), surface).style;
         if st != PaintStyle::new() {
             self.ui.paint_style(painted, st);
@@ -719,6 +843,7 @@ impl ColumnsUi<'_> {
     }
 
     /// Paint a column using a semantic row part, preserving label patches.
+    #[cfg_attr(feature = "testing", track_caller)]
     pub fn cell_part(&mut self, i: usize, part: Part) -> CellUi<'_> {
         let rect = self.rect(i);
         let resolved = match (part, self.label_patch) {
@@ -729,8 +854,17 @@ impl ColumnsUi<'_> {
             _ => self.ui.style(self.family, self.variant, part, self.flags),
         };
         #[cfg(feature = "testing")]
-        self.ui
-            .note_styled(self.owner, self.family, self.variant, part, resolved);
+        {
+            let provenance = provenance_for_caller();
+            self.ui.note_attributed(
+                self.owner,
+                self.family,
+                self.variant,
+                part,
+                resolved,
+                provenance,
+            );
+        }
         CellUi::with_resolved_glyph(self.ui.reborrow(), rect, resolved.style, resolved.glyph)
     }
 

@@ -86,6 +86,8 @@ pub(crate) struct FrameState {
     pub(crate) styled_parts: Vec<(Id, Part)>,
     #[cfg(feature = "testing")]
     pub(crate) styled_queries: Vec<StyledQuery>,
+    #[cfg(feature = "testing")]
+    pub(crate) attributed_queries: Vec<AttributedQuery>,
 }
 
 /// One recorded style query: who asked, under which family/variant, for which
@@ -94,6 +96,286 @@ pub(crate) struct FrameState {
 /// component actually queried rather than a hardcoded guess (BL-7).
 #[cfg(feature = "testing")]
 pub type StyledQuery = (Id, Family, Variant, Part, Resolved);
+
+/// Truthful resolution provenance (TASK-073 R-001).
+///
+/// `ComponentOwned` means the query originates from the component's own
+/// implementation (library code, including same-ID child composition).
+/// `CallerRowOwned` means it originates from a caller-provided row callback
+/// (external `RowFn`, custom row/column parts). The five legacy
+/// identity/resolution fields are retained verbatim; provenance is
+/// additional attribution, never a rewrite of `Id`/`Family`/`Variant`/`Part`/
+/// `Resolved`.
+#[cfg(feature = "testing")]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum StyleProvenance {
+    /// The component's own implementation resolved this part.
+    ComponentOwned,
+    /// A caller-provided row/column callback resolved this part.
+    CallerRowOwned,
+}
+
+/// One attributed style query: the legacy [`StyledQuery`] plus truthful
+/// provenance and a paint-sink flag.
+///
+/// `painted` is true when the query fed an actual paint sink (a
+/// `note_styled` recording). Measurement-only `resolve` calls never create
+/// records, so they remain distinct by absence; a `painted=false` record
+/// would indicate a resolution that was retained but never consumed by paint.
+#[cfg(feature = "testing")]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct AttributedQuery {
+    /// Who asked.
+    pub id: Id,
+    /// The family the component actually queried.
+    pub family: Family,
+    /// The variant the component actually queried.
+    pub variant: Variant,
+    /// The part resolved.
+    pub part: Part,
+    /// What came back.
+    pub resolved: Resolved,
+    /// Component-owned versus caller-row-owned.
+    pub provenance: StyleProvenance,
+    /// Whether this query fed an actual paint sink.
+    pub painted: bool,
+}
+
+#[cfg(feature = "testing")]
+impl AttributedQuery {
+    /// The legacy tuple view.
+    #[must_use]
+    pub const fn query(&self) -> StyledQuery {
+        (self.id, self.family, self.variant, self.part, self.resolved)
+    }
+}
+
+/// Whether a `#[track_caller]` file path belongs to the library's own
+/// production source (`crates/tui/src/`).
+///
+/// Callers inside the library (components, `DefaultRow`, same-ID child
+/// composition) produce component-owned attribution. Callers outside
+/// (integration tests, verifier fixtures, application row callbacks)
+/// produce caller-row-owned attribution when they resolve through `RowUi`/
+/// `ColumnsUi`. This is location provenance, not name-based ownership: the
+/// `Part` value never decides.
+#[cfg(feature = "testing")]
+#[must_use]
+pub fn caller_is_library_production(file: &str) -> bool {
+    file.contains("crates/tui/src/") || file.contains("crates\\tui\\src\\")
+}
+
+/// Single testing-only caller-owned style timing seam (TASK-073 D-TIMING-OWNER).
+///
+/// The probe is owned by the test caller, borrowed by one real production
+/// draw through a shorter `Ui` reborrow, and never global, thread-local,
+/// retained in component semantic state, added to cache keys, or consulted
+/// by rendering decisions. Without the `testing` feature the probe and its
+/// branches are absent. With timing disabled, painting, semantic
+/// observations, style/cache query counts, cache contents and allocation
+/// counts are identical to the uninstrumented production path.
+#[cfg(feature = "testing")]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum StyleTimingMode {
+    /// Record invocation membership only; no intervals, zero numerator.
+    Disabled,
+    /// Record an adjacent empty start/stop pair per entry; the actual
+    /// resolver still executes outside that empty interval.
+    Calibration,
+    /// Record start, actual resolution, stop per entry.
+    Measured,
+}
+
+/// The complete censused resolution entry set reachable from a tested
+/// production draw. `WithPart` is deliberately absent: `with_part` is a
+/// wrapper and must not double-count its leaf entry.
+#[cfg(feature = "testing")]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+#[repr(u8)]
+pub enum StyleTimingEntry {
+    /// `Ui::style`.
+    Style = 0,
+    /// `Ui::style_inherited`.
+    StyleInherited = 1,
+    /// `Ui::style_defaults`.
+    StyleDefaults = 2,
+    /// `Ui::paint_patch`.
+    PaintPatch = 3,
+    /// `Ui::style_patched`.
+    StylePatched = 4,
+    /// `Ui::resolve` (measurement path; timed but never a paint query).
+    Resolve = 5,
+    /// `Ui::surface_style` (including its color binding).
+    SurfaceStyle = 6,
+    /// `Ui::bg`.
+    Bg = 7,
+    /// `CellUi::drop` final-cell bind.
+    CellDropBind = 8,
+    /// `StatusBar::item_style` nonempty-delta bind.
+    StatusBind = 9,
+    /// Grid `apply_style_delta` bind.
+    GridBind = 10,
+}
+
+#[cfg(feature = "testing")]
+impl StyleTimingEntry {
+    /// All eleven censused entries in ID order.
+    pub const ALL: [Self; 11] = [
+        Self::Style,
+        Self::StyleInherited,
+        Self::StyleDefaults,
+        Self::PaintPatch,
+        Self::StylePatched,
+        Self::Resolve,
+        Self::SurfaceStyle,
+        Self::Bg,
+        Self::CellDropBind,
+        Self::StatusBind,
+        Self::GridBind,
+    ];
+}
+
+/// One recorded timing interval: entry ID, start nanos, stop nanos,
+/// nesting depth at entry.
+#[cfg(feature = "testing")]
+pub type StyleTimingInterval = (u8, u128, u128, u32);
+
+/// Caller-owned timing probe. Interior mutability allows `&self` resolution
+/// paths to record without changing their signatures.
+#[cfg(feature = "testing")]
+#[derive(Debug)]
+pub struct StyleTimingProbe {
+    mode: core::cell::Cell<StyleTimingMode>,
+    witness: core::cell::RefCell<Vec<u8>>,
+    intervals: core::cell::RefCell<Vec<StyleTimingInterval>>,
+    depth: core::cell::Cell<u32>,
+    epoch: std::time::Instant,
+}
+
+#[cfg(feature = "testing")]
+impl Default for StyleTimingProbe {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[cfg(feature = "testing")]
+impl StyleTimingProbe {
+    /// A new probe in [`StyleTimingMode::Disabled`].
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            mode: core::cell::Cell::new(StyleTimingMode::Disabled),
+            witness: core::cell::RefCell::new(Vec::new()),
+            intervals: core::cell::RefCell::new(Vec::new()),
+            depth: core::cell::Cell::new(0),
+            epoch: std::time::Instant::now(),
+        }
+    }
+
+    /// Reset for a new mode. Panics if a scope leaked (depth != 0).
+    pub fn reset(&self, mode: StyleTimingMode) {
+        assert_eq!(self.depth.get(), 0, "timing observer scope leaked");
+        self.mode.set(mode);
+        self.witness.borrow_mut().clear();
+        self.intervals.borrow_mut().clear();
+    }
+
+    /// The current mode.
+    #[must_use]
+    pub fn mode(&self) -> StyleTimingMode {
+        self.mode.get()
+    }
+
+    /// Record invocation membership outside the timed interval.
+    pub fn visit(&self, entry: StyleTimingEntry) {
+        self.witness.borrow_mut().push(entry as u8);
+    }
+
+    /// Record that an uncensused color-binding path was reached. The witness
+    /// ID 255 never appears in an honest census, so any comparison against
+    /// the frozen invocation sequence fails rather than silently counting
+    /// the path as zero.
+    pub fn visit_uncovered(&self) {
+        self.witness.borrow_mut().push(255);
+    }
+
+    /// Enter a timed entry. In calibration mode the returned guard carries
+    /// an adjacent empty interval; the actual resolver executes outside it.
+    #[must_use]
+    pub fn enter(&self, entry: StyleTimingEntry) -> StyleTimingGuard<'_> {
+        let depth = self.depth.get();
+        self.depth.set(depth.saturating_add(1));
+        let start = match self.mode.get() {
+            StyleTimingMode::Disabled => 0,
+            _ => self.epoch.elapsed().as_nanos(),
+        };
+        let calibration_stop = if self.mode.get() == StyleTimingMode::Calibration {
+            self.epoch.elapsed().as_nanos()
+        } else {
+            start
+        };
+        StyleTimingGuard {
+            probe: self,
+            entry: entry as u8,
+            start,
+            calibration_stop,
+            depth,
+        }
+    }
+
+    /// The invocation witness in order.
+    #[must_use]
+    pub fn witness(&self) -> Vec<u8> {
+        self.witness.borrow().clone()
+    }
+
+    /// The recorded intervals in order.
+    #[must_use]
+    pub fn intervals(&self) -> Vec<StyleTimingInterval> {
+        self.intervals.borrow().clone()
+    }
+
+    /// The raw numerator: sum of interval durations.
+    #[must_use]
+    pub fn reported_ns(&self) -> u128 {
+        self.intervals
+            .borrow()
+            .iter()
+            .map(|(_, a, b, _)| b.saturating_sub(*a))
+            .sum()
+    }
+}
+
+/// RAII guard for one timed entry. Restores depth on both normal return
+/// and unwinding.
+#[cfg(feature = "testing")]
+#[derive(Debug)]
+pub struct StyleTimingGuard<'p> {
+    probe: &'p StyleTimingProbe,
+    entry: u8,
+    start: u128,
+    calibration_stop: u128,
+    depth: u32,
+}
+
+#[cfg(feature = "testing")]
+impl Drop for StyleTimingGuard<'_> {
+    fn drop(&mut self) {
+        let stop = match self.probe.mode.get() {
+            StyleTimingMode::Disabled => self.start,
+            StyleTimingMode::Calibration => self.calibration_stop,
+            StyleTimingMode::Measured => self.probe.epoch.elapsed().as_nanos(),
+        };
+        self.probe.depth.set(self.depth);
+        if self.probe.mode.get() != StyleTimingMode::Disabled {
+            self.probe
+                .intervals
+                .borrow_mut()
+                .push((self.entry, self.start, stop, self.depth));
+        }
+    }
+}
 
 /// Runtime-owned visual state injected into one inert reference rendering.
 ///
@@ -207,6 +489,8 @@ impl FrameState {
         self.styled_parts.clear();
         #[cfg(feature = "testing")]
         self.styled_queries.clear();
+        #[cfg(feature = "testing")]
+        self.attributed_queries.clear();
     }
 
     fn role_index(&self, pos: Position) -> Option<usize> {
@@ -328,6 +612,8 @@ pub struct Ui<'f> {
     layer: LayerId,
     inert: bool,
     reference: Option<ReferenceScope>,
+    #[cfg(feature = "testing")]
+    timing: Option<&'f StyleTimingProbe>,
 }
 
 impl core::fmt::Debug for Ui<'_> {
@@ -364,6 +650,8 @@ impl<'f> Ui<'f> {
             layer: LayerId::PAGE,
             inert,
             reference: None,
+            #[cfg(feature = "testing")]
+            timing: None,
         }
     }
 
@@ -381,6 +669,63 @@ impl<'f> Ui<'f> {
             layer: self.layer,
             inert: self.inert,
             reference: self.reference,
+            #[cfg(feature = "testing")]
+            timing: self.timing,
+        }
+    }
+
+    /// Attach a caller-owned timing probe for one draw scope.
+    ///
+    /// Testing-only. The probe lives with the caller; this borrows it for
+    /// the nested closure through a shorter reborrow, so normal return and
+    /// unwinding both restore the outer probe without cleanup code.
+    #[cfg(feature = "testing")]
+    pub fn with_timing_probe<R>(
+        &mut self,
+        probe: &StyleTimingProbe,
+        f: impl FnOnce(&mut Ui<'_>) -> R,
+    ) -> R {
+        let mut nested = self.reborrow();
+        // The reborrow's lifetime is shorter than `self`; the caller's probe
+        // outlives the closure by construction. Covariance narrows it here.
+        nested.timing = Some(probe);
+        f(&mut nested)
+    }
+
+    /// Time one censused entry around `body`.
+    #[cfg(feature = "testing")]
+    pub(crate) fn timed<R>(&self, entry: StyleTimingEntry, body: impl FnOnce() -> R) -> R {
+        if let Some(probe) = self.timing {
+            probe.visit(entry);
+            let _guard = probe.enter(entry);
+            body()
+        } else {
+            body()
+        }
+    }
+
+    /// Time one censused `&mut` entry around `body`. Split from [`Self::timed`]
+    /// so `&mut` resolvers keep their exact signatures.
+    #[cfg(feature = "testing")]
+    fn timed_mut<R>(&mut self, entry: StyleTimingEntry, body: impl FnOnce(&mut Self) -> R) -> R {
+        if let Some(probe) = self.timing {
+            probe.visit(entry);
+            let guard = probe.enter(entry);
+            let out = body(self);
+            drop(guard);
+            out
+        } else {
+            body(self)
+        }
+    }
+
+    /// Mark that an uncensused color-binding path was reached while a probe
+    /// was attached. Fails closed: the 255 witness never matches an honest
+    /// census. No-op without a probe or without `testing`.
+    #[cfg(feature = "testing")]
+    pub(crate) fn note_uncovered_binding(&self) {
+        if let Some(probe) = self.timing {
+            probe.visit_uncovered();
         }
     }
 
@@ -396,7 +741,14 @@ impl<'f> Ui<'f> {
 
     /// The current surface's background colour.
     pub fn bg(&self) -> Color {
-        self.theme.bg(self.surface)
+        #[cfg(feature = "testing")]
+        {
+            self.timed(StyleTimingEntry::Bg, || self.theme.bg(self.surface))
+        }
+        #[cfg(not(feature = "testing"))]
+        {
+            self.theme.bg(self.surface)
+        }
     }
 
     /// The layer being drawn.
@@ -469,16 +821,34 @@ impl<'f> Ui<'f> {
         part: Part,
         flags: StateFlags,
     ) -> Resolved {
-        let acc = self.core.style_cache.accumulate(
-            self.theme,
-            family,
-            variant,
-            part,
-            flags,
-            &self.core.overlays,
-            self.core.stack_hash,
-        );
-        crate::theme::resolve::bind(self.theme, acc, None, self.surface)
+        #[cfg(feature = "testing")]
+        {
+            self.timed_mut(StyleTimingEntry::Style, |ui| {
+                let acc = ui.core.style_cache.accumulate(
+                    ui.theme,
+                    family,
+                    variant,
+                    part,
+                    flags,
+                    &ui.core.overlays,
+                    ui.core.stack_hash,
+                );
+                crate::theme::resolve::bind(ui.theme, acc, None, ui.surface)
+            })
+        }
+        #[cfg(not(feature = "testing"))]
+        {
+            let acc = self.core.style_cache.accumulate(
+                self.theme,
+                family,
+                variant,
+                part,
+                flags,
+                &self.core.overlays,
+                self.core.stack_hash,
+            );
+            crate::theme::resolve::bind(self.theme, acc, None, self.surface)
+        }
     }
 
     /// Shared child style: defaults, owning logical part, explicit child overrides.
@@ -490,14 +860,30 @@ impl<'f> Ui<'f> {
         flags: StateFlags,
         inherited: crate::theme::PaintStyle,
     ) -> Resolved {
-        crate::theme::resolve::bind_inherited(
-            self.theme,
-            (family, variant, part),
-            flags,
-            &self.core.overlays,
-            self.surface,
-            inherited,
-        )
+        #[cfg(feature = "testing")]
+        {
+            self.timed(StyleTimingEntry::StyleInherited, || {
+                crate::theme::resolve::bind_inherited(
+                    self.theme,
+                    (family, variant, part),
+                    flags,
+                    &self.core.overlays,
+                    self.surface,
+                    inherited,
+                )
+            })
+        }
+        #[cfg(not(feature = "testing"))]
+        {
+            crate::theme::resolve::bind_inherited(
+                self.theme,
+                (family, variant, part),
+                flags,
+                &self.core.overlays,
+                self.surface,
+                inherited,
+            )
+        }
     }
 
     /// Resolve component-author defaults without installing a theme recipe.
@@ -517,20 +903,46 @@ impl<'f> Ui<'f> {
         defaults: crate::theme::StyleDefaults<'_>,
         local: Option<&crate::theme::StylePatch>,
     ) -> Resolved {
-        crate::theme::resolve::bind_defaults(
-            self.theme,
-            (family, variant, part),
-            flags,
-            &self.core.overlays,
-            self.surface,
-            defaults,
-            local,
-        )
+        #[cfg(feature = "testing")]
+        {
+            self.timed(StyleTimingEntry::StyleDefaults, || {
+                crate::theme::resolve::bind_defaults(
+                    self.theme,
+                    (family, variant, part),
+                    flags,
+                    &self.core.overlays,
+                    self.surface,
+                    defaults,
+                    local,
+                )
+            })
+        }
+        #[cfg(not(feature = "testing"))]
+        {
+            crate::theme::resolve::bind_defaults(
+                self.theme,
+                (family, variant, part),
+                flags,
+                &self.core.overlays,
+                self.surface,
+                defaults,
+                local,
+            )
+        }
     }
 
     /// Bind a semantic patch directly against the current surface.
     pub fn paint_patch(&self, patch: &crate::theme::StylePatch) -> crate::theme::PaintStyle {
-        crate::theme::resolve::bind(self.theme, *patch, None, self.surface).style
+        #[cfg(feature = "testing")]
+        {
+            self.timed(StyleTimingEntry::PaintPatch, || {
+                crate::theme::resolve::bind(self.theme, *patch, None, self.surface).style
+            })
+        }
+        #[cfg(not(feature = "testing"))]
+        {
+            crate::theme::resolve::bind(self.theme, *patch, None, self.surface).style
+        }
     }
 
     /// Resolve with a per-instance patch (precedence 6).
@@ -542,20 +954,42 @@ impl<'f> Ui<'f> {
         flags: StateFlags,
         patch: &crate::theme::StylePatch,
     ) -> Resolved {
-        let acc = self.core.style_cache.accumulate(
-            self.theme,
-            family,
-            variant,
-            part,
-            flags,
-            &self.core.overlays,
-            self.core.stack_hash,
-        );
-        crate::theme::resolve::bind(self.theme, acc, Some(patch), self.surface)
+        #[cfg(feature = "testing")]
+        {
+            self.timed_mut(StyleTimingEntry::StylePatched, |ui| {
+                let acc = ui.core.style_cache.accumulate(
+                    ui.theme,
+                    family,
+                    variant,
+                    part,
+                    flags,
+                    &ui.core.overlays,
+                    ui.core.stack_hash,
+                );
+                crate::theme::resolve::bind(ui.theme, acc, Some(patch), ui.surface)
+            })
+        }
+        #[cfg(not(feature = "testing"))]
+        {
+            let acc = self.core.style_cache.accumulate(
+                self.theme,
+                family,
+                variant,
+                part,
+                flags,
+                &self.core.overlays,
+                self.core.stack_hash,
+            );
+            crate::theme::resolve::bind(self.theme, acc, Some(patch), self.surface)
+        }
     }
 
     /// Record that `owner` resolved `part` under `family`/`variant`, and what
     /// it got (the declared-parts check and `Runtime::resolved`).
+    ///
+    /// Component-owned provenance: the caller is the component's own
+    /// implementation. The legacy `styled_parts`/`styled_queries` entries are
+    /// pushed verbatim for existing consumers, plus an attributed record.
     #[cfg(feature = "testing")]
     pub fn note_styled(
         &mut self,
@@ -565,10 +999,65 @@ impl<'f> Ui<'f> {
         part: Part,
         resolved: Resolved,
     ) {
+        self.note_attributed(
+            owner,
+            family,
+            variant,
+            part,
+            resolved,
+            StyleProvenance::ComponentOwned,
+        );
+    }
+
+    /// Record a caller-row-owned resolution: the query originates from a
+    /// caller-provided row/column callback, not the component's own code.
+    ///
+    /// The legacy entries are still pushed verbatim so existing
+    /// `StyledQuery` consumers retain identity/fields semantics and byte
+    /// equality; provenance distinguishes the record in the attributed list.
+    #[cfg(feature = "testing")]
+    pub fn note_row_styled(
+        &mut self,
+        owner: Id,
+        family: Family,
+        variant: Variant,
+        part: Part,
+        resolved: Resolved,
+    ) {
+        self.note_attributed(
+            owner,
+            family,
+            variant,
+            part,
+            resolved,
+            StyleProvenance::CallerRowOwned,
+        );
+    }
+
+    /// Record with explicit provenance.
+    #[cfg(feature = "testing")]
+    pub fn note_attributed(
+        &mut self,
+        owner: Id,
+        family: Family,
+        variant: Variant,
+        part: Part,
+        resolved: Resolved,
+        provenance: StyleProvenance,
+    ) {
         self.frame.styled_parts.push((owner, part));
         self.frame
             .styled_queries
             .push((owner, family, variant, part, resolved));
+        self.frame.attributed_queries.push(AttributedQuery {
+            id: owner,
+            family,
+            variant,
+            part,
+            resolved,
+            provenance,
+            painted: true,
+        });
     }
 
     /// The `(owner, part)` pairs styled this frame — the declared-parts check.
@@ -582,6 +1071,32 @@ impl<'f> Ui<'f> {
     #[cfg(feature = "testing")]
     pub fn styled_queries(&self) -> &[StyledQuery] {
         &self.frame.styled_queries
+    }
+
+    /// The attributed queries recorded this frame: legacy fields plus
+    /// truthful component-owned versus caller-row-owned provenance and the
+    /// paint-sink flag.
+    #[cfg(feature = "testing")]
+    pub fn attributed_queries(&self) -> &[AttributedQuery] {
+        &self.frame.attributed_queries
+    }
+
+    /// The component-owned subset of [`Self::attributed_queries`]: the exact
+    /// resolution set a repaired family's `PARTS` must equal (TASK-031).
+    /// Foundation callers use this for infrastructure qualification only;
+    /// it does not claim final all-family equality.
+    #[cfg(feature = "testing")]
+    pub fn component_owned_parts(&self, owner: Id) -> Vec<Part> {
+        let mut out: Vec<Part> = self
+            .frame
+            .attributed_queries
+            .iter()
+            .filter(|q| q.id == owner && q.provenance == StyleProvenance::ComponentOwned)
+            .map(|q| q.part)
+            .collect();
+        out.sort();
+        out.dedup();
+        out
     }
 
     /// `(hits, misses)` of the §11.1 A3 memo since the runtime was built.
@@ -609,16 +1124,34 @@ impl<'f> Ui<'f> {
         part: Part,
         flags: StateFlags,
     ) -> Resolved {
-        crate::theme::resolve::resolve_uncached(
-            self.theme,
-            family,
-            variant,
-            part,
-            flags,
-            self.surface,
-            &self.core.overlays,
-            None,
-        )
+        #[cfg(feature = "testing")]
+        {
+            self.timed(StyleTimingEntry::Resolve, || {
+                crate::theme::resolve::resolve_uncached(
+                    self.theme,
+                    family,
+                    variant,
+                    part,
+                    flags,
+                    self.surface,
+                    &self.core.overlays,
+                    None,
+                )
+            })
+        }
+        #[cfg(not(feature = "testing"))]
+        {
+            crate::theme::resolve::resolve_uncached(
+                self.theme,
+                family,
+                variant,
+                part,
+                flags,
+                self.surface,
+                &self.core.overlays,
+                None,
+            )
+        }
     }
 
     /// The glyph a role currently maps to (`design.glyphs`). `&self`, so it is
@@ -632,19 +1165,40 @@ impl<'f> Ui<'f> {
     /// that surface, no modifiers. The **left** operand of §11.3's final
     /// layering — write it as `resolved.over(ui.surface_style())`.
     pub fn surface_style(&self) -> crate::theme::PaintStyle {
-        let mut st = ratatui_core::style::Style::new();
-        st.bg = Some(self.theme.bg(self.surface));
-        st.fg = crate::theme::resolve::bind_role(
-            self.theme,
-            Role::Fg(crate::theme::FgStep::Primary),
-            self.surface,
-        );
-        crate::theme::PaintStyle::bound(
-            st,
-            Some(Role::Fg(crate::theme::FgStep::Primary)),
-            Some(Role::Surface(self.surface)),
-            self.surface,
-        )
+        #[cfg(feature = "testing")]
+        {
+            self.timed(StyleTimingEntry::SurfaceStyle, || {
+                let mut st = ratatui_core::style::Style::new();
+                st.bg = Some(self.theme.bg(self.surface));
+                st.fg = crate::theme::resolve::bind_role(
+                    self.theme,
+                    Role::Fg(crate::theme::FgStep::Primary),
+                    self.surface,
+                );
+                crate::theme::PaintStyle::bound(
+                    st,
+                    Some(Role::Fg(crate::theme::FgStep::Primary)),
+                    Some(Role::Surface(self.surface)),
+                    self.surface,
+                )
+            })
+        }
+        #[cfg(not(feature = "testing"))]
+        {
+            let mut st = ratatui_core::style::Style::new();
+            st.bg = Some(self.theme.bg(self.surface));
+            st.fg = crate::theme::resolve::bind_role(
+                self.theme,
+                Role::Fg(crate::theme::FgStep::Primary),
+                self.surface,
+            );
+            crate::theme::PaintStyle::bound(
+                st,
+                Some(Role::Fg(crate::theme::FgStep::Primary)),
+                Some(Role::Surface(self.surface)),
+                self.surface,
+            )
+        }
     }
 
     /// Resolve `part` once and paint with it: equivalent to binding

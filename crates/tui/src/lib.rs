@@ -62,7 +62,10 @@ pub use runtime::{
 pub use runtime::{ProjectedFrame, RenderModel};
 // phases
 #[cfg(feature = "testing")]
-pub use ui::StyledQuery;
+pub use ui::{
+    AttributedQuery, StyleProvenance, StyleTimingEntry, StyleTimingGuard, StyleTimingInterval,
+    StyleTimingMode, StyleTimingProbe, StyledQuery, caller_is_library_production,
+};
 pub use ui::{Cx, FrameRead, LayoutFacts, ReferenceState, ReferenceTarget, Ui};
 // events, intents, responses
 pub use event::{Axis, Chord, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};

@@ -713,6 +713,13 @@ impl<'a> StatusBar<'a> {
         if delta.is_empty() {
             return base.style;
         }
+        // Time only the existing bind expression through the same
+        // caller-owned seam, not surrounding item styling.
+        #[cfg(feature = "testing")]
+        let top = ui.timed(crate::ui::StyleTimingEntry::StatusBind, || {
+            crate::theme::resolve::bind(ui.theme_ref(), delta, None, ui.surface()).style
+        });
+        #[cfg(not(feature = "testing"))]
         let top = crate::theme::resolve::bind(ui.theme_ref(), delta, None, ui.surface()).style;
         base.style.patch(top)
     }
