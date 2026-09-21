@@ -1,0 +1,2901 @@
+{
+  "base_commit": "d372b79c37577957367a02cd7229ca19d7b1fa5d",
+  "counts": {
+    "bulk_preserved": 5898,
+    "conflicts": 11,
+    "decisions": 15,
+    "listing_identities": 5925,
+    "manifest_patches": 8,
+    "relocations": 4
+  },
+  "decisions": [
+    {
+      "closing": "TASK-041 lands after TASK-040 (041 deps include 040); the whole test passes once finder hints/scope (041) and shell quit (040) are restored",
+      "evidence": [
+        "tools/test-inventory/conflicts.json holla_app home_hint entry (9 oracle-conflict assertions)",
+        "trusted known-mandatory inline conflict (inline-test-source-scope.md)"
+      ],
+      "id": "V-001",
+      "identity": {
+        "kind": "lib",
+        "name": "app::tests::home_hint_casing_preserves_lowercase_physical_shortcuts",
+        "package": "holla",
+        "target": "holla_app"
+      },
+      "owner": "TASK-041",
+      "path": "apps/holla/src/app.rs",
+      "requires": [
+        "TASK-040"
+      ],
+      "retained": [
+        "empty-diagnostics architecture assertion",
+        "uppercase Ctrl-chord display sampling (Ctrl+\u2191\u2193, Ctrl+G, Alt+Enter) keeps the casing intent"
+      ],
+      "spans": [
+        {
+          "disposition": "replace",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1544 hint(Ctrl+\u2191\u2193, Scope)",
+            "visual-baseline@4a79c0a:snapshots/holla/flows/query/empty_preview/160x50/truecolor.txt footer shows Ctrl+\u2191\u2193 Scope",
+            "docs/refactoring-plan/holla.md:30 regression row (main Ctrl+S scope vs oracle Ctrl+Up/Down)",
+            "docs/refactoring-plan/branch-diff-holla.md:40 (main tests assert obsolete bindings; TASK-041 owns finder)"
+          ],
+          "key": "A1",
+          "kind": "assertion",
+          "owner": "TASK-041",
+          "summary": "footer Ctrl+S Scope -> Ctrl+\u2191\u2193 Scope"
+        },
+        {
+          "disposition": "replace",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1529-1555 full hint list has no quit entry",
+            "visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1553 Ctrl+G Activities at empty query",
+            "visual-baseline@4a79c0a:snapshots/holla/audit/rust/100x30/truecolor.txt footer shows Ctrl+G Activities",
+            "visual-baseline@4a79c0a:src/bin/holla/app.rs:559-562 quit opens only on Ctrl+Q"
+          ],
+          "key": "A2",
+          "kind": "assertion",
+          "owner": "TASK-041",
+          "summary": "footer q Quit -> Ctrl+G Activities (oracle home footer carries no quit hint; quit is the global Ctrl+Q chord)"
+        },
+        {
+          "disposition": "replace",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1150-1155 Ctrl+Up outward / Ctrl+Down inward",
+            "docs/refactoring-plan/holla.md:78 (Ctrl+Up/Down changes scope)"
+          ],
+          "key": "P1",
+          "kind": "procedure",
+          "owner": "TASK-041",
+          "summary": "ctrl(s) scope key -> Ctrl+Up (oracle outward scope step)"
+        },
+        {
+          "disposition": "replace",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/bin/holla/domain/context.rs:64-70 outward Here->Parent",
+            "visual-baseline@4a79c0a:src/bin/holla/app_tests_flows.rs:685-696 esc_ladder asserts scope \u2039 parent \u203a after Ctrl+Up"
+          ],
+          "key": "A3",
+          "kind": "assertion",
+          "owner": "TASK-041",
+          "summary": "scope: here -> scope \u2039 parent \u203a (oracle pill text after Here outward)"
+        },
+        {
+          "disposition": "retire-procedure",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1124-1140 single FINDER focus gate; preview is the only second stop"
+          ],
+          "key": "P2",
+          "kind": "procedure",
+          "owner": null,
+          "summary": "tab_to(ROWS) retired: oracle finder is single-focus, no ROWS stop"
+        },
+        {
+          "disposition": "replace",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1543 hint(Tab, Preview)",
+            "visual-baseline@4a79c0a:snapshots/holla/flows/query/empty_preview/160x50/truecolor.txt footer shows Tab Preview"
+          ],
+          "key": "A4",
+          "kind": "assertion",
+          "owner": "TASK-041",
+          "summary": "Ctrl+P Preview -> Tab Preview on the single footer"
+        },
+        {
+          "disposition": "replace",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1542 hint(Alt+Enter, More)",
+            "docs/refactoring-plan/holla.md:78 (Alt+Enter opens alternatives)"
+          ],
+          "key": "A5",
+          "kind": "assertion",
+          "owner": "TASK-041",
+          "summary": "Ctrl+O Actions -> Alt+Enter More on the single footer"
+        },
+        {
+          "disposition": "retire-procedure",
+          "evidence": [
+            "same as P2: oracle finder has no QUERY/ROWS split"
+          ],
+          "key": "P3",
+          "kind": "procedure",
+          "owner": null,
+          "summary": "tab_to(QUERY) return retired with P2 (single-focus procedure)"
+        },
+        {
+          "disposition": "replace",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1304-1312 Char arm appends to query",
+            "visual-baseline@4a79c0a:src/bin/holla/app.rs:559-562 global Ctrl+Q opens quit confirm",
+            "docs/refactoring-plan/holla.md:78 (finder query is typing-hot: q/j/k are text)"
+          ],
+          "key": "P4",
+          "kind": "procedure",
+          "owner": "TASK-040",
+          "summary": "plain q -> Ctrl+Q (oracle q is typing-hot text)"
+        },
+        {
+          "disposition": "replace",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/bin/holla/app.rs:923-925 Quit holla\u276f on {host}? / Quit holla\u276f?",
+            "visual-baseline@4a79c0a:src/bin/holla/app_tests_flows.rs:711 oracle test asserts Quit holla\u276f?"
+          ],
+          "key": "A6",
+          "kind": "assertion",
+          "owner": "TASK-040",
+          "summary": "Quit holla? -> Quit holla\u276f? (oracle dialog title)"
+        },
+        {
+          "disposition": "preserve",
+          "evidence": [
+            "R-002 compatible ownership/safety class; no oracle contradiction"
+          ],
+          "key": "A7",
+          "kind": "assertion",
+          "owner": null,
+          "summary": "diagnostics-empty architecture assertion retained byte-for-byte"
+        }
+      ],
+      "verdict": "replace"
+    },
+    {
+      "closing": "TASK-041 restores finder Esc order and scope pill; query accessor assumed stable (recorded API assumption)",
+      "evidence": [
+        "tools/test-inventory/conflicts.json holla_app home_escape entry (7 oracle-conflict assertions)",
+        "trusted known-mandatory inline conflict"
+      ],
+      "id": "V-002",
+      "identity": {
+        "kind": "lib",
+        "name": "app::tests::home_escape_clears_scope_before_canonical_query",
+        "package": "holla",
+        "target": "holla_app"
+      },
+      "owner": "TASK-041",
+      "path": "apps/holla/src/app.rs",
+      "replacement_identity": {
+        "kind": "lib",
+        "name": "app::tests::home_escape_clears_query_before_scope",
+        "package": "holla",
+        "target": "holla_app"
+      },
+      "retained": [
+        "canonical home.query() accessor assertions (query is a String in both models)",
+        "typing re-arm check",
+        "empty-diagnostics assertion"
+      ],
+      "spans": [
+        {
+          "disposition": "relocate",
+          "evidence": [
+            "R-003 permits renamed identities with a recorded relocation; the old name would lie after migration"
+          ],
+          "key": "N",
+          "kind": "name",
+          "owner": null,
+          "summary": "rename to home_escape_clears_query_before_scope (old name states the wrong order)"
+        },
+        {
+          "disposition": "retire-procedure",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1124-1140 single FINDER focus; type_str works from home focus"
+          ],
+          "key": "P1",
+          "kind": "procedure",
+          "owner": null,
+          "summary": "tab_to(ROWS) retired: oracle typing is focus-independent (typing-hot single focus)"
+        },
+        {
+          "disposition": "replace",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1150-1155"
+          ],
+          "key": "P3",
+          "kind": "procedure",
+          "owner": "TASK-041",
+          "summary": "ctrl(s) -> Ctrl+Up (oracle scope step)"
+        },
+        {
+          "disposition": "replace",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/bin/holla/app_tests_flows.rs:685-696 esc_ladder first assertions"
+          ],
+          "key": "A1",
+          "kind": "assertion",
+          "owner": "TASK-041",
+          "summary": "scope.is_some() -> text contains scope \u2039 parent \u203a (observable pill; robust to the Scope model rewrite)"
+        },
+        {
+          "disposition": "replace",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1288-1301 Esc arm: query first, scope second",
+            "visual-baseline@4a79c0a:src/bin/holla/app_tests_flows.rs:691-696 first Esc clears the query, scope pill stays",
+            "docs/refactoring-plan/holla.md:30 (query-before-scope Escape)"
+          ],
+          "key": "A2",
+          "kind": "assertion",
+          "owner": "TASK-041",
+          "summary": "Esc#1 clears scope -> Esc#1 clears query (query==\"\", scope pill retained)"
+        },
+        {
+          "disposition": "replace",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1297-1300 scope reset to Here",
+            "visual-baseline@4a79c0a:src/bin/holla/app_tests_flows.rs:697-701 second Esc returns to here"
+          ],
+          "key": "A3",
+          "kind": "assertion",
+          "owner": "TASK-041",
+          "summary": "Esc#2 clears query -> Esc#2 returns scope to here (scope \u2039 here \u203a)"
+        },
+        {
+          "disposition": "preserve",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1304-1312 typing appends to query"
+          ],
+          "key": "A5",
+          "kind": "assertion",
+          "owner": null,
+          "summary": "type docker -> query docker (typing-hot re-arm; oracle Char arm)"
+        },
+        {
+          "disposition": "preserve",
+          "evidence": [
+            "R-002 compatible class"
+          ],
+          "key": "A6",
+          "kind": "assertion",
+          "owner": null,
+          "summary": "diagnostics-empty retained"
+        }
+      ],
+      "verdict": "relocate"
+    },
+    {
+      "closing": "TASK-049 restores the last parity worlds (count reaches 34); TASK-050 proves the 34-world closure. Dropping the pin to mirror the oracle test shape was rejected: R-004 forbids weakening to obtain green, and 34 is the exact oracle value.",
+      "evidence": [
+        "tools/test-inventory/conflicts.json holla_app names_round_trip entry",
+        "trusted known-mandatory inline conflict (scenario world-count migration)"
+      ],
+      "id": "V-003",
+      "identity": {
+        "kind": "lib",
+        "name": "scenario::tests::names_round_trip",
+        "package": "holla",
+        "target": "holla_app"
+      },
+      "owner": "TASK-049",
+      "path": "apps/holla/src/scenario.rs",
+      "retained": [
+        "generic membership loop",
+        "all three Motion::resolve vectors"
+      ],
+      "spans": [
+        {
+          "disposition": "replace",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/bin/holla/scenario.rs:103-138 ALL has 34 entries (11 base + 23 parity)",
+            "current apps/holla/src/scenario.rs:33 ALL has 11 (parity worlds dropped)",
+            "TASK-050 title proves 34-world oracle closure; TASK-049 is the terminal scenario.rs writer before it"
+          ],
+          "key": "A1",
+          "kind": "assertion",
+          "owner": "TASK-049",
+          "summary": "Scenario::ALL.len() 11 -> 34 (oracle world count)"
+        },
+        {
+          "disposition": "preserve",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/bin/holla/scenario.rs:213-215 identical loop"
+          ],
+          "key": "A0",
+          "kind": "assertion",
+          "owner": null,
+          "summary": "round-trip loop identical to oracle; kept"
+        },
+        {
+          "disposition": "preserve",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/bin/holla/scenario.rs:216-218 identical vectors"
+          ],
+          "key": "A2",
+          "kind": "assertion",
+          "owner": null,
+          "summary": "three Motion::resolve vectors identical to oracle; kept"
+        }
+      ],
+      "verdict": "replace"
+    },
+    {
+      "evidence": [
+        "tools/test-inventory/conflicts.json coarse whole-file flag reviewed per-span: no conflicting span found",
+        "TASK-007 discovery comment: whole-file marking is coarse; TASK-008 reviews each span"
+      ],
+      "id": "V-004",
+      "identity": {
+        "kind": "test",
+        "name": "pointer_disabled_editor_keeps_geometry_caret_typing_and_paste",
+        "package": "junie-tui",
+        "target": "keyboard_editor"
+      },
+      "path": "crates/tui/tests/keyboard_editor.rs",
+      "retained": [
+        "entire test"
+      ],
+      "spans": [
+        {
+          "disposition": "preserve",
+          "evidence": [
+            "docs/refactoring-plan/branch-diff-tui-tests-examples.tsv keyboard_editor row: preserve (keyboard-only retains area/caret/typing/paste without pointer/hit/scroll/capture authority)",
+            "R-002 compatible ownership/safety class",
+            "no W-025-07/08 conflicting-scope string (navigation-as-edit, caret reveal, wheel-mutates, tab-indent, marker/footer) occurs in this function (negative sweep)",
+            "TASK-006 Family::TextInput Lane::Direct covers the exercised component"
+          ],
+          "key": "ALL",
+          "kind": "assertion",
+          "owner": null,
+          "summary": "all 8 assertions pin pointer/ownership policy (geometry, caret containment, pointer-disabled regions, no hit, no hover, typing, paste commit, diagnostics)"
+        }
+      ],
+      "verdict": "preserve"
+    },
+    {
+      "evidence": [
+        "007 coarse flag reviewed per-span: no conflicting span"
+      ],
+      "id": "V-005",
+      "identity": {
+        "kind": "test",
+        "name": "default_pointer_path_still_repositions_caret_and_can_be_reenabled",
+        "package": "junie-tui",
+        "target": "keyboard_editor"
+      },
+      "path": "crates/tui/tests/keyboard_editor.rs",
+      "retained": [
+        "entire test"
+      ],
+      "spans": [
+        {
+          "disposition": "preserve",
+          "evidence": [
+            "docs/refactoring-plan/branch-diff-tui-tests-examples.tsv keyboard_editor row: preserve (reenable)",
+            "R-002 compatible ownership class",
+            "negative sweep: no W-025 conflicting-scope content",
+            "TASK-006 Family::TextInput Lane::Direct"
+          ],
+          "key": "ALL",
+          "kind": "assertion",
+          "owner": null,
+          "summary": "pointer reposition + disable/reenable ownership transitions; no product-text pin"
+        }
+      ],
+      "verdict": "preserve"
+    },
+    {
+      "evidence": [
+        "007 coarse flag reviewed per-span: no conflicting span"
+      ],
+      "id": "V-006",
+      "identity": {
+        "kind": "test",
+        "name": "retained_paste_uses_new_keyboard_publication_and_admissibility_barriers",
+        "package": "junie-tui",
+        "target": "keyboard_editor"
+      },
+      "path": "crates/tui/tests/keyboard_editor.rs",
+      "retained": [
+        "entire test"
+      ],
+      "spans": [
+        {
+          "disposition": "preserve",
+          "evidence": [
+            "docs/refactoring-plan/branch-diff-tui-tests-examples.tsv keyboard_editor row: preserve (deferred paste new publication, disabled/readonly/modal barriers)",
+            "R-002 compatible safety class",
+            "negative sweep: no W-025 conflicting-scope content"
+          ],
+          "key": "ALL",
+          "kind": "assertion",
+          "owner": null,
+          "summary": "paste publication/retention + disabled/readonly/modal admissibility barriers; safety class"
+        }
+      ],
+      "verdict": "preserve"
+    },
+    {
+      "evidence": [
+        "007 coarse flag reviewed per-span: no conflicting span"
+      ],
+      "id": "V-007",
+      "identity": {
+        "kind": "test",
+        "name": "keyboard_only_fallback_keeps_caret_without_taking_navigation_focus",
+        "package": "junie-tui",
+        "target": "keyboard_editor"
+      },
+      "path": "crates/tui/tests/keyboard_editor.rs",
+      "retained": [
+        "entire test"
+      ],
+      "spans": [
+        {
+          "disposition": "preserve",
+          "evidence": [
+            "docs/refactoring-plan/branch-diff-tui-tests-examples.tsv keyboard_editor row: preserve (fallback cursor independent of nav focus)",
+            "docs/refactoring-plan/architecture-matrix.tsv A11 typing-owner row cites keyboard_editor evidence",
+            "negative sweep: no W-025 conflicting-scope content"
+          ],
+          "key": "ALL",
+          "kind": "assertion",
+          "owner": null,
+          "summary": "fallback typing policy: caret kept while navigation focus stays elsewhere; ownership class"
+        }
+      ],
+      "verdict": "preserve"
+    },
+    {
+      "evidence": [
+        "007 coarse flag reviewed per-span: no conflicting span"
+      ],
+      "id": "V-008",
+      "identity": {
+        "kind": "test",
+        "name": "owner_policy_covers_parts_before_and_after_declaration_and_cancels_capture",
+        "package": "junie-tui",
+        "target": "keyboard_editor"
+      },
+      "path": "crates/tui/tests/keyboard_editor.rs",
+      "retained": [
+        "entire test"
+      ],
+      "spans": [
+        {
+          "disposition": "preserve",
+          "evidence": [
+            "docs/refactoring-plan/branch-diff-tui-tests-examples.tsv keyboard_editor row: preserve (pre/post declared parts inherit owner policy, cancel capture)",
+            "R-002 compatible ownership class",
+            "negative sweep: no W-025 conflicting-scope content"
+          ],
+          "key": "ALL",
+          "kind": "assertion",
+          "owner": null,
+          "summary": "part ownership inheritance + capture cancellation; pure ownership semantics"
+        }
+      ],
+      "verdict": "preserve"
+    },
+    {
+      "evidence": [
+        "007 coarse flag reviewed per-span: no conflicting span"
+      ],
+      "id": "V-009",
+      "identity": {
+        "kind": "test",
+        "name": "warm_scene_and_live_keyboard_publication_allocate_nothing",
+        "package": "junie-tui",
+        "target": "keyboard_editor"
+      },
+      "path": "crates/tui/tests/keyboard_editor.rs",
+      "retained": [
+        "entire test"
+      ],
+      "spans": [
+        {
+          "disposition": "preserve",
+          "evidence": [
+            "docs/refactoring-plan/branch-diff-tui-tests-examples.tsv keyboard_editor row: preserve (bound Scene + live noalloc)",
+            "R-002 compatible class",
+            "negative sweep: no W-025 conflicting-scope content"
+          ],
+          "key": "ALL",
+          "kind": "assertion",
+          "owner": null,
+          "summary": "zero-alloc warm draw + live publication; perf/ownership witness, no product text"
+        }
+      ],
+      "verdict": "preserve"
+    },
+    {
+      "evidence": [
+        "007 coarse flag reviewed per-span: no conflicting span"
+      ],
+      "id": "V-010",
+      "identity": {
+        "kind": "test",
+        "name": "bootstrap_and_aborted_first_paint_have_no_viewport",
+        "package": "junie-tui",
+        "target": "viewport"
+      },
+      "path": "crates/tui/tests/viewport.rs",
+      "retained": [
+        "entire test"
+      ],
+      "spans": [
+        {
+          "disposition": "preserve",
+          "evidence": [
+            "docs/refactoring-plan/branch-diff-tui-tests-examples.tsv viewport row: preserve (bootstrap/dropped-first-paint screen zero; distinct lifetimes)",
+            "R-002 compatible ownership/lifecycle class",
+            "negative sweep: no W-021-07 conflicting-scope content (no caret/gutter/copy pins in this file)"
+          ],
+          "key": "ALL",
+          "kind": "assertion",
+          "owner": null,
+          "summary": "runtime viewport lifetime (bootstrap/aborted paint screen ZERO); lifecycle class, no oracle counterpart to contradict"
+        }
+      ],
+      "verdict": "preserve"
+    },
+    {
+      "evidence": [
+        "007 coarse flag reviewed per-span: no conflicting span"
+      ],
+      "id": "V-011",
+      "identity": {
+        "kind": "test",
+        "name": "resize_updates_current_viewport_before_replacing_published_geometry",
+        "package": "junie-tui",
+        "target": "viewport"
+      },
+      "path": "crates/tui/tests/viewport.rs",
+      "retained": [
+        "entire test"
+      ],
+      "spans": [
+        {
+          "disposition": "preserve",
+          "evidence": [
+            "docs/refactoring-plan/branch-diff-tui-tests-examples.tsv viewport row: preserve (resize exposes current viewport, retains old published geometry; snapshot invalid; input retained)",
+            "R-002 compatible class",
+            "negative sweep: no W-021-07 conflicting-scope content"
+          ],
+          "key": "ALL",
+          "kind": "assertion",
+          "owner": null,
+          "summary": "resize exposes current viewport while published geometry/input stay retained until commit; lifecycle class"
+        }
+      ],
+      "verdict": "preserve"
+    },
+    {
+      "closing": "TASK-021 restores oracle retained() clearing",
+      "evidence": [
+        "trusted branch-test-disposition-bindings.tsv W-021-07 binds M:viewport.rs retention tests to TASK-008 disposition"
+      ],
+      "id": "V-012",
+      "identity": {
+        "kind": "lib",
+        "name": "components::viewport::tests::retention_fixes_up_selection_and_caret",
+        "package": "junie-tui",
+        "target": "junie_tui"
+      },
+      "owner": "TASK-021",
+      "path": "crates/tui/src/components/viewport.rs",
+      "retained": [
+        "all assertions except the evicted-caret pin"
+      ],
+      "spans": [
+        {
+          "disposition": "replace",
+          "evidence": [
+            "W-021-07 witness: evicted producer caret becomes None; source-clipped partial endpoints"
+          ],
+          "key": "C1",
+          "kind": "comment",
+          "owner": "TASK-021",
+          "summary": "fix-up rule comment: saturate-at-0 -> move/clear/clip"
+        },
+        {
+          "disposition": "replace",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/widgets/viewport.rs:1885-1895 producer_caret_follows_eviction_and_replacement (evicted line -> None, the caret's line was evicted)",
+            "refactoring-tasks/terminal-components/completion/021/trusted/source-witnesses.md W-021-07 row + reject column (retain evicted caret at0)",
+            "docs/refactoring-plan/reaudit-components-b-branch-repairs.md:23 (oracle clears evicted producer caret)"
+          ],
+          "key": "A1",
+          "kind": "assertion",
+          "owner": "TASK-021",
+          "summary": "fully evicted caret Some(0,0) -> None"
+        },
+        {
+          "disposition": "preserve",
+          "evidence": [
+            "oracle eviction test: retained caret shifts line 1->0 with column kept; W-021-04 source-clipped partial endpoints"
+          ],
+          "key": "REST",
+          "kind": "assertion",
+          "owner": null,
+          "summary": "shift-with-buffer, partial clip, selection collapse, anchor, generation pins all oracle-compatible; kept"
+        }
+      ],
+      "verdict": "replace"
+    },
+    {
+      "closing": "TASK-021 restores overflow-conditional layout",
+      "evidence": [
+        "trusted branch-test-disposition-bindings.tsv W-021-07 (unconditional scrollbar in conflicting scope)"
+      ],
+      "id": "V-013",
+      "identity": {
+        "kind": "lib",
+        "name": "components::viewport::tests::the_text_width_does_not_depend_on_whether_the_bar_is_painted",
+        "package": "junie-tui",
+        "target": "junie_tui"
+      },
+      "owner": "TASK-021",
+      "path": "crates/tui/src/components/viewport.rs",
+      "replacement_identity": {
+        "kind": "lib",
+        "name": "components::viewport::tests::the_text_width_reserves_a_scrollbar_column_only_on_overflow",
+        "package": "junie-tui",
+        "target": "junie_tui"
+      },
+      "retained": [
+        "draw()-width observation method (API assumption recorded: draw return shape is TASK-021 owned)"
+      ],
+      "spans": [
+        {
+          "disposition": "relocate",
+          "evidence": [
+            "R-003 recorded relocation"
+          ],
+          "key": "N",
+          "kind": "name",
+          "owner": null,
+          "summary": "rename states the oracle rule (old name would lie)"
+        },
+        {
+          "disposition": "replace",
+          "evidence": [
+            "W-021-07 required observation: scrollbar column reserved only when source overflow requires it"
+          ],
+          "key": "C1",
+          "kind": "comment",
+          "owner": "TASK-021",
+          "summary": "Finding P-A unconditional-reservation rationale -> overflow-conditional rule"
+        },
+        {
+          "disposition": "replace",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/widgets/viewport.rs:870-898 set_area tries full width first, narrows only on overflow",
+            "visual-baseline@4a79c0a:src/widgets/viewport.rs:1420 has_sb = overflows()",
+            "W-021-07 reject column: always reserve scrollbar"
+          ],
+          "key": "A1",
+          "kind": "assertion",
+          "owner": "TASK-021",
+          "summary": "width(short)==width(long) -> short==full width, long==width-1"
+        }
+      ],
+      "verdict": "relocate"
+    },
+    {
+      "closing": "TASK-021 removes the gutter; the Mono focus-visibility concern is its open design item (recorded handoff, not silently dropped)",
+      "evidence": [
+        "trusted branch-test-disposition-bindings.tsv W-021-07 (unconditional gutter in conflicting scope)"
+      ],
+      "id": "V-014",
+      "identity": {
+        "kind": "lib",
+        "name": "components::viewport::tests::the_focus_gutter_is_the_only_focus_affordance_and_it_is_painted",
+        "package": "junie-tui",
+        "target": "junie_tui"
+      },
+      "owner": "TASK-021",
+      "path": "crates/tui/src/components/viewport.rs",
+      "replacement_identity": {
+        "kind": "lib",
+        "name": "components::viewport::tests::no_viewport_gutter_text_paints_from_the_area_origin",
+        "package": "junie-tui",
+        "target": "junie_tui"
+      },
+      "retained": [
+        "origin-cell observation method via ui.reference scaffolding (API assumption: reference machinery is TASK-021 owned)"
+      ],
+      "spans": [
+        {
+          "disposition": "relocate",
+          "evidence": [
+            "R-003 recorded relocation"
+          ],
+          "key": "N",
+          "kind": "name",
+          "owner": null,
+          "summary": "rename states the oracle geometry"
+        },
+        {
+          "disposition": "replace",
+          "evidence": [
+            "W-021-07 required observation: no source viewport gutter"
+          ],
+          "key": "C1",
+          "kind": "comment",
+          "owner": "TASK-021",
+          "summary": "gutter rationale -> no-gutter rule + Mono-focus handoff to TASK-021"
+        },
+        {
+          "disposition": "replace",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/widgets/viewport.rs:1425-1433 text paint starts at area.x with no gutter column",
+            "W-021-07 reject column: retain gutter unconditionally"
+          ],
+          "key": "A1",
+          "kind": "assertion",
+          "owner": "TASK-021",
+          "summary": "gutter glyph at origin in FOCUSED -> text h at origin in both states"
+        }
+      ],
+      "verdict": "relocate"
+    },
+    {
+      "closing": "TASK-021 restores source-byte copy",
+      "evidence": [
+        "trusted branch-test-disposition-bindings.tsv W-021-07 (tab expansion in copy in conflicting scope)"
+      ],
+      "id": "V-015",
+      "identity": {
+        "kind": "lib",
+        "name": "components::viewport::tests::tabs_expand_to_a_fixed_width_everywhere",
+        "package": "junie-tui",
+        "target": "junie_tui"
+      },
+      "owner": "TASK-021",
+      "path": "crates/tui/src/components/viewport.rs",
+      "replacement_identity": {
+        "kind": "lib",
+        "name": "components::viewport::tests::tabs_expand_in_geometry_but_copy_as_source_bytes",
+        "package": "junie-tui",
+        "target": "junie_tui"
+      },
+      "retained": [
+        "geometry expansion assertion"
+      ],
+      "spans": [
+        {
+          "disposition": "relocate",
+          "evidence": [
+            "R-003 recorded relocation"
+          ],
+          "key": "N",
+          "kind": "name",
+          "owner": null,
+          "summary": "rename: expansion holds for geometry, not copy"
+        },
+        {
+          "disposition": "replace",
+          "evidence": [
+            "W-021-06 required observation: source bytes, no tab expansion in copy"
+          ],
+          "key": "C1",
+          "kind": "comment",
+          "owner": "TASK-021",
+          "summary": "agree-everywhere rationale -> geometry expands, copy returns source bytes"
+        },
+        {
+          "disposition": "replace",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/widgets/viewport.rs:1011-1032 selected_text returns source bytes (tabs preserved), trims ASCII spaces only",
+            "visual-baseline@4a79c0a:src/widgets/viewport.rs:244-253 tabs share one src range so all TabPad cells copy as one tab byte",
+            "W-021-07 reject column: expand copy tabs"
+          ],
+          "key": "A1",
+          "kind": "assertion",
+          "owner": "TASK-021",
+          "summary": "copy == expanded spaces -> copy == source tab byte"
+        },
+        {
+          "disposition": "preserve",
+          "evidence": [
+            "visual-baseline@4a79c0a:src/widgets/viewport.rs:244-253 tab expands to TAB_SPACES cells",
+            "visual-baseline@4a79c0a:src/ui/text.rs:9 TAB_SPACES is 4 spaces; current TAB_WIDTH is 4"
+          ],
+          "key": "A0",
+          "kind": "assertion",
+          "owner": null,
+          "summary": "line_cols geometry expansion pin kept (oracle expands tabs to 4 in geometry)"
+        }
+      ],
+      "verdict": "relocate"
+    }
+  ],
+  "inputs": {
+    "conflicts": "f580270edb6724541a13f1ff6995d3dc2d59d1c69430511e62ebde4883f00d64",
+    "listing": "c965b3cca386e58e9ed2631b84b23fd535c930c39916030bec7e003da35fa03e",
+    "manifest": "0c2c4d03eb92fe63b3c365e55bb1a05bc5c4734c49c4f2e67fc41df1ec457b04",
+    "stage": "17d0826d230dd601235c660a9b2585756e21d7aa6275422fac223352c2302d2a",
+    "verdicts": "5e78b6dbbd61eddec84df04aa8dad588cc526bfc8269059647f81a55f3d6d4dc"
+  },
+  "oracle_tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+  "producer": "TASK-008",
+  "relocations": [
+    {
+      "id": "V-002",
+      "new": {
+        "kind": "lib",
+        "name": "app::tests::home_escape_clears_query_before_scope",
+        "package": "holla",
+        "target": "holla_app"
+      },
+      "old": {
+        "kind": "lib",
+        "name": "app::tests::home_escape_clears_scope_before_canonical_query",
+        "package": "holla",
+        "target": "holla_app"
+      }
+    },
+    {
+      "id": "V-013",
+      "new": {
+        "kind": "lib",
+        "name": "components::viewport::tests::the_text_width_reserves_a_scrollbar_column_only_on_overflow",
+        "package": "junie-tui",
+        "target": "junie_tui"
+      },
+      "old": {
+        "kind": "lib",
+        "name": "components::viewport::tests::the_text_width_does_not_depend_on_whether_the_bar_is_painted",
+        "package": "junie-tui",
+        "target": "junie_tui"
+      }
+    },
+    {
+      "id": "V-014",
+      "new": {
+        "kind": "lib",
+        "name": "components::viewport::tests::no_viewport_gutter_text_paints_from_the_area_origin",
+        "package": "junie-tui",
+        "target": "junie_tui"
+      },
+      "old": {
+        "kind": "lib",
+        "name": "components::viewport::tests::the_focus_gutter_is_the_only_focus_affordance_and_it_is_painted",
+        "package": "junie-tui",
+        "target": "junie_tui"
+      }
+    },
+    {
+      "id": "V-015",
+      "new": {
+        "kind": "lib",
+        "name": "components::viewport::tests::tabs_expand_in_geometry_but_copy_as_source_bytes",
+        "package": "junie-tui",
+        "target": "junie_tui"
+      },
+      "old": {
+        "kind": "lib",
+        "name": "components::viewport::tests::tabs_expand_to_a_fixed_width_everywhere",
+        "package": "junie-tui",
+        "target": "junie_tui"
+      }
+    }
+  ],
+  "rollups": [
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 0,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "01_button"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 5,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "02_custom_theme"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 5,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "03_partial_theme"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 5,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "04_family_recipe"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 0,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "05_instance_patch"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 0,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "06_validated_field"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 0,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "07_borrowed_rows"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 0,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "08_dynamic_tabs"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 0,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "09_composed_dialog"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 0,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "10_nested_overlay"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 0,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "11_small_app"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "12_author_component"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 0,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "13_connection_form"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 0,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "showcase_buttons"
+    },
+    {
+      "decided": [
+        "V-012",
+        "V-013",
+        "V-014",
+        "V-015"
+      ],
+      "kind": "lib",
+      "listed": 764,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "junie_tui"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "activation_origin"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 45,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "architecture"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 6,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "author_style_defaults"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 9,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "capability_palettes"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 935,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "conformance"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 5,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "derived_hintbar_metadata"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 5,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "descriptive_hints"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "dialog_ack_keyboard"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 5,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "dialog_acknowledgement"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "dialog_navigation"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 8,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "empty_style_inheritance"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 12,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "feedback_clock"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 8,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "focus_restoration"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 7,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "focus_traversal"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "fuzzy_boundary"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "grid_blur_policy"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 6,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "grid_cell_renderer"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 11,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "grid_column_fit"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 13,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "grid_detailed_gutter"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "grid_disabled"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "grid_fetch_presentation"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 16,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "grid_fetch_sentinel"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "grid_header_geometry"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 6,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "grid_header_prefix"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 7,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "grid_keyed_cursor"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "grid_model_contract"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "grid_sample_live_actions"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 5,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "grid_width_sample"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 1,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "independent_empty_carrier"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "independent_paint_carrier"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 5,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "initialization"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "input_placeholder"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 10,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "item_row_columns"
+    },
+    {
+      "decided": [
+        "V-004",
+        "V-005",
+        "V-006",
+        "V-007",
+        "V-008",
+        "V-009"
+      ],
+      "kind": "test",
+      "listed": 6,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "keyboard_editor"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 6,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "layer_focus_reparent"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "list_boundary"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 9,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "list_focused_click"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 7,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "list_pointer_item"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 10,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "list_row_extent"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "list_row_renderer"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "menu_chord_case"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "meter_defaults"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 7,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "meter_readout"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 9,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "meter_semantic_tokens"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 13,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "monotonic"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "nav_compact"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "nav_list_boundary"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 6,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "nav_list_scrollbar_visibility"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 5,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "nav_list_scrolling"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "overlay"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 5,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "overrides"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "paint_matched"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "paint_middle"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "panel_badge"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 33,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "perf"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 11,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "perf_collections"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 7,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "picker_nonsearchable"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "picker_projection"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "picker_width"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 12,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "pointer_capture_eligibility"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 6,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "pointer_publication"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "progress_paused_glyph"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 11,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "props_rich"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 1,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "props_rich_perf"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 10,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "publication"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 8,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "render"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 332,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "render_components"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "rowui_glyph_contract"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 10,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "scene_snapshot"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "scrollbar_full_track"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "showcase_buttons"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "spinner_gap"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 14,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "split_seam_geometry"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "status_bar_hover"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "status_spinner"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 1,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "terminal_cleanup"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 16,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "theme_holla_states"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "tree_branch_policy"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 9,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "tree_presentation"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "tree_row_renderer"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 10,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "tree_selected_click"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 7,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "tree_state_replacement"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 18,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "typing_owner"
+    },
+    {
+      "decided": [
+        "V-010",
+        "V-011"
+      ],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-all",
+      "target": "viewport"
+    },
+    {
+      "decided": [],
+      "kind": "lib",
+      "listed": 18,
+      "package": "junie-tui-testing",
+      "profile": "junie-tui-testing-all",
+      "target": "junie_tui_testing"
+    },
+    {
+      "decided": [],
+      "kind": "bin",
+      "listed": 115,
+      "package": "xtask",
+      "profile": "xtask-all",
+      "target": "xtask"
+    },
+    {
+      "decided": [],
+      "kind": "bin",
+      "listed": 0,
+      "package": "showcase",
+      "profile": "showcase-all",
+      "target": "showcase"
+    },
+    {
+      "decided": [],
+      "kind": "lib",
+      "listed": 10,
+      "package": "showcase",
+      "profile": "showcase-all",
+      "target": "showcase_app"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 34,
+      "package": "showcase",
+      "profile": "showcase-all",
+      "target": "app_tests"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 8,
+      "package": "showcase",
+      "profile": "showcase-all",
+      "target": "elapsed_contract"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "showcase",
+      "profile": "showcase-all",
+      "target": "page_headings"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 8,
+      "package": "showcase",
+      "profile": "showcase-all",
+      "target": "perf"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 10,
+      "package": "showcase",
+      "profile": "showcase-all",
+      "target": "sidebar_contract"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 1,
+      "package": "showcase",
+      "profile": "showcase-all",
+      "target": "visual"
+    },
+    {
+      "decided": [],
+      "kind": "bin",
+      "listed": 0,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "tablepro"
+    },
+    {
+      "decided": [],
+      "kind": "lib",
+      "listed": 33,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "tablepro_app"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 35,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "app_tests"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "cli_contract"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "close_contract"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 6,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "completion_contract"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 7,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "destructive_generation"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 1,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "footer_unicode"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 5,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "inline_draft"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 1,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "paint_contract"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 11,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "perf"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 8,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "quick_switcher_contract"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 11,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "quit_contract"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 6,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "replacement_contract"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 6,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "row_actions_contract"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 7,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "row_identity"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "switcher_contract"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "tab_identity_guard"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 7,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "tab_ownership"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "undo_contract"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 1,
+      "package": "tablepro",
+      "profile": "tablepro-all",
+      "target": "visual"
+    },
+    {
+      "decided": [],
+      "kind": "bin",
+      "listed": 3,
+      "package": "jackin-preview",
+      "profile": "jackin-preview-all",
+      "target": "jackin-preview"
+    },
+    {
+      "decided": [],
+      "kind": "lib",
+      "listed": 67,
+      "package": "jackin-preview",
+      "profile": "jackin-preview-all",
+      "target": "jackin_app"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 27,
+      "package": "jackin-preview",
+      "profile": "jackin-preview-all",
+      "target": "app_tests"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 6,
+      "package": "jackin-preview",
+      "profile": "jackin-preview-all",
+      "target": "app_tests_chrome"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 5,
+      "package": "jackin-preview",
+      "profile": "jackin-preview-all",
+      "target": "cli_contract"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 1,
+      "package": "jackin-preview",
+      "profile": "jackin-preview-all",
+      "target": "editor_save_journey"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 9,
+      "package": "jackin-preview",
+      "profile": "jackin-preview-all",
+      "target": "editor_save_ownership"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 21,
+      "package": "jackin-preview",
+      "profile": "jackin-preview-all",
+      "target": "manager_actions"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 10,
+      "package": "jackin-preview",
+      "profile": "jackin-preview-all",
+      "target": "manager_identity"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 5,
+      "package": "jackin-preview",
+      "profile": "jackin-preview-all",
+      "target": "manager_repository"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "jackin-preview",
+      "profile": "jackin-preview-all",
+      "target": "perf"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 11,
+      "package": "jackin-preview",
+      "profile": "jackin-preview-all",
+      "target": "preview"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 0,
+      "package": "jackin-preview",
+      "profile": "jackin-preview-all",
+      "target": "support"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 12,
+      "package": "jackin-preview",
+      "profile": "jackin-preview-all",
+      "target": "timing"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 1,
+      "package": "jackin-preview",
+      "profile": "jackin-preview-all",
+      "target": "visual"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "jackin-preview",
+      "profile": "jackin-preview-all",
+      "target": "world_cwd"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 7,
+      "package": "jackin-preview",
+      "profile": "jackin-preview-all",
+      "target": "world_fixtures"
+    },
+    {
+      "decided": [],
+      "kind": "bin",
+      "listed": 0,
+      "package": "holla",
+      "profile": "holla-all",
+      "target": "holla"
+    },
+    {
+      "decided": [
+        "V-001",
+        "V-002",
+        "V-003"
+      ],
+      "kind": "lib",
+      "listed": 170,
+      "package": "holla",
+      "profile": "holla-all",
+      "target": "holla_app"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "holla",
+      "profile": "holla-all",
+      "target": "perf"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 1,
+      "package": "holla",
+      "profile": "holla-all",
+      "target": "visual"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 0,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "05_instance_patch"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 0,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "06_validated_field"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 0,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "07_borrowed_rows"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 0,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "08_dynamic_tabs"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 0,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "09_composed_dialog"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 0,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "10_nested_overlay"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "12_author_component"
+    },
+    {
+      "decided": [],
+      "kind": "example",
+      "listed": 0,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "13_connection_form"
+    },
+    {
+      "decided": [
+        "V-012",
+        "V-013",
+        "V-014",
+        "V-015"
+      ],
+      "kind": "lib",
+      "listed": 751,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "junie_tui"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "activation_origin"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 45,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "architecture"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 6,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "author_style_defaults"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 9,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "capability_palettes"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 935,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "conformance"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 5,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "derived_hintbar_metadata"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 5,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "descriptive_hints"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "dialog_ack_keyboard"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 5,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "dialog_acknowledgement"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "dialog_navigation"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 8,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "empty_style_inheritance"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 11,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "feedback_clock"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 8,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "focus_restoration"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 7,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "focus_traversal"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "fuzzy_boundary"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "grid_blur_policy"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 6,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "grid_cell_renderer"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 11,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "grid_column_fit"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 13,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "grid_detailed_gutter"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "grid_disabled"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "grid_fetch_presentation"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 16,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "grid_fetch_sentinel"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "grid_header_geometry"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 6,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "grid_header_prefix"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 7,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "grid_keyed_cursor"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "grid_model_contract"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "grid_sample_live_actions"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 5,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "grid_width_sample"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 1,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "independent_empty_carrier"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "independent_paint_carrier"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 5,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "initialization"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "input_placeholder"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 10,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "item_row_columns"
+    },
+    {
+      "decided": [
+        "V-004",
+        "V-005",
+        "V-006",
+        "V-007",
+        "V-008",
+        "V-009"
+      ],
+      "kind": "test",
+      "listed": 6,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "keyboard_editor"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 6,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "layer_focus_reparent"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "list_boundary"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 9,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "list_focused_click"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 7,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "list_pointer_item"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 10,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "list_row_extent"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "list_row_renderer"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "menu_chord_case"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "meter_defaults"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 7,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "meter_readout"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 9,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "meter_semantic_tokens"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 11,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "monotonic"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "nav_compact"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "nav_list_boundary"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 6,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "nav_list_scrollbar_visibility"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 5,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "nav_list_scrolling"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "overlay"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 5,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "overrides"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "paint_matched"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "paint_middle"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "panel_badge"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 33,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "perf"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 11,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "perf_collections"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 7,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "picker_nonsearchable"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "picker_projection"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "picker_width"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 12,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "pointer_capture_eligibility"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 5,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "pointer_publication"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "progress_paused_glyph"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 11,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "props_rich"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 1,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "props_rich_perf"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 10,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "publication"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 8,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "render"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 332,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "render_components"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "rowui_glyph_contract"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 10,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "scene_snapshot"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "scrollbar_full_track"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "showcase_buttons"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "spinner_gap"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 14,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "split_seam_geometry"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "status_bar_hover"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 3,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "status_spinner"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 0,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "terminal_cleanup"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 16,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "theme_holla_states"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "tree_branch_policy"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 9,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "tree_presentation"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 4,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "tree_row_renderer"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 10,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "tree_selected_click"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 7,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "tree_state_replacement"
+    },
+    {
+      "decided": [],
+      "kind": "test",
+      "listed": 18,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "typing_owner"
+    },
+    {
+      "decided": [
+        "V-010",
+        "V-011"
+      ],
+      "kind": "test",
+      "listed": 2,
+      "package": "junie-tui",
+      "profile": "junie-tui-core-testing",
+      "target": "viewport"
+    }
+  ],
+  "rules": [
+    {
+      "evidence": [
+        "TASK-007 accepted reconcile: tools/test-inventory/conflicts.json holds the complete oracle-conflict set (11 identities); absence means source-classified preserve",
+        "R-002 keeps compatible ownership/safety/backend/API tests active and passing"
+      ],
+      "id": "R-PRESERVE-007-NONCONFLICT",
+      "scope": "every listing identity absent from tools/test-inventory/conflicts.json and from decisions[]",
+      "verdict": "preserve"
+    },
+    {
+      "evidence": [
+        "R-004: never skip or weaken a failing test to obtain green output",
+        "R-003: a future-owner failure remains visibly failed and closes monotonically by its owner"
+      ],
+      "id": "R-NO-DELETE-ON-FAIL",
+      "scope": "any failing test: failure alone never authorizes delete/ignore/weaken",
+      "verdict": "preserve"
+    }
+  ],
+  "schema": 1
+}

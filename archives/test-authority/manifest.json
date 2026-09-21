@@ -1,0 +1,26 @@
+{
+  "schema": "test-authority-manifest/v1",
+  "producer": "TASK-008",
+  "base_commit": "d372b79c37577957367a02cd7229ca19d7b1fa5d",
+  "note": "Immutable original bytes of test files changed by TASK-008 span migration. Never edited.",
+  "files": [
+    {
+      "path": "apps/holla/src/app.rs",
+      "sha256": "612e8077aaa67f2426de014954c5a78d3c0ab644198ddecc089d714378072d86",
+      "bytes": 83499,
+      "git_blob": "32e04966421b95dec10c9c22d809e02f69aea096"
+    },
+    {
+      "path": "apps/holla/src/scenario.rs",
+      "sha256": "8915bc16576e7cb10c3afa0509fc7404a74f7a79b8c8e4211f12e1ff65f18624",
+      "bytes": 4030,
+      "git_blob": "487a21f9193c8c04c26dc6e7de41d369255c94c2"
+    },
+    {
+      "path": "crates/tui/src/components/viewport.rs",
+      "sha256": "13096dbafea8d053b69a968e882cee95e9f1676e453d290b966316444217526f",
+      "bytes": 90821,
+      "git_blob": "78033b1650c261a9badac959a4035034eeaa23cf"
+    }
+  ]
+}

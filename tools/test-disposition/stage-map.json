@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "producer": "TASK-008",
+  "base_commit": "d372b79c37577957367a02cd7229ca19d7b1fa5d",
+  "note": "Fixed task-stage map: every still-unfinished future-owned identity and its exact closing task. A failure stays visibly failed until its owner closes it; closure is monotonic (later tasks never reopen). No entry here authorizes its own closure: only the owning task's accepted receipt closes it.",
+  "entries": [
+    {
+      "identity": {"package": "holla", "kind": "lib", "target": "holla_app", "name": "app::tests::home_hint_casing_preserves_lowercase_physical_shortcuts"},
+      "kind": "migrated-test",
+      "status": "future-failed",
+      "owner": "TASK-041",
+      "requires": ["TASK-040"],
+      "evidence": ["verdict V-001: oracle finder hints/scope (041) + oracle Ctrl+Q quit dialog (040)", "TASK-041 deps include TASK-040, so 041 lands last and closes the test"],
+      "closes_when": "finder footer renders oracle hints, Ctrl+Up pills scope, and Ctrl+Q opens Quit holla❯?"
+    },
+    {
+      "identity": {"package": "holla", "kind": "lib", "target": "holla_app", "name": "app::tests::home_escape_clears_query_before_scope"},
+      "kind": "migrated-test",
+      "status": "future-failed",
+      "owner": "TASK-041",
+      "requires": [],
+      "evidence": ["verdict V-002 (relocated from home_escape_clears_scope_before_canonical_query)", "docs/refactoring-plan/branch-diff-holla.md:40 TASK-041 owns finder"],
+      "closes_when": "finder Esc clears query before scope and the scope pill renders oracle text"
+    },
+    {
+      "identity": {"package": "holla", "kind": "lib", "target": "holla_app", "name": "scenario::tests::names_round_trip"},
+      "kind": "migrated-test",
+      "status": "future-failed",
+      "owner": "TASK-049",
+      "requires": [],
+      "witness": "TASK-050",
+      "evidence": ["verdict V-003: oracle ALL has 34 worlds; TASK-049 is the terminal scenario.rs writer before the TASK-050 34-world closure proof"],
+      "closes_when": "Scenario::ALL holds all 34 oracle worlds"
+    },
+    {
+      "identity": {"package": "junie-tui", "kind": "lib", "target": "junie_tui", "name": "components::viewport::tests::retention_fixes_up_selection_and_caret"},
+      "kind": "migrated-test",
+      "status": "future-failed",
+      "owner": "TASK-021",
+      "requires": [],
+      "evidence": ["verdict V-012 (evicted producer caret None)"],
+      "closes_when": "retained() clears a fully evicted producer caret"
+    },
+    {
+      "identity": {"package": "junie-tui", "kind": "lib", "target": "junie_tui", "name": "components::viewport::tests::the_text_width_reserves_a_scrollbar_column_only_on_overflow"},
+      "kind": "migrated-test",
+      "status": "future-failed",
+      "owner": "TASK-021",
+      "requires": [],
+      "evidence": ["verdict V-013 (relocated test name)"],
+      "closes_when": "layout reserves the scrollbar column only on overflow"
+    },
+    {
+      "identity": {"package": "junie-tui", "kind": "lib", "target": "junie_tui", "name": "components::viewport::tests::no_viewport_gutter_text_paints_from_the_area_origin"},
+      "kind": "migrated-test",
+      "status": "future-failed",
+      "owner": "TASK-021",
+      "requires": [],
+      "evidence": ["verdict V-014 (relocated test name); Mono focus-visibility handoff recorded in V-014"],
+      "closes_when": "render paints text from the area origin with no gutter"
+    },
+    {
+      "identity": {"package": "junie-tui", "kind": "lib", "target": "junie_tui", "name": "components::viewport::tests::tabs_expand_in_geometry_but_copy_as_source_bytes"},
+      "kind": "migrated-test",
+      "status": "future-failed",
+      "owner": "TASK-021",
+      "requires": [],
+      "evidence": ["verdict V-015 (relocated test name)"],
+      "closes_when": "copy returns the source tab byte"
+    },
+    {
+      "identity": {"module": "crates/tui/tests/completion_021.rs"},
+      "kind": "unborn-module",
+      "status": "unborn",
+      "owner": "TASK-021",
+      "requires": [],
+      "evidence": ["trusted external-test-source-scope.md (future-task module for W-021-07)", "W-021-06 asymmetric copy cases: tabs/control/non-ASCII trailing bytes"],
+      "closes_when": "TASK-021 authors and passes the module"
+    },
+    {
+      "identity": {"module": "crates/tui/tests/completion_025.rs"},
+      "kind": "unborn-module",
+      "status": "unborn",
+      "owner": "TASK-025",
+      "requires": [],
+      "evidence": ["trusted external-test-source-scope.md (future-task module for W-025-07/08)", "W-025-07 Tab/BackTab vectors, navigation-vs-editing, wheel persistence; W-025-08 marker/footer precedence"],
+      "closes_when": "TASK-025 authors and passes the module"
+    },
+    {
+      "identity": {"module": "crates/tui/tests/completion_026.rs"},
+      "kind": "unborn-module",
+      "status": "unborn",
+      "owner": "TASK-026",
+      "requires": [],
+      "evidence": ["trusted external-test-source-scope.md (future-task module for W-026-05)", "W-026-05 asymmetric (0,2)/(2,0)/(1,2)/(2,1) run-boundary sequences per oracle diff.rs"],
+      "closes_when": "TASK-026 authors and passes the module"
+    },
+    {
+      "identity": {"module": "crates/tui/tests/*diff*"},
+      "kind": "unborn-module",
+      "status": "unborn-absent",
+      "owner": "TASK-026",
+      "requires": [],
+      "evidence": ["trusted external-test-source-scope.md W-026-05 glob; TASK-007 dispatch resolution: no crates/tui/tests basename contains diff at the recorded parent"],
+      "closes_when": "TASK-026 resolves or authors the diff review tests"
+    },
+    {
+      "identity": {"gap": "meter-preservation-pins"},
+      "kind": "pin-gap",
+      "status": "gap-open",
+      "owner": "TASK-029",
+      "requires": [],
+      "evidence": ["source-obligations.tsv HL-METER-PINS current-evidence-gap (seven of 16 integers changed)", "review R-METER-PINS"],
+      "closes_when": "TASK-029 reconstructs canonical before/after cells from the pinned Sep10 oracle and reconciles provenance"
+    },
+    {
+      "identity": {"procedure": "holla activity-cycle ctrl(a)"},
+      "kind": "stale-procedure",
+      "status": "preserved-with-expiry",
+      "owner": "TASK-040",
+      "requires": [],
+      "evidence": ["review R-HOLLA-CTRLA: oracle Ctrl+A selects query, Ctrl+G opens activities"],
+      "closes_when": "TASK-040 restores oracle chords and migrates the activity-entry procedure to Ctrl+G"
+    },
+    {
+      "identity": {"procedure": "holla home ctrl(s)/ctrl(p)/ctrl(o) and q-quit"},
+      "kind": "stale-procedure",
+      "status": "preserved-with-expiry",
+      "owner": "TASK-041",
+      "requires": ["TASK-040"],
+      "evidence": ["reviews R-HOLLA-SCOPE-ESC, R-HOLLA-QUIT-TEXT; V-001/V-002 migrate the mandatory spans, sibling procedures follow their owners"],
+      "closes_when": "TASK-040/041 restore oracle finder/shell keys and refresh sibling text pins"
+    }
+  ]
+}

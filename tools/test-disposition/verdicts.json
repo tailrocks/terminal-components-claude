@@ -1,0 +1,394 @@
+{
+  "schema": 1,
+  "producer": "TASK-008",
+  "base_commit": "d372b79c37577957367a02cd7229ca19d7b1fa5d",
+  "oracle_tag_commit": "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b",
+  "note": "Hand-reviewed dispositions for every TASK-007 oracle-conflict identity plus the W-021/W-025/W-026 binding spans. Bulk rule R-PRESERVE-007-NONCONFLICT covers the remaining listing identities; file-level reviews[] reconcile the R-002 named items. No test function is deleted or ignored by any verdict.",
+  "rules": [
+    {
+      "id": "R-PRESERVE-007-NONCONFLICT",
+      "verdict": "preserve",
+      "scope": "every listing identity absent from tools/test-inventory/conflicts.json and from decisions[]",
+      "evidence": [
+        "TASK-007 accepted reconcile: tools/test-inventory/conflicts.json holds the complete oracle-conflict set (11 identities); absence means source-classified preserve",
+        "R-002 keeps compatible ownership/safety/backend/API tests active and passing"
+      ]
+    },
+    {
+      "id": "R-NO-DELETE-ON-FAIL",
+      "verdict": "preserve",
+      "scope": "any failing test: failure alone never authorizes delete/ignore/weaken",
+      "evidence": [
+        "R-004: never skip or weaken a failing test to obtain green output",
+        "R-003: a future-owner failure remains visibly failed and closes monotonically by its owner"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "V-001",
+      "identity": {"package": "holla", "kind": "lib", "target": "holla_app", "name": "app::tests::home_hint_casing_preserves_lowercase_physical_shortcuts"},
+      "path": "apps/holla/src/app.rs",
+      "verdict": "replace",
+      "owner": "TASK-041",
+      "requires": ["TASK-040"],
+      "spans": [
+        {"key": "A1", "kind": "assertion", "disposition": "replace", "summary": "footer Ctrl+S Scope -> Ctrl+↑↓ Scope", "evidence": ["visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1544 hint(Ctrl+↑↓, Scope)", "visual-baseline@4a79c0a:snapshots/holla/flows/query/empty_preview/160x50/truecolor.txt footer shows Ctrl+↑↓ Scope", "docs/refactoring-plan/holla.md:30 regression row (main Ctrl+S scope vs oracle Ctrl+Up/Down)", "docs/refactoring-plan/branch-diff-holla.md:40 (main tests assert obsolete bindings; TASK-041 owns finder)"], "owner": "TASK-041"},
+        {"key": "A2", "kind": "assertion", "disposition": "replace", "summary": "footer q Quit -> Ctrl+G Activities (oracle home footer carries no quit hint; quit is the global Ctrl+Q chord)", "evidence": ["visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1529-1555 full hint list has no quit entry", "visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1553 Ctrl+G Activities at empty query", "visual-baseline@4a79c0a:snapshots/holla/audit/rust/100x30/truecolor.txt footer shows Ctrl+G Activities", "visual-baseline@4a79c0a:src/bin/holla/app.rs:559-562 quit opens only on Ctrl+Q"], "owner": "TASK-041"},
+        {"key": "P1", "kind": "procedure", "disposition": "replace", "summary": "ctrl(s) scope key -> Ctrl+Up (oracle outward scope step)", "evidence": ["visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1150-1155 Ctrl+Up outward / Ctrl+Down inward", "docs/refactoring-plan/holla.md:78 (Ctrl+Up/Down changes scope)"], "owner": "TASK-041"},
+        {"key": "A3", "kind": "assertion", "disposition": "replace", "summary": "scope: here -> scope ‹ parent › (oracle pill text after Here outward)", "evidence": ["visual-baseline@4a79c0a:src/bin/holla/domain/context.rs:64-70 outward Here->Parent", "visual-baseline@4a79c0a:src/bin/holla/app_tests_flows.rs:685-696 esc_ladder asserts scope ‹ parent › after Ctrl+Up"], "owner": "TASK-041"},
+        {"key": "P2", "kind": "procedure", "disposition": "retire-procedure", "summary": "tab_to(ROWS) retired: oracle finder is single-focus, no ROWS stop", "evidence": ["visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1124-1140 single FINDER focus gate; preview is the only second stop"], "owner": null},
+        {"key": "A4", "kind": "assertion", "disposition": "replace", "summary": "Ctrl+P Preview -> Tab Preview on the single footer", "evidence": ["visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1543 hint(Tab, Preview)", "visual-baseline@4a79c0a:snapshots/holla/flows/query/empty_preview/160x50/truecolor.txt footer shows Tab Preview"], "owner": "TASK-041"},
+        {"key": "A5", "kind": "assertion", "disposition": "replace", "summary": "Ctrl+O Actions -> Alt+Enter More on the single footer", "evidence": ["visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1542 hint(Alt+Enter, More)", "docs/refactoring-plan/holla.md:78 (Alt+Enter opens alternatives)"], "owner": "TASK-041"},
+        {"key": "P3", "kind": "procedure", "disposition": "retire-procedure", "summary": "tab_to(QUERY) return retired with P2 (single-focus procedure)", "evidence": ["same as P2: oracle finder has no QUERY/ROWS split"], "owner": null},
+        {"key": "P4", "kind": "procedure", "disposition": "replace", "summary": "plain q -> Ctrl+Q (oracle q is typing-hot text)", "evidence": ["visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1304-1312 Char arm appends to query", "visual-baseline@4a79c0a:src/bin/holla/app.rs:559-562 global Ctrl+Q opens quit confirm", "docs/refactoring-plan/holla.md:78 (finder query is typing-hot: q/j/k are text)"], "owner": "TASK-040"},
+        {"key": "A6", "kind": "assertion", "disposition": "replace", "summary": "Quit holla? -> Quit holla❯? (oracle dialog title)", "evidence": ["visual-baseline@4a79c0a:src/bin/holla/app.rs:923-925 Quit holla❯ on {host}? / Quit holla❯?", "visual-baseline@4a79c0a:src/bin/holla/app_tests_flows.rs:711 oracle test asserts Quit holla❯?"], "owner": "TASK-040"},
+        {"key": "A7", "kind": "assertion", "disposition": "preserve", "summary": "diagnostics-empty architecture assertion retained byte-for-byte", "evidence": ["R-002 compatible ownership/safety class; no oracle contradiction"], "owner": null}
+      ],
+      "retained": ["empty-diagnostics architecture assertion", "uppercase Ctrl-chord display sampling (Ctrl+↑↓, Ctrl+G, Alt+Enter) keeps the casing intent"],
+      "evidence": ["tools/test-inventory/conflicts.json holla_app home_hint entry (9 oracle-conflict assertions)", "trusted known-mandatory inline conflict (inline-test-source-scope.md)"],
+      "closing": "TASK-041 lands after TASK-040 (041 deps include 040); the whole test passes once finder hints/scope (041) and shell quit (040) are restored"
+    },
+    {
+      "id": "V-002",
+      "identity": {"package": "holla", "kind": "lib", "target": "holla_app", "name": "app::tests::home_escape_clears_scope_before_canonical_query"},
+      "path": "apps/holla/src/app.rs",
+      "verdict": "relocate",
+      "replacement_identity": {"package": "holla", "kind": "lib", "target": "holla_app", "name": "app::tests::home_escape_clears_query_before_scope"},
+      "owner": "TASK-041",
+      "spans": [
+        {"key": "N", "kind": "name", "disposition": "relocate", "summary": "rename to home_escape_clears_query_before_scope (old name states the wrong order)", "evidence": ["R-003 permits renamed identities with a recorded relocation; the old name would lie after migration"], "owner": null},
+        {"key": "P1", "kind": "procedure", "disposition": "retire-procedure", "summary": "tab_to(ROWS) retired: oracle typing is focus-independent (typing-hot single focus)", "evidence": ["visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1124-1140 single FINDER focus; type_str works from home focus"], "owner": null},
+        {"key": "P3", "kind": "procedure", "disposition": "replace", "summary": "ctrl(s) -> Ctrl+Up (oracle scope step)", "evidence": ["visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1150-1155"], "owner": "TASK-041"},
+        {"key": "A1", "kind": "assertion", "disposition": "replace", "summary": "scope.is_some() -> text contains scope ‹ parent › (observable pill; robust to the Scope model rewrite)", "evidence": ["visual-baseline@4a79c0a:src/bin/holla/app_tests_flows.rs:685-696 esc_ladder first assertions"], "owner": "TASK-041"},
+        {"key": "A2", "kind": "assertion", "disposition": "replace", "summary": "Esc#1 clears scope -> Esc#1 clears query (query==\"\", scope pill retained)", "evidence": ["visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1288-1301 Esc arm: query first, scope second", "visual-baseline@4a79c0a:src/bin/holla/app_tests_flows.rs:691-696 first Esc clears the query, scope pill stays", "docs/refactoring-plan/holla.md:30 (query-before-scope Escape)"], "owner": "TASK-041"},
+        {"key": "A3", "kind": "assertion", "disposition": "replace", "summary": "Esc#2 clears query -> Esc#2 returns scope to here (scope ‹ here ›)", "evidence": ["visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1297-1300 scope reset to Here", "visual-baseline@4a79c0a:src/bin/holla/app_tests_flows.rs:697-701 second Esc returns to here"], "owner": "TASK-041"},
+        {"key": "A5", "kind": "assertion", "disposition": "preserve", "summary": "type docker -> query docker (typing-hot re-arm; oracle Char arm)", "evidence": ["visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1304-1312 typing appends to query"], "owner": null},
+        {"key": "A6", "kind": "assertion", "disposition": "preserve", "summary": "diagnostics-empty retained", "evidence": ["R-002 compatible class"], "owner": null}
+      ],
+      "retained": ["canonical home.query() accessor assertions (query is a String in both models)", "typing re-arm check", "empty-diagnostics assertion"],
+      "evidence": ["tools/test-inventory/conflicts.json holla_app home_escape entry (7 oracle-conflict assertions)", "trusted known-mandatory inline conflict"],
+      "closing": "TASK-041 restores finder Esc order and scope pill; query accessor assumed stable (recorded API assumption)"
+    },
+    {
+      "id": "V-003",
+      "identity": {"package": "holla", "kind": "lib", "target": "holla_app", "name": "scenario::tests::names_round_trip"},
+      "path": "apps/holla/src/scenario.rs",
+      "verdict": "replace",
+      "owner": "TASK-049",
+      "spans": [
+        {"key": "A1", "kind": "assertion", "disposition": "replace", "summary": "Scenario::ALL.len() 11 -> 34 (oracle world count)", "evidence": ["visual-baseline@4a79c0a:src/bin/holla/scenario.rs:103-138 ALL has 34 entries (11 base + 23 parity)", "current apps/holla/src/scenario.rs:33 ALL has 11 (parity worlds dropped)", "TASK-050 title proves 34-world oracle closure; TASK-049 is the terminal scenario.rs writer before it"], "owner": "TASK-049"},
+        {"key": "A0", "kind": "assertion", "disposition": "preserve", "summary": "round-trip loop identical to oracle; kept", "evidence": ["visual-baseline@4a79c0a:src/bin/holla/scenario.rs:213-215 identical loop"], "owner": null},
+        {"key": "A2", "kind": "assertion", "disposition": "preserve", "summary": "three Motion::resolve vectors identical to oracle; kept", "evidence": ["visual-baseline@4a79c0a:src/bin/holla/scenario.rs:216-218 identical vectors"], "owner": null}
+      ],
+      "retained": ["generic membership loop", "all three Motion::resolve vectors"],
+      "evidence": ["tools/test-inventory/conflicts.json holla_app names_round_trip entry", "trusted known-mandatory inline conflict (scenario world-count migration)"],
+      "closing": "TASK-049 restores the last parity worlds (count reaches 34); TASK-050 proves the 34-world closure. Dropping the pin to mirror the oracle test shape was rejected: R-004 forbids weakening to obtain green, and 34 is the exact oracle value."
+    },
+    {
+      "id": "V-004",
+      "identity": {"package": "junie-tui", "kind": "test", "target": "keyboard_editor", "name": "pointer_disabled_editor_keeps_geometry_caret_typing_and_paste"},
+      "path": "crates/tui/tests/keyboard_editor.rs",
+      "verdict": "preserve",
+      "spans": [
+        {"key": "ALL", "kind": "assertion", "disposition": "preserve", "summary": "all 8 assertions pin pointer/ownership policy (geometry, caret containment, pointer-disabled regions, no hit, no hover, typing, paste commit, diagnostics)", "evidence": ["docs/refactoring-plan/branch-diff-tui-tests-examples.tsv keyboard_editor row: preserve (keyboard-only retains area/caret/typing/paste without pointer/hit/scroll/capture authority)", "R-002 compatible ownership/safety class", "no W-025-07/08 conflicting-scope string (navigation-as-edit, caret reveal, wheel-mutates, tab-indent, marker/footer) occurs in this function (negative sweep)", "TASK-006 Family::TextInput Lane::Direct covers the exercised component"], "owner": null}
+      ],
+      "retained": ["entire test"],
+      "evidence": ["tools/test-inventory/conflicts.json coarse whole-file flag reviewed per-span: no conflicting span found", "TASK-007 discovery comment: whole-file marking is coarse; TASK-008 reviews each span"]
+    },
+    {
+      "id": "V-005",
+      "identity": {"package": "junie-tui", "kind": "test", "target": "keyboard_editor", "name": "default_pointer_path_still_repositions_caret_and_can_be_reenabled"},
+      "path": "crates/tui/tests/keyboard_editor.rs",
+      "verdict": "preserve",
+      "spans": [
+        {"key": "ALL", "kind": "assertion", "disposition": "preserve", "summary": "pointer reposition + disable/reenable ownership transitions; no product-text pin", "evidence": ["docs/refactoring-plan/branch-diff-tui-tests-examples.tsv keyboard_editor row: preserve (reenable)", "R-002 compatible ownership class", "negative sweep: no W-025 conflicting-scope content", "TASK-006 Family::TextInput Lane::Direct"], "owner": null}
+      ],
+      "retained": ["entire test"],
+      "evidence": ["007 coarse flag reviewed per-span: no conflicting span"]
+    },
+    {
+      "id": "V-006",
+      "identity": {"package": "junie-tui", "kind": "test", "target": "keyboard_editor", "name": "retained_paste_uses_new_keyboard_publication_and_admissibility_barriers"},
+      "path": "crates/tui/tests/keyboard_editor.rs",
+      "verdict": "preserve",
+      "spans": [
+        {"key": "ALL", "kind": "assertion", "disposition": "preserve", "summary": "paste publication/retention + disabled/readonly/modal admissibility barriers; safety class", "evidence": ["docs/refactoring-plan/branch-diff-tui-tests-examples.tsv keyboard_editor row: preserve (deferred paste new publication, disabled/readonly/modal barriers)", "R-002 compatible safety class", "negative sweep: no W-025 conflicting-scope content"], "owner": null}
+      ],
+      "retained": ["entire test"],
+      "evidence": ["007 coarse flag reviewed per-span: no conflicting span"]
+    },
+    {
+      "id": "V-007",
+      "identity": {"package": "junie-tui", "kind": "test", "target": "keyboard_editor", "name": "keyboard_only_fallback_keeps_caret_without_taking_navigation_focus"},
+      "path": "crates/tui/tests/keyboard_editor.rs",
+      "verdict": "preserve",
+      "spans": [
+        {"key": "ALL", "kind": "assertion", "disposition": "preserve", "summary": "fallback typing policy: caret kept while navigation focus stays elsewhere; ownership class", "evidence": ["docs/refactoring-plan/branch-diff-tui-tests-examples.tsv keyboard_editor row: preserve (fallback cursor independent of nav focus)", "docs/refactoring-plan/architecture-matrix.tsv A11 typing-owner row cites keyboard_editor evidence", "negative sweep: no W-025 conflicting-scope content"], "owner": null}
+      ],
+      "retained": ["entire test"],
+      "evidence": ["007 coarse flag reviewed per-span: no conflicting span"]
+    },
+    {
+      "id": "V-008",
+      "identity": {"package": "junie-tui", "kind": "test", "target": "keyboard_editor", "name": "owner_policy_covers_parts_before_and_after_declaration_and_cancels_capture"},
+      "path": "crates/tui/tests/keyboard_editor.rs",
+      "verdict": "preserve",
+      "spans": [
+        {"key": "ALL", "kind": "assertion", "disposition": "preserve", "summary": "part ownership inheritance + capture cancellation; pure ownership semantics", "evidence": ["docs/refactoring-plan/branch-diff-tui-tests-examples.tsv keyboard_editor row: preserve (pre/post declared parts inherit owner policy, cancel capture)", "R-002 compatible ownership class", "negative sweep: no W-025 conflicting-scope content"], "owner": null}
+      ],
+      "retained": ["entire test"],
+      "evidence": ["007 coarse flag reviewed per-span: no conflicting span"]
+    },
+    {
+      "id": "V-009",
+      "identity": {"package": "junie-tui", "kind": "test", "target": "keyboard_editor", "name": "warm_scene_and_live_keyboard_publication_allocate_nothing"},
+      "path": "crates/tui/tests/keyboard_editor.rs",
+      "verdict": "preserve",
+      "spans": [
+        {"key": "ALL", "kind": "assertion", "disposition": "preserve", "summary": "zero-alloc warm draw + live publication; perf/ownership witness, no product text", "evidence": ["docs/refactoring-plan/branch-diff-tui-tests-examples.tsv keyboard_editor row: preserve (bound Scene + live noalloc)", "R-002 compatible class", "negative sweep: no W-025 conflicting-scope content"], "owner": null}
+      ],
+      "retained": ["entire test"],
+      "evidence": ["007 coarse flag reviewed per-span: no conflicting span"]
+    },
+    {
+      "id": "V-010",
+      "identity": {"package": "junie-tui", "kind": "test", "target": "viewport", "name": "bootstrap_and_aborted_first_paint_have_no_viewport"},
+      "path": "crates/tui/tests/viewport.rs",
+      "verdict": "preserve",
+      "spans": [
+        {"key": "ALL", "kind": "assertion", "disposition": "preserve", "summary": "runtime viewport lifetime (bootstrap/aborted paint screen ZERO); lifecycle class, no oracle counterpart to contradict", "evidence": ["docs/refactoring-plan/branch-diff-tui-tests-examples.tsv viewport row: preserve (bootstrap/dropped-first-paint screen zero; distinct lifetimes)", "R-002 compatible ownership/lifecycle class", "negative sweep: no W-021-07 conflicting-scope content (no caret/gutter/copy pins in this file)"], "owner": null}
+      ],
+      "retained": ["entire test"],
+      "evidence": ["007 coarse flag reviewed per-span: no conflicting span"]
+    },
+    {
+      "id": "V-011",
+      "identity": {"package": "junie-tui", "kind": "test", "target": "viewport", "name": "resize_updates_current_viewport_before_replacing_published_geometry"},
+      "path": "crates/tui/tests/viewport.rs",
+      "verdict": "preserve",
+      "spans": [
+        {"key": "ALL", "kind": "assertion", "disposition": "preserve", "summary": "resize exposes current viewport while published geometry/input stay retained until commit; lifecycle class", "evidence": ["docs/refactoring-plan/branch-diff-tui-tests-examples.tsv viewport row: preserve (resize exposes current viewport, retains old published geometry; snapshot invalid; input retained)", "R-002 compatible class", "negative sweep: no W-021-07 conflicting-scope content"], "owner": null}
+      ],
+      "retained": ["entire test"],
+      "evidence": ["007 coarse flag reviewed per-span: no conflicting span"]
+    },
+    {
+      "id": "V-012",
+      "identity": {"package": "junie-tui", "kind": "lib", "target": "junie_tui", "name": "components::viewport::tests::retention_fixes_up_selection_and_caret"},
+      "path": "crates/tui/src/components/viewport.rs",
+      "verdict": "replace",
+      "owner": "TASK-021",
+      "spans": [
+        {"key": "C1", "kind": "comment", "disposition": "replace", "summary": "fix-up rule comment: saturate-at-0 -> move/clear/clip", "evidence": ["W-021-07 witness: evicted producer caret becomes None; source-clipped partial endpoints"], "owner": "TASK-021"},
+        {"key": "A1", "kind": "assertion", "disposition": "replace", "summary": "fully evicted caret Some(0,0) -> None", "evidence": ["visual-baseline@4a79c0a:src/widgets/viewport.rs:1885-1895 producer_caret_follows_eviction_and_replacement (evicted line -> None, the caret's line was evicted)", "refactoring-tasks/terminal-components/completion/021/trusted/source-witnesses.md W-021-07 row + reject column (retain evicted caret at0)", "docs/refactoring-plan/reaudit-components-b-branch-repairs.md:23 (oracle clears evicted producer caret)"], "owner": "TASK-021"},
+        {"key": "REST", "kind": "assertion", "disposition": "preserve", "summary": "shift-with-buffer, partial clip, selection collapse, anchor, generation pins all oracle-compatible; kept", "evidence": ["oracle eviction test: retained caret shifts line 1->0 with column kept; W-021-04 source-clipped partial endpoints"], "owner": null}
+      ],
+      "retained": ["all assertions except the evicted-caret pin"],
+      "evidence": ["trusted branch-test-disposition-bindings.tsv W-021-07 binds M:viewport.rs retention tests to TASK-008 disposition"],
+      "closing": "TASK-021 restores oracle retained() clearing"
+    },
+    {
+      "id": "V-013",
+      "identity": {"package": "junie-tui", "kind": "lib", "target": "junie_tui", "name": "components::viewport::tests::the_text_width_does_not_depend_on_whether_the_bar_is_painted"},
+      "path": "crates/tui/src/components/viewport.rs",
+      "verdict": "relocate",
+      "replacement_identity": {"package": "junie-tui", "kind": "lib", "target": "junie_tui", "name": "components::viewport::tests::the_text_width_reserves_a_scrollbar_column_only_on_overflow"},
+      "owner": "TASK-021",
+      "spans": [
+        {"key": "N", "kind": "name", "disposition": "relocate", "summary": "rename states the oracle rule (old name would lie)", "evidence": ["R-003 recorded relocation"], "owner": null},
+        {"key": "C1", "kind": "comment", "disposition": "replace", "summary": "Finding P-A unconditional-reservation rationale -> overflow-conditional rule", "evidence": ["W-021-07 required observation: scrollbar column reserved only when source overflow requires it"], "owner": "TASK-021"},
+        {"key": "A1", "kind": "assertion", "disposition": "replace", "summary": "width(short)==width(long) -> short==full width, long==width-1", "evidence": ["visual-baseline@4a79c0a:src/widgets/viewport.rs:870-898 set_area tries full width first, narrows only on overflow", "visual-baseline@4a79c0a:src/widgets/viewport.rs:1420 has_sb = overflows()", "W-021-07 reject column: always reserve scrollbar"], "owner": "TASK-021"}
+      ],
+      "retained": ["draw()-width observation method (API assumption recorded: draw return shape is TASK-021 owned)"],
+      "evidence": ["trusted branch-test-disposition-bindings.tsv W-021-07 (unconditional scrollbar in conflicting scope)"],
+      "closing": "TASK-021 restores overflow-conditional layout"
+    },
+    {
+      "id": "V-014",
+      "identity": {"package": "junie-tui", "kind": "lib", "target": "junie_tui", "name": "components::viewport::tests::the_focus_gutter_is_the_only_focus_affordance_and_it_is_painted"},
+      "path": "crates/tui/src/components/viewport.rs",
+      "verdict": "relocate",
+      "replacement_identity": {"package": "junie-tui", "kind": "lib", "target": "junie_tui", "name": "components::viewport::tests::no_viewport_gutter_text_paints_from_the_area_origin"},
+      "owner": "TASK-021",
+      "spans": [
+        {"key": "N", "kind": "name", "disposition": "relocate", "summary": "rename states the oracle geometry", "evidence": ["R-003 recorded relocation"], "owner": null},
+        {"key": "C1", "kind": "comment", "disposition": "replace", "summary": "gutter rationale -> no-gutter rule + Mono-focus handoff to TASK-021", "evidence": ["W-021-07 required observation: no source viewport gutter"], "owner": "TASK-021"},
+        {"key": "A1", "kind": "assertion", "disposition": "replace", "summary": "gutter glyph at origin in FOCUSED -> text h at origin in both states", "evidence": ["visual-baseline@4a79c0a:src/widgets/viewport.rs:1425-1433 text paint starts at area.x with no gutter column", "W-021-07 reject column: retain gutter unconditionally"], "owner": "TASK-021"}
+      ],
+      "retained": ["origin-cell observation method via ui.reference scaffolding (API assumption: reference machinery is TASK-021 owned)"],
+      "evidence": ["trusted branch-test-disposition-bindings.tsv W-021-07 (unconditional gutter in conflicting scope)"],
+      "closing": "TASK-021 removes the gutter; the Mono focus-visibility concern is its open design item (recorded handoff, not silently dropped)"
+    },
+    {
+      "id": "V-015",
+      "identity": {"package": "junie-tui", "kind": "lib", "target": "junie_tui", "name": "components::viewport::tests::tabs_expand_to_a_fixed_width_everywhere"},
+      "path": "crates/tui/src/components/viewport.rs",
+      "verdict": "relocate",
+      "replacement_identity": {"package": "junie-tui", "kind": "lib", "target": "junie_tui", "name": "components::viewport::tests::tabs_expand_in_geometry_but_copy_as_source_bytes"},
+      "owner": "TASK-021",
+      "spans": [
+        {"key": "N", "kind": "name", "disposition": "relocate", "summary": "rename: expansion holds for geometry, not copy", "evidence": ["R-003 recorded relocation"], "owner": null},
+        {"key": "C1", "kind": "comment", "disposition": "replace", "summary": "agree-everywhere rationale -> geometry expands, copy returns source bytes", "evidence": ["W-021-06 required observation: source bytes, no tab expansion in copy"], "owner": "TASK-021"},
+        {"key": "A1", "kind": "assertion", "disposition": "replace", "summary": "copy == expanded spaces -> copy == source tab byte", "evidence": ["visual-baseline@4a79c0a:src/widgets/viewport.rs:1011-1032 selected_text returns source bytes (tabs preserved), trims ASCII spaces only", "visual-baseline@4a79c0a:src/widgets/viewport.rs:244-253 tabs share one src range so all TabPad cells copy as one tab byte", "W-021-07 reject column: expand copy tabs"], "owner": "TASK-021"},
+        {"key": "A0", "kind": "assertion", "disposition": "preserve", "summary": "line_cols geometry expansion pin kept (oracle expands tabs to 4 in geometry)", "evidence": ["visual-baseline@4a79c0a:src/widgets/viewport.rs:244-253 tab expands to TAB_SPACES cells", "visual-baseline@4a79c0a:src/ui/text.rs:9 TAB_SPACES is 4 spaces; current TAB_WIDTH is 4"], "owner": null}
+      ],
+      "retained": ["geometry expansion assertion"],
+      "evidence": ["trusted branch-test-disposition-bindings.tsv W-021-07 (tab expansion in copy in conflicting scope)"],
+      "closing": "TASK-021 restores source-byte copy"
+    }
+  ],
+  "reviews": [
+    {
+      "id": "R-CODE-025",
+      "path": "crates/tui/src/components/code.rs",
+      "target": {"package": "junie-tui", "kind": "lib", "target": "junie_tui", "prefix": "components::code::tests::"},
+      "scope": "all 10 inline tests vs W-025-07/08 conflicting scope",
+      "verdict": "preserve",
+      "tests": [
+        {"name": "edit_counter_invalidates_the_highlight_cache", "rationale": "cache ownership; binding preserve class"},
+        {"name": "editing_style_comes_only_from_the_real_edit_state", "rationale": "style ownership, no product text"},
+        {"name": "saturation_never_reuses_stale_highlights", "rationale": "cache ownership"},
+        {"name": "captured_highlighter_and_segmenter_are_supported", "rationale": "borrowed-callable API ownership"},
+        {"name": "disabled_highlighting_keeps_the_disabled_text_style", "rationale": "style ownership"},
+        {"name": "draw_cannot_commit_or_change_the_state", "rationale": "draw purity architecture"},
+        {"name": "find_input_routes_text_backspace_enter_and_escape", "rationale": "key routing; pins no footer suffix/count text"},
+        {"name": "text_hit_coordinates_are_relative_to_the_text_part", "rationale": "hit-test ownership"},
+        {"name": "read_only_blocks_document_commands_even_if_state_is_editing", "rationale": "read-only safety; Tab appears only inside a blocked-command list, oracle-compatible"},
+        {"name": "cursor_is_only_returned_inside_nonempty_text_area", "rationale": "cursor geometry helper"}
+      ],
+      "negative": ["no wheel/Wheel/reveal/marker/footer/diagnostic/navigation identifiers in the test module", "Tab occurs only as focus-traversal procedure and inside the read-only blocked list", "no marker-vs-diagnostic or find-footer count/suffix pins"],
+      "evidence": ["trusted branch-test-disposition-bindings.tsv W-025-07/08 (conflicting observations live in the branch corpus and unborn completion_025.rs; current inline tests hold none)", "TASK-006 Family::CodeEditor Lane::Direct", "refactoring-tasks/terminal-components/completion/025/trusted/source-witnesses.md W-025-07/08 rows (asymmetric cases owned by TASK-025)"]
+    },
+    {
+      "id": "R-DIFF-026",
+      "path": "crates/tui/src/components/diff.rs",
+      "target": {"package": "junie-tui", "kind": "lib", "target": "junie_tui", "prefix": "components::diff::tests::"},
+      "scope": "all 6 inline tests vs W-026-05 conflicting scope",
+      "verdict": "preserve",
+      "tests": [
+        {"name": "counts_and_headers", "rationale": "header/count formatting on the symmetric Source fixture"},
+        {"name": "unified_lists_every_line_with_markers", "rationale": "unified markers on symmetric hunk"},
+        {"name": "review_pairs_columns_and_emphasises_the_change", "rationale": "first-row pairing is run-guard independent; pins no boundary row, no blank-side copy"},
+        {"name": "view_renders_and_scrolls_without_draw_mutation", "rationale": "draw purity + mode toggle"},
+        {"name": "source_revision_and_review_width_key_the_runtime_cache", "rationale": "cache ownership"},
+        {"name": "reference_mode_makes_the_composed_viewport_inert", "rationale": "composition ownership"}
+      ],
+      "negative": ["Source fixture hunk is (3,4): near-symmetric; no (0,2)/(2,0)/(1,2)/(2,1) asymmetric pin", "no blank-side, boundary-row, or projected-copy assertions"],
+      "evidence": ["trusted branch-test-disposition-bindings.tsv W-026-05 (asymmetric sequences target unborn completion_026.rs per oracle diff.rs)", "TASK-006 Family::DiffView Lane::Direct", "refactoring-tasks/terminal-components/completion/026/trusted/source-witnesses.md W-026-05 row (owned by TASK-026)"]
+    },
+    {
+      "id": "R-VIEWPORT-021-REST",
+      "path": "crates/tui/src/components/viewport.rs",
+      "target": {"package": "junie-tui", "kind": "lib", "target": "junie_tui", "prefix": "components::viewport::tests::"},
+      "scope": "25 remaining inline tests outside V-012..V-015 (29 total: 25 preserve + 4 migrate)",
+      "verdict": "preserve",
+      "tests": [
+        {"name": "track_registration_uses_the_full_bar_geometry", "rationale": "scrollbar geometry ownership"},
+        {"name": "pointer_mapping_uses_current_lines_after_invalidation", "rationale": "pointer mapping ownership"},
+        {"name": "update_uses_the_current_content_length", "rationale": "content-length ownership"},
+        {"name": "bottom_track_click_and_thumb_drag_reach_the_end", "rationale": "scroll interaction"},
+        {"name": "offscreen_caret_emits_no_cursor_while_visible_caret_does", "rationale": "caret visibility only; no eviction pin (no retained() call)"},
+        {"name": "append_extends_the_wrapped_index_without_rebuilding_its_prefix", "rationale": "W-021-01 work-counter class: binding preserve"},
+        {"name": "ensure_work_is_cold_zero_warm_suffix_on_append_and_full_on_reflow", "rationale": "work-counter class: binding preserve"},
+        {"name": "work_probe_is_isolated_resettable_and_reports_cold_warm_work", "rationale": "probe class: binding preserve"},
+        {"name": "work_probes_are_parallel_caller_owned", "rationale": "probe ownership"},
+        {"name": "wrapped_prefix_matches_bruteforce", "rationale": "layout oracle (brute-force cross-check)"},
+        {"name": "generation_saturation_never_reuses_stale_layout", "rationale": "cache ownership"},
+        {"name": "same_length_offscreen_rewrap_after_invalidate_updates_total_end_thumb_and_mapping", "rationale": "layout/cache ownership"},
+        {"name": "copy_command_carries_the_selected_text_in_the_exact_action", "rationale": "ASCII-only copy data (beta); compatible with oracle source-byte+ASCII-trim rule"},
+        {"name": "first_end_emits_follow_changed", "rationale": "single-mode End->follow pin; no log/prose modes exist yet (no such identifiers); TASK-021 extends with W-021-05 log/prose cases"},
+        {"name": "repeated_end_repaints_without_emitting_follow_changed", "rationale": "idempotent repaint; compatible"},
+        {"name": "parts_match_the_exact_styling_surface", "rationale": "style surface ownership"},
+        {"name": "a_reference_viewport_makes_its_nested_scroll_region_inert", "rationale": "composition ownership"},
+        {"name": "nested_scrollbar_resolves_through_the_viewport_family", "rationale": "scrollbar resolution (existence, not conditionality)"},
+        {"name": "wrapped_rows_partition_the_line", "rationale": "layout invariant"},
+        {"name": "copy_joins_lines_and_trims_each", "rationale": "ASCII-space trimming only (beta); compatible with oracle trim_end_matches(space); no Unicode/tab/control trailing data pinned"},
+        {"name": "a_double_click_selects_a_path_like_word", "rationale": "word grammar ownership"},
+        {"name": "mono_selection_paints_the_resolved_inverse_underlined_style", "rationale": "selection style ownership"},
+        {"name": "a_rebuilt_layout_paints_what_the_warm_one_did", "rationale": "warm/rebuild cell identity; gutter mention is procedure commentary, frames compared are steady-state"},
+        {"name": "every_declared_part_is_one_a_drawn_viewport_styles", "rationale": "part surface ownership incl. TRACK/THUMB existence"},
+        {"name": "the_slot_addressable_parts_are_exactly_the_documented_ones", "rationale": "part surface ownership"}
+      ],
+      "negative": ["identifier sweep over the test module for caret()/set_caret/copy_into/Copy/gutter/text_width/.width found pins only in V-012..V-015 sites", "no non-ASCII trailing-whitespace copy data; Unicode trim_end is a production-code fact (copy_from), unpinned by any current test"],
+      "evidence": ["trusted branch-test-disposition-bindings.tsv W-021-07 preserve column (compatible cache/ownership/probe assertions)", "TASK-006 Family::TextViewport Lane::Direct", "W-021-06 asymmetric copy cases target unborn completion_021.rs (TASK-021)"]
+    },
+    {
+      "id": "R-HOLLA-CTRLA",
+      "path": "apps/holla/src/app.rs",
+      "target": {"package": "holla", "kind": "lib", "target": "holla_app", "prefix": "app::tests::"},
+      "scope": "R-002 Holla Ctrl+A reconciliation: activity-cycle tests pinning main-only ctrl(a)",
+      "verdict": "preserve",
+      "tests": [
+        {"name": "activity_digits_are_route_scoped_and_cycle_from_home_starts_first", "rationale": "pins ctrl(a) activity cycling (main-only binding); procedure goes stale when TASK-040 restores oracle chords (Ctrl+A select-all, Ctrl+G activities); digit-routing assertions are compatible"},
+        {"name": "activity_switching_and_home_keep_viewport_lifecycle_clean", "rationale": "same ctrl(a) procedure note; viewport-lifecycle assertions are compatible ownership"}
+      ],
+      "negative": [],
+      "evidence": ["visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1160-1168 oracle Ctrl+A selects the query", "visual-baseline@4a79c0a:src/bin/holla/app.rs:567-569 oracle Ctrl+G opens activities", "docs/refactoring-plan/holla.md:78", "docs/refactoring-plan/branch-diff-holla.md:40 (TASK-040 owns shell keys)", "TASK-007 accepted preserve adjudication (absent from conflicts.json); migration of these procedures belongs to the chord owner TASK-040, recorded here, not silently dropped"]
+    },
+    {
+      "id": "R-HOLLA-SCOPE-ESC",
+      "path": "apps/holla/src/app.rs",
+      "target": {"package": "holla", "kind": "lib", "target": "holla_app", "prefix": "app::tests::"},
+      "scope": "R-002 scope-first reconciliation for the empty-query sibling test",
+      "verdict": "preserve",
+      "tests": [
+        {"name": "home_scope_is_projected_into_header_and_clears_with_escape", "rationale": "Esc with EMPTY query resetting scope matches the oracle Esc arm (query empty -> scope Here); the !contains(scope:) pin holds under the oracle pill (no colon); ctrl(s) procedure goes stale at TASK-041"}
+      ],
+      "negative": [],
+      "evidence": ["visual-baseline@4a79c0a:src/bin/holla/screens/finder.rs:1293-1300 empty-query Esc resets scope", "TASK-007 accepted preserve adjudication"]
+    },
+    {
+      "id": "R-HOLLA-QUIT-TEXT",
+      "path": "apps/holla/src/app.rs",
+      "target": {"package": "holla", "kind": "lib", "target": "holla_app", "prefix": "app::tests::"},
+      "scope": "R-002 quit-path reconciliation: oracle-correct Ctrl+Q procedure with main-only dialog text pins",
+      "verdict": "preserve",
+      "tests": [
+        {"name": "interrupt_quits_outside_modals_and_quit_chord_precedes_open_menu", "rationale": "quit-chord precedence architecture is oracle-compatible (Ctrl+Q/Ctrl+C global); the Quit holla? text pin refreshes to Quit holla❯? when TASK-040 restores the dialog"}
+      ],
+      "negative": [],
+      "evidence": ["visual-baseline@4a79c0a:src/bin/holla/app.rs:559-565 Ctrl+Q confirm / Ctrl+C immediate", "visual-baseline@4a79c0a:src/bin/holla/app.rs:923-925 oracle title", "TASK-007 accepted preserve adjudication; text refresh belongs to dialog owner TASK-040"]
+    },
+    {
+      "id": "R-HOLLA-FRAME",
+      "path": "apps/holla/src/sim/world.rs",
+      "target": null,
+      "scope": "R-002 frame-ms reconciliation",
+      "verdict": "preserve",
+      "tests": [],
+      "negative": ["TASK-007 discovery found no oracle-conflict span in clock/world/frame-ms tests"],
+      "evidence": ["tools/test-inventory/conflicts.json has no clock/world entry (accepted adjudication)", "clock-cadence branches are scenario-owned (HO-BASE-01 actions); no current span contradicts them"]
+    },
+    {
+      "id": "R-SHOWCASE-OLD22",
+      "path": "apps/showcase/tests",
+      "target": null,
+      "scope": "R-002 old22-pageShowcase authority reconciliation",
+      "verdict": "preserve",
+      "tests": [],
+      "negative": ["TASK-007 discovery found no oracle-conflict span in showcase tests"],
+      "evidence": ["docs/refactoring-plan/branch-diff-history-ledger.json: Old22-page count and 132-capture matrix are historical authority (accepted historical fact, not current oracle)", "tools/test-inventory/conflicts.json has no showcase entry (accepted adjudication)"]
+    },
+    {
+      "id": "R-TABLEPRO-SURFACE",
+      "path": "apps/tablepro/tests",
+      "target": null,
+      "scope": "R-002 TablePro Surface/confirmation reconciliation",
+      "verdict": "preserve",
+      "tests": [],
+      "negative": ["TASK-007 discovery found no oracle-conflict span in tablepro tests"],
+      "evidence": ["docs/refactoring-plan/tablepro.md:50 keep the surface matrix as a regression guard; acceptance authority moves to immutable-oracle checkpoints owned by TablePro tasks", "tools/test-inventory/conflicts.json has no tablepro entry (accepted adjudication)"]
+    },
+    {
+      "id": "R-METER-PINS",
+      "path": "crates/tui/tests/meter_defaults.rs",
+      "target": null,
+      "scope": "R-002 Meter changedpins reconciliation (current-evidence-gap, TASK-029 owned)",
+      "verdict": "preserve",
+      "tests": [],
+      "negative": [],
+      "evidence": ["source-obligations.tsv HL-METER-PINS: seven of 16 preservation integers changed; disposition current-evidence-gap; remaining work reconstructs canonical before/after cells from the pinned Sep10 oracle", "task_ids TASK-008;TASK-029: TASK-008 records, TASK-029 restores deterministic Meter output (029 title)", "tools/test-inventory/conflicts.json has no meter entry (accepted adjudication); current meter tests stay as regression guards"]
+    }
+  ]
+}

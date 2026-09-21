@@ -108,7 +108,7 @@ mod tests {
         for s in Scenario::ALL {
             assert_eq!(Scenario::from_name(s.name()), Some(s));
         }
-        assert_eq!(Scenario::ALL.len(), 11);
+        assert_eq!(Scenario::ALL.len(), 34);
         assert_eq!(Motion::resolve(None, true), Motion::Reduced);
         assert_eq!(Motion::resolve(Some(Motion::Full), true), Motion::Full);
         assert_eq!(Motion::resolve(None, false), Motion::Full);

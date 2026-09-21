@@ -1203,18 +1203,14 @@ mod tests {
         let mut h = app(Scenario::RustDirty);
         let text = h.text();
         let footer = text.lines().last().unwrap();
-        assert!(footer.contains("Ctrl+S Scope"));
-        assert!(footer.contains("q Quit"));
-        let _ = h.ctrl('s');
-        assert!(h.text().contains("scope: here"));
-        assert!(h.tab_to(home::ROWS));
-        let text = h.text();
-        let footer = text.lines().last().unwrap();
-        assert!(footer.contains("Ctrl+P Preview"));
-        assert!(footer.contains("Ctrl+O Actions"));
-        assert!(h.tab_to(home::QUERY));
-        let _ = h.key(KeyCode::Char('q'));
-        assert!(h.text().contains("Quit holla?"));
+        assert!(footer.contains("Ctrl+↑↓ Scope"));
+        assert!(footer.contains("Ctrl+G Activities"));
+        assert!(footer.contains("Tab Preview"));
+        assert!(footer.contains("Alt+Enter More"));
+        let _ = h.key_mod(KeyCode::Up, junie_tui::KeyModifiers::CONTROL);
+        assert!(h.text().contains("scope ‹ parent ›"));
+        let _ = h.ctrl('q');
+        assert!(h.text().contains("Quit holla❯?"));
         assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
     }
     #[test]
@@ -1249,17 +1245,16 @@ mod tests {
         );
     }
     #[test]
-    fn home_escape_clears_scope_before_canonical_query() {
+    fn home_escape_clears_query_before_scope() {
         let mut harness = app(Scenario::HardCases);
-        assert!(harness.tab_to(home::ROWS));
         let _ = harness.type_str("git");
-        let _ = harness.ctrl('s');
-        assert!(harness.app().home.scope.is_some());
-        let _ = harness.key(KeyCode::Esc);
-        assert!(harness.app().home.scope.is_none());
-        assert_eq!(harness.app().home.query(), "git");
+        let _ = harness.key_mod(KeyCode::Up, junie_tui::KeyModifiers::CONTROL);
+        assert!(harness.text().contains("scope ‹ parent ›"));
         let _ = harness.key(KeyCode::Esc);
         assert_eq!(harness.app().home.query(), "");
+        assert!(harness.text().contains("scope ‹ parent ›"));
+        let _ = harness.key(KeyCode::Esc);
+        assert!(harness.text().contains("scope ‹ here ›"));
         let _ = harness.type_str("docker");
         assert_eq!(harness.app().home.query(), "docker");
         assert!(

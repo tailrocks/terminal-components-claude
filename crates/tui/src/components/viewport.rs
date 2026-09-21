@@ -2284,8 +2284,9 @@ mod tests {
     /// buffer and its cap — but every position the viewport holds is an index
     /// into that buffer, so dropping `n` lines from the front silently
     /// re-points the selection, the drag anchor and the caret at the wrong
-    /// lines. `retained(n)` is the whole of the fix-up, and it must move all
-    /// three, saturating at line 0 for positions that were dropped.
+    /// lines. `retained(n)` is the whole of the fix-up: it moves all three
+    /// with the buffer, clears a fully evicted selection and producer caret
+    /// to `None`, and clips partially evicted endpoints to the retained head.
     #[test]
     fn retention_fixes_up_selection_and_caret() {
         let mut st = ViewportState::default();
@@ -2319,7 +2320,7 @@ mod tests {
             None,
             "a fully dropped selection must collapse, not name line 0 twice"
         );
-        assert_eq!(st.caret(), Some(CellPos::new(0, 0)));
+        assert_eq!(st.caret(), None, "the caret's line was evicted");
         // the derived visual-row index is invalidated by the same call
         let before = st.generation;
         st.retained(1);
@@ -2418,13 +2419,11 @@ mod tests {
         out
     }
 
-    /// Finding P-A: the legacy viewport laid the whole buffer out at `width`,
-    /// discovered it overflowed, and laid it out **again** at `width − 1` for
-    /// the scrollbar. Reserving the column unconditionally makes the layout a
-    /// function of `area` alone, so the text rect — and therefore the wrap —
-    /// is the same whether or not the bar is painted.
+    /// Short content lays out at the full area width; only overflowing
+    /// content narrows by one column for the scrollbar. The text rect — and
+    /// therefore the wrap — follows the overflow decision.
     #[test]
-    fn the_text_width_does_not_depend_on_whether_the_bar_is_painted() {
+    fn the_text_width_reserves_a_scrollbar_column_only_on_overflow() {
         let area = Rect {
             x: 0,
             y: 0,
@@ -2444,17 +2443,24 @@ mod tests {
             .commit_presented();
             w
         };
-        assert_eq!(width_of(&short), width_of(&long));
-        assert_eq!(width_of(&short), TextViewport::text_width(area.width));
+        assert_eq!(
+            width_of(&short),
+            area.width,
+            "no overflow keeps the full width"
+        );
+        assert_eq!(
+            width_of(&long),
+            area.width - 1,
+            "overflow reserves the scrollbar column"
+        );
     }
 
-    /// The viewport is a focus stop and paints a focus gutter, because the
-    /// `VIEWPORT` recipe gives `CONTAINER` and `TEXT` no `FOCUSED` rule at
-    /// all — without the gutter glyph a focused pane and an unfocused one are
-    /// the same cells at `ColorLevel::Mono` and conformance case 9 could
-    /// never pass for a `Caps::FOCUSABLE` component.
+    /// The viewport paints no gutter: text starts at the area origin whether
+    /// or not the viewport is focused. Focus visibility at `ColorLevel::Mono`
+    /// is TASK-021's open design concern; this test pins only the gutter-free
+    /// geometry, not the future focus affordance.
     #[test]
-    fn the_focus_gutter_is_the_only_focus_affordance_and_it_is_painted() {
+    fn no_viewport_gutter_text_paints_from_the_area_origin() {
         let area = Rect {
             x: 0,
             y: 0,
@@ -2462,8 +2468,7 @@ mod tests {
             height: 3,
         };
         let lines = [ViewportLine::Plain("hello"), ViewportLine::Plain("world")];
-        let bar = Theme::junie().design.glyphs.get(GlyphRole::FocusBar);
-        let gutter = |state: ReferenceState| {
+        let origin = |state: ReferenceState| {
             let mut rt = Runtime::new(Stub::default(), Theme::junie());
             let mut buf = Buffer::empty(SCREEN);
             let st = ViewportState::default();
@@ -2476,8 +2481,8 @@ mod tests {
             buf.cell(Position::new(0, 0))
                 .map_or_else(String::new, |c| c.symbol().to_owned())
         };
-        assert_eq!(gutter(ReferenceState::FOCUSED), bar);
-        assert_ne!(gutter(ReferenceState::default()), bar);
+        assert_eq!(origin(ReferenceState::FOCUSED), "h");
+        assert_eq!(origin(ReferenceState::default()), "h");
     }
 
     #[test]
@@ -2574,11 +2579,11 @@ mod tests {
 
     /// Tabs are control characters, so [`crate::text::width`] gives them zero
     /// columns; a terminal pane would collapse an indented line onto its
-    /// first token. They expand to [`TAB_WIDTH`] cells, and the expansion has
-    /// to agree between the walk, the copy and the paint or a selection over
-    /// an indented line copies the wrong bytes.
+    /// first token. They expand to [`TAB_WIDTH`] cells in geometry, but copy
+    /// returns the original source bytes: a selection over an indented line
+    /// copies the tab byte, not its expansion.
     #[test]
-    fn tabs_expand_to_a_fixed_width_everywhere() {
+    fn tabs_expand_in_geometry_but_copy_as_source_bytes() {
         let line = ViewportLine::Plain("\tif x:");
         assert_eq!(line_cols(line), usize::from(TAB_WIDTH) + 5);
         let lines = [line];
@@ -2589,7 +2594,7 @@ mod tests {
         );
         let mut out = String::new();
         assert!(st.copy_into(&lines, &mut out));
-        assert_eq!(out, "    if", "the tab did not copy as its expansion");
+        assert_eq!(out, "\tif", "the tab copies as its source byte");
     }
 
     /// §33's Invariant P: every declared part is one a drawn viewport

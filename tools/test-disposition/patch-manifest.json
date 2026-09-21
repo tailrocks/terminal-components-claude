@@ -1,0 +1,168 @@
+{
+  "schema": 1,
+  "producer": "TASK-008",
+  "base_commit": "d372b79c37577957367a02cd7229ca19d7b1fa5d",
+  "note": "Exact test-only span patches. old/new are byte-exact file substrings including trailing newline. Apply with tools/test-disposition/disposition.py apply; verify with verify.",
+  "patches": [
+    {
+      "id": "P-001",
+      "path": "apps/holla/src/app.rs",
+      "verdict_ref": "V-001",
+      "span_keys": [
+        "A1",
+        "A2",
+        "P1",
+        "A3",
+        "P2",
+        "A4",
+        "A5",
+        "P3",
+        "P4",
+        "A6",
+        "A7"
+      ],
+      "old_start_line": 1201,
+      "old_end_line": 1219,
+      "old_start": 46530,
+      "old": "    #[test]\n    fn home_hint_casing_preserves_lowercase_physical_shortcuts() {\n        let mut h = app(Scenario::RustDirty);\n        let text = h.text();\n        let footer = text.lines().last().unwrap();\n        assert!(footer.contains(\"Ctrl+S Scope\"));\n        assert!(footer.contains(\"q Quit\"));\n        let _ = h.ctrl('s');\n        assert!(h.text().contains(\"scope: here\"));\n        assert!(h.tab_to(home::ROWS));\n        let text = h.text();\n        let footer = text.lines().last().unwrap();\n        assert!(footer.contains(\"Ctrl+P Preview\"));\n        assert!(footer.contains(\"Ctrl+O Actions\"));\n        assert!(h.tab_to(home::QUERY));\n        let _ = h.key(KeyCode::Char('q'));\n        assert!(h.text().contains(\"Quit holla?\"));\n        assert!(h.diagnostics().is_empty(), \"{:?}\", h.diagnostics());\n    }\n",
+      "old_sha256": "c07d74f8f9fc59e159827afeacdfb62b68e9289f738314c48f291d2a4747f868",
+      "old_bytes": 812,
+      "new": "    #[test]\n    fn home_hint_casing_preserves_lowercase_physical_shortcuts() {\n        let mut h = app(Scenario::RustDirty);\n        let text = h.text();\n        let footer = text.lines().last().unwrap();\n        assert!(footer.contains(\"Ctrl+↑↓ Scope\"));\n        assert!(footer.contains(\"Ctrl+G Activities\"));\n        assert!(footer.contains(\"Tab Preview\"));\n        assert!(footer.contains(\"Alt+Enter More\"));\n        let _ = h.key_mod(KeyCode::Up, junie_tui::KeyModifiers::CONTROL);\n        assert!(h.text().contains(\"scope ‹ parent ›\"));\n        let _ = h.ctrl('q');\n        assert!(h.text().contains(\"Quit holla❯?\"));\n        assert!(h.diagnostics().is_empty(), \"{:?}\", h.diagnostics());\n    }\n",
+      "new_sha256": "1d410e57d0abecd75ad6305174be7190a7f65f8a7882379d0f5782a3b19e7c9e",
+      "new_bytes": 709
+    },
+    {
+      "id": "P-002",
+      "path": "apps/holla/src/app.rs",
+      "verdict_ref": "V-002",
+      "span_keys": [
+        "N",
+        "P1",
+        "P3",
+        "A1",
+        "A2",
+        "A3",
+        "A5",
+        "A6"
+      ],
+      "old_start_line": 1251,
+      "old_end_line": 1270,
+      "old_start": 48804,
+      "old": "    #[test]\n    fn home_escape_clears_scope_before_canonical_query() {\n        let mut harness = app(Scenario::HardCases);\n        assert!(harness.tab_to(home::ROWS));\n        let _ = harness.type_str(\"git\");\n        let _ = harness.ctrl('s');\n        assert!(harness.app().home.scope.is_some());\n        let _ = harness.key(KeyCode::Esc);\n        assert!(harness.app().home.scope.is_none());\n        assert_eq!(harness.app().home.query(), \"git\");\n        let _ = harness.key(KeyCode::Esc);\n        assert_eq!(harness.app().home.query(), \"\");\n        let _ = harness.type_str(\"docker\");\n        assert_eq!(harness.app().home.query(), \"docker\");\n        assert!(\n            harness.diagnostics().is_empty(),\n            \"{:?}\",\n            harness.diagnostics()\n        );\n    }\n",
+      "old_sha256": "89f9af76bcc1da935732ae951da060027119b7e26733a4f17d5bfb1b24a56506",
+      "old_bytes": 779,
+      "new": "    #[test]\n    fn home_escape_clears_query_before_scope() {\n        let mut harness = app(Scenario::HardCases);\n        let _ = harness.type_str(\"git\");\n        let _ = harness.key_mod(KeyCode::Up, junie_tui::KeyModifiers::CONTROL);\n        assert!(harness.text().contains(\"scope ‹ parent ›\"));\n        let _ = harness.key(KeyCode::Esc);\n        assert_eq!(harness.app().home.query(), \"\");\n        assert!(harness.text().contains(\"scope ‹ parent ›\"));\n        let _ = harness.key(KeyCode::Esc);\n        assert!(harness.text().contains(\"scope ‹ here ›\"));\n        let _ = harness.type_str(\"docker\");\n        assert_eq!(harness.app().home.query(), \"docker\");\n        assert!(\n            harness.diagnostics().is_empty(),\n            \"{:?}\",\n            harness.diagnostics()\n        );\n    }\n",
+      "new_sha256": "d5edb101242da46d562beea38f2d83427166c36dc9f714b2468f5d0f31319e3d",
+      "new_bytes": 804
+    },
+    {
+      "id": "P-003",
+      "path": "apps/holla/src/scenario.rs",
+      "verdict_ref": "V-003",
+      "span_keys": [
+        "A1"
+      ],
+      "old_start_line": 111,
+      "old_end_line": 111,
+      "old_start": 3770,
+      "old": "        assert_eq!(Scenario::ALL.len(), 11);\n",
+      "old_sha256": "6f540e3fc315e7dd8b0f821540e5a1e727bcc4ad4288276c6301012bec5b7e3f",
+      "old_bytes": 45,
+      "new": "        assert_eq!(Scenario::ALL.len(), 34);\n",
+      "new_sha256": "7fa6a14e524930e7ee8aadaf2e2bdaef2a4220c191db4d90d035a4af49b933de",
+      "new_bytes": 45
+    },
+    {
+      "id": "P-004a",
+      "path": "crates/tui/src/components/viewport.rs",
+      "verdict_ref": "V-012",
+      "span_keys": [
+        "C1"
+      ],
+      "old_start_line": 2283,
+      "old_end_line": 2288,
+      "old_start": 73381,
+      "old": "    /// §16.1's named test. Bounded retention is the caller's — it owns the\n    /// buffer and its cap — but every position the viewport holds is an index\n    /// into that buffer, so dropping `n` lines from the front silently\n    /// re-points the selection, the drag anchor and the caret at the wrong\n    /// lines. `retained(n)` is the whole of the fix-up, and it must move all\n    /// three, saturating at line 0 for positions that were dropped.\n",
+      "old_sha256": "9526a43a1e0d9548836b4505cccdb0e20f6f0cb40c42364dd38f0012d5aac76d",
+      "old_bytes": 455,
+      "new": "    /// §16.1's named test. Bounded retention is the caller's — it owns the\n    /// buffer and its cap — but every position the viewport holds is an index\n    /// into that buffer, so dropping `n` lines from the front silently\n    /// re-points the selection, the drag anchor and the caret at the wrong\n    /// lines. `retained(n)` is the whole of the fix-up: it moves all three\n    /// with the buffer, clears a fully evicted selection and producer caret\n    /// to `None`, and clips partially evicted endpoints to the retained head.\n",
+      "new_sha256": "35b74fdc96adadbc06d09bad48fd33e981448ecd4c1ebcb922494a8beee7c7b4",
+      "new_bytes": 540
+    },
+    {
+      "id": "P-004b",
+      "path": "crates/tui/src/components/viewport.rs",
+      "verdict_ref": "V-012",
+      "span_keys": [
+        "A1"
+      ],
+      "old_start_line": 2322,
+      "old_end_line": 2322,
+      "old_start": 75083,
+      "old": "        assert_eq!(st.caret(), Some(CellPos::new(0, 0)));\n",
+      "old_sha256": "900370f303a09377339a0b07ab9af742f7d27cc2aaddfd5183b9a998699a6a03",
+      "old_bytes": 58,
+      "new": "        assert_eq!(st.caret(), None, \"the caret's line was evicted\");\n",
+      "new_sha256": "4e56400ca9002f6bce29f4604d2ebe1305f85eb8ac52ad92532d2d578c5d379d",
+      "new_bytes": 70
+    },
+    {
+      "id": "P-005",
+      "path": "crates/tui/src/components/viewport.rs",
+      "verdict_ref": "V-013",
+      "span_keys": [
+        "N",
+        "C1",
+        "A1"
+      ],
+      "old_start_line": 2421,
+      "old_end_line": 2449,
+      "old_start": 79138,
+      "old": "    /// Finding P-A: the legacy viewport laid the whole buffer out at `width`,\n    /// discovered it overflowed, and laid it out **again** at `width − 1` for\n    /// the scrollbar. Reserving the column unconditionally makes the layout a\n    /// function of `area` alone, so the text rect — and therefore the wrap —\n    /// is the same whether or not the bar is painted.\n    #[test]\n    fn the_text_width_does_not_depend_on_whether_the_bar_is_painted() {\n        let area = Rect {\n            x: 0,\n            y: 0,\n            width: 24,\n            height: 4,\n        };\n        let short = [ViewportLine::Plain(\"one\"), ViewportLine::Plain(\"two\")];\n        let long: Vec<ViewportLine<'_>> = (0..50).map(|_| ViewportLine::Plain(\"row\")).collect();\n        let width_of = |lines: &[ViewportLine<'_>]| {\n            let mut rt = Runtime::new(Stub::default(), Theme::junie());\n            let mut buf = Buffer::empty(SCREEN);\n            let st = ViewportState::default();\n            let mut w = 0;\n            rt.draw_scene(SCREEN, &mut buf, |ui, _| {\n                w = TextViewport::new(ID).draw(ui, area, &st, lines).width;\n            })\n            .commit_presented();\n            w\n        };\n        assert_eq!(width_of(&short), width_of(&long));\n        assert_eq!(width_of(&short), TextViewport::text_width(area.width));\n    }\n",
+      "old_sha256": "487f5b5411ab0a1ee18cd48a50cb6613d91a8ff41e905903d8e3d02bc38876cf",
+      "old_bytes": 1343,
+      "new": "    /// Short content lays out at the full area width; only overflowing\n    /// content narrows by one column for the scrollbar. The text rect — and\n    /// therefore the wrap — follows the overflow decision.\n    #[test]\n    fn the_text_width_reserves_a_scrollbar_column_only_on_overflow() {\n        let area = Rect {\n            x: 0,\n            y: 0,\n            width: 24,\n            height: 4,\n        };\n        let short = [ViewportLine::Plain(\"one\"), ViewportLine::Plain(\"two\")];\n        let long: Vec<ViewportLine<'_>> = (0..50).map(|_| ViewportLine::Plain(\"row\")).collect();\n        let width_of = |lines: &[ViewportLine<'_>]| {\n            let mut rt = Runtime::new(Stub::default(), Theme::junie());\n            let mut buf = Buffer::empty(SCREEN);\n            let st = ViewportState::default();\n            let mut w = 0;\n            rt.draw_scene(SCREEN, &mut buf, |ui, _| {\n                w = TextViewport::new(ID).draw(ui, area, &st, lines).width;\n            })\n            .commit_presented();\n            w\n        };\n        assert_eq!(\n            width_of(&short),\n            area.width,\n            \"no overflow keeps the full width\"\n        );\n        assert_eq!(\n            width_of(&long),\n            area.width - 1,\n            \"overflow reserves the scrollbar column\"\n        );\n    }\n",
+      "new_sha256": "9dc30620a5ab615d08f83f5f6090b8249891f237b112330414dbdde8762d52bf",
+      "new_bytes": 1321
+    },
+    {
+      "id": "P-006",
+      "path": "crates/tui/src/components/viewport.rs",
+      "verdict_ref": "V-014",
+      "span_keys": [
+        "N",
+        "C1",
+        "A1"
+      ],
+      "old_start_line": 2451,
+      "old_end_line": 2481,
+      "old_start": 80476,
+      "old": "    /// The viewport is a focus stop and paints a focus gutter, because the\n    /// `VIEWPORT` recipe gives `CONTAINER` and `TEXT` no `FOCUSED` rule at\n    /// all — without the gutter glyph a focused pane and an unfocused one are\n    /// the same cells at `ColorLevel::Mono` and conformance case 9 could\n    /// never pass for a `Caps::FOCUSABLE` component.\n    #[test]\n    fn the_focus_gutter_is_the_only_focus_affordance_and_it_is_painted() {\n        let area = Rect {\n            x: 0,\n            y: 0,\n            width: 20,\n            height: 3,\n        };\n        let lines = [ViewportLine::Plain(\"hello\"), ViewportLine::Plain(\"world\")];\n        let bar = Theme::junie().design.glyphs.get(GlyphRole::FocusBar);\n        let gutter = |state: ReferenceState| {\n            let mut rt = Runtime::new(Stub::default(), Theme::junie());\n            let mut buf = Buffer::empty(SCREEN);\n            let st = ViewportState::default();\n            rt.draw_scene(SCREEN, &mut buf, |ui, _| {\n                ui.reference(Some(ReferenceTarget::new(ID, state)), |ui| {\n                    TextViewport::new(ID).draw(ui, area, &st, &lines);\n                });\n            })\n            .commit_presented();\n            buf.cell(Position::new(0, 0))\n                .map_or_else(String::new, |c| c.symbol().to_owned())\n        };\n        assert_eq!(gutter(ReferenceState::FOCUSED), bar);\n        assert_ne!(gutter(ReferenceState::default()), bar);\n    }\n",
+      "old_sha256": "69fa6d800bd4aa2906b10fa94a0e84f6b34ee1da21c63348e9c6ba5dfe9f3217",
+      "old_bytes": 1451,
+      "new": "    /// The viewport paints no gutter: text starts at the area origin whether\n    /// or not the viewport is focused. Focus visibility at `ColorLevel::Mono`\n    /// is TASK-021's open design concern; this test pins only the gutter-free\n    /// geometry, not the future focus affordance.\n    #[test]\n    fn no_viewport_gutter_text_paints_from_the_area_origin() {\n        let area = Rect {\n            x: 0,\n            y: 0,\n            width: 20,\n            height: 3,\n        };\n        let lines = [ViewportLine::Plain(\"hello\"), ViewportLine::Plain(\"world\")];\n        let origin = |state: ReferenceState| {\n            let mut rt = Runtime::new(Stub::default(), Theme::junie());\n            let mut buf = Buffer::empty(SCREEN);\n            let st = ViewportState::default();\n            rt.draw_scene(SCREEN, &mut buf, |ui, _| {\n                ui.reference(Some(ReferenceTarget::new(ID, state)), |ui| {\n                    TextViewport::new(ID).draw(ui, area, &st, &lines);\n                });\n            })\n            .commit_presented();\n            buf.cell(Position::new(0, 0))\n                .map_or_else(String::new, |c| c.symbol().to_owned())\n        };\n        assert_eq!(origin(ReferenceState::FOCUSED), \"h\");\n        assert_eq!(origin(ReferenceState::default()), \"h\");\n    }\n",
+      "new_sha256": "22d48006616c9f70f9845ad5f1c31cb5d9580074cf4252cbb73dae90764668dc",
+      "new_bytes": 1292
+    },
+    {
+      "id": "P-007",
+      "path": "crates/tui/src/components/viewport.rs",
+      "verdict_ref": "V-015",
+      "span_keys": [
+        "N",
+        "C1",
+        "A1",
+        "A0"
+      ],
+      "old_start_line": 2575,
+      "old_end_line": 2593,
+      "old_start": 85798,
+      "old": "    /// Tabs are control characters, so [`crate::text::width`] gives them zero\n    /// columns; a terminal pane would collapse an indented line onto its\n    /// first token. They expand to [`TAB_WIDTH`] cells, and the expansion has\n    /// to agree between the walk, the copy and the paint or a selection over\n    /// an indented line copies the wrong bytes.\n    #[test]\n    fn tabs_expand_to_a_fixed_width_everywhere() {\n        let line = ViewportLine::Plain(\"\\tif x:\");\n        assert_eq!(line_cols(line), usize::from(TAB_WIDTH) + 5);\n        let lines = [line];\n        let mut st = ViewportState::default();\n        st.select(\n            CellPos::new(0, 0),\n            CellPos::new(0, usize::from(TAB_WIDTH) + 2),\n        );\n        let mut out = String::new();\n        assert!(st.copy_into(&lines, &mut out));\n        assert_eq!(out, \"    if\", \"the tab did not copy as its expansion\");\n    }\n",
+      "old_sha256": "0c7716608989839f986c30a92d6ff7c3812dea27b17ff1d0e5c76f186d664ab1",
+      "old_bytes": 900,
+      "new": "    /// Tabs are control characters, so [`crate::text::width`] gives them zero\n    /// columns; a terminal pane would collapse an indented line onto its\n    /// first token. They expand to [`TAB_WIDTH`] cells in geometry, but copy\n    /// returns the original source bytes: a selection over an indented line\n    /// copies the tab byte, not its expansion.\n    #[test]\n    fn tabs_expand_in_geometry_but_copy_as_source_bytes() {\n        let line = ViewportLine::Plain(\"\\tif x:\");\n        assert_eq!(line_cols(line), usize::from(TAB_WIDTH) + 5);\n        let lines = [line];\n        let mut st = ViewportState::default();\n        st.select(\n            CellPos::new(0, 0),\n            CellPos::new(0, usize::from(TAB_WIDTH) + 2),\n        );\n        let mut out = String::new();\n        assert!(st.copy_into(&lines, &mut out));\n        assert_eq!(out, \"\\tif\", \"the tab copies as its source byte\");\n    }\n",
+      "new_sha256": "76dc5d68f482ebd592f8a863956f649c0a6d3b475eff0c930afc62dec702186a",
+      "new_bytes": 900
+    }
+  ]
+}
