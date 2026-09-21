@@ -1,0 +1,36 @@
+schema = "verify/v2"
+task_id = "TASK-078"
+writable_paths = ["tools/refactor-proof/src/verifier.rs"]
+forbidden_paths = ["refactoring-tasks", "docs/refactoring-plan", "shots", "snapshots", "baseline", "tools/refactor-proof/accounting", "tools/refactor-proof/architecture", "tools/refactor-proof/bin/tc-proof", "tools/refactor-proof/bin/tc-proof-host", "tools/refactor-proof/core", "tools/refactor-proof/src/bin", "tools/refactor-proof/src/compare.rs", "tools/refactor-proof/tests", "tools/refactor-proof/runner/__init__.py", "tools/refactor-proof/runner/__main__.py", "tools/refactor-proof/runner/bundle.py", "tools/refactor-proof/runner/context.py", "tools/refactor-proof/runner/index.py", "tools/refactor-proof/runner/json_util.py", "tools/refactor-proof/runner/observer.py", "tools/refactor-proof/runner/operations.py", "tools/refactor-proof/runner/result.py", "tools/refactor-proof/runner/validate.py"]
+
+[[checks]]
+id = "CHK-001"
+phase = "precondition"
+shell = "python3 refactoring-tasks/terminal-components/completion/078/trusted/receipt-bind/receipt-bind-driver.py --check-id CHK-001 --context \"$RUN_DIR/contexts/CHK-001.json\" tools/refactor-proof/bin/tc-proof preflight"
+expected = { exit = 0 }
+requirements = ["R-003", "R-004"]
+acceptance = ["AC-003"]
+
+[[checks]]
+id = "CHK-002"
+phase = "focused"
+shell = "python3 refactoring-tasks/terminal-components/completion/078/trusted/receipt-bind/receipt-bind-driver.py --check-id CHK-002 --context \"$RUN_DIR/contexts/CHK-002.json\" tools/refactor-proof/bin/tc-proof account-tests"
+expected = { exit = 0 }
+requirements = ["R-001", "R-002", "R-004"]
+acceptance = ["AC-001"]
+
+[[checks]]
+id = "CHK-003"
+phase = "regression"
+shell = "python3 refactoring-tasks/terminal-components/completion/078/trusted/receipt-bind/receipt-bind-driver.py --check-id CHK-003 --context \"$RUN_DIR/contexts/CHK-003.json\" tools/refactor-proof/bin/tc-proof account-tests"
+expected = { exit = 0 }
+requirements = ["R-003", "R-004"]
+acceptance = ["AC-002"]
+
+[[checks]]
+id = "CHK-004"
+phase = "gate"
+shell = "python3 refactoring-tasks/terminal-components/completion/078/trusted/receipt-bind/receipt-bind-driver.py --check-id CHK-004 --context \"$RUN_DIR/contexts/CHK-004.json\" --gate CHK-002,CHK-003 tools/refactor-proof/bin/tc-proof close"
+expected = { exit = 0 }
+requirements = ["R-001", "R-002", "R-003", "R-004"]
+acceptance = ["AC-004"]
