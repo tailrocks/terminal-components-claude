@@ -1,0 +1,19 @@
+# gh pr checks 10
+Boundary	fail	2m24s	https://github.com/donbeave/terminal-components-claude/actions/runs/35663870990/job/106545403701	
+Control / Required	fail	2s	https://github.com/donbeave/terminal-components-claude/actions/runs/35663871200/job/106547313399	
+Library perf	fail	2m7s	https://github.com/donbeave/terminal-components-claude/actions/runs/35663870990/job/106545403709	
+Rust · holla / GitHub	fail	2m27s	https://github.com/donbeave/terminal-components-claude/actions/runs/35663871200/job/106545833186	
+Rust · jackin-preview / GitHub	fail	1m16s	https://github.com/donbeave/terminal-components-claude/actions/runs/35663871200/job/106545833152	
+Rust · junie-tui / GitHub	fail	33s	https://github.com/donbeave/terminal-components-claude/actions/runs/35663871200/job/106545833236	
+Rust · junie-tui-testing / GitHub	fail	50s	https://github.com/donbeave/terminal-components-claude/actions/runs/35663871200/job/106545833127	
+Rust · refactor-proof / GitHub	fail	5m30s	https://github.com/donbeave/terminal-components-claude/actions/runs/35663871200/job/106545833624	
+Rust · showcase / GitHub	fail	1m48s	https://github.com/donbeave/terminal-components-claude/actions/runs/35663871200/job/106545833148	
+Rust · tablepro / GitHub	fail	1m11s	https://github.com/donbeave/terminal-components-claude/actions/runs/35663871200/job/106545833166	
+Rust · xtask / GitHub	fail	56s	https://github.com/donbeave/terminal-components-claude/actions/runs/35663871200/job/106545833198	
+ci-required	fail	4s	https://github.com/donbeave/terminal-components-claude/actions/runs/35663871200/job/106547279394	
+Bless guard	pass	2m7s	https://github.com/donbeave/terminal-components-claude/actions/runs/35663870990/job/106545403879	
+Control / Planning	pass	1m35s	https://github.com/donbeave/terminal-components-claude/actions/runs/35663871200/job/106545413408	
+Doc check	pass	38s	https://github.com/donbeave/terminal-components-claude/actions/runs/35663870990/job/106545403454	
+Markdown links	pass	51s	https://github.com/donbeave/terminal-components-claude/actions/runs/35663870990/job/106545403648	
+Rustdoc	pass	1m4s	https://github.com/donbeave/terminal-components-claude/actions/runs/35663870990/job/106545403661	
+Workspace nextest	pass	1m54s	https://github.com/donbeave/terminal-components-claude/actions/runs/35663870990/job/106545403751	

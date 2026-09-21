@@ -1,0 +1,11 @@
+# audit-time capture 2026-09-21T23:00:20Z
+10	docs(handoff): pause checkpoint pr6-parity-c5d6e43a (goal-b5184825)	goal-handoff/pr6-parity-c5d6e43a	DRAFT	2026-09-21T22:39:44Z
+9	fix(perf): zero-alloc steady-state capsule and manager frames	red-main/perf-fix-forward	MERGED	2026-09-21T20:25:38Z
+8	chore(ci): adopt schema-2 generated CI at 4dec6b9e	rollout/velnor-wave	OPEN	2026-09-21T18:02:42Z
+7	docs: adopt shared agent policy	rollout/agent-policy	OPEN	2026-09-20T23:25:21Z
+6	Refactor/holla parity	refactor/holla-parity	OPEN	2026-09-16T07:00:38Z
+5	docs(plan): Wave 1-2 readiness + TASK-001 planning and qualification artifacts	prep-wave1-verify	CLOSED	2026-09-15T12:46:46Z
+4	feat(tools): TASK-001 refactor-proof bootstrap (qualification pending operator merge)	task-001-bootstrap	CLOSED	2026-09-15T12:22:27Z
+3	plan: Phase 0 closure, tui-snap sync, and visual smoke fixes	visual-baseline	OPEN	2026-09-14T20:49:47Z
+2	Holla	holla	CLOSED	2026-09-14T15:46:46Z
+1	Restore four-app TUI behavior on the main architecture	codex/main-holla-integration	MERGED	2026-09-08T02:38:14Z

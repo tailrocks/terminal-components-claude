@@ -3,28 +3,544 @@
 ## A. Identity and pause status
 
 - Handoff ID: `pr6-refactor-holla-parity--20260921T220312Z--muse-code--c5d6e43a`
-- Created (UTC): 2026-09-21T22:03:12Z | Last update: see handoff-branch commit history (doc finalized 2026-09-22 ~05:40Z)
+- Created (UTC): 2026-09-21T22:03:12Z | Last update: 2026-09-21T23:05Z (audit repair; doc finalized 2026-09-21T22:40Z — earlier drafts mislabeled +0700 local time as UTC, corrected in audit)
 - Original goal status: `PAUSED_BY_USER`
 - Handoff status: `READY` (handoff PR #10 published)
-- Runtime/worker stop: sole goal worker (014-r3 verifier) sent the pause stop message, returned a STOP ACK status report, and reached terminal state (verified via runtime subagent_result delivery). No other goal workers were running. No runtime goal-pause API is exposed to this agent (only completion/blocked transitions exist); the goal object therefore remains administratively active-but-idle. Pause is effected by: stopped workers + zero queued continuations + this checkpoint. This is a VERIFIED worker stop with an UNSUPPORTED runtime-control limitation, recorded honestly.
+- Runtime/worker stop: sole goal worker (014-r3 verifier) sent the pause stop message, returned a STOP ACK status report, and reached terminal state (verified via runtime subagent_result delivery). No other goal workers were running. Pause-time note claimed no runtime pause API and an active-but-idle goal object; AUDIT CORRECTION: goals.db observed at audit shows status=`paused`, revisions `set` → `terminal_block` (01a0c55f…, 2026-09-21T19:09:08Z) → `terminal_pause` (01a0c622…, 2026-09-21T22:41:52Z). The pause-time claim is SUPERSEDED. The agent-attributable mechanism for those runtime transitions is UNKNOWN (issued via no agent-accessible tool; cause unlabeled in the log). Pause is effected by: stopped workers + zero queued continuations + runtime status=`paused` + this checkpoint. VERIFIED worker stop; runtime-control mechanism UNKNOWN, recorded honestly.
 - Source agent: Muse Code (CLI) | Session 01a0bfe4-be83-7db0-bcd4-38f0357dda92 | Goal goal-b5184825
 - Repository: `donbeave/terminal-components-claude` (github.com:donbeave/terminal-components-claude.git)
 - Handoff path: `docs/goal-handoffs/pr6-refactor-holla-parity--20260921T220312Z--muse-code--c5d6e43a.md`
 - Source branch / HEAD: `refactor/holla-parity` @ `227f21b6ba8a289ae585aa009b1a7d749a92aaf2` (pushed; in sync with origin at pause)
 - Checkpoint code SHAs: branch tip `227f21b6` (= 079 squash-integrated); unintegrated worker checkpoint `80399a1ebf7020bcdb76ff3d48f89cd7e2e71c8b` (014 r3, preserved on remote ref, §E.3; parent == tip, CAS still valid)
 - Preservation branch: `goal-handoff/pr6-parity-c5d6e43a` (this handoff + receipts bundle + appendix captures); PR base `refactor/holla-parity` @ `227f21b6`; PR URL: https://github.com/donbeave/terminal-components-claude/pull/10
-- Recovery: FULLY REMOTE-PORTABLE after this handoff lands (code pushed, worker checkpoints on remote refs, receipts + inventory captures bundled in the handoff PR). Pre-handoff state depended on `/tmp` (see §E).
-- Resume authorization: explicit later user request only.
+- Recovery: REMOTE-PORTABLE for all goal code and acceptance evidence ("landed" = pushed to origin refs at READY; PR #10 intentionally stays DRAFT OPEN and is never merged — "landed" does NOT mean merged). Code pushed, worker checkpoints on remote refs, receipts + inventory captures bundled in the handoff PR. Explicitly NOT remote-portable (see §K): 3 local-only stashes, MAIN checkout dirt, review-f949a56 tree, prep/grok-era local-only branches, 071/072/074 full run/build trees (receipts bundled; ~392MB trees local-only), and the pgid-reap uncommitted fix (patch preserved in `appendices/at-risk/` at audit; worktree left untouched).
+- Resume authorization: explicit later user request only. This handoff cannot authorize execution by itself (AGENTS.md source-of-truth hierarchy: handoff material is provenance, not authority). Resumption must re-read AGENTS.md + campaign contracts first (G §2) and reconcile the NO-GO headers (DOC-REBIND) before dispatching workers. See §J runbook.
 
 `PAUSED_BY_USER` is the requested disposition, not proof of remote-job cessation. No remote jobs were running (all work is local subprocesses; PR #6 CI runs are automatic on push, not campaign dispatches; CI observed RED at an older head, §G).
 
 ## B. Original goal and success contract
 
-### Recovered original objective (verbatim gist, secrets redacted)
+### B.1 Original goal prompt — VERBATIM [Q]
 
-> Finish the complete refactoring on PR #6's branch, restore exact visual and functional parity with the immutable visual-baseline, and independently verify the finished implementation. Required outcome: COMPLETE INTENDED REFACTORING AND EXACT BASELINE VISUAL PARITY AND EXACT BASELINE FUNCTIONAL PARITY AND INDEPENDENTLY VERIFIED INTEGRATION. Implementation-and-completion goal; work autonomously through repair/verification iterations until genuinely satisfied.
+Source S-001 (FULL): goal record `goal-b5184825-1beb-4b26-a11f-49a4d09e5c28`, revision `01a0bfe4-ced9-7850-9ccb-9f300a14b847`, set 2026-09-20T17:37:18Z. Byte-identical across session-log seq 478, `goal_control.applied` seq 46476/51381, and goals.db (26,416 chars, sha256 `01f2fd6254fc4fa542391bb029d9d54e640adaf793cee8051d4d6fe32c351717`). Pattern scan found no secrets/tokens/keys — no redactions. The goal object never changed afterward; all amendments arrived as chat. Byte-mirror: `appendices/audit/original-objective.txt`. (Reconstructed summaries are marked [S]; recovered quotations marked [Q].)
 
-Full 13-section objective (scope, authorization, identities, reconciliation, verification repair, parallel execution, architecture, visual matrix, functional parity, per-task loop, native tooling, final acceptance, persistence/handoff) is preserved in the goal record; the consolidated statement below incorporates amendments. (Reconstructed summaries are marked [S]; recovered quotations marked [Q].)
+```text
+Finish the complete refactoring on PR #6’s branch, restore exact visual and functional parity with the immutable visual-baseline, and independently verify the finished implementation.
+
+Repository:
+https://github.com/donbeave/terminal-components-claude
+
+Working PR:
+https://github.com/donbeave/terminal-components-claude/pull/6
+
+Target integration branch:
+refactor/holla-parity
+
+Task catalog:
+refactoring-tasks/terminal-components/
+https://github.com/donbeave/terminal-components-claude/tree/refactor/holla-parity/refactoring-tasks/terminal-components
+
+Immutable product reference:
+https://github.com/donbeave/terminal-components-claude/releases/tag/visual-baseline
+
+The required outcome is:
+
+COMPLETE INTENDED REFACTORING
+AND EXACT BASELINE VISUAL PARITY
+AND EXACT BASELINE FUNCTIONAL PARITY
+AND INDEPENDENTLY VERIFIED INTEGRATION.
+
+These are separate requirements. Satisfying one does not compensate for failing another.
+
+This is an implementation-and-completion goal, not a request for another plan, audit, preparation-only report, or suggested next goal.
+
+Work autonomously. Do not ask questions or request another approval round. Use heavyweight subagents aggressively for investigation, implementation, testing, verification, review, and documentation. Continue through repair and verification iterations until the complete goal is genuinely satisfied.
+
+
+## 1. Scope, authority, and protected boundaries
+
+All integrated implementation work belongs on refactor/holla-parity, the branch associated with PR #6. Temporary isolated worker branches/worktrees are allowed only to support this campaign.
+
+Never implement on main or visual-baseline. Never merge this work into main as part of this goal. Finish with the target branch verified and merge-ready.
+
+The partially refactored main branch is an implementation/history reference, NOT the visual or behavioral oracle. Preserve valid architectural progress, but do not preserve broken visuals merely because they already exist on main.
+
+Use the frozen visual-baseline as the authoritative reference for observable product appearance and behavior across:
+
+- The reusable component library and its public examples.
+- Showcase.
+- Holla.
+- Jackin Preview / jackin-preview.
+- TablePro.
+
+Use current, reconciled architecture and task contracts to determine the required internal design.
+
+Never restore parity by resetting the branch to the old implementation, reverting the entire refactoring, or copying the old architecture over the new one.
+
+Never move, delete, recreate, retarget, force-push, commit to, or otherwise modify the visual-baseline tag, branch, release, source checkout, snapshots, or expected artifacts. Treat all baseline inputs as read-only.
+
+Do not run snapshot blessing, acceptance, regeneration, or update operations against the baseline. Do not substitute candidate-generated output for missing baseline output.
+
+Preserve unrelated local changes, other agents’ worktrees, existing commits, and user work. Do not perform destructive cleanup, history rewriting, broad process termination, or permission changes outside this campaign.
+
+
+## 2. This request authorizes prerequisite repair and subsequent implementation
+
+Read AGENTS.md and the current campaign contracts first.
+
+The repository currently contains preparation-only instructions, a NO-GO report, and a future implementation prompt that can exit immediately when startup checks fail. Do not blindly execute that historical stop condition.
+
+This request explicitly authorizes the following sequence in one campaign:
+
+A. Investigate and repair preparation, tooling, proof, and calibration blockers.
+B. Independently verify that implementation prerequisites are satisfied.
+C. Record the evidence-backed transition to implementation readiness.
+D. Execute the complete reconciled refactoring.
+E. Independently verify final product completion.
+
+This authorization replaces the earlier preparation-only scope. It does NOT waive baseline protection, evidence requirements, independent verification, or safety boundaries.
+
+While genuine implementation prerequisites remain unsatisfied, keep production dispatch disarmed. Use scoped repair subagents to fix those prerequisites; do not stop merely because the initial readiness report says NO-GO.
+
+Distinguish three states:
+
+- Prerequisite repair permitted.
+- Ready for production refactoring.
+- Product refactoring complete and accepted.
+
+Do not create a circular gate requiring the finished refactoring or final candidate parity before allowing the refactoring to begin. Preserve those requirements as task, integration, and final acceptance obligations. Baseline calibration, trusted verification, valid dependencies, and genuine startup requirements remain prerequisites.
+
+Independently review any correction to this distinction. Do not relabel a failed prerequisite as a final-only obligation simply to bypass it.
+
+Once the real startup conditions pass, record the transition and continue automatically. Do not ask the user to issue another GO or paste another prompt.
+
+
+## 3. Establish fresh branch and oracle identities
+
+At startup, record actual local and remote refs, PR head, worktree state, merge-base with main, source commit/tree, and existing uncommitted work.
+
+The PR head inspected while preparing this goal was:
+a292cf860d87c93fc329d16d2310ca86ad370d3d
+
+That is a historical inspection point, not an instruction to reset to it. Re-read the current branch and preserve newer valid work.
+
+Verify the protected oracle identities:
+
+Annotated visual-baseline tag object:
+1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5
+
+Peeled visual-baseline commit:
+4a79c0a2d40fca46fc406b77157ce3b3f12ec16b
+
+Baseline commit tree:
+0b1f13431fdfd6060cf9f45a114afa5a99cc6c26
+
+Baseline snapshots tree:
+3f0261c32849e26feda24d87697de4a7ce6b8375
+
+Fail closed on unexpected oracle identity changes. Never “repair” a mismatch by moving the protected ref or silently selecting another oracle.
+
+Use independently verified, read-only baseline imports or disposable detached reference copies. Keep build outputs, logs, observed artifacts, and verification receipts in separate campaign-owned directories.
+
+Record protected-ref and oracle-artifact hashes before work, at meaningful checkpoints, and at final acceptance. Verify that they remain unchanged.
+
+
+## 4. Reconcile the complete task catalog and actual remaining work
+
+Delegate a complete audit of:
+
+- AGENTS.md and applicable directory policies.
+- docs/refactoring-plan/ and docs/refactoring/.
+- Every task package under refactoring-tasks/terminal-components/, including nested verification contracts.
+- refactoring-tasks/visual-validation.md.
+- COMPONENT_ARCHITECTURE.md, DESIGN.md, GOAL.md, and relevant architecture decisions.
+- Source, public APIs, examples, application routes, tests, verification scripts, CI, and relevant Git history.
+- PR #6’s current discussion, reviews, and review threads.
+
+Distribute large documents and code areas among subagents and maintain a coverage ledger. Do not substitute a few document excerpts for an exhaustive obligation inventory.
+
+Reconstruct the executable dependency graph from current contracts and source evidence. Record each task’s prerequisites, writable scope, shared interfaces, required behavior, required proof, and independent acceptance conditions.
+
+The inspected catalog reports 73 direct task packages, with TASK-001 and TASK-070 retired, TASK-071 and TASK-072 serving qualification prerequisites, and the remaining valid implementation work including TASK-002 through TASK-069 and TASK-073.
+
+Revalidate this against the current tree. Do not confuse catalog counts, lint success, graph generation, or old status fields with completed implementation.
+
+Account for every task. A valid task is complete only with current implementation and evidence. A retired or superseded task requires a reviewed disposition explaining where its still-valid obligations are satisfied.
+
+Do not resurrect retired container/lifecycle infrastructure just because a stale dependency or task title mentions it. Reconcile obsolete bootstrap edges with verified native prerequisites while preserving their legitimate requirements. Do not simply delete dependency edges to unlock dispatch.
+
+Maintain traceability:
+
+requirement → task → implementation → tests → visual/behavioral evidence → independent review → integrated commit.
+
+Add narrowly scoped repair tasks when necessary to finish the promised outcome. Do not silently shrink scope, drop difficult cases, or replace implementation with documentation.
+
+
+## 5. Repair and qualify verification before trusting its results
+
+Delegate dedicated proof-tooling, visual-calibration, and platform-verification subagents.
+
+Reproduce the current readiness blockers from fresh executions. The inspected report includes:
+
+- Failure of the exact-tag known-good visual control.
+- A missing observed TablePro artifact key:
+  tablepro/query/results/160x50/nocolor
+- HTML differences involving the compiled executable path.
+- Failure of the unfiltered native proof suite.
+- Missing accepted current verifier/reviewer receipts.
+- Missing required native Linux evidence.
+
+Treat these as reported starting points, not guaranteed current facts. Inspect raw evidence and reproduce before deciding what to fix.
+
+First establish that the immutable known-good baseline can pass the complete qualified comparison against its own existing oracle. Otherwise, candidate comparison results are not trustworthy.
+
+Repair the native launcher, capture adapters, suite integration, observer lifecycle, artifact collection, or other faulty verification infrastructure on the working branch.
+
+Do not modify frozen baseline source or expected artifacts. Do not normalize away differences, spoof executable provenance, mask fields, loosen thresholds, skip cases, or manufacture passing receipts.
+
+Resolve environmental and capture-provenance problems without weakening equality or concealing which binary actually executed.
+
+Restore or correctly port the baseline visual suite and required nextest configuration into the candidate verification path. Preserve the frozen cases, inputs, expected outputs, and comparison semantics. An API adaptation must not change the acceptance contract.
+
+Prove that the gate rejects, in disposable negative-test data:
+
+- Missing or duplicated cases.
+- Missing artifacts.
+- Changed cells, styles, geometry, or cursor state.
+- Incorrect source, binary, tool, oracle, or dependency identity.
+- Stale or cross-run evidence.
+- Nonzero exits, timeouts, hangs, truncated results, or failed observers.
+- Missing required input replay or behavioral checkpoints.
+
+A verifier must observe real command execution and numerical exit status. A success-shaped JSON file, self-reported worker result, or existing artifact directory is not proof.
+
+Keep the evidence process finite: commit the payload and documentation, freeze that tree, then produce external verifier/reviewer receipts for it. Do not repeatedly invalidate final evidence by editing tracked reports after sealing.
+
+
+## 6. Aggressive parallel execution with independent roles
+
+Use one root Grok Build coordinator with a continuously replenished pool of native subagents.
+
+The coordinator schedules, resolves ownership, tracks dependencies, and integrates independently reviewed changes. Task-owned code changes, test work, verification, and reviews belong to subagents.
+
+Use full-capability subagents for implementation and executable verification. Read-only explore/plan agents may assist with investigation, but they cannot replace verifiers that must run commands.
+
+Use the strongest suitable model and reasoning capability actually available in the configured Grok Build environment. Record actual model/tool usage; do not claim unavailable models or imitate another agent platform’s tools.
+
+Parallelize every independently executable activity. Keep ready work moving while other agents build, test, review, or investigate failures.
+
+Maintain concurrent workstreams for:
+
+- Task reconciliation, architecture, and shared-interface decisions.
+- Native proof tooling and baseline calibration.
+- Runtime, layout, theme, text, input, focus, layers, and component families.
+- Separate Showcase, Holla, Jackin Preview, and TablePro migration lanes.
+- Independent visual/behavioral verification.
+- Architecture/API/performance review and final acceptance.
+
+Schedule by dependencies and actual file conflicts, not task number. Do not start every task at once without prerequisites.
+
+Every worker assignment must specify:
+
+- Task and requirement IDs.
+- Exact starting commit and accepted dependency receipts.
+- Owned writable paths and explicitly forbidden paths.
+- Baseline surfaces and behavior to preserve.
+- Expected implementation, tests, evidence, and completion criteria.
+- Required handoff and integration conditions.
+
+Give each implementer an isolated worktree and separate writable build/run directories. Give verifiers a clean, committed, read-only candidate view plus their own external run directories. Never share writable outputs between roles.
+
+Reserve capacity for verification and review. Reclaim completed or failed agent sessions before spawning replacements. On capacity limits, queue work and keep available agents productive; do not abandon independent verification or spawn uncontrolled nested coordinators.
+
+Maximize safe throughput, not agent count for its own sake. Bound simultaneous expensive builds and PTY captures to avoid resource-induced failures. Run performance measurements in an isolated, low-contention lane.
+
+For every substantive change, require a different verifier and a separate independent reviewer. An implementer may run focused checks but cannot accept their own work.
+
+
+## 7. Finish the intended architecture without disguising regressions
+
+Implement the reconciled architecture completely, including:
+
+- Caller-owned state.
+- Borrowed props and appropriate ownership/lifetime boundaries.
+- Read-only drawing.
+- Runtime-owned routing, focus, layers, pointer handling, and cursor behavior.
+- One reusable implementation per component family.
+- Correct public APIs and fully migrated consumers.
+
+Inspect the actual architecture contracts rather than treating this summary as their replacement.
+
+Repair reusable components and shared primitives at their proper ownership boundaries. Do not solve each application independently with duplicate patches for a common library defect.
+
+Remove transitional architecture when its consumers are migrated: duplicate renderers, obsolete adapters, conflicting state models, dead migration paths, and temporary compatibility code that violates the target design.
+
+Specifically investigate the reported Showcase compatibility painting/fixed-grid workarounds, Jackin projections, TablePro legacy painters, and reduced Holla route/scenario coverage. Verify the current code rather than assuming these issues remain unchanged.
+
+Forbidden shortcuts include:
+
+- Repainting the old frame over incorrect new component output.
+- Hardcoding captured baseline frames.
+- Loading oracle snapshots in production code.
+- Routing tests through the old renderer while real users receive the new one.
+- App-local substitute components that bypass the refactored library.
+- Preserving two competing architectures indefinitely.
+- Removing features or interactions to make parity easier.
+
+Do not redesign, simplify, or “improve” the frozen UI. This goal changes implementation architecture while preserving the product.
+
+
+## 8. Exact visual parity is a complete-matrix requirement
+
+The protected contract requires all 7,550 matrix keys and all 30,200 artifacts:
+
+- ANSI.
+- Plain text.
+- PNG.
+- HTML.
+
+Cover all five frozen terminal sizes:
+
+72x20, 80x24, 100x30, 120x40, 160x50.
+
+Cover all five recorded color modes:
+
+truecolor, 256-color, 16-color, none, nocolor.
+
+Derive the complete key inventory independently from the pinned oracle. Compare key sets and per-key artifacts, not just total counts or the number of test functions.
+
+For each baseline case, compare actual candidate output with the corresponding frozen expected output using the qualified exact comparator.
+
+Check cells, graphemes, continuation cells, styles, foreground/background colors, dimensions, cursor, clipping, borders, spacing, alignment, wrapping, truncation, layering, selection, focus, hover, and captured motion states.
+
+Require exact PNG/HTML comparison through the qualified deterministic artifact path as well as exact terminal-output comparison. Text-only or screenshot-only success is insufficient.
+
+Replay affected cases immediately after relevant changes. Expand coverage at integration milestones. The final gate must execute the complete matrix, not a representative sample, reduced “supported” subset, or fast-mode approximation.
+
+Retain expected/actual/diff artifacts for failures and have independent subagents inspect visual differences. Human-style image inspection supplements deterministic comparison; it does not replace it.
+
+Never update expectations merely because the candidate differs. Fix the candidate or prove and repair a harness defect without redefining the oracle.
+
+
+## 9. Functional parity must exercise real application paths
+
+Snapshots alone do not prove functional correctness.
+
+Build a baseline-derived interaction inventory covering all four applications, every public component family, every reachable route, and all frozen scenarios.
+
+Verify applicable behavior including:
+
+- Keyboard navigation, shortcuts, typing, editing, and completion.
+- Focus entry, traversal, restoration, and modal isolation.
+- Mouse hover, clicks, hit testing, drag/capture, scrolling, and resizing.
+- Selection, filtering, sorting, tab changes, tree expansion, and navigation.
+- Dialogs, menus, overlays, pickers, forms, tables, editors, and panels.
+- Empty, loading, error, disabled, and populated states.
+- State persistence and asynchronous updates.
+- Terminal startup, raw mode, alternate screen, cursor management, exit, restoration, and process cleanup.
+
+Use deterministic fixtures, controlled clocks/seeds, and the same input sequences where the contract requires them. Never change fixtures or timing solely to hide a regression.
+
+Verify both state transitions and visible output after real interactions. Exercise startup, intermediate settled frames, resize, and shutdown through the real application/runtime path.
+
+Include native PTY end-to-end verification. Headless render tests are useful but cannot replace actual terminal input/output and lifecycle evidence.
+
+Use isolated test data and approved simulation facilities. Do not trigger real destructive operations, external account actions, or unintended network side effects while exercising demo flows.
+
+
+## 10. Apply the same implementation–verification loop to every task
+
+For each task:
+
+1. Read its complete contract, current source, relevant baseline behavior, dependencies, and required history.
+2. Identify concrete missing or incorrect implementation.
+3. Implement in an isolated subagent worktree.
+4. Add or update tests that detect the original defect and preserve required behavior.
+5. Run targeted native tests and affected baseline comparisons.
+6. Commit the candidate using repository commit conventions.
+7. Have an independent verifier execute the task’s deterministic and native proof gates against that exact committed candidate.
+8. Have a separate reviewer assess correctness, architecture, scope, visual/functional parity, and forbidden shortcuts.
+9. Fix every substantiated finding and repeat verification.
+10. Integrate the reviewed change serially.
+11. Re-run affected integration gates on the resulting integrated commit.
+12. Record acceptance only when evidence matches what was actually integrated.
+
+Use the repository’s expected-parent/compare-and-swap integration protection. If the branch advances or conflicts occur, refresh the integration candidate and obtain the necessary fresh evidence.
+
+Do not treat proof for an old parent or pre-conflict patch as proof for a new integrated tree. Preserve meaningful merge history; do not rewrite the shared branch.
+
+Shared-interface changes require coordinated ownership and downstream revalidation. Integration conflict resolution that changes code must itself be reviewed.
+
+Keep a durable ledger of task disposition, owner, dependencies, source identity, implementation commit, verifier/reviewer decisions, commands, exit codes, artifact paths, and remaining failures.
+
+No substantive task may be accepted from an agent’s summary alone.
+
+
+## 11. Native tooling and repository-wide quality gates
+
+Execute locally on native macOS and use already-authorized native Linux execution where required by the platform contracts.
+
+Do not use Docker, Podman, containers, images, mounts, root firmlinks, or retired container namespaces. Do not create new paid infrastructure or use unauthorized hosts.
+
+All Rust tests and Rust test-validation commands must use cargo nextest. Never use cargo test. Use the repository’s qualified build, documentation, static-analysis, and feature-matrix commands where a test runner is not applicable.
+
+Use the qualified standalone taskfmt from the current campaign contracts. Verify its source revision, executable version, and hash; requalify changed tooling before trusting it.
+
+Use taskfmt only for deterministic per-task lint and verify. Do not use it as the agent orchestrator, workspace manager, ref manager, dispatcher, or promotion system.
+
+Run the required formatting, compilation, lint, public API, documentation, link, shell, workflow, behavior, visual, performance, and allocation gates.
+
+Do not assume an ordinary workspace test run includes ignored visual suites. Explicitly enumerate and execute every required suite and profile.
+
+Treat candidate tests that encode the broken refactor’s behavior as potentially incorrect assertions. Reconcile them against the frozen product contract with documented test-identity mapping and replacement coverage. Do not delete tests merely because they fail.
+
+Preserve CLAUDE.md as the required AGENTS.md symlink and follow repository commit/sign-off conventions.
+
+Do not weaken CI, disable tests, broaden exclusions, suppress meaningful failures, inflate timeouts without diagnosis, or raise performance budgets to obtain green output.
+
+Obtain genuine evidence for required platforms. An unavailable platform is not a pass, and CI status alone does not replace required native proof.
+
+
+## 12. Final independent acceptance
+
+After all valid tasks are integrated, freeze the complete candidate commit and run final acceptance from a clean verification view.
+
+Commit final source-controlled documentation before the final evidence seal. Store the exact-tree final receipts externally so producing the report does not invalidate the tested commit.
+
+Commission separate final verifier and adversarial reviewer subagents. They must inspect raw evidence, re-run decisive checks, and attempt to find regressions, omitted obligations, invalid provenance, and architecture shortcuts.
+
+Every item below is mandatory:
+
+[ ] Every original task is accounted for with an evidence-backed disposition.
+[ ] Every valid refactoring obligation is implemented and independently accepted.
+[ ] Retired tasks remain retired; their legitimate obligations are not lost.
+[ ] All work is integrated into refactor/holla-parity.
+[ ] The target architecture is complete and all consumers are migrated.
+[ ] No duplicate renderer, snapshot painter, or forbidden compatibility workaround remains.
+[ ] All four applications and required examples build and function.
+[ ] The complete 7,550-key inventory matches the immutable oracle.
+[ ] All 30,200 required artifacts pass exact comparison.
+[ ] Every required behavioral, interaction, resize, and PTY lifecycle case passes.
+[ ] Taskfmt, Rust/native tests, API/static/docs/workflow gates pass.
+[ ] Performance and allocation requirements pass under valid measurement conditions.
+[ ] Required native platform evidence exists and passes.
+[ ] PR review feedback has been re-read and every applicable finding addressed or explicitly dispositioned with evidence.
+[ ] The final verifier and separate reviewer accept the exact integrated commit.
+[ ] Protected baseline refs, release, source, snapshots, and expected artifacts are unchanged.
+[ ] The target branch is clean and merge-ready, with no required failure hidden as skipped or unsupported.
+
+Missing, failed, skipped-required, stale, incomplete, or unexecuted evidence means the relevant gate is not satisfied.
+
+A green checklist, successful lint, passing build, or visually similar screenshot does not establish completion.
+
+
+## 13. Persistence and final handoff
+
+Continue working through failures. Fix, test, compare, independently review, integrate, and repeat.
+
+Do not finish because a plan was written, a task wave ended, the code compiles, one application looks correct, or the preparation report was updated.
+
+Do not defer normal remaining work to another goal. Use durable checkpoints so the active campaign can survive context compaction and recover from failed workers without losing accepted evidence.
+
+For a genuine external blocker that cannot be resolved with available permissions or tools, preserve the exact failure evidence, continue every independent permitted activity, and do not fabricate completion or bypass protections. Do not ask routine questions or repeatedly retry an unchanged failure without diagnosis.
+
+The final handoff must state:
+
+- Final branch and exact commit/tree.
+- Reconciled task completion/disposition counts.
+- Architecture changes and removed transitional code.
+- Visual matrix results, including expected and observed artifact counts.
+- Behavioral, PTY, platform, performance, and repository-wide gate results.
+- Independent verifier/reviewer decisions and evidence locations.
+- Proof that the baseline remained unchanged.
+- Any genuine unresolved blocker, clearly separated from completed work.
+- Whether the exact final commit is ready to merge.
+
+Do not merge into main or modify the protected baseline.
+
+Begin now by establishing fresh identities and dispatching parallel prerequisite-repair, task/architecture-audit, and application-inventory subagents. Once independently qualified, continue directly into dependency-ordered implementation and finish the full refactoring with exact visual and functional parity.
+```
+
+### B.2 Material amendments — VERBATIM [Q]
+
+All 15 user chat messages recovered verbatim from the session log (S-002…S-006, FULL). No other user-authored material exists in the log.
+
+**A1–A4 commit-trailer rule (binding; strongest phrasing governs).** A1 = A2 verbatim (intents `01a0c113` @ 2026-09-20T23:07:51Z; `01a0c1de` @ 2026-09-21T02:49:12Z):
+
+> Always commit with Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>
+
+A3 (intent `01a0c1e0` @ 2026-09-21T02:51:31Z):
+
+> Only use Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com> for commits. Never commit with not Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>
+
+A4 (intent `01a0c1e4` @ 2026-09-21T02:56:13Z, SEQ 23685):
+
+> Commits must ALWAYS with Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>. Never anything else than Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>
+
+Working interpretation [S]: every commit on every goal branch must carry exactly `Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>`; the `Co-authored-by: Codex <codex@openai.com>` trailer is a *repository* rule (AGENTS.md), not a user message — it coexists on the trailer block and does not violate "never anything else" (which governs the sign-off identity, not the trailer set). All 4 pause/audit-handoff commits and all campaign commits comply.
+
+**A5 subagent-aggression rule (7 identical pastes, intents `01a0c349`…`9715919d`, 2026-09-21T09:25:49Z → 19:31Z), verbatim:**
+
+> Use subagents aggressively for all work.
+>
+> Always delegate work to subagents whenever delegation is possible. Treat subagents as the default execution mechanism, not an optional optimization.
+>
+> Your execution strategy must:
+>
+> * decompose the goal into independent or partially independent workstreams;
+> * spawn subagents for each workstream;
+> * parallelize all work that can safely run concurrently;
+> * use additional subagents for research, implementation, review, testing, verification, and cross-checking;
+> * avoid doing work serially in the parent agent when it can be delegated;
+> * keep spawning useful subagents as new independent tasks are discovered;
+> * use independent subagents to verify important conclusions and completed changes;
+> * coordinate and synthesize subagent results into the final implementation.
+>
+> Do not merely recommend parallelization—actually execute the goal through subagents.
+>
+> The parent agent should primarily orchestrate, resolve dependencies/conflicts, integrate results, run final deterministic checks, and ensure the complete goal is finished.
+>
+> Default rule: **delegate first, parallelize aggressively, verify independently, then integrate.**
+
+**A6 never-ask rule (intent `01a0c5ce` @ 2026-09-21T21:10:38Z), verbatim:**
+
+> Never ask the user questions or wait for clarification. Work fully autonomously.
+>
+> If anything is ambiguous, uncertain, conflicting, incomplete, or requires a decision:
+>
+> * Spawn subagents to investigate it independently.
+> * Analyze the available context, repository, documentation, code, history, external references, and relevant best practices.
+> * Research alternative approaches where necessary.
+> * Compare multiple options and their tradeoffs.
+> * Verify important assumptions and findings independently.
+> * Re-verify critical decisions before acting.
+> * Make the best reasonable decision yourself and continue execution.
+>
+> Do not stop because information is imperfect. Infer intent from the goal, existing architecture, conventions, documentation, and surrounding context. Prefer making a well-researched, reversible decision over asking the user.
+>
+> When uncertainty is significant, use multiple independent subagents to challenge the proposed solution and resolve disagreements through evidence.
+>
+> Your responsibility is to unblock yourself. Questions that would normally be sent to the user should instead become internal research, analysis, verification, or subagent tasks.
+>
+> Continue working until the goal is fully completed, verified, and no meaningful actionable work remains.
+
+**A7 commit-often rule (intent `01a0c5f4` @ 2026-09-21T21:51:57Z), verbatim:**
+
+> Always commit changes frequently while working.
+>
+> Prefer small, incremental, logically scoped commits instead of keeping a large dirty working tree for a long time and committing everything at the end. As soon as a meaningful unit of work is complete and verified, commit it.
+>
+> Push progress to the remote repository regularly so work is continuously propagated, recoverable, reviewable, and easy to bisect or revert.
+>
+> At the same time, avoid unnecessary branches. Prefer doing as much work as possible on a single working branch and keep committing to that branch throughout the task.
+>
+> Create additional branches only when there is a clear technical or workflow reason that makes working safely on the existing branch impractical or impossible.
+>
+> In short: **commit often, push regularly, and minimize branch proliferation.**
+
+**A8 pause order (intent `01a0c5fa` @ 2026-09-21T21:59:07Z, SEQ 49402, 39,385 chars).** Full verbatim text: `appendices/audit/pause-order.txt` (too long to inline; byte-exact copy). Operative effect: freeze original-goal work, preserve everything, write §§A–K handoff, publish `GOAL:`-titled DRAFT PR, stop. It *supersedes* "continue autonomously until finished" **until explicit resumption**; it does not cancel any G requirement. Its H-contract is fully mapped in §M.
+
+**A9 audit order (intent `d1effc6e` @ 2026-09-21T22:42:23Z, SEQ 51384, 19,455 chars).** Authorizes only this audit-and-repair; original goal stays paused. Requirements mapped in §M; outcome in §N.
 
 ### Consolidated statement [S]
 

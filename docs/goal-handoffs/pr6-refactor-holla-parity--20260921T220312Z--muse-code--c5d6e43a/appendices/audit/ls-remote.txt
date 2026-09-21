@@ -1,0 +1,10 @@
+# ls-remote goal refs
+018498542c4170a3b49ff48db3e6477caa952488	refs/heads/goal-checkpoint/014-r1
+80399a1ebf7020bcdb76ff3d48f89cd7e2e71c8b	refs/heads/goal-checkpoint/014-r3
+5e625cff8b8c99ac9452ec522601e348db3586ae	refs/heads/goal-checkpoint/079-r1
+cd9c395f259c5031bf9aa90042b393ff44bc212c	refs/heads/goal-checkpoint/079-r2
+aea42fd5b50b8e6278035cd483a878e298eba309	refs/heads/goal-handoff/pr6-parity-c5d6e43a
+4527fda964d8e6269df1128acf09ab856f0eb354	refs/heads/goal-handoff/termcomp-wave-4527fda9
+227f21b6ba8a289ae585aa009b1a7d749a92aaf2	refs/heads/refactor/holla-parity
+0a7339e22a093a0669a8f1fc53b204a77b5baaba	refs/pull/4/head
+db0587331bce43c76c930db6cf5348c59cac01c7	refs/pull/5/head
