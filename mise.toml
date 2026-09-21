@@ -1,0 +1,77 @@
+# CI gate tasks for the generated velnor-workflow tree (schema 2). Every task
+# is a plain shell command the generators invoke as `mise run <task>`; no
+# tool pinning lives here (Rust comes from rust-toolchain.toml via rustup).
+# Bodies stay POSIX-sh compatible: no pipes without explicit status capture,
+# no bashisms. Gate → requirement map lives in COMPONENT_ARCHITECTURE.md.
+
+[tasks.ci-gates-metadata]
+description = "Locked workspace metadata resolves (§22.5 precondition)."
+run = "cargo metadata --locked --format-version 1 > /dev/null"
+
+[tasks.ci-gates-backend-free]
+description = "Backend-free core: nothing outside runtime/session.rs needs a backend (§22.1, core_is_backend_free)."
+run = "cargo check --locked -p junie-tui --no-default-features"
+
+[tasks.ci-gates-examples]
+description = "Examples compile against the public API only (§16.5, examples_are_external_consumers)."
+run = "cargo build --locked -p junie-tui --examples"
+
+[tasks.ci-gates-render-reachable]
+description = "The documented render::components::* path is reachable (§25.12, §28 P2)."
+run = "cargo test --locked --workspace --all-targets --all-features -- --list | grep -c '^render::components::'"
+
+[tasks.ci-gates-doc]
+description = "Docs build warning-free under RUSTDOCFLAGS=-D warnings (§16.5, public_items_are_documented)."
+run = "cargo doc --locked --workspace --all-features --no-deps"
+
+[tasks.ci-gates-app-inventory]
+description = "Required application targets, authoritative inventory."
+run = "cargo run --locked -p xtask -- app-inventory --json"
+
+[tasks.ci-gates-boundary]
+description = "Boundary and dependency-graph checks (§16.5, §22.7)."
+run = 'BLESS_GUARD_BASE="${BLESS_GUARD_BASE:-$BASE_SHA}" cargo run --locked -p xtask -- boundary'
+
+[tasks.ci-gates-bless-guard]
+description = "Baseline bless guard (§16.3, §36.5, §49.6). Maps BLESS_GUARD_BASE from the unit job's inherited $BASE_SHA unless the caller (perf profile env) already sets it; never HEAD, never empty."
+run = 'BLESS_GUARD_BASE="${BLESS_GUARD_BASE:-$BASE_SHA}" cargo run --locked -p xtask -- bless-guard'
+
+[tasks.ci-gates-allow-lists]
+description = "Allow-lists are EMPTY, not merely present (§25.12 F9)."
+run = "for f in crates/tui/tests/allow/legacy_api.txt crates/tui/tests/allow/domain.txt; do if [ -s \"$f\" ]; then echo \"allow-list must be empty (§25.12 F9): $f\"; cat \"$f\"; exit 1; fi; done"
+
+[tasks.ci-gates-doc-check]
+description = "Every Ident::method and code block in the document resolves (§21 item 34)."
+run = "cargo run --locked -p xtask -- doc-check"
+
+[tasks.ci-msrv-all-features]
+description = "MSRV floor proof with every feature enabled (§22.5): plain cargo check on the 1.88.0 leg, never a +toolchain command."
+run = "cargo check --locked --workspace --all-targets --all-features"
+
+[tasks.ci-perf-contract]
+description = "Perf pipeline failure contract: the task bodies propagate Cargo's exit code."
+run = "python3 tools/test_perf_workflow.py"
+
+[tasks.ci-perf-lib]
+description = "Library perf, blocking: foundations + collections (§16.6, §66). Exit code captured explicitly so no shell pipefail semantics are assumed."
+run = "cargo test --locked -p junie-tui --test perf --test perf_collections --release -- --test-threads=1 --nocapture > perf-lib.log 2>&1; rc=$?; cat perf-lib.log; exit $rc"
+
+[tasks.ci-perf-apps]
+description = "Application perf, blocking: authoritative inventory (§16.6)."
+run = "cargo run --locked -p xtask -- app-perf > perf-apps.log 2>&1; rc=$?; cat perf-apps.log; exit $rc"
+
+[tasks.ci-perf-no-rebless]
+description = "A perf run never re-blesses baselines (§25.12 F18)."
+run = "git diff --exit-code -- ':(glob)**/perf_baseline.txt'"
+
+[tasks.ci-perf-collect]
+description = "Collect PERF lines for the final report (§16.6, goal §30 item 13)."
+run = "grep -h '^PERF' perf-*.log > perf-lines.txt || true"
+
+[tasks.ci-perf-strict-lib]
+description = "Library perf, advisory wall-clock leg (PERF_STRICT=1 from the profile env)."
+run = "cargo test --locked -p junie-tui --test perf --test perf_collections --release -- --test-threads=1 --nocapture > perf-strict-lib.log 2>&1; rc=$?; cat perf-strict-lib.log; exit $rc"
+
+[tasks.ci-perf-strict-apps]
+description = "Application perf, advisory wall-clock leg (PERF_STRICT=1 from the profile env)."
+run = "cargo run --locked -p xtask -- app-perf > perf-strict-apps.log 2>&1; rc=$?; cat perf-strict-apps.log; exit $rc"

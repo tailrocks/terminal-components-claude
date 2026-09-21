@@ -1,0 +1,95 @@
+schema = 2
+
+[generator]
+repository = "donbeave/terminal-components-claude"
+revision = "4dec6b9ec28b0d51cb370fd8f5d5401c6186adf0"
+
+# No external DCO declared: the DCO app has not posted on this repo
+# (runbook §2 guardrail — declaring an uncovered context fails Policy).
+# No [renovate]: s2 validate_renovate requires the velnor provider, which a
+# public hosted-only repo cannot declare (W4 precedent; G12 validation-only
+# fix in flight, wave pin 3). The exact primary pin below is Renovate-ready.
+[scan]
+# xtask boundary fixtures, not products: the boundary check exercises them;
+# standalone per-crate CI verification would be noise (no lockfiles).
+exclude = [
+  "xtask/fixtures/backend-free-core/Cargo.toml",
+  "xtask/fixtures/backend-free-testing/Cargo.toml",
+]
+
+# Public repo: GitHub-hosted singleton (no velnor lanes).
+[workflow]
+providers = ["github-hosted"]
+automatic_providers = ["github-hosted"]
+default_branch = "main"
+
+[workflow.selectors.github-hosted]
+runs_on = ["ubuntu-24.04"]
+
+[policy]
+ruleset_required_status_checks = ["ci-required", "Policy"]
+
+# Declared workspace-gate carrier (primary channel via the repo pin stamp):
+# runs the workspace check plus every workspace-level gate as mise tasks, on a
+# full-history checkout so the bless guard resolves a real base. Selected on
+# any same-root Rust change via the workspace-check contract.
+[[units]]
+id = "rust-gates"
+kind = "rust"
+root = "."
+workspace_check = true
+full_history = true
+ci_tasks = ["ci-gates-metadata", "ci-gates-backend-free", "ci-gates-examples", "ci-gates-render-reachable", "ci-gates-doc", "ci-gates-app-inventory", "ci-gates-boundary", "ci-gates-bless-guard", "ci-gates-allow-lists", "ci-gates-doc-check"]
+
+[units.env]
+CARGO_TERM_COLOR = "always"
+RUSTFLAGS = "-D warnings"
+RUSTDOCFLAGS = "-D warnings"
+
+# Declared MSRV floor proof (§22.5): plain `cargo check` on the explicit
+# 1.88.0 leg (minimal profile: no pin components leak onto the floor), never
+# a +toolchain command. Shallow checkout: no diff-aware command runs here.
+[[units]]
+id = "rust-msrv"
+kind = "rust"
+root = "."
+toolchain = "1.88.0"
+workspace_check = true
+ci_tasks = ["ci-msrv-all-features"]
+
+# Perf profiles (COMPONENT_ARCHITECTURE.md §16.6 adopts
+# docs/audit/performance-audit.md §7.3 verbatim).
+[[check_profile]]
+id = "perf"
+name = "perf (allocations and bytes, blocking)"
+runner = "github"
+tasks = ["ci-perf-contract", "ci-gates-bless-guard", "ci-perf-lib", "ci-perf-apps", "ci-perf-no-rebless", "ci-perf-collect"]
+timeout_minutes = 90
+status = "required"
+artifacts = ["perf-lines.txt", "perf-*.log"]
+full_history = true
+[check_profile.env]
+CARGO_TERM_COLOR = "always"
+BLESS_GUARD_BASE = "${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}"
+
+[[check_profile]]
+id = "perf-strict"
+name = "perf (wall clock, advisory)"
+runner = "github"
+tasks = ["ci-perf-strict-lib", "ci-perf-strict-apps"]
+timeout_minutes = 90
+status = "advisory"
+needs = ["perf"]
+artifacts = ["perf-strict-*.log"]
+[check_profile.env]
+CARGO_TERM_COLOR = "always"
+PERF_STRICT = "1"
+
+[[declare]]
+primitive = "scheduled-checks"
+file = "perf.yml"
+[declare.args]
+profiles = ["perf", "perf-strict"]
+name = "Perf"
+events = ["push", "pull_request"]
+branches = ["main"]

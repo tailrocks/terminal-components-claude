@@ -10204,46 +10204,45 @@ captures / classification: `(pending — filled when the change lands)`
         .expect("no digest key moved or was added");
     }
 
-    /// §49.6: the guard's base falls back to `HEAD` when nothing sets one, and
-    /// CI runs on **push to `main`** as well as on pull requests. On the push
-    /// leg there is no `GITHUB_BASE_REF`, so without an explicit base a clean
-    /// checkout is diffed against itself and the guard reports `0 moved,
-    /// 0 added` on every direct commit — which is what it did for this whole
-    /// session. The push leg must therefore name a base explicitly.
+    /// §49.6 (schema-2): the guard's base falls back to `HEAD` when nothing sets
+    /// one, and CI runs on **push to `main`** as well as on pull requests. On
+    /// the push leg there is no `GITHUB_BASE_REF`, so without an explicit base
+    /// a clean checkout is diffed against itself and the guard reports
+    /// `0 moved, 0 added` on every direct commit. The push leg must therefore
+    /// name a base explicitly. The guard reaches CI only through the
+    /// `ci-gates-bless-guard` mise task: the runtime contract must carry it,
+    /// the task must map `BLESS_GUARD_BASE` from the unit job's inherited
+    /// `$BASE_SHA` (never HEAD, never empty), and the kind reusable must
+    /// export that variable on its run steps.
     #[test]
     fn the_ci_push_leg_gives_the_bless_guard_a_base() {
-        let ci = read(&root().join(".github/workflows/ci.yml"));
+        let project = read(&root().join(".github/ci/project.toml"));
         assert!(
-            ci.contains("  push:"),
-            "the workflow no longer has a push leg; this check is about that leg"
+            project.contains("mise run ci-gates-bless-guard"),
+            "the runtime contract no longer runs the bless guard; this check is about that command"
         );
-        let lines: Vec<&str> = ci.lines().collect();
-        // the `run:` step, not the gate→requirement comment block at the head
-        // of the file, which names the same command
-        let run = lines
-            .iter()
-            .position(|l| {
-                l.trim_start()
-                    .strip_prefix("run: cargo run ")
-                    .is_some_and(|args| {
-                        args.split_whitespace()
-                            .collect::<Vec<_>>()
-                            .windows(4)
-                            .any(|words| words == ["-p", "xtask", "--", "bless-guard"])
-                    })
-            })
-            .expect("ci.yml has a step that runs the bless guard");
-        let start = run.saturating_sub(8);
-        let window = lines.get(start..run).unwrap_or_default().join("\n");
+        let mise = read(&root().join("mise.toml"));
+        let task = mise
+            .split("[tasks.ci-gates-bless-guard]")
+            .nth(1)
+            .unwrap_or_default();
+        let task = task.split("\n[tasks.").next().unwrap_or_default();
         assert!(
-            window.contains("BLESS_GUARD_BASE:"),
-            "the bless-guard step must set BLESS_GUARD_BASE; without it the push leg diffs \
-             the tree against itself. Step context:\n{window}"
+            task.contains("BLESS_GUARD_BASE=") && task.contains("$BASE_SHA"),
+            "the bless-guard task must map BLESS_GUARD_BASE from $BASE_SHA; without it the push \
+             leg diffs the tree against itself. Task body:\n{task}"
         );
+        let rust = read(&root().join(".github/workflows/ci-unit-rust.yml"));
         assert!(
-            window.contains("github.event.before"),
-            "BLESS_GUARD_BASE on the push leg must be `${{{{ github.event.before }}}}` — the \
-             commit the push moved `main` off. Step context:\n{window}"
+            rust.contains("BASE_SHA: ${{ inputs.base_sha }}"),
+            "the rust kind reusable must export BASE_SHA on run steps, or the task mapping \
+             resolves to nothing"
+        );
+        let generation = read(&root().join(".github-gen/velnor-workflow.toml"));
+        assert!(
+            generation.contains("github.event.before"),
+            "the perf profile env must pin the push-leg base expression explicitly \
+             (`github.event.before` is the commit the push moved `main` off)"
         );
     }
 
