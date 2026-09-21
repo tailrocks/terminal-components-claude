@@ -1,0 +1,28 @@
+schema = "verify/v2"
+task_id = "TASK-076"
+writable_paths = ["tools/refactor-proof/bin/tc-proof"]
+forbidden_paths = ["refactoring-tasks", "docs/refactoring-plan", "shots", "snapshots", "baseline", "tools/refactor-proof/accounting", "tools/refactor-proof/architecture", "tools/refactor-proof/bin/tc-proof-host", "tools/refactor-proof/core", "tools/refactor-proof/src/bin", "tools/refactor-proof/src/compare.rs", "tools/refactor-proof/tests", "tools/refactor-proof/runner/__init__.py", "tools/refactor-proof/runner/bundle.py", "tools/refactor-proof/runner/context.py", "tools/refactor-proof/runner/index.py", "tools/refactor-proof/runner/json_util.py", "tools/refactor-proof/runner/observer.py", "tools/refactor-proof/runner/operations.py", "tools/refactor-proof/runner/result.py", "tools/refactor-proof/runner/validate.py", "tools/refactor-proof/runner/__main__.py", "tools/refactor-proof/src/verifier.rs", "tools/refactor-proof/src/json_util.rs", "tools/refactor-proof/src/lib.rs", "tools/refactor-proof/src/observer", "tools/refactor-proof/scripts"]
+
+[[checks]]
+id = "CHK-001"
+phase = "precondition"
+shell = "python3 tools/refactor-proof/tests/rebundle_check.py"
+expected = { exit = 0 }
+requirements = ["R-001", "R-004"]
+acceptance = ["AC-001"]
+
+[[checks]]
+id = "CHK-002"
+phase = "focused"
+shell = "python3 refactoring-tasks/terminal-components/completion/076/trusted/rebundle/compare-supervision-probe.py"
+expected = { exit = 0 }
+requirements = ["R-002", "R-004"]
+acceptance = ["AC-002"]
+
+[[checks]]
+id = "CHK-003"
+phase = "gate"
+shell = "python3 refactoring-tasks/terminal-components/completion/076/trusted/rebundle/regeneration-probe.py"
+expected = { exit = 0 }
+requirements = ["R-003", "R-004"]
+acceptance = ["AC-003"]
