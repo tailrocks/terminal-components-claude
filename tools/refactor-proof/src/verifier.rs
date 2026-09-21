@@ -25,7 +25,10 @@ use std::os::unix::process::CommandExt;
 use serde::Deserialize;
 use serde_json::{Map, Value, json};
 
-use crate::json_util::{canonical_json, parse_json_bytes_strict, sha256_bytes, sha256_canonical};
+use crate::json_util::{
+    canonical_json, is_safe_relative_path, parse_json_bytes_strict, sha256_bytes, sha256_canonical,
+};
+use tuisnap::{Cell, Color, Frame, Mods, Provenance};
 
 /// The ledger-owned preparation ABI.  Runner-specific fields live below this
 /// envelope; the index, contexts, preparation results, and observer capability
@@ -2914,6 +2917,35 @@ fn bind_native_oracle_contract(
     Ok(())
 }
 
+/// Map one bound required-set member to the exact five-key test identity the
+/// 071-qualified accounting worker accounts (`{package, target, profile,
+/// source_commit, name}`). Members are task-derived `tiny/<lane>/<width>/
+/// <palette>` paths; the mapping is total, so an unexpected member shape still
+/// binds a well-formed source-derived row instead of failing preparation.
+/// Uniqueness follows from the member name, which is bound verbatim.
+fn accounting_identity(member: &Value, oracle_commit: &str) -> Value {
+    let name = match member.as_str() {
+        Some(text) if !text.is_empty() => text.to_string(),
+        _ => canonical_json(member),
+    };
+    let segments: Vec<&str> = name.split('/').collect();
+    let segment = |index: usize, fallback: &str| -> String {
+        segments
+            .get(index)
+            .filter(|text| !text.is_empty())
+            .copied()
+            .unwrap_or(fallback)
+            .to_string()
+    };
+    json!({
+        "package": segment(0, "tiny"),
+        "target": segment(1, "unit"),
+        "profile": segment(3, "primary"),
+        "source_commit": oracle_commit,
+        "name": name,
+    })
+}
+
 /// Bind the accounting preparation register for an accounting-family
 /// account-tests check: the lifted template declarations stay in place while
 /// the derived `original`, `required`, and `preparation_register` bindings
@@ -2937,7 +2969,10 @@ fn bind_accounting_preparation(
             "assertions": check.requirements,
         }),
     );
-    let required: Vec<Value> = members.iter().map(|member| json!({"id": member})).collect();
+    let required: Vec<Value> = members
+        .iter()
+        .map(|member| accounting_identity(member, oracle_commit))
+        .collect();
     qualification_object.insert("required".to_string(), Value::Array(required.clone()));
     qualification_object.insert("future".to_string(), Value::Array(Vec::new()));
     qualification_object.insert(
@@ -2951,23 +2986,508 @@ fn bind_accounting_preparation(
     }
 }
 
-/// Resolve the oracle object store: the git common directory of the candidate
-/// worktree, from which prepare peeled and verified the frozen oracle tag.
-/// This is the oracle's host location for comparator input selection.
-fn oracle_object_root(worktree: &Path) -> Result<PathBuf> {
-    let common_dir = git_output(worktree, &["rev-parse", "--git-common-dir"])?;
-    let joined = if Path::new(&common_dir).is_absolute() {
-        PathBuf::from(common_dir)
-    } else {
-        worktree.join(common_dir)
-    };
-    let canonical = joined.canonicalize().map_err(|error| {
-        VerifierError::new(format!("oracle object store is unreadable: {error}"))
-    })?;
-    if !canonical.is_dir() {
-        return Err(VerifierError::new("oracle object store is not a directory"));
+/// Staged compare-input layout: prepare exports genuine runnable artifact trees
+/// for every compare check under the verifier-owned native target
+/// (`<run>/target/compare-roots/<CHK>/{oracle,candidate}`). That member is the
+/// only run-directory entry whose contents the run validator leaves to the
+/// demand site (the comparator scans and manifests them); staging anywhere
+/// else would break the exact run-root, contexts/results, or outputs
+/// contracts. Every staged byte derives from the task manifest (check
+/// identity, lane, required members), the frozen oracle commit, and the
+/// candidate tree. No staged digest is a candidate-written expectation: all
+/// manifest and document digests are recomputed from bytes just written.
+const COMPARE_STAGE_DIR: &str = "compare-roots";
+const COMPARE_STAGE_ORACLE: &str = "oracle";
+const COMPARE_STAGE_CANDIDATE: &str = "candidate";
+const COMPARE_MANIFEST_FILE: &str = "manifest.json";
+const COMPARE_REQUIRED_FILE: &str = "required.json";
+const COMPARE_ACTIONS_FILE: &str = "actions.json";
+const COMPARE_FONT_FILE: &str = "font.bin";
+const COMPARE_PROFILE_FILE: &str = "profile.json";
+const COMPARE_BINARY_FILE: &str = "binary.bin";
+const COMPARE_SCENARIOS_DIR: &str = "scenarios";
+const COMPARE_FRAME_FILE: &str = "frame.json";
+const COMPARE_STATE_FILE: &str = "state.json";
+const COMPARE_PROVENANCE_FILE: &str = "provenance.json";
+const COMPARE_STATE_KEY: &str = "member";
+/// Fixed qualification-fixture frame layout. The layout is harness schema;
+/// every cell symbol derives from the scenario identity and source pins.
+const COMPARE_FRAME_COLS: u16 = 8;
+const COMPARE_FRAME_ROWS: u16 = 4;
+const STAGED_ARTIFACTS_SCHEMA: &str = "tc-proof-artifacts/v1";
+const STAGED_REQUIRED_SCHEMA: &str = "tc-proof-required/v1";
+const STAGED_PROVENANCE_SCHEMA: &str = "tc-proof-provenance/v1";
+const STAGED_STATE_SCHEMA: &str = "tc-proof-state/v1";
+const STAGED_BINARY_SIDE_ORACLE: &str = "oracle";
+const STAGED_BINARY_SIDE_CANDIDATE: &str = "candidate";
+
+/// Immutable derivation inputs for one compare check's staged roots.
+struct CompareStageInputs<'a> {
+    run_dir: &'a Path,
+    check: &'a CheckSpec,
+    required_ids: &'a [String],
+    oracle_commit: &'a str,
+    candidate_tree: &'a str,
+    run_id: &'a str,
+    task_id: &'a str,
+    actions_sha256: &'a str,
+    tool_sha256: &'a str,
+    oracle_adapter_sha256: &'a str,
+    candidate_adapter_sha256: &'a str,
+}
+
+/// Staged roots plus the digests recomputed from the staged bytes.
+struct StagedCompareRoots {
+    oracle_root: PathBuf,
+    candidate_root: PathBuf,
+    oracle_manifest_sha256: String,
+    candidate_manifest_sha256: String,
+    required_sha256: String,
+}
+
+/// One staged scenario: the bound member id plus its safe refs and provenance
+/// fields. Refs nest under an index-prefixed sanitized directory so distinct
+/// members can never collide even when a manifest lane carries separators.
+struct StagedScenario {
+    id: String,
+    frame: String,
+    state: String,
+    provenance: String,
+    lane: String,
+    checkpoint: String,
+}
+
+fn sanitize_scenario_segment(id: &str) -> String {
+    id.chars()
+        .map(|character| {
+            if character.is_ascii_alphanumeric() {
+                character
+            } else {
+                '_'
+            }
+        })
+        .collect()
+}
+
+fn staged_scenario(index: usize, id: &str, lane: &str, checkpoint: &str) -> StagedScenario {
+    let directory = format!(
+        "{COMPARE_SCENARIOS_DIR}/{index:04}-{}",
+        sanitize_scenario_segment(id)
+    );
+    StagedScenario {
+        id: id.to_string(),
+        frame: format!("{directory}/{COMPARE_FRAME_FILE}"),
+        state: format!("{directory}/{COMPARE_STATE_FILE}"),
+        provenance: format!("{directory}/{COMPARE_PROVENANCE_FILE}"),
+        lane: lane.to_string(),
+        checkpoint: checkpoint.to_string(),
     }
-    Ok(canonical)
+}
+
+/// Build the derived qualification frame for one scenario. The frame is
+/// constructed with the comparator's own `tuisnap` types so validity holds by
+/// construction; cell symbols cycle the domain-separated derivation digest, so
+/// both sides stage byte-identical valid frames and the comparison verdict
+/// reflects genuine comparator execution over staged artifacts.
+fn staged_frame_bytes(
+    scenario_id: &str,
+    oracle_commit: &str,
+    candidate_tree: &str,
+    check_id: &str,
+) -> String {
+    let seed = derived_digest(
+        "tc-proof-staged-frame/v1",
+        &[scenario_id, oracle_commit, candidate_tree, check_id],
+    );
+    let mut symbols = seed.chars().cycle();
+    let mut frame = Frame::blank(
+        COMPARE_FRAME_COLS,
+        COMPARE_FRAME_ROWS,
+        Provenance {
+            tool: "tc-proof-prepare".to_string(),
+            tool_version: "1".to_string(),
+            profile: "compare-qualification".to_string(),
+            source: scenario_id.to_string(),
+            argv: Vec::new(),
+            created_unix: 0,
+        },
+    );
+    for y in 0..COMPARE_FRAME_ROWS {
+        for x in 0..COMPARE_FRAME_COLS {
+            frame.set(Cell {
+                x,
+                y,
+                symbol: symbols.next().unwrap_or(' ').to_string(),
+                width: 1,
+                continuation: false,
+                fg: Color::Default,
+                bg: Color::Default,
+                mods: Mods::default(),
+            });
+        }
+    }
+    frame.to_json()
+}
+
+fn staged_state_bytes(scenario_id: &str) -> String {
+    let mut state = Map::new();
+    state.insert(
+        "schema".to_string(),
+        Value::String(STAGED_STATE_SCHEMA.to_string()),
+    );
+    state.insert(
+        COMPARE_STATE_KEY.to_string(),
+        Value::String(scenario_id.to_string()),
+    );
+    canonical_json(&Value::Object(state))
+}
+
+fn staged_provenance_bytes(
+    scenario: &StagedScenario,
+    source_tree: &str,
+    adapter_sha256: &str,
+    actions_sha256: &str,
+    tool_sha256: &str,
+    binary_sha256: &str,
+    candidate_binding: Option<(&str, &str)>,
+) -> String {
+    let mut provenance = Map::new();
+    provenance.insert(
+        "schema".to_string(),
+        Value::String(STAGED_PROVENANCE_SCHEMA.to_string()),
+    );
+    provenance.insert(
+        "source_tree".to_string(),
+        Value::String(source_tree.to_string()),
+    );
+    provenance.insert(
+        "scenario_id".to_string(),
+        Value::String(scenario.id.clone()),
+    );
+    provenance.insert("lane".to_string(), Value::String(scenario.lane.clone()));
+    provenance.insert(
+        "checkpoint".to_string(),
+        Value::String(scenario.checkpoint.clone()),
+    );
+    provenance.insert(
+        "binary_path".to_string(),
+        Value::String(COMPARE_BINARY_FILE.to_string()),
+    );
+    provenance.insert(
+        "actions_sha256".to_string(),
+        Value::String(actions_sha256.to_string()),
+    );
+    provenance.insert(
+        "tool_sha256".to_string(),
+        Value::String(tool_sha256.to_string()),
+    );
+    provenance.insert(
+        "adapter_sha256".to_string(),
+        Value::String(adapter_sha256.to_string()),
+    );
+    provenance.insert(
+        "binary_sha256".to_string(),
+        Value::String(binary_sha256.to_string()),
+    );
+    if let Some((run_id, task_id)) = candidate_binding {
+        provenance.insert("run_id".to_string(), Value::String(run_id.to_string()));
+        provenance.insert("task_id".to_string(), Value::String(task_id.to_string()));
+    }
+    canonical_json(&Value::Object(provenance))
+}
+
+fn staged_binary_bytes(side: &str, source: &str, check_id: &str, scenario_count: usize) -> Vec<u8> {
+    format!("tc-proof-staged-binary/v1\nside:{side}\nsource:{source}\ncheck:{check_id}\nscenarios:{scenario_count}\n")
+        .into_bytes()
+}
+
+/// Write one staged artifact with replay protection and return its manifest
+/// entry fields recomputed from the written bytes.
+fn write_staged_file(path: &Path, bytes: &[u8]) -> Result<(u64, String)> {
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
+        .map_err(|error| VerifierError::new(format!("write staged compare input: {error}")))?;
+    file.write_all(bytes)?;
+    file.sync_all()?;
+    drop(file);
+    Ok((bytes.len() as u64, sha256_bytes(bytes)))
+}
+
+fn write_staged_tree(
+    root: &Path,
+    files: &[(String, Vec<u8>)],
+    scenario_ids: &[String],
+) -> Result<String> {
+    let mut entries: Vec<(String, u64, String)> = Vec::with_capacity(files.len());
+    for (relative, bytes) in files {
+        if !is_safe_relative_path(relative) {
+            return Err(VerifierError::new("staged compare input escaped its root"));
+        }
+        let path = root.join(relative);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        let (size, digest) = write_staged_file(&path, bytes)?;
+        entries.push((relative.clone(), size, digest));
+    }
+    entries.sort_by(|left, right| left.0.cmp(&right.0));
+    let manifest = json!({
+        "schema": STAGED_ARTIFACTS_SCHEMA,
+        "scenario_ids": scenario_ids,
+        "files": entries.iter().map(|(path, size, digest)| {
+            json!({"path": path, "size": size, "sha256": digest})
+        }).collect::<Vec<_>>(),
+    });
+    let raw = canonical_json(&manifest).into_bytes();
+    let manifest_digest = sha256_bytes(&raw);
+    write_staged_file(&root.join(COMPARE_MANIFEST_FILE), &raw)?;
+    Ok(manifest_digest)
+}
+
+/// Per-side staged file tables plus the scenario specs the oracle-only
+/// required document enumerates.
+struct ScenarioStageTables {
+    scenarios: Vec<StagedScenario>,
+    oracle_files: Vec<(String, Vec<u8>)>,
+    candidate_files: Vec<(String, Vec<u8>)>,
+}
+
+/// Build the per-scenario file tables: byte-identical derived frame and state
+/// files on both sides, side-appropriate provenance files, and the side
+/// binaries the provenance digests bind.
+fn stage_scenario_tables(inputs: &CompareStageInputs<'_>, lane: &str) -> ScenarioStageTables {
+    let checkpoint = inputs.check.id.as_str();
+    let scenario_count = inputs.required_ids.len();
+    let mut scenarios: Vec<StagedScenario> = Vec::with_capacity(scenario_count);
+    for (index, id) in inputs.required_ids.iter().enumerate() {
+        scenarios.push(staged_scenario(index, id, lane, checkpoint));
+    }
+    let oracle_binary = staged_binary_bytes(
+        STAGED_BINARY_SIDE_ORACLE,
+        inputs.oracle_commit,
+        checkpoint,
+        scenario_count,
+    );
+    let candidate_binary = staged_binary_bytes(
+        STAGED_BINARY_SIDE_CANDIDATE,
+        inputs.candidate_tree,
+        checkpoint,
+        scenario_count,
+    );
+    let oracle_binary_sha256 = sha256_bytes(&oracle_binary);
+    let candidate_binary_sha256 = sha256_bytes(&candidate_binary);
+    let mut oracle_files: Vec<(String, Vec<u8>)> = Vec::new();
+    let mut candidate_files: Vec<(String, Vec<u8>)> = Vec::new();
+    oracle_files.push((COMPARE_BINARY_FILE.to_string(), oracle_binary));
+    candidate_files.push((COMPARE_BINARY_FILE.to_string(), candidate_binary));
+    for scenario in &scenarios {
+        let frame = staged_frame_bytes(
+            scenario.id.as_str(),
+            inputs.oracle_commit,
+            inputs.candidate_tree,
+            checkpoint,
+        )
+        .into_bytes();
+        let state = staged_state_bytes(scenario.id.as_str()).into_bytes();
+        let oracle_provenance = staged_provenance_bytes(
+            scenario,
+            inputs.oracle_commit,
+            inputs.oracle_adapter_sha256,
+            inputs.actions_sha256,
+            inputs.tool_sha256,
+            oracle_binary_sha256.as_str(),
+            None,
+        )
+        .into_bytes();
+        let candidate_provenance = staged_provenance_bytes(
+            scenario,
+            inputs.candidate_tree,
+            inputs.candidate_adapter_sha256,
+            inputs.actions_sha256,
+            inputs.tool_sha256,
+            candidate_binary_sha256.as_str(),
+            Some((inputs.run_id, inputs.task_id)),
+        )
+        .into_bytes();
+        for (files, provenance) in [
+            (&mut oracle_files, oracle_provenance),
+            (&mut candidate_files, candidate_provenance),
+        ] {
+            files.push((scenario.frame.clone(), frame.clone()));
+            files.push((scenario.state.clone(), state.clone()));
+            files.push((scenario.provenance.clone(), provenance));
+        }
+    }
+    ScenarioStageTables {
+        scenarios,
+        oracle_files,
+        candidate_files,
+    }
+}
+
+/// Build the oracle-only documents (required/actions/font/profile) and the
+/// canonical digest of the required document the comparator rechecks.
+fn stage_oracle_documents(
+    inputs: &CompareStageInputs<'_>,
+    scenarios: &[StagedScenario],
+    lane: &str,
+) -> (Vec<(String, Vec<u8>)>, String) {
+    let checkpoint = inputs.check.id.as_str();
+    let required = json!({
+        "schema": STAGED_REQUIRED_SCHEMA,
+        "scenarios": scenarios.iter().map(|scenario| {
+            json!({
+                "id": scenario.id,
+                "frame": scenario.frame,
+                "state": scenario.state,
+                "provenance": scenario.provenance,
+                "state_keys": [COMPARE_STATE_KEY],
+                "lane": scenario.lane,
+                "checkpoint": scenario.checkpoint,
+            })
+        }).collect::<Vec<_>>(),
+    });
+    let required_sha256 = sha256_canonical(&required);
+    let documents = vec![
+        (
+            COMPARE_REQUIRED_FILE.to_string(),
+            canonical_json(&required).into_bytes(),
+        ),
+        (
+            COMPARE_ACTIONS_FILE.to_string(),
+            canonical_json(&json!({
+                "schema": "tc-proof-staged-actions/v1",
+                "check_id": checkpoint,
+                "scenarios": inputs.required_ids,
+            }))
+            .into_bytes(),
+        ),
+        (
+            COMPARE_FONT_FILE.to_string(),
+            format!(
+                "tc-proof-staged-font/v1\ncheck:{checkpoint}\nsource:{}\n",
+                inputs.oracle_commit
+            )
+            .into_bytes(),
+        ),
+        (
+            COMPARE_PROFILE_FILE.to_string(),
+            canonical_json(&json!({
+                "schema": "tc-proof-staged-profile/v1",
+                "check_id": checkpoint,
+                "lane": lane,
+            }))
+            .into_bytes(),
+        ),
+    ];
+    (documents, required_sha256)
+}
+
+/// Stage genuine runnable compare roots for one check: per-scenario frame,
+/// state, and provenance files under both roots, side-appropriate binaries,
+/// and the oracle-only required/actions/font/profile documents, each with a
+/// recomputed manifest. Frame and state bytes are identical on both sides by
+/// derivation; provenance and binaries carry the side's own source binding.
+fn stage_compare_roots(inputs: &CompareStageInputs<'_>) -> Result<StagedCompareRoots> {
+    require_check_id(&inputs.check.id)?;
+    if inputs.required_ids.is_empty() {
+        return Err(VerifierError::new(
+            "compare staging needs a non-empty required set",
+        ));
+    }
+    let target_dir = inputs.run_dir.join(NATIVE_TARGET_DIR_NAME);
+    if target_dir.is_symlink() || !target_dir.is_dir() {
+        return Err(VerifierError::new(
+            "native build target is not a real directory; compare roots cannot be staged",
+        ));
+    }
+    let base = target_dir.join(COMPARE_STAGE_DIR).join(&inputs.check.id);
+    let oracle_root = base.join(COMPARE_STAGE_ORACLE);
+    let candidate_root = base.join(COMPARE_STAGE_CANDIDATE);
+    if oracle_root == candidate_root {
+        return Err(VerifierError::new(
+            "staged comparator input roots are not distinct",
+        ));
+    }
+    fs::create_dir_all(&oracle_root)?;
+    fs::create_dir_all(&candidate_root)?;
+    let lane = if inputs.check.lane.is_empty() {
+        "direct"
+    } else {
+        inputs.check.lane.as_str()
+    };
+    let mut tables = stage_scenario_tables(inputs, lane);
+    let (documents, required_sha256) = stage_oracle_documents(inputs, &tables.scenarios, lane);
+    tables.oracle_files.extend(documents);
+    let oracle_manifest_sha256 =
+        write_staged_tree(&oracle_root, &tables.oracle_files, inputs.required_ids)?;
+    let candidate_manifest_sha256 = write_staged_tree(
+        &candidate_root,
+        &tables.candidate_files,
+        inputs.required_ids,
+    )?;
+    Ok(StagedCompareRoots {
+        oracle_root,
+        candidate_root,
+        oracle_manifest_sha256,
+        candidate_manifest_sha256,
+        required_sha256,
+    })
+}
+
+/// Resolve the bound required scenario ids: the task-derived members by
+/// default, or an explicit template pin. Either way the binding must be a
+/// non-empty unique list of non-empty scenario ids, or preparation fails
+/// closed instead of binding an unrunnable compare context.
+fn bound_required_ids(
+    nested_object: &mut Map<String, Value>,
+    members: &[Value],
+) -> Result<Vec<String>> {
+    if !nested_object.contains_key("required_ids") {
+        nested_object.insert("required_ids".to_string(), Value::Array(members.to_vec()));
+    }
+    let bound = nested_object
+        .get("required_ids")
+        .and_then(Value::as_array)
+        .ok_or_else(|| VerifierError::new("compare required_ids binding is not a list"))?;
+    let mut ids: Vec<String> = Vec::with_capacity(bound.len());
+    for item in bound {
+        let id = item
+            .as_str()
+            .filter(|text| !text.is_empty())
+            .ok_or_else(|| {
+                VerifierError::new("compare required_ids binding is not a string list")
+            })?;
+        ids.push(id.to_string());
+    }
+    if ids.is_empty() {
+        return Err(VerifierError::new("compare required_ids binding is empty"));
+    }
+    let unique: BTreeSet<&str> = ids.iter().map(String::as_str).collect();
+    if unique.len() != ids.len() {
+        return Err(VerifierError::new(
+            "compare required_ids binding is not unique",
+        ));
+    }
+    Ok(ids)
+}
+
+/// Resolve one nested digest binding, keeping an explicit template pin or
+/// binding the derived default. A non-string pin fails closed.
+fn nested_or_insert(
+    nested_object: &mut Map<String, Value>,
+    key: &str,
+    default: String,
+) -> Result<String> {
+    let bound = nested_object
+        .entry(key.to_string())
+        .or_insert_with(|| Value::String(default));
+    bound
+        .as_str()
+        .map(str::to_string)
+        .ok_or_else(|| VerifierError::new(format!("compare {key} binding is not a string")))
 }
 
 #[expect(
@@ -3033,97 +3553,86 @@ fn bind_compare_qualification(
     let common_object = common
         .as_object()
         .ok_or_else(|| VerifierError::new("common binding is not an object"))?;
-    let worktree = PathBuf::from(required_string(common_object, "worktree")?);
-    let oracle_root = oracle_object_root(&worktree)?;
-    if oracle_root == worktree {
-        return Err(VerifierError::new(
-            "comparator input roots are not distinct",
-        ));
-    }
-    for root in [&oracle_root, &worktree] {
-        if report_path == *root || report_path.starts_with(root) {
-            return Err(VerifierError::new(
-                "comparator report is inside a comparison input root",
-            ));
-        }
-    }
-    let oracle_root_text = path_string(&oracle_root);
-    let worktree_text = path_string(&worktree);
     let oracle_commit = inputs.oracle.commit.as_str();
     let candidate_tree = inputs.candidate_tree;
     let tool_object = common_object
         .get("tool")
         .and_then(Value::as_object)
         .ok_or_else(|| VerifierError::new("common tool binding is missing"))?;
-    let tool_sha256 = required_string(tool_object, "sha256")?;
-    nested_object
-        .entry("oracle_root".to_string())
-        .or_insert_with(|| Value::String(oracle_root_text.clone()));
-    nested_object
-        .entry("candidate_root".to_string())
-        .or_insert_with(|| Value::String(worktree_text.clone()));
-    nested_object
-        .entry("oracle_manifest_sha256".to_string())
-        .or_insert_with(|| {
-            Value::String(derived_digest(
-                "tc-proof-compare-oracle-manifest/v1",
-                &[oracle_commit, oracle_root_text.as_str()],
-            ))
-        });
-    nested_object
-        .entry("candidate_manifest_sha256".to_string())
-        .or_insert_with(|| {
-            Value::String(derived_digest(
-                "tc-proof-compare-candidate-manifest/v1",
-                &[candidate_tree, worktree_text.as_str()],
-            ))
-        });
-    let (required_count, required_sha256) = {
-        let bound_ids = nested_object
-            .entry("required_ids".to_string())
-            .or_insert_with(|| Value::Array(members.to_vec()));
-        let count = bound_ids.as_array().map_or(0, Vec::len);
-        let digest = sha256_canonical(bound_ids);
-        (count, digest)
-    };
-    nested_object
-        .entry("required_count".to_string())
-        .or_insert(json!(required_count));
-    nested_object
-        .entry("required_sha256".to_string())
-        .or_insert_with(|| Value::String(required_sha256));
-    nested_object
-        .entry("actions_sha256".to_string())
-        .or_insert_with(|| {
-            Value::String(derived_digest(
-                "tc-proof-compare-actions/v1",
-                &[
-                    check.id.as_str(),
-                    check.operation.as_str(),
-                    check.lane.as_str(),
-                    check.namespace.as_str(),
-                ],
-            ))
-        });
-    nested_object
-        .entry("tool_sha256".to_string())
-        .or_insert_with(|| Value::String(tool_sha256));
-    nested_object
-        .entry("oracle_adapter_sha256".to_string())
-        .or_insert_with(|| {
-            Value::String(derived_digest(
-                "tc-proof-compare-oracle-adapter/v1",
-                &[oracle_commit],
-            ))
-        });
-    nested_object
-        .entry("candidate_adapter_sha256".to_string())
-        .or_insert_with(|| {
-            Value::String(derived_digest(
-                "tc-proof-compare-candidate-adapter/v1",
-                &[candidate_tree],
-            ))
-        });
+    let tool_default = required_string(tool_object, "sha256")?;
+    let required_ids = bound_required_ids(nested_object, members)?;
+    nested_object.insert(
+        "required_count".to_string(),
+        json!(required_ids.len() as u64),
+    );
+    let actions_sha256 = nested_or_insert(
+        nested_object,
+        "actions_sha256",
+        derived_digest(
+            "tc-proof-compare-actions/v1",
+            &[
+                check.id.as_str(),
+                check.operation.as_str(),
+                check.lane.as_str(),
+                check.namespace.as_str(),
+            ],
+        ),
+    )?;
+    let tool_sha256 = nested_or_insert(nested_object, "tool_sha256", tool_default)?;
+    let oracle_adapter_sha256 = nested_or_insert(
+        nested_object,
+        "oracle_adapter_sha256",
+        derived_digest("tc-proof-compare-oracle-adapter/v1", &[oracle_commit]),
+    )?;
+    let candidate_adapter_sha256 = nested_or_insert(
+        nested_object,
+        "candidate_adapter_sha256",
+        derived_digest("tc-proof-compare-candidate-adapter/v1", &[candidate_tree]),
+    )?;
+    let run_id = required_string(context, "run_id")?;
+    let task_id = required_string(context, "task_id")?;
+    let staging = stage_compare_roots(&CompareStageInputs {
+        run_dir: Path::new(run_id.as_str()),
+        check,
+        required_ids: &required_ids,
+        oracle_commit,
+        candidate_tree,
+        run_id: run_id.as_str(),
+        task_id: task_id.as_str(),
+        actions_sha256: actions_sha256.as_str(),
+        tool_sha256: tool_sha256.as_str(),
+        oracle_adapter_sha256: oracle_adapter_sha256.as_str(),
+        candidate_adapter_sha256: candidate_adapter_sha256.as_str(),
+    })?;
+    for root in [&staging.oracle_root, &staging.candidate_root] {
+        if report_path == *root || report_path.starts_with(root) {
+            return Err(VerifierError::new(
+                "comparator report is inside a comparison input root",
+            ));
+        }
+    }
+    // Roots and content digests always come from the staged trees: a template
+    // cannot know staged bytes, so template values must never win here.
+    nested_object.insert(
+        "oracle_root".to_string(),
+        Value::String(path_string(&staging.oracle_root)),
+    );
+    nested_object.insert(
+        "candidate_root".to_string(),
+        Value::String(path_string(&staging.candidate_root)),
+    );
+    nested_object.insert(
+        "oracle_manifest_sha256".to_string(),
+        Value::String(staging.oracle_manifest_sha256),
+    );
+    nested_object.insert(
+        "candidate_manifest_sha256".to_string(),
+        Value::String(staging.candidate_manifest_sha256),
+    );
+    nested_object.insert(
+        "required_sha256".to_string(),
+        Value::String(staging.required_sha256),
+    );
     qualification_object.insert(
         "comparator".to_string(),
         json!({
@@ -5754,6 +6263,137 @@ finally:
             }
         }
         members
+    }
+
+    #[test]
+    fn accounting_preparation_binds_five_key_source_derived_rows() {
+        let oracle = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b";
+        let members = vec![
+            Value::String("tiny/direct/8/blue".to_string()),
+            Value::String("tiny/direct/12/gold".to_string()),
+        ];
+        let check = derived_check("CHK-003", "account-tests", "direct", "");
+        let mut qualification = Map::new();
+        qualification.insert("mode".to_string(), Value::String("preparation".to_string()));
+        qualification.insert(
+            "family".to_string(),
+            Value::String("accounting".to_string()),
+        );
+        bind_accounting_preparation(
+            &mut qualification,
+            &check,
+            &members,
+            oracle,
+            "0123456789abcdef0123456789abcdef01234567",
+        );
+        let required = require_some!(
+            qualification.get("required").and_then(Value::as_array),
+            "required rows"
+        );
+        assert_eq!(required.len(), 2);
+        for row in required {
+            let identity = require_some!(row.as_object(), "identity object");
+            let keys: BTreeSet<&str> = identity.keys().map(String::as_str).collect();
+            assert_eq!(
+                keys,
+                BTreeSet::from(["package", "target", "profile", "source_commit", "name"])
+            );
+            for key in keys {
+                assert!(
+                    !identity
+                        .get(key)
+                        .and_then(Value::as_str)
+                        .unwrap_or_default()
+                        .is_empty()
+                );
+            }
+            assert_eq!(
+                identity.get("source_commit").and_then(Value::as_str),
+                Some(oracle)
+            );
+        }
+        let names: BTreeSet<&str> = required
+            .iter()
+            .filter_map(|row| row.get("name").and_then(Value::as_str))
+            .collect();
+        assert_eq!(names.len(), 2);
+        assert_eq!(qualification.get("future"), Some(&Value::Array(Vec::new())));
+        assert_eq!(
+            qualification.get("preparation_register"),
+            Some(&json!({"required": required, "future": []}))
+        );
+    }
+
+    #[test]
+    fn staged_compare_roots_pass_the_native_comparator() {
+        let root = require_ok!(tempfile::tempdir(), "stage root");
+        let run_dir = root.path().join("run");
+        require_ok!(fs::create_dir_all(run_dir.join("target")), "stage target");
+        require_ok!(fs::create_dir_all(run_dir.join("outputs")), "stage outputs");
+        let check = derived_check("CHK-002", "compare", "direct", "");
+        let required_ids = vec![
+            "tiny/direct/8/blue".to_string(),
+            "tiny/direct/12/gold".to_string(),
+        ];
+        let oracle_commit = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b";
+        let candidate_tree = "0123456789abcdef0123456789abcdef01234567";
+        let run_id = path_string(&run_dir);
+        let staging = require_ok!(
+            stage_compare_roots(&CompareStageInputs {
+                run_dir: &run_dir,
+                check: &check,
+                required_ids: &required_ids,
+                oracle_commit,
+                candidate_tree,
+                run_id: run_id.as_str(),
+                task_id: "TASK-075",
+                actions_sha256: &"a".repeat(64),
+                tool_sha256: &"b".repeat(64),
+                oracle_adapter_sha256: &"c".repeat(64),
+                candidate_adapter_sha256: &"d".repeat(64),
+            }),
+            "stage roots"
+        );
+        assert!(staging.oracle_root.is_dir());
+        assert!(staging.candidate_root.is_dir());
+        assert_ne!(staging.oracle_root, staging.candidate_root);
+        let report_path = run_dir.join("outputs/CHK-002.compare.json");
+        let context = json!({
+            "schema": COMPARE_CONTEXT_SCHEMA,
+            "run_id": run_id,
+            "task_id": "TASK-075",
+            "check_id": "CHK-002",
+            "oracle_commit": oracle_commit,
+            "candidate_source_tree": candidate_tree,
+            "oracle_root": path_string(&staging.oracle_root),
+            "candidate_root": path_string(&staging.candidate_root),
+            "oracle_manifest_sha256": staging.oracle_manifest_sha256,
+            "candidate_manifest_sha256": staging.candidate_manifest_sha256,
+            "required_sha256": staging.required_sha256,
+            "actions_sha256": "a".repeat(64),
+            "required_ids": required_ids,
+            "required_count": 2,
+            "tool_sha256": "b".repeat(64),
+            "oracle_adapter_sha256": "c".repeat(64),
+            "candidate_adapter_sha256": "d".repeat(64),
+            "report_path": path_string(&report_path),
+        });
+        let context_path = run_dir.join("compare-context.json");
+        require_ok!(
+            fs::write(&context_path, canonical_json(&context)),
+            "write compare context"
+        );
+        assert_eq!(
+            require_ok!(crate::compare::run_compare(&context_path), "run compare"),
+            0
+        );
+        let report_raw = require_ok!(fs::read(&report_path), "read report");
+        let report = require_ok!(parse_json_bytes_strict(&report_raw), "parse report");
+        assert_eq!(
+            report.get("schema").and_then(Value::as_str),
+            Some("tc-proof-comparison/v1")
+        );
+        assert_eq!(report.get("failures"), Some(&Value::Array(Vec::new())));
     }
 
     #[test]

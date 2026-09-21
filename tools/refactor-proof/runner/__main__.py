@@ -308,6 +308,87 @@ def launch_native_worker(args: argparse.Namespace) -> int:
     return subprocess.run(command, env=child_environment, check=False).returncode
 
 
+def _derive_compare_index(context_path: Path) -> None:
+    """Derive native index bindings from --context when no preset exists.
+
+    The supervised compare branch runs without TC_PROOF_* presets, so the
+    context index is located from the context path itself
+    (<run>/contexts/<CHK>.json -> <run>/context-index.json) and its digest is
+    recomputed from the index bytes. An explicit preset is never overridden;
+    binding mismatches then fail closed inside bind_native_environment.
+    """
+    if (
+        os.environ.get("TC_PROOF_CONTEXT_INDEX") is not None
+        or os.environ.get("TC_PROOF_CONTEXT_INDEX_SHA256") is not None
+    ):
+        return
+    index_path = context_path.parent.parent / "context-index.json"
+    if not index_path.is_absolute():
+        raise RuntimeError("native context index path is not absolute")
+    try:
+        raw = index_path.read_bytes()
+    except OSError as error:
+        raise RuntimeError(f"native context index is unavailable: {index_path}") from error
+    os.environ["TC_PROOF_CONTEXT_INDEX"] = str(index_path)
+    os.environ["TC_PROOF_CONTEXT_INDEX_SHA256"] = sha256_bytes(raw)
+
+
+def _load_comparison_report(report_path: object) -> tuple[dict[str, object] | None, str | None]:
+    """Read the comparator report plus its digest, or (None, None)."""
+    if not isinstance(report_path, str) or not report_path:
+        return None, None
+    try:
+        raw = Path(report_path).read_bytes()
+    except OSError:
+        return None, None
+    try:
+        report = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, ValueError):
+        return None, None
+    if not isinstance(report, dict):
+        return None, None
+    return report, sha256_bytes(raw)
+
+
+def run_compare(context_path: Path) -> int:
+    """Supervise the native comparator and emit the bound runner result.
+
+    Resolves symlinked run ancestry (macOS /tmp), binds the native
+    environment from --context alone, runs the verifier-bound comparator as a
+    child process, then emits outputs/<CHK>.result.json via finish() with a
+    status that coheres with the comparator exit code. Always returns to the
+    caller; never replaces the process image.
+    """
+    if context_path.is_symlink():
+        raise RuntimeError("worker context path is a symlink")
+    resolved = context_path.resolve()
+    _derive_compare_index(resolved)
+    bind_native_environment(resolved)
+    rust = _native_comparator_path(resolved)
+    completed = subprocess.run([str(rust), "compare", "--context", str(resolved)], check=False)
+    context, _, context_hash = load_context(resolved)
+    qualification = context.get("qualification")
+    comparator = qualification.get("comparator") if isinstance(qualification, dict) else None
+    nested = comparator.get("context") if isinstance(comparator, dict) else None
+    nested_path = nested.get("report_path") if isinstance(nested, dict) else None
+    report, report_hash = _load_comparison_report(nested_path)
+    status = "passed" if completed.returncode == 0 else "rejected"
+    category: str | None = None
+    if status == "rejected":
+        category = "COMPARISON"
+        failures = report.get("failures") if isinstance(report, dict) else None
+        if isinstance(failures, list) and failures:
+            first = failures[0]
+            code = first.get("code") if isinstance(first, dict) else None
+            if isinstance(code, str) and code:
+                category = code
+    digests = [report_hash] if report_hash is not None else [context_hash]
+    outputs: dict[str, object] = {"exit_code": completed.returncode}
+    if isinstance(nested_path, str) and nested_path:
+        outputs["report"] = nested_path
+    return finish(status, category, outputs, digests, "compare", context_hash)
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv or sys.argv[1:])
     if args.operation in RUNNER_OPS:
@@ -333,9 +414,8 @@ def main(argv: list[str] | None = None) -> int:
         )
     if args.operation == "compare":
         try:
-            rust = _native_comparator_path(args.context)
-            os.execv(str(rust), [str(rust), "compare", *[str(a) for a in sys.argv[2:]]])
-        except (OSError, RuntimeError, ValueError) as error:
+            return run_compare(args.context)
+        except (OSError, RuntimeError, ValueError, Reject) as error:
             print(f"tc-proof: native comparator rejected: {error}", file=sys.stderr)
             return 1
     if args.operation not in RUNNER_OPS:
