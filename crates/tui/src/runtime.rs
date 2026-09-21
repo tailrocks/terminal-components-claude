@@ -1457,6 +1457,12 @@ impl<A: App> Runtime<A> {
         if let Some(k) = key_input
             && !r.is_consumed()
         {
+            // The raw pass already delivered (or diagnosed) every intent in
+            // the frozen queue. A follow-up bubble or Esc-dismissal pass must
+            // observe only its own command and fresh layer/focus
+            // notifications — never the same physical Key twice — while
+            // per-pass iteration stays immutable.
+            self.intents.clear();
             if let Some(cmd) = self.core.keymap.lookup(KeyPhase::Bubble, &k, false) {
                 r |= self.run_update(Some(cmd), UpdateCause::Event, activation_key);
             } else if k.code == KeyCode::Esc {

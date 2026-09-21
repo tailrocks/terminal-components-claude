@@ -127,17 +127,26 @@ impl Chord {
             && self.mods.difference(KeyModifiers::SHIFT).is_empty()
     }
 
-    /// Whether a key press matches this chord (`SHIFT` on a `Char` is
-    /// already folded into the character).
-    pub fn matches(&self, k: &Key) -> bool {
-        if self.code != k.code {
+    /// Effective chord identity shared by matching, every scoped
+    /// conflict check and focused-hint deduplication: `SHIFT` folds only
+    /// for the same exact `Char` (case-sensitive); every other modifier
+    /// and code stays distinct. Structural `PartialEq`/`Hash` remain the
+    /// derived forms and still see `NONE` versus `SHIFT` apart.
+    pub(crate) fn effective_eq(&self, other: &Chord) -> bool {
+        if self.code != other.code {
             return false;
         }
         if matches!(self.code, KeyCode::Char(_)) {
-            self.mods.difference(KeyModifiers::SHIFT) == k.mods.difference(KeyModifiers::SHIFT)
+            self.mods.difference(KeyModifiers::SHIFT) == other.mods.difference(KeyModifiers::SHIFT)
         } else {
-            self.mods == k.mods
+            self.mods == other.mods
         }
+    }
+
+    /// Whether a key press matches this chord (`SHIFT` on a `Char` is
+    /// already folded into the character).
+    pub fn matches(&self, k: &Key) -> bool {
+        self.effective_eq(&k.chord())
     }
 }
 
