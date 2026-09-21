@@ -5,14 +5,14 @@
 - Handoff ID: `pr6-refactor-holla-parity--20260921T220312Z--muse-code--c5d6e43a`
 - Created (UTC): 2026-09-21T22:03:12Z | Last update: see handoff-branch commit history (doc finalized 2026-09-22 ~05:40Z)
 - Original goal status: `PAUSED_BY_USER`
-- Handoff status: `PREPARING` until the handoff PR exists (then a follow-up commit flips this line to `READY` with the PR URL)
+- Handoff status: `READY` (handoff PR #10 published)
 - Runtime/worker stop: sole goal worker (014-r3 verifier) sent the pause stop message, returned a STOP ACK status report, and reached terminal state (verified via runtime subagent_result delivery). No other goal workers were running. No runtime goal-pause API is exposed to this agent (only completion/blocked transitions exist); the goal object therefore remains administratively active-but-idle. Pause is effected by: stopped workers + zero queued continuations + this checkpoint. This is a VERIFIED worker stop with an UNSUPPORTED runtime-control limitation, recorded honestly.
 - Source agent: Muse Code (CLI) | Session 01a0bfe4-be83-7db0-bcd4-38f0357dda92 | Goal goal-b5184825
 - Repository: `donbeave/terminal-components-claude` (github.com:donbeave/terminal-components-claude.git)
 - Handoff path: `docs/goal-handoffs/pr6-refactor-holla-parity--20260921T220312Z--muse-code--c5d6e43a.md`
 - Source branch / HEAD: `refactor/holla-parity` @ `227f21b6ba8a289ae585aa009b1a7d749a92aaf2` (pushed; in sync with origin at pause)
 - Checkpoint code SHAs: branch tip `227f21b6` (= 079 squash-integrated); unintegrated worker checkpoint `80399a1ebf7020bcdb76ff3d48f89cd7e2e71c8b` (014 r3, preserved on remote ref, §E.3; parent == tip, CAS still valid)
-- Preservation branch: `goal-handoff/pr6-parity-c5d6e43a` (this handoff + receipts bundle + appendix captures); PR base `refactor/holla-parity` @ `227f21b6`; PR URL: (filled after creation)
+- Preservation branch: `goal-handoff/pr6-parity-c5d6e43a` (this handoff + receipts bundle + appendix captures); PR base `refactor/holla-parity` @ `227f21b6`; PR URL: https://github.com/donbeave/terminal-components-claude/pull/10
 - Recovery: FULLY REMOTE-PORTABLE after this handoff lands (code pushed, worker checkpoints on remote refs, receipts + inventory captures bundled in the handoff PR). Pre-handoff state depended on `/tmp` (see §E).
 - Resume authorization: explicit later user request only.
 
@@ -231,7 +231,7 @@ Historical prep branches, other clones/eras, MAIN dirt, and stashes are EXCLUDED
 
 - Original goal title: Finish the complete refactoring on PR #6's branch with exact visual-baseline parity, functional parity, and independently verified integration.
 - Pause/worker status: PAUSED_BY_USER; sole goal worker stopped with STOP ACK and terminal state; zero queued continuations; goal object administratively active-but-idle (no runtime pause API).
-- HANDOFF path: `docs/goal-handoffs/pr6-refactor-holla-parity--20260921T220312Z--muse-code--c5d6e43a.md` on branch `goal-handoff/pr6-parity-c5d6e43a` (PR URL filled after creation).
+- HANDOFF path: `docs/goal-handoffs/pr6-refactor-holla-parity--20260921T220312Z--muse-code--c5d6e43a.md` on branch `goal-handoff/pr6-parity-c5d6e43a` (PR https://github.com/donbeave/terminal-components-claude/pull/10).
 - Branch: `refactor/holla-parity` @ `227f21b6ba8a289ae585aa009b1a7d749a92aaf2` (pushed, 0/0); unintegrated checkpoint `80399a1e` on `origin/goal-checkpoint/014-r3` (+ history refs 014-r1, 079-r1, 079-r2).
 - Preservation completeness: code pushed; checkpoints on remote refs; 68 receipts + 7 inventory/evidence captures bundled in the handoff PR. FULLY REMOTE-PORTABLE after the handoff PR lands.
 - Inventory coverage: 193/193 worktrees enumerated (118 goal-exclusive, 75 unrelated/stale); 34 local + 8 remote-only branches; 176 /tmp/tc-* entries; 9/9 PRs mapped; 3 stashes; MAIN dirt recorded.
