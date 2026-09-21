@@ -130,9 +130,9 @@ pub use components::{
 };
 // components — work packages 4C/4E (tree and containers)
 pub use components::{
-    CellPos, NodeKind, Panel, PanelKind, SplitAction, SplitCmd, SplitPane, SplitPaneState,
-    TextViewport, Tree, TreeAction, TreeBranchActivation, TreeBranchClick, TreeCmd, TreeNode,
-    TreeState, ViewportAction, ViewportCmd, ViewportLine, ViewportState,
+    CellPos, NodeKind, Panel, PanelKind, ProjectedText, SplitAction, SplitCmd, SplitPane,
+    SplitPaneState, TextViewport, Tree, TreeAction, TreeBranchActivation, TreeBranchClick, TreeCmd,
+    TreeNode, TreeState, ViewportAction, ViewportCmd, ViewportLine, ViewportState,
 };
 #[cfg(feature = "testing")]
 pub use components::{ViewportWorkProbe, ViewportWorkSnapshot};

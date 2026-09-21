@@ -103,8 +103,14 @@ pub enum ViewportLine<'a> {
 /// Owned, flattened styled text used by composite components. Keeping text,
 /// line descriptors and run descriptors in three allocations avoids building
 /// borrowed `Span` trees on every delegated phase.
+///
+/// Applications with expensive line sources (joins over large scrollbacks)
+/// keep one `ProjectedText` per viewport, rebuild it only when the source
+/// revision changes, and pass it to [`TextViewport::update_projected`] and
+/// [`TextViewport::draw_projected`]. Steady-state phases then borrow the
+/// projection instead of allocating per frame.
 #[derive(Clone, PartialEq, Eq, Debug, Default)]
-pub(crate) struct ProjectedText {
+pub struct ProjectedText {
     text: String,
     lines: Vec<Range<usize>>,
     runs: Vec<ProjectedRun>,
@@ -118,13 +124,18 @@ pub(crate) struct ProjectedRun {
 }
 
 impl ProjectedText {
-    pub(crate) fn clear(&mut self) {
+    /// Drop every projected line and run, keeping the buffers' capacity.
+    pub fn clear(&mut self) {
         self.text.clear();
         self.lines.clear();
         self.runs.clear();
     }
 
-    pub(crate) fn push_line<I, S>(&mut self, runs: I)
+    /// Append one line made of `(text, role, modifier)` runs.
+    ///
+    /// A single `(text, None, Modifier::empty())` run renders exactly like
+    /// [`ViewportLine::Plain`]`(text)`.
+    pub fn push_line<I, S>(&mut self, runs: I)
     where
         I: IntoIterator<Item = (S, Option<Role>, Modifier)>,
         S: AsRef<str>,
@@ -829,6 +840,14 @@ impl ViewportState {
         self.copy_from(LineSet::Borrowed(lines), out)
     }
 
+    /// Copy the selected text out of an owned [`ProjectedText`] projection.
+    ///
+    /// Identical to [`Self::copy_into`] except the lines are borrowed from a
+    /// caller-held projection instead of a caller-built slice.
+    pub fn copy_from_projected(&self, text: &ProjectedText, out: &mut String) -> bool {
+        self.copy_from(LineSet::Projected(text), out)
+    }
+
     fn copy_from(&self, lines: LineSet<'_>, out: &mut String) -> bool {
         let Some((a, b)) = self.selection() else {
             return false;
@@ -1171,7 +1190,11 @@ impl<'a> TextViewport<'a> {
         self.update_lines(cx, st, LineSet::Borrowed(lines))
     }
 
-    pub(crate) fn update_projected(
+    /// The update phase over an owned [`ProjectedText`] projection.
+    ///
+    /// Identical to [`Self::update`] except the lines are borrowed from a
+    /// caller-held projection instead of a caller-built slice.
+    pub fn update_projected(
         &self,
         cx: &mut Cx<'_>,
         st: &mut ViewportState,
@@ -1376,7 +1399,11 @@ impl<'a> TextViewport<'a> {
         self.draw_lines(ui, area, st, LineSet::Borrowed(lines))
     }
 
-    pub(crate) fn draw_projected(
+    /// The draw phase over an owned [`ProjectedText`] projection.
+    ///
+    /// Identical to [`Self::draw`] except the lines are borrowed from a
+    /// caller-held projection instead of a caller-built slice.
+    pub fn draw_projected(
         &self,
         ui: &mut Ui<'_>,
         area: Rect,
