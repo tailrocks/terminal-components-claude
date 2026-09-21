@@ -2950,14 +2950,17 @@ fn accounting_identity(member: &Value, oracle_commit: &str) -> Value {
 /// account-tests check: the lifted template declarations stay in place while
 /// the derived `original`, `required`, and `preparation_register` bindings
 /// complete the worker contract. Preparation mode never claims accepted
-/// receipts.
+/// receipts. Production mode projects the already-bound
+/// `qualification.common.dependencies` stubs into `accepted_inventory` /
+/// `accepted_disposition` when the matching requires flag is true, and fails
+/// closed when a required receipt is unbound.
 fn bind_accounting_preparation(
     qualification_object: &mut Map<String, Value>,
     check: &CheckSpec,
     members: &[Value],
     oracle_commit: &str,
     candidate_tree: &str,
-) {
+) -> Result<()> {
     qualification_object.insert(
         "original".to_string(),
         json!({
@@ -2983,7 +2986,106 @@ fn bind_accounting_preparation(
     if !production {
         qualification_object.remove("accepted_inventory");
         qualification_object.remove("accepted_disposition");
+        return Ok(());
     }
+    for (flag, field) in [
+        ("requires_inventory_receipt", "accepted_inventory"),
+        ("requires_disposition_receipt", "accepted_disposition"),
+    ] {
+        if qualification_object.get(flag).and_then(Value::as_bool) == Some(true) {
+            let claim = project_accepted_receipts(qualification_object, field)?;
+            qualification_object.insert(field.to_string(), claim);
+        } else {
+            qualification_object.remove(field);
+        }
+    }
+    Ok(())
+}
+
+/// Project the bound `common.dependencies` stubs into one accepted-claim
+/// provenance object (`{"receipts": [{task_id, sha256, integration_commit}]}`).
+/// The receipt set equals the bound stub set exactly; a missing, empty, or
+/// malformed stub set fails closed instead of fabricating a claim.
+fn project_accepted_receipts(
+    qualification_object: &Map<String, Value>,
+    field: &str,
+) -> Result<Value> {
+    let dependencies = qualification_object
+        .get("common")
+        .and_then(Value::as_object)
+        .and_then(|common| common.get("dependencies"))
+        .and_then(Value::as_array)
+        .ok_or_else(|| {
+            VerifierError::new(format!(
+                "accounting {field} requires bound dependency receipts \
+                 but qualification.common.dependencies is missing"
+            ))
+        })?;
+    if dependencies.is_empty() {
+        return Err(VerifierError::new(format!(
+            "accounting {field} requires bound dependency receipts \
+             but qualification.common.dependencies is empty"
+        )));
+    }
+    let mut receipts = Vec::with_capacity(dependencies.len());
+    for stub in dependencies {
+        let stub = stub.as_object().ok_or_else(|| {
+            VerifierError::new(format!(
+                "accounting {field} requires bound dependency receipts \
+                 but a common.dependencies stub is malformed"
+            ))
+        })?;
+        if stub.get("accepted").and_then(Value::as_bool) != Some(true)
+            || stub.get("integrated").and_then(Value::as_bool) != Some(true)
+        {
+            return Err(VerifierError::new(format!(
+                "accounting {field} requires accepted and integrated dependency receipts"
+            )));
+        }
+        let task_id = stub
+            .get("task_id")
+            .and_then(Value::as_str)
+            .filter(|value| !value.is_empty())
+            .ok_or_else(|| {
+                VerifierError::new(format!(
+                    "accounting {field} requires bound dependency receipts \
+                     but a stub task_id is malformed"
+                ))
+            })?;
+        let sha256 = stub.get("sha256").and_then(Value::as_str).ok_or_else(|| {
+            VerifierError::new(format!(
+                "accounting {field} requires bound dependency receipts \
+                 but a stub sha256 is malformed"
+            ))
+        })?;
+        if !is_hex(sha256, 64) {
+            return Err(VerifierError::new(format!(
+                "accounting {field} requires bound dependency receipts \
+                 but a stub sha256 is malformed"
+            )));
+        }
+        let integration_commit = stub
+            .get("integration_commit")
+            .and_then(Value::as_str)
+            .ok_or_else(|| {
+                VerifierError::new(format!(
+                    "accounting {field} requires bound dependency receipts \
+                         but a stub integration_commit is malformed"
+                ))
+            })?;
+        if !is_hex(integration_commit, 40) {
+            return Err(VerifierError::new(format!(
+                "accounting {field} requires bound dependency receipts \
+                 but a stub integration_commit is malformed"
+            )));
+        }
+        receipts.push(json!({
+            "task_id": task_id,
+            "sha256": sha256,
+            "integration_commit": integration_commit,
+        }));
+    }
+    Ok(json!({"receipts": receipts}))
 }
 
 /// Staged compare-input layout: prepare exports genuine runnable artifact trees
@@ -3870,7 +3972,7 @@ fn build_context(
             bound_members,
             &inputs.oracle.commit,
             inputs.candidate_tree,
-        );
+        )?;
     }
     if check.operation == "compare" {
         bind_compare_qualification(
@@ -6279,12 +6381,15 @@ finally:
             "family".to_string(),
             Value::String("accounting".to_string()),
         );
-        bind_accounting_preparation(
-            &mut qualification,
-            &check,
-            &members,
-            oracle,
-            "0123456789abcdef0123456789abcdef01234567",
+        require_ok!(
+            bind_accounting_preparation(
+                &mut qualification,
+                &check,
+                &members,
+                oracle,
+                "0123456789abcdef0123456789abcdef01234567",
+            ),
+            "bind preparation"
         );
         let required = require_some!(
             qualification.get("required").and_then(Value::as_array),
@@ -7954,5 +8059,229 @@ for line in sys.stdin:
                 || error.to_string().contains("unsafe"),
             "expected trust-path rejection, got {error}"
         );
+    }
+
+    fn accounting_stub(task_id: &str, sha256: &str, commit: &str) -> Value {
+        json!({
+            "task_id": task_id,
+            "path": format!("/tmp/receipts/{task_id}.json"),
+            "sha256": sha256,
+            "accepted": true,
+            "integrated": true,
+            "integration_commit": commit,
+        })
+    }
+
+    fn accounting_production_qualification(stubs: Option<Vec<Value>>) -> Map<String, Value> {
+        let mut qualification = Map::new();
+        qualification.insert("mode".to_string(), Value::String("production".to_string()));
+        qualification.insert(
+            "family".to_string(),
+            Value::String("accounting".to_string()),
+        );
+        qualification.insert("requires_inventory_receipt".to_string(), Value::Bool(true));
+        qualification.insert(
+            "requires_disposition_receipt".to_string(),
+            Value::Bool(true),
+        );
+        if let Some(stubs) = stubs {
+            qualification.insert("common".to_string(), json!({"dependencies": stubs}));
+        }
+        qualification
+    }
+
+    fn accounting_test_members() -> Vec<Value> {
+        vec![
+            Value::String("tiny/direct/8/blue".to_string()),
+            Value::String("tiny/direct/12/gold".to_string()),
+        ]
+    }
+
+    #[test]
+    fn accounting_production_projects_bound_stubs_into_accepted_claims() {
+        let oracle = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b";
+        let tree = "0123456789abcdef0123456789abcdef01234567";
+        let stubs = vec![
+            accounting_stub("TASK-071", &"a".repeat(64), &"b".repeat(40)),
+            accounting_stub("TASK-072", &"c".repeat(64), &"d".repeat(40)),
+        ];
+        let check = derived_check("CHK-002", "account-tests", "direct", "");
+        let members = accounting_test_members();
+        let mut qualification = accounting_production_qualification(Some(stubs));
+        require_ok!(
+            bind_accounting_preparation(&mut qualification, &check, &members, oracle, tree),
+            "bind production receipts"
+        );
+        let expected = json!({"receipts": [
+            {"task_id": "TASK-071", "sha256": "a".repeat(64),
+             "integration_commit": "b".repeat(40)},
+            {"task_id": "TASK-072", "sha256": "c".repeat(64),
+             "integration_commit": "d".repeat(40)},
+        ]});
+        assert_eq!(qualification.get("accepted_inventory"), Some(&expected));
+        assert_eq!(qualification.get("accepted_disposition"), Some(&expected));
+        for field in ["accepted_inventory", "accepted_disposition"] {
+            let claim = require_some!(
+                qualification.get(field).and_then(Value::as_object),
+                "accepted claim"
+            );
+            assert!(!claim.is_empty(), "{field} must be non-empty");
+            let receipts = require_some!(
+                claim.get("receipts").and_then(Value::as_array),
+                "claim receipts"
+            );
+            assert_eq!(receipts.len(), 2);
+            for receipt in receipts {
+                let entry = require_some!(receipt.as_object(), "receipt object");
+                let keys: BTreeSet<&str> = entry.keys().map(String::as_str).collect();
+                assert_eq!(
+                    keys,
+                    BTreeSet::from(["task_id", "sha256", "integration_commit"])
+                );
+            }
+        }
+        assert!(qualification.get("original").is_some());
+        assert!(qualification.get("required").is_some());
+        assert!(qualification.get("preparation_register").is_some());
+    }
+
+    #[test]
+    fn accounting_production_fails_closed_when_receipts_unbound() {
+        let oracle = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b";
+        let tree = "0123456789abcdef0123456789abcdef01234567";
+        let check = derived_check("CHK-002", "account-tests", "direct", "");
+        let members = accounting_test_members();
+
+        // Missing common.dependencies entirely.
+        let mut missing = accounting_production_qualification(None);
+        let error = require_err!(
+            bind_accounting_preparation(&mut missing, &check, &members, oracle, tree),
+            "missing dependencies must fail closed"
+        );
+        assert!(error.to_string().contains("dependency receipts"), "{error}");
+        assert!(missing.get("accepted_inventory").is_none());
+        assert!(missing.get("accepted_disposition").is_none());
+
+        // Bound but empty.
+        let mut empty = accounting_production_qualification(Some(Vec::new()));
+        let error = require_err!(
+            bind_accounting_preparation(&mut empty, &check, &members, oracle, tree),
+            "empty dependencies must fail closed"
+        );
+        assert!(error.to_string().contains("dependency receipts"), "{error}");
+        assert!(empty.get("accepted_inventory").is_none());
+        assert!(empty.get("accepted_disposition").is_none());
+
+        // Malformed stub (bad digest) is not projected either.
+        let mut malformed = accounting_production_qualification(Some(vec![accounting_stub(
+            "TASK-071",
+            "not-a-digest",
+            &"b".repeat(40),
+        )]));
+        let error = require_err!(
+            bind_accounting_preparation(&mut malformed, &check, &members, oracle, tree),
+            "malformed stub must fail closed"
+        );
+        assert!(error.to_string().contains("dependency receipts"), "{error}");
+        assert!(malformed.get("accepted_inventory").is_none());
+    }
+
+    #[test]
+    fn accounting_production_leaves_claims_absent_when_flags_false() {
+        let oracle = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b";
+        let tree = "0123456789abcdef0123456789abcdef01234567";
+        let stubs = || {
+            vec![accounting_stub(
+                "TASK-071",
+                &"a".repeat(64),
+                &"b".repeat(40),
+            )]
+        };
+        let check = derived_check("CHK-002", "account-tests", "direct", "");
+        let members = accounting_test_members();
+
+        // Both flags false: no claims even with bound stubs.
+        let mut qualification = accounting_production_qualification(Some(stubs()));
+        qualification.insert("requires_inventory_receipt".to_string(), Value::Bool(false));
+        qualification.insert(
+            "requires_disposition_receipt".to_string(),
+            Value::Bool(false),
+        );
+        require_ok!(
+            bind_accounting_preparation(&mut qualification, &check, &members, oracle, tree),
+            "bind with flags false"
+        );
+        assert!(qualification.get("accepted_inventory").is_none());
+        assert!(qualification.get("accepted_disposition").is_none());
+
+        // Absent flags: no claims either.
+        let mut qualification = accounting_production_qualification(Some(stubs()));
+        qualification.remove("requires_inventory_receipt");
+        qualification.remove("requires_disposition_receipt");
+        require_ok!(
+            bind_accounting_preparation(&mut qualification, &check, &members, oracle, tree),
+            "bind with flags absent"
+        );
+        assert!(qualification.get("accepted_inventory").is_none());
+        assert!(qualification.get("accepted_disposition").is_none());
+
+        // Mixed flags: only the required claim is bound.
+        let mut qualification = accounting_production_qualification(Some(stubs()));
+        qualification.insert(
+            "requires_disposition_receipt".to_string(),
+            Value::Bool(false),
+        );
+        require_ok!(
+            bind_accounting_preparation(&mut qualification, &check, &members, oracle, tree),
+            "bind with one flag true"
+        );
+        assert!(qualification.get("accepted_inventory").is_some());
+        assert!(qualification.get("accepted_disposition").is_none());
+    }
+
+    #[test]
+    fn accounting_preparation_still_strips_accepted_claims() {
+        let oracle = "4a79c0a2d40fca46fc406b77157ce3b3f12ec16b";
+        let tree = "0123456789abcdef0123456789abcdef01234567";
+        let check = derived_check("CHK-003", "account-tests", "direct", "");
+        let members = accounting_test_members();
+        let mut qualification = Map::new();
+        qualification.insert("mode".to_string(), Value::String("preparation".to_string()));
+        qualification.insert(
+            "family".to_string(),
+            Value::String("accounting".to_string()),
+        );
+        qualification.insert("requires_inventory_receipt".to_string(), Value::Bool(true));
+        qualification.insert(
+            "requires_disposition_receipt".to_string(),
+            Value::Bool(true),
+        );
+        qualification.insert(
+            "common".to_string(),
+            json!({"dependencies": [accounting_stub(
+                "TASK-071",
+                &"a".repeat(64),
+                &"b".repeat(40),
+            )]}),
+        );
+        qualification.insert("accepted_inventory".to_string(), json!({"receipts": []}));
+        qualification.insert("accepted_disposition".to_string(), json!({"receipts": []}));
+        require_ok!(
+            bind_accounting_preparation(&mut qualification, &check, &members, oracle, tree),
+            "bind preparation"
+        );
+        assert!(qualification.get("accepted_inventory").is_none());
+        assert!(qualification.get("accepted_disposition").is_none());
+        let required = require_some!(
+            qualification.get("required").and_then(Value::as_array),
+            "required rows"
+        );
+        assert_eq!(required.len(), 2);
+        assert_eq!(qualification.get("future"), Some(&Value::Array(Vec::new())));
+        assert_eq!(
+            qualification.get("preparation_register"),
+            Some(&json!({"required": required, "future": []}))
+        );
+        assert!(qualification.get("original").is_some());
     }
 }
