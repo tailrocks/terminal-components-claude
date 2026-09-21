@@ -29,18 +29,18 @@ as `crate::theme::builder::fade_mix` with no `mod.rs` change
 (`pub(crate) mod builder` already exposes the module crate-wide):
 
 ```rust
-pub(crate) enum FadeOutcome { Blended(Color), Dimmed, Unchanged }
+pub(crate) enum FadeOutcome { Blended(Color), ApplyDim, Unchanged }
 pub(crate) fn fade_mix(fg: Color, bg: Color, amount: f32) -> FadeOutcome
 ```
 
-`Blended(c)` paints `c`. `Dimmed` keeps `fg` and the caller adds `DIM`.
+`Blended(c)` paints `c`. `ApplyDim` keeps `fg` and the caller adds `DIM`.
 `Unchanged` keeps `fg` as-is. The branch table, with the two legal
 amounts `0.55` (outer row) and `0.80` (inner row) per TASK-014 R-001:
 
 | `fg` | `bg` | `amount` | outcome |
 | --- | --- | --- | --- |
 | `Rgb` | `Rgb` | caller amount | `Blended` of the pinned mix below |
-| any non-`Rgb` on either side | | `0.55` | `Dimmed` |
+| any non-`Rgb` on either side | | `0.55` | `ApplyDim` |
 | any non-`Rgb` on either side | | `0.80` | `Unchanged` |
 | any non-`Rgb` on either side | | any other | `Unchanged` (fail closed) |
 
@@ -84,7 +84,7 @@ CHK-002 filter `fade_mix_oracle_` matches exactly this set):
 - `fade_mix_oracle_non_rgb_branch_matrix`: `fg` by `bg` over all
   sixteen named colors, all 256 indexed values, `Reset`, and `Rgb`
   samples, at both amounts: `(Rgb,Rgb)` cells match the transcription;
-  every other pair yields `Dimmed` at `0.55` and `Unchanged` at `0.80`,
+  every other pair yields `ApplyDim` at `0.55` and `Unchanged` at `0.80`,
   keeping the input `fg`; illegal amounts (`0.0`, `0.7`, `1.0`) with a
   non-`Rgb` pair yield `Unchanged`.
 
