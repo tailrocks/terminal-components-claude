@@ -344,8 +344,8 @@ mod tests {
         // One warm-up frame: focus lands on the control the frame after it
         // first registers, so frame 1 and frame 2 legitimately differ. Every
         // digest compared below is taken from a settled frame.
-        sc.draw(&plain);
-        sc.draw(&plain);
+        sc.draw(plain);
+        sc.draw(plain);
         let before = sc.digest();
 
         sc.draw(|ui, _| {
@@ -355,7 +355,7 @@ mod tests {
         });
         let patched = sc.digest();
 
-        sc.draw(&plain);
+        sc.draw(plain);
         let after = sc.digest();
 
         assert_ne!(
