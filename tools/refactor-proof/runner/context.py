@@ -37,7 +37,7 @@ ALLOWED_V1_KEYS = {
     "observer_sequence",
 }
 OPTIONAL_EXTENSION_KEYS = {"architecture_profile", "branch_host_projection"}
-NATIVE_ORACLE_NAMESPACES = frozenset({"showcase", "holla", "jackin", "tablepro"})
+NATIVE_ORACLE_NAMESPACES = frozenset({"showcase", "holla", "jackin", "tablepro", "components"})
 OBSERVER_OPERATIONS = {
     "account-tests",
     "architecture",
