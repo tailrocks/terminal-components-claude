@@ -33,6 +33,7 @@ use crate::keymap::{
 };
 use crate::layer::{LayerId, LayerKind};
 use crate::response::StateFlags;
+use crate::text::clusters::ClusterScratch;
 use crate::theme::resolve::StyleCache;
 use crate::theme::{DesignTokens, Family, Overlay, Resolved, Role, Surface, Theme, Variant};
 
@@ -82,6 +83,15 @@ pub(crate) struct FrameState {
     pub(crate) screen: Rect,
     pub(crate) inert_floor: LayerId,
     pub(crate) top: LayerId,
+    /// Reusable pending-cluster scratch for the streaming logical-grapheme
+    /// painter (TASK-013): one unfinished cluster plus at most one scalar
+    /// lookahead — never the full row or document. Owned by the one
+    /// `Runtime` behind this frame, taken only by a scoped guard that
+    /// wipes content and restores capacity on completion, `fmt::Error` and
+    /// unwind; never published, never shared across runtimes, invisible to
+    /// `Debug` content and to `FrameOut`/state/effects. `reset` keeps its
+    /// warm capacity: a new `Runtime` is cold, the same one reuses.
+    text_scratch: ClusterScratch,
     #[cfg(feature = "testing")]
     pub(crate) styled_parts: Vec<(Id, Part)>,
     #[cfg(feature = "testing")]

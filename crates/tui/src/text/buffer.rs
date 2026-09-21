@@ -7,8 +7,9 @@
 
 use core::fmt;
 use core::ops::Range;
+use std::borrow::Cow;
 
-use super::measure::{grapheme_width, graphemes, is_word_char, width};
+use super::measure::{grapheme_width, graphemes, is_word_grapheme, width};
 
 /// Cursor as `(line, display column)`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -69,8 +70,34 @@ impl Drop for TextBuffer {
     }
 }
 
+/// One normalization invariant for every text entry point (oracle
+/// `core/text.rs:15`): single-line buffers discard line breaks, multiline
+/// buffers fold CRLF and lone CR to LF. Constructors, `set_text`, character
+/// insertion and paste all share it, so a forbidden break can never enter
+/// through an unfiltered entrance (BF01).
+fn normalized_text(text: &str, multiline: bool) -> Cow<'_, str> {
+    if multiline && text.contains('\r') {
+        text.replace("\r\n", "\n").replace('\r', "\n").into()
+    } else if !multiline && text.contains(['\r', '\n']) {
+        text.chars()
+            .filter(|c| !matches!(c, '\r' | '\n'))
+            .collect::<String>()
+            .into()
+    } else {
+        text.into()
+    }
+}
+
+fn normalize_owned(text: String, multiline: bool) -> String {
+    match normalized_text(&text, multiline) {
+        Cow::Borrowed(_) => text,
+        Cow::Owned(normalized) => normalized,
+    }
+}
+
 impl TextBuffer {
     fn from_text(text: String, multiline: bool, sensitive: bool) -> Self {
+        let text = normalize_owned(text, multiline);
         TextBuffer {
             cursor: text.len(),
             text,
@@ -131,11 +158,11 @@ impl TextBuffer {
     /// Replace the text; cursor at the end, no selection.
     pub fn set_text(&mut self, text: &str) {
         if self.sensitive {
-            self.replace_text(text.to_owned());
+            self.replace_text(normalize_owned(text.to_owned(), self.multiline));
             self.anchor = None;
         } else {
             self.zeroize();
-            self.text.push_str(text);
+            self.text.push_str(&normalized_text(text, self.multiline));
         }
         self.cursor = self.text.len();
     }
@@ -147,11 +174,12 @@ impl TextBuffer {
         }
     }
 
-    /// Select `a..b` (either order), cursor at `b`.
+    /// Select `a..b` (either order), cursor at `b`. Both endpoints floor
+    /// to preceding whole-grapheme boundaries, so a request inside `e` plus
+    /// combining acute or a ZWJ sequence can never select half a cluster.
     pub fn select_range(&mut self, a: usize, b: usize) {
-        let len = self.text.len();
-        self.anchor = Some(self.snap(a.min(len)));
-        self.cursor = self.snap(b.min(len));
+        self.anchor = Some(Self::floor_boundary(&self.text, a));
+        self.cursor = Self::floor_boundary(&self.text, b);
     }
 
     /// The selection, if non-empty.
@@ -180,10 +208,16 @@ impl TextBuffer {
     }
 
     /// First and last line touched by the selection (or the cursor line).
+    /// An exclusive endpoint at the next line's start does not select that
+    /// line; newlines are counted without slicing a UTF-8 byte.
     pub fn selection_lines(&self) -> (usize, usize) {
         if let Some(r) = self.selection() {
             let a = Self::pos_of(&self.text, r.start).line;
-            let b = Self::pos_of(&self.text, r.end.saturating_sub(1).max(r.start)).line;
+            let before = self.text.get(..r.end.min(self.text.len())).unwrap_or("");
+            let b = before
+                .matches('\n')
+                .count()
+                .saturating_sub(usize::from(before.ends_with('\n')));
             (a, b)
         } else {
             let l = self.cursor_pos().line;
@@ -201,13 +235,38 @@ impl TextBuffer {
         }
     }
 
-    /// Snap a byte offset to the nearest preceding char boundary.
-    fn snap(&self, mut at: usize) -> usize {
-        at = at.min(self.text.len());
-        while at > 0 && !self.text.is_char_boundary(at) {
-            at = at.saturating_sub(1);
+    /// The nearest grapheme boundary at or before `offset` (oracle
+    /// `core/text.rs`). Clamps past-the-end offsets to the text length, so
+    /// arbitrary request offsets never split UTF-8 or a cluster.
+    fn floor_boundary(text: &str, offset: usize) -> usize {
+        if offset >= text.len() {
+            return text.len();
         }
-        at
+        graphemes(text)
+            .map(|(i, _)| i)
+            .take_while(|i| *i <= offset)
+            .last()
+            .unwrap_or(0)
+    }
+
+    /// The nearest grapheme boundary at or after `offset`.
+    fn ceil_boundary(text: &str, offset: usize) -> usize {
+        if offset >= text.len() {
+            return text.len();
+        }
+        graphemes(text)
+            .map(|(i, _)| i)
+            .find(|i| *i >= offset)
+            .unwrap_or(text.len())
+    }
+
+    /// Inserting or removing text can join previously separate clusters (a
+    /// combining mark, ZWJ sequence or regional-indicator pair). Repair both
+    /// positions against the new string: the cursor ceils, a retained anchor
+    /// floors (BF02).
+    fn normalize_positions(&mut self) {
+        self.cursor = Self::ceil_boundary(&self.text, self.cursor);
+        self.anchor = self.anchor.map(|a| Self::floor_boundary(&self.text, a));
     }
 
     fn prev_boundary(&self, from: usize) -> usize {
@@ -238,30 +297,48 @@ impl TextBuffer {
             .map_or(self.text.len(), |i| from.saturating_add(i))
     }
 
+    /// The previous word start over grapheme/alphanumeric runs (oracle
+    /// `core/text.rs`): skip non-word graphemes, then consume the word run.
+    /// Combining marks ride with their base; `_` splits words (BF03).
     fn prev_word(&self, from: usize) -> usize {
+        let from = Self::floor_boundary(&self.text, from);
         let before = self.text.get(..from).unwrap_or("");
-        let trimmed = before.trim_end_matches(|c: char| !is_word_char(c));
-        if trimmed.is_empty() {
-            return 0;
+        let mut clusters = graphemes(before).rev().peekable();
+        while clusters.peek().is_some_and(|(_, g)| !is_word_grapheme(g)) {
+            clusters.next();
         }
-        trimmed
-            .char_indices()
-            .rev()
-            .find(|(_, c)| !is_word_char(*c))
-            .map_or(0, |(i, c)| i.saturating_add(c.len_utf8()))
+        let mut start = 0;
+        while let Some(&(i, g)) = clusters.peek() {
+            if !is_word_grapheme(g) {
+                break;
+            }
+            start = i;
+            clusters.next();
+        }
+        start
     }
 
+    /// The next word end over grapheme/alphanumeric runs.
     fn next_word(&self, from: usize) -> usize {
+        let from = Self::floor_boundary(&self.text, from);
         let after = self.text.get(from..).unwrap_or("");
-        let mut in_word = false;
-        for (i, c) in after.char_indices() {
-            if is_word_char(c) {
-                in_word = true;
-            } else if in_word {
-                return from.saturating_add(i);
+        let mut it = graphemes(after);
+        let mut i = 0;
+        while let Some((idx, g)) = it.next() {
+            i = idx.saturating_add(g.len());
+            if !is_word_grapheme(g) {
+                continue;
             }
+            for (idx2, g2) in it.by_ref() {
+                if !is_word_grapheme(g2) {
+                    i = idx2;
+                    return from.saturating_add(i);
+                }
+                i = idx2.saturating_add(g2.len());
+            }
+            break;
         }
-        self.text.len()
+        from.saturating_add(i)
     }
 
     /// Move left one grapheme (collapsing a selection to its start).
@@ -361,6 +438,7 @@ impl TextBuffer {
             self.remove_range(r.clone());
             self.cursor = r.start;
             self.anchor = None;
+            self.normalize_positions();
             true
         } else {
             self.anchor = None;
@@ -368,71 +446,64 @@ impl TextBuffer {
         }
     }
 
-    /// Insert a character (a newline is rejected in single-line mode).
-    /// Returns whether the text changed.
+    /// Insert a character: `\r` folds to `\n` in multiline mode, and both
+    /// are rejected in single-line mode. The selection (if any) is replaced
+    /// atomically, positions are repaired against the new string, and the
+    /// result reports the whole replacement transaction. Returns whether the
+    /// text changed.
     pub fn insert_char(&mut self, c: char) -> bool {
-        if c == '\n' && !self.multiline {
+        if matches!(c, '\r' | '\n') && !self.multiline {
             return false;
         }
+        let c = if c == '\r' { '\n' } else { c };
+        let mut encoded = [0u8; 4];
+        let ins = c.encode_utf8(&mut encoded);
+        let range = self.selection().unwrap_or(self.cursor..self.cursor);
         if self.sensitive {
-            let range = self.selection().unwrap_or(self.cursor..self.cursor);
             let mut next = String::with_capacity(
                 self.text
                     .len()
                     .saturating_sub(range.len())
-                    .saturating_add(c.len_utf8()),
+                    .saturating_add(ins.len()),
             );
-            next.push_str(&self.text[..range.start]);
-            next.push(c);
-            next.push_str(&self.text[range.end..]);
+            next.push_str(self.text.get(..range.start).unwrap_or(""));
+            next.push_str(ins);
+            next.push_str(self.text.get(range.end..).unwrap_or(""));
             self.replace_text(next);
-            self.cursor = range.start.saturating_add(c.len_utf8());
-            self.anchor = None;
-            return true;
+        } else {
+            self.text.replace_range(range.clone(), ins);
         }
-        self.delete_selection();
-        self.text.insert(self.cursor, c);
-        self.cursor = self.cursor.saturating_add(c.len_utf8());
+        self.cursor = range.start.saturating_add(ins.len());
+        self.anchor = None;
+        self.normalize_positions();
         true
     }
 
-    /// Insert text (newlines are stripped in single-line mode).
+    /// Insert text (multiline input folds CRLF/CR to LF; single-line input
+    /// strips `\r` and `\n`). The selection (if any) is replaced atomically:
+    /// deleting a nonempty selection is a real mutation even when the
+    /// inserted text is empty or filters to nothing, while an empty paste
+    /// with no selection reports no change. Positions are repaired against
+    /// the new string. Returns whether the text changed.
     pub fn insert_str(&mut self, s: &str) -> bool {
+        let ins = normalized_text(s, self.multiline);
+        let range = self.selection().unwrap_or(self.cursor..self.cursor);
+        let deleted = !range.is_empty();
+        let changed = deleted || !ins.is_empty();
         if self.sensitive {
-            let range = self.selection().unwrap_or(self.cursor..self.cursor);
             let before = self.text.len().saturating_sub(range.len());
-            let mut next = String::with_capacity(before.saturating_add(s.len()));
-            next.push_str(&self.text[..range.start]);
-            if self.multiline {
-                next.push_str(s);
-            } else {
-                for c in s.chars().filter(|c| *c != '\n' && *c != '\r') {
-                    next.push(c);
-                }
-            }
-            next.push_str(&self.text[range.end..]);
-            let inserted_len = next
-                .len()
-                .saturating_sub(self.text.len().saturating_sub(range.len()));
+            let mut next = String::with_capacity(before.saturating_add(ins.len()));
+            next.push_str(self.text.get(..range.start).unwrap_or(""));
+            next.push_str(&ins);
+            next.push_str(self.text.get(range.end..).unwrap_or(""));
             self.replace_text(next);
-            self.cursor = range.start.saturating_add(inserted_len);
-            self.anchor = None;
-            return inserted_len != 0;
-        }
-        self.delete_selection();
-        let before = self.text.len();
-        if self.multiline {
-            self.text.insert_str(self.cursor, s);
         } else {
-            let mut at = self.cursor;
-            for c in s.chars().filter(|c| *c != '\n' && *c != '\r') {
-                self.text.insert(at, c);
-                at = at.saturating_add(c.len_utf8());
-            }
+            self.text.replace_range(range.clone(), &ins);
         }
-        let grown = self.text.len().saturating_sub(before);
-        self.cursor = self.cursor.saturating_add(grown);
-        grown > 0
+        self.cursor = range.start.saturating_add(ins.len());
+        self.anchor = None;
+        self.normalize_positions();
+        changed
     }
 
     /// Delete the grapheme before the cursor (or the selection).
@@ -446,6 +517,7 @@ impl TextBuffer {
         }
         self.remove_range(start..self.cursor);
         self.cursor = start;
+        self.normalize_positions();
         true
     }
 
@@ -459,6 +531,7 @@ impl TextBuffer {
             return false;
         }
         self.remove_range(self.cursor..end);
+        self.normalize_positions();
         true
     }
 
@@ -473,6 +546,7 @@ impl TextBuffer {
         }
         self.remove_range(start..self.cursor);
         self.cursor = start;
+        self.normalize_positions();
         true
     }
 
@@ -486,6 +560,7 @@ impl TextBuffer {
             return false;
         }
         self.remove_range(self.cursor..end);
+        self.normalize_positions();
         true
     }
 
@@ -500,6 +575,7 @@ impl TextBuffer {
         }
         self.remove_range(start..self.cursor);
         self.cursor = start;
+        self.normalize_positions();
         true
     }
 
@@ -521,9 +597,12 @@ impl TextBuffer {
         Self::pos_of(&self.text, self.cursor)
     }
 
-    /// `(line, display column)` of a byte offset in `text`.
+    /// `(line, display column)` of a byte offset in `text`, clamping to
+    /// the preceding grapheme boundary. Arbitrary offsets never split UTF-8
+    /// or a cluster.
     pub fn pos_of(text: &str, offset: usize) -> CursorPos {
-        let before = text.get(..offset.min(text.len())).unwrap_or("");
+        let offset = Self::floor_boundary(text, offset);
+        let before = text.get(..offset).unwrap_or("");
         let line = before.matches('\n').count();
         let line_start = before.rfind('\n').map_or(0, |i| i.saturating_add(1));
         let col = usize::from(width(before.get(line_start..).unwrap_or("")));
@@ -625,12 +704,32 @@ mod tests {
 
     #[test]
     fn word_chars_are_consistent_between_buffer_and_viewport() {
-        // one definition: `text::is_word_char`; `_` joins a word, `-` splits
+        // One `text::is_word_char` definition shared by the editor core's
+        // grapheme word walks (oracle `core/text.rs`): `_` splits words
+        // exactly like `-`, spaces and punctuation, while a combining mark
+        // rides with its base grapheme.
+        use crate::text::measure::is_word_char;
         let mut b = TextBuffer::single("snake_case-kebab");
         b.move_home(false);
         b.move_word_right(false);
+        assert_eq!(b.cursor_offset(), "snake".len());
+        b.move_word_right(false);
         assert_eq!(b.cursor_offset(), "snake_case".len());
-        assert!(is_word_char('_') && !is_word_char('-'));
+        b.move_word_right(false);
+        assert_eq!(b.cursor_offset(), "snake_case-kebab".len());
+        b.move_word_left(false);
+        assert_eq!(b.cursor_offset(), "snake_case-".len());
+        b.move_word_left(false);
+        assert_eq!(b.cursor_offset(), "snake_".len());
+        b.move_word_left(false);
+        assert_eq!(b.cursor_offset(), 0);
+        assert!(!is_word_char('_') && !is_word_char('-'));
+        assert!(is_word_char('é'));
+        assert!(is_word_grapheme("e\u{301}"));
+        let mut c = TextBuffer::single("e\u{301},x");
+        c.move_home(false);
+        c.move_word_right(false);
+        assert_eq!(c.cursor_offset(), "e\u{301}".len());
     }
 
     #[test]
@@ -714,6 +813,27 @@ mod tests {
         assert!(b.is_empty());
         assert!(b.sensitive);
         assert!(!format!("{b:?}").contains("hunter2"));
+    }
+
+    #[test]
+    fn sensitive_storage_shares_normalization_and_transaction_outcomes() {
+        let mut b = TextBuffer::sensitive_single("a\r\nb");
+        assert_eq!(b.text(), "ab");
+        b.set_text("x\ry");
+        assert_eq!(b.text(), "xy");
+        let mut m = TextBuffer::sensitive_multi("a\r\nb\rc");
+        assert_eq!(m.text(), "a\nb\nc");
+        m.insert_str("d\re");
+        assert_eq!(m.text(), "a\nb\ncd\ne");
+        let mut s = TextBuffer::sensitive_single("secret");
+        s.select_range(0, 6);
+        assert!(s.insert_str(""));
+        assert_eq!(s.text(), "");
+        assert!(s.sensitive);
+        let mut s = TextBuffer::sensitive_single("secret");
+        assert!(!s.insert_str(""));
+        assert_eq!(s.text(), "secret");
+        assert!(!format!("{s:?}").contains("secret"));
     }
 
     #[test]

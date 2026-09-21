@@ -11,8 +11,9 @@
 use ratatui_core::buffer::CellWidth;
 use unicode_segmentation::UnicodeSegmentation;
 
-/// Graphemes of `s` with their byte offsets.
-pub(crate) fn graphemes(s: &str) -> impl Iterator<Item = (usize, &str)> {
+/// Graphemes of `s` with their byte offsets, double-ended so backward
+/// word walks read the same segmentation as forward walks.
+pub(crate) fn graphemes(s: &str) -> impl DoubleEndedIterator<Item = (usize, &str)> {
     s.grapheme_indices(true)
 }
 
@@ -36,9 +37,17 @@ pub fn width(s: &str) -> u16 {
 }
 
 /// Whether `c` is a word character for word motion; one definition shared by
-/// the editor core and the viewport.
+/// the editor core's grapheme word walks (oracle `core/text.rs`: word runs
+/// are alphanumeric graphemes, so `_` splits words exactly like `-`, spaces
+/// and punctuation, while combining marks never split a cluster).
 pub(crate) fn is_word_char(c: char) -> bool {
-    c.is_alphanumeric() || c == '_'
+    c.is_alphanumeric()
+}
+
+/// Whether a grapheme belongs to a word run: any of its scalars is a word
+/// character, so `e`+combining-acute moves as one word unit.
+pub(crate) fn is_word_grapheme(g: &str) -> bool {
+    g.chars().any(is_word_char)
 }
 
 /// Truncate to `max` columns, appending `…` when cut. Non-render callers
@@ -166,6 +175,10 @@ fn wrap_walk<'a>(s: &'a str, w: u16, f: &mut dyn FnMut(WrapPiece<'a>)) {
 
 fn hard_wrap_walk<'a>(word: &'a str, w: u16, lw: &mut u16, f: &mut dyn FnMut(WrapPiece<'a>)) {
     for g in word.graphemes(true) {
+        // A grapheme wider than the entire line can never fit a row: project
+        // it to the oracle ellipsis before row accounting, so the row count
+        // and the rows agree and no overwide glyph is emitted (BF06).
+        let g = if grapheme_width(g) > w { "…" } else { g };
         let gw = grapheme_width(g);
         if lw.saturating_add(gw) > w {
             f(WrapPiece::Break);
