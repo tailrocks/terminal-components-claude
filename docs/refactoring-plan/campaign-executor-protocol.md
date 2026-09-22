@@ -59,9 +59,11 @@ subagent. The subagent may write only the paths declared by that task.
      --log-dir "$RUN_DIR/taskfmt-logs"
    ```
 
-   The exact combined stdout/stderr stream, including the final `DONE` line,
-   is bound at `$RUN_DIR/taskfmt-logs/verify.log` as the stdout closure
-   artifact.
+   The dispatcher captures the exact combined stdout/stderr stream, including
+   the final `DONE` line, in a verifier-owned secure temporary file outside
+   `$RUN_DIR`. After taskfmt exits, it validates that `taskfmt-logs` is a real
+   directory and atomically replaces `$RUN_DIR/taskfmt-logs/verify.log` with
+   that capture. Unsafe or non-directory log paths fail closed.
 
    Task checks must use host-local paths. Proof checks use the exported
    `$RUN_DIR/contexts/CHK-NNN.json` path; latest taskfmt executes shell checks

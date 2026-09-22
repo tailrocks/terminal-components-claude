@@ -75,10 +75,13 @@ preparation results, source/oracle, comparator, and observer capability. The
 Rust `tc-proof` launcher then supervises each proof worker. The dispatcher
 invokes only standalone taskfmt `lint`/`verify`, passes the explicit
 `RUN_DIR/taskfmt-logs` path, captures the exact combined taskfmt output,
-including the final `DONE`, at `$RUN_DIR/taskfmt-logs/verify.log` as the bound
-stdout closure artifact, invokes `tc-proof validate --run-dir` afterward, and
-preserves a nonzero taskfmt status. No observer socket is created inside the
-run directory or selected through a worker-controlled default.
+including the final `DONE`, in a verifier-owned secure temporary file outside
+the run directory, then validates the real log directory and atomically
+replaces `$RUN_DIR/taskfmt-logs/verify.log` with that capture. Unsafe or
+non-directory log paths fail closed. It invokes `tc-proof validate --run-dir`
+afterward and preserves a nonzero taskfmt status. No observer socket is
+created inside the run directory or selected through a worker-controlled
+default.
 
 The preparation ABI is intentionally shared with
 `scripts/campaign_ledger.py`:

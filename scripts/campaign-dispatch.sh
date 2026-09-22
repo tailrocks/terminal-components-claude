@@ -755,8 +755,54 @@ cmd_lint() {
 	"$TASKFMT" lint "$dir"
 }
 
+replace_taskfmt_verify_log() {
+	local capture="$1" log_dir="$2"
+	python3 - "$capture" "$log_dir" <<'PY'
+import os
+import stat
+import sys
+
+capture, log_dir = sys.argv[1:]
+flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0) | getattr(os, "O_NOFOLLOW", 0)
+try:
+    directory_fd = os.open(log_dir, flags)
+except OSError as error:
+    raise SystemExit(f"taskfmt log directory is unsafe: {log_dir}: {error}") from error
+
+try:
+    directory_metadata = os.fstat(directory_fd)
+    if not stat.S_ISDIR(directory_metadata.st_mode):
+        raise SystemExit(f"taskfmt log path is not a directory: {log_dir}")
+
+    capture_metadata = os.lstat(capture)
+    if not stat.S_ISREG(capture_metadata.st_mode) or capture_metadata.st_nlink != 1:
+        raise SystemExit(f"taskfmt capture is not a regular single-link file: {capture}")
+
+    try:
+        destination_metadata = os.stat(
+            "verify.log", dir_fd=directory_fd, follow_symlinks=False
+        )
+    except FileNotFoundError:
+        pass
+    else:
+        if stat.S_ISLNK(destination_metadata.st_mode) or not stat.S_ISREG(
+            destination_metadata.st_mode
+        ):
+            raise SystemExit("taskfmt verify log destination is unsafe")
+
+    try:
+        os.replace(capture, "verify.log", dst_dir_fd=directory_fd)
+    except OSError as error:
+        raise SystemExit(
+            f"unable to atomically replace {log_dir}/verify.log: {error}"
+        ) from error
+finally:
+    os.close(directory_fd)
+PY
+}
+
 cmd_verify() {
-	local dir binary target_dir worktree_root
+	local dir binary target_dir worktree_root taskfmt_log_dir taskfmt_capture
 	require_absolute_paths
 	dir="$(task_dir)"
 	[[ -n "$WORKTREE" && "$WORKTREE" = /* ]] ||
@@ -787,6 +833,36 @@ cmd_verify() {
 	export TC_PROOF_NATIVE_LAUNCHER="$binary"
 	export TC_PROOF_NATIVE_TIMEOUT_MS="${TC_PROOF_NATIVE_TIMEOUT_MS:-600000}"
 
+	taskfmt_log_dir="$RUN_DIR/taskfmt-logs"
+	if [[ -L "$taskfmt_log_dir" || (-e "$taskfmt_log_dir" && ! -d "$taskfmt_log_dir") ]]; then
+		die "taskfmt log path is unsafe or not a directory: $taskfmt_log_dir"
+	fi
+	if [[ ! -d "$taskfmt_log_dir" ]]; then
+		mkdir "$taskfmt_log_dir" || die "unable to create taskfmt log directory: $taskfmt_log_dir"
+	fi
+
+	taskfmt_capture="$(mktemp /private/tmp/tc-taskfmt-verify.XXXXXX)" ||
+		die "unable to create verifier-owned taskfmt capture"
+	if ! python3 - "$taskfmt_capture" "$RUN_DIR" <<'PY'
+import os
+import stat
+import sys
+from pathlib import Path
+
+capture, run_dir = map(Path, sys.argv[1:])
+capture_real = Path(os.path.realpath(capture))
+run_real = Path(os.path.realpath(run_dir))
+if capture_real == run_real or run_real in capture_real.parents:
+    raise SystemExit("taskfmt capture must be outside the verifier run directory")
+metadata = os.lstat(capture)
+if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+    raise SystemExit("taskfmt capture is not a regular single-link file")
+PY
+	then
+		rm -f "$taskfmt_capture"
+		die "taskfmt capture path is unsafe"
+	fi
+
 	local taskfmt_status=0
 	PATH="$NATIVE_PYTHON_FIRST_PATH" "$TASKFMT" verify \
 		--root "$WORKTREE" \
@@ -794,8 +870,17 @@ cmd_verify() {
 		--base "$BASE" \
 		--progress "" \
 		--log-dir "$RUN_DIR/taskfmt-logs" \
-		>"$RUN_DIR/taskfmt-logs/verify.log" 2>&1 ||
+		>"$taskfmt_capture" 2>&1 ||
 		taskfmt_status=$?
+
+	if [[ ! -d "$taskfmt_log_dir" || -L "$taskfmt_log_dir" ]]; then
+		rm -f "$taskfmt_capture"
+		die "taskfmt log path became unsafe or is not a directory: $taskfmt_log_dir"
+	fi
+	if ! replace_taskfmt_verify_log "$taskfmt_capture" "$taskfmt_log_dir"; then
+		rm -f "$taskfmt_capture"
+		die "failed to seal taskfmt verify output"
+	fi
 
 	local validate_status=0
 	"$binary" validate --run-dir "$RUN_DIR" || validate_status=$?
