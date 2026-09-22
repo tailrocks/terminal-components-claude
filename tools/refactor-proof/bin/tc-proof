@@ -3281,7 +3281,7 @@ def validate_broker_observation(body: dict[str, Any], profile: dict[str, Any]) -
                 fields = {field.get("name") for field in fact.get("fields", [])}
                 allowed = {"inactive", "pending", "leased", "inactive_registration", "pending_registration"}
                 extra = fields - allowed
-                if extra & {"runtime", "theme", "cache", "extra", "third"}:
+                if extra:
                     raise Reject("ARCHITECTURE")
             if kind == "macro" and "hidden" in str(fact.get("path", "")).lower():
                 raise Reject("ARCHITECTURE")
@@ -4009,26 +4009,19 @@ def run_compare(context_path: Path) -> int:
     """Supervise the native comparator and emit the bound runner result.
 
     Resolves symlinked run ancestry (macOS /tmp), binds the native
-    environment for runner contexts, runs the verifier-bound comparator as a
-    child process, then emits outputs/<CHK>.result.json via finish() for that
-    ABI. A standalone compare context owns its external report path and
-    returns the comparator status directly. Always returns to the caller;
-    never replaces the process image.
+    environment from --context alone, runs the verifier-bound comparator as a
+    child process, then emits outputs/<CHK>.result.json via finish() with a
+    status that coheres with the comparator exit code. Always returns to the
+    caller; never replaces the process image.
     """
     if context_path.is_symlink():
         raise RuntimeError("worker context path is a symlink")
     resolved = context_path.resolve()
-    context, _, context_hash = load_context(resolved)
-    schema = context.get("schema")
-    if schema == COMPARE_CONTEXT_SCHEMA:
-        rust = _native_comparator_path(resolved)
-        return subprocess.run([str(rust), "compare", "--context", str(resolved)], check=False).returncode
-    if schema != RUNNER_CONTEXT_SCHEMA:
-        raise RuntimeError("compare context schema is not supported")
     _derive_compare_index(resolved)
     bind_native_environment(resolved)
     rust = _native_comparator_path(resolved)
     completed = subprocess.run([str(rust), "compare", "--context", str(resolved)], check=False)
+    context, _, context_hash = load_context(resolved)
     qualification = context.get("qualification")
     comparator = qualification.get("comparator") if isinstance(qualification, dict) else None
     nested = comparator.get("context") if isinstance(comparator, dict) else None

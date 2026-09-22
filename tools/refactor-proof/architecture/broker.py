@@ -84,7 +84,7 @@ def validate_broker_observation(body: dict[str, Any], profile: dict[str, Any]) -
                 fields = {field.get("name") for field in fact.get("fields", [])}
                 allowed = {"inactive", "pending", "leased", "inactive_registration", "pending_registration"}
                 extra = fields - allowed
-                if extra & {"runtime", "theme", "cache", "extra", "third"}:
+                if extra:
                     raise Reject("ARCHITECTURE")
             if kind == "macro" and "hidden" in str(fact.get("path", "")).lower():
                 raise Reject("ARCHITECTURE")

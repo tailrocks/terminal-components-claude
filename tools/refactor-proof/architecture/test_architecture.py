@@ -343,6 +343,48 @@ class BrokerTests(unittest.TestCase):
         }
         validate_broker_observation(body, profile)
 
+    def test_unknown_signal_broker_field_is_rejected(self) -> None:
+        source = (
+            '#[cfg(all(unix, feature = "crossterm"))]\n'
+            "static SIGNAL_BROKER: std::sync::OnceLock<std::sync::Mutex<SignalBroker>> = std::sync::OnceLock::new();\n"
+            '#[cfg(all(unix, feature = "crossterm"))]\n'
+            "struct SignalBroker {\n"
+            "    inactive: bool,\n"
+            "    pending: bool,\n"
+            "    leased: bool,\n"
+            "    retry_budget: u8,\n"
+            "}\n"
+        )
+        body = {
+            "files": [
+                {
+                    "path": "crates/tui/src/runtime/session.rs",
+                    "source": source,
+                    "facts": [
+                        {"kind": "static", "name": "SIGNAL_BROKER", "visibility": "", "type": "OnceLock<Mutex<SignalBroker>>"},
+                        {
+                            "kind": "struct",
+                            "name": "SignalBroker",
+                            "visibility": "",
+                            "fields": [
+                                {"name": "inactive"},
+                                {"name": "pending"},
+                                {"name": "leased"},
+                                {"name": "retry_budget"},
+                            ],
+                        },
+                    ],
+                }
+            ]
+        }
+        profile = {
+            "required_files": ["crates/tui/src/runtime/session.rs"],
+            "exception_path": "crates/tui/src/runtime/session.rs",
+        }
+        with self.assertRaises(Reject) as raised:
+            validate_broker_observation(body, profile)
+        self.assertEqual(raised.exception.category, "ARCHITECTURE")
+
     def test_unrelated_macro_tokens_with_hidden_are_accepted(self) -> None:
         source = (
             '#[cfg(all(unix, feature = "crossterm"))]\n'
