@@ -62,6 +62,11 @@ git -C "$candidate" commit -q -m fixture
 cp "$SCRIPT_DIR/../refactoring-tasks/terminal-components/completion/002/verify.toml" "$catalog/002/verify.toml"
 cp "$SCRIPT_DIR/../refactoring-tasks/terminal-components/completion/002/README.md" "$catalog/002/README.md"
 
+observer_provider="$TMP_ROOT/observer-provider"
+printf '%s\n' '#!/usr/bin/env bash' 'set -euo pipefail' 'exit 0' >"$observer_provider"
+chmod 755 "$observer_provider"
+export TC_PROOF_OBSERVER_PROVIDER="$observer_provider"
+
 python3 - "$campaign" "$candidate" "$TASKFMT" "$TASKFMT_REV" "$TASKFMT_VERSION" "$TASKFMT_SHA256" <<'PY'
 import hashlib
 import json
@@ -386,10 +391,19 @@ path.write_text(
     "mode=${1:-}\n"
     "shift || true\n"
     "run_dir=\n"
+    "observer_provider=\n"
     "while (($#)); do\n"
-    "  if [[ $1 == --run-dir ]]; then run_dir=$2; shift 2; else shift; fi\n"
+    "  case $1 in\n"
+    "    --run-dir) run_dir=$2; shift 2 ;;\n"
+    "    --observer-provider) observer_provider=$2; shift 2 ;;\n"
+    "    *) shift ;;\n"
+    "  esac\n"
     "done\n"
     "if [[ $mode == prepare ]]; then\n"
+    "  if [[ -z \"$observer_provider\" || \"$observer_provider\" != \"${TC_PROOF_OBSERVER_PROVIDER:-}\" ]]; then\n"
+    "    printf '%s\\n' 'observer provider binding mismatch' >&2\n"
+    "    exit 3\n"
+    "  fi\n"
     "  printf '%s\\n' '{}' > \"$run_dir/context-index.json\"\n"
     "elif [[ $mode != validate ]]; then\n"
     "  exit 2\n"
@@ -419,6 +433,52 @@ value = {
 }
 Path(receipt).write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
+
+set +e
+TC_PROOF_OBSERVER_PROVIDER="" \
+TASK=002 \
+	TC_CAMPAIGN_ROOT="$campaign" \
+	TC_TASK_WORKTREE="$candidate" \
+	TC_TASK_RUN_DIR="$TMP_ROOT/positive-run" \
+	TC_TASK_BASE="$candidate_head" \
+	TC_TASK_PREFLIGHT_EVIDENCE="$TMP_ROOT/positive-run/authorization.json" \
+	TC_CATALOG_ROOT="$catalog" \
+	TC_PROOF_TARGET_DIR="$target" \
+	TC_TASKFMT="$TASKFMT" \
+	"$DISPATCH" verify >"$TMP_ROOT/missing-provider.stdout" 2>"$TMP_ROOT/missing-provider.stderr"
+missing_provider_rc=$?
+set -e
+if ((missing_provider_rc == 0)); then
+	fail "dispatch accepted a missing observer provider"
+fi
+grep -Fq "set TC_PROOF_OBSERVER_PROVIDER to the bound observer response provider" \
+	"$TMP_ROOT/missing-provider.stderr" ||
+	fail "missing observer provider rejection had unexpected output: $(rtk cat "$TMP_ROOT/missing-provider.stderr")"
+pass "dispatch rejects a missing observer provider"
+
+observer_provider_alias="$TMP_ROOT/observer-provider-alias"
+ln -s "$observer_provider" "$observer_provider_alias"
+set +e
+TC_PROOF_OBSERVER_PROVIDER="$observer_provider_alias" \
+TASK=002 \
+	TC_CAMPAIGN_ROOT="$campaign" \
+	TC_TASK_WORKTREE="$candidate" \
+	TC_TASK_RUN_DIR="$TMP_ROOT/positive-run" \
+	TC_TASK_BASE="$candidate_head" \
+	TC_TASK_PREFLIGHT_EVIDENCE="$TMP_ROOT/positive-run/authorization.json" \
+	TC_CATALOG_ROOT="$catalog" \
+	TC_PROOF_TARGET_DIR="$target" \
+	TC_TASKFMT="$TASKFMT" \
+	"$DISPATCH" verify >"$TMP_ROOT/provider-symlink.stdout" 2>"$TMP_ROOT/provider-symlink.stderr"
+provider_symlink_rc=$?
+set -e
+if ((provider_symlink_rc == 0)); then
+	fail "dispatch accepted an observer-provider symlink"
+fi
+grep -Fq "observer response provider failed trust-path validation" \
+	"$TMP_ROOT/provider-symlink.stderr" ||
+	fail "observer-provider symlink rejection had unexpected output: $(rtk cat "$TMP_ROOT/provider-symlink.stderr")"
+pass "dispatch rejects an observer-provider symlink"
 
 linked_target_parent="$TMP_ROOT/linked-target-parent"
 ln -s "$TMP_ROOT" "$linked_target_parent"
