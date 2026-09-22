@@ -1,12 +1,12 @@
 # Refactoring preparation authority
 
-Work stopped at the user's request. See the [stop checkpoint and recoverable
-WIP archive](stopped-preparation/README.md). Unfinished source drafts are
+Product/task work remains stopped. See the [stop checkpoint and recoverable WIP
+archive](stopped-preparation/README.md). Unfinished source drafts are
 preserved, not accepted. No dispatch is authorized.
 
 Status: **NO-GO.** Preparation only. The ledger must remain `armed: false`.
 No production task may be dispatched, and this branch must not be merged into
-`main`, while the readiness report is NO-GO.
+`main`, until a fresh preflight binds the exact post-repair tree and passes.
 
 This directory is the canonical preparation package for
 `refactor/holla-parity`. The authority order is:
@@ -20,23 +20,26 @@ This directory is the canonical preparation package for
 Historical evidence never authorizes execution. The generated structural graph
 contains no status, acceptance result, or dispatch authority.
 
-## Current source binding before this documentation repair
+## Current source binding for this documentation repair
 
 The clean campaign source for this repair is exactly:
 
 ```text
 branch: refactor/holla-parity
-commit: 02c02ffa28dc7f9083f0bdb957102844d965ce48
-tree:   4e751fbc81a3c60c747a56454208e0b7391e2f6a
-parent: 1fdc1cc24b4e88bb3c5994077b40eebadf3b694e
+commit: 72db3941b49a1a2c6258eed6b38fc4b830a217f6
+tree:   62eac45530e264ebf2b1290030abae51c35a745d
+parent: dcb0fa4e2d7d840b00f05f312bb4e25d72118e1d
 ```
 
-The campaign is a descendant of actual local and remote `main`; the remote
-campaign ref equals this source payload. This is source state, not an external
-receipt. The documentation repair creates a new commit/tree; all evidence
-must be rebound to that exact post-repair identity before it can be accepted.
-No ref was reset, rewritten, force-pushed, pruned, or moved. The directory
-name `.worktrees/main` was not used to identify `main`.
+This is source state, not an external receipt. The repair creates a new
+commit/tree; all evidence must be rebound to that exact post-repair identity
+before it can be accepted. The current target contains a candidate TASK-072
+generated-bundle and broker field-allowlist repair, but no independent
+verifier/reviewer acceptance exists. The current-target preflight remains
+fail-closed at NO-GO; the disarmed ledger's stale taskfmt path binding,
+stale proof-preparation wrapper, and TASK-071 extra validate-context inputs
+remain open blockers. No ref was reset, rewritten, force-pushed, pruned, or
+moved. The directory name `.worktrees/main` was not used to identify `main`.
 
 The five tracked canonical documents are source-controlled preparation
 metadata. This repair changes the assessed payload, so the final verifier must
@@ -88,7 +91,9 @@ authorizes dispatch or changes `NO-GO`/`armed: false`:
 | `bffd7224` | Implemented TASK-071 qualification changes | source change; not an accepted receipt |
 | `84a49251` | Implemented TASK-072 architecture-verifier dispatch | source change; not an accepted receipt |
 | `b96a62e4` | Stamped native oracle family for app namespaces | proof-source change; not an accepted receipt |
-| `c7ab028c` | Kept runner observation collection after qualification overlay | current source binding; this repair follows |
+| `c7ab028c` | Kept runner observation collection after qualification overlay | superseded source binding |
+| `dcb0fa4e` | Rebound readiness evidence to the predecessor candidate | superseded source binding |
+| `72db3941` | Repaired TASK-072 generated bundle and broker field validation | candidate source change; not independently accepted |
 
 No listed commit authorizes dispatch or changes `NO-GO`/`armed: false`.
 
@@ -159,8 +164,10 @@ Machine-checked catalog at the current source (structural only):
 | accepted production tasks | 0 |
 
 `TASK-001` and `TASK-070` are retired fail-closed lifecycle/bootstrap
-contracts. `TASK-071` and `TASK-072` remain unaccepted qualification
-prerequisites. `TASK-002`–`TASK-069` remain valid implementation obligations.
+contracts. `TASK-071` remains unaccepted because its validate context accepts
+extra inputs. `TASK-072` has a candidate generated-bundle and broker
+field-allowlist repair, but remains an unaccepted qualification prerequisite.
+`TASK-002`–`TASK-069` remain valid implementation obligations.
 `TASK-073`, `TASK-074`, `TASK-075`, `TASK-076`, `TASK-077`, `TASK-078`, and
 `TASK-079` are also valid implementation obligations. None is authorized while
 the readiness report is NO-GO.
@@ -186,17 +193,14 @@ binary:   /Users/donbeave/.cargo/bin/taskfmt
 SHA-256:  f9781ef8ad5909a8dc9f5902aafa177623310eb72cb1645a37de4567016664de
 ```
 
-The source checkout was independently re-read at this revision and was clean.
-The following exact-source lint run is historical: it binds the earlier
-`4abd4d7b` payload, not current source `c7ab028c` or the post-repair tree.
-It used this regular single-link binary against
-73 numbered task packages plus four trusted fixture packages (77 recursive
-`verify.toml` contracts):
+The fresh predecessor-candidate lint run is provenance only: it binds
+`01532f6b` / `d9b0fd78`, not the current repair target or its future commit.
+It used this qualified binary against 79 numbered packages and passed:
 
 ```text
-run: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/taskfmt-lint-4abd4d7b-f978.log
-result: 77 passed, exit 0
-log SHA-256: ae211906387b9161213e1fbb640fea14a62616d60a1391c7ba72046c8969ceef
+run: /private/tmp/campaign-readiness-final-20260923/taskfmt-lint-final.log
+result: 79 passed, exit 0
+log SHA-256: 463e6ae9f02d1eea67174adf41fc119234b120d458add6a0bbb544077d9571f2
 ```
 
 A fresh external `cargo build --locked --release --bin taskfmt` from the same
@@ -252,10 +256,11 @@ log: /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-pr
 log SHA-256: 6589e2d3aeb67bef443e61d50720f5b8f385b910079c8b71b89dd98cfda15252
 ```
 
-The AP-05 family/request binding tests also passed: 14 native tests, 15 Python
-protocol tests, and the source/AST/bundle check. These results are historical,
-invalid for current source, and require final-tree reruns. No current accepted
-taskfmt, proof, verifier, reviewer, or preparation receipt exists.
+Historical `TASK-071` qualification evidence is recorded in the current
+readiness report, but independent review found that its validate context
+accepts extra inputs, so it is not an accepted current prerequisite. The
+predecessor-candidate native comparator build and preflight are likewise
+provenance only; no exact post-repair verifier/reviewer receipt exists.
 
 The adversarial audit at
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/adversarial-fe802/adversarial-proof-contract-audit-fe802.md`
@@ -269,7 +274,7 @@ Raw runs are under
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19`.
 They are supporting evidence, not acceptance receipts.
 
-The clean pre-arm preflight run
+The older clean pre-arm preflight run
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/preflight-current-clean`
 exited 1 with the correct NO-GO refusal. Its result SHA-256 is
 `ad1e78e8c2c5c14fd068befd42fa7774d115dfd83e91f41784ca2a22e56adf12`; it is
@@ -280,8 +285,15 @@ passed with SHA-256 `2e3b6e8d8f1f9a9740000b37cb83cec558485df985dadcfd0642052b968
 qualified actionlint 1.7.12 log
 `/Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-20/actionlint-docs-247e47d5/actionlint.log`
 passed with SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
-No listed evidence binds the post-documentation final tree; no exact-source
-verifier/reviewer receipt or preparation acceptance receipt exists.
+The fresh predecessor-candidate preflight passed exit 0, but it binds
+`01532f6b` / `d9b0fd78` only. A current-target run of
+`scripts/campaign-preflight.sh preflight` exits 1 at the canonical NO-GO
+readiness check and cannot authorize work. Its underlying ledger validation
+also remains stale: `ledger.toolchain.taskfmt_path` is
+`/Users/donbeave/.cargo/bin/taskfmt` while the qualified expected path is
+`/private/tmp/taskfmt-latest-install/bin/taskfmt`. The TASK-072 repair is
+candidate source only; no exact post-repair verifier/reviewer receipt or
+preparation acceptance receipt exists.
 
 ## Readiness and navigation
 
@@ -309,7 +321,7 @@ return explicit decisions. Their predetermined external paths are:
 /Users/donbeave/Projects/terminal-components-claude/.codex-runs/campaign-prep-2026-09-19/final-seal-2026-09-19/final-reviewer-report.md
 ```
 
-Because exact-tag calibration, the unfiltered proof suite, platform evidence,
-and product parity remain failed or unavailable, no honest preparation receipt
-or GO can exist in this goal. The next goal must revalidate readiness before
-any authorization or arming operation.
+Because the current-target preflight fails closed on taskfmt provenance, no
+current preparation receipt or dispatch authorization exists. The next gate
+must revalidate the exact post-repair tree before any authorization or arming
+operation.

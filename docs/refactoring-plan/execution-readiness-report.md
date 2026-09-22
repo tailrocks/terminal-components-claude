@@ -1,36 +1,42 @@
 # Execution readiness report
 
-**Verdict: GO.**
+**Verdict: NO-GO.**
 
-This is a preparation-qualified GO for **future graph-ordered dispatch only**.
-It is not product-task acceptance, implementation acceptance, final parity
-acceptance, permission to bless or change snapshots, or permission to arm the
-campaign ledger. Keep the ledger `armed = false`.
+This is a fail-closed current-target readiness result. It is not product-task
+acceptance, implementation acceptance, final parity acceptance, permission to
+bless or change snapshots, or permission to arm the campaign ledger. Keep the
+ledger `armed = false`.
 
-The report records one accepted qualification receipt (`TASK-071`) below. It
-does not accept any production task, final campaign state, visual result, or
-product behavior. Before any future dispatch, the coordinator must rerun the
-live preflight against the exact post-documentation tree, recheck every
-dependency and receipt, and preserve the frozen oracle.
+The report records one qualification receipt (`TASK-071`) below, but the
+independent review found its validate context accepts extra inputs. The current
+source contains a candidate TASK-072 generated-bundle and broker
+field-allowlist repair, but no independent verifier/reviewer receipt accepts
+it. The current proof-preparation wrapper has stale bindings. These are open
+prerequisites, not accepted production work. Before any future dispatch, the
+coordinator must repair and independently verify them, rerun live preflight
+against the exact post-repair tree, recheck every dependency and receipt, and
+preserve the frozen oracle.
 
 ## 1. Source and branch binding
 
-The supplied fresh evidence was captured from this clean coordinator
-candidate:
+The current documentation-repair target is:
 
 ```text
 branch: refactor/holla-parity
-commit: 01532f6b9442c573efa6224d206788a6c9404f93
-tree:   d9b0fd78a9ee3024039073805e800c7a57b0bf0f
-parent: 27aa11debc9c711223512aca9aebc8f89adb972c
+commit: 72db3941b49a1a2c6258eed6b38fc4b830a217f6
+tree:   62eac45530e264ebf2b1290030abae51c35a745d
+parent: dcb0fa4e2d7d840b00f05f312bb4e25d72118e1d
 ```
 
-The external preflight and native build receipt both bind that exact
-commit/tree. This edit changes only this report, so its eventual documentation
-commit will have a new identity. The supplied evidence is not a seal for that
-future commit; rerun preflight and rebind the exact resulting HEAD before
+The external PASS preflight and native build receipt below bind only the
+predecessor candidate `01532f6b` / `d9b0fd78`. The current-target preflight
+fails closed at the NO-GO readiness gate; its underlying taskfmt/proof
+preparation bindings remain stale. The current source includes the TASK-072
+repair as a candidate only, with no independent verifier/reviewer acceptance.
+This edit changes documentation only, so its eventual commit will have a new
+identity; rerun preflight and rebind the exact resulting HEAD before any
 dispatch. No ref, workflow, ledger, oracle, task worktree, or product source
-was changed by this rebind.
+was changed.
 
 ## 2. Frozen visual oracle
 
@@ -63,14 +69,14 @@ Current structural identities at the bound source tree:
 
 ```text
 catalog/task index:
-  commit: 01532f6b9442c573efa6224d206788a6c9404f93
-  tree:   d9b0fd78a9ee3024039073805e800c7a57b0bf0f
+  commit: 72db3941b49a1a2c6258eed6b38fc4b830a217f6
+  tree:   62eac45530e264ebf2b1290030abae51c35a745d
   path:   docs/refactoring-plan/task-index.tsv
   SHA-256: fb6d553f436a29c16f33e48f0dc862577cb9be0e733ab9a18e54318dee117b72
 
 task graph:
-  commit: 01532f6b9442c573efa6224d206788a6c9404f93
-  tree:   d9b0fd78a9ee3024039073805e800c7a57b0bf0f
+  commit: 72db3941b49a1a2c6258eed6b38fc4b830a217f6
+  tree:   62eac45530e264ebf2b1290030abae51c35a745d
   path:   docs/refactoring-plan/task-graph.json
   SHA-256: 34bce5b71e82d6d3eeda5ac390fd92a8cc901431a69f6919ee5e0fc391b41916
 ```
@@ -97,16 +103,15 @@ dispatch authority.
 | source groups | 1,174 |
 | traceability rows | 3,256 |
 
-`TASK-001` and `TASK-070` are retired and fail closed. `TASK-071` is the
-accepted qualification receipt recorded below. `TASK-072` remains a pending
-qualification prerequisite. `TASK-002`–`TASK-069` and `TASK-073`–`TASK-079`
-remain valid implementation obligations. Accepted production tasks: **0**.
+`TASK-001` and `TASK-070` are retired and fail closed. `TASK-071` has
+historical qualification evidence recorded below but is not currently accepted.
+`TASK-072` has a candidate generated-bundle and broker field-allowlist repair,
+but remains a pending, unaccepted qualification prerequisite. `TASK-002`–
+`TASK-069` and `TASK-073`–`TASK-079` remain valid implementation obligations.
+Accepted production tasks: **0**.
 
-The repository policy text in `AGENTS.md` still declares the older
-73/77-package, 506/526-check, 263-edge, 188-conflict summary. The live
-catalog and graph above are the measured current files; this documentation
-drift is an open rebind blocker and must be reconciled before relying on any
-future catalog claim. It does not authorize dispatch by itself.
+The catalog/policy count drift is repaired in this documentation change. The
+counts remain structural only and do not authorize dispatch.
 
 ## 4. Frozen tools and current external evidence
 
@@ -153,13 +158,25 @@ verdict:  PASS
 
 That preflight reports the tag/tree, branch, worktree, ledger, native proof,
 taskfmt, host-local task paths, graph validation, and readiness bindings as
-passing. It is bound to the clean source candidate in §1, not to the new
-documentation commit produced by this edit.
+passing. It is predecessor-candidate evidence only, not a seal for the current
+target or the new documentation commit.
 
-## 5. Accepted TASK-071 qualification receipt
+The current-target `scripts/campaign-preflight.sh preflight` exits 1 at the
+canonical NO-GO readiness check. Its underlying ledger validation remains
+stale: the local disarmed ledger binds
+`/Users/donbeave/.cargo/bin/taskfmt`, while the qualified expected path is
+`/private/tmp/taskfmt-latest-install/bin/taskfmt`. Independent review also
+found the proof-preparation wrapper stale and `TASK-071` validate context
+accepting extra inputs. The TASK-072 generated-bundle and broker
+field-allowlist repair is a candidate source change only; no current-target
+readiness PASS or independent TASK-072 verifier/reviewer receipt exists.
 
-The disarmed `.campaign/ledger.json` records one accepted qualification
-receipt under `task-071`; its current ledger SHA-256 is
+## 5. TASK-071 qualification evidence (not accepted current)
+
+The disarmed `.campaign/ledger.json` records historical qualification evidence
+under `task-071`; independent review found that its validate context accepts
+extra inputs, so it is not an accepted current prerequisite. The supplied
+predecessor snapshot's ledger SHA-256 is
 `def3f9e898ea2b0eacd247763a9aaf6120de6a3edf652f063a957b697fc3dd77`.
 The ledger and the supplied preflight snapshot agree on `armed=false` and
 integration head `01532f6b9442c573efa6224d206788a6c9404f93`.
@@ -177,8 +194,9 @@ result SHA-256:   a8b3f7c2d54458a0a4a49ef178c6821aa580338561d997d2b1ff73ae030883
 reviewer:         VERIFIED
 ```
 
-This receipt is qualification evidence only. It does not accept a product
-change, authorize a task, prove final architecture, or prove visual parity.
+This evidence does not accept a product change, authorize a task, prove final
+architecture, or prove visual parity. The context-input defect must be repaired
+and independently verified before TASK-071 can qualify.
 The receipt's candidate is not the current coordinator candidate; its ancestry
 and dependency binding must be rechecked by every future preflight.
 
@@ -186,9 +204,11 @@ and dependency binding must be rechecked by every future preflight.
 
 | item | status |
 | --- | --- |
-| docs-only commit rebind | **open**: supplied preflight binds the pre-edit source tree; rerun against the resulting HEAD before dispatch. |
-| catalog/policy count drift | **open**: reconcile the `AGENTS.md` 73/77 summary with the live 79/83 catalog and graph counts. |
-| TASK-072 qualification | **open**: no accepted verifier/reviewer receipt. |
+| proof-preparation wrapper | **blocking**: stale bindings; repair and independently verify. |
+| TASK-071 validate context | **blocking**: extra inputs accepted; repair and independently verify. |
+| TASK-072 qualification | **blocking**: candidate generated-bundle and broker field-allowlist repair has no independent verifier/reviewer receipt. |
+| current-target preflight | **blocking**: stale taskfmt/proof preparation binding; rerun after repairs. |
+| docs-only commit rebind | **open**: this repair creates a new source identity; bind it with a fresh preflight before dispatch. |
 | product migration and ownership | **open**: migrate consumers, remove duplicate/compatibility renderers, and preserve component ownership and APIs. |
 | application behavior | **open**: Holla, Showcase, Jackin, and TablePro integration; focus, hover, input, selection, scrolling, resize, PTY, lifecycle, and settled transitions. |
 | visual parity | **open**: compare the complete 7,550-key / 30,200-artifact candidate output to the frozen oracle; historical `form_advanced` Class A/B differences remain product work. |
@@ -204,7 +224,6 @@ PTY replay, all 7,550 keys, all 30,200 artifacts, clean ancestry, and an
 independent final verifier/reviewer decision. No such final acceptance is
 claimed here.
 
-This GO remains limited to preparation-qualified permission for future
-graph-ordered dispatch after the exact live post-edit preflight and all
-required dependency checks pass. The product and final-parity gates remain
-open, and the ledger remains disarmed.
+This NO-GO remains binding until the listed prerequisite repairs and exact
+post-repair preflight pass. The product and final-parity gates remain open, and
+the ledger remains disarmed.

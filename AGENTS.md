@@ -45,26 +45,35 @@ It is a preparation gate, not an execution prompt. Its current verdict is
 **NO-GO**. No task worktree or implementation agent may be created, no task
 may be dispatched, and no ledger-arm operation is authorized. Startup must
 reject NO-GO until a fresh final readiness gate binds the exact post-repair
-commit/tree and accepted verifier/reviewer receipts. The documentation repair
-is sourced from:
+commit/tree and accepted verifier/reviewer receipts. The current repair target
+before this documentation repair is:
 
 ```text
-commit: c7ab028c425a0e152f36ae7fa82bb7139ae2b01d
-tree:   6317db0654122cf8c09458d88ee43caf999f7a36
-parent: b96a62e4097b10c288d7c04cb4796c17310fd839
+commit: 72db3941b49a1a2c6258eed6b38fc4b830a217f6
+tree:   62eac45530e264ebf2b1290030abae51c35a745d
+parent: dcb0fa4e2d7d840b00f05f312bb4e25d72118e1d
 ```
 
-The repair commit will have a new identity; no receipt may self-attest that
-future tree. Do not dispatch retired `TASK-001`/`TASK-070`, qualification
-tasks `TASK-071`/`TASK-072`, or any remaining task until the fresh gate passes.
+The current-target preflight remains fail-closed at the NO-GO readiness gate.
+The disarmed local ledger also binds a taskfmt path that does not match the
+qualified expected path. Independent review leaves the proof-preparation
+wrapper stale and TASK-071 accepting extra validate-context inputs. The
+TASK-072 generated-bundle and broker field-allowlist repair in the current
+target is now a candidate source change, not independently accepted. The
+predecessor-tree PASS evidence is provenance only; no receipt may self-attest
+that candidate or this documentation repair.
+Do not dispatch retired `TASK-001`/`TASK-070`, qualification tasks
+`TASK-071`/`TASK-072`, or any remaining task until all repairs and a fresh gate
+pass.
 Keep the ledger `armed=false`; do not invent receipts. Continue to protect the
 frozen baseline; never use Docker, Podman, containers, or `cargo test`.
 
-The current derived catalog is 73 packages, 77 recursive contracts, 506
-direct/526 recursive checks, 263 dependency edges, depth 33, 188 file-conflict
-pairs, 584 shared interfaces, 3,256 traceability rows, and 1,174 source
-groups. The full 7,550-key tag recapture is a historical census, not an
-acceptance result. Linux native evidence is unavailable and unverifiable.
+The current derived catalog is 79 packages, 83 recursive contracts, 533
+direct/553 recursive checks, 282 dependency edges, depth 33, 205 file-conflict
+pairs, 6 serialization locks, 584 shared interfaces, 3,256 traceability rows,
+859 shared source groups, and 1,174 source groups. The full 7,550-key tag
+recapture is a historical census, not an acceptance result. Linux native
+evidence is unavailable and unverifiable.
 Product migration, ownership, behavior, visual parity, and performance remain
 unfinished. Final candidate vs frozen oracle still requires all 7,550 keys and
 30,200 artifacts.
