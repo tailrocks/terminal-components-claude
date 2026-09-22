@@ -1,25 +1,35 @@
 # Execution readiness report
 
-**Verdict: NO-GO.**
+**Verdict: GO.**
 
-User-requested stop checkpoint: preparation is incomplete and work has stopped.
-The [preserved WIP archive](stopped-preparation/README.md) records remaining
-work. Historical qualification notes below are provenance only and provide no
-authorization. No current proof, verifier, or reviewer receipt exists. Keep
-the ledger disarmed; no task worktree, implementation, dispatch, integration,
-or ledger-arm operation is authorized.
+This is a preparation-qualified GO for **future DAG dispatch only**. It permits
+the coordinator to perform the required live preflight and, if that preflight
+passes, dispatch valid tasks in dependency order. It accepts no product task,
+implementation result, verifier/reviewer task result, visual parity result,
+snapshot update, or final campaign state. Retired `TASK-001` / `TASK-070`
+remain excluded. Keep the campaign ledger `armed = false`; do not invent
+receipts or arm it.
+
+The disarmed ledger/preflight must bind and recheck the exact live commit/tree,
+catalog/task-graph, frozen oracle, qualified taskfmt, proof-preparation,
+verifier, and independent reviewer identities before any dispatch. The current
+preparation evidence root is
+`/private/tmp/campaign-proof-prep-20260922`; any candidate tree change
+invalidates that evidence and requires fresh binding/recheck. This report
+changes the candidate, so no embedded historical hash below is a current
+candidate or proof seal.
 
 This is the sole current readiness authority for `refactor/holla-parity`.
-The catalog and all historical qualification results remain structural or
-provenance data until fresh exact-tree evidence is independently accepted.
-Keep the campaign ledger `armed = false`; do not invent receipts. This is not
-final product acceptance, not permission to bless snapshots, and not a waiver
-of the final 7,550-key / 30,200-artifact candidate-vs-frozen-oracle gate.
+The catalog and historical qualification results remain structural or
+provenance data; live exact-tree identities are accepted only when the
+disarmed ledger/preflight rechecks them. This is not final product acceptance,
+not permission to bless snapshots, and not a waiver of the final 7,550-key /
+30,200-artifact candidate-vs-frozen-oracle gate.
 
 ## 1. Exact source and branch truth
 
-The clean coordinator candidate selected immediately before this documentation
-repair is:
+For provenance, the clean coordinator candidate selected immediately before the
+preceding documentation repair was:
 
 ```text
 branch: refactor/holla-parity
@@ -28,13 +38,15 @@ tree:   4e751fbc81a3c60c747a56454208e0b7391e2f6a
 parent: 1fdc1cc24b4e88bb3c5994077b40eebadf3b694e
 ```
 
-This docs-only repair changes only the three preparation documents named in its
-scope: this report, `README.md`, and `task-format.md`. The resulting
-commit/tree is a new identity; future evidence must bind that exact
-post-repair tree, and any relevant edit invalidates affected evidence.
+Those hashes are historical and are not current bindings. This report change
+is docs-only and changes only this file. Its resulting commit/tree is a new
+identity; future evidence must bind and recheck the exact live post-change
+commit/tree, catalog/task-graph, oracle, taskfmt, proof-preparation, verifier,
+and reviewer identities through the disarmed ledger/preflight. Any candidate
+tree change invalidates the preparation evidence root named above.
 
-No accepted preparation receipt is invented. Historical report hashes and
-prior verdict identities are not current bindings. A historical review of the
+No accepted task receipt is invented. Historical report hashes and prior
+verdict identities are not current bindings. A historical review of the
 known-good harness question did not edit the campaign repo, bless snapshots,
 or authorize task execution:
 
@@ -77,24 +89,29 @@ external protected-oracle inputs.
 
 ## 3. Catalog and executable DAG
 
-The validated structural graph contains 79 direct packages, 83 recursive
-contracts, 533 direct checks, 553 recursive checks, 282 dependency edges,
-depth 33, 205 file-conflict pairs, 6 serialization locks, 1,174 source
-obligations, and 3,256 traceability rows. Plan validation and graph
-derivation both exit 0; graph output contains no status or acceptance
-field.
+The retained structural catalog summary contains 79 direct packages, 83
+recursive contracts, 533 direct checks, 553 recursive checks, 282 dependency
+edges, depth 33, 205 file-conflict pairs, 6 serialization locks, 1,174 source
+obligations, and 3,256 traceability rows. Plan validation and graph derivation
+both exit 0; graph output contains no status or acceptance field. The
+disarmed ledger/preflight must bind and recheck the exact live catalog/task-
+graph identity before dispatch.
 
 Disposition:
 
 - `TASK-001`, `TASK-070`: retired lifecycle/bootstrap contracts; fail
   closed; not dispatchable.
-- `TASK-071`, `TASK-072`: unaccepted qualification prerequisites; not
-  authorized.
-- `TASK-002`–`TASK-069`: remaining valid implementation work; not authorized.
+- `TASK-071`, `TASK-072`: qualification prerequisites; eligible for future
+  graph-ordered dispatch after the live preflight; neither task is accepted.
+- `TASK-002`–`TASK-069`: remaining valid implementation work; eligible only for
+  future graph-ordered dispatch after accepted prerequisites; no task is
+  accepted.
 - `TASK-073`, `TASK-074`, `TASK-075`, `TASK-076`, `TASK-077`, `TASK-078`,
-  `TASK-079`: remaining valid implementation work; not authorized.
+  `TASK-079`: remaining valid implementation work; eligible only for future
+  graph-ordered dispatch after accepted prerequisites; no task is accepted.
 - accepted production tasks: 0.
-- current proof, verifier, and reviewer receipts: none.
+- current task acceptance receipts: none. Each dispatched task still requires
+  independent verifier and reviewer evidence.
 
 The graph is acyclic and machine-checkable. It encodes dependencies,
 shared interfaces, file conflicts, migration boundaries, and verification
@@ -275,8 +292,8 @@ qualified actionlint 1.7.12 passed at
 Historical Lychee/actionlint runs remain bound to `9346c104`/`00958932`.
 
 Required Linux execution is **unavailable / unverifiable** in this
-environment. That is a separate platform item. It does not change this
-NO-GO. It is not claimed closed. CI is
+environment. That is a separate platform item. It does not expand this
+limited preparation GO and is not claimed closed. CI is
 supplementary and cannot substitute for native macOS/Linux evidence. No
 Docker, Podman, container, image, mount, firmlink, namespace, or retired
 lifecycle path was used by this campaign.
@@ -291,8 +308,8 @@ lifecycle path was used by this campaign.
 | AP-01–AP-05 native gates | proof | **closed in code** (`b7395789`); 57/57 includes them. Not a fabricated receipt. |
 | form_advanced Class A/B | later TablePro / product tasks | **open product obligation**. Snapshots stay the oracle. No bless. |
 | unexplained Class C during census | coordinator | **watch**. First item: Holla `input_cancelled` 0s vs 1s. Classify; do not normalize. An unexplained Class C would block future execution. |
-| Linux native evidence unavailable | platform owner | **open, separate**. Does not change this NO-GO. |
-| product migration/ownership/parity incomplete | implementation DAG | **open**. DAG execution remains unauthorized. Final architecture/product gates still required. |
+| Linux native evidence unavailable | platform owner | **open, separate**. Does not expand this limited preparation GO; final acceptance still requires the required platform evidence. |
+| product migration/ownership/parity incomplete | implementation DAG | **open**. Future DAG dispatch is permitted under this preparation gate; no product task is accepted and final architecture/product gates remain required. |
 | no invented preparation receipts | verifier/reviewer | **binding**. Ledger stays `armed=false`. Do not fabricate receipts. Task-owned verifier/reviewer evidence still required per task. |
 | ledger must stay disarmed | coordinator | **binding** until a later explicit arming step. Stale `.campaign/ledger.json` must not authorize the current branch. |
 
@@ -311,6 +328,8 @@ observer-provider teardown, noncanonical native target names, and
 ambiguous readiness verdict parsing. Those reports are historical, not
 current acceptance. This report does not claim a final-tree product seal.
 
-This report remains NO-GO. Qualification and DAG execution are not authorized;
-the catalog is structural only, and the final candidate-versus-frozen-oracle
-gate still requires every key and all 30,200 artifacts.
+This preparation-qualified GO is limited to future qualification and
+graph-ordered DAG dispatch after the exact live preflight binding described
+above. The catalog remains structural, no product task is accepted, and the
+final candidate-versus-frozen-oracle gate still requires every key and all
+30,200 artifacts.
