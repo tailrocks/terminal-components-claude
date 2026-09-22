@@ -793,7 +793,8 @@ cmd_verify() {
 		--task-dir "$dir" \
 		--base "$BASE" \
 		--progress "" \
-		--log-dir "$RUN_DIR/taskfmt-logs" ||
+		--log-dir "$RUN_DIR/taskfmt-logs" \
+		>"$RUN_DIR/taskfmt-logs/verify.log" 2>&1 ||
 		taskfmt_status=$?
 
 	local validate_status=0
