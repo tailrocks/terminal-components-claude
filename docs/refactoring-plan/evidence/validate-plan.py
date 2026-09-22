@@ -34,6 +34,7 @@ FORBIDDEN_RUNTIME = re.compile(
     r"\btc-proof-host\b|"
     r"\btaskfmt\s+(?:init|status|host|runtime|run|lifecycle)\b"
 )
+REPAIR_PACKAGE_MARKER = "This is a repair-task package."
 
 
 class Audit:
@@ -217,13 +218,29 @@ class Audit:
             # forbidden. Keep this digest in lockstep with the shared task
             # AGENTS.md template.
             self.require(hashlib.sha256(normalized).hexdigest() == "49f9d104c059fba7c52c0237d5c88e93c22f562da393a9a27b03c005327da91c", f"Canonical execution protocol drift: {task_id}")
-            self.require("source-obligations.tsv" in readme, f"Historical payload not bound by README: {task_id}")
+            repair_package = REPAIR_PACKAGE_MARKER in readme
+            if repair_package:
+                self.require(
+                    (package / "trusted/obligations.md").is_file(),
+                    f"Repair package lacks local obligations: {task_id}",
+                )
+            else:
+                self.require(
+                    "source-obligations.tsv" in readme,
+                    f"Historical payload not bound by README: {task_id}",
+                )
             read_before = readme.split("Read before editing:", 1)
             self.require(len(read_before) == 2, f"Missing Read before editing section: {task_id}")
             if len(read_before) == 2:
                 self.require("CAMPAIGN_AGENTS.md" in read_before[1].split("##", 1)[0],
                              f"{task_id} README must list CAMPAIGN_AGENTS.md under Read before editing")
-            tasks[task_id] = {"requirements": requirements, "acceptance": acceptance, "checks": checks, "package": package}
+            tasks[task_id] = {
+                "requirements": requirements,
+                "acceptance": acceptance,
+                "checks": checks,
+                "package": package,
+                "repair_package": repair_package,
+            }
         for task_id, deps in dependencies.items():
             self.require(task_id not in deps, f"Self dependency: {task_id}")
             self.require(set(deps) <= set(indexed), f"Missing dependency target: {task_id}")
@@ -435,6 +452,16 @@ class Audit:
                 if row is None:
                     continue
                 self.require(mode == row["qualification_mode"], f"Accounting mode mismatch: {task_id}:{check_id}")
+                repair_package = REPAIR_PACKAGE_MARKER in (
+                    (completion / num / "README.md").read_text(encoding="utf-8")
+                )
+                self.require(
+                    mode in {"preparation", "production"},
+                    f"Unknown accounting qualification mode: {task_id}:{check_id}",
+                )
+                if repair_package:
+                    found.add(key)
+                    continue
                 if task_id in {f"TASK-{n:03d}" for n in range(2, 9)}:
                     self.require(mode == "preparation", f"Preparation task forbidden production mode: {task_id}:{check_id}")
                 else:
@@ -631,7 +658,9 @@ class Audit:
                 self.require(primary_owners == {contribution["task_owner"]}, f"Derived contribution owner differs: {source}")
                 baseline = "TASK-004" if contribution["parent_scenario"].startswith("JA-") else "TASK-005"
                 self.require({row["task_id"] for row in own_edges if row["role"] == "baseline"} == {baseline}, f"Derived contribution baseline differs: {source}")
-        for task_id in tasks:
+        for task_id, task in tasks.items():
+            if task["repair_package"]:
+                continue
             self.require(task_coverage[task_id] > 0, f"Orphan task: {task_id}")
         contribution_ids = set()
         for filename, default_kind in (("shell-contributions.tsv", "semantic"), ("shell-frame-contributions.tsv", "frame"), ("holla-stage-contributions.tsv", None)):
@@ -663,6 +692,8 @@ class Audit:
         for task_id, task in tasks.items():
             payload = task["package"] / "trusted/source-obligations.tsv"
             if not payload.is_file():
+                if task["repair_package"]:
+                    continue
                 self.errors.append(f"Missing protected historical payload: {task_id}")
                 continue
             with payload.open(newline="", encoding="utf-8") as stream:

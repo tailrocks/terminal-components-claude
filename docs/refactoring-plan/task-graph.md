@@ -2,7 +2,7 @@
 
 This graph is generated from the canonical task index, every direct and nested task contract, and traceability. It is structural planning data only: it contains no task status, acceptance result, ledger mutation, or dispatch authorization.
 
-The graph contains 73 direct tasks, 77 recursive verify.toml contracts, 506 direct checks, 526 recursive checks, and 263 dependency edges.
+The graph contains 79 direct tasks, 83 recursive verify.toml contracts, 533 direct checks, 553 recursive checks, and 282 dependency edges.
 
 The maximum dependency depth is 33 with 24 equally deepest dependency paths. Complete machine-checkable metadata is in task-graph.json.
 
@@ -10,14 +10,14 @@ The maximum dependency depth is 33 with 24 equally deepest dependency paths. Com
 
 | Measure | Derived count | Authority |
 | --- | ---: | --- |
-| Direct task packages | 73 | task-index.tsv and direct package directories |
-| Recursive verify.toml contracts | 77 | all package descendants |
-| Direct checks | 506 | direct contracts |
-| Recursive checks | 526 | direct plus nested contracts |
-| Dependency edges | 263 | task.toml dependencies |
+| Direct task packages | 79 | task-index.tsv and direct package directories |
+| Recursive verify.toml contracts | 83 | all package descendants |
+| Direct checks | 533 | direct contracts |
+| Recursive checks | 553 | direct plus nested contracts |
+| Dependency edges | 282 | task.toml dependencies |
 | Shared traceability interfaces | 584 | traceability.tsv source/task membership |
-| Writable-scope conflict pairs | 188 | direct verify.toml writable paths |
-| Incomparable writable-scope locks | 0 | conflicts without a dependency ordering |
+| Writable-scope conflict pairs | 205 | direct verify.toml writable paths |
+| Incomparable writable-scope locks | 6 | conflicts without a dependency ordering |
 
 The four nested contracts are retained as catalog members, not extra dispatchable tasks:
 
@@ -48,12 +48,12 @@ Tasks in one layer have the same dependency depth. They are not automatically sa
 | ---: | --- | --- | ---: |
 | 1 | TASK-001, TASK-071 | B | 0 |
 | 2 | TASK-070, TASK-072 | B | 0 |
-| 3 | TASK-002, TASK-003, TASK-004, TASK-005, TASK-007 | B | 0 |
-| 4 | TASK-006 | B | 0 |
-| 5 | TASK-008 | B | 0 |
-| 6 | TASK-073 | B | 0 |
+| 3 | TASK-002, TASK-003, TASK-004, TASK-005, TASK-007, TASK-074 | B | 0 |
+| 4 | TASK-006, TASK-075 | B | 0 |
+| 5 | TASK-008, TASK-076, TASK-078 | B | 0 |
+| 6 | TASK-073, TASK-077 | B | 0 |
 | 7 | TASK-009, TASK-011, TASK-012 | C | 0 |
-| 8 | TASK-010, TASK-013, TASK-029 | C | 0 |
+| 8 | TASK-010, TASK-013, TASK-029, TASK-079 | C | 0 |
 | 9 | TASK-014 | C | 0 |
 | 10 | TASK-015, TASK-016, TASK-017, TASK-021 | C | 0 |
 | 11 | TASK-018, TASK-022, TASK-026 | C | 0 |
@@ -121,6 +121,6 @@ Each task's writable and forbidden paths, direct contract, shared traceability i
 
 ## Shared interfaces and conflicts
 
-traceability.tsv yields 584 shared source/task interfaces. It also yields 188 writable-scope conflict pairs; all currently have a transitive dependency ordering, so no incomparable pair is dispatchable concurrently. The full path pairs and ordering proof are in file_conflicts and serialization_locks.
+traceability.tsv yields 584 shared source/task interfaces. It also yields 205 writable-scope conflict pairs; 6 are incomparable pairs represented by serialization locks, so those locks serialize the incomparable pairs rather than allowing concurrent dispatch. The full path pairs and ordering proof are in file_conflicts and serialization_locks.
 
 At every parallel join, materialize a fresh combined tree and rerun the union of impacted contracts, complete test accounting, and workspace gates. Individually accepted siblings are not proof of the combined result. Compare-and-swap integration rejects a changed parent; it never silently attaches a tested tree to a different parent.

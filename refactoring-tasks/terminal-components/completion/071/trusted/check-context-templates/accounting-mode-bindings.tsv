@@ -72,3 +72,8 @@ TASK-067	CHK-005	production	production	True	True
 TASK-068	CHK-005	production	production	True	True
 TASK-069	CHK-005	production	production	True	True
 TASK-073	CHK-005	production	production	True	True
+TASK-074	CHK-004	preparation	source-derived	False	False
+TASK-075	CHK-003	preparation	source-derived	False	False
+TASK-078	CHK-002	production	production	True	True
+TASK-078	CHK-003	preparation	source-derived	False	False
+TASK-079	CHK-005	production	production	True	True

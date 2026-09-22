@@ -6,7 +6,7 @@ The graph first qualifies independent comparator/host, project runner, test acco
 
 Source contracts are frozen now. Numeric oracle event traces, output hashes and content-addressed bundles are future preparation products; no fabricated hash is a precondition. They must be independently produced from the immutable oracle and sealed before component or application implementation. Candidate code never chooses its expected frames, checkpoint membership, event coordinates or normalization.
 
-Each package includes canonical README, execution protocol, verify.toml, dependency metadata and protected detailed obligations. The trusted source-obligations.tsv joins exact historical clauses to requirement, acceptance and check IDs. These source clauses supplement the task's detailed component/application/closure contract; a generic check name alone is not evidence that a clause passed.
+Each package includes canonical README, execution protocol, verify.toml, dependency metadata and protected detailed obligations. Product/history packages bind exact historical clauses through trusted/source-obligations.tsv; explicit repair-task packages instead bind their local trusted/obligations.md because they repair preparation/tooling contracts rather than claim ownership of a historical source row. These source clauses supplement the task's detailed component/application/closure contract; a generic check name alone is not evidence that a clause passed.
 
 The host implements source freezing, independent isolated verification and compare-and-swap local integration. It invokes supported standalone taskfmt verification, never the main-targeting run/promote lifecycle. A final passing task establishes readiness only; pushing or merging remains a separately authorized action.
 

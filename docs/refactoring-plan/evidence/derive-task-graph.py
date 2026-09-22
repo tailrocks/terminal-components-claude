@@ -23,11 +23,6 @@ GRAPH_SCHEMA = "tc-plan-graph/v1"
 COMPLETION_REL = Path("refactoring-tasks/terminal-components/completion")
 INDEX_REL = Path("docs/refactoring-plan/task-index.tsv")
 TRACEABILITY_REL = Path("docs/refactoring-plan/traceability.tsv")
-DIRECT_TASK_COUNT = 73
-RECURSIVE_VERIFY_COUNT = 77
-DIRECT_CHECK_COUNT = 506
-RECURSIVE_CHECK_COUNT = 526
-DEPENDENCY_EDGE_COUNT = 263
 EXPECTED_NESTED_OWNERS = {"TASK-001", "TASK-070", "TASK-071", "TASK-072"}
 CHECKPOINT_SUFFIXES = {
     "API",
@@ -85,8 +80,6 @@ def read_index(root: Path) -> tuple[dict[str, dict[str, str]], list[str]]:
         index[task_id] = row
         if row["wave"] not in wave_order:
             wave_order.append(row["wave"])
-    if len(index) != DIRECT_TASK_COUNT:
-        raise ValueError(f"expected {DIRECT_TASK_COUNT} task packages, found {len(index)}")
     if sorted(index, key=task_sort) != sorted(index):
         raise ValueError("task index is not ordered by task identity")
     return index, wave_order
@@ -243,7 +236,9 @@ def load_contracts(
             f"expected {sorted(expected_nested_paths)}, found {sorted(actual_nested_paths)}"
         )
     if len(nested) != len(EXPECTED_NESTED_OWNERS):
-        raise ValueError(f"expected four nested bootstrap contracts, found {len(nested)}")
+        raise ValueError(
+            f"expected {len(EXPECTED_NESTED_OWNERS)} nested bootstrap contracts, found {len(nested)}"
+        )
     nested.sort(key=lambda contract: task_sort(contract["owner_task_id"]))
     return contracts_by_task, nested
 
@@ -630,17 +625,17 @@ def validate_graph(
     tasks = graph.get("tasks")
     if not isinstance(tasks, dict) or set(tasks) != set(index):
         raise ValueError("graph task identity set drift")
-    if graph["catalog"]["direct_task_packages"] != DIRECT_TASK_COUNT:
-        raise ValueError("direct task count drift")
-    if graph["catalog"]["recursive_verify_toml"] != RECURSIVE_VERIFY_COUNT:
-        raise ValueError("recursive verify.toml count drift")
-    if graph["catalog"]["direct_checks"] != DIRECT_CHECK_COUNT:
-        raise ValueError("direct check count drift")
-    if graph["catalog"]["recursive_checks"] != RECURSIVE_CHECK_COUNT:
-        raise ValueError("recursive check count drift")
-    if graph["catalog"]["dependency_edges"] != DEPENDENCY_EDGE_COUNT:
-        raise ValueError("dependency edge count drift")
-    if len(graph["catalog"]["nested_bootstrap_contracts"]) != 4:
+    derived_catalog = {
+        "direct_task_packages": len(index),
+        "recursive_verify_toml": sum(len(contracts) for contracts in contracts_by_task.values()),
+        "direct_checks": sum(task["direct_check_count"] for task in tasks.values()),
+        "recursive_checks": sum(task["recursive_check_count"] for task in tasks.values()),
+        "dependency_edges": sum(len(task["dependencies"]) for task in tasks.values()),
+    }
+    for field, expected in derived_catalog.items():
+        if graph["catalog"][field] != expected:
+            raise ValueError(f"{field} derivation drift")
+    if len(graph["catalog"]["nested_bootstrap_contracts"]) != len(EXPECTED_NESTED_OWNERS):
         raise ValueError("nested bootstrap count drift")
     if graph["contract_rules"]["start_gate"] != {
         "requires_all_verification_dependencies": True,
@@ -890,7 +885,7 @@ def render_markdown(graph: dict[str, Any]) -> str:
         "",
         "## Shared interfaces and conflicts",
         "",
-        f"traceability.tsv yields {len(graph['shared_interfaces'])} shared source/task interfaces. It also yields {len(graph['file_conflicts'])} writable-scope conflict pairs; all currently have a transitive dependency ordering, so no incomparable pair is dispatchable concurrently. The full path pairs and ordering proof are in file_conflicts and serialization_locks.",
+        f"traceability.tsv yields {len(graph['shared_interfaces'])} shared source/task interfaces. It also yields {len(graph['file_conflicts'])} writable-scope conflict pairs; {len(graph['serialization_locks'])} are incomparable pairs represented by serialization locks, so those locks serialize the incomparable pairs rather than allowing concurrent dispatch. The full path pairs and ordering proof are in file_conflicts and serialization_locks.",
         "",
         "At every parallel join, materialize a fresh combined tree and rerun the union of impacted contracts, complete test accounting, and workspace gates. Individually accepted siblings are not proof of the combined result. Compare-and-swap integration rejects a changed parent; it never silently attaches a tested tree to a different parent.",
     ]

@@ -1,8 +1,8 @@
 {
   "catalog": {
-    "dependency_edges": 263,
-    "direct_checks": 506,
-    "direct_task_packages": 73,
+    "dependency_edges": 282,
+    "direct_checks": 533,
+    "direct_task_packages": 79,
     "nested_bootstrap_contracts": [
       {
         "check_count": 5,
@@ -125,8 +125,8 @@
         ]
       }
     ],
-    "recursive_checks": 526,
-    "recursive_verify_toml": 77,
+    "recursive_checks": 553,
+    "recursive_verify_toml": 83,
     "traceability": {
       "shared_source_groups": 859,
       "source_groups": 1174,
@@ -1688,6 +1688,111 @@
       "owner_task_id": "TASK-073",
       "path": "refactoring-tasks/terminal-components/completion/073/verify.toml",
       "schema": "verify/v2"
+    },
+    {
+      "check_count": 6,
+      "check_ids": [
+        "CHK-001",
+        "CHK-002",
+        "CHK-003",
+        "CHK-004",
+        "CHK-005",
+        "CHK-006"
+      ],
+      "declared_task_id": "TASK-074",
+      "gate_check_ids": [
+        "CHK-006"
+      ],
+      "kind": "direct",
+      "owner_task_id": "TASK-074",
+      "path": "refactoring-tasks/terminal-components/completion/074/verify.toml",
+      "schema": "verify/v2"
+    },
+    {
+      "check_count": 5,
+      "check_ids": [
+        "CHK-001",
+        "CHK-002",
+        "CHK-003",
+        "CHK-004",
+        "CHK-005"
+      ],
+      "declared_task_id": "TASK-075",
+      "gate_check_ids": [
+        "CHK-005"
+      ],
+      "kind": "direct",
+      "owner_task_id": "TASK-075",
+      "path": "refactoring-tasks/terminal-components/completion/075/verify.toml",
+      "schema": "verify/v2"
+    },
+    {
+      "check_count": 3,
+      "check_ids": [
+        "CHK-001",
+        "CHK-002",
+        "CHK-003"
+      ],
+      "declared_task_id": "TASK-076",
+      "gate_check_ids": [
+        "CHK-003"
+      ],
+      "kind": "direct",
+      "owner_task_id": "TASK-076",
+      "path": "refactoring-tasks/terminal-components/completion/076/verify.toml",
+      "schema": "verify/v2"
+    },
+    {
+      "check_count": 3,
+      "check_ids": [
+        "CHK-001",
+        "CHK-002",
+        "CHK-003"
+      ],
+      "declared_task_id": "TASK-077",
+      "gate_check_ids": [
+        "CHK-003"
+      ],
+      "kind": "direct",
+      "owner_task_id": "TASK-077",
+      "path": "refactoring-tasks/terminal-components/completion/077/verify.toml",
+      "schema": "verify/v2"
+    },
+    {
+      "check_count": 4,
+      "check_ids": [
+        "CHK-001",
+        "CHK-002",
+        "CHK-003",
+        "CHK-004"
+      ],
+      "declared_task_id": "TASK-078",
+      "gate_check_ids": [
+        "CHK-004"
+      ],
+      "kind": "direct",
+      "owner_task_id": "TASK-078",
+      "path": "refactoring-tasks/terminal-components/completion/078/verify.toml",
+      "schema": "verify/v2"
+    },
+    {
+      "check_count": 6,
+      "check_ids": [
+        "CHK-001",
+        "CHK-002",
+        "CHK-003",
+        "CHK-005",
+        "CHK-006",
+        "CHK-007"
+      ],
+      "declared_task_id": "TASK-079",
+      "gate_check_ids": [
+        "CHK-007"
+      ],
+      "kind": "direct",
+      "owner_task_id": "TASK-079",
+      "path": "refactoring-tasks/terminal-components/completion/079/verify.toml",
+      "schema": "verify/v2"
     }
   ],
   "contract_rules": {
@@ -1784,9 +1889,45 @@
     "TASK-070": 2,
     "TASK-071": 1,
     "TASK-072": 2,
-    "TASK-073": 6
+    "TASK-073": 6,
+    "TASK-074": 3,
+    "TASK-075": 4,
+    "TASK-076": 5,
+    "TASK-077": 6,
+    "TASK-078": 5,
+    "TASK-079": 8
   },
   "file_conflicts": [
+    {
+      "ordering": [],
+      "overlap_count": 1,
+      "parallel_allowed": true,
+      "relation": "parallel-lock",
+      "tasks": [
+        "TASK-001",
+        "TASK-074"
+      ]
+    },
+    {
+      "ordering": [],
+      "overlap_count": 1,
+      "parallel_allowed": true,
+      "relation": "parallel-lock",
+      "tasks": [
+        "TASK-001",
+        "TASK-075"
+      ]
+    },
+    {
+      "ordering": [],
+      "overlap_count": 1,
+      "parallel_allowed": true,
+      "relation": "parallel-lock",
+      "tasks": [
+        "TASK-001",
+        "TASK-078"
+      ]
+    },
     {
       "ordering": [
         "TASK-007",
@@ -2530,6 +2671,19 @@
     },
     {
       "ordering": [
+        "TASK-008",
+        "TASK-079"
+      ],
+      "overlap_count": 1,
+      "parallel_allowed": false,
+      "relation": "transitive-dependency",
+      "tasks": [
+        "TASK-008",
+        "TASK-079"
+      ]
+    },
+    {
+      "ordering": [
         "TASK-009",
         "TASK-010"
       ],
@@ -2708,6 +2862,19 @@
       "tasks": [
         "TASK-011",
         "TASK-073"
+      ]
+    },
+    {
+      "ordering": [
+        "TASK-011",
+        "TASK-079"
+      ],
+      "overlap_count": 1,
+      "parallel_allowed": false,
+      "relation": "transitive-dependency",
+      "tasks": [
+        "TASK-011",
+        "TASK-079"
       ]
     },
     {
@@ -4219,6 +4386,36 @@
       ]
     },
     {
+      "ordering": [],
+      "overlap_count": 4,
+      "parallel_allowed": true,
+      "relation": "parallel-lock",
+      "tasks": [
+        "TASK-070",
+        "TASK-074"
+      ]
+    },
+    {
+      "ordering": [],
+      "overlap_count": 1,
+      "parallel_allowed": true,
+      "relation": "parallel-lock",
+      "tasks": [
+        "TASK-070",
+        "TASK-075"
+      ]
+    },
+    {
+      "ordering": [],
+      "overlap_count": 1,
+      "parallel_allowed": true,
+      "relation": "parallel-lock",
+      "tasks": [
+        "TASK-070",
+        "TASK-077"
+      ]
+    },
+    {
       "ordering": [
         "TASK-071",
         "TASK-072"
@@ -4229,6 +4426,123 @@
       "tasks": [
         "TASK-071",
         "TASK-072"
+      ]
+    },
+    {
+      "ordering": [
+        "TASK-071",
+        "TASK-076"
+      ],
+      "overlap_count": 1,
+      "parallel_allowed": false,
+      "relation": "transitive-dependency",
+      "tasks": [
+        "TASK-071",
+        "TASK-076"
+      ]
+    },
+    {
+      "ordering": [
+        "TASK-071",
+        "TASK-077"
+      ],
+      "overlap_count": 1,
+      "parallel_allowed": false,
+      "relation": "transitive-dependency",
+      "tasks": [
+        "TASK-071",
+        "TASK-077"
+      ]
+    },
+    {
+      "ordering": [
+        "TASK-072",
+        "TASK-076"
+      ],
+      "overlap_count": 1,
+      "parallel_allowed": false,
+      "relation": "transitive-dependency",
+      "tasks": [
+        "TASK-072",
+        "TASK-076"
+      ]
+    },
+    {
+      "ordering": [
+        "TASK-072",
+        "TASK-077"
+      ],
+      "overlap_count": 1,
+      "parallel_allowed": false,
+      "relation": "transitive-dependency",
+      "tasks": [
+        "TASK-072",
+        "TASK-077"
+      ]
+    },
+    {
+      "ordering": [
+        "TASK-074",
+        "TASK-075"
+      ],
+      "overlap_count": 2,
+      "parallel_allowed": false,
+      "relation": "transitive-dependency",
+      "tasks": [
+        "TASK-074",
+        "TASK-075"
+      ]
+    },
+    {
+      "ordering": [
+        "TASK-074",
+        "TASK-077"
+      ],
+      "overlap_count": 1,
+      "parallel_allowed": false,
+      "relation": "transitive-dependency",
+      "tasks": [
+        "TASK-074",
+        "TASK-077"
+      ]
+    },
+    {
+      "ordering": [
+        "TASK-074",
+        "TASK-078"
+      ],
+      "overlap_count": 1,
+      "parallel_allowed": false,
+      "relation": "transitive-dependency",
+      "tasks": [
+        "TASK-074",
+        "TASK-078"
+      ]
+    },
+    {
+      "ordering": [
+        "TASK-075",
+        "TASK-078"
+      ],
+      "overlap_count": 1,
+      "parallel_allowed": false,
+      "relation": "transitive-dependency",
+      "tasks": [
+        "TASK-075",
+        "TASK-078"
+      ]
+    },
+    {
+      "ordering": [
+        "TASK-076",
+        "TASK-077"
+      ],
+      "overlap_count": 1,
+      "parallel_allowed": false,
+      "relation": "transitive-dependency",
+      "tasks": [
+        "TASK-076",
+        "TASK-077"
       ]
     }
   ],
@@ -4590,6 +4904,24 @@
     ],
     "TASK-073": [
       "TASK-008"
+    ],
+    "TASK-074": [
+      "TASK-072"
+    ],
+    "TASK-075": [
+      "TASK-074"
+    ],
+    "TASK-076": [
+      "TASK-075"
+    ],
+    "TASK-077": [
+      "TASK-076"
+    ],
+    "TASK-078": [
+      "TASK-075"
+    ],
+    "TASK-079": [
+      "TASK-011"
     ]
   },
   "maximum_dependency_depth": 33,
@@ -5249,7 +5581,8 @@
         "TASK-003",
         "TASK-004",
         "TASK-005",
-        "TASK-007"
+        "TASK-007",
+        "TASK-074"
       ],
       "workstreams": [
         "B"
@@ -5265,7 +5598,8 @@
         "parallel candidates are independently verified before the join"
       ],
       "tasks": [
-        "TASK-006"
+        "TASK-006",
+        "TASK-075"
       ],
       "workstreams": [
         "B"
@@ -5281,7 +5615,9 @@
         "parallel candidates are independently verified before the join"
       ],
       "tasks": [
-        "TASK-008"
+        "TASK-008",
+        "TASK-076",
+        "TASK-078"
       ],
       "workstreams": [
         "B"
@@ -5297,7 +5633,8 @@
         "parallel candidates are independently verified before the join"
       ],
       "tasks": [
-        "TASK-073"
+        "TASK-073",
+        "TASK-077"
       ],
       "workstreams": [
         "B"
@@ -5333,7 +5670,8 @@
       "tasks": [
         "TASK-010",
         "TASK-013",
-        "TASK-029"
+        "TASK-029",
+        "TASK-079"
       ],
       "workstreams": [
         "C"
@@ -6599,10 +6937,120 @@
       "recovery": "Discard an unintegrated candidate and retry from the accepted parent; never recover by widening writable scope or mutating forbidden paths.",
       "scope_source": "refactoring-tasks/terminal-components/completion/073/verify.toml",
       "task_id": "TASK-073"
+    },
+    {
+      "base_dependencies": [
+        "TASK-071",
+        "TASK-072"
+      ],
+      "recovery": "Discard an unintegrated candidate and retry from the accepted parent; never recover by widening writable scope or mutating forbidden paths.",
+      "scope_source": "refactoring-tasks/terminal-components/completion/074/verify.toml",
+      "task_id": "TASK-074"
+    },
+    {
+      "base_dependencies": [
+        "TASK-071",
+        "TASK-072",
+        "TASK-074"
+      ],
+      "recovery": "Discard an unintegrated candidate and retry from the accepted parent; never recover by widening writable scope or mutating forbidden paths.",
+      "scope_source": "refactoring-tasks/terminal-components/completion/075/verify.toml",
+      "task_id": "TASK-075"
+    },
+    {
+      "base_dependencies": [
+        "TASK-071",
+        "TASK-072",
+        "TASK-074",
+        "TASK-075"
+      ],
+      "recovery": "Discard an unintegrated candidate and retry from the accepted parent; never recover by widening writable scope or mutating forbidden paths.",
+      "scope_source": "refactoring-tasks/terminal-components/completion/076/verify.toml",
+      "task_id": "TASK-076"
+    },
+    {
+      "base_dependencies": [
+        "TASK-071",
+        "TASK-072",
+        "TASK-074",
+        "TASK-075",
+        "TASK-076"
+      ],
+      "recovery": "Discard an unintegrated candidate and retry from the accepted parent; never recover by widening writable scope or mutating forbidden paths.",
+      "scope_source": "refactoring-tasks/terminal-components/completion/077/verify.toml",
+      "task_id": "TASK-077"
+    },
+    {
+      "base_dependencies": [
+        "TASK-071",
+        "TASK-072",
+        "TASK-074",
+        "TASK-075"
+      ],
+      "recovery": "Discard an unintegrated candidate and retry from the accepted parent; never recover by widening writable scope or mutating forbidden paths.",
+      "scope_source": "refactoring-tasks/terminal-components/completion/078/verify.toml",
+      "task_id": "TASK-078"
+    },
+    {
+      "base_dependencies": [
+        "TASK-011"
+      ],
+      "recovery": "Discard an unintegrated candidate and retry from the accepted parent; never recover by widening writable scope or mutating forbidden paths.",
+      "scope_source": "refactoring-tasks/terminal-components/completion/079/verify.toml",
+      "task_id": "TASK-079"
     }
   ],
   "schema": "tc-plan-graph/v1",
-  "serialization_locks": [],
+  "serialization_locks": [
+    {
+      "overlap_count": 1,
+      "rule": "Do not dispatch concurrently; integrate the lower task ID first and reverify the later candidate.",
+      "tasks": [
+        "TASK-001",
+        "TASK-074"
+      ]
+    },
+    {
+      "overlap_count": 1,
+      "rule": "Do not dispatch concurrently; integrate the lower task ID first and reverify the later candidate.",
+      "tasks": [
+        "TASK-001",
+        "TASK-075"
+      ]
+    },
+    {
+      "overlap_count": 1,
+      "rule": "Do not dispatch concurrently; integrate the lower task ID first and reverify the later candidate.",
+      "tasks": [
+        "TASK-001",
+        "TASK-078"
+      ]
+    },
+    {
+      "overlap_count": 4,
+      "rule": "Do not dispatch concurrently; integrate the lower task ID first and reverify the later candidate.",
+      "tasks": [
+        "TASK-070",
+        "TASK-074"
+      ]
+    },
+    {
+      "overlap_count": 1,
+      "rule": "Do not dispatch concurrently; integrate the lower task ID first and reverify the later candidate.",
+      "tasks": [
+        "TASK-070",
+        "TASK-075"
+      ]
+    },
+    {
+      "overlap_count": 1,
+      "rule": "Do not dispatch concurrently; integrate the lower task ID first and reverify the later candidate.",
+      "tasks": [
+        "TASK-070",
+        "TASK-077"
+      ]
+    }
+  ],
   "shared_interfaces": [
     {
       "id": "PAIR:TASK-001:TASK-069",
@@ -24820,6 +25268,611 @@
         }
       ],
       "wave": "B"
+    },
+    "TASK-074": {
+      "acceptance_join": {
+        "gate_check_ids": [
+          "CHK-006"
+        ],
+        "required_dependencies": [
+          "TASK-071",
+          "TASK-072"
+        ],
+        "requires_all_dependencies": true,
+        "requires_final_product_success_to_start": false,
+        "requires_own_receipt_to_start": false
+      },
+      "contract_paths": [
+        "refactoring-tasks/terminal-components/completion/074/verify.toml"
+      ],
+      "dependencies": [
+        "TASK-071",
+        "TASK-072"
+      ],
+      "direct_check_count": 6,
+      "direct_contract": {
+        "check_count": 6,
+        "check_ids": [
+          "CHK-001",
+          "CHK-002",
+          "CHK-003",
+          "CHK-004",
+          "CHK-005",
+          "CHK-006"
+        ],
+        "declared_task_id": "TASK-074",
+        "gate_check_ids": [
+          "CHK-006"
+        ],
+        "path": "refactoring-tasks/terminal-components/completion/074/verify.toml"
+      },
+      "file_ownership": {
+        "forbidden_paths": [
+          "refactoring-tasks",
+          "docs/refactoring-plan",
+          "shots",
+          "snapshots",
+          "baseline",
+          "tools/refactor-proof/accounting",
+          "tools/refactor-proof/architecture",
+          "tools/refactor-proof/bin/tc-proof",
+          "tools/refactor-proof/bin/tc-proof-host",
+          "tools/refactor-proof/core",
+          "tools/refactor-proof/src/bin",
+          "tools/refactor-proof/src/compare.rs"
+        ],
+        "scope_source": "refactoring-tasks/terminal-components/completion/074/verify.toml",
+        "writable_paths": [
+          "tools/refactor-proof/src/verifier.rs",
+          "tools/refactor-proof/runner/__main__.py",
+          "tools/refactor-proof/runner/context.py",
+          "tools/refactor-proof/runner/operations.py",
+          "tools/refactor-proof/runner/validate.py"
+        ]
+      },
+      "key": "B-CONTEXT-BIND",
+      "purpose": "Bind complete native-oracle, compare, accounting, and architecture contexts from task declarations so adapter checks can run.",
+      "recursive_check_count": 6,
+      "risk_parity_surfaces": {
+        "roles": [],
+        "source_ids": [],
+        "source_namespaces": [],
+        "traceability_rows": 0
+      },
+      "shared_interface_count": 0,
+      "title": "Bind complete per-check contexts in tc-proof prepare",
+      "verification_dependencies": [
+        {
+          "receipt": "accepted-ancestry-bound-dependency-receipt",
+          "source": "task.toml.dependencies",
+          "task_id": "TASK-071"
+        },
+        {
+          "receipt": "accepted-ancestry-bound-dependency-receipt",
+          "source": "task.toml.dependencies",
+          "task_id": "TASK-072"
+        }
+      ],
+      "wave": "B"
+    },
+    "TASK-075": {
+      "acceptance_join": {
+        "gate_check_ids": [
+          "CHK-005"
+        ],
+        "required_dependencies": [
+          "TASK-071",
+          "TASK-072",
+          "TASK-074"
+        ],
+        "requires_all_dependencies": true,
+        "requires_final_product_success_to_start": false,
+        "requires_own_receipt_to_start": false
+      },
+      "contract_paths": [
+        "refactoring-tasks/terminal-components/completion/075/verify.toml"
+      ],
+      "dependencies": [
+        "TASK-071",
+        "TASK-072",
+        "TASK-074"
+      ],
+      "direct_check_count": 5,
+      "direct_contract": {
+        "check_count": 5,
+        "check_ids": [
+          "CHK-001",
+          "CHK-002",
+          "CHK-003",
+          "CHK-004",
+          "CHK-005"
+        ],
+        "declared_task_id": "TASK-075",
+        "gate_check_ids": [
+          "CHK-005"
+        ],
+        "path": "refactoring-tasks/terminal-components/completion/075/verify.toml"
+      },
+      "file_ownership": {
+        "forbidden_paths": [
+          "refactoring-tasks",
+          "docs/refactoring-plan",
+          "shots",
+          "snapshots",
+          "baseline",
+          "tools/refactor-proof/accounting",
+          "tools/refactor-proof/architecture",
+          "tools/refactor-proof/bin/tc-proof",
+          "tools/refactor-proof/bin/tc-proof-host",
+          "tools/refactor-proof/core",
+          "tools/refactor-proof/src/bin",
+          "tools/refactor-proof/src/compare.rs",
+          "tools/refactor-proof/tests",
+          "tools/refactor-proof/runner/__init__.py",
+          "tools/refactor-proof/runner/bundle.py",
+          "tools/refactor-proof/runner/context.py",
+          "tools/refactor-proof/runner/index.py",
+          "tools/refactor-proof/runner/json_util.py",
+          "tools/refactor-proof/runner/observer.py",
+          "tools/refactor-proof/runner/operations.py",
+          "tools/refactor-proof/runner/result.py",
+          "tools/refactor-proof/runner/validate.py"
+        ],
+        "scope_source": "refactoring-tasks/terminal-components/completion/075/verify.toml",
+        "writable_paths": [
+          "tools/refactor-proof/src/verifier.rs",
+          "tools/refactor-proof/runner/__main__.py"
+        ]
+      },
+      "key": "B-COMPARE-REPAIR",
+      "purpose": "Bind runnable compare roots, the five-key source-derived accounting inventory, and supervised comparator results.",
+      "recursive_check_count": 5,
+      "risk_parity_surfaces": {
+        "roles": [],
+        "source_ids": [],
+        "source_namespaces": [],
+        "traceability_rows": 0
+      },
+      "shared_interface_count": 0,
+      "title": "Repair compare roots accounting inventory and compare supervision",
+      "verification_dependencies": [
+        {
+          "receipt": "accepted-ancestry-bound-dependency-receipt",
+          "source": "task.toml.dependencies",
+          "task_id": "TASK-071"
+        },
+        {
+          "receipt": "accepted-ancestry-bound-dependency-receipt",
+          "source": "task.toml.dependencies",
+          "task_id": "TASK-072"
+        },
+        {
+          "receipt": "accepted-ancestry-bound-dependency-receipt",
+          "source": "task.toml.dependencies",
+          "task_id": "TASK-074"
+        }
+      ],
+      "wave": "B"
+    },
+    "TASK-076": {
+      "acceptance_join": {
+        "gate_check_ids": [
+          "CHK-003"
+        ],
+        "required_dependencies": [
+          "TASK-071",
+          "TASK-072",
+          "TASK-074",
+          "TASK-075"
+        ],
+        "requires_all_dependencies": true,
+        "requires_final_product_success_to_start": false,
+        "requires_own_receipt_to_start": false
+      },
+      "contract_paths": [
+        "refactoring-tasks/terminal-components/completion/076/verify.toml"
+      ],
+      "dependencies": [
+        "TASK-071",
+        "TASK-072",
+        "TASK-074",
+        "TASK-075"
+      ],
+      "direct_check_count": 3,
+      "direct_contract": {
+        "check_count": 3,
+        "check_ids": [
+          "CHK-001",
+          "CHK-002",
+          "CHK-003"
+        ],
+        "declared_task_id": "TASK-076",
+        "gate_check_ids": [
+          "CHK-003"
+        ],
+        "path": "refactoring-tasks/terminal-components/completion/076/verify.toml"
+      },
+      "file_ownership": {
+        "forbidden_paths": [
+          "refactoring-tasks",
+          "docs/refactoring-plan",
+          "shots",
+          "snapshots",
+          "baseline",
+          "tools/refactor-proof/accounting",
+          "tools/refactor-proof/architecture",
+          "tools/refactor-proof/bin/tc-proof-host",
+          "tools/refactor-proof/core",
+          "tools/refactor-proof/src/bin",
+          "tools/refactor-proof/src/compare.rs",
+          "tools/refactor-proof/tests",
+          "tools/refactor-proof/runner/__init__.py",
+          "tools/refactor-proof/runner/bundle.py",
+          "tools/refactor-proof/runner/context.py",
+          "tools/refactor-proof/runner/index.py",
+          "tools/refactor-proof/runner/json_util.py",
+          "tools/refactor-proof/runner/observer.py",
+          "tools/refactor-proof/runner/operations.py",
+          "tools/refactor-proof/runner/result.py",
+          "tools/refactor-proof/runner/validate.py",
+          "tools/refactor-proof/runner/__main__.py",
+          "tools/refactor-proof/src/verifier.rs",
+          "tools/refactor-proof/src/json_util.rs",
+          "tools/refactor-proof/src/lib.rs",
+          "tools/refactor-proof/src/observer",
+          "tools/refactor-proof/scripts"
+        ],
+        "scope_source": "refactoring-tasks/terminal-components/completion/076/verify.toml",
+        "writable_paths": [
+          "tools/refactor-proof/bin/tc-proof"
+        ]
+      },
+      "key": "B-BUNDLE",
+      "purpose": "Regenerate the tracked tc-proof bundle from current sources so dispatcher sections and compare result emission match.",
+      "recursive_check_count": 3,
+      "risk_parity_surfaces": {
+        "roles": [],
+        "source_ids": [],
+        "source_namespaces": [],
+        "traceability_rows": 0
+      },
+      "shared_interface_count": 0,
+      "title": "Regenerate stale tc-proof bundle from current sources",
+      "verification_dependencies": [
+        {
+          "receipt": "accepted-ancestry-bound-dependency-receipt",
+          "source": "task.toml.dependencies",
+          "task_id": "TASK-071"
+        },
+        {
+          "receipt": "accepted-ancestry-bound-dependency-receipt",
+          "source": "task.toml.dependencies",
+          "task_id": "TASK-072"
+        },
+        {
+          "receipt": "accepted-ancestry-bound-dependency-receipt",
+          "source": "task.toml.dependencies",
+          "task_id": "TASK-074"
+        },
+        {
+          "receipt": "accepted-ancestry-bound-dependency-receipt",
+          "source": "task.toml.dependencies",
+          "task_id": "TASK-075"
+        }
+      ],
+      "wave": "B"
+    },
+    "TASK-077": {
+      "acceptance_join": {
+        "gate_check_ids": [
+          "CHK-003"
+        ],
+        "required_dependencies": [
+          "TASK-071",
+          "TASK-072",
+          "TASK-074",
+          "TASK-075",
+          "TASK-076"
+        ],
+        "requires_all_dependencies": true,
+        "requires_final_product_success_to_start": false,
+        "requires_own_receipt_to_start": false
+      },
+      "contract_paths": [
+        "refactoring-tasks/terminal-components/completion/077/verify.toml"
+      ],
+      "dependencies": [
+        "TASK-071",
+        "TASK-072",
+        "TASK-074",
+        "TASK-075",
+        "TASK-076"
+      ],
+      "direct_check_count": 3,
+      "direct_contract": {
+        "check_count": 3,
+        "check_ids": [
+          "CHK-001",
+          "CHK-002",
+          "CHK-003"
+        ],
+        "declared_task_id": "TASK-077",
+        "gate_check_ids": [
+          "CHK-003"
+        ],
+        "path": "refactoring-tasks/terminal-components/completion/077/verify.toml"
+      },
+      "file_ownership": {
+        "forbidden_paths": [
+          "refactoring-tasks",
+          "docs/refactoring-plan",
+          "shots",
+          "snapshots",
+          "baseline",
+          "tools/refactor-proof/accounting",
+          "tools/refactor-proof/architecture",
+          "tools/refactor-proof/bin/tc-proof-host",
+          "tools/refactor-proof/core",
+          "tools/refactor-proof/src/bin",
+          "tools/refactor-proof/src/compare.rs",
+          "tools/refactor-proof/tests",
+          "tools/refactor-proof/runner/__init__.py",
+          "tools/refactor-proof/runner/bundle.py",
+          "tools/refactor-proof/runner/index.py",
+          "tools/refactor-proof/runner/json_util.py",
+          "tools/refactor-proof/runner/observer.py",
+          "tools/refactor-proof/runner/operations.py",
+          "tools/refactor-proof/runner/result.py",
+          "tools/refactor-proof/runner/validate.py",
+          "tools/refactor-proof/runner/__main__.py",
+          "tools/refactor-proof/src/verifier.rs",
+          "tools/refactor-proof/src/json_util.rs",
+          "tools/refactor-proof/src/lib.rs",
+          "tools/refactor-proof/src/observer",
+          "tools/refactor-proof/scripts",
+          "tools/refactor-proof-adapters"
+        ],
+        "scope_source": "refactoring-tasks/terminal-components/completion/077/verify.toml",
+        "writable_paths": [
+          "tools/refactor-proof/runner/context.py",
+          "tools/refactor-proof/bin/tc-proof"
+        ]
+      },
+      "key": "B-ORACLE-NAMESPACE",
+      "purpose": "Accept the components native oracle namespace in the harness gate and regenerated bundle.",
+      "recursive_check_count": 3,
+      "risk_parity_surfaces": {
+        "roles": [],
+        "source_ids": [],
+        "source_namespaces": [],
+        "traceability_rows": 0
+      },
+      "shared_interface_count": 0,
+      "title": "Accept components native oracle namespace in harness gate",
+      "verification_dependencies": [
+        {
+          "receipt": "accepted-ancestry-bound-dependency-receipt",
+          "source": "task.toml.dependencies",
+          "task_id": "TASK-071"
+        },
+        {
+          "receipt": "accepted-ancestry-bound-dependency-receipt",
+          "source": "task.toml.dependencies",
+          "task_id": "TASK-072"
+        },
+        {
+          "receipt": "accepted-ancestry-bound-dependency-receipt",
+          "source": "task.toml.dependencies",
+          "task_id": "TASK-074"
+        },
+        {
+          "receipt": "accepted-ancestry-bound-dependency-receipt",
+          "source": "task.toml.dependencies",
+          "task_id": "TASK-075"
+        },
+        {
+          "receipt": "accepted-ancestry-bound-dependency-receipt",
+          "source": "task.toml.dependencies",
+          "task_id": "TASK-076"
+        }
+      ],
+      "wave": "B"
+    },
+    "TASK-078": {
+      "acceptance_join": {
+        "gate_check_ids": [
+          "CHK-004"
+        ],
+        "required_dependencies": [
+          "TASK-071",
+          "TASK-072",
+          "TASK-074",
+          "TASK-075"
+        ],
+        "requires_all_dependencies": true,
+        "requires_final_product_success_to_start": false,
+        "requires_own_receipt_to_start": false
+      },
+      "contract_paths": [
+        "refactoring-tasks/terminal-components/completion/078/verify.toml"
+      ],
+      "dependencies": [
+        "TASK-071",
+        "TASK-072",
+        "TASK-074",
+        "TASK-075"
+      ],
+      "direct_check_count": 4,
+      "direct_contract": {
+        "check_count": 4,
+        "check_ids": [
+          "CHK-001",
+          "CHK-002",
+          "CHK-003",
+          "CHK-004"
+        ],
+        "declared_task_id": "TASK-078",
+        "gate_check_ids": [
+          "CHK-004"
+        ],
+        "path": "refactoring-tasks/terminal-components/completion/078/verify.toml"
+      },
+      "file_ownership": {
+        "forbidden_paths": [
+          "refactoring-tasks",
+          "docs/refactoring-plan",
+          "shots",
+          "snapshots",
+          "baseline",
+          "tools/refactor-proof/accounting",
+          "tools/refactor-proof/architecture",
+          "tools/refactor-proof/bin/tc-proof",
+          "tools/refactor-proof/bin/tc-proof-host",
+          "tools/refactor-proof/core",
+          "tools/refactor-proof/src/bin",
+          "tools/refactor-proof/src/compare.rs",
+          "tools/refactor-proof/tests",
+          "tools/refactor-proof/runner/__init__.py",
+          "tools/refactor-proof/runner/__main__.py",
+          "tools/refactor-proof/runner/bundle.py",
+          "tools/refactor-proof/runner/context.py",
+          "tools/refactor-proof/runner/index.py",
+          "tools/refactor-proof/runner/json_util.py",
+          "tools/refactor-proof/runner/observer.py",
+          "tools/refactor-proof/runner/operations.py",
+          "tools/refactor-proof/runner/result.py",
+          "tools/refactor-proof/runner/validate.py"
+        ],
+        "scope_source": "refactoring-tasks/terminal-components/completion/078/verify.toml",
+        "writable_paths": [
+          "tools/refactor-proof/src/verifier.rs"
+        ]
+      },
+      "key": "B-RECEIPTS",
+      "purpose": "Project bound accepted dependency receipts into production accounting claims while preserving preparation mode.",
+      "recursive_check_count": 4,
+      "risk_parity_surfaces": {
+        "roles": [],
+        "source_ids": [],
+        "source_namespaces": [],
+        "traceability_rows": 0
+      },
+      "shared_interface_count": 0,
+      "title": "Project bound dependency receipts into production accounting claims",
+      "verification_dependencies": [
+        {
+          "receipt": "accepted-ancestry-bound-dependency-receipt",
+          "source": "task.toml.dependencies",
+          "task_id": "TASK-071"
+        },
+        {
+          "receipt": "accepted-ancestry-bound-dependency-receipt",
+          "source": "task.toml.dependencies",
+          "task_id": "TASK-072"
+        },
+        {
+          "receipt": "accepted-ancestry-bound-dependency-receipt",
+          "source": "task.toml.dependencies",
+          "task_id": "TASK-074"
+        },
+        {
+          "receipt": "accepted-ancestry-bound-dependency-receipt",
+          "source": "task.toml.dependencies",
+          "task_id": "TASK-075"
+        }
+      ],
+      "wave": "B"
+    },
+    "TASK-079": {
+      "acceptance_join": {
+        "gate_check_ids": [
+          "CHK-007"
+        ],
+        "required_dependencies": [
+          "TASK-011"
+        ],
+        "requires_all_dependencies": true,
+        "requires_final_product_success_to_start": false,
+        "requires_own_receipt_to_start": false
+      },
+      "contract_paths": [
+        "refactoring-tasks/terminal-components/completion/079/verify.toml"
+      ],
+      "dependencies": [
+        "TASK-011"
+      ],
+      "direct_check_count": 6,
+      "direct_contract": {
+        "check_count": 6,
+        "check_ids": [
+          "CHK-001",
+          "CHK-002",
+          "CHK-003",
+          "CHK-005",
+          "CHK-006",
+          "CHK-007"
+        ],
+        "declared_task_id": "TASK-079",
+        "gate_check_ids": [
+          "CHK-007"
+        ],
+        "path": "refactoring-tasks/terminal-components/completion/079/verify.toml"
+      },
+      "file_ownership": {
+        "forbidden_paths": [
+          "refactoring-tasks",
+          "docs/refactoring-plan",
+          "shots",
+          "snapshots",
+          "baseline",
+          "parity",
+          "tools/refactor-proof",
+          "tools/refactor-proof-adapters",
+          "tools/test-inventory",
+          "tools/test-disposition",
+          "archives",
+          "crates/tui/src/theme/mod.rs",
+          "crates/tui/src/theme/border.rs",
+          "crates/tui/src/theme/builtin",
+          "crates/tui/src/theme/downgrade.rs",
+          "crates/tui/src/theme/glyph.rs",
+          "crates/tui/src/theme/palettes.rs",
+          "crates/tui/src/theme/patch.rs",
+          "crates/tui/src/theme/recipe.rs",
+          "crates/tui/src/theme/resolve.rs",
+          "crates/tui/src/theme/role.rs",
+          "crates/tui/src/theme/tokens.rs",
+          "crates/tui/src/scroll.rs",
+          "crates/tui/src/components/scroll_region.rs",
+          "crates/tui/src/ui/paint.rs",
+          "crates/tui/src/author.rs",
+          "crates/tui/tests/completion_014.rs",
+          "crates/tui/tests/completion_079.rs"
+        ],
+        "scope_source": "refactoring-tasks/terminal-components/completion/079/verify.toml",
+        "writable_paths": [
+          "crates/tui/src/theme/builder.rs"
+        ]
+      },
+      "key": "C-THEME-FADE",
+      "purpose": "Provide the oracle-exact theme fade-mix helper in the theme builder for the downstream scroll-fade repair.",
+      "recursive_check_count": 6,
+      "risk_parity_surfaces": {
+        "roles": [],
+        "source_ids": [],
+        "source_namespaces": [],
+        "traceability_rows": 0
+      },
+      "shared_interface_count": 0,
+      "title": "Add oracle-exact fade-mix helper to the theme builder",
+      "verification_dependencies": [
+        {
+          "receipt": "accepted-ancestry-bound-dependency-receipt",
+          "source": "task.toml.dependencies",
+          "task_id": "TASK-011"
+        }
+      ],
+      "wave": "C"
     }
   }
 }
