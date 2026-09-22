@@ -43,6 +43,7 @@ from refactor_proof.accounting.identity import (  # noqa: E402
     resolve_required_names,
 )
 from refactor_proof.accounting.qualification import (  # noqa: E402
+    validate_qualification_oracle_namespace,
     is_qualification_schema,
     validate_qualification_schema,
 )
@@ -132,6 +133,19 @@ class FixtureTests(unittest.TestCase):
 
 
 class QualificationSchemaTests(unittest.TestCase):
+    def test_native_extension_accepts_synthetic_cli_namespace(self) -> None:
+        validate_qualification_oracle_namespace(
+            "synthetic",
+            {"schema": "tc-proof-runner-extension/v1", "family": "native"},
+        )
+
+    def test_non_extension_native_rejects_synthetic_cli_namespace(self) -> None:
+        with self.assertRaises(Reject) as raised:
+            validate_qualification_oracle_namespace(
+                "synthetic", {"schema": "other", "family": "native"}
+            )
+        self.assertEqual(raised.exception.category, "PROTOCOL")
+
     def test_runner_context_v1_is_qualification(self) -> None:
         context = {
             "schema": "tc-proof-runner-context/v1",

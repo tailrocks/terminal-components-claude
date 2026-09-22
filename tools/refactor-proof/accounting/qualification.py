@@ -31,6 +31,7 @@ from .observer import QualificationObserver
 QUALIFICATION_V1 = "tc-proof-runner-context/v1"
 QUALIFICATION_V2 = "tc-proof-runner-context/v2"
 QUALIFICATION_SCHEMAS = {QUALIFICATION_V1, QUALIFICATION_V2}
+EXTENSION_QUALIFICATION_SCHEMA = "tc-proof-runner-extension/v1"
 ALLOWED_QUALIFICATION_V1_KEYS = {
     "schema",
     "run_id",
@@ -62,6 +63,21 @@ ALLOWED_SYSTEM_SYMLINKS = {
 
 def is_qualification_schema(context: dict[str, Any]) -> bool:
     return context.get("schema") in QUALIFICATION_SCHEMAS
+
+
+def validate_qualification_oracle_namespace(
+    namespace: str | None, qualification: object
+) -> None:
+    """Allow the extension oracle's synthetic CLI label without widening native names."""
+    if (
+        namespace == "synthetic"
+        and isinstance(qualification, dict)
+        and qualification.get("schema") == EXTENSION_QUALIFICATION_SCHEMA
+        and qualification.get("family") == "native"
+    ):
+        return
+    family = qualification.get("family") if isinstance(qualification, dict) else None
+    validate_oracle_namespace(namespace, family)
 
 
 def qualification_validated_executable(value: object, label: str) -> Path:
@@ -337,8 +353,7 @@ def run_qualification_oracle(context_path: Path, namespace: str | None) -> int:
     try:
         _guard_qualification(context, context_hash)
         qualification = context.get("qualification")
-        family = qualification.get("family") if isinstance(qualification, dict) else None
-        validate_oracle_namespace(namespace, family)
+        validate_qualification_oracle_namespace(namespace, qualification)
         validate_source_authority(context, operation)
         validate_qualification_schema(context)
         expected_members = validate_required_members(context)

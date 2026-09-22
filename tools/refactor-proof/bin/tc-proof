@@ -1794,6 +1794,7 @@ class QualificationObserver:
 QUALIFICATION_V1 = "tc-proof-runner-context/v1"
 QUALIFICATION_V2 = "tc-proof-runner-context/v2"
 QUALIFICATION_SCHEMAS = {QUALIFICATION_V1, QUALIFICATION_V2}
+EXTENSION_QUALIFICATION_SCHEMA = "tc-proof-runner-extension/v1"
 ALLOWED_QUALIFICATION_V1_KEYS = {
     "schema",
     "run_id",
@@ -1825,6 +1826,21 @@ ALLOWED_SYSTEM_SYMLINKS = {
 
 def is_qualification_schema(context: dict[str, Any]) -> bool:
     return context.get("schema") in QUALIFICATION_SCHEMAS
+
+
+def validate_qualification_oracle_namespace(
+    namespace: str | None, qualification: object
+) -> None:
+    """Allow the extension oracle's synthetic CLI label without widening native names."""
+    if (
+        namespace == "synthetic"
+        and isinstance(qualification, dict)
+        and qualification.get("schema") == EXTENSION_QUALIFICATION_SCHEMA
+        and qualification.get("family") == "native"
+    ):
+        return
+    family = qualification.get("family") if isinstance(qualification, dict) else None
+    validate_oracle_namespace(namespace, family)
 
 
 def qualification_validated_executable(value: object, label: str) -> Path:
@@ -2100,8 +2116,7 @@ def run_qualification_oracle(context_path: Path, namespace: str | None) -> int:
     try:
         _guard_qualification(context, context_hash)
         qualification = context.get("qualification")
-        family = qualification.get("family") if isinstance(qualification, dict) else None
-        validate_oracle_namespace(namespace, family)
+        validate_qualification_oracle_namespace(namespace, qualification)
         validate_source_authority(context, operation)
         validate_qualification_schema(context)
         expected_members = validate_required_members(context)
@@ -3994,19 +4009,26 @@ def run_compare(context_path: Path) -> int:
     """Supervise the native comparator and emit the bound runner result.
 
     Resolves symlinked run ancestry (macOS /tmp), binds the native
-    environment from --context alone, runs the verifier-bound comparator as a
-    child process, then emits outputs/<CHK>.result.json via finish() with a
-    status that coheres with the comparator exit code. Always returns to the
-    caller; never replaces the process image.
+    environment for runner contexts, runs the verifier-bound comparator as a
+    child process, then emits outputs/<CHK>.result.json via finish() for that
+    ABI. A standalone compare context owns its external report path and
+    returns the comparator status directly. Always returns to the caller;
+    never replaces the process image.
     """
     if context_path.is_symlink():
         raise RuntimeError("worker context path is a symlink")
     resolved = context_path.resolve()
+    context, _, context_hash = load_context(resolved)
+    schema = context.get("schema")
+    if schema == COMPARE_CONTEXT_SCHEMA:
+        rust = _native_comparator_path(resolved)
+        return subprocess.run([str(rust), "compare", "--context", str(resolved)], check=False).returncode
+    if schema != RUNNER_CONTEXT_SCHEMA:
+        raise RuntimeError("compare context schema is not supported")
     _derive_compare_index(resolved)
     bind_native_environment(resolved)
     rust = _native_comparator_path(resolved)
     completed = subprocess.run([str(rust), "compare", "--context", str(resolved)], check=False)
-    context, _, context_hash = load_context(resolved)
     qualification = context.get("qualification")
     comparator = qualification.get("comparator") if isinstance(qualification, dict) else None
     nested = comparator.get("context") if isinstance(comparator, dict) else None
