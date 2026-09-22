@@ -58,6 +58,28 @@ die() {
 	exit 1
 }
 
+TASKFMT_CAPTURE_PATH=""
+
+cleanup_taskfmt_capture() {
+	local status=$?
+	if [[ -n "$TASKFMT_CAPTURE_PATH" ]]; then
+		rm -f "$TASKFMT_CAPTURE_PATH" 2>/dev/null || :
+		TASKFMT_CAPTURE_PATH=""
+	fi
+	return "$status"
+}
+
+arm_taskfmt_capture_cleanup() {
+	trap cleanup_taskfmt_capture EXIT
+	trap 'exit 130' INT
+	trap 'exit 143' TERM
+}
+
+disarm_taskfmt_capture_cleanup() {
+	trap - EXIT INT TERM
+	TASKFMT_CAPTURE_PATH=""
+}
+
 require_absolute_paths() {
 	[[ "$CATALOG_ROOT" = /* ]] || die "catalog root must be absolute: $CATALOG_ROOT"
 	[[ "$TASKFMT_SOURCE" = /* ]] || die "taskfmt source must be absolute: $TASKFMT_SOURCE"
@@ -843,6 +865,8 @@ cmd_verify() {
 
 	taskfmt_capture="$(mktemp /private/tmp/tc-taskfmt-verify.XXXXXX)" ||
 		die "unable to create verifier-owned taskfmt capture"
+	TASKFMT_CAPTURE_PATH="$taskfmt_capture"
+	arm_taskfmt_capture_cleanup
 	if ! python3 - "$taskfmt_capture" "$RUN_DIR" <<'PY'
 import os
 import stat
@@ -859,7 +883,6 @@ if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
     raise SystemExit("taskfmt capture is not a regular single-link file")
 PY
 	then
-		rm -f "$taskfmt_capture"
 		die "taskfmt capture path is unsafe"
 	fi
 
@@ -874,13 +897,12 @@ PY
 		taskfmt_status=$?
 
 	if [[ ! -d "$taskfmt_log_dir" || -L "$taskfmt_log_dir" ]]; then
-		rm -f "$taskfmt_capture"
 		die "taskfmt log path became unsafe or is not a directory: $taskfmt_log_dir"
 	fi
 	if ! replace_taskfmt_verify_log "$taskfmt_capture" "$taskfmt_log_dir"; then
-		rm -f "$taskfmt_capture"
 		die "failed to seal taskfmt verify output"
 	fi
+	disarm_taskfmt_capture_cleanup
 
 	local validate_status=0
 	"$binary" validate --run-dir "$RUN_DIR" || validate_status=$?
