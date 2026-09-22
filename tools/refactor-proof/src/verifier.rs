@@ -4224,17 +4224,20 @@ fn validate_runtime_outputs(
     require_runtime_closure: bool,
 ) -> Result<()> {
     trust_dir(outputs_dir, "runtime output directory")?;
-    let mut expected = BTreeSet::new();
+    let mut required = BTreeSet::new();
+    let mut allowed = BTreeSet::new();
     let mut close_member = None;
     for member in members {
-        expected.insert(
-            member
-                .result_path
-                .file_name()
-                .ok_or_else(|| VerifierError::new("invalid runtime result path"))?
-                .to_string_lossy()
-                .into_owned(),
-        );
+        let result_name = member
+            .result_path
+            .file_name()
+            .ok_or_else(|| VerifierError::new("invalid runtime result path"))?
+            .to_string_lossy()
+            .into_owned();
+        allowed.insert(result_name.clone());
+        if member.operation != "external" {
+            required.insert(result_name);
+        }
         if member.operation == "close" {
             close_member = Some(member);
         }
@@ -4242,33 +4245,34 @@ fn validate_runtime_outputs(
             if report.parent() != Some(outputs_dir) {
                 return Err(VerifierError::new("comparator report escaped outputs"));
             }
-            expected.insert(
-                report
-                    .file_name()
-                    .ok_or_else(|| VerifierError::new("invalid comparator report path"))?
-                    .to_string_lossy()
-                    .into_owned(),
-            );
+            let report_name = report
+                .file_name()
+                .ok_or_else(|| VerifierError::new("invalid comparator report path"))?
+                .to_string_lossy()
+                .into_owned();
+            allowed.insert(report_name.clone());
+            if member.operation != "external" {
+                required.insert(report_name);
+            }
         }
     }
     let actual = directory_names(outputs_dir)?;
-    if require_runtime_closure {
+    if !actual.is_subset(&allowed) {
+        return Err(VerifierError::new("runtime outputs contain extra files"));
+    }
+    if require_runtime_closure && !required.is_subset(&actual) {
         if let Some(close) = close_member
             && !regular_path_exists(&close.result_path)?
         {
             return Err(VerifierError::new("close result is missing"));
         }
-        if actual != expected {
-            return Err(VerifierError::new(
-                "runtime outputs are missing, extra, or not indexed exactly once",
-            ));
-        }
-    } else if !actual.is_subset(&expected) {
-        return Err(VerifierError::new("runtime outputs contain extra files"));
+        return Err(VerifierError::new(
+            "runtime outputs are missing, extra, or not indexed exactly once",
+        ));
     }
     for member in members {
         let result_exists = regular_path_exists(&member.result_path)?;
-        if require_runtime_closure && !result_exists {
+        if require_runtime_closure && member.operation != "external" && !result_exists {
             return Err(VerifierError::new(format!(
                 "missing runtime result for {}",
                 member.check_id
@@ -4280,7 +4284,7 @@ fn validate_runtime_outputs(
         }
         if let Some(report) = &member.comparator_report_path {
             let report_exists = regular_path_exists(report)?;
-            if require_runtime_closure && !report_exists {
+            if require_runtime_closure && member.operation != "external" && !report_exists {
                 return Err(VerifierError::new(format!(
                     "missing comparator report for {}",
                     member.check_id
@@ -7715,6 +7719,161 @@ for line in sys.stdin:
             fs::write(report, b"{}").map_err(|error| error.to_string())?;
         }
         Ok(())
+    }
+
+    fn external_member(
+        run_dir: &Path,
+        check_id: &str,
+        with_comparator_report: bool,
+    ) -> PreparedMember {
+        PreparedMember {
+            check_id: check_id.to_string(),
+            operation: "external".to_string(),
+            observer_sequence: vec!["external".to_string()],
+            context_path: run_dir.join(format!("contexts/{check_id}.json")),
+            context_sha256: "b".repeat(64),
+            preparation_result_path: run_dir.join(format!("results/{check_id}.json")),
+            result_path: run_dir.join(format!("outputs/{check_id}.result.json")),
+            comparator_report_path: with_comparator_report
+                .then(|| run_dir.join(format!("outputs/{check_id}.compare.json"))),
+        }
+    }
+
+    #[test]
+    fn final_validate_accepts_external_member_without_runtime_artifacts() {
+        let (fixture, options) = require_ok!(
+            fixture_options_for("060", &["TASK-059", "TASK-022"]),
+            "fixture options"
+        );
+        let prepared = require_ok!(prepare(&options), "prepare");
+        require_ok!(write_done_log(&fixture.run_dir), "DONE log");
+        for member in &prepared.members {
+            require_ok!(
+                write_member_result(member, &prepared.run_id, "passed"),
+                "native runtime result"
+            );
+        }
+        let mut members = prepared.members.clone();
+        members.push(external_member(&fixture.run_dir, "CHK-099", false));
+        require_ok!(
+            seal_taskfmt_logs(&fixture.run_dir.join("taskfmt-logs")),
+            "taskfmt logs"
+        );
+        require_ok!(
+            validate_runtime_outputs(
+                &fixture.run_dir.join("outputs"),
+                &members,
+                &prepared.run_id,
+                true
+            ),
+            "external member without artifacts"
+        );
+    }
+
+    #[test]
+    fn final_validate_accepts_bound_optional_external_artifacts() {
+        let (fixture, options) = require_ok!(
+            fixture_options_for("060", &["TASK-059", "TASK-022"]),
+            "fixture options"
+        );
+        let prepared = require_ok!(prepare(&options), "prepare");
+        require_ok!(write_done_log(&fixture.run_dir), "DONE log");
+        for member in &prepared.members {
+            require_ok!(
+                write_member_result(member, &prepared.run_id, "passed"),
+                "native runtime result"
+            );
+        }
+        let external = external_member(&fixture.run_dir, "CHK-099", true);
+        require_ok!(
+            write_member_result(&external, &prepared.run_id, "passed"),
+            "bound external artifacts"
+        );
+        let mut members = prepared.members.clone();
+        members.push(external);
+        require_ok!(
+            seal_taskfmt_logs(&fixture.run_dir.join("taskfmt-logs")),
+            "taskfmt logs"
+        );
+        require_ok!(
+            validate_runtime_outputs(
+                &fixture.run_dir.join("outputs"),
+                &members,
+                &prepared.run_id,
+                true
+            ),
+            "bound external artifacts"
+        );
+    }
+
+    #[test]
+    fn final_validate_rejects_missing_native_result_with_external_member() {
+        let (fixture, options) = require_ok!(
+            fixture_options_for("060", &["TASK-059", "TASK-022"]),
+            "fixture options"
+        );
+        let prepared = require_ok!(prepare(&options), "prepare");
+        require_ok!(write_done_log(&fixture.run_dir), "DONE log");
+        let mut members = prepared.members.clone();
+        members.push(external_member(&fixture.run_dir, "CHK-099", false));
+        require_ok!(
+            seal_taskfmt_logs(&fixture.run_dir.join("taskfmt-logs")),
+            "taskfmt logs"
+        );
+        let error = require_err!(
+            validate_runtime_outputs(
+                &fixture.run_dir.join("outputs"),
+                &members,
+                &prepared.run_id,
+                true
+            ),
+            "missing native result must fail"
+        );
+        assert!(
+            error.to_string().contains("runtime")
+                || error.to_string().contains("missing")
+                || error.to_string().contains("indexed"),
+            "expected missing-native rejection, got {error}"
+        );
+    }
+
+    #[test]
+    fn final_validate_rejects_unknown_forged_external_output() {
+        let (fixture, options) = require_ok!(
+            fixture_options_for("060", &["TASK-059", "TASK-022"]),
+            "fixture options"
+        );
+        let prepared = require_ok!(prepare(&options), "prepare");
+        require_ok!(write_done_log(&fixture.run_dir), "DONE log");
+        for member in &prepared.members {
+            require_ok!(
+                write_member_result(member, &prepared.run_id, "passed"),
+                "native runtime result"
+            );
+        }
+        let mut members = prepared.members.clone();
+        members.push(external_member(&fixture.run_dir, "CHK-099", false));
+        require_ok!(
+            fs::write(fixture.run_dir.join("outputs/CHK-098.result.json"), b"{}"),
+            "forged external output"
+        );
+        require_ok!(
+            seal_taskfmt_logs(&fixture.run_dir.join("taskfmt-logs")),
+            "taskfmt logs"
+        );
+        let error = require_err!(
+            validate_runtime_outputs(
+                &fixture.run_dir.join("outputs"),
+                &members,
+                &prepared.run_id,
+                true
+            ),
+            "unknown external output must fail"
+        );
+        assert!(
+            error.to_string().contains("extra"),
+            "expected forged-output rejection, got {error}"
+        );
     }
 
     fn write_complete_runtime_closure(prepared: &PreparedRun) -> std::result::Result<(), String> {

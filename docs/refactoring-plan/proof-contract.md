@@ -130,13 +130,28 @@ membership.
 - `observer.json`: `tc-proof-observer-capability/v1`, transport
   `inherited-pipe/v1`.
 
-Worker results are a separate host-selected artifact under
+Worker results are separate host-selected artifacts under
 `RUN_DIR/outputs/CHK-NNN.result.json` using
 `tc-proof-runner-result/v1`; they are not substituted for preparation
-results. A task-specific comparator retains `tc-proof-compare-context/v1` as
-the nested `qualification.comparator.context`, while the immutable runner
-context binds its identity and exact `CHK-NNN.compare.json` report path under
-the allowed runtime output directory.
+results. Runtime closure is split by the bound operation:
+
+- Native members require their exact result, any declared exact
+  `CHK-NNN.compare.json` comparator report, and the native `close` result when
+  present. Existing result identity, passed status, observer-event, comparator,
+  and close checks remain mandatory.
+- Members classified as `operation=external` are taskfmt-driven. Their bound
+  context and preparation result remain mandatory, and taskfmt's exit status
+  plus a final `DONE` log line remain authoritative. An external driver may
+  emit no runtime artifact, or may emit its exact bound result/report paths;
+  present artifacts still pass the existing schema, identity, and trust-path
+  checks. Missing external artifacts are allowed. Any unbound output remains an
+  extra-file failure.
+
+A task-specific comparator retains `tc-proof-compare-context/v1` as the nested
+`qualification.comparator.context`, while the immutable runner context binds
+its identity and exact `CHK-NNN.compare.json` report path under the allowed
+runtime output directory. This does not relax native observer binding or allow
+external artifacts outside their prepared names and paths.
 
 The observer request/response transport is one inherited-pipe protocol. Each
 message binds run, task, check, nonce, request order, operation, source
