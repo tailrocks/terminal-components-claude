@@ -25,14 +25,10 @@ contains no status, acceptance result, or dispatch authority.
 The clean campaign source for this repair is exactly:
 
 ```text
-branch:   refactor/holla-parity
-commit:   c7ab028c425a0e152f36ae7fa82bb7139ae2b01d
-tree:     6317db0654122cf8c09458d88ee43caf999f7a36
-parent:   b96a62e4097b10c288d7c04cb4796c17310fd839
-local main:   7b27732a8c3c131760ec3438f641cb3c11343a42
-remote main:  7b27732a8c3c131760ec3438f641cb3c11343a42
-remote campaign tip: c7ab028c425a0e152f36ae7fa82bb7139ae2b01d
-merge-base with main: 7b27732a8c3c131760ec3438f641cb3c11343a42
+branch: refactor/holla-parity
+commit: 02c02ffa28dc7f9083f0bdb957102844d965ce48
+tree:   4e751fbc81a3c60c747a56454208e0b7391e2f6a
+parent: 1fdc1cc24b4e88bb3c5994077b40eebadf3b694e
 ```
 
 The campaign is a descendant of actual local and remote `main`; the remote
@@ -149,14 +145,14 @@ Machine-checked catalog at the current source (structural only):
 
 | measure | value |
 | --- | ---: |
-| direct task packages | 73 |
-| recursive `verify.toml` files | 77 |
-| direct checks | 506: 27 argv, 479 shell |
-| recursive checks | 526 |
-| dependency edges | 263 |
+| direct task packages | 79 |
+| recursive `verify.toml` files | 83 |
+| direct checks | 533 |
+| recursive checks | 553 |
+| dependency edges | 282 |
 | maximum dependency depth | 33 |
-| file-conflict pairs | 188 |
-| serialization pairs | 0 |
+| file-conflict pairs | 205 |
+| serialization locks | 6 |
 | shared interfaces | 584 |
 | traceability rows | 3,256 |
 | source groups | 1,174 |
@@ -164,8 +160,10 @@ Machine-checked catalog at the current source (structural only):
 
 `TASK-001` and `TASK-070` are retired fail-closed lifecycle/bootstrap
 contracts. `TASK-071` and `TASK-072` remain unaccepted qualification
-prerequisites. `TASK-002`–`TASK-069` and `TASK-073` remain valid implementation
-obligations, but none is dispatchable while the readiness report is NO-GO.
+prerequisites. `TASK-002`–`TASK-069` remain valid implementation obligations.
+`TASK-073`, `TASK-074`, `TASK-075`, `TASK-076`, `TASK-077`, `TASK-078`, and
+`TASK-079` are also valid implementation obligations. None is authorized while
+the readiness report is NO-GO.
 
 The target architecture is caller-owned state, borrowed props, read-only draw,
 runtime-owned routing/focus/layers/pointer/cursor, and one reusable

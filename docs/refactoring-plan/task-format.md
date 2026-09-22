@@ -49,9 +49,11 @@ container-runtime commands.
 
 ## Catalog result
 
-The qualified standalone binary linted all 73 numbered packages plus the four
-trusted fixture packages nested under TASK-001, TASK-070, TASK-071, and
-TASK-072: 77 recursive `verify.toml` contracts, zero errors, zero warnings.
+The current catalog contains 79 numbered packages plus four trusted fixture
+packages nested under TASK-001, TASK-070, TASK-071, and TASK-072: 83 recursive
+`verify.toml` contracts. The qualified standalone binary linted all 79 numbered
+packages and all four nested fixtures: all 83 current package lints passed,
+with zero errors and zero warnings.
 Do not lint `completion/*` because that also passes the group `README.md`,
 which is not a task package. The package schemas remain `task/v5`, `verify/v2`,
 and `task-meta/v1`; task status remains `pending`.

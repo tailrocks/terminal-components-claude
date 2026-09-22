@@ -4,50 +4,39 @@
 
 User-requested stop checkpoint: preparation is incomplete and work has stopped.
 The [preserved WIP archive](stopped-preparation/README.md) records remaining
-work. The older GO and dispatch statements below are historical, superseded,
-and provide no authorization. No accepted current preparation receipt exists.
-Keep the ledger disarmed. This checkpoint does not claim completed qualification.
+work. Historical qualification notes below are provenance only and provide no
+authorization. No current proof, verifier, or reviewer receipt exists. Keep
+the ledger disarmed; no task worktree, implementation, dispatch, integration,
+or ledger-arm operation is authorized.
 
 This is the sole current readiness authority for `refactor/holla-parity`.
-The GO is for **qualification and DAG dispatch** only: `TASK-071` then
-`TASK-072`, then `TASK-002`–`TASK-069` and `TASK-073` in graph order after
-accepted prerequisite receipts. Do not dispatch retired `TASK-001` /
-`TASK-070`. Keep the campaign ledger `armed = false`; do not invent
-receipts. This is not final product acceptance, not permission to bless
-snapshots, and not a waiver of the final 7,550-key / 30,200-artifact
-candidate-vs-frozen-oracle gate.
+The catalog and all historical qualification results remain structural or
+provenance data until fresh exact-tree evidence is independently accepted.
+Keep the campaign ledger `armed = false`; do not invent receipts. This is not
+final product acceptance, not permission to bless snapshots, and not a waiver
+of the final 7,550-key / 30,200-artifact candidate-vs-frozen-oracle gate.
 
 ## 1. Exact source and branch truth
 
-The clean payload assessed immediately before this documentation rebinding is:
+The clean coordinator candidate selected immediately before this documentation
+repair is:
 
 ```text
 branch: refactor/holla-parity
-commit: 4118c4f550637f8cb764b9eabb6d31dc3dd649cd
-tree:   2f939761d675cedda5a04ed0a54c41eac0ee4dd8
-parent: a22abb2f000c96cabeaac6ec395bcba32b6b137e
+commit: 02c02ffa28dc7f9083f0bdb957102844d965ce48
+tree:   4e751fbc81a3c60c747a56454208e0b7391e2f6a
+parent: 1fdc1cc24b4e88bb3c5994077b40eebadf3b694e
 ```
 
-Git facts at that assessed pre-documentation payload:
-
-```text
-refs/heads/main:                  7b27732a8c3c131760ec3438f641cb3c11343a42
-refs/remotes/origin/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
-refs/remotes/origin/refactor/...  4118c4f550637f8cb764b9eabb6d31dc3dd649cd
-merge-base campaign/main:         7b27732a8c3c131760ec3438f641cb3c11343a42
-local commits ahead of remote campaign: 0
-```
-
-This documentation rebinding changes only the three tracked documents
-`docs/refactoring-plan/execution-readiness-report.md`, `AGENTS.md`, and
-`docs/refactoring-plan/next-implementation-goal.md`. The commit containing
-this package must be independently bound by later evidence; any relevant
-edit invalidates affected evidence.
+This docs-only repair changes only the three preparation documents named in its
+scope: this report, `README.md`, and `task-format.md`. The resulting
+commit/tree is a new identity; future evidence must bind that exact
+post-repair tree, and any relevant edit invalidates affected evidence.
 
 No accepted preparation receipt is invented. Historical report hashes and
-prior NO-GO identities are not current bindings. Independent GO review of
-the known-good / dispatch question (harness trust only; reviewer did not
-edit the campaign repo, bless snapshots, or rerun the 10-hour matrix):
+prior verdict identities are not current bindings. A historical review of the
+known-good harness question did not edit the campaign repo, bless snapshots,
+or authorize task execution:
 
 ```text
 /var/folders/8p/h376l_nn3375kyj72czdq2x80000gn/T/grok-goal-c228471198a8/implementer/prep-go/GO-REVIEW.md
@@ -88,9 +77,9 @@ external protected-oracle inputs.
 
 ## 3. Catalog and executable DAG
 
-The validated structural graph contains 73 direct packages, 77 recursive
-contracts, 506 direct checks, 526 recursive checks, 276 dependency edges,
-depth 35, 193 file-conflict pairs, 0 serialization pairs, 1,174 source
+The validated structural graph contains 79 direct packages, 83 recursive
+contracts, 533 direct checks, 553 recursive checks, 282 dependency edges,
+depth 33, 205 file-conflict pairs, 6 serialization locks, 1,174 source
 obligations, and 3,256 traceability rows. Plan validation and graph
 derivation both exit 0; graph output contains no status or acceptance
 field.
@@ -99,11 +88,13 @@ Disposition:
 
 - `TASK-001`, `TASK-070`: retired lifecycle/bootstrap contracts; fail
   closed; not dispatchable.
-- `TASK-071`, `TASK-072`: qualification prerequisites; now dispatchable
-  under this GO (`TASK-071` then `TASK-072`).
-- `TASK-002`–`TASK-069`, `TASK-073`: remaining valid implementation work;
-  start only after accepted prerequisite receipts.
+- `TASK-071`, `TASK-072`: unaccepted qualification prerequisites; not
+  authorized.
+- `TASK-002`–`TASK-069`: remaining valid implementation work; not authorized.
+- `TASK-073`, `TASK-074`, `TASK-075`, `TASK-076`, `TASK-077`, `TASK-078`,
+  `TASK-079`: remaining valid implementation work; not authorized.
 - accepted production tasks: 0.
+- current proof, verifier, and reviewer receipts: none.
 
 The graph is acyclic and machine-checkable. It encodes dependencies,
 shared interfaces, file conflicts, migration boundaries, and verification
@@ -158,7 +149,7 @@ Historical native proof runs, invalid as current exact-tree seals:
 | `proof-full-bc4e5980`, `native-preparation-bc4e5980`, `adversarial-preparation-bc4e5980`, `taskfmt-lints-bc4e5980`, `final-checks-bc4e5980` | historical runs bound to superseded `bc4e5980`; provenance only |
 | `proof-nextest-4abd4d7b` | pre-AP-repair payload `4abd4d7b` / tree `2dc5fdd7`; 45 passed, exit 0; log SHA-256 `6589e2d3aeb67bef443e61d50720f5b8f385b910079c8b71b89dd98cfda15252` |
 
-Current harness-trust evidence recorded by the independent GO review
+Historical harness-trust evidence recorded by an independent review
 (code is in HEAD ancestors `b7395789` AP-01–AP-05 native gates and
 `a64c3529` frozen argv[0]; this is not a ledger receipt):
 
@@ -284,13 +275,13 @@ qualified actionlint 1.7.12 passed at
 Historical Lychee/actionlint runs remain bound to `9346c104`/`00958932`.
 
 Required Linux execution is **unavailable / unverifiable** in this
-environment. That is a separate platform item. It does not keep
-qualification/DAG dispatch at NO-GO. It is not claimed closed. CI is
+environment. That is a separate platform item. It does not change this
+NO-GO. It is not claimed closed. CI is
 supplementary and cannot substitute for native macOS/Linux evidence. No
 Docker, Podman, container, image, mount, firmlink, namespace, or retired
 lifecycle path was used by this campaign.
 
-## 7. Blocker register and decision
+## 7. Blocker register and current status
 
 | item | owner | status |
 | --- | --- | --- |
@@ -299,9 +290,9 @@ lifecycle path was used by this campaign.
 | HTML argv[0] remap | visual harness | **closed**: frozen path on both sides. |
 | AP-01–AP-05 native gates | proof | **closed in code** (`b7395789`); 57/57 includes them. Not a fabricated receipt. |
 | form_advanced Class A/B | later TablePro / product tasks | **open product obligation**. Snapshots stay the oracle. No bless. |
-| unexplained Class C during census | coordinator | **watch**. First item: Holla `input_cancelled` 0s vs 1s. Classify; do not normalize. Stop dispatch if an unexplained Class C appears. |
-| Linux native evidence unavailable | platform owner | **open, separate**. Does not hold dispatch at NO-GO. |
-| product migration/ownership/parity incomplete | implementation DAG | **open**. Execute the DAG. Final architecture/product gates still required. |
+| unexplained Class C during census | coordinator | **watch**. First item: Holla `input_cancelled` 0s vs 1s. Classify; do not normalize. An unexplained Class C would block future execution. |
+| Linux native evidence unavailable | platform owner | **open, separate**. Does not change this NO-GO. |
+| product migration/ownership/parity incomplete | implementation DAG | **open**. DAG execution remains unauthorized. Final architecture/product gates still required. |
 | no invented preparation receipts | verifier/reviewer | **binding**. Ledger stays `armed=false`. Do not fabricate receipts. Task-owned verifier/reviewer evidence still required per task. |
 | ledger must stay disarmed | coordinator | **binding** until a later explicit arming step. Stale `.campaign/ledger.json` must not authorize the current branch. |
 
@@ -318,10 +309,8 @@ status metadata, stale taskfmt path/version enforcement, missing native
 receipt binding, incomplete worker launch fixture provenance, unbounded
 observer-provider teardown, noncanonical native target names, and
 ambiguous readiness verdict parsing. Those reports are historical, not
-current acceptance. This GO does not claim a final-tree product seal.
+current acceptance. This report does not claim a final-tree product seal.
 
-**Decision: GO for qualification and DAG dispatch.** Harness is trusted
-on the evidence above. Dispatch `TASK-071` → `TASK-072`, then the
-remaining valid DAG. Do not dispatch `TASK-001`/`TASK-070`. Do not wait
-for tag 7,550 exit 0. Snapshots remain the oracle. Final candidate vs
-frozen oracle still requires every key and all 30,200 artifacts.
+This report remains NO-GO. Qualification and DAG execution are not authorized;
+the catalog is structural only, and the final candidate-versus-frozen-oracle
+gate still requires every key and all 30,200 artifacts.
