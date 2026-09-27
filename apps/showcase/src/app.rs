@@ -1348,6 +1348,8 @@ fn parse_args(
     let mut page = PageId::Overview;
     let mut paused = false;
     let mut frame = 0usize;
+    let mut frame_seen = false;
+    let mut full_seen = false;
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--theme" => {
@@ -1388,7 +1390,10 @@ fn parse_args(
                     ));
                 };
                 match value.as_str() {
-                    "full" => paused = false,
+                    "full" => {
+                        full_seen = true;
+                        paused = false;
+                    }
                     "paused" => paused = true,
                     _ => {
                         return Err(std::io::Error::new(
@@ -1415,10 +1420,17 @@ fn parse_args(
                             "--frame must be between 0 and 10000",
                         )
                     })?;
+                frame_seen = true;
                 paused = true;
             }
             _ => {}
         }
+    }
+    if frame_seen && full_seen {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "--frame cannot be combined with --motion full",
+        ));
     }
     Ok((page, theme, paused, frame))
 }
@@ -1535,5 +1547,21 @@ mod app_tests {
         assert!(parse_args(["--frame", "10001"].into_iter().map(str::to_owned)).is_err());
         assert!(parse_args(["--motion"].into_iter().map(str::to_owned)).is_err());
         assert!(parse_args(["--motion", "reduced"].into_iter().map(str::to_owned)).is_err());
+        assert!(
+            parse_args(
+                ["--motion", "full", "--frame", "80"]
+                    .into_iter()
+                    .map(str::to_owned)
+            )
+            .is_err()
+        );
+        assert!(
+            parse_args(
+                ["--frame", "80", "--motion", "full"]
+                    .into_iter()
+                    .map(str::to_owned)
+            )
+            .is_err()
+        );
     }
 }
