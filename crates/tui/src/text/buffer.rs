@@ -9,7 +9,7 @@ use core::fmt;
 use core::ops::Range;
 use std::borrow::Cow;
 
-use super::measure::{grapheme_width, graphemes, is_word_char, width};
+use super::measure::{grapheme_width, graphemes, is_word_grapheme, width};
 
 /// Cursor as `(line, display column)`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -293,36 +293,40 @@ impl TextBuffer {
 
     fn prev_word(&self, from: usize) -> usize {
         let end = Self::floor_boundary(&self.text, from);
-        let prefix = &self.text[..end];
-        let groups: Vec<_> = graphemes(prefix).collect();
-        let mut in_word = false;
+        let mut clusters = graphemes(&self.text[..end])
+            .collect::<Vec<_>>()
+            .into_iter()
+            .rev()
+            .peekable();
+        while clusters.peek().is_some_and(|(_, g)| !is_word_grapheme(g)) {
+            clusters.next();
+        }
         let mut start = 0;
-        for (i, g) in groups.into_iter().rev() {
-            let word = g.chars().next().is_some_and(is_word_char);
-            if word {
-                in_word = true;
-                start = i;
-            } else if in_word {
+        while let Some(&(i, g)) = clusters.peek() {
+            if !is_word_grapheme(g) {
                 break;
-            } else {
-                start = i;
             }
+            start = i;
+            clusters.next();
         }
         start
     }
 
     fn next_word(&self, from: usize) -> usize {
-        let start = Self::ceil_boundary(&self.text, from);
+        let start = Self::floor_boundary(&self.text, from);
         let suffix = &self.text[start..];
-        let mut in_word = false;
-        for (i, g) in graphemes(suffix) {
-            if g.chars().next().is_some_and(is_word_char) {
-                in_word = true;
-            } else if in_word {
+        let mut clusters = graphemes(suffix).peekable();
+        while clusters.peek().is_some_and(|(_, g)| !is_word_grapheme(g)) {
+            clusters.next();
+        }
+        let mut end = 0;
+        for (i, g) in clusters {
+            if !is_word_grapheme(g) {
                 return start.saturating_add(i);
             }
+            end = i.saturating_add(g.len());
         }
-        self.text.len()
+        start.saturating_add(end)
     }
 
     /// Move left one grapheme (collapsing a selection to its start).
@@ -683,12 +687,16 @@ mod tests {
 
     #[test]
     fn word_chars_are_consistent_between_buffer_and_viewport() {
-        // one definition: `text::is_word_char`; `_` joins a word, `-` splits
+        // `_` separates word runs; combining marks remain attached to their base.
         let mut b = TextBuffer::single("snake_case-kebab");
         b.move_home(false);
         b.move_word_right(false);
-        assert_eq!(b.cursor_offset(), "snake_case".len());
-        assert!(is_word_char('_') && !is_word_char('-'));
+        assert_eq!(b.cursor_offset(), 5);
+        let mut c = TextBuffer::single("e\u{301},x");
+        c.move_home(false);
+        c.move_word_right(false);
+        assert_eq!(c.cursor_offset(), "e\u{301}".len());
+        assert!(is_word_grapheme("e\u{301}"));
     }
 
     #[test]
