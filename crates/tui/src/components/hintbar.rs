@@ -365,7 +365,7 @@ impl<'a> HintBar<'a> {
         if live.contains(StateFlags::WARNING) {
             return match self.marker_glyph(ui, live) {
                 Slot::Set(g) => Some(ui.glyph_str(g)),
-                Slot::Inherit => Some(ui.glyph_str(GlyphRole::Dirty)),
+                Slot::Inherit => Some(ui.glyph_str(GlyphRole::WarningMark)),
                 Slot::Clear => None,
             };
         }
@@ -676,6 +676,29 @@ mod tests {
     use super::*;
     use crate::event::{Chord, KeyCode};
     use crate::keymap::Hint;
+    use crate::theme::Theme;
+    use crate::ui::cx::LastFrame;
+    use crate::ui::{FrameState, UiCore};
+    use ratatui_core::buffer::Buffer;
+
+    const AREA: Rect = Rect::new(0, 0, 40, 1);
+
+    fn glyph(theme: &Theme, status: Status) -> Option<String> {
+        let mut frame = FrameState::default();
+        frame.reset(1, AREA);
+        let mut page = Buffer::empty(AREA);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let layer = HintLayer {
+            status: Some("Attention".into()),
+            ..HintLayer::empty()
+        };
+        let ui = Ui::new(&mut frame, &mut page, &mut core, theme, &last);
+        HintBar::new(Id::root("hintbar.warning"), &layer)
+            .status(status)
+            .status_glyph(&ui, status.flags())
+            .map(str::to_owned)
+    }
 
     fn layer(labels: &[(&'static str, KeyCode)]) -> HintLayer {
         HintLayer {
@@ -731,5 +754,32 @@ mod tests {
         assert!((1..4).contains(&few), "{few}");
         assert!(used <= 24, "{used}");
         assert_eq!(bar.fitting(0).0, 0);
+    }
+
+    #[test]
+    fn inherited_warning_status_uses_warning_mark() {
+        let theme = Theme::junie();
+        assert_eq!(glyph(&theme, Status::Error).as_deref(), Some("!"));
+        assert_eq!(
+            glyph(&theme, Status::Ready).as_deref(),
+            None,
+            "ready status does not imply a glyph"
+        );
+        // No public Warning readiness status exists; test this path's semantic
+        // flag directly through its private resolver below.
+        let mut frame = FrameState::default();
+        frame.reset(1, AREA);
+        let mut page = Buffer::empty(AREA);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        let layer = HintLayer::empty();
+        let ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+        assert_eq!(
+            HintBar::new(Id::root("hintbar.warning"), &layer)
+                .status_glyph(&ui, StateFlags::WARNING)
+                .map(str::to_owned)
+                .as_deref(),
+            Some("▲")
+        );
     }
 }

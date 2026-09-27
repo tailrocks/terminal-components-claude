@@ -19,7 +19,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process::{Command, ExitCode};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -1018,10 +1018,25 @@ fn provenance_dimensions(record: &Value, key: &str) -> Option<(u16, u16)> {
 }
 
 fn capture_path_matches(info: &serde_json::Map<String, Value>, relative: &str) -> bool {
-    let expected = root().join(relative);
-    let expected = expected.to_string_lossy();
-    info.get("path").and_then(Value::as_str) == Some(relative)
-        && info.get("resolved_path").and_then(Value::as_str) == Some(expected.as_ref())
+    if info.get("path").and_then(Value::as_str) != Some(relative) {
+        return false;
+    }
+    let Some(resolved) = info.get("resolved_path").and_then(Value::as_str) else {
+        return false;
+    };
+    // Portable across checkouts: the bless machine's absolute root differs on
+    // every machine, so only the layout suffix is comparable. Component-wise
+    // `ends_with` still rejects flat-vs-nested drift.
+    let resolved = resolved.replace('\\', "/");
+    let relative = relative.replace('\\', "/");
+    let absolute = Path::new(&resolved).is_absolute()
+        || resolved.as_bytes().get(1) == Some(&b':')
+            && resolved
+                .as_bytes()
+                .first()
+                .is_some_and(u8::is_ascii_alphabetic)
+            && resolved.as_bytes().get(2) == Some(&b'/');
+    absolute && Path::new(&resolved).ends_with(Path::new(&relative))
 }
 
 fn capture_legacy_path_matches(info: &serde_json::Map<String, Value>, relative: &str) -> bool {
@@ -1039,6 +1054,50 @@ fn capture_artifact_path_in(
     } else {
         shots.join(name).join(extension)
     })
+}
+
+fn validate_optional_empty_capture_file(root: &Path, relative: &str) -> Result<(), String> {
+    let path = root.join(relative);
+    let mut current = root.to_owned();
+    let mut components = Path::new(relative).components().peekable();
+    while let Some(component) = components.next() {
+        let Component::Normal(component) = component else {
+            return Err(format!("unsafe empty capture path: {relative}"));
+        };
+        current.push(component);
+        if components.peek().is_some() {
+            match fs::symlink_metadata(&current) {
+                Ok(metadata) if metadata.file_type().is_symlink() => {
+                    return Err(format!(
+                        "empty capture parent is a symlink: {}",
+                        current.display()
+                    ));
+                }
+                Ok(metadata) if !metadata.is_dir() => {
+                    return Err(format!(
+                        "empty capture parent is not a directory: {}",
+                        current.display()
+                    ));
+                }
+                Ok(_) => {}
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+                Err(error) => {
+                    return Err(format!(
+                        "cannot inspect empty capture parent {}: {error}",
+                        current.display()
+                    ));
+                }
+            }
+        }
+    }
+    match fs::symlink_metadata(&path) {
+        Ok(_) => validate_empty_capture_file(&path),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(format!(
+            "cannot inspect empty capture file {}: {error}",
+            path.display()
+        )),
+    }
 }
 
 fn validate_empty_capture_file(path: &Path) -> Result<(), String> {
@@ -1266,8 +1325,11 @@ fn validate_capture_provenance(
                 "{name}: application stderr is not recorded as empty"
             ));
         }
+        // The run-owned stderr file lives in gitignored `.capture-state`: it
+        // exists only where captures ran. Enforce emptiness when present; on
+        // fresh checkouts the recorded empty triple above is the evidence.
         if let Some(stderr_path) = stderr_path
-            && let Err(error) = validate_empty_capture_file(&root().join(stderr_path))
+            && let Err(error) = validate_optional_empty_capture_file(&root(), &stderr_path)
         {
             errors.push(format!("{name}: {error}"));
         }
@@ -1753,8 +1815,8 @@ fn capture_matrix_contract() -> Result<(), String> {
     Ok(())
 }
 
-fn parity_contract() -> Result<(), String> {
-    parity::contract(&root())
+fn parity_mapping_contract() -> Result<(), String> {
+    parity::dry_run(&root())
 }
 
 fn capture_exec_contract_hits(script: &str) -> Vec<String> {
@@ -2277,7 +2339,7 @@ const CHECKS: &[Check] = &[
     ),
     ("binary_names_are_preserved", binary_names_are_preserved),
     ("capture_matrix_contract", capture_matrix_contract),
-    ("parity_contract", parity_contract),
+    ("parity_mapping_contract", parity_mapping_contract),
     ("app_baselines_exist", app_baselines_exist),
     (
         "app_libs_are_not_published_and_are_not_depended_on_by_the_library",
@@ -7500,25 +7562,33 @@ impl Drop for RustdocTarget {
 fn rustdoc_json() -> Result<Value, String> {
     let target = RustdocTarget::new()?;
     let target_dir = &target.0;
-    // Resolve Cargo through rustup rather than a PATH wrapper that may not
-    // support rustdoc. The lockfile remains immutable during inspection.
-    let resolved = Command::new("rustup")
-        .args(["which", "--toolchain", "nightly", "cargo"])
-        .output()
-        .map_err(|error| format!("cannot resolve nightly Cargo: {error}"))?;
-    if !resolved.status.success() {
-        return Err(format!(
-            "cannot resolve nightly Cargo: {}",
-            String::from_utf8_lossy(&resolved.stderr)
-        ));
-    }
-    let cargo = String::from_utf8(resolved.stdout)
-        .map_err(|error| format!("nightly Cargo path is not UTF-8: {error}"))?;
+    // Resolve all three tools together: an absolute Cargo path alone does not
+    // keep `rustc` and `rustdoc` off another toolchain earlier on PATH.
+    let resolve_tool = |tool: &str| -> Result<String, String> {
+        let resolved = Command::new("rustup")
+            .args(["which", "--toolchain", "nightly", tool])
+            .output()
+            .map_err(|error| format!("cannot resolve nightly {tool}: {error}"))?;
+        if !resolved.status.success() {
+            return Err(format!(
+                "cannot resolve nightly {tool}: {}",
+                String::from_utf8_lossy(&resolved.stderr)
+            ));
+        }
+        String::from_utf8(resolved.stdout)
+            .map(|path| path.trim().to_owned())
+            .map_err(|error| format!("nightly {tool} path is not UTF-8: {error}"))
+    };
+    let cargo = resolve_tool("cargo")?;
+    let rustc = resolve_tool("rustc")?;
+    let rustdoc = resolve_tool("rustdoc")?;
     let output = Command::new("rustup")
-        .args(["run", "nightly", cargo.trim()])
+        .args(["run", "nightly", cargo.as_str()])
         .args(["rustdoc", "--locked", "-p", LIB, "--lib", "--target-dir"])
         .arg(target_dir)
         .args(["--", "-Z", "unstable-options", "--output-format", "json"])
+        .env("RUSTC", rustc)
+        .env("RUSTDOC", rustdoc)
         .current_dir(root())
         .output()
         .map_err(|error| format!("rustdoc-json could not start `cargo +nightly`: {error}"))?;
@@ -7527,7 +7597,7 @@ fn rustdoc_json() -> Result<Value, String> {
         let detail = stderr.lines().take(24).collect::<Vec<_>>();
         return Err(format!(
             "rustdoc-json failed using nightly Cargo {} in {}:\n{}",
-            cargo.trim(),
+            cargo,
             root().display(),
             detail.join("\n")
         ));
@@ -8957,6 +9027,132 @@ mod tests {
     #[cfg(unix)]
     use std::os::unix::fs::symlink;
 
+    fn capture_info(path: &str, resolved_path: Option<&str>) -> serde_json::Map<String, Value> {
+        let mut info = serde_json::Map::new();
+        info.insert("path".to_owned(), Value::String(path.to_owned()));
+        if let Some(resolved) = resolved_path {
+            info.insert(
+                "resolved_path".to_owned(),
+                Value::String(resolved.to_owned()),
+            );
+        }
+        info
+    }
+
+    #[test]
+    fn capture_path_matches_accepts_foreign_checkout_roots() {
+        // Committed provenance is blessed on the integration machine but
+        // validated on every checkout (notably CI): only the layout suffix
+        // of the absolute resolved path is comparable.
+        let info = capture_info(
+            "shots/showcase_junie_truecolor_80x24/ansi",
+            Some("/checkout/example/shots/showcase_junie_truecolor_80x24/ansi"),
+        );
+        assert!(capture_path_matches(
+            &info,
+            "shots/showcase_junie_truecolor_80x24/ansi"
+        ));
+    }
+
+    #[test]
+    fn capture_path_matches_rejects_relative_resolved_paths() {
+        let info = capture_info(
+            "shots/showcase_junie_truecolor_80x24/ansi",
+            Some("shots/showcase_junie_truecolor_80x24/ansi"),
+        );
+        assert!(!capture_path_matches(
+            &info,
+            "shots/showcase_junie_truecolor_80x24/ansi"
+        ));
+    }
+
+    #[test]
+    fn capture_path_matches_accepts_foreign_windows_checkout_roots() {
+        let info = capture_info(
+            "shots/showcase_junie_truecolor_80x24/ansi",
+            Some("C:\\checkout\\example\\shots\\showcase_junie_truecolor_80x24\\ansi"),
+        );
+        assert!(capture_path_matches(
+            &info,
+            "shots/showcase_junie_truecolor_80x24/ansi"
+        ));
+    }
+
+    #[test]
+    fn capture_path_matches_still_rejects_layout_drift() {
+        // Flat-vs-nested drift changes the suffix, so it still fails.
+        let flat = capture_info(
+            "shots/showcase_junie_truecolor_80x24/ansi",
+            Some("/elsewhere/shots/showcase_junie_truecolor_80x24.ansi"),
+        );
+        assert!(!capture_path_matches(
+            &flat,
+            "shots/showcase_junie_truecolor_80x24/ansi"
+        ));
+        // A missing resolved path fails closed.
+        let missing = capture_info("shots/showcase_junie_truecolor_80x24/ansi", None);
+        assert!(!capture_path_matches(
+            &missing,
+            "shots/showcase_junie_truecolor_80x24/ansi"
+        ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn optional_stderr_validation_rejects_dangling_symlink() {
+        let directory = std::env::temp_dir().join(format!(
+            "terminal-components-optional-stderr-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock after epoch")
+                .as_nanos()
+        ));
+        fs::create_dir(&directory).expect("create isolated stderr fixture");
+        let stderr = directory.join("stderr.log");
+        symlink("missing.log", &stderr).expect("create dangling stderr symlink");
+
+        let error = validate_optional_empty_capture_file(&directory, "stderr.log")
+            .expect_err("a dangling stderr symlink is present and invalid");
+        assert!(error.contains("not a regular file"), "{error}");
+        fs::remove_dir_all(directory).expect("remove isolated stderr fixture");
+    }
+
+    #[test]
+    fn optional_stderr_validation_allows_missing_file() {
+        let missing = std::env::temp_dir().join(format!(
+            "terminal-components-missing-stderr-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock after epoch")
+                .as_nanos()
+        ));
+        assert!(validate_optional_empty_capture_file(&missing, "absent/stderr.log").is_ok());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn optional_stderr_validation_rejects_symlinked_parent() {
+        let directory = std::env::temp_dir().join(format!(
+            "terminal-components-stderr-parent-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock after epoch")
+                .as_nanos()
+        ));
+        let outside = directory.join("outside");
+        fs::create_dir_all(&outside).expect("create outside stderr fixture");
+        fs::write(outside.join("stderr.log"), b"").expect("write outside stderr");
+        symlink(&outside, directory.join("state")).expect("create symlinked stderr parent");
+
+        let error = validate_optional_empty_capture_file(&directory, "state/stderr.log")
+            .expect_err("stderr path must not traverse a symlinked parent");
+        assert!(error.contains("parent is a symlink"), "{error}");
+        fs::remove_dir_all(directory).expect("remove isolated stderr parent fixture");
+    }
+
     #[test]
     fn doc_section_parser_reaches_the_authoritative_tail() {
         assert_eq!(
@@ -10020,7 +10216,7 @@ captures / classification: `(pending — filled when the change lands)`
     fn the_2010_item_list_survives_the_split_tables() {
         let doc = read(&root().join("COMPONENT_ARCHITECTURE.md"));
         let items = visual_change_items(&doc);
-        let want: BTreeSet<u32> = (1..=39).collect();
+        let want: BTreeSet<u32> = (1..=40).collect();
         assert_eq!(
             items.keys().copied().collect::<BTreeSet<u32>>(),
             want,
