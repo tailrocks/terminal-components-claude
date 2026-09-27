@@ -7512,25 +7512,33 @@ impl Drop for RustdocTarget {
 fn rustdoc_json() -> Result<Value, String> {
     let target = RustdocTarget::new()?;
     let target_dir = &target.0;
-    // Resolve Cargo through rustup rather than a PATH wrapper that may not
-    // support rustdoc. The lockfile remains immutable during inspection.
-    let resolved = Command::new("rustup")
-        .args(["which", "--toolchain", "nightly", "cargo"])
-        .output()
-        .map_err(|error| format!("cannot resolve nightly Cargo: {error}"))?;
-    if !resolved.status.success() {
-        return Err(format!(
-            "cannot resolve nightly Cargo: {}",
-            String::from_utf8_lossy(&resolved.stderr)
-        ));
-    }
-    let cargo = String::from_utf8(resolved.stdout)
-        .map_err(|error| format!("nightly Cargo path is not UTF-8: {error}"))?;
+    // Resolve all three tools together: an absolute Cargo path alone does not
+    // keep `rustc` and `rustdoc` off another toolchain earlier on PATH.
+    let resolve_tool = |tool: &str| -> Result<String, String> {
+        let resolved = Command::new("rustup")
+            .args(["which", "--toolchain", "nightly", tool])
+            .output()
+            .map_err(|error| format!("cannot resolve nightly {tool}: {error}"))?;
+        if !resolved.status.success() {
+            return Err(format!(
+                "cannot resolve nightly {tool}: {}",
+                String::from_utf8_lossy(&resolved.stderr)
+            ));
+        }
+        String::from_utf8(resolved.stdout)
+            .map(|path| path.trim().to_owned())
+            .map_err(|error| format!("nightly {tool} path is not UTF-8: {error}"))
+    };
+    let cargo = resolve_tool("cargo")?;
+    let rustc = resolve_tool("rustc")?;
+    let rustdoc = resolve_tool("rustdoc")?;
     let output = Command::new("rustup")
-        .args(["run", "nightly", cargo.trim()])
+        .args(["run", "nightly", cargo.as_str()])
         .args(["rustdoc", "--locked", "-p", LIB, "--lib", "--target-dir"])
         .arg(target_dir)
         .args(["--", "-Z", "unstable-options", "--output-format", "json"])
+        .env("RUSTC", rustc)
+        .env("RUSTDOC", rustdoc)
         .current_dir(root())
         .output()
         .map_err(|error| format!("rustdoc-json could not start `cargo +nightly`: {error}"))?;
@@ -7539,7 +7547,7 @@ fn rustdoc_json() -> Result<Value, String> {
         let detail = stderr.lines().take(24).collect::<Vec<_>>();
         return Err(format!(
             "rustdoc-json failed using nightly Cargo {} in {}:\n{}",
-            cargo.trim(),
+            cargo,
             root().display(),
             detail.join("\n")
         ));
