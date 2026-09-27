@@ -188,6 +188,10 @@ impl Default for ScrollingPage {
 }
 
 impl Page for ScrollingPage {
+    fn seek_paused(&mut self, frame: usize) {
+        self.log = log_lines(409usize.saturating_add(frame.min(10_000)));
+    }
+
     fn title(&self) -> &'static str {
         "Scrolling"
     }
@@ -419,5 +423,19 @@ impl ScrollingPage {
                 let _ = ui.paint_str(row, &line, ui.surface_style());
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod motion_tests {
+    use super::*;
+
+    #[test]
+    fn paused_seek_bounds_the_log_fixture() {
+        let mut page = ScrollingPage::new();
+        page.seek_paused(12);
+        assert_eq!(page.log.len(), 421);
+        page.seek_paused(usize::MAX);
+        assert_eq!(page.log.len(), 10_409);
     }
 }

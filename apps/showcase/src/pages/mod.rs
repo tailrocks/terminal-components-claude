@@ -50,6 +50,8 @@ pub(crate) trait Page: Send {
     fn editing(&self, _ui: &Ui<'_>) -> bool {
         false
     }
+    /// Set an animation state for deterministic, paused inspection.
+    fn seek_paused(&mut self, _frame: usize) {}
 }
 
 /// Draw a screen frame and hand its inset body to the page.
