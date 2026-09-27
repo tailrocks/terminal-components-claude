@@ -240,8 +240,7 @@ pub(crate) struct UiCore {
     /// Reused scratch for scroll fade background voting.
     pub(crate) scroll_bg_counts: HashMap<Color, usize>,
     pub(crate) scroll_bg_order: Vec<Color>,
-    pub(crate) scroll_span_text: String,
-    pub(crate) scroll_span_styles: Vec<crate::theme::PaintStyle>,
+    pub(crate) cluster_scratch: crate::text::clusters::ClusterScratch,
 }
 
 impl core::fmt::Debug for UiCore {
