@@ -171,12 +171,13 @@ fn wrap_walk<'a>(s: &'a str, w: u16, f: &mut dyn FnMut(WrapPiece<'a>)) {
 
 fn hard_wrap_walk<'a>(word: &'a str, w: u16, lw: &mut u16, f: &mut dyn FnMut(WrapPiece<'a>)) {
     for g in word.graphemes(true) {
-        let gw = grapheme_width(g);
+        let projected = if grapheme_width(g) > w { "…" } else { g };
+        let gw = grapheme_width(projected);
         if lw.saturating_add(gw) > w {
             f(WrapPiece::Break);
             *lw = 0;
         }
-        f(WrapPiece::Text(g));
+        f(WrapPiece::Text(projected));
         *lw = lw.saturating_add(gw);
     }
 }
@@ -320,5 +321,11 @@ mod tests {
         assert_eq!(wrap("a\nb", 10), vec!["a", "b"]);
         assert_eq!(wrap("", 10), vec![""]);
         assert_eq!(wrap("日本語です", 4), vec!["日本", "語で", "す"]);
+    }
+
+    #[test]
+    fn wrap_projects_overwide_grapheme_without_blank_row() {
+        assert_eq!(wrap("日本", 1), vec!["…", "…"]);
+        assert_eq!(wrapped_rows("日本", 1), 2);
     }
 }
