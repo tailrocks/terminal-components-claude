@@ -12,7 +12,7 @@ use ratatui_core::buffer::CellWidth;
 use unicode_segmentation::UnicodeSegmentation;
 
 /// Graphemes of `s` with their byte offsets.
-pub(crate) fn graphemes(s: &str) -> impl Iterator<Item = (usize, &str)> {
+pub(crate) fn graphemes(s: &str) -> impl DoubleEndedIterator<Item = (usize, &str)> {
     s.grapheme_indices(true)
 }
 
@@ -38,7 +38,12 @@ pub fn width(s: &str) -> u16 {
 /// Whether `c` is a word character for word motion; one definition shared by
 /// the editor core and the viewport.
 pub(crate) fn is_word_char(c: char) -> bool {
-    c.is_alphanumeric() || c == '_'
+    c.is_alphanumeric()
+}
+
+/// Whether a grapheme belongs to a word run. Marks stay attached to base.
+pub(crate) fn is_word_grapheme(g: &str) -> bool {
+    g.chars().any(is_word_char)
 }
 
 /// Truncate to `max` columns, appending `…` when cut. Non-render callers
