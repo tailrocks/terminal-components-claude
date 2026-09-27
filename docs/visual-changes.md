@@ -1790,9 +1790,11 @@ reference fixture: the Editor page heading is always its full title
 (`Code editor` — the narrow-layout shortening contradicted the Holla
 reference at every size) and the shell header paints the capability cluster
 only when two cells clear it from the breadcrumb (Holla omits it at 89 and 90
-columns rather than crowd the route title). 208 page cells move for that union: the 168 truecolor cells and the 40
-mono/ANSI16/ANSI256 Buttons and Chips & selects cells, whose absorbed
-historical content changed every colour level of those pages.
+columns rather than crowd the route title). At its original introduction, 672 page-cell keys moved for that union (168
+truecolor and 504 mono/ANSI16/ANSI256), and the Editor page's 32 cells were
+recorded under its corrected `Code editor` name. Those historical baseline
+changes are already on the default branch; this entry keeps only changes
+relative to the current default branch.
 
 ```
 - surface:   showcase digest @ 22 pages / all four sizes / junie + paper / truecolor
@@ -1802,8 +1804,10 @@ historical content changed every colour level of those pages.
 - tests:     apps/showcase/tests/visual.rs::showcase_visual_baseline,
              apps/showcase/tests/page_headings.rs (both reference tests),
              apps/showcase/tests/app_tests.rs (34 passed)
-- moved:     none in this integration; Item 36 baseline changes already exist on the default branch
-- added:     none in this integration
+- moved:     none in this integration; historical Item 36 changes are already on default
+- added:     32 keys: the Editor page, recorded for the first time under its corrected name
+             `{Code editor} {80 24,100 30,120 40,160 50} {junie,paper} {truecolor,256,16,mono}`
+
 - class:     intended
 
 - reason:    §20.10 item 36. The movement is the deliberate union of reviewed coverage
