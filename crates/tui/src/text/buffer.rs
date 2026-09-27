@@ -293,11 +293,7 @@ impl TextBuffer {
 
     fn prev_word(&self, from: usize) -> usize {
         let end = Self::floor_boundary(&self.text, from);
-        let mut clusters = graphemes(&self.text[..end])
-            .collect::<Vec<_>>()
-            .into_iter()
-            .rev()
-            .peekable();
+        let mut clusters = graphemes(&self.text[..end]).rev().peekable();
         while clusters.peek().is_some_and(|(_, g)| !is_word_grapheme(g)) {
             clusters.next();
         }
@@ -426,6 +422,7 @@ impl TextBuffer {
             self.remove_range(r.clone());
             self.cursor = r.start;
             self.anchor = None;
+            self.normalize_positions();
             true
         } else {
             self.anchor = None;
@@ -778,6 +775,12 @@ mod tests {
         word.move_doc_start(false);
         word.move_word_right(false);
         assert_eq!(word.cursor_offset(), "e\u{301}x".len());
+
+        let mut selected = TextBuffer::multi("e\n\u{301}");
+        selected.select_range(1, 2);
+        assert!(selected.backspace());
+        assert_eq!(selected.text(), "e\u{301}");
+        assert_eq!(selected.cursor_offset(), "e\u{301}".len());
     }
 
     #[test]

@@ -1,16 +1,51 @@
 //! Fuzzy matching over graphemes of the original label
 //! (`COMPONENT_ARCHITECTURE.md` §22.2 item 4, §20.10 item 7f).
 
+use core::ops::Range;
 use unicode_segmentation::UnicodeSegmentation;
 
 /// Case-insensitive grapheme equality without allocating.
-fn eq_fold(a: &str, b: &str) -> bool {
-    if a == b {
-        return true;
+struct Folded<'a> {
+    text: String,
+    spans: Vec<(Range<usize>, usize)>,
+    _source: core::marker::PhantomData<&'a str>,
+}
+
+impl<'a> Folded<'a> {
+    fn new(source: &'a str) -> Self {
+        let text = source.to_lowercase();
+        let mut folded = text.char_indices().peekable();
+        let mut spans = Vec::new();
+        for (ordinal, (_, grapheme)) in source.grapheme_indices(true).enumerate() {
+            let start = folded.peek().map_or(text.len(), |(byte, _)| *byte);
+            let count: usize = grapheme.chars().map(|c| c.to_lowercase().count()).sum();
+            for _ in 0..count {
+                folded.next();
+            }
+            let end = folded.peek().map_or(text.len(), |(byte, _)| *byte);
+            spans.push((start..end, ordinal));
+        }
+        Self {
+            text,
+            spans,
+            _source: core::marker::PhantomData,
+        }
     }
-    a.chars()
-        .flat_map(char::to_lowercase)
-        .eq(b.chars().flat_map(char::to_lowercase))
+
+    fn ordinals(&self, range: Range<usize>) -> Vec<usize> {
+        let mut result = Vec::new();
+        for (span, ordinal) in &self.spans {
+            if span.start < range.end && range.start < span.end && result.last() != Some(ordinal) {
+                result.push(*ordinal);
+            }
+        }
+        result
+    }
+
+    fn complete_clusters(&self, range: &Range<usize>) -> bool {
+        self.spans.iter().any(|(span, _)| span.start == range.start)
+            && self.spans.iter().any(|(span, _)| span.end == range.end)
+    }
 }
 
 /// Which separators give a substring the word-boundary ranking bonus.
@@ -56,48 +91,61 @@ pub fn fuzzy_with_boundary(
     if word.is_empty() {
         return Some((0, Vec::new()));
     }
-    let lg: Vec<&str> = label.graphemes(true).collect();
-    let wg: Vec<&str> = word.graphemes(true).collect();
-    if wg.len() > lg.len() {
-        return subsequence(&lg, &wg);
-    }
-    // substring search over graphemes
-    let last_start = lg.len().saturating_sub(wg.len());
-    for start in 0..=last_start {
-        let hit = wg.iter().enumerate().all(|(k, w)| {
-            lg.get(start.saturating_add(k))
-                .is_some_and(|l| eq_fold(l, w))
-        });
-        if hit {
-            let idx: Vec<usize> = (start..start.saturating_add(wg.len())).collect();
-            if start == 0 {
-                return Some((0, idx));
-            }
-            let at_boundary = lg
-                .get(start.saturating_sub(1))
-                .is_some_and(|grapheme| boundary.contains(grapheme));
-            return Some((if at_boundary { 10 } else { 30 }, idx));
+    let label_folded = Folded::new(label);
+    let word_folded = word.to_lowercase();
+    if label_folded.text.starts_with(&word_folded) {
+        if !label_folded.complete_clusters(&(0..word_folded.len())) {
+            return None;
         }
+        return Some((0, label_folded.ordinals(0..word_folded.len())));
     }
-    subsequence(&lg, &wg)
+    if let Some(start) = label_folded.text.find(&word_folded) {
+        let range = start..start.saturating_add(word_folded.len());
+        if !label_folded.complete_clusters(&range) {
+            return None;
+        }
+        let ordinal_start = label_folded
+            .spans
+            .iter()
+            .find(|(span, _)| span.start <= start && start < span.end)
+            .map_or(0, |(_, i)| *i);
+        let at_boundary = ordinal_start == 0
+            || label
+                .graphemes(true)
+                .nth(ordinal_start.saturating_sub(1))
+                .is_some_and(|g| boundary.contains(g));
+        return Some((
+            if at_boundary { 10 } else { 30 },
+            label_folded.ordinals(range),
+        ));
+    }
+    subsequence(&label_folded, &word_folded)
 }
 
-fn subsequence(lg: &[&str], wg: &[&str]) -> Option<(u32, Vec<usize>)> {
-    let mut matched = Vec::with_capacity(wg.len());
-    let mut li = 0usize;
-    for w in wg {
-        loop {
-            let l = lg.get(li)?;
-            if eq_fold(l, w) {
-                matched.push(li);
-                li = li.saturating_add(1);
-                break;
-            }
-            li = li.saturating_add(1);
+fn subsequence(label: &Folded<'_>, word: &str) -> Option<(u32, Vec<usize>)> {
+    let mut matched = Vec::new();
+    let mut cursor = 0;
+    let mut last = 0;
+    for wanted in word.chars() {
+        let suffix = label.text.get(cursor..)?;
+        let (byte, _) = suffix.char_indices().find(|(_, c)| *c == wanted)?;
+        cursor = cursor
+            .saturating_add(byte)
+            .saturating_add(wanted.len_utf8());
+        let ordinal = label
+            .spans
+            .iter()
+            .find(|(span, _)| {
+                span.start <= cursor.saturating_sub(wanted.len_utf8())
+                    && cursor.saturating_sub(wanted.len_utf8()) < span.end
+            })
+            .map(|(_, i)| *i)?;
+        if matched.last() != Some(&ordinal) {
+            matched.push(ordinal);
         }
+        last = ordinal;
     }
-    let last = matched.last().copied().unwrap_or(0) as u32;
-    Some((60u32.saturating_add(last), matched))
+    Some((60u32.saturating_add(last as u32), matched))
 }
 
 #[cfg(test)]
@@ -133,5 +181,12 @@ mod tests {
         assert_eq!(fuzzy("abc", "z"), None);
         assert_eq!(fuzzy("abc", ""), Some((0, Vec::new())));
         assert_eq!(fuzzy("ab", "abc"), None);
+    }
+
+    #[test]
+    fn fuzzy_handles_contextual_case_and_never_matches_inside_a_grapheme() {
+        assert_eq!(fuzzy("ΟΣ", "ος"), Some((0, vec![0, 1])));
+        assert_eq!(fuzzy("İ", "i"), None);
+        assert_eq!(fuzzy("e\u{301}", "e"), None);
     }
 }
