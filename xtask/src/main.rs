@@ -8996,9 +8996,7 @@ mod tests {
         // of the absolute resolved path is comparable.
         let info = capture_info(
             "shots/showcase_junie_truecolor_80x24/ansi",
-            Some(
-                "/Users/donbeave/Projects/terminal-components-main/shots/showcase_junie_truecolor_80x24/ansi",
-            ),
+            Some("/checkout/example/shots/showcase_junie_truecolor_80x24/ansi"),
         );
         assert!(capture_path_matches(
             &info,
