@@ -129,6 +129,12 @@ impl Default for ProgressPage {
 }
 
 impl Page for ProgressPage {
+    fn seek_paused(&mut self, frame: usize) {
+        self.frame = frame;
+        self.build = ((frame as f64) * 0.006).min(1.0);
+        self.next_tick = None;
+    }
+
     fn title(&self) -> &'static str {
         "Progress"
     }
@@ -323,5 +329,20 @@ impl ProgressPage {
         if let Some(rect) = rects.get(1).copied() {
             pause.draw(ui, rect);
         }
+    }
+}
+
+#[cfg(test)]
+mod motion_tests {
+    use super::*;
+
+    #[test]
+    fn paused_seek_is_deterministic_and_caps_completed_progress() {
+        let mut page = ProgressPage::new();
+        page.seek_paused(80);
+        assert_eq!(page.frame, 80);
+        assert!((page.build - 0.48).abs() < f64::EPSILON);
+        page.seek_paused(usize::MAX);
+        assert!((page.build - 1.0).abs() < f64::EPSILON);
     }
 }

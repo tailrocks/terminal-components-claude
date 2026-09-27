@@ -311,6 +311,10 @@ impl ChromePage {
 }
 
 impl Page for ChromePage {
+    fn seek_paused(&mut self, frame: usize) {
+        self.frame = frame;
+    }
+
     fn title(&self) -> &'static str {
         "Chrome"
     }
