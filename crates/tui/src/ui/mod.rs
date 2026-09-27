@@ -15,6 +15,7 @@ use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::Color;
 
 use core::ops::{BitOr, BitOrAssign};
+use std::collections::HashMap;
 
 use cx::LastFrame;
 pub use cx::{Cx, FrameRead, LayoutFacts};
@@ -236,6 +237,9 @@ pub(crate) struct UiCore {
     pub(crate) keymap_revision: u64,
     dynamic_bindings: DynamicBindingRegistry,
     next_targetless_reference: u64,
+    /// Reused scratch for scroll fade background voting.
+    pub(crate) scroll_bg_counts: HashMap<Color, usize>,
+    pub(crate) scroll_bg_order: Vec<Color>,
 }
 
 impl core::fmt::Debug for UiCore {
@@ -1201,6 +1205,21 @@ impl<'f> Ui<'f> {
                     d.mark(pos, style);
                 }
             }
+        }
+    }
+
+    /// Whether a cell contributes to the current paint target. Page cells are
+    /// always part of the opaque page; sparse overlay cells remain transparent
+    /// until a painter writes them.
+    pub(crate) fn cell_written(&self, pos: Position) -> bool {
+        match self.target {
+            Target::Page => true,
+            Target::Layer(i) => self
+                .frame
+                .layers
+                .active()
+                .get(i)
+                .is_some_and(|layer| layer.is_written(pos)),
         }
     }
 
