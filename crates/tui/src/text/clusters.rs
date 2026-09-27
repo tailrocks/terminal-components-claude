@@ -219,25 +219,18 @@ impl<'s, S: Copy> ClusterFeed<'s, S> {
     /// `(cluster, first-byte style)`. The sink returns whether output can
     /// admit another cluster; a refusal stops segmentation without error.
     pub(crate) fn push(&mut self, fragment: &str, style: S, emit: &mut dyn FnMut(&str, S) -> bool) {
-        for scalar in fragment.chars() {
+        for (cursor, scalar) in fragment.char_indices() {
             if self.done {
                 return;
             }
             if self.scratch.is_empty() {
                 self.pending_style = Some(style);
             }
-            let mut encoded = [0u8; 4];
-            // `encode_utf8` borrows `encoded`; copy the bytes out so the
-            // scratch push does not alias the stack slot across calls.
-            let scalar_len = scalar.encode_utf8(&mut encoded).len();
-            let Some(scalar) = encoded.get(..scalar_len) else {
-                continue;
+            let next = cursor.saturating_add(scalar.len_utf8());
+            let Some(piece) = fragment.get(cursor..next) else {
+                break;
             };
-            let Some(scalar) = core::str::from_utf8(scalar).ok() else {
-                continue;
-            };
-            self.scratch.push(scalar);
-            wipe(&mut encoded);
+            self.scratch.push(piece);
             self.drain(style, emit);
         }
     }
