@@ -277,8 +277,9 @@ impl Ui<'_> {
         used
     }
 
-    /// Paint semantic spans with no allocation, inheriting `base` independently
-    /// for each span. Width and continuation handling share the string writer.
+    /// Paint semantic spans, inheriting `base` independently for each span.
+    /// Spans form one logical string for grapheme segmentation: a grapheme
+    /// split across fragments uses the style from its first byte.
     pub fn paint_spans(
         &mut self,
         area: Rect,
@@ -290,20 +291,48 @@ impl Ui<'_> {
             return 0;
         }
         let base = base.into();
-        let mut x = area.x;
+        let mut joined = String::new();
+        let mut style_by_byte = Vec::new();
         for sp in spans {
-            if x >= area.right() {
-                break;
-            }
             let mut st = base.add_modifier(sp.add);
             if let Some(role) = sp.role {
                 st = st.patch(self.paint_patch(&crate::theme::StylePatch::new().set_fg(role)));
             }
-            x = x.saturating_add(self.paint_str(
-                Rect::new(x, area.y, area.right().saturating_sub(x), 1),
-                sp.text,
-                st,
-            ));
+            style_by_byte.extend(core::iter::repeat_n(st, sp.text.len()));
+            joined.push_str(sp.text);
+        }
+        let mut x = area.x;
+        let mut remaining = area.width;
+        for (start, grapheme) in graphemes(&joined) {
+            let Some(style) = style_by_byte.get(start).copied() else {
+                break;
+            };
+            if grapheme.contains(char::is_control) {
+                continue;
+            }
+            let width = grapheme.cell_width();
+            if width == 0 {
+                continue;
+            }
+            let Some(rest) = remaining.checked_sub(width) else {
+                break;
+            };
+            remaining = rest;
+            let pos = Position::new(x, area.y);
+            if let Some(cell) = self.buffer().cell_mut(pos) {
+                cell.set_symbol(grapheme).set_style(style.into_style());
+            }
+            self.mark(pos, Some(style));
+            let end = x.saturating_add(width);
+            x = x.saturating_add(1);
+            while x < end {
+                let pos = Position::new(x, area.y);
+                if let Some(cell) = self.buffer().cell_mut(pos) {
+                    cell.reset();
+                }
+                self.mark(pos, None);
+                x = x.saturating_add(1);
+            }
         }
         x.saturating_sub(area.x)
     }

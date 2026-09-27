@@ -205,6 +205,75 @@ fn scroll_fade_preserves_background_role_for_modal_dim() {
     }
 }
 
+#[test]
+fn split_span_graphemes_use_style_of_first_byte() {
+    struct SplitSpanPage;
+    impl App for SplitSpanPage {
+        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
+            Response::ignored()
+        }
+        fn draw(&self, ui: &mut Ui<'_>) {
+            ui.paint_spans(
+                Rect::new(0, 0, 8, 1),
+                &[
+                    junie_tui::Span::new("e"),
+                    junie_tui::Span::new("\u{301}x").bold(),
+                ],
+                ui.surface_style(),
+            );
+        }
+    }
+    let mut h = Harness::new(SplitSpanPage, Theme::junie(), 8, 2);
+    h.draw();
+    assert_eq!(
+        h.buffer().cell(Position::new(0, 0)).unwrap().symbol(),
+        "e\u{301}"
+    );
+    assert!(
+        !h.buffer()
+            .cell(Position::new(0, 0))
+            .unwrap()
+            .modifier
+            .contains(Modifier::BOLD)
+    );
+    assert_eq!(h.buffer().cell(Position::new(1, 0)).unwrap().symbol(), "x");
+    assert!(
+        h.buffer()
+            .cell(Position::new(1, 0))
+            .unwrap()
+            .modifier
+            .contains(Modifier::BOLD)
+    );
+
+    for grapheme in ["👨‍👩‍👧‍👦", "🇻🇳"] {
+        let split = grapheme.char_indices().nth(1).map(|(at, _)| at).unwrap();
+        let (first, rest) = grapheme.split_at(split);
+        let mut scene = Scene::new("span-grapheme", Theme::junie(), ColorLevel::TrueColor, 8, 1);
+        scene.draw(|ui, _area| {
+            ui.paint_spans(
+                Rect::new(0, 0, 8, 1),
+                &[
+                    junie_tui::Span::new(first),
+                    junie_tui::Span::new(rest).bold(),
+                ],
+                Style::new(),
+            );
+        });
+        assert_eq!(
+            scene.buffer().cell(Position::new(0, 0)).unwrap().symbol(),
+            grapheme
+        );
+        assert!(
+            !scene
+                .buffer()
+                .cell(Position::new(0, 0))
+                .unwrap()
+                .modifier
+                .contains(Modifier::BOLD)
+        );
+    }
+}
+
 /// Majority-background ties resolve to the last majority plane; reversed
 /// and different-background cells are excluded from the fade.
 #[test]
