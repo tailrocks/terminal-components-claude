@@ -15,6 +15,7 @@ use ratatui_core::style::{Color, Modifier, Style};
 use super::Ui;
 use crate::scroll::ScrollState;
 use crate::text::Span;
+use crate::text::clusters::ClusterFeed;
 use crate::text::measure::graphemes;
 use crate::theme::builder::{FadeOutcome, fade_mix};
 use crate::theme::{FgStep, GlyphRole, PaintStyle, Role, Surface, Theme};
@@ -73,8 +74,7 @@ impl Ui<'_> {
         )
     }
 
-    // Both callers supply their already-clipped row. Keeping the write walk
-    // here makes continuation clearing and provenance identical for all text.
+    // Both callers supply their already-clipped row and use the same writer.
     fn paint_graphemes<'s>(
         &mut self,
         area: Rect,
@@ -82,32 +82,49 @@ impl Ui<'_> {
     ) -> u16 {
         let mut x = area.x;
         let mut remaining = area.width;
-        for (symbol, s) in symbols.filter(|(symbol, _)| !symbol.contains(char::is_control)) {
-            let width = symbol.cell_width();
-            if width == 0 {
-                continue;
-            }
-            let Some(rest) = remaining.checked_sub(width) else {
+        for (symbol, style) in symbols {
+            if !self.paint_cluster(&mut x, &mut remaining, area.y, symbol, style) {
                 break;
-            };
-            remaining = rest;
-            let pos = Position::new(x, area.y);
-            if let Some(cell) = self.buffer().cell_mut(pos) {
-                cell.set_symbol(symbol).set_style(s.into_style());
-            }
-            self.mark(pos, Some(s));
-            let end = x.saturating_add(width);
-            x = x.saturating_add(1);
-            while x < end {
-                let pos = Position::new(x, area.y);
-                if let Some(cell) = self.buffer().cell_mut(pos) {
-                    cell.reset();
-                }
-                self.mark(pos, None);
-                x = x.saturating_add(1);
             }
         }
         x.saturating_sub(area.x)
+    }
+
+    fn paint_cluster(
+        &mut self,
+        x: &mut u16,
+        remaining: &mut u16,
+        y: u16,
+        symbol: &str,
+        style: PaintStyle,
+    ) -> bool {
+        if symbol.contains(char::is_control) {
+            return true;
+        }
+        let width = symbol.cell_width();
+        if width == 0 {
+            return true;
+        }
+        let Some(rest) = remaining.checked_sub(width) else {
+            return false;
+        };
+        *remaining = rest;
+        let pos = Position::new(*x, y);
+        if let Some(cell) = self.buffer().cell_mut(pos) {
+            cell.set_symbol(symbol).set_style(style.into_style());
+        }
+        self.mark(pos, Some(style));
+        let end = x.saturating_add(width);
+        *x = x.saturating_add(1);
+        while *x < end {
+            let pos = Position::new(*x, y);
+            if let Some(cell) = self.buffer().cell_mut(pos) {
+                cell.reset();
+            }
+            self.mark(pos, None);
+            *x = x.saturating_add(1);
+        }
+        *remaining != 0
     }
 
     /// Fade the viewport edge rows that conceal more scrollable content.
@@ -291,55 +308,36 @@ impl Ui<'_> {
             return 0;
         }
         let base = base.into();
-        let mut joined = core::mem::take(&mut self.core.scroll_span_text);
-        let mut style_by_byte = core::mem::take(&mut self.core.scroll_span_styles);
-        joined.clear();
-        style_by_byte.clear();
-        for sp in spans {
-            let mut st = base.add_modifier(sp.add);
-            if let Some(role) = sp.role {
-                st = st.patch(self.paint_patch(&crate::theme::StylePatch::new().set_fg(role)));
-            }
-            style_by_byte.extend(core::iter::repeat_n(st, sp.text.len()));
-            joined.push_str(sp.text);
-        }
+        let mut scratch = core::mem::take(&mut self.core.cluster_scratch);
         let mut x = area.x;
         let mut remaining = area.width;
-        for (start, grapheme) in graphemes(&joined) {
-            let Some(style) = style_by_byte.get(start).copied() else {
-                break;
-            };
-            if grapheme.contains(char::is_control) {
-                continue;
-            }
-            let width = grapheme.cell_width();
-            if width == 0 {
-                continue;
-            }
-            let Some(rest) = remaining.checked_sub(width) else {
-                break;
-            };
-            remaining = rest;
-            let pos = Position::new(x, area.y);
-            if let Some(cell) = self.buffer().cell_mut(pos) {
-                cell.set_symbol(grapheme).set_style(style.into_style());
-            }
-            self.mark(pos, Some(style));
-            let end = x.saturating_add(width);
-            x = x.saturating_add(1);
-            while x < end {
-                let pos = Position::new(x, area.y);
-                if let Some(cell) = self.buffer().cell_mut(pos) {
-                    cell.reset();
+        {
+            let mut feed = ClusterFeed::new(&mut scratch);
+            for sp in spans {
+                let mut st = base.add_modifier(sp.add);
+                if let Some(role) = sp.role {
+                    st = st.patch(self.paint_patch(&crate::theme::StylePatch::new().set_fg(role)));
                 }
-                self.mark(pos, None);
-                x = x.saturating_add(1);
+                if x >= area.right() {
+                    break;
+                }
+                let mut can_continue = true;
+                feed.push(sp.text, st, &mut |cluster, style| {
+                    can_continue &=
+                        self.paint_cluster(&mut x, &mut remaining, area.y, cluster, style);
+                    can_continue
+                });
+                if !can_continue {
+                    break;
+                }
+            }
+            if x < area.right() {
+                feed.finish(base, &mut |cluster, style| {
+                    self.paint_cluster(&mut x, &mut remaining, area.y, cluster, style)
+                });
             }
         }
-        joined.clear();
-        style_by_byte.clear();
-        self.core.scroll_span_text = joined;
-        self.core.scroll_span_styles = style_by_byte;
+        self.core.cluster_scratch = scratch;
         x.saturating_sub(area.x)
     }
 
