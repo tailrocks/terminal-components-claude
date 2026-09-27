@@ -183,24 +183,47 @@ impl Ui<'_> {
     }
 
     fn majority_bg(&mut self, area: Rect) -> Color {
-        let mut counts: Vec<(Color, usize)> = Vec::new();
+        // Retain the color histogram across frames: steady-state drawing does
+        // not allocate, and lookup cost stays bounded for richly styled views.
+        let mut counts = core::mem::take(&mut self.core.scroll_bg_counts);
+        let mut order = core::mem::take(&mut self.core.scroll_bg_order);
+        counts.clear();
+        order.clear();
         for pos in area.positions() {
+            if !self.cell_written(pos) {
+                continue;
+            }
             let bg = self.buffer().cell(pos).map_or(Color::Reset, |cell| cell.bg);
-            match counts.iter_mut().find(|(color, _)| *color == bg) {
-                Some((_, count)) => *count = count.saturating_add(1),
-                None => counts.push((bg, 1)),
+            match counts.entry(bg) {
+                std::collections::hash_map::Entry::Occupied(mut entry) => {
+                    let count = entry.get().saturating_add(1);
+                    *entry.get_mut() = count;
+                }
+                std::collections::hash_map::Entry::Vacant(entry) => {
+                    order.push(bg);
+                    entry.insert(1);
+                }
             }
         }
-        counts
-            .into_iter()
+        // `max_by_key` selects the last entry on ties, preserving the
+        // historical rule based on first-seen background order.
+        let color = order
+            .iter()
+            .filter_map(|bg| counts.get(bg).map(|count| (*bg, *count)))
             .max_by_key(|(_, count)| *count)
-            .map_or(Color::Reset, |(color, _)| color)
+            .map_or(Color::Reset, |(bg, _)| bg);
+        self.core.scroll_bg_counts = counts;
+        self.core.scroll_bg_order = order;
+        color
     }
 
     fn fade_edge_row(&mut self, area: Rect, y: u16, keep: f32, container: Color) {
         let outer = keep <= FADE_OUTER_KEEP;
         for x in area.x..area.right() {
             let pos = Position::new(x, y);
+            if !self.cell_written(pos) {
+                continue;
+            }
             let touched = match self.buffer().cell_mut(pos) {
                 Some(cell)
                     if cell.bg == container && !cell.modifier.contains(Modifier::REVERSED) =>
@@ -219,8 +242,10 @@ impl Ui<'_> {
                 }
                 _ => false,
             };
-            if touched {
-                self.mark(pos, None);
+            if touched && let Some(color) = self.buffer().cell(pos).map(|cell| cell.fg) {
+                // The foreground is now a blended raw color; clear only its
+                // semantic provenance and retain the original background role.
+                self.mark(pos, Some(PaintStyle::new().fg(color)));
             }
         }
     }

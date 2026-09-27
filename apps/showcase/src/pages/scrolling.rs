@@ -351,6 +351,7 @@ impl ScrollingPage {
             };
             let _ = ui.paint_str(row, line, ui.surface_style());
         }
+        ui.scroll_edges(content, &view);
     }
 
     fn draw_prose(&self, ui: &mut Ui<'_>, inner: Rect, column: Rect) {

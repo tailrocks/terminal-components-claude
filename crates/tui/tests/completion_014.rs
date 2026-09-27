@@ -19,8 +19,8 @@
 )]
 
 use junie_tui::{
-    App, Axis, Color, ColorLevel, Cx, Id, KeyCode, Modifier, MouseKind, Part, PartRef, Position,
-    Rect, Response, ScrollRegion, ScrollState, Style, Theme, Ui,
+    App, Axis, Color, ColorLevel, Cx, Id, KeyCode, LayerSpec, Modifier, MouseKind, Part, PartRef,
+    Position, Rect, Response, ScrollRegion, ScrollState, Style, Theme, Ui,
 };
 use junie_tui_testing::{Harness, Scene};
 
@@ -102,6 +102,106 @@ fn fade_heights_states_themes_and_levels_match_oracle() {
                 }
             }
         }
+    }
+}
+
+struct SparseFadeLayerPage {
+    open: bool,
+}
+const FADE_LAYER: Id = Id::root("fade.sparse.layer");
+impl App for SparseFadeLayerPage {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if !self.open {
+            cx.open_layer(FADE_LAYER, LayerSpec::modal(FADE_LAYER));
+            self.open = true;
+        }
+        Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        let area = ui.full();
+        let style = ui.surface_style();
+        ui.fill(area, style);
+        ui.paint_str(Rect::new(area.x, area.y, area.width, 1), "UNDER", style);
+        let _ = ui.layer(FADE_LAYER, |ui, layer_area| {
+            let row = Rect::new(
+                layer_area.x,
+                layer_area.y.saturating_add(layer_area.height / 2),
+                layer_area.width,
+                1,
+            );
+            ui.paint_str(row, "middle", ui.surface_style());
+            let view = state(5, 100, usize::from(layer_area.height));
+            ui.scroll_edges(layer_area, &view);
+        });
+    }
+}
+
+#[test]
+fn sparse_layer_fade_keeps_unwritten_edge_transparent() {
+    let mut h = Harness::new(SparseFadeLayerPage { open: false }, Theme::junie(), 16, 12);
+    h.draw();
+    assert_eq!(
+        h.buffer().cell(Position::new(0, 0)).unwrap().symbol(),
+        "U",
+        "an unwritten overlay edge must not cover the page"
+    );
+}
+
+struct RoleFadeModalPage {
+    open: bool,
+    fade: bool,
+}
+const ROLE_FADE_MODAL: Id = Id::root("fade.role.modal");
+impl App for RoleFadeModalPage {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if !self.open {
+            cx.open_layer(ROLE_FADE_MODAL, LayerSpec::modal(ROLE_FADE_MODAL));
+            self.open = true;
+        }
+        Response::ignored()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        let area = ui.full();
+        let style = ui.surface_style();
+        ui.fill(area, style);
+        for y in area.y..area.bottom() {
+            ui.paint_str(Rect::new(area.x, y, area.width, 1), "role-aware", style);
+        }
+        if self.fade {
+            ui.scroll_edges(area, &state(5, 100, usize::from(area.height)));
+        }
+        let _ = ui.layer(ROLE_FADE_MODAL, |_ui, _area| {});
+    }
+}
+
+#[test]
+fn scroll_fade_preserves_background_role_for_modal_dim() {
+    let mut plain = Harness::new(
+        RoleFadeModalPage {
+            open: false,
+            fade: false,
+        },
+        Theme::junie(),
+        16,
+        12,
+    );
+    let mut faded = Harness::new(
+        RoleFadeModalPage {
+            open: false,
+            fade: true,
+        },
+        Theme::junie(),
+        16,
+        12,
+    );
+    plain.draw();
+    faded.draw();
+    for y in [0, 11] {
+        let expected = plain.buffer().cell(Position::new(0, y)).unwrap();
+        let actual = faded.buffer().cell(Position::new(0, y)).unwrap();
+        assert_eq!(actual.bg, expected.bg, "background role at y={y}");
     }
 }
 
