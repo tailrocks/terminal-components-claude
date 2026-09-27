@@ -301,6 +301,7 @@ pub(crate) struct TaskRunnerPage {
     state: StepsState,
     frame: usize,
     running: bool,
+    motion_paused: bool,
     cancel_state: DialogState,
     message: &'static str,
 }
@@ -320,6 +321,7 @@ impl TaskRunnerPage {
             state: StepsState::new(),
             frame: 0,
             running: false,
+            motion_paused: false,
             cancel_state: DialogState::default(),
             message: "pipeline idle",
         }
@@ -365,6 +367,16 @@ impl Default for TaskRunnerPage {
 }
 
 impl Page for TaskRunnerPage {
+    fn seek_paused(&mut self, frame: usize) {
+        if frame > 0 {
+            self.start();
+            for _ in 0..frame.min(self.steps.len().saturating_mul(4).saturating_add(1)) {
+                self.advance();
+            }
+        }
+        self.motion_paused = true;
+    }
+
     fn title(&self) -> &'static str {
         "Task runner"
     }
@@ -390,7 +402,7 @@ impl Page for TaskRunnerPage {
             cx.open_layer(CANCEL_DIALOG, cancel_dialog().layer(cx));
         }
         result |= cancel.erase();
-        if self.running {
+        if self.running && !self.motion_paused {
             self.advance();
             cx.request_repaint_after(Duration::from_millis(120));
         }
@@ -594,5 +606,30 @@ fn paint_pipeline_heading(
             "0 of 6 done",
             meta,
         );
+    }
+}
+
+#[cfg(test)]
+mod motion_tests {
+    use super::*;
+
+    #[test]
+    fn paused_seek_starts_then_freezes_pipeline_at_a_bounded_frame() {
+        let mut page = TaskRunnerPage::new();
+        page.seek_paused(5);
+        assert_eq!(page.frame, 5);
+        assert!(page.running);
+        assert_eq!(
+            page.steps.first().map(|step| step.state),
+            Some(StepState::Done)
+        );
+        assert_eq!(
+            page.steps.get(1).map(|step| step.state),
+            Some(StepState::Running)
+        );
+        assert!(page.motion_paused);
+        page.seek_paused(usize::MAX);
+        assert!(!page.running);
+        assert_eq!(page.message, "pipeline complete");
     }
 }

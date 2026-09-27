@@ -41,6 +41,7 @@ the language hold up when a real tool is built from it?*
 cargo run -p showcase --release                      # the showcase
 cargo run -p showcase --release -- --page datagrid   # start on a page (overview, buttons, … codeeditor, datagrid, chipsselects, pickers)
 cargo run -p showcase --release -- --color 256       # cap the colour level: truecolor|256|16|none
+cargo run -p showcase --release -- --page progress --motion paused --frame 80 # inspect a frozen animation frame (0–10000)
 
 cargo run -p tablepro --release                      # the workbench, starting on the connections screen
 cargo run -p tablepro --release -- --connect Production   # connect straight away
