@@ -2,8 +2,8 @@
 //!
 //! Every method clips to the current area and marks the layer's
 //! written-cell bitset. Cell, string, and span painters share Ratatui
-//! grapheme/width semantics in one allocation-free writer that also records
-//! provenance;
+//! grapheme/width semantics in one writer with reusable inline cluster scratch
+//! and a retained heap fallback for oversized clusters;
 //! `paint_cell` resets the cells a wide grapheme shadows; `fill` and
 //! `dim_layer` are deliberate re-implementations of `ratatui_widgets::{Fill,
 //! Dimmed}` because foreign widgets cannot mark the bitset or walk roles.
