@@ -1337,11 +1337,17 @@ impl TuiApp for App {
 
 /// Parse CLI options and run the migrated binary.
 pub(crate) fn run() -> std::io::Result<()> {
+    let (page, theme, paused, frame) = parse_args(std::env::args().skip(1))?;
+    junie_tui::run(App::with_page_motion(page, paused, frame), theme)
+}
+
+fn parse_args(
+    mut args: impl Iterator<Item = String>,
+) -> std::io::Result<(PageId, Theme, bool, usize)> {
     let mut theme = Theme::junie();
     let mut page = PageId::Overview;
     let mut paused = false;
     let mut frame = 0usize;
-    let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
             "--theme" => {
@@ -1414,7 +1420,7 @@ pub(crate) fn run() -> std::io::Result<()> {
             _ => {}
         }
     }
-    junie_tui::run(App::with_page_motion(page, paused, frame), theme)
+    Ok((page, theme, paused, frame))
 }
 
 #[cfg(test)]
@@ -1458,7 +1464,7 @@ mod paint_contract_tests {
 }
 
 #[cfg(test)]
-mod action_namespace_tests {
+mod app_tests {
     use super::*;
 
     #[test]
@@ -1504,5 +1510,30 @@ mod action_namespace_tests {
                 "distinct command: {name}"
             );
         }
+    }
+
+    #[test]
+    fn showcase_motion_flags_parse_and_bound_paused_frames() {
+        let parsed = parse_args(
+            ["--page", "progress", "--motion", "paused", "--frame", "80"]
+                .into_iter()
+                .map(str::to_owned),
+        );
+        assert!(parsed.is_ok(), "valid frame options: {parsed:?}");
+        if let Ok((page, _, paused, frame)) = parsed {
+            assert_eq!(page, PageId::Progress);
+            assert!(paused);
+            assert_eq!(frame, 80);
+        }
+
+        let parsed = parse_args(["--frame", "10000"].into_iter().map(str::to_owned));
+        assert!(parsed.is_ok(), "maximum frame is valid: {parsed:?}");
+        if let Ok((_, _, paused, frame)) = parsed {
+            assert!(paused);
+            assert_eq!(frame, 10_000);
+        }
+        assert!(parse_args(["--frame", "10001"].into_iter().map(str::to_owned)).is_err());
+        assert!(parse_args(["--motion"].into_iter().map(str::to_owned)).is_err());
+        assert!(parse_args(["--motion", "reduced"].into_iter().map(str::to_owned)).is_err());
     }
 }
