@@ -129,9 +129,10 @@ impl Ui<'_> {
 
     /// Fade the viewport edge rows that conceal more scrollable content.
     /// Call after drawing the scroll region, passing its returned content rect.
-    /// The scrollbar lies outside that rect. Foreground color changes on
-    /// painted cells with the dominant background; backgrounds, reversed cells,
-    /// cursor rows, and explicitly kept rows retain their original values.
+    /// The scrollbar lies outside that rect. Compatible foregrounds blend on
+    /// painted cells with the dominant background; outer rows receive `DIM`
+    /// when blending is unavailable. Backgrounds, reversed cells, cursor rows,
+    /// and explicitly kept rows retain their original values.
     pub fn scroll_edges(&mut self, area: Rect, state: &ScrollState) {
         self.scroll_edges_except(area, state, &[]);
     }

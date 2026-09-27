@@ -2468,13 +2468,11 @@ impl Ui<'_> {
     pub fn frame(&mut self, area: Rect, s: Style) -> Rect;                  // theme BorderSet; returns the inner rect
     pub fn glyph(&mut self, area: Rect, g: GlyphRole, s: Style) -> u16;     // columns written
     /// <!-- amended by §24 M1; §25 D‑13, F4 --> Multi-style single-line paint in OUR vocabulary. Resolves each
-    /// `Span`'s `Role` against the live theme and surface and writes it through `Buffer::set_span`, span by span,
-    /// accumulating the x cursor and the per-span role marks — **never** collecting a `Vec<RawSpan>` first (the
-    /// per-call allocation on the row path that made `frame_showcase_lists_120x40 < 20`, `grid_500x12_render < 100`
-    /// and `viewport_100k_lines_render` unreachable). `base` is the part style the spans inherit; without it
-    /// `RowUi::label_spans` could not honour the `LABEL` recipe. Returns columns written. Removes the only
-    /// realistic reason to reach `author::raw::Span`. `Buffer::set_span` is a sanctioned per-span writer
-    /// alongside `set_line` (§22 R‑3), so width accounting cannot drift from `set_stringn`'s.
+    /// `Span`'s `Role` against the live theme and surface, streaming graphemes across borrowed spans through
+    /// the shared allocation-free cluster writer used by `paint_str`. Graphemes crossing span boundaries
+    /// use the style at their first byte; wide cells, controls, clipping, and role marks follow that writer.
+    /// `base` is the part style the spans inherit; without it `RowUi::label_spans` could not honour the
+    /// `LABEL` recipe. Returns columns written. Removes the only realistic reason to reach `author::raw::Span`.
     pub fn paint_spans(&mut self, area: Rect, spans: &[Span<'_>], base: Style) -> u16;
     pub fn raw(&mut self) -> (&mut Buffer, Rect);
     /// Derived, non-semantic per-component cache. Keyed by (Id, TypeId). Cleared on resize,
@@ -5006,7 +5004,7 @@ Each item names the exact modern primitive; the `Ui` signatures are in §17.0 A2
 13. **`ratatui_widgets::Scrollbar`/`ScrollbarState` — rejected** (MOD §2.13), for three structural reasons: (a) a `Widget` that paints into a `Buffer` cannot register `Part::TRACK`/`Part::THUMB` hit regions, which §12.2 requires for thumb drag through pointer capture; (b) it cannot resolve through `ui.style(SCROLLBAR, …)`, bypassing the recipe system (G6); (c) `ScrollbarState` would be a second source of truth beside `ScrollState` (§18.1). Only its **symbol sets** are adopted. Forbidden pattern (rule 15).
 14. **`Block`, `Padding`, titles** (MOD §2.14). All stay out with `ratatui-widgets`. `Ui::frame(area, style) -> Rect` draws the theme `BorderSet` and returns the inner rect — the 20 lines `Block::bordered().inner()` would give, but participating in the clip rect, the written-cell bitset and role resolution. `Padding` is `Insets` (§10). **[F]** There is no `Title` type in 0.30; titles are `Line`s. `Shadow` is noted as the one tempting piece for popovers — left out; taking `ratatui-widgets` for one widget must be re-argued if §9's chrome ever wants it.
 15. **Deprecated and trap APIs** (MOD §2.15). `Buffer::get`/`get_mut` are `#[deprecated]`; cells are reached by `Buffer::cell`/`cell_mut` (`Option`), never by the panicking index (R‑5). **Security trap:** `ratatui_core::text::Masked`'s `Debug` prints the raw secret verbatim (`masked.rs:50-56`); any `Masked` reachable from a `#[derive(Debug)]` struct leaks. `Masked` is **forbidden** in library and apps (R‑19); `Secret` + `SecretPolicy` with a manual redacting `Debug` and a synthetic tail is the only masking path; `conformance::secret_never_appears_in_debug` (§16.2 case 18) is extended to assert that no `Masked` is constructible from a `Secret`.
-16. **`Text`/`Line`/`Span`** (MOD §2.16). Keep our own span type (it stores a `Tone`/`Role`, not a resolved `Style`, so a viewport re-themes without rebuilding and `Ui::dim_layer` can walk roles; storage per §18.2). But `RowUi::label_spans` paints through a ratatui writer <!-- amended by §25 F4: `Buffer::set_span`, span by span, accumulating the x cursor and the per-span role marks — never a collected `Vec<RawSpan>`, which allocates once per call on the row path (§20.9‑6, R5) --> (per-span clipping and `line.style.patch(span.style)` for free, and it cannot drift from `set_stringn`'s width accounting) instead of a hand-written span cursor (R‑3). `ToSpan`/`ToLine` are rejected as the `Display → row label` bridge (they allocate through `to_string()`); `RowUi::label_fmt` is the reason.
+16. **`Text`/`Line`/`Span`** (MOD §2.16). Keep our own span type (it stores a `Tone`/`Role`, not a resolved `Style`, so a viewport re-themes without rebuilding and `Ui::dim_layer` can walk roles; storage per §18.2). `RowUi::label_spans` and `Ui::paint_spans` stream borrowed text through the shared allocation-free cluster writer used by `paint_str`, preserving first-byte style ownership across span boundaries, clipping, and `set_stringn` width accounting (R‑3). `ToSpan`/`ToLine` are rejected as the `Display → row label` bridge (they allocate through `to_string()`); `RowUi::label_fmt` is the reason.
 17. **Colour literals** (MOD §2.17). `mod palette::rgb` (`theme.rs:56-65`) is deleted; literals are `Color::from_u32(0x00RRGGBB)` (`const`, unfeatured) and only in `theme/builtin/{junie,paper}.rs` and `tests/fixtures/**` (R‑10). `architecture::palette_literals_are_confined_to_theme_builtins` greps `Color::from_u32(` too (applied, §16.5), or the check would pass while every literal moves one call deeper.
 18. **Multi-width safety in `Ui::paint_cell`** (MOD §2.18). `set_stringn` resets the cells shadowed by a multi-width grapheme and the diff assumes "no double-width cell is followed by a non-blank cell". `Ui::paint_cell` must replicate that reset or a wide grapheme written cell-by-cell corrupts the diff — a documented invariant covered in `render::components::*` with a CJK fixture (R‑6).
 
@@ -5273,8 +5271,8 @@ pub mod author {
 // crates/tui/src/ui/paint.rs — new, so the role-carrying Span is the only span in normal use (R‑3)
 impl Ui<'_> {
     /// Multi-style single-line paint. Resolves each `Span`'s `Role` against the live
-    /// theme and surface and writes it through `Buffer::set_span`, span by span.
-    /// Returns columns written.
+    /// theme and surface, streaming borrowed text through the allocation-free
+    /// grapheme writer shared with `paint_str`. Returns columns written.
     /// <!-- amended by §25 D‑13, F4 --> Two corrections to this signature: it takes a third
     /// `base: Style` (the part style the spans inherit — without it `RowUi::label_spans`
     /// could not honour the `LABEL` recipe), and it must NOT collect a `Vec<RawSpan>` to
