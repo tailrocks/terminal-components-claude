@@ -1,6 +1,7 @@
 //! Text measurement, editing, matching and spans (`COMPONENT_ARCHITECTURE.md` §15, §18.1).
 
 pub(crate) mod buffer;
+pub(crate) mod clusters;
 pub(crate) mod editor;
 pub(crate) mod fuzzy;
 pub(crate) mod measure;

@@ -63,6 +63,28 @@ def _check_real_parents(path: Path, label: str) -> None:
             fail(f"{label} parent is not a real directory: {current}")
 
 
+def _confined_link_target(path: Path, label: str) -> Path:
+    try:
+        target = Path(os.readlink(path))
+    except OSError as error:
+        fail(f"cannot read {label} link {path}: {error}")
+    if target.is_absolute() or not target.parts or ".." in target.parts:
+        fail(f"{label} link escapes or traverses the repository: {path}")
+    target_path = path.parent / target
+    try:
+        target_path.relative_to(ROOT)
+    except ValueError:
+        fail(f"{label} link escapes the repository: {path}")
+    _check_real_parents(target_path, label)
+    try:
+        metadata = target_path.lstat()
+    except OSError as error:
+        fail(f"cannot inspect {label} link target {target_path}: {error}")
+    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+        fail(f"{label} link target is not a regular file: {target_path}")
+    return target_path
+
+
 def regular_bytes(path: Path, label: str) -> bytes:
     _check_real_parents(path, label)
     try:
@@ -71,7 +93,11 @@ def regular_bytes(path: Path, label: str) -> bytes:
         fail(f"missing {label}: {path}")
     except OSError as error:
         fail(f"cannot inspect {label} {path}: {error}")
-    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+    if stat.S_ISLNK(metadata.st_mode):
+        # Agent-instruction symlinks (CLAUDE.md -> AGENTS.md) are first-class
+        # tracked files. Permit one sibling target; reject chains and traversal.
+        path = _confined_link_target(path, label)
+    elif not stat.S_ISREG(metadata.st_mode):
         fail(f"{label} is not a regular file: {path}")
     try:
         return path.read_bytes()

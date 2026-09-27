@@ -10,7 +10,11 @@ fn eq_fold(a: &str, b: &str) -> bool {
     }
     a.chars()
         .flat_map(char::to_lowercase)
-        .eq(b.chars().flat_map(char::to_lowercase))
+        .map(|c| if c == 'ς' { 'σ' } else { c })
+        .eq(b
+            .chars()
+            .flat_map(char::to_lowercase)
+            .map(|c| if c == 'ς' { 'σ' } else { c }))
 }
 
 /// Which separators give a substring the word-boundary ranking bonus.
@@ -34,8 +38,8 @@ impl FuzzyBoundary {
 /// and the **grapheme ordinals in the original label** that matched, so a
 /// list can bold them while walking the label's graphemes.
 ///
-/// **Allocates three `Vec`s per call** (the grapheme index, the lowercase
-/// fold and the match ordinals). That is fine for a Slice-3 primitive and a
+/// **Allocates three `Vec`s per call** (the label grapheme index, query
+/// grapheme index and match ordinals). That is fine for a Slice-3 primitive and a
 /// dialog-sized candidate set; a 100 k-item `Picker` filter would make
 /// 300 000 allocations per keystroke, so 4F must either take a scratch buffer
 /// or filter incrementally (MI-10). Recorded here so it is not discovered
@@ -133,5 +137,15 @@ mod tests {
         assert_eq!(fuzzy("abc", "z"), None);
         assert_eq!(fuzzy("abc", ""), Some((0, Vec::new())));
         assert_eq!(fuzzy("ab", "abc"), None);
+    }
+
+    #[test]
+    fn fuzzy_matches_only_whole_graphemes_and_folds_sigma_variants() {
+        assert_eq!(fuzzy("İ", "i"), None);
+        assert_eq!(fuzzy("e\u{301}", "e"), None);
+        assert_eq!(fuzzy("İx", "ix"), None);
+        assert_eq!(fuzzy("İi", "i"), Some((30, vec![1])));
+        assert_eq!(fuzzy("ΟΣ", "οσ"), Some((0, vec![0, 1])));
+        assert_eq!(fuzzy("ΟΣ", "ος"), Some((0, vec![0, 1])));
     }
 }

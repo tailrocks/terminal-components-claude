@@ -251,6 +251,11 @@ mod architecture {
     }
 
     #[test]
+    fn parity_mapping_contract() {
+        check("parity_mapping_contract");
+    }
+
+    #[test]
     fn app_baselines_exist() {
         check("app_baselines_exist");
     }

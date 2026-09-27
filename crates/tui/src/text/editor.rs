@@ -8,7 +8,7 @@
 use core::fmt;
 use core::ops::Range;
 
-use super::buffer::{CursorPos, TextBuffer};
+use super::buffer::{CursorPos, TextBuffer, normalized_text};
 
 /// A cursor motion.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -249,7 +249,7 @@ impl TextEditorCore {
             }
             EditAction::Paste(s) => changed(b.insert_str(s)),
             EditAction::SetText(s) => {
-                if b.text() == s {
+                if b.text() == normalized_text(s, b.is_multiline()) {
                     return EditOutcome::Ignored;
                 }
                 b.set_text(s);
@@ -368,5 +368,21 @@ mod tests {
         e.zeroize();
         assert!(e.is_empty() && e.hscroll() == 0);
         assert!(!format!("{e:?}").contains("0123"));
+    }
+
+    #[test]
+    fn set_text_compares_normalized_content() {
+        let mut editor = TextEditorCore::single("ab");
+        assert_eq!(
+            editor.apply(EditAction::SetText("a\r\nb")),
+            EditOutcome::Ignored
+        );
+        assert_eq!(editor.text(), "ab");
+        let mut multi = TextEditorCore::multi("a\nb");
+        assert_eq!(
+            multi.apply(EditAction::SetText("a\r\nb")),
+            EditOutcome::Ignored
+        );
+        assert_eq!(multi.text(), "a\nb");
     }
 }

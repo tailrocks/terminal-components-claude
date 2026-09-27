@@ -430,6 +430,88 @@ fn blend(top: Color, bottom: Color, alpha: f64) -> Color {
     Color::Rgb(mix(t.0, b.0), mix(t.1, b.1), mix(t.2, b.2))
 }
 
+/// Result of fading one foreground toward its row background.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum FadeOutcome {
+    Blended(Color),
+    ApplyDim,
+    Unchanged,
+}
+
+/// Mix RGB foreground toward RGB background. Terminal palette colors cannot be
+/// mixed portably, so callers may apply `DIM` for the outer edge only.
+#[expect(clippy::float_cmp, reason = "edge rows use exact configured strengths")]
+pub(crate) fn fade_mix(fg: Color, bg: Color, amount: f32) -> FadeOutcome {
+    let (Color::Rgb(fr, fg, fb), Color::Rgb(br, bg, bb)) = (fg, bg) else {
+        return if amount == 0.55 {
+            FadeOutcome::ApplyDim
+        } else {
+            FadeOutcome::Unchanged
+        };
+    };
+    let mix = |front: u8, back: u8| {
+        (f32::from(front) * amount + f32::from(back) * (1.0 - amount))
+            .round()
+            .clamp(0.0, 255.0) as u8
+    };
+    FadeOutcome::Blended(Color::Rgb(mix(fr, br), mix(fg, bg), mix(fb, bb)))
+}
+
+#[cfg(test)]
+mod fade_tests {
+    use super::{FadeOutcome, fade_mix};
+    use ratatui_core::style::Color;
+
+    fn mix(front: u8, back: u8, amount: f32) -> u8 {
+        (f32::from(front) * amount + f32::from(back) * (1.0 - amount))
+            .round()
+            .clamp(0.0, 255.0) as u8
+    }
+
+    #[test]
+    fn fade_mix_matches_oracle_for_every_rgb_channel_pair() {
+        for amount in [0.55f32, 0.80f32] {
+            for fg in 0..=u8::MAX {
+                for bg in 0..=u8::MAX {
+                    let expected = mix(fg, bg, amount);
+                    assert_eq!(
+                        fade_mix(Color::Rgb(fg, fg, fg), Color::Rgb(bg, bg, bg), amount),
+                        FadeOutcome::Blended(Color::Rgb(expected, expected, expected)),
+                        "fg={fg} bg={bg} amount={amount}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn fade_mix_handles_terminal_palette_colors_conservatively() {
+        let colors = [
+            Color::Reset,
+            Color::Indexed(3),
+            Color::Red,
+            Color::Rgb(9, 20, 31),
+        ];
+        for fg in colors {
+            for bg in colors {
+                if let (Color::Rgb(fr, fg_green, fb), Color::Rgb(br, bg_green, bb)) = (fg, bg) {
+                    assert_eq!(
+                        fade_mix(fg, bg, 0.55),
+                        FadeOutcome::Blended(Color::Rgb(
+                            mix(fr, br, 0.55),
+                            mix(fg_green, bg_green, 0.55),
+                            mix(fb, bb, 0.55),
+                        ))
+                    );
+                } else {
+                    assert_eq!(fade_mix(fg, bg, 0.55), FadeOutcome::ApplyDim);
+                    assert_eq!(fade_mix(fg, bg, 0.80), FadeOutcome::Unchanged);
+                }
+            }
+        }
+    }
+}
+
 /// WCAG contrast ratio.
 pub(crate) fn contrast(a: Color, b: Color) -> f64 {
     let (Some(a), Some(b)) = (rgb_of(a), rgb_of(b)) else {

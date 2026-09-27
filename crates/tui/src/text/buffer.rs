@@ -7,8 +7,9 @@
 
 use core::fmt;
 use core::ops::Range;
+use std::borrow::Cow;
 
-use super::measure::{grapheme_width, graphemes, is_word_char, width};
+use super::measure::{grapheme_width, graphemes, is_word_grapheme, width};
 
 /// Cursor as `(line, display column)`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -69,8 +70,72 @@ impl Drop for TextBuffer {
     }
 }
 
+pub(super) fn normalized_text(text: &str, multiline: bool) -> Cow<'_, str> {
+    if multiline && text.contains('\r') {
+        let mut normalized = String::with_capacity(text.len());
+        let mut chars = text.chars().peekable();
+        while let Some(ch) = chars.next() {
+            if ch == '\r' {
+                if chars.peek() == Some(&'\n') {
+                    chars.next();
+                }
+                normalized.push('\n');
+            } else {
+                normalized.push(ch);
+            }
+        }
+        normalized.into()
+    } else if !multiline && text.contains(['\r', '\n']) {
+        text.chars()
+            .filter(|c| !matches!(c, '\r' | '\n'))
+            .collect::<String>()
+            .into()
+    } else {
+        text.into()
+    }
+}
+
+fn normalize_owned(text: String, multiline: bool, sensitive: bool) -> String {
+    match normalized_text(&text, multiline) {
+        Cow::Borrowed(_) => text,
+        Cow::Owned(normalized) => {
+            if sensitive {
+                wipe_string(text);
+            }
+            normalized
+        }
+    }
+}
+
 impl TextBuffer {
+    fn floor_boundary(text: &str, offset: usize) -> usize {
+        if offset >= text.len() {
+            return text.len();
+        }
+        graphemes(text)
+            .map(|(i, _)| i)
+            .take_while(|i| *i <= offset)
+            .last()
+            .unwrap_or(0)
+    }
+
+    fn ceil_boundary(text: &str, offset: usize) -> usize {
+        if offset >= text.len() {
+            return text.len();
+        }
+        graphemes(text)
+            .map(|(i, _)| i)
+            .find(|i| *i >= offset)
+            .unwrap_or(text.len())
+    }
+
+    fn normalize_positions(&mut self) {
+        self.cursor = Self::ceil_boundary(&self.text, self.cursor);
+        self.anchor = self.anchor.map(|a| Self::floor_boundary(&self.text, a));
+    }
+
     fn from_text(text: String, multiline: bool, sensitive: bool) -> Self {
+        let text = normalize_owned(text, multiline, sensitive);
         TextBuffer {
             cursor: text.len(),
             text,
@@ -131,11 +196,11 @@ impl TextBuffer {
     /// Replace the text; cursor at the end, no selection.
     pub fn set_text(&mut self, text: &str) {
         if self.sensitive {
-            self.replace_text(text.to_owned());
+            self.replace_text(normalize_owned(text.to_owned(), self.multiline, true));
             self.anchor = None;
         } else {
             self.zeroize();
-            self.text.push_str(text);
+            self.text.push_str(&normalized_text(text, self.multiline));
         }
         self.cursor = self.text.len();
     }
@@ -183,7 +248,11 @@ impl TextBuffer {
     pub fn selection_lines(&self) -> (usize, usize) {
         if let Some(r) = self.selection() {
             let a = Self::pos_of(&self.text, r.start).line;
-            let b = Self::pos_of(&self.text, r.end.saturating_sub(1).max(r.start)).line;
+            let before = &self.text[..r.end.min(self.text.len())];
+            let b = before
+                .matches('\n')
+                .count()
+                .saturating_sub(usize::from(before.ends_with('\n')));
             (a, b)
         } else {
             let l = self.cursor_pos().line;
@@ -201,13 +270,9 @@ impl TextBuffer {
         }
     }
 
-    /// Snap a byte offset to the nearest preceding char boundary.
-    fn snap(&self, mut at: usize) -> usize {
-        at = at.min(self.text.len());
-        while at > 0 && !self.text.is_char_boundary(at) {
-            at = at.saturating_sub(1);
-        }
-        at
+    /// Snap a byte offset to the nearest preceding grapheme boundary.
+    fn snap(&self, at: usize) -> usize {
+        Self::floor_boundary(&self.text, at.min(self.text.len()))
     }
 
     fn prev_boundary(&self, from: usize) -> usize {
@@ -239,29 +304,37 @@ impl TextBuffer {
     }
 
     fn prev_word(&self, from: usize) -> usize {
-        let before = self.text.get(..from).unwrap_or("");
-        let trimmed = before.trim_end_matches(|c: char| !is_word_char(c));
-        if trimmed.is_empty() {
-            return 0;
+        let end = Self::floor_boundary(&self.text, from);
+        let mut clusters = graphemes(&self.text[..end]).rev().peekable();
+        while clusters.peek().is_some_and(|(_, g)| !is_word_grapheme(g)) {
+            clusters.next();
         }
-        trimmed
-            .char_indices()
-            .rev()
-            .find(|(_, c)| !is_word_char(*c))
-            .map_or(0, |(i, c)| i.saturating_add(c.len_utf8()))
+        let mut start = 0;
+        while let Some(&(i, g)) = clusters.peek() {
+            if !is_word_grapheme(g) {
+                break;
+            }
+            start = i;
+            clusters.next();
+        }
+        start
     }
 
     fn next_word(&self, from: usize) -> usize {
-        let after = self.text.get(from..).unwrap_or("");
-        let mut in_word = false;
-        for (i, c) in after.char_indices() {
-            if is_word_char(c) {
-                in_word = true;
-            } else if in_word {
-                return from.saturating_add(i);
-            }
+        let start = Self::floor_boundary(&self.text, from);
+        let suffix = &self.text[start..];
+        let mut clusters = graphemes(suffix).peekable();
+        while clusters.peek().is_some_and(|(_, g)| !is_word_grapheme(g)) {
+            clusters.next();
         }
-        self.text.len()
+        let mut end = 0;
+        for (i, g) in clusters {
+            if !is_word_grapheme(g) {
+                return start.saturating_add(i);
+            }
+            end = i.saturating_add(g.len());
+        }
+        start.saturating_add(end)
     }
 
     /// Move left one grapheme (collapsing a selection to its start).
@@ -361,6 +434,7 @@ impl TextBuffer {
             self.remove_range(r.clone());
             self.cursor = r.start;
             self.anchor = None;
+            self.normalize_positions();
             true
         } else {
             self.anchor = None;
@@ -371,9 +445,10 @@ impl TextBuffer {
     /// Insert a character (a newline is rejected in single-line mode).
     /// Returns whether the text changed.
     pub fn insert_char(&mut self, c: char) -> bool {
-        if c == '\n' && !self.multiline {
+        if matches!(c, '\r' | '\n') && !self.multiline {
             return false;
         }
+        let c = if c == '\r' { '\n' } else { c };
         if self.sensitive {
             let range = self.selection().unwrap_or(self.cursor..self.cursor);
             let mut next = String::with_capacity(
@@ -388,51 +463,42 @@ impl TextBuffer {
             self.replace_text(next);
             self.cursor = range.start.saturating_add(c.len_utf8());
             self.anchor = None;
+            self.normalize_positions();
             return true;
         }
         self.delete_selection();
         self.text.insert(self.cursor, c);
         self.cursor = self.cursor.saturating_add(c.len_utf8());
+        self.normalize_positions();
         true
     }
 
     /// Insert text (newlines are stripped in single-line mode).
     pub fn insert_str(&mut self, s: &str) -> bool {
+        let ins = normalized_text(s, self.multiline);
+        let range = self.selection().unwrap_or(self.cursor..self.cursor);
+        let changed = !range.is_empty() || !ins.is_empty();
         if self.sensitive {
-            let range = self.selection().unwrap_or(self.cursor..self.cursor);
             let before = self.text.len().saturating_sub(range.len());
-            let mut next = String::with_capacity(before.saturating_add(s.len()));
+            let mut next = String::with_capacity(before.saturating_add(ins.len()));
             next.push_str(&self.text[..range.start]);
-            if self.multiline {
-                next.push_str(s);
-            } else {
-                for c in s.chars().filter(|c| *c != '\n' && *c != '\r') {
-                    next.push(c);
-                }
-            }
+            next.push_str(&ins);
             next.push_str(&self.text[range.end..]);
-            let inserted_len = next
-                .len()
-                .saturating_sub(self.text.len().saturating_sub(range.len()));
+            let inserted_len = ins.len();
             self.replace_text(next);
             self.cursor = range.start.saturating_add(inserted_len);
             self.anchor = None;
-            return inserted_len != 0;
-        }
-        self.delete_selection();
-        let before = self.text.len();
-        if self.multiline {
-            self.text.insert_str(self.cursor, s);
-        } else {
-            let mut at = self.cursor;
-            for c in s.chars().filter(|c| *c != '\n' && *c != '\r') {
-                self.text.insert(at, c);
-                at = at.saturating_add(c.len_utf8());
+            self.normalize_positions();
+            if let Cow::Owned(normalized) = ins {
+                wipe_string(normalized);
             }
+            return changed;
         }
-        let grown = self.text.len().saturating_sub(before);
-        self.cursor = self.cursor.saturating_add(grown);
-        grown > 0
+        self.text.replace_range(range.clone(), &ins);
+        self.cursor = range.start.saturating_add(ins.len());
+        self.anchor = None;
+        self.normalize_positions();
+        changed
     }
 
     /// Delete the grapheme before the cursor (or the selection).
@@ -446,6 +512,7 @@ impl TextBuffer {
         }
         self.remove_range(start..self.cursor);
         self.cursor = start;
+        self.normalize_positions();
         true
     }
 
@@ -459,6 +526,7 @@ impl TextBuffer {
             return false;
         }
         self.remove_range(self.cursor..end);
+        self.normalize_positions();
         true
     }
 
@@ -473,6 +541,7 @@ impl TextBuffer {
         }
         self.remove_range(start..self.cursor);
         self.cursor = start;
+        self.normalize_positions();
         true
     }
 
@@ -486,6 +555,7 @@ impl TextBuffer {
             return false;
         }
         self.remove_range(self.cursor..end);
+        self.normalize_positions();
         true
     }
 
@@ -500,6 +570,7 @@ impl TextBuffer {
         }
         self.remove_range(start..self.cursor);
         self.cursor = start;
+        self.normalize_positions();
         true
     }
 
@@ -625,12 +696,18 @@ mod tests {
 
     #[test]
     fn word_chars_are_consistent_between_buffer_and_viewport() {
-        // one definition: `text::is_word_char`; `_` joins a word, `-` splits
+        // `_` joins words; combining marks remain attached to their base.
         let mut b = TextBuffer::single("snake_case-kebab");
         b.move_home(false);
         b.move_word_right(false);
         assert_eq!(b.cursor_offset(), "snake_case".len());
-        assert!(is_word_char('_') && !is_word_char('-'));
+        b.move_word_right(false);
+        assert_eq!(b.cursor_offset(), "snake_case-kebab".len());
+        let mut c = TextBuffer::single("e\u{301},x");
+        c.move_home(false);
+        c.move_word_right(false);
+        assert_eq!(c.cursor_offset(), "e\u{301}".len());
+        assert!(is_word_grapheme("e\u{301}"));
     }
 
     #[test]
@@ -662,6 +739,60 @@ mod tests {
         assert_eq!(m.line_count(), 2);
         assert!(m.move_up(false));
         assert!(!m.move_up(false));
+    }
+
+    #[test]
+    fn text_entry_points_normalize_line_breaks() {
+        assert_eq!(TextBuffer::single("a\r\nb\nc").text(), "abc");
+        assert_eq!(TextBuffer::multi("a\r\nb\rc").text(), "a\nb\nc");
+
+        let mut single = TextBuffer::single("old");
+        single.set_text("a\rb\nc");
+        assert_eq!(single.text(), "abc");
+        assert!(!single.insert_char('\r'));
+        assert_eq!(single.text(), "abc");
+
+        let mut multi = TextBuffer::multi("a");
+        assert!(multi.insert_char('\r'));
+        assert_eq!(multi.text(), "a\n");
+    }
+
+    #[test]
+    fn selection_and_empty_paste_keep_whole_graphemes_and_report_deletion() {
+        let mut buffer = TextBuffer::single("e\u{301}x");
+        buffer.select_range(1, 3);
+        assert_eq!(buffer.selected_text(), Some("e\u{301}"));
+        buffer.select_range(0, 3);
+        assert!(buffer.insert_str("\r\n"));
+        assert_eq!(buffer.text(), "x");
+
+        let mut buffer = TextBuffer::single("e\u{301}x");
+        buffer.select_range(0, 3);
+        assert!(buffer.insert_str(""));
+        assert_eq!(buffer.text(), "x");
+    }
+
+    #[test]
+    fn insertion_and_deletion_repair_cursor_after_clusters_join() {
+        let mut buffer = TextBuffer::single("ex");
+        buffer.set_cursor_line_col(0, 1);
+        assert!(buffer.insert_char('\u{301}'));
+        assert_eq!(buffer.cursor_offset(), "e\u{301}".len());
+        buffer.move_home(false);
+        buffer.delete();
+        assert_eq!(buffer.cursor_offset(), 0);
+        assert_eq!(buffer.text(), "x");
+
+        let mut word = TextBuffer::single("e\u{301}x next");
+        word.move_doc_start(false);
+        word.move_word_right(false);
+        assert_eq!(word.cursor_offset(), "e\u{301}x".len());
+
+        let mut selected = TextBuffer::multi("e\n\u{301}");
+        selected.select_range(1, 2);
+        assert!(selected.backspace());
+        assert_eq!(selected.text(), "e\u{301}");
+        assert_eq!(selected.cursor_offset(), "e\u{301}".len());
     }
 
     #[test]

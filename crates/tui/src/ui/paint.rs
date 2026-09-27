@@ -2,8 +2,8 @@
 //!
 //! Every method clips to the current area and marks the layer's
 //! written-cell bitset. Cell, string, and span painters share Ratatui
-//! grapheme/width semantics in one allocation-free writer that also records
-//! provenance;
+//! grapheme/width semantics in one writer with reusable inline cluster scratch
+//! and a retained heap fallback for oversized clusters;
 //! `paint_cell` resets the cells a wide grapheme shadows; `fill` and
 //! `dim_layer` are deliberate re-implementations of `ratatui_widgets::{Fill,
 //! Dimmed}` because foreign widgets cannot mark the bitset or walk roles.
@@ -13,8 +13,11 @@ use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier, Style};
 
 use super::Ui;
+use crate::scroll::ScrollState;
 use crate::text::Span;
+use crate::text::clusters::ClusterFeed;
 use crate::text::measure::graphemes;
+use crate::theme::builder::{FadeOutcome, fade_mix};
 use crate::theme::{FgStep, GlyphRole, PaintStyle, Role, Surface, Theme};
 
 impl Ui<'_> {
@@ -71,8 +74,7 @@ impl Ui<'_> {
         )
     }
 
-    // Both callers supply their already-clipped row. Keeping the write walk
-    // here makes continuation clearing and provenance identical for all text.
+    // Both callers supply their already-clipped row and use the same writer.
     fn paint_graphemes<'s>(
         &mut self,
         area: Rect,
@@ -80,32 +82,182 @@ impl Ui<'_> {
     ) -> u16 {
         let mut x = area.x;
         let mut remaining = area.width;
-        for (symbol, s) in symbols.filter(|(symbol, _)| !symbol.contains(char::is_control)) {
-            let width = symbol.cell_width();
-            if width == 0 {
-                continue;
-            }
-            let Some(rest) = remaining.checked_sub(width) else {
+        for (symbol, style) in symbols {
+            if !self.paint_cluster(&mut x, &mut remaining, area.y, symbol, style) {
                 break;
-            };
-            remaining = rest;
-            let pos = Position::new(x, area.y);
-            if let Some(cell) = self.buffer().cell_mut(pos) {
-                cell.set_symbol(symbol).set_style(s.into_style());
-            }
-            self.mark(pos, Some(s));
-            let end = x.saturating_add(width);
-            x = x.saturating_add(1);
-            while x < end {
-                let pos = Position::new(x, area.y);
-                if let Some(cell) = self.buffer().cell_mut(pos) {
-                    cell.reset();
-                }
-                self.mark(pos, None);
-                x = x.saturating_add(1);
             }
         }
         x.saturating_sub(area.x)
+    }
+
+    fn paint_cluster(
+        &mut self,
+        x: &mut u16,
+        remaining: &mut u16,
+        y: u16,
+        symbol: &str,
+        style: PaintStyle,
+    ) -> bool {
+        if symbol.contains(char::is_control) {
+            return true;
+        }
+        let width = symbol.cell_width();
+        if width == 0 {
+            return true;
+        }
+        let Some(rest) = remaining.checked_sub(width) else {
+            return false;
+        };
+        *remaining = rest;
+        let pos = Position::new(*x, y);
+        if let Some(cell) = self.buffer().cell_mut(pos) {
+            cell.set_symbol(symbol).set_style(style.into_style());
+        }
+        self.mark(pos, Some(style));
+        let end = x.saturating_add(width);
+        *x = x.saturating_add(1);
+        while *x < end {
+            let pos = Position::new(*x, y);
+            if let Some(cell) = self.buffer().cell_mut(pos) {
+                cell.reset();
+            }
+            self.mark(pos, None);
+            *x = x.saturating_add(1);
+        }
+        *remaining != 0
+    }
+
+    /// Fade the viewport edge rows that conceal more scrollable content.
+    /// Call after drawing the scroll region, passing its returned content rect.
+    /// The scrollbar lies outside that rect. Compatible foregrounds blend on
+    /// painted cells with the dominant background; outer rows receive `DIM`
+    /// when blending is unavailable. Backgrounds, reversed cells, cursor rows,
+    /// and explicitly kept rows retain their original values.
+    pub fn scroll_edges(&mut self, area: Rect, state: &ScrollState) {
+        self.scroll_edges_except(area, state, &[]);
+    }
+
+    /// As [`scroll_edges`](Self::scroll_edges), preserving explicit rows (absolute `y`).
+    pub fn scroll_edges_except(&mut self, area: Rect, state: &ScrollState, keep: &[u16]) {
+        let area = area.intersection(self.clip);
+        if area.is_empty() || area.height < FADE_MIN_ROWS {
+            return;
+        }
+        let up = state.offset() > 0;
+        let down = state.viewport_len() > 0
+            && state.offset().saturating_add(state.viewport_len()) < state.content_len();
+        if !up && !down {
+            return;
+        }
+        let depth = if area.height >= FADE_DEEP_FROM { 2 } else { 1 };
+        let container = self.majority_bg(area);
+        if up {
+            self.fade_unless_protected(area, area.y, FADE_OUTER_KEEP, container, keep);
+            if depth == 2 {
+                self.fade_unless_protected(
+                    area,
+                    area.y.saturating_add(1),
+                    FADE_INNER_KEEP,
+                    container,
+                    keep,
+                );
+            }
+        }
+        if down {
+            self.fade_unless_protected(
+                area,
+                area.bottom().saturating_sub(1),
+                FADE_OUTER_KEEP,
+                container,
+                keep,
+            );
+            if depth == 2 {
+                self.fade_unless_protected(
+                    area,
+                    area.bottom().saturating_sub(2),
+                    FADE_INNER_KEEP,
+                    container,
+                    keep,
+                );
+            }
+        }
+    }
+
+    fn fade_unless_protected(
+        &mut self,
+        area: Rect,
+        y: u16,
+        keep_strength: f32,
+        container: Color,
+        keep: &[u16],
+    ) {
+        let protected = keep.contains(&y)
+            || self
+                .frame
+                .cursors
+                .iter()
+                .any(|cursor| cursor.pos.y == y && area.contains(cursor.pos));
+        if !protected {
+            self.fade_edge_row(area, y, keep_strength, container);
+        }
+    }
+
+    fn majority_bg(&mut self, area: Rect) -> Color {
+        // Retain the color histogram across frames: steady-state drawing does
+        // not allocate, and lookup cost stays bounded for richly styled views.
+        let mut counts = core::mem::take(&mut self.core.scroll_bg_counts);
+        let mut order = core::mem::take(&mut self.core.scroll_bg_order);
+        counts.clear();
+        order.clear();
+        for pos in area.positions() {
+            if !self.cell_written(pos) {
+                continue;
+            }
+            let bg = self.buffer().cell(pos).map_or(Color::Reset, |cell| cell.bg);
+            match counts.entry(bg) {
+                std::collections::hash_map::Entry::Occupied(mut entry) => {
+                    let count = entry.get().saturating_add(1);
+                    *entry.get_mut() = count;
+                }
+                std::collections::hash_map::Entry::Vacant(entry) => {
+                    order.push(bg);
+                    entry.insert(1);
+                }
+            }
+        }
+        // `max_by_key` selects the last entry on ties, preserving the
+        // historical rule based on first-seen background order.
+        let color = order
+            .iter()
+            .filter_map(|bg| counts.get(bg).map(|count| (*bg, *count)))
+            .max_by_key(|(_, count)| *count)
+            .map_or(Color::Reset, |(bg, _)| bg);
+        self.core.scroll_bg_counts = counts;
+        self.core.scroll_bg_order = order;
+        color
+    }
+
+    fn fade_edge_row(&mut self, area: Rect, y: u16, keep: f32, container: Color) {
+        let outer = keep <= FADE_OUTER_KEEP;
+        // Fading changes only physical cell attributes for this frame. Keep
+        // semantic provenance intact for later composition (for example, a
+        // modal layer recomputes its dimmed color from roles).
+        for x in area.x..area.right() {
+            let pos = Position::new(x, y);
+            if !self.cell_written(pos) {
+                continue;
+            }
+            if let Some(cell) = self.buffer().cell_mut(pos)
+                && cell.bg == container
+                && !cell.modifier.contains(Modifier::REVERSED)
+            {
+                match fade_mix(cell.fg, container, keep) {
+                    FadeOutcome::Blended(color) => cell.fg = color,
+                    FadeOutcome::ApplyDim if outer => cell.modifier |= Modifier::DIM,
+                    FadeOutcome::Unchanged | FadeOutcome::ApplyDim => {}
+                }
+            }
+        }
     }
 
     /// Paint middle-truncated text without allocating, preserving semantic style.
@@ -135,8 +287,9 @@ impl Ui<'_> {
         used
     }
 
-    /// Paint semantic spans with no allocation, inheriting `base` independently
-    /// for each span. Width and continuation handling share the string writer.
+    /// Paint semantic spans, inheriting `base` independently for each span.
+    /// Spans form one logical string for grapheme segmentation: a grapheme
+    /// split across fragments uses the style from its first byte.
     pub fn paint_spans(
         &mut self,
         area: Rect,
@@ -148,21 +301,58 @@ impl Ui<'_> {
             return 0;
         }
         let base = base.into();
-        let mut x = area.x;
-        for sp in spans {
-            if x >= area.right() {
-                break;
+        // ASCII graphemes are independent except CRLF, which is itself a
+        // skipped control grapheme. Painting each fragment through the
+        // shared string writer therefore preserves the logical-line result
+        // while avoiding scratch/cursor work on the common label path.
+        if spans.iter().all(|span| span.text.is_ascii()) {
+            let mut x = area.x;
+            for sp in spans {
+                if x >= area.right() {
+                    break;
+                }
+                let mut st = base.add_modifier(sp.add);
+                if let Some(role) = sp.role {
+                    st = st.patch(self.paint_patch(&crate::theme::StylePatch::new().set_fg(role)));
+                }
+                x = x.saturating_add(self.paint_str(
+                    Rect::new(x, area.y, area.right().saturating_sub(x), 1),
+                    sp.text,
+                    st,
+                ));
             }
-            let mut st = base.add_modifier(sp.add);
-            if let Some(role) = sp.role {
-                st = st.patch(self.paint_patch(&crate::theme::StylePatch::new().set_fg(role)));
-            }
-            x = x.saturating_add(self.paint_str(
-                Rect::new(x, area.y, area.right().saturating_sub(x), 1),
-                sp.text,
-                st,
-            ));
+            return x.saturating_sub(area.x);
         }
+        let mut scratch = core::mem::take(&mut self.core.cluster_scratch);
+        let mut x = area.x;
+        let mut remaining = area.width;
+        {
+            let mut feed = ClusterFeed::new(&mut scratch);
+            for sp in spans {
+                let mut st = base.add_modifier(sp.add);
+                if let Some(role) = sp.role {
+                    st = st.patch(self.paint_patch(&crate::theme::StylePatch::new().set_fg(role)));
+                }
+                if x >= area.right() {
+                    break;
+                }
+                let mut can_continue = true;
+                feed.push(sp.text, st, &mut |cluster, style| {
+                    can_continue &=
+                        self.paint_cluster(&mut x, &mut remaining, area.y, cluster, style);
+                    can_continue
+                });
+                if !can_continue {
+                    break;
+                }
+            }
+            if x < area.right() {
+                feed.finish(base, &mut |cluster, style| {
+                    self.paint_cluster(&mut x, &mut remaining, area.y, cluster, style)
+                });
+            }
+        }
+        self.core.cluster_scratch = scratch;
         x.saturating_sub(area.x)
     }
 
@@ -325,6 +515,11 @@ impl Ui<'_> {
     }
 }
 
+const FADE_OUTER_KEEP: f32 = 0.55;
+const FADE_INNER_KEEP: f32 = 0.8;
+const FADE_DEEP_FROM: u16 = 12;
+const FADE_MIN_ROWS: u16 = 4;
+
 /// The outcome of stepping one recorded foreground role down.
 enum FadeResult {
     /// The dimmed foreground (`None` leaves the cell's foreground alone).
@@ -375,6 +570,7 @@ mod tests {
 
     use super::super::cx::LastFrame;
     use super::super::{FrameState, Ui, UiCore};
+    use crate::scroll::ScrollState;
     use crate::theme::{FgStep, Role, Surface, Theme};
 
     const SCREEN: Rect = Rect {
@@ -395,6 +591,39 @@ mod tests {
             f(&mut ui)
         };
         (out, page)
+    }
+
+    #[test]
+    fn scroll_fade_changes_color_without_changing_role_provenance() {
+        let theme = Theme::junie();
+        let area = Rect::new(0, 0, 8, 5);
+        let mut frame = FrameState::default();
+        frame.reset(1, area);
+        let mut page = Buffer::empty(area);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let style = ui.paint_patch(
+                &crate::theme::StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .set_bg(Role::CurrentSurface),
+            );
+            ui.fill(area, style);
+            for y in area.y..area.bottom() {
+                ui.paint_str(Rect::new(area.x, y, area.width, 1), "abcdefgh", style);
+            }
+            let edge = Position::new(0, 0);
+            let roles = ui.roles_at(edge);
+            let mut state = ScrollState::new(100);
+            state.set_viewport(5);
+            state.scroll_by(1);
+            ui.scroll_edges(area, &state);
+            assert_eq!(ui.roles_at(edge), roles, "fade is a visual-only pass");
+        }
+        let edge = page.cell(Position::new(0, 0)).expect("edge cell");
+        let middle = page.cell(Position::new(0, 1)).expect("middle cell");
+        assert_ne!(edge.fg, middle.fg, "the edge foreground was faded");
     }
 
     /// Paint `symbol` at `(0, 0)` carrying `fg` as its recorded foreground
