@@ -6,7 +6,6 @@
 
 #![expect(
     clippy::arithmetic_side_effects,
-    clippy::collapsible_if,
     clippy::too_many_lines,
     reason = "historical compatibility pages keep bounded fixture arithmetic and composition together"
 )]
