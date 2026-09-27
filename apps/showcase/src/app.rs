@@ -483,6 +483,7 @@ pub struct App {
     inspector: bool,
     quit: bool,
     status: Option<(PageStatus, Moment)>,
+    motion_paused: bool,
 }
 
 impl core::fmt::Debug for App {
@@ -495,6 +496,7 @@ impl core::fmt::Debug for App {
             .field("help_state", &self.help_state)
             .field("keymap", &self.keymap)
             .field("inspector", &self.inspector)
+            .field("motion_paused", &self.motion_paused)
             .field("quit", &self.quit)
             .field("status", &self.status.as_ref().map(|(_, since)| since))
             .finish()
@@ -509,11 +511,20 @@ impl App {
 
     /// Construct with a selected initial page.
     pub fn with_page(initial: PageId) -> Self {
+        Self::with_page_motion(initial, false, 0)
+    }
+
+    pub(crate) fn with_page_motion(initial: PageId, paused: bool, frame: usize) -> Self {
         let mut nav_state = NavListState::new();
         let initial_key = ItemKey::text(initial.slug());
         nav_state.set_current(Some(initial_key));
         nav_state.set_cursor(initial.index(), initial_key);
-        let pages = PageId::ALL.into_iter().map(|kind| page(kind)).collect();
+        let mut pages: Vec<Box<dyn Page>> = PageId::ALL.into_iter().map(page).collect();
+        if paused {
+            for page in &mut pages {
+                page.seek_paused(frame);
+            }
+        }
         Self {
             page: initial,
             nav_state,
@@ -523,6 +534,7 @@ impl App {
             inspector: false,
             quit: false,
             status: None,
+            motion_paused: paused,
         }
     }
 
@@ -1138,7 +1150,8 @@ impl TuiApp for App {
             cx.focus(NAV);
         }
         let mut response = Response::ignored();
-        if cx.update_cause() == junie_tui::UpdateCause::Tick
+        if !self.motion_paused
+            && cx.update_cause() == junie_tui::UpdateCause::Tick
             && self.status.as_ref().is_some_and(|(_, since)| {
                 cx.now().saturating_duration_since(*since) > std::time::Duration::from_secs(4)
             })
@@ -1222,7 +1235,8 @@ impl TuiApp for App {
         // The reference global help dialog suspends page ticks, not status
         // expiry. Hidden pages likewise keep domain deadlines without
         // publishing completion until a later eligible page tick.
-        if !(cx.update_cause() == junie_tui::UpdateCause::Tick && cx.is_open(HELP))
+        if !(cx.update_cause() == junie_tui::UpdateCause::Tick
+            && (cx.is_open(HELP) || self.motion_paused))
             && let Some(active) = self.pages.get_mut(self.page.index())
         {
             let update = active.update(cx);
@@ -1233,7 +1247,9 @@ impl TuiApp for App {
             }
         }
         self.update_help(cx, &mut response);
-        if let Some((_, since)) = &self.status {
+        if !self.motion_paused
+            && let Some((_, since)) = &self.status
+        {
             let deadline = since
                 .saturating_add(std::time::Duration::from_secs(4))
                 .saturating_add(std::time::Duration::from_nanos(1));
@@ -1323,6 +1339,8 @@ impl TuiApp for App {
 pub(crate) fn run() -> std::io::Result<()> {
     let mut theme = Theme::junie();
     let mut page = PageId::Overview;
+    let mut paused = false;
+    let mut frame = 0usize;
     let mut args = std::env::args().skip(1);
     while let Some(arg) = args.next() {
         match arg.as_str() {
@@ -1356,10 +1374,47 @@ pub(crate) fn run() -> std::io::Result<()> {
                     page = selected;
                 }
             }
+            "--motion" => {
+                let Some(value) = args.next() else {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        "--motion requires full or paused",
+                    ));
+                };
+                match value.as_str() {
+                    "full" => paused = false,
+                    "paused" => paused = true,
+                    _ => {
+                        return Err(std::io::Error::new(
+                            std::io::ErrorKind::InvalidInput,
+                            "--motion must be full or paused",
+                        ));
+                    }
+                }
+            }
+            "--frame" => {
+                let Some(value) = args.next() else {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        "--frame requires an integer",
+                    ));
+                };
+                frame = value
+                    .parse::<usize>()
+                    .ok()
+                    .filter(|n| *n <= 10_000)
+                    .ok_or_else(|| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::InvalidInput,
+                            "--frame must be between 0 and 10000",
+                        )
+                    })?;
+                paused = true;
+            }
             _ => {}
         }
     }
-    junie_tui::run(App::with_page(page), theme)
+    junie_tui::run(App::with_page_motion(page, paused, frame), theme)
 }
 
 #[cfg(test)]
