@@ -4288,40 +4288,60 @@ fn draw_registers_nothing_when_it_cannot_draw() {
             assert_eq!(ring, 0, "{}: {area:?} left {ring} ring entries", C::NAME);
         }
     }
-    degenerate::<ProbeCase>();
-    degenerate::<ButtonCase>();
-    degenerate::<TextInputCase>();
-    degenerate::<FieldCase>();
-    degenerate::<ListCase>();
-    degenerate::<TabsCase>();
-    degenerate::<DialogCase>();
-    degenerate::<ScrollRegionCase>();
-    degenerate::<PropsCase>();
-    degenerate::<PropsListCase>();
-    degenerate::<TextAreaCase>();
-    degenerate::<SelectCase>();
-    degenerate::<RadioGroupCase>();
-    degenerate::<CheckboxCase>();
-    degenerate::<ToggleCase>();
-    degenerate::<ChipBarCase>();
-    degenerate::<StatusBarCase>();
-    degenerate::<HintBarCase>();
-    degenerate::<KeyHintCase>();
-    degenerate::<ProgressBarCase>();
-    degenerate::<SpinnerCase>();
-    degenerate::<MeterCase>();
-    degenerate::<EmptyCase>();
-    degenerate::<BrandCase>();
-    degenerate::<PanelCase>();
-    degenerate::<SplitPaneCase>();
-    degenerate::<TextViewportCase>();
-    degenerate::<DiffViewCase>();
-    degenerate::<CodeEditorCase>();
-    degenerate::<TreeCase>();
-    degenerate::<NavListCase>();
-    degenerate::<StepsCase>();
-    degenerate::<TooSmallCase>();
-    degenerate::<GridCase>();
+    fn by_name(name: &str) {
+        match name {
+            "probe" => degenerate::<ProbeCase>(),
+            "button" => degenerate::<ButtonCase>(),
+            "text_input" => degenerate::<TextInputCase>(),
+            "field" => degenerate::<FieldCase>(),
+            "list" => degenerate::<ListCase>(),
+            "tabs" => degenerate::<TabsCase>(),
+            "dialog" => degenerate::<DialogCase>(),
+            "scroll_region" => degenerate::<ScrollRegionCase>(),
+            "props" => degenerate::<PropsCase>(),
+            "props_list" => degenerate::<PropsListCase>(),
+            "text_area" => degenerate::<TextAreaCase>(),
+            "select" => degenerate::<SelectCase>(),
+            "radio_group" => degenerate::<RadioGroupCase>(),
+            "checkbox" => degenerate::<CheckboxCase>(),
+            "toggle" => degenerate::<ToggleCase>(),
+            "chip_bar" => degenerate::<ChipBarCase>(),
+            "status_bar" => degenerate::<StatusBarCase>(),
+            "hint_bar" => degenerate::<HintBarCase>(),
+            "derived_hint_bar" => degenerate::<DerivedHintBarCase>(),
+            "key_hint" => degenerate::<KeyHintCase>(),
+            "progress_bar" => degenerate::<ProgressBarCase>(),
+            "spinner" => degenerate::<SpinnerCase>(),
+            "meter" => degenerate::<MeterCase>(),
+            "empty" => degenerate::<EmptyCase>(),
+            "brand" => degenerate::<BrandCase>(),
+            "panel" => degenerate::<PanelCase>(),
+            "split_pane" => degenerate::<SplitPaneCase>(),
+            "text_viewport" => degenerate::<TextViewportCase>(),
+            "diff_view" => degenerate::<DiffViewCase>(),
+            "code_editor" => degenerate::<CodeEditorCase>(),
+            "tree" => degenerate::<TreeCase>(),
+            "nav_list" => degenerate::<NavListCase>(),
+            "steps" => degenerate::<StepsCase>(),
+            "too_small" => degenerate::<TooSmallCase>(),
+            "grid" => degenerate::<GridCase>(),
+            "filter_list" => degenerate::<FilterListCase>(),
+            "picker" => degenerate::<PickerCase>(),
+            "completion" => degenerate::<CompletionCase>(),
+            "context_menu" => degenerate::<ContextMenuCase>(),
+            "help_overlay" => degenerate::<HelpOverlayCase>(),
+            "menu_bar" => degenerate::<MenuBarCase>(),
+            "picker_chain" => degenerate::<PickerChainCase>(),
+            "wizard" => degenerate::<WizardCase>(),
+            "form" => degenerate::<FormCase>(),
+            unknown => panic!("unhandled conformance case {unknown}"),
+        }
+    }
+    let cases = registered_cases();
+    for name in &cases {
+        by_name(name);
+    }
+    assert_eq!(cases.len(), 44, "update the degenerate dispatcher");
 
     // §26 N1: a zero-size request resolves to `Rect::ZERO`, so the layer's
     // content is clipped away and registers nothing either.
