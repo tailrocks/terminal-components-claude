@@ -13,6 +13,7 @@ use ratatui_core::layout::{Position, Rect};
 use ratatui_core::style::{Color, Modifier, Style};
 
 use super::Ui;
+use crate::scroll::ScrollState;
 use crate::text::Span;
 use crate::text::measure::graphemes;
 use crate::theme::{FgStep, GlyphRole, PaintStyle, Role, Surface, Theme};
@@ -106,6 +107,125 @@ impl Ui<'_> {
             }
         }
         x.saturating_sub(area.x)
+    }
+
+    /// Fade the viewport edge rows that conceal more scrollable content.
+    /// Call after painting content and before the scrollbar. Only foreground
+    /// color changes; selected planes, reversed cells, and cursor rows stay whole.
+    pub fn scroll_edges(&mut self, area: Rect, state: &ScrollState) {
+        self.scroll_edges_except(area, state, &[]);
+    }
+
+    /// As [`scroll_edges`](Self::scroll_edges), preserving explicit rows (absolute `y`).
+    pub fn scroll_edges_except(&mut self, area: Rect, state: &ScrollState, keep: &[u16]) {
+        let area = area.intersection(self.clip);
+        if area.is_empty() || area.height < FADE_MIN_ROWS {
+            return;
+        }
+        let up = state.offset() > 0;
+        let down = state.viewport_len() > 0
+            && state.offset().saturating_add(state.viewport_len()) < state.content_len();
+        if !up && !down {
+            return;
+        }
+        let depth = if area.height >= FADE_DEEP_FROM { 2 } else { 1 };
+        let container = self.majority_bg(area);
+        if up {
+            self.fade_unless_protected(area, area.y, FADE_OUTER_KEEP, container, keep);
+            if depth == 2 {
+                self.fade_unless_protected(
+                    area,
+                    area.y.saturating_add(1),
+                    FADE_INNER_KEEP,
+                    container,
+                    keep,
+                );
+            }
+        }
+        if down {
+            self.fade_unless_protected(
+                area,
+                area.bottom().saturating_sub(1),
+                FADE_OUTER_KEEP,
+                container,
+                keep,
+            );
+            if depth == 2 {
+                self.fade_unless_protected(
+                    area,
+                    area.bottom().saturating_sub(2),
+                    FADE_INNER_KEEP,
+                    container,
+                    keep,
+                );
+            }
+        }
+    }
+
+    fn fade_unless_protected(
+        &mut self,
+        area: Rect,
+        y: u16,
+        keep_strength: f32,
+        container: Color,
+        keep: &[u16],
+    ) {
+        let protected = keep.contains(&y)
+            || self
+                .frame
+                .cursors
+                .iter()
+                .any(|cursor| cursor.pos.y == y && area.contains(cursor.pos));
+        if !protected {
+            self.fade_edge_row(area, y, keep_strength, container);
+        }
+    }
+
+    fn majority_bg(&mut self, area: Rect) -> Color {
+        let mut counts: Vec<(Color, usize)> = Vec::new();
+        for pos in area.positions() {
+            let bg = self.buffer().cell(pos).map_or(Color::Reset, |cell| cell.bg);
+            match counts.iter_mut().find(|(color, _)| *color == bg) {
+                Some((_, count)) => *count = count.saturating_add(1),
+                None => counts.push((bg, 1)),
+            }
+        }
+        counts
+            .into_iter()
+            .max_by_key(|(_, count)| *count)
+            .map_or(Color::Reset, |(color, _)| color)
+    }
+
+    fn fade_edge_row(&mut self, area: Rect, y: u16, keep: f32, container: Color) {
+        let outer = keep <= FADE_OUTER_KEEP;
+        for x in area.x..area.right() {
+            let pos = Position::new(x, y);
+            let touched = match self.buffer().cell_mut(pos) {
+                Some(cell)
+                    if cell.bg == container && !cell.modifier.contains(Modifier::REVERSED) =>
+                {
+                    match (cell.fg, container) {
+                        (Color::Rgb(fr, fg, fb), Color::Rgb(br, bg, bb)) => {
+                            cell.fg = Color::Rgb(
+                                fade_mix(fr, br, keep),
+                                fade_mix(fg, bg, keep),
+                                fade_mix(fb, bb, keep),
+                            );
+                            true
+                        }
+                        _ if outer => {
+                            cell.modifier |= Modifier::DIM;
+                            true
+                        }
+                        _ => false,
+                    }
+                }
+                _ => false,
+            };
+            if touched {
+                self.mark(pos, None);
+            }
+        }
     }
 
     /// Paint middle-truncated text without allocating, preserving semantic style.
@@ -323,6 +443,17 @@ impl Ui<'_> {
             }
         }
     }
+}
+
+const FADE_OUTER_KEEP: f32 = 0.55;
+const FADE_INNER_KEEP: f32 = 0.8;
+const FADE_DEEP_FROM: u16 = 12;
+const FADE_MIN_ROWS: u16 = 4;
+
+fn fade_mix(fg: u8, bg: u8, keep: f32) -> u8 {
+    (f32::from(bg) + (f32::from(fg) - f32::from(bg)) * keep)
+        .round()
+        .clamp(0.0, 255.0) as u8
 }
 
 /// The outcome of stepping one recorded foreground role down.
