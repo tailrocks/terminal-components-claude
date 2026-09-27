@@ -19,7 +19,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write as _;
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::process::{Command, ExitCode};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -1029,7 +1029,14 @@ fn capture_path_matches(info: &serde_json::Map<String, Value>, relative: &str) -
     // `ends_with` still rejects flat-vs-nested drift.
     let resolved = resolved.replace('\\', "/");
     let relative = relative.replace('\\', "/");
-    Path::new(&resolved).ends_with(Path::new(&relative))
+    let absolute = Path::new(&resolved).is_absolute()
+        || resolved.as_bytes().get(1) == Some(&b':')
+            && resolved
+                .as_bytes()
+                .first()
+                .is_some_and(u8::is_ascii_alphabetic)
+            && resolved.as_bytes().get(2) == Some(&b'/');
+    absolute && Path::new(&resolved).ends_with(Path::new(&relative))
 }
 
 fn capture_legacy_path_matches(info: &serde_json::Map<String, Value>, relative: &str) -> bool {
@@ -1047,6 +1054,50 @@ fn capture_artifact_path_in(
     } else {
         shots.join(name).join(extension)
     })
+}
+
+fn validate_optional_empty_capture_file(root: &Path, relative: &str) -> Result<(), String> {
+    let path = root.join(relative);
+    let mut current = root.to_owned();
+    let mut components = Path::new(relative).components().peekable();
+    while let Some(component) = components.next() {
+        let Component::Normal(component) = component else {
+            return Err(format!("unsafe empty capture path: {relative}"));
+        };
+        current.push(component);
+        if components.peek().is_some() {
+            match fs::symlink_metadata(&current) {
+                Ok(metadata) if metadata.file_type().is_symlink() => {
+                    return Err(format!(
+                        "empty capture parent is a symlink: {}",
+                        current.display()
+                    ));
+                }
+                Ok(metadata) if !metadata.is_dir() => {
+                    return Err(format!(
+                        "empty capture parent is not a directory: {}",
+                        current.display()
+                    ));
+                }
+                Ok(_) => {}
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(()),
+                Err(error) => {
+                    return Err(format!(
+                        "cannot inspect empty capture parent {}: {error}",
+                        current.display()
+                    ));
+                }
+            }
+        }
+    }
+    match fs::symlink_metadata(&path) {
+        Ok(_) => validate_empty_capture_file(&path),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(error) => Err(format!(
+            "cannot inspect empty capture file {}: {error}",
+            path.display()
+        )),
+    }
 }
 
 fn validate_empty_capture_file(path: &Path) -> Result<(), String> {
@@ -1278,8 +1329,7 @@ fn validate_capture_provenance(
         // exists only where captures ran. Enforce emptiness when present; on
         // fresh checkouts the recorded empty triple above is the evidence.
         if let Some(stderr_path) = stderr_path
-            && root().join(&stderr_path).exists()
-            && let Err(error) = validate_empty_capture_file(&root().join(stderr_path))
+            && let Err(error) = validate_optional_empty_capture_file(&root(), &stderr_path)
         {
             errors.push(format!("{name}: {error}"));
         }
@@ -9005,6 +9055,30 @@ mod tests {
     }
 
     #[test]
+    fn capture_path_matches_rejects_relative_resolved_paths() {
+        let info = capture_info(
+            "shots/showcase_junie_truecolor_80x24/ansi",
+            Some("shots/showcase_junie_truecolor_80x24/ansi"),
+        );
+        assert!(!capture_path_matches(
+            &info,
+            "shots/showcase_junie_truecolor_80x24/ansi"
+        ));
+    }
+
+    #[test]
+    fn capture_path_matches_accepts_foreign_windows_checkout_roots() {
+        let info = capture_info(
+            "shots/showcase_junie_truecolor_80x24/ansi",
+            Some("C:\\checkout\\example\\shots\\showcase_junie_truecolor_80x24\\ansi"),
+        );
+        assert!(capture_path_matches(
+            &info,
+            "shots/showcase_junie_truecolor_80x24/ansi"
+        ));
+    }
+
+    #[test]
     fn capture_path_matches_still_rejects_layout_drift() {
         // Flat-vs-nested drift changes the suffix, so it still fails.
         let flat = capture_info(
@@ -9021,6 +9095,62 @@ mod tests {
             &missing,
             "shots/showcase_junie_truecolor_80x24/ansi"
         ));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn optional_stderr_validation_rejects_dangling_symlink() {
+        let directory = std::env::temp_dir().join(format!(
+            "terminal-components-optional-stderr-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock after epoch")
+                .as_nanos()
+        ));
+        fs::create_dir(&directory).expect("create isolated stderr fixture");
+        let stderr = directory.join("stderr.log");
+        symlink("missing.log", &stderr).expect("create dangling stderr symlink");
+
+        let error = validate_optional_empty_capture_file(&directory, "stderr.log")
+            .expect_err("a dangling stderr symlink is present and invalid");
+        assert!(error.contains("not a regular file"), "{error}");
+        fs::remove_dir_all(directory).expect("remove isolated stderr fixture");
+    }
+
+    #[test]
+    fn optional_stderr_validation_allows_missing_file() {
+        let missing = std::env::temp_dir().join(format!(
+            "terminal-components-missing-stderr-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock after epoch")
+                .as_nanos()
+        ));
+        assert!(validate_optional_empty_capture_file(&missing, "absent/stderr.log").is_ok());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn optional_stderr_validation_rejects_symlinked_parent() {
+        let directory = std::env::temp_dir().join(format!(
+            "terminal-components-stderr-parent-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("clock after epoch")
+                .as_nanos()
+        ));
+        let outside = directory.join("outside");
+        fs::create_dir_all(&outside).expect("create outside stderr fixture");
+        fs::write(outside.join("stderr.log"), b"").expect("write outside stderr");
+        symlink(&outside, directory.join("state")).expect("create symlinked stderr parent");
+
+        let error = validate_optional_empty_capture_file(&directory, "state/stderr.log")
+            .expect_err("stderr path must not traverse a symlinked parent");
+        assert!(error.contains("parent is a symlink"), "{error}");
+        fs::remove_dir_all(directory).expect("remove isolated stderr parent fixture");
     }
 
     #[test]

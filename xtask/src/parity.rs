@@ -1617,6 +1617,7 @@ fn read_json(root: &Path, relative: &str, label: &str) -> Result<Value, String> 
 
 fn read_bytes(root: &Path, relative: &str, label: &str) -> Result<Vec<u8>, String> {
     let path = safe_join(root, relative)?;
+    validate_real_parents(root, relative, label)?;
     let metadata = fs::symlink_metadata(&path)
         .map_err(|error| format!("cannot inspect {label} {relative}: {error}"))?;
     // Agent-instruction symlinks (CLAUDE.md -> AGENTS.md) are first-class
@@ -1638,6 +1639,7 @@ fn read_bytes(root: &Path, relative: &str, label: &str) -> Result<Vec<u8>, Strin
         let resolved = resolved
             .to_str()
             .ok_or_else(|| format!("{label} link target is not UTF-8: {relative}"))?;
+        validate_real_parents(root, resolved, label)?;
         safe_join(root, resolved)?
     } else if !metadata.is_file() {
         return Err(format!("{label} is not a regular file: {relative}"));
@@ -1660,6 +1662,29 @@ fn read_bytes(root: &Path, relative: &str, label: &str) -> Result<Vec<u8>, Strin
     file.read_to_end(&mut bytes)
         .map_err(|error| format!("cannot read {label} {relative}: {error}"))?;
     Ok(bytes)
+}
+
+fn validate_real_parents(root: &Path, relative: &str, label: &str) -> Result<(), String> {
+    let mut path = root.to_owned();
+    let mut components = Path::new(relative).components().peekable();
+    while let Some(component) = components.next() {
+        let Component::Normal(component) = component else {
+            return Err(format!("unsafe relative path {relative}"));
+        };
+        path.push(component);
+        if components.peek().is_some() {
+            let metadata = fs::symlink_metadata(&path).map_err(|error| {
+                format!("cannot inspect {label} parent {}: {error}", path.display())
+            })?;
+            if metadata.file_type().is_symlink() || !metadata.is_dir() {
+                return Err(format!(
+                    "{label} parent is not a real directory: {}",
+                    path.display()
+                ));
+            }
+        }
+    }
+    Ok(())
 }
 
 fn safe_join(root: &Path, relative: &str) -> Result<PathBuf, String> {
@@ -1912,11 +1937,43 @@ fn safe_reviewer(value: &str) -> bool {
 mod tests {
     use super::*;
 
+    #[cfg(unix)]
+    use std::os::unix::fs::symlink;
+
     fn workspace_root() -> PathBuf {
         PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .parent()
             .expect("workspace root")
             .to_owned()
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn read_bytes_rejects_symlinked_target_parent() {
+        let directory = std::env::temp_dir().join(format!(
+            "terminal-components-parity-parent-link-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("clock after epoch")
+                .as_nanos()
+        ));
+        let repository = directory.join("repo");
+        let outside = directory.join("outside");
+        fs::create_dir_all(repository.join("parity")).expect("create repository fixture");
+        fs::create_dir(&outside).expect("create outside fixture");
+        fs::write(outside.join("artifact.txt"), b"outside bytes").expect("write outside file");
+        symlink(&outside, repository.join("parity/nested")).expect("link target parent outside");
+        symlink(
+            Path::new("nested/artifact.txt"),
+            repository.join("parity/instructions.txt"),
+        )
+        .expect("link instruction to nested parent");
+
+        let error = read_bytes(&repository, "parity/instructions.txt", "instructions")
+            .expect_err("a symlinked target parent must not escape the checkout");
+        assert!(error.contains("parent is not a real directory"), "{error}");
+        fs::remove_dir_all(directory).expect("remove isolated parity fixture");
     }
 
     #[test]
