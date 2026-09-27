@@ -1805,7 +1805,8 @@ relative to the current default branch.
              apps/showcase/tests/page_headings.rs (both reference tests),
              apps/showcase/tests/app_tests.rs (34 passed)
 - moved:     none in this integration; historical Item 36 changes are already on default
-- added:     32 keys: the Editor page, recorded for the first time under its corrected name
+- added:     none against the current default; the Editor page's 32 keys were recorded
+             under its corrected name when Item 36 originally landed
              `{Code editor} {80 24,100 30,120 40,160 50} {junie,paper} {truecolor,256,16,mono}`
 
 - class:     intended

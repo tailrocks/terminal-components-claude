@@ -128,8 +128,10 @@ impl Ui<'_> {
     }
 
     /// Fade the viewport edge rows that conceal more scrollable content.
-    /// Call after painting content and before the scrollbar. Only foreground
-    /// color changes; selected planes, reversed cells, and cursor rows stay whole.
+    /// Call after drawing the scroll region, passing its returned content rect.
+    /// The scrollbar lies outside that rect. Foreground color changes on
+    /// painted cells with the dominant background; backgrounds, reversed cells,
+    /// cursor rows, and explicitly kept rows retain their original values.
     pub fn scroll_edges(&mut self, area: Rect, state: &ScrollState) {
         self.scroll_edges_except(area, state, &[]);
     }
@@ -236,33 +238,23 @@ impl Ui<'_> {
 
     fn fade_edge_row(&mut self, area: Rect, y: u16, keep: f32, container: Color) {
         let outer = keep <= FADE_OUTER_KEEP;
+        // Fading changes only physical cell attributes for this frame. Keep
+        // semantic provenance intact for later composition (for example, a
+        // modal layer recomputes its dimmed color from roles).
         for x in area.x..area.right() {
             let pos = Position::new(x, y);
             if !self.cell_written(pos) {
                 continue;
             }
-            let touched = match self.buffer().cell_mut(pos) {
-                Some(cell)
-                    if cell.bg == container && !cell.modifier.contains(Modifier::REVERSED) =>
-                {
-                    match fade_mix(cell.fg, container, keep) {
-                        FadeOutcome::Blended(color) => {
-                            cell.fg = color;
-                            true
-                        }
-                        FadeOutcome::ApplyDim if outer => {
-                            cell.modifier |= Modifier::DIM;
-                            true
-                        }
-                        FadeOutcome::Unchanged | FadeOutcome::ApplyDim => false,
-                    }
+            if let Some(cell) = self.buffer().cell_mut(pos)
+                && cell.bg == container
+                && !cell.modifier.contains(Modifier::REVERSED)
+            {
+                match fade_mix(cell.fg, container, keep) {
+                    FadeOutcome::Blended(color) => cell.fg = color,
+                    FadeOutcome::ApplyDim if outer => cell.modifier |= Modifier::DIM,
+                    FadeOutcome::Unchanged | FadeOutcome::ApplyDim => {}
                 }
-                _ => false,
-            };
-            if touched && let Some(color) = self.buffer().cell(pos).map(|cell| cell.fg) {
-                // The foreground is now a blended raw color; clear only its
-                // semantic provenance and retain the original background role.
-                self.mark(pos, Some(PaintStyle::new().fg(color)));
             }
         }
     }
@@ -577,6 +569,7 @@ mod tests {
 
     use super::super::cx::LastFrame;
     use super::super::{FrameState, Ui, UiCore};
+    use crate::scroll::ScrollState;
     use crate::theme::{FgStep, Role, Surface, Theme};
 
     const SCREEN: Rect = Rect {
@@ -597,6 +590,39 @@ mod tests {
             f(&mut ui)
         };
         (out, page)
+    }
+
+    #[test]
+    fn scroll_fade_changes_color_without_changing_role_provenance() {
+        let theme = Theme::junie();
+        let area = Rect::new(0, 0, 8, 5);
+        let mut frame = FrameState::default();
+        frame.reset(1, area);
+        let mut page = Buffer::empty(area);
+        let mut core = UiCore::default();
+        let last = LastFrame::default();
+        {
+            let mut ui = Ui::new(&mut frame, &mut page, &mut core, &theme, &last);
+            let style = ui.paint_patch(
+                &crate::theme::StylePatch::new()
+                    .set_fg(Role::Fg(FgStep::Primary))
+                    .set_bg(Role::CurrentSurface),
+            );
+            ui.fill(area, style);
+            for y in area.y..area.bottom() {
+                ui.paint_str(Rect::new(area.x, y, area.width, 1), "abcdefgh", style);
+            }
+            let edge = Position::new(0, 0);
+            let roles = ui.roles_at(edge);
+            let mut state = ScrollState::new(100);
+            state.set_viewport(5);
+            state.scroll_by(1);
+            ui.scroll_edges(area, &state);
+            assert_eq!(ui.roles_at(edge), roles, "fade is a visual-only pass");
+        }
+        let edge = page.cell(Position::new(0, 0)).expect("edge cell");
+        let middle = page.cell(Position::new(0, 1)).expect("middle cell");
+        assert_ne!(edge.fg, middle.fg, "the edge foreground was faded");
     }
 
     /// Paint `symbol` at `(0, 0)` carrying `fg` as its recorded foreground

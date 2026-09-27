@@ -263,7 +263,10 @@ impl<'a> ScrollRegion<'a> {
             Phase::Drag => {
                 let capture_area = cx.capture_area().unwrap_or_default();
                 let origin = cx.capture_origin().unwrap_or(pos);
-                let track_y = cx.area(self.id).map_or(capture_area.y, |area| area.y);
+                let track_y = cx
+                    .area_of_part(self.id, PartRef::of(Part::TRACK))
+                    .or_else(|| cx.area(self.id))
+                    .map_or(capture_area.y, |area| area.y);
                 if cx.capture_owner() != Some(self.id) {
                     // Bare-track presses do not capture the pointer. Preserve
                     // press semantics as the pointer continues to move.
