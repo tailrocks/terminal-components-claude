@@ -19,8 +19,8 @@
 )]
 
 use junie_tui::{
-    App, Axis, Color, ColorLevel, Cx, Id, KeyCode, LayerSpec, Modifier, MouseKind, Part, PartRef,
-    Position, Rect, Response, ScrollRegion, ScrollState, Style, Theme, Ui,
+    App, Axis, Color, ColorLevel, Cx, Focusability, Id, KeyCode, LayerSpec, Modifier, MouseKind,
+    Part, PartRef, Position, Rect, Response, ScrollRegion, ScrollState, Style, Theme, Ui,
 };
 use junie_tui_testing::{Harness, Scene};
 
@@ -663,6 +663,56 @@ fn thumb_drag_from_bare_track_follows_pointer_and_saturates() {
     assert_eq!(h.app().scroll.offset(), 40, "one row follows one row");
     let _ = h.mouse(MouseKind::Up, 6, 6);
     assert!(!h.app().foreign_capture, "exactly one capture owner");
+    assert!(h.diagnostics().is_empty());
+}
+
+struct InsetDragPage {
+    scroll: ScrollState,
+}
+
+const INSET_DRAG_ID: Id = Id::root("fade.inset-drag");
+
+impl App for InsetDragPage {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        ScrollRegion::new(INSET_DRAG_ID)
+            .update(cx, &mut self.scroll, 100)
+            .erase()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        // The owner includes headers above the actual track, like Help's
+        // bordered overlay. Bare-track motion must use the registered part.
+        ui.register_control(
+            INSET_DRAG_ID,
+            Rect::new(1, 1, 8, 12),
+            Focusability::Focusable,
+        );
+        ScrollRegion::new(INSET_DRAG_ID).draw(ui, Rect::new(2, 4, 5, 8), &self.scroll, 100);
+    }
+}
+
+#[test]
+fn bare_track_drag_uses_inset_track_origin() {
+    let mut h = Harness::new(
+        InsetDragPage {
+            scroll: ScrollState::new(100),
+        },
+        Theme::junie(),
+        12,
+        14,
+    );
+    let _ = h.mouse(MouseKind::Down, 6, 8);
+    assert_eq!(
+        h.app().scroll.offset(),
+        h.app().scroll.offset_for_track_pos(4, 8),
+        "press is positioned relative to the inset track"
+    );
+    let _ = h.mouse(MouseKind::Drag, 6, 9);
+    assert_eq!(
+        h.app().scroll.offset(),
+        h.app().scroll.offset_for_track_pos(5, 8),
+        "one-row drag advances one row of the registered track"
+    );
     assert!(h.diagnostics().is_empty());
 }
 
