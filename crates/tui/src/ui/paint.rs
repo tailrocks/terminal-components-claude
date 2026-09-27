@@ -16,6 +16,7 @@ use super::Ui;
 use crate::scroll::ScrollState;
 use crate::text::Span;
 use crate::text::measure::graphemes;
+use crate::theme::builder::{FadeOutcome, fade_mix};
 use crate::theme::{FgStep, GlyphRole, PaintStyle, Role, Surface, Theme};
 
 impl Ui<'_> {
@@ -204,20 +205,16 @@ impl Ui<'_> {
                 Some(cell)
                     if cell.bg == container && !cell.modifier.contains(Modifier::REVERSED) =>
                 {
-                    match (cell.fg, container) {
-                        (Color::Rgb(fr, fg, fb), Color::Rgb(br, bg, bb)) => {
-                            cell.fg = Color::Rgb(
-                                fade_mix(fr, br, keep),
-                                fade_mix(fg, bg, keep),
-                                fade_mix(fb, bb, keep),
-                            );
+                    match fade_mix(cell.fg, container, keep) {
+                        FadeOutcome::Blended(color) => {
+                            cell.fg = color;
                             true
                         }
-                        _ if outer => {
+                        FadeOutcome::ApplyDim if outer => {
                             cell.modifier |= Modifier::DIM;
                             true
                         }
-                        _ => false,
+                        FadeOutcome::Unchanged | FadeOutcome::ApplyDim => false,
                     }
                 }
                 _ => false,
@@ -449,12 +446,6 @@ const FADE_OUTER_KEEP: f32 = 0.55;
 const FADE_INNER_KEEP: f32 = 0.8;
 const FADE_DEEP_FROM: u16 = 12;
 const FADE_MIN_ROWS: u16 = 4;
-
-fn fade_mix(fg: u8, bg: u8, keep: f32) -> u8 {
-    (f32::from(bg) + (f32::from(fg) - f32::from(bg)) * keep)
-        .round()
-        .clamp(0.0, 255.0) as u8
-}
 
 /// The outcome of stepping one recorded foreground role down.
 enum FadeResult {
