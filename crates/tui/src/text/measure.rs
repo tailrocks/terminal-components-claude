@@ -38,7 +38,7 @@ pub fn width(s: &str) -> u16 {
 /// Whether `c` is a word character for word motion; one definition shared by
 /// the editor core and the viewport.
 pub(crate) fn is_word_char(c: char) -> bool {
-    c.is_alphanumeric()
+    c.is_alphanumeric() || c == '_'
 }
 
 /// Whether a grapheme belongs to a word run. Marks stay attached to base.

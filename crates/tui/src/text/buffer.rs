@@ -687,11 +687,13 @@ mod tests {
 
     #[test]
     fn word_chars_are_consistent_between_buffer_and_viewport() {
-        // `_` separates word runs; combining marks remain attached to their base.
+        // `_` joins words; combining marks remain attached to their base.
         let mut b = TextBuffer::single("snake_case-kebab");
         b.move_home(false);
         b.move_word_right(false);
-        assert_eq!(b.cursor_offset(), 5);
+        assert_eq!(b.cursor_offset(), "snake_case".len());
+        b.move_word_right(false);
+        assert_eq!(b.cursor_offset(), "snake_case-kebab".len());
         let mut c = TextBuffer::single("e\u{301},x");
         c.move_home(false);
         c.move_word_right(false);
