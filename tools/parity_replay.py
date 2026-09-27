@@ -44,6 +44,36 @@ def fail(message: str) -> None:
     raise RuntimeError(message)
 
 
+def _confined_link_target(path: Path, label: str) -> Path:
+    try:
+        target = Path(os.readlink(path))
+    except OSError as error:
+        fail(f"cannot read {label} link {path}: {error}")
+    if target.is_absolute() or not target.parts or ".." in target.parts:
+        fail(f"{label} link escapes or traverses the repository: {path}")
+    target_path = path.parent / target
+    try:
+        relative = target_path.relative_to(ROOT)
+    except ValueError:
+        fail(f"{label} link escapes the repository: {path}")
+    current = ROOT
+    for component in relative.parts[:-1]:
+        current /= component
+        try:
+            parent = current.lstat()
+        except OSError as error:
+            fail(f"cannot inspect {label} link parent {current}: {error}")
+        if stat.S_ISLNK(parent.st_mode) or not stat.S_ISDIR(parent.st_mode):
+            fail(f"{label} link parent is not a real directory: {current}")
+    try:
+        metadata = target_path.lstat()
+    except OSError as error:
+        fail(f"cannot inspect {label} link target {target_path}: {error}")
+    if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
+        fail(f"{label} link target is not a regular file: {target_path}")
+    return target_path
+
+
 def regular_bytes(path: Path, label: str) -> bytes:
     try:
         metadata = path.lstat()
@@ -51,26 +81,8 @@ def regular_bytes(path: Path, label: str) -> bytes:
         fail(f"missing {label}: {path}")
     if stat.S_ISLNK(metadata.st_mode):
         # Agent-instruction symlinks (CLAUDE.md -> AGENTS.md) are first-class
-        # tracked files: resolve one level, confined to the repository. Chains,
-        # absolute targets, and escapes keep failing closed below.
-        try:
-            target = Path(os.readlink(path))
-        except OSError as error:
-            fail(f"cannot read {label} link {path}: {error}")
-        if target.is_absolute():
-            fail(f"{label} link escapes the repository: {path}")
-        resolved = (path.parent / target).resolve()
-        try:
-            resolved.relative_to(ROOT)
-        except ValueError:
-            fail(f"{label} link escapes the repository: {path}")
-        try:
-            metadata = resolved.lstat()
-        except OSError as error:
-            fail(f"cannot inspect {label} {path}: {error}")
-        if stat.S_ISLNK(metadata.st_mode) or not stat.S_ISREG(metadata.st_mode):
-            fail(f"{label} is not a regular file: {path}")
-        path = resolved
+        # tracked files. Permit one sibling target; reject chains and traversal.
+        path = _confined_link_target(path, label)
     elif not stat.S_ISREG(metadata.st_mode):
         fail(f"{label} is not a regular file: {path}")
     try:

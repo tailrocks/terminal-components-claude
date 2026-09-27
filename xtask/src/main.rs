@@ -8971,10 +8971,7 @@ mod tests {
 
     fn capture_info(path: &str, resolved_path: Option<&str>) -> serde_json::Map<String, Value> {
         let mut info = serde_json::Map::new();
-        info.insert(
-            "path".to_owned(),
-            Value::String(path.to_owned()),
-        );
+        info.insert("path".to_owned(), Value::String(path.to_owned()));
         if let Some(resolved) = resolved_path {
             info.insert(
                 "resolved_path".to_owned(),
@@ -8991,7 +8988,9 @@ mod tests {
         // of the absolute resolved path is comparable.
         let info = capture_info(
             "shots/showcase_junie_truecolor_80x24/ansi",
-            Some("/Users/donbeave/Projects/terminal-components-main/shots/showcase_junie_truecolor_80x24/ansi"),
+            Some(
+                "/Users/donbeave/Projects/terminal-components-main/shots/showcase_junie_truecolor_80x24/ansi",
+            ),
         );
         assert!(capture_path_matches(
             &info,
