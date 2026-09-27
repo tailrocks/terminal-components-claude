@@ -977,10 +977,10 @@ impl PickersPage {
             self.quick_scope = QuickScope::All;
             self.rebuild_quick_items();
         }
-        if kind == PickerKind::Level {
-            if let Some(item) = LEVEL_ITEMS.get(self.level) {
-                self.state.set_cursor(self.level, item.key);
-            }
+        if kind == PickerKind::Level
+            && let Some(item) = LEVEL_ITEMS.get(self.level)
+        {
+            self.state.set_cursor(self.level, item.key);
         }
         self.opened = self.opened.saturating_add(1);
         let items = match kind {
