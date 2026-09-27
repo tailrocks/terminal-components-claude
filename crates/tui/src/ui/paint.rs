@@ -308,6 +308,28 @@ impl Ui<'_> {
             return 0;
         }
         let base = base.into();
+        // ASCII graphemes are independent except CRLF, which is itself a
+        // skipped control grapheme. Painting each fragment through the
+        // shared string writer therefore preserves the logical-line result
+        // while avoiding scratch/cursor work on the common label path.
+        if spans.iter().all(|span| span.text.is_ascii()) {
+            let mut x = area.x;
+            for sp in spans {
+                if x >= area.right() {
+                    break;
+                }
+                let mut st = base.add_modifier(sp.add);
+                if let Some(role) = sp.role {
+                    st = st.patch(self.paint_patch(&crate::theme::StylePatch::new().set_fg(role)));
+                }
+                x = x.saturating_add(self.paint_str(
+                    Rect::new(x, area.y, area.right().saturating_sub(x), 1),
+                    sp.text,
+                    st,
+                ));
+            }
+            return x.saturating_sub(area.x);
+        }
         let mut scratch = core::mem::take(&mut self.core.cluster_scratch);
         let mut x = area.x;
         let mut remaining = area.width;

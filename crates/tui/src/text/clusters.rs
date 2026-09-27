@@ -123,7 +123,12 @@ impl ClusterScratch {
             }
         } else {
             self.inline.copy_within(bytes.min(self.len)..self.len, 0);
-            if let Some(tail) = self.inline.get_mut(rest.min(INLINE)..) {
+            // Bytes at and after the old length are already zero by the
+            // scratch invariant: every previous discard clears its retired
+            // suffix, and pushes write only within the live prefix. Clear
+            // only the bytes vacated by this compaction instead of repeating
+            // a full inline-buffer wipe for every emitted grapheme.
+            if let Some(tail) = self.inline.get_mut(rest.min(INLINE)..self.len) {
                 wipe(tail);
             }
         }

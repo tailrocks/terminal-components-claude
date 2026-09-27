@@ -478,6 +478,42 @@ mod ui {
         // the roled span really is bound to the accent colour
         assert_eq!(a.cell((6, 0)).unwrap().fg, Theme::junie().color.accent);
     }
+
+    #[test]
+    fn ascii_crlf_split_across_spans_keeps_visible_cells() {
+        use junie_tui::{Role, Span};
+
+        let spans = [Span::new("A\r").role(Role::Accent), Span::new("\nB")];
+        let area = Rect::new(0, 0, 4, 1);
+        let mut scene = Scene::new(
+            "ascii_crlf_spans",
+            Theme::junie(),
+            ColorLevel::TrueColor,
+            4,
+            1,
+        );
+        let mut used = 0;
+        scene.draw(|ui, _| {
+            let base = ui
+                .style(
+                    Family::LIST,
+                    Variant::DEFAULT,
+                    Part::LABEL,
+                    StateFlags::empty(),
+                )
+                .style;
+            used = ui.paint_spans(area, &spans, base);
+        });
+
+        assert_eq!(used, 2);
+        assert_eq!(scene.buffer().cell((0, 0)).unwrap().symbol(), "A");
+        assert_eq!(
+            scene.buffer().cell((0, 0)).unwrap().fg,
+            Theme::junie().color.accent
+        );
+        assert_eq!(scene.buffer().cell((1, 0)).unwrap().symbol(), "B");
+        assert_eq!(scene.buffer().cell((2, 0)).unwrap().symbol(), " ");
+    }
 }
 
 mod theme {
