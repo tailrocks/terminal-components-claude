@@ -80,7 +80,7 @@ pub fn binding_conflicts<C: Copy + 'static>(
         let dup = table
             .iter()
             .skip(i.saturating_add(1))
-            .any(|b| b.chord == Some(chord));
+            .any(|b| b.chord.is_some_and(|other| chord.effective_eq(&other)));
         if dup {
             out.push(Diagnostic::BindingConflict {
                 chord,
@@ -269,10 +269,10 @@ impl KeyMap {
             let Some(chord) = self.component_chord(owner, binding.action, binding.chord) else {
                 continue;
             };
-            let duplicate = table
-                .iter()
-                .skip(index.saturating_add(1))
-                .any(|other| self.component_chord(owner, other.action, other.chord) == Some(chord));
+            let duplicate = table.iter().skip(index.saturating_add(1)).any(|other| {
+                self.component_chord(owner, other.action, other.chord)
+                    .is_some_and(|candidate| chord.effective_eq(&candidate))
+            });
             if duplicate {
                 out.push(Diagnostic::BindingConflict {
                     chord,
@@ -301,7 +301,7 @@ impl KeyMap {
         self.entries.is_empty() && self.components.is_empty() && self.typing.is_empty()
     }
 
-    /// Two bindings of the same chord in the same phase.
+    /// Two bindings of the same effective chord in the same phase.
     pub fn conflicts(&self) -> Vec<Diagnostic> {
         let mut out = Vec::new();
         for (i, a) in self.entries.iter().enumerate() {
@@ -309,7 +309,7 @@ impl KeyMap {
                 .entries
                 .iter()
                 .skip(i.saturating_add(1))
-                .any(|b| b.phase == a.phase && b.chord == a.chord);
+                .any(|b| b.phase == a.phase && b.chord.effective_eq(&a.chord));
             if dup {
                 out.push(Diagnostic::BindingConflict {
                     chord: a.chord,
@@ -324,7 +324,7 @@ impl KeyMap {
                 .typing
                 .iter()
                 .skip(index.saturating_add(1))
-                .any(|other| other.owner == entry.owner && other.chord == entry.chord)
+                .any(|other| other.owner == entry.owner && other.chord.effective_eq(&entry.chord))
             {
                 out.push(Diagnostic::BindingConflict {
                     chord: entry.chord,
@@ -642,10 +642,11 @@ pub(crate) struct FocusedHints {
 
 impl FocusedHints {
     fn contains_chord(&self, chord: Chord) -> bool {
-        self.layer
-            .hints
-            .iter()
-            .any(|hint| hint.key.physical_chord() == Some(chord))
+        self.layer.hints.iter().any(|hint| {
+            hint.key
+                .physical_chord()
+                .is_some_and(|prior| chord.effective_eq(&prior))
+        })
     }
 
     pub(crate) fn invalidate(&mut self) {
@@ -1140,5 +1141,242 @@ mod tests {
             priority: 1,
         });
         assert!(!hints.contains_chord(chord));
+    }
+
+    /// TASK-010 W-010-10: matching, every scoped conflict check and
+    /// focused-hint deduplication share one effective equivalence. `SHIFT`
+    /// folds only for the same exact `Char`; case and non-character
+    /// modifiers stay distinct while structural `Eq` still sees them apart.
+    #[test]
+    fn table_conflicts_use_effective_chord_identity() {
+        #[derive(Clone, Copy)]
+        enum Cmd {
+            A,
+            B,
+        }
+        const fn binding(action: ActionKey, chord: Chord, cmd: Cmd) -> Binding<Cmd> {
+            Binding {
+                action,
+                chord: Some(chord),
+                cmd,
+                label: "test",
+                priority: 1,
+                visible: true,
+            }
+        }
+        const FIRST: ActionKey = ActionKey::custom("test.effective.first");
+        const SECOND: ActionKey = ActionKey::custom("test.effective.second");
+        let owner = Id::root("effective-table");
+        for (first, second, conflicts) in [
+            (
+                Chord::key(KeyCode::Char('A')),
+                Chord::with(KeyCode::Char('A'), KeyModifiers::SHIFT),
+                1,
+            ),
+            (
+                Chord::key(KeyCode::Char('a')),
+                Chord::key(KeyCode::Char('A')),
+                0,
+            ),
+            (
+                Chord::key(KeyCode::Up),
+                Chord::with(KeyCode::Up, KeyModifiers::SHIFT),
+                0,
+            ),
+            (
+                Chord::key(KeyCode::Char('A')),
+                Chord::key(KeyCode::Char('A')),
+                1,
+            ),
+        ] {
+            let table = [
+                binding(FIRST, first, Cmd::A),
+                binding(SECOND, second, Cmd::B),
+            ];
+            assert_eq!(
+                binding_conflicts(owner, KeyPhase::Bubble, &table).len(),
+                conflicts,
+                "table {first:?} vs {second:?}"
+            );
+        }
+        assert_ne!(
+            Chord::key(KeyCode::Char('A')),
+            Chord::with(KeyCode::Char('A'), KeyModifiers::SHIFT),
+            "structural identity still distinguishes modifier forms"
+        );
+    }
+
+    /// TASK-010 W-010-10: component-scope conflict detection uses the same
+    /// effective equivalence, including remapped effective chords.
+    #[test]
+    fn component_conflicts_use_effective_chord_identity() {
+        const VISIBLE: ActionKey = ActionKey::custom("test.effective.visible");
+        const HIDDEN: ActionKey = ActionKey::custom("test.effective.hidden");
+        let owner = Id::root("effective-component");
+        let keymap = KeyMap::new();
+        for (first, second, conflicts) in [
+            (
+                Chord::key(KeyCode::Char('A')),
+                Chord::with(KeyCode::Char('A'), KeyModifiers::SHIFT),
+                1,
+            ),
+            (
+                Chord::key(KeyCode::Char('a')),
+                Chord::key(KeyCode::Char('A')),
+                0,
+            ),
+            (
+                Chord::key(KeyCode::Up),
+                Chord::with(KeyCode::Up, KeyModifiers::SHIFT),
+                0,
+            ),
+        ] {
+            let table = [
+                BindingDescriptor {
+                    action: VISIBLE,
+                    chord: Some(first),
+                    label: "Visible",
+                    priority: 80,
+                    visible: true,
+                },
+                BindingDescriptor {
+                    action: HIDDEN,
+                    chord: Some(second),
+                    label: "Hidden",
+                    priority: 40,
+                    visible: false,
+                },
+            ];
+            assert_eq!(
+                keymap.component_conflicts(owner, &table).len(),
+                conflicts,
+                "component {first:?} vs {second:?}"
+            );
+        }
+        let table = [
+            BindingDescriptor {
+                action: VISIBLE,
+                chord: Some(Chord::key(KeyCode::Char('A'))),
+                label: "Visible",
+                priority: 80,
+                visible: true,
+            },
+            BindingDescriptor {
+                action: HIDDEN,
+                chord: Some(Chord::key(KeyCode::F(1))),
+                label: "Hidden",
+                priority: 40,
+                visible: false,
+            },
+        ];
+        let mut remapped = KeyMap::new();
+        remapped.remap_component(
+            owner,
+            HIDDEN,
+            Chord::with(KeyCode::Char('A'), KeyModifiers::SHIFT),
+        );
+        assert_eq!(remapped.component_conflicts(owner, &table).len(), 1);
+    }
+
+    /// TASK-010 W-010-10: ordinary and typing-scope `KeyMap` conflicts use
+    /// the same effective equivalence.
+    #[test]
+    fn keymap_conflicts_use_effective_chord_identity() {
+        let owner = Id::root("effective-scopes");
+        for (first, second, conflicts) in [
+            (
+                Chord::key(KeyCode::Char('A')),
+                Chord::with(KeyCode::Char('A'), KeyModifiers::SHIFT),
+                1,
+            ),
+            (
+                Chord::key(KeyCode::Char('a')),
+                Chord::key(KeyCode::Char('A')),
+                0,
+            ),
+            (
+                Chord::key(KeyCode::Up),
+                Chord::with(KeyCode::Up, KeyModifiers::SHIFT),
+                0,
+            ),
+        ] {
+            let map = KeyMap::new()
+                .bind(KeyPhase::Bubble, first, ActionKey::CLOSE)
+                .bind(KeyPhase::Bubble, second, ActionKey::SAVE);
+            assert_eq!(
+                map.conflicts().len(),
+                conflicts,
+                "ordinary {first:?} vs {second:?}"
+            );
+            let typed = KeyMap::new()
+                .bind_before_typing(owner, first, ActionKey::CLOSE)
+                .bind_before_typing(owner, second, ActionKey::SAVE);
+            assert_eq!(
+                typed.conflicts().len(),
+                conflicts,
+                "typing {first:?} vs {second:?}"
+            );
+        }
+    }
+
+    /// TASK-010 W-010-10: focused-hint deduplication uses the same effective
+    /// equivalence as matching and conflict detection.
+    #[test]
+    fn focused_hints_deduplicate_effective_chords() {
+        const FIRST: ActionKey = ActionKey::custom("test.effective.hint.first");
+        const SECOND: ActionKey = ActionKey::custom("test.effective.hint.second");
+        let owner = Id::root("effective-hints");
+        let keymap = KeyMap::new();
+        for (first, second, hints) in [
+            (
+                Chord::key(KeyCode::Char('A')),
+                Chord::with(KeyCode::Char('A'), KeyModifiers::SHIFT),
+                1,
+            ),
+            (
+                Chord::key(KeyCode::Char('a')),
+                Chord::key(KeyCode::Char('A')),
+                2,
+            ),
+            (
+                Chord::key(KeyCode::Up),
+                Chord::with(KeyCode::Up, KeyModifiers::SHIFT),
+                2,
+            ),
+        ] {
+            let table = [
+                BindingDescriptor {
+                    action: FIRST,
+                    chord: Some(first),
+                    label: "First",
+                    priority: 80,
+                    visible: true,
+                },
+                BindingDescriptor {
+                    action: SECOND,
+                    chord: Some(second),
+                    label: "Second",
+                    priority: 40,
+                    visible: true,
+                },
+            ];
+            let mut focused = FocusedHints::default();
+            focused.derive(
+                FocusedHintKey {
+                    focus: owner,
+                    flags: StateFlags::FOCUSED,
+                    layer: crate::layer::LayerId::PAGE,
+                    table: BindingTableId::dynamic(owner, table.len(), 1),
+                    keymap_revision: 0,
+                },
+                &table,
+                &keymap,
+            );
+            assert_eq!(
+                focused.layer.hints.len(),
+                hints,
+                "hints {first:?} vs {second:?}"
+            );
+        }
     }
 }
