@@ -72,7 +72,19 @@ impl Drop for TextBuffer {
 
 pub(super) fn normalized_text(text: &str, multiline: bool) -> Cow<'_, str> {
     if multiline && text.contains('\r') {
-        text.replace("\r\n", "\n").replace('\r', "\n").into()
+        let mut normalized = String::with_capacity(text.len());
+        let mut chars = text.chars().peekable();
+        while let Some(ch) = chars.next() {
+            if ch == '\r' {
+                if chars.peek() == Some(&'\n') {
+                    chars.next();
+                }
+                normalized.push('\n');
+            } else {
+                normalized.push(ch);
+            }
+        }
+        normalized.into()
     } else if !multiline && text.contains(['\r', '\n']) {
         text.chars()
             .filter(|c| !matches!(c, '\r' | '\n'))
