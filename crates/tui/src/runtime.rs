@@ -1457,6 +1457,12 @@ impl<A: App> Runtime<A> {
         if let Some(k) = key_input
             && !r.is_consumed()
         {
+            // The raw pass already delivered (or diagnosed) every intent in
+            // the frozen queue. A follow-up bubble or Esc-dismissal pass must
+            // observe only its own command and fresh layer/focus
+            // notifications — never the same physical Key twice — while
+            // per-pass iteration stays immutable.
+            self.intents.clear();
             if let Some(cmd) = self.core.keymap.lookup(KeyPhase::Bubble, &k, false) {
                 r |= self.run_update(Some(cmd), UpdateCause::Event, activation_key);
             } else if k.code == KeyCode::Esc {
@@ -2665,6 +2671,7 @@ mod tests {
         options: u8,
         typed: Vec<(Id, RouteCmd)>,
         raw: usize,
+        raw_keys: Vec<(Id, KeyCode)>,
         app_commands: usize,
     }
 
@@ -2675,6 +2682,7 @@ mod tests {
                 options: ROUTE_PUBLISH,
                 typed: Vec::new(),
                 raw: 0,
+                raw_keys: Vec::new(),
                 app_commands: 0,
             }
         }
@@ -2694,11 +2702,12 @@ mod tests {
 
     impl App for RouteApp {
         fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-            if cx.command().is_some() {
+            let mut response = if cx.command().is_some() {
                 self.app_commands = self.app_commands.saturating_add(1);
-                return Response::consumed();
-            }
-            let mut response = Response::ignored();
+                Response::consumed()
+            } else {
+                Response::ignored()
+            };
             let table = self.table();
             for owner in [A, B] {
                 if owner == B && self.options & ROUTE_SECOND == 0 {
@@ -2712,8 +2721,9 @@ mod tests {
                                 response |= Response::consumed();
                             }
                         }
-                        crate::Intent::Key(_) => {
+                        crate::Intent::Key(key) => {
                             self.raw = self.raw.saturating_add(1);
+                            self.raw_keys.push((owner, key.code));
                             if self.options & ROUTE_CONSUME_RAW != 0 {
                                 response |= Response::consumed();
                             }
@@ -2864,6 +2874,21 @@ mod tests {
         runtime.app_mut().options |= ROUTE_CONSUME_RAW;
         assert!(deliver(&mut runtime, key(KeyCode::F(6))).is_consumed());
         assert_eq!(runtime.app().app_commands, 1);
+    }
+
+    #[test]
+    fn bubble_followup_does_not_redeliver_raw_key() {
+        let mut app = RouteApp::default();
+        app.keymap.add(
+            KeyPhase::Bubble,
+            crate::Chord::key(KeyCode::F(6)),
+            ActionKey::SAVE,
+        );
+        let (mut runtime, _) = route_runtime(app);
+        assert_eq!(runtime.focus(), Some(A));
+        assert!(deliver(&mut runtime, key(KeyCode::F(6))).is_consumed());
+        assert_eq!(runtime.app().app_commands, 1);
+        assert_eq!(runtime.app().raw_keys, vec![(A, KeyCode::F(6))]);
     }
 
     #[test]
