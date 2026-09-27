@@ -291,8 +291,10 @@ impl Ui<'_> {
             return 0;
         }
         let base = base.into();
-        let mut joined = String::new();
-        let mut style_by_byte = Vec::new();
+        let mut joined = core::mem::take(&mut self.core.scroll_span_text);
+        let mut style_by_byte = core::mem::take(&mut self.core.scroll_span_styles);
+        joined.clear();
+        style_by_byte.clear();
         for sp in spans {
             let mut st = base.add_modifier(sp.add);
             if let Some(role) = sp.role {
@@ -334,6 +336,10 @@ impl Ui<'_> {
                 x = x.saturating_add(1);
             }
         }
+        joined.clear();
+        style_by_byte.clear();
+        self.core.scroll_span_text = joined;
+        self.core.scroll_span_styles = style_by_byte;
         x.saturating_sub(area.x)
     }
 
