@@ -1815,8 +1815,8 @@ fn capture_matrix_contract() -> Result<(), String> {
     Ok(())
 }
 
-fn parity_contract() -> Result<(), String> {
-    parity::contract(&root())
+fn parity_mapping_contract() -> Result<(), String> {
+    parity::dry_run(&root())
 }
 
 fn capture_exec_contract_hits(script: &str) -> Vec<String> {
@@ -2339,7 +2339,7 @@ const CHECKS: &[Check] = &[
     ),
     ("binary_names_are_preserved", binary_names_are_preserved),
     ("capture_matrix_contract", capture_matrix_contract),
-    ("parity_contract", parity_contract),
+    ("parity_mapping_contract", parity_mapping_contract),
     ("app_baselines_exist", app_baselines_exist),
     (
         "app_libs_are_not_published_and_are_not_depended_on_by_the_library",
