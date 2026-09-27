@@ -292,34 +292,34 @@ impl TextBuffer {
     }
 
     fn prev_word(&self, from: usize) -> usize {
-        let gs: Vec<_> = graphemes(&self.text)
-            .filter(|(i, g)| i.saturating_add(g.len()) <= from)
-            .collect();
-        let mut iter = gs.into_iter().rev();
-        let mut cursor = 0;
-        for (i, g) in iter.by_ref() {
-            if g.chars().next().is_some_and(is_word_char) {
-                cursor = i;
+        let end = Self::floor_boundary(&self.text, from);
+        let prefix = &self.text[..end];
+        let groups: Vec<_> = graphemes(prefix).collect();
+        let mut in_word = false;
+        let mut start = 0;
+        for (i, g) in groups.into_iter().rev() {
+            let word = g.chars().next().is_some_and(is_word_char);
+            if word {
+                in_word = true;
+                start = i;
+            } else if in_word {
                 break;
+            } else {
+                start = i;
             }
         }
-        for (i, g) in iter {
-            if !g.chars().next().is_some_and(is_word_char) {
-                cursor = i.saturating_add(g.len());
-                break;
-            }
-        }
-        cursor
+        start
     }
 
     fn next_word(&self, from: usize) -> usize {
-        let after: Vec<_> = graphemes(&self.text).filter(|(i, _)| *i >= from).collect();
+        let start = Self::ceil_boundary(&self.text, from);
+        let suffix = &self.text[start..];
         let mut in_word = false;
-        for (i, g) in after {
-            if is_word_char(g.chars().next().unwrap_or(' ')) {
+        for (i, g) in graphemes(suffix) {
+            if g.chars().next().is_some_and(is_word_char) {
                 in_word = true;
             } else if in_word {
-                return i;
+                return start.saturating_add(i);
             }
         }
         self.text.len()
