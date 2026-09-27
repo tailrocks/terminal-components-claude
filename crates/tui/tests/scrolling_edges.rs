@@ -1,9 +1,9 @@
-//! TASK-014: one scroll and fade primitive preserves hidden-edge cells and routing.
+//! Scroll edge fades preserve hidden cells and input routing.
 //!
 //! The shared [`ScrollState`](junie_tui::ScrollState) model, the owner-keyed
 //! [`ScrollRegion`](junie_tui::ScrollRegion) and the reusable
 //! [`Ui::scroll_edges`](junie_tui::Ui::scroll_edges) painter keep exact
-//! oracle fade arithmetic, thumb track/grab capture and boundary wheel
+//! fade arithmetic, thumb track/grab capture and boundary wheel
 //! routing: hidden bars reserve no column and expose no pointer part while
 //! wheel and reveal stay active.
 #![cfg_attr(
