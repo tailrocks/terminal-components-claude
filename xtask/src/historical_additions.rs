@@ -123,6 +123,21 @@ fn authorize_outputs(
 /// installation even when Git reports no change, so missing files cannot vanish
 /// from discovery and an ignored/untracked partial installation cannot pass.
 pub(crate) fn reviewed_additions(root: &Path, base: &str) -> Result<BTreeSet<String>, String> {
+    if git(
+        root,
+        &["cat-file", "-e", &format!("{ARCHIVE_COMMIT}^{{commit}}")],
+    )
+    .is_err()
+    {
+        let _ = Command::new("git")
+            .args(["fetch", "--unshallow", "origin"])
+            .current_dir(root)
+            .output();
+        let _ = Command::new("git")
+            .args(["fetch", "origin", ARCHIVE_COMMIT])
+            .current_dir(root)
+            .output();
+    }
     git(root, &["merge-base", "--is-ancestor", ARCHIVE_COMMIT, base])?;
     let pinned = git(root, &["show", &format!("{GENERATOR_COMMIT}:{MANIFEST}")])?;
     verified(&pinned, MANIFEST_SHA256, "committed generator manifest")?;

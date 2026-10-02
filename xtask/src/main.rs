@@ -8939,6 +8939,7 @@ fn bless_guard_base_from(
 }
 
 fn bless_guard_base() -> Result<String, String> {
+    ensure_unshallow();
     let explicit = std::env::var("BLESS_GUARD_BASE").ok();
     let github_base_ref = std::env::var("GITHUB_BASE_REF").ok();
     bless_guard_base_from(explicit.as_deref(), github_base_ref.as_deref())
