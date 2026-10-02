@@ -9026,7 +9026,6 @@ fn discover_baselines() -> BTreeSet<String> {
 /// reviewed recovery of the historical archive.
 fn baseline_moves_are_classified() -> Result<(), String> {
     let base = bless_guard_base()?;
-    let reviewed_additions = historical_additions::reviewed_additions(&root(), &base)?;
     let (renames, touched) = diff_name_status(&base)?;
     let untracked = untracked_files()?;
     let mut paths = discover_baselines();
@@ -9034,6 +9033,7 @@ fn baseline_moves_are_classified() -> Result<(), String> {
     paths.extend(untracked.iter().cloned());
     paths.retain(|p| classify_baseline(p).is_some());
 
+    let mut reviewed_additions = None;
     let mut frozen_changed: Vec<String> = Vec::new();
     let mut files: Vec<(String, String, String)> = Vec::new();
     for path in &paths {
@@ -9045,7 +9045,13 @@ fn baseline_moves_are_classified() -> Result<(), String> {
             // every untracked frozen path remain hard failures.
             if untracked.contains(path)
                 || (touched.contains(path)
-                    && (git_path_exists(&base, path) || !reviewed_additions.contains(path)))
+                    && (git_path_exists(&base, path) || {
+                        if reviewed_additions.is_none() {
+                            reviewed_additions =
+                                Some(historical_additions::reviewed_additions(&root(), &base)?);
+                        }
+                        !reviewed_additions.as_ref().unwrap().contains(path)
+                    }))
             {
                 frozen_changed.push(path.clone());
             }
