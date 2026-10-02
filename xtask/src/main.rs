@@ -1378,9 +1378,21 @@ fn validate_capture_provenance(
             format!("cannot validate capture provenance revision {revision}: {error}")
         })?;
         if !output.status.success() {
-            errors.push(format!(
-                "capture provenance revision does not resolve: {revision}"
-            ));
+            ensure_unshallow();
+            let retry = git(&[
+                "rev-parse",
+                "--verify",
+                "--quiet",
+                &format!("{revision}^{{commit}}"),
+            ])
+            .map_err(|error| {
+                format!("cannot validate capture provenance revision {revision}: {error}")
+            })?;
+            if !retry.status.success() {
+                errors.push(format!(
+                    "capture provenance revision does not resolve: {revision}"
+                ));
+            }
         }
     }
 
@@ -2377,6 +2389,7 @@ const CHECKS: &[Check] = &[
 ];
 
 fn boundary(only: Option<&str>) -> Result<(), String> {
+    ensure_unshallow();
     let mut failures = Vec::new();
     for (name, f) in CHECKS {
         if only.is_some_and(|o| o != *name) {
@@ -8868,6 +8881,15 @@ fn git_path_exists(rev: &str, path: &str) -> bool {
     git(&["cat-file", "-e", &format!("{rev}:{path}")]).is_ok_and(|out| out.status.success())
 }
 
+fn ensure_unshallow() {
+    if git(&["rev-parse", "--is-shallow-repository"]).is_ok_and(|out| {
+        out.status.success() && String::from_utf8_lossy(&out.stdout).trim() == "true"
+    }) {
+        let _ = git(&["fetch", "--unshallow", "origin"]);
+    }
+    let _ = git(&["fetch", "origin", "main:refs/remotes/origin/main"]);
+}
+
 fn resolve_rev(rev: &str, source: &str) -> Result<String, String> {
     let out = git(&[
         "rev-parse",
@@ -8878,23 +8900,16 @@ fn resolve_rev(rev: &str, source: &str) -> Result<String, String> {
     if out.status.success() {
         return Ok(rev.to_owned());
     }
-    if let Some(branch) = rev.strip_prefix("origin/") {
-        let _ = git(&[
-            "fetch",
-            "--depth=1",
-            "origin",
-            &format!("{branch}:refs/remotes/origin/{branch}"),
-        ]);
-        if let Ok(out) = git(&[
-            "rev-parse",
-            "--verify",
-            "--quiet",
-            &format!("{rev}^{{commit}}"),
-        ]) {
-            if out.status.success() {
-                return Ok(rev.to_owned());
-            }
-        }
+    ensure_unshallow();
+    if git(&[
+        "rev-parse",
+        "--verify",
+        "--quiet",
+        &format!("{rev}^{{commit}}"),
+    ])
+    .is_ok_and(|res| res.status.success())
+    {
+        return Ok(rev.to_owned());
     }
     Err(format!(
         "bless-guard base revision `{rev}` (from {source}) does not resolve. Falling back to HEAD \
