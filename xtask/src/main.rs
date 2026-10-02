@@ -1389,9 +1389,17 @@ fn validate_capture_provenance(
                 format!("cannot validate capture provenance revision {revision}: {error}")
             })?;
             if !retry.status.success() {
-                errors.push(format!(
-                    "capture provenance revision does not resolve: {revision}"
-                ));
+                if git(&["rev-parse", "--is-shallow-repository"]).is_ok_and(|out| {
+                    out.status.success() && String::from_utf8_lossy(&out.stdout).trim() == "true"
+                }) {
+                    println!(
+                        "warning: capture provenance revision {revision} cannot be resolved in shallow clone"
+                    );
+                } else {
+                    errors.push(format!(
+                        "capture provenance revision does not resolve: {revision}"
+                    ));
+                }
             }
         }
     }
@@ -8882,6 +8890,11 @@ fn git_path_exists(rev: &str, path: &str) -> bool {
 }
 
 fn ensure_unshallow() {
+    let _ = git(&[
+        "config",
+        "remote.origin.fetch",
+        "+refs/heads/*:refs/remotes/origin/*",
+    ]);
     if git(&["rev-parse", "--is-shallow-repository"]).is_ok_and(|out| {
         out.status.success() && String::from_utf8_lossy(&out.stdout).trim() == "true"
     }) {

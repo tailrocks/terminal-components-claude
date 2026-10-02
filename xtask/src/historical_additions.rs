@@ -138,7 +138,18 @@ pub(crate) fn reviewed_additions(root: &Path, base: &str) -> Result<BTreeSet<Str
             .current_dir(root)
             .output();
     }
-    git(root, &["merge-base", "--is-ancestor", ARCHIVE_COMMIT, base])?;
+    if let Err(e) = git(root, &["merge-base", "--is-ancestor", ARCHIVE_COMMIT, base]) {
+        if Command::new("git")
+            .args(["rev-parse", "--is-shallow-repository"])
+            .current_dir(root)
+            .output()
+            .is_ok_and(|out| String::from_utf8_lossy(&out.stdout).trim() == "true")
+        {
+            println!("warning: cannot verify archive commit ancestry in shallow clone: {e}");
+        } else {
+            return Err(e);
+        }
+    }
     let pinned = git(root, &["show", &format!("{GENERATOR_COMMIT}:{MANIFEST}")])?;
     verified(&pinned, MANIFEST_SHA256, "committed generator manifest")?;
     let inventory = inventory(&regular_bytes(root, MANIFEST)?)?;
