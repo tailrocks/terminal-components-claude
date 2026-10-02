@@ -20,7 +20,7 @@ concurrency:
 jobs:
   actionlint:
     name: Actionlint
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -47,7 +47,7 @@ jobs:
           path: ~/.local/share/mise
   plan:
     name: Plan
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
       covered_tasks: ${{ steps.plan.outputs.covered_tasks }}
@@ -110,30 +110,6 @@ jobs:
           MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
           RUSTUP_TOOLCHAIN: 1.98.1
         run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-core/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-testing/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\"; fi'"
       - name: Acquire Velnor
         env:
           ACTIONS_ID_TOKEN_REQUEST_TOKEN: ""
@@ -210,7 +186,7 @@ jobs:
           path: ~/.local/share/mise
   publish-baseline:
     name: Publish baseline
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     needs:
       - required
@@ -259,12 +235,10 @@ jobs:
           retention-days: "90"
   required:
     name: Required
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     needs:
       - plan
-      - rust-backend-free-core-consumer
-      - rust-backend-free-testing-consumer
       - rust-holla
       - rust-jackin-preview
       - rust-junie-tui
@@ -328,14 +302,14 @@ jobs:
         env:
           VELNOR_INTERNAL_OP: write-request-v1
           VELNOR_NEEDS_JSON: ${{ toJSON(needs) }}
-          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-backend-free-core-consumer\",\"rust-backend-free-testing-consumer\",\"rust-holla\",\"rust-jackin-preview\",\"rust-junie-tui\",\"rust-junie-tui-testing\",\"rust-showcase\",\"rust-tablepro\",\"rust-xtask\"]"
+          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-jackin-preview\",\"rust-junie-tui\",\"rust-junie-tui-testing\",\"rust-showcase\",\"rust-tablepro\",\"rust-xtask\"]"
           VELNOR_REQUEST_FILE: ${{ runner.temp }}/velnor/request/merge-v1-request.json
         run: "\"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\""
       - name: Merge reports
         env:
           VELNOR_INTERNAL_OP: merge-v1
           VELNOR_NEEDS_JSON: ${{ toJSON(needs) }}
-          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-backend-free-core-consumer\",\"rust-backend-free-testing-consumer\",\"rust-holla\",\"rust-jackin-preview\",\"rust-junie-tui\",\"rust-junie-tui-testing\",\"rust-showcase\",\"rust-tablepro\",\"rust-xtask\"]"
+          VELNOR_NEEDS_EXPECTED: "[\"actionlint\",\"plan\",\"rust-holla\",\"rust-jackin-preview\",\"rust-junie-tui\",\"rust-junie-tui-testing\",\"rust-showcase\",\"rust-tablepro\",\"rust-xtask\"]"
           VELNOR_REQUEST_FILE: ${{ runner.temp }}/velnor/request/merge-v1-request.json
         run: "\"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\""
       - name: Save Mise tools
@@ -352,477 +326,9 @@ jobs:
           name: velnor-final-r${{ github.run_id }}-a${{ github.run_attempt }}
           path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ github.run_attempt }}/final-report.json
           retention-days: "30"
-  rust-backend-free-core-consumer:
-    name: Rust / backend-free-core-consumer
-    runs-on: ubuntu-26.04
-    timeout-minutes: 30
-    needs:
-      - plan
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: "false"
-      - name: Setup Mise
-        uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5
-        with:
-          cache: "true"
-          cache_key: mise-v1-x86_64-unknown-linux-gnu-2026.9.18-ccc5d847fd871b3b
-          cache_save: "false"
-          env: "false"
-          install: "false"
-          sha256: d24fe0bf7e613824ad99f7b8dac3f2b381a37b9f75f84dd250855217095a8de4
-          version: 2026.9.18
-      - name: Acquire Velnor
-        env:
-          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ""
-          ACTIONS_ID_TOKEN_REQUEST_URL: ""
-          ACTIONS_RUNTIME_TOKEN: ""
-          CARGO_REGISTRY_TOKEN: ""
-          GH_CONFIG_DIR: ""
-          GH_HOST: ""
-          GH_TOKEN: ""
-          GITHUB_TOKEN: ""
-          MISE_GITHUB_TOKEN: ""
-          NODE_AUTH_TOKEN: ""
-          NPM_TOKEN: ""
-          VELNOR_ASSET_SHA256: aa7e44d6579e9c586106d120ed3658fcf1c9b041027ad9f03473e8efacd3b5d5
-          VELNOR_ASSET_URL: https://github.com/tailrocks/velnor-new/releases/download/v0.1.0/velnor-actions-0.1.0-x86_64-unknown-linux-gnu
-          VELNOR_RELEASE_COMMIT: c57c700459bbe1549fe7eedcb7d8689585c38986
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; mkdir -p \"$RUNNER_TEMP/velnor/bin\" && curl -fsSL --proto '\\''=https'\\'' --tlsv1.2 \"$VELNOR_ASSET_URL\" -o \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\" && echo \"$VELNOR_ASSET_SHA256  $RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\" | sha256sum -c - && chmod +x \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"'"
-      - name: Download plan
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
-        with:
-          name: velnor-plan-r${{ github.run_id }}-a${{ github.run_attempt }}
-          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ github.run_attempt }}
-      - name: Prepare pinned tools
-        env:
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: mise --no-config --no-env --no-hooks install rust@1.98.1 actionlint@1.7.12 shellcheck@0.11.0 zizmor@1.30.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146
-      - name: Prepare Rust components
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: mise --no-config --no-env --no-hooks exec rust@1.98.1 -- rustup component add --toolchain 1.98.1-x86_64-unknown-linux-gnu clippy rustfmt
-      - name: Restore Cargo registry
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
-        with:
-          add-job-id-key: "false"
-          cache-on-failure: "false"
-          cache-targets: "false"
-          prefix-key: velnor-v1-cargo
-          save-if: "false"
-          shared-key: velnor-cargo-x86_64-unknown-linux-gnu-1.98.1
-      - name: Fetch Cargo sources
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-core/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-testing/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\"; fi'"
-      - name: Clippy
-        if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/xtask/fixtures/backend-free-core/clippy/default,')"
-        env:
-          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ""
-          ACTIONS_ID_TOKEN_REQUEST_URL: ""
-          ACTIONS_RUNTIME_TOKEN: ""
-          CARGO_REGISTRY_TOKEN: ""
-          GH_CONFIG_DIR: ""
-          GH_HOST: ""
-          GH_TOKEN: ""
-          GITHUB_TOKEN: ""
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_GITHUB_TOKEN: ""
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          NODE_AUTH_TOKEN: ""
-          NPM_TOKEN: ""
-          RUSTUP_TOOLCHAIN: 1.98.1
-          VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/xtask/fixtures/backend-free-core/build/default,stack/rust/xtask/fixtures/backend-free-core/nextest/default,stack/rust/xtask/fixtures/backend-free-core/doc/default
-          VELNOR_MATRIX_ID: stack:rust|task:stack/rust/xtask/fixtures/backend-free-core/clippy/default
-          VELNOR_MATRIX_KEY: m-79d6a81c20571374
-          VELNOR_TASK_DIGEST: b3-c5bae937d062816b330e7dce030e400560dbd2842dda6988249875387545ff84
-          VELNOR_TASK_ID: stack/rust/xtask/fixtures/backend-free-core/clippy/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-79d6a81c20571374\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo clippy --locked --offline --manifest-path xtask/fixtures/backend-free-core/Cargo.toml --package backend-free-core-consumer --all-targets -- -D warnings; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-79d6a81c20571374\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
-      - name: Build test executables
-        if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/xtask/fixtures/backend-free-core/build/default,')"
-        env:
-          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ""
-          ACTIONS_ID_TOKEN_REQUEST_URL: ""
-          ACTIONS_RUNTIME_TOKEN: ""
-          CARGO_REGISTRY_TOKEN: ""
-          GH_CONFIG_DIR: ""
-          GH_HOST: ""
-          GH_TOKEN: ""
-          GITHUB_TOKEN: ""
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_GITHUB_TOKEN: ""
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          NODE_AUTH_TOKEN: ""
-          NPM_TOKEN: ""
-          RUSTUP_TOOLCHAIN: 1.98.1
-          VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/xtask/fixtures/backend-free-core/nextest/default,stack/rust/xtask/fixtures/backend-free-core/doc/default
-          VELNOR_MATRIX_ID: stack:rust|task:stack/rust/xtask/fixtures/backend-free-core/build/default
-          VELNOR_MATRIX_KEY: m-6eaeced211704161
-          VELNOR_TASK_DIGEST: b3-4b7c7e116378b0c6ae6efe9bb9fc2ae19aa0666aa26ab4ce32ba7efaac7515c5
-          VELNOR_TASK_ID: stack/rust/xtask/fixtures/backend-free-core/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-6eaeced211704161\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path xtask/fixtures/backend-free-core/Cargo.toml --package backend-free-core-consumer; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-6eaeced211704161\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
-      - name: Unit and integration tests
-        if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/xtask/fixtures/backend-free-core/nextest/default,')"
-        env:
-          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ""
-          ACTIONS_ID_TOKEN_REQUEST_URL: ""
-          ACTIONS_RUNTIME_TOKEN: ""
-          CARGO_REGISTRY_TOKEN: ""
-          GH_CONFIG_DIR: ""
-          GH_HOST: ""
-          GH_TOKEN: ""
-          GITHUB_TOKEN: ""
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_GITHUB_TOKEN: ""
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          NODE_AUTH_TOKEN: ""
-          NPM_TOKEN: ""
-          RUSTUP_TOOLCHAIN: 1.98.1
-          VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/xtask/fixtures/backend-free-core/doc/default
-          VELNOR_MATRIX_ID: stack:rust|task:stack/rust/xtask/fixtures/backend-free-core/nextest/default
-          VELNOR_MATRIX_KEY: m-4bc10e1958a0ffe3
-          VELNOR_TASK_DIGEST: b3-bfce92139be7485f4d716b96a494dc930fdda894543cfb6a53e3e0eee263d78f
-          VELNOR_TASK_ID: stack/rust/xtask/fixtures/backend-free-core/nextest/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-4bc10e1958a0ffe3\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest run --profile default --locked --offline --manifest-path xtask/fixtures/backend-free-core/Cargo.toml --package backend-free-core-consumer --no-tests fail; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-4bc10e1958a0ffe3\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
-      - name: Documentation
-        if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/xtask/fixtures/backend-free-core/doc/default,')"
-        env:
-          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ""
-          ACTIONS_ID_TOKEN_REQUEST_URL: ""
-          ACTIONS_RUNTIME_TOKEN: ""
-          CARGO_REGISTRY_TOKEN: ""
-          GH_CONFIG_DIR: ""
-          GH_HOST: ""
-          GH_TOKEN: ""
-          GITHUB_TOKEN: ""
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_GITHUB_TOKEN: ""
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          NODE_AUTH_TOKEN: ""
-          NPM_TOKEN: ""
-          RUSTDOCFLAGS: "-D warnings"
-          RUSTUP_TOOLCHAIN: 1.98.1
-          VELNOR_MATRIX_ID: stack:rust|task:stack/rust/xtask/fixtures/backend-free-core/doc/default
-          VELNOR_MATRIX_KEY: m-ac2c6350ed599f26
-          VELNOR_TASK_DIGEST: b3-96fcefde4a1767702d9c09bce8cb74d755f93686b4d3b8d7a2b09dc84d2632a7
-          VELNOR_TASK_ID: stack/rust/xtask/fixtures/backend-free-core/doc/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-ac2c6350ed599f26\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo doc --locked --offline --manifest-path xtask/fixtures/backend-free-core/Cargo.toml --package backend-free-core-consumer --no-deps; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-ac2c6350ed599f26\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
-      - name: Upload crate reports
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          if-no-files-found: error
-          name: velnor-crate-r${{ github.run_id }}-a${{ github.run_attempt }}-rust-backend-free-core-consumer
-          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ github.run_attempt }}
-          retention-days: "30"
-  rust-backend-free-testing-consumer:
-    name: Rust / backend-free-testing-consumer
-    runs-on: ubuntu-26.04
-    timeout-minutes: 30
-    needs:
-      - plan
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          persist-credentials: "false"
-      - name: Setup Mise
-        uses: jdx/mise-action@9149ea85001c7435d5a66bb127d6a1b6227cb0a5
-        with:
-          cache: "true"
-          cache_key: mise-v1-x86_64-unknown-linux-gnu-2026.9.18-ccc5d847fd871b3b
-          cache_save: "false"
-          env: "false"
-          install: "false"
-          sha256: d24fe0bf7e613824ad99f7b8dac3f2b381a37b9f75f84dd250855217095a8de4
-          version: 2026.9.18
-      - name: Acquire Velnor
-        env:
-          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ""
-          ACTIONS_ID_TOKEN_REQUEST_URL: ""
-          ACTIONS_RUNTIME_TOKEN: ""
-          CARGO_REGISTRY_TOKEN: ""
-          GH_CONFIG_DIR: ""
-          GH_HOST: ""
-          GH_TOKEN: ""
-          GITHUB_TOKEN: ""
-          MISE_GITHUB_TOKEN: ""
-          NODE_AUTH_TOKEN: ""
-          NPM_TOKEN: ""
-          VELNOR_ASSET_SHA256: aa7e44d6579e9c586106d120ed3658fcf1c9b041027ad9f03473e8efacd3b5d5
-          VELNOR_ASSET_URL: https://github.com/tailrocks/velnor-new/releases/download/v0.1.0/velnor-actions-0.1.0-x86_64-unknown-linux-gnu
-          VELNOR_RELEASE_COMMIT: c57c700459bbe1549fe7eedcb7d8689585c38986
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; mkdir -p \"$RUNNER_TEMP/velnor/bin\" && curl -fsSL --proto '\\''=https'\\'' --tlsv1.2 \"$VELNOR_ASSET_URL\" -o \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\" && echo \"$VELNOR_ASSET_SHA256  $RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\" | sha256sum -c - && chmod +x \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"'"
-      - name: Download plan
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
-        with:
-          name: velnor-plan-r${{ github.run_id }}-a${{ github.run_attempt }}
-          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ github.run_attempt }}
-      - name: Prepare pinned tools
-        env:
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: mise --no-config --no-env --no-hooks install rust@1.98.1 actionlint@1.7.12 shellcheck@0.11.0 zizmor@1.30.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146
-      - name: Prepare Rust components
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: mise --no-config --no-env --no-hooks exec rust@1.98.1 -- rustup component add --toolchain 1.98.1-x86_64-unknown-linux-gnu clippy rustfmt
-      - name: Restore Cargo registry
-        uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
-        with:
-          add-job-id-key: "false"
-          cache-on-failure: "false"
-          cache-targets: "false"
-          prefix-key: velnor-v1-cargo
-          save-if: "false"
-          shared-key: velnor-cargo-x86_64-unknown-linux-gnu-1.98.1
-      - name: Fetch Cargo sources
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-core/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-testing/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\"; fi'"
-      - name: Clippy
-        if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/xtask/fixtures/backend-free-testing/clippy/default,')"
-        env:
-          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ""
-          ACTIONS_ID_TOKEN_REQUEST_URL: ""
-          ACTIONS_RUNTIME_TOKEN: ""
-          CARGO_REGISTRY_TOKEN: ""
-          GH_CONFIG_DIR: ""
-          GH_HOST: ""
-          GH_TOKEN: ""
-          GITHUB_TOKEN: ""
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_GITHUB_TOKEN: ""
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          NODE_AUTH_TOKEN: ""
-          NPM_TOKEN: ""
-          RUSTUP_TOOLCHAIN: 1.98.1
-          VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/xtask/fixtures/backend-free-testing/build/default,stack/rust/xtask/fixtures/backend-free-testing/nextest/default,stack/rust/xtask/fixtures/backend-free-testing/doc/default
-          VELNOR_MATRIX_ID: stack:rust|task:stack/rust/xtask/fixtures/backend-free-testing/clippy/default
-          VELNOR_MATRIX_KEY: m-d47a4371eab7ba88
-          VELNOR_TASK_DIGEST: b3-7c4e4ee0833deda2fb6693f14368558d1b2a425bd9661bd5d482d84b9a0cea7f
-          VELNOR_TASK_ID: stack/rust/xtask/fixtures/backend-free-testing/clippy/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-d47a4371eab7ba88\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo clippy --locked --offline --manifest-path xtask/fixtures/backend-free-testing/Cargo.toml --package backend-free-testing-consumer --all-targets -- -D warnings; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-d47a4371eab7ba88\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
-      - name: Build test executables
-        if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/xtask/fixtures/backend-free-testing/build/default,')"
-        env:
-          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ""
-          ACTIONS_ID_TOKEN_REQUEST_URL: ""
-          ACTIONS_RUNTIME_TOKEN: ""
-          CARGO_REGISTRY_TOKEN: ""
-          GH_CONFIG_DIR: ""
-          GH_HOST: ""
-          GH_TOKEN: ""
-          GITHUB_TOKEN: ""
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_GITHUB_TOKEN: ""
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          NODE_AUTH_TOKEN: ""
-          NPM_TOKEN: ""
-          RUSTUP_TOOLCHAIN: 1.98.1
-          VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/xtask/fixtures/backend-free-testing/nextest/default,stack/rust/xtask/fixtures/backend-free-testing/doc/default
-          VELNOR_MATRIX_ID: stack:rust|task:stack/rust/xtask/fixtures/backend-free-testing/build/default
-          VELNOR_MATRIX_KEY: m-53f2e005bf1253c6
-          VELNOR_TASK_DIGEST: b3-fbfe46037969a7e801ea19be5986fc13934c9b41f3fce61a865f1d69d14cb8fa
-          VELNOR_TASK_ID: stack/rust/xtask/fixtures/backend-free-testing/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-53f2e005bf1253c6\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path xtask/fixtures/backend-free-testing/Cargo.toml --package backend-free-testing-consumer; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-53f2e005bf1253c6\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
-      - name: Unit and integration tests
-        if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/xtask/fixtures/backend-free-testing/nextest/default,')"
-        env:
-          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ""
-          ACTIONS_ID_TOKEN_REQUEST_URL: ""
-          ACTIONS_RUNTIME_TOKEN: ""
-          CARGO_REGISTRY_TOKEN: ""
-          GH_CONFIG_DIR: ""
-          GH_HOST: ""
-          GH_TOKEN: ""
-          GITHUB_TOKEN: ""
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_GITHUB_TOKEN: ""
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          NODE_AUTH_TOKEN: ""
-          NPM_TOKEN: ""
-          RUSTUP_TOOLCHAIN: 1.98.1
-          VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/xtask/fixtures/backend-free-testing/doc/default
-          VELNOR_MATRIX_ID: stack:rust|task:stack/rust/xtask/fixtures/backend-free-testing/nextest/default
-          VELNOR_MATRIX_KEY: m-083232c254f2c8da
-          VELNOR_TASK_DIGEST: b3-14ed5e6563fae76c81e86c2594377d60ddad39ae9e8e343751e433eb4b5d75e5
-          VELNOR_TASK_ID: stack/rust/xtask/fixtures/backend-free-testing/nextest/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-083232c254f2c8da\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest run --profile default --locked --offline --manifest-path xtask/fixtures/backend-free-testing/Cargo.toml --package backend-free-testing-consumer --no-tests fail; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-083232c254f2c8da\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
-      - name: Documentation
-        if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/xtask/fixtures/backend-free-testing/doc/default,')"
-        env:
-          ACTIONS_ID_TOKEN_REQUEST_TOKEN: ""
-          ACTIONS_ID_TOKEN_REQUEST_URL: ""
-          ACTIONS_RUNTIME_TOKEN: ""
-          CARGO_REGISTRY_TOKEN: ""
-          GH_CONFIG_DIR: ""
-          GH_HOST: ""
-          GH_TOKEN: ""
-          GITHUB_TOKEN: ""
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_GITHUB_TOKEN: ""
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          NODE_AUTH_TOKEN: ""
-          NPM_TOKEN: ""
-          RUSTDOCFLAGS: "-D warnings"
-          RUSTUP_TOOLCHAIN: 1.98.1
-          VELNOR_MATRIX_ID: stack:rust|task:stack/rust/xtask/fixtures/backend-free-testing/doc/default
-          VELNOR_MATRIX_KEY: m-a86c96c2aef166aa
-          VELNOR_TASK_DIGEST: b3-a7970511393df35aea3af5a77166ba725169228c0c8e001767768644dd1710f2
-          VELNOR_TASK_ID: stack/rust/xtask/fixtures/backend-free-testing/doc/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-a86c96c2aef166aa\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo doc --locked --offline --manifest-path xtask/fixtures/backend-free-testing/Cargo.toml --package backend-free-testing-consumer --no-deps; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-a86c96c2aef166aa\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
-      - name: Upload crate reports
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          if-no-files-found: error
-          name: velnor-crate-r${{ github.run_id }}-a${{ github.run_attempt }}-rust-backend-free-testing-consumer
-          path: ${{ runner.temp }}/velnor/r${{ github.run_id }}-a${{ github.run_attempt }}
-          retention-days: "30"
   rust-holla:
     name: Rust / holla
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs:
       - plan
@@ -906,30 +412,6 @@ jobs:
           MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
           RUSTUP_TOOLCHAIN: 1.98.1
         run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-core/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-testing/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\"; fi'"
       - name: Clippy
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/apps/holla/clippy/default,')"
         env:
@@ -1085,7 +567,7 @@ jobs:
           retention-days: "30"
   rust-jackin-preview:
     name: Rust / jackin-preview
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs:
       - plan
@@ -1169,30 +651,6 @@ jobs:
           MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
           RUSTUP_TOOLCHAIN: 1.98.1
         run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-core/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-testing/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\"; fi'"
       - name: Clippy
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/apps/jackin-preview/clippy/default,')"
         env:
@@ -1348,7 +806,7 @@ jobs:
           retention-days: "30"
   rust-junie-tui:
     name: Rust / junie-tui
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs:
       - plan
@@ -1432,30 +890,6 @@ jobs:
           MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
           RUSTUP_TOOLCHAIN: 1.98.1
         run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-core/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-testing/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\"; fi'"
       - name: Clippy
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/tui/clippy/default,')"
         env:
@@ -1611,7 +1045,7 @@ jobs:
           retention-days: "30"
   rust-junie-tui-testing:
     name: Rust / junie-tui-testing
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs:
       - plan
@@ -1695,30 +1129,6 @@ jobs:
           MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
           RUSTUP_TOOLCHAIN: 1.98.1
         run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-core/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-testing/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\"; fi'"
       - name: Clippy
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/tui-testing/clippy/default,')"
         env:
@@ -1874,7 +1284,7 @@ jobs:
           retention-days: "30"
   rust-showcase:
     name: Rust / showcase
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs:
       - plan
@@ -1958,30 +1368,6 @@ jobs:
           MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
           RUSTUP_TOOLCHAIN: 1.98.1
         run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-core/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-testing/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\"; fi'"
       - name: Clippy
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/apps/showcase/clippy/default,')"
         env:
@@ -2137,7 +1523,7 @@ jobs:
           retention-days: "30"
   rust-tablepro:
     name: Rust / tablepro
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs:
       - plan
@@ -2221,30 +1607,6 @@ jobs:
           MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
           RUSTUP_TOOLCHAIN: 1.98.1
         run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-core/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-testing/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\"; fi'"
       - name: Clippy
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/apps/tablepro/clippy/default,')"
         env:
@@ -2400,7 +1762,7 @@ jobs:
           retention-days: "30"
   rust-xtask:
     name: Rust / xtask
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     needs:
       - plan
@@ -2484,30 +1846,6 @@ jobs:
           MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
           RUSTUP_TOOLCHAIN: 1.98.1
         run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-core/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-core/Cargo.toml\"; fi'"
-      - name: Fetch Cargo sources (xtask/fixtures/backend-free-testing/Cargo.toml)
-        env:
-          MISE_AUTO_INSTALL: "false"
-          MISE_CARGO_HOME: ${{ runner.temp }}/velnor/cargo
-          MISE_EXEC_AUTO_INSTALL: "false"
-          MISE_LOCKFILE: "0"
-          MISE_NO_CONFIG: "1"
-          MISE_NO_ENV: "1"
-          MISE_NO_HOOKS: "1"
-          MISE_RUSTUP_HOME: ${{ runner.temp }}/velnor/rustup
-          RUSTUP_TOOLCHAIN: 1.98.1
-        run: "sh -c 'mkdir -p \"$RUNNER_TEMP/velnor/cargo-clean\" && cd \"$RUNNER_TEMP/velnor/cargo-clean\" && if mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo metadata --locked --offline --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\" >/dev/null 2>&1; then echo \"velnor: sources hit, skipping fetch\"; else echo \"velnor: sources miss (source_missing), fetching\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 -- cargo fetch --locked --manifest-path \"$GITHUB_WORKSPACE/xtask/fixtures/backend-free-testing/Cargo.toml\"; fi'"
       - name: Clippy
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/xtask/clippy/default,')"
         env:

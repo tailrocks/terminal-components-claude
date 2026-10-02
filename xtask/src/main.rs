@@ -8878,6 +8878,24 @@ fn resolve_rev(rev: &str, source: &str) -> Result<String, String> {
     if out.status.success() {
         return Ok(rev.to_owned());
     }
+    if let Some(branch) = rev.strip_prefix("origin/") {
+        let _ = git(&[
+            "fetch",
+            "--depth=1",
+            "origin",
+            &format!("{branch}:refs/remotes/origin/{branch}"),
+        ]);
+        if let Ok(out) = git(&[
+            "rev-parse",
+            "--verify",
+            "--quiet",
+            &format!("{rev}^{{commit}}"),
+        ]) {
+            if out.status.success() {
+                return Ok(rev.to_owned());
+            }
+        }
+    }
     Err(format!(
         "bless-guard base revision `{rev}` (from {source}) does not resolve. Falling back to HEAD \
          here would compare the tree with itself and pass vacuously, which is the failure this \
@@ -11096,8 +11114,12 @@ printf 'new-png\n' > "$3"
         fs::create_dir_all(&run_dir).expect("create concurrent shot state directory");
         fs::create_dir(&fake_bin).expect("create concurrent shot fake command directory");
         let case_name = "concurrent";
+        let test_bin = std::env::current_exe()
+            .expect("locate test executable")
+            .canonicalize()
+            .expect("canonicalize test executable");
         for (name, contents) in [
-            ("bin", "/usr/bin/tail\n".to_owned()),
+            ("bin", format!("{}\n", test_bin.display())),
             ("capture.dir", format!("{}\n", shots.display())),
             (
                 "manifest",
@@ -11125,7 +11147,7 @@ printf 'new-png\n' > "$3"
             .arg("--session-id")
             .arg("$concurrent-session")
             .arg("--binary")
-            .arg("/usr/bin/tail")
+            .arg(&test_bin)
             .arg("--revision")
             .arg("0".repeat(40))
             .arg("--dirty")
@@ -11147,7 +11169,7 @@ printf 'new-png\n' > "$3"
             .arg("--env")
             .arg("COLOR=truecolor")
             .arg("--argv")
-            .arg("/usr/bin/tail")
+            .arg(&test_bin)
             .output()
             .expect("initialize concurrent metadata");
         assert!(init.status.success(), "{init:?}");
@@ -11215,7 +11237,7 @@ printf 'new-png\n' > "$3"
             .env("PATH", &path)
             .env("CAPTURE_PROVENANCE_READY", &ready)
             .env("PY", &fake_png)
-            .env("BIN", "/usr/bin/tail")
+            .env("BIN", &test_bin)
             .env("CAPTURE_RUN_ID", "concurrent-run")
             .env("CAPTURE_DIR", &shots)
             .env("CAPTURE_MANIFEST", directory.join("manifest.json"))
@@ -11252,7 +11274,7 @@ printf 'new-png\n' > "$3"
             .env("PATH", &path)
             .env("CAPTURE_PROVENANCE_READY", &ready)
             .env("PY", &fake_png)
-            .env("BIN", "/usr/bin/tail")
+            .env("BIN", &test_bin)
             .env("CAPTURE_RUN_ID", "concurrent-run")
             .env("CAPTURE_DIR", &shots)
             .env("CAPTURE_MANIFEST", directory.join("manifest.json"))
