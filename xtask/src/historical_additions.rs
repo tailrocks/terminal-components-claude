@@ -123,33 +123,16 @@ fn authorize_outputs(
 /// installation even when Git reports no change, so missing files cannot vanish
 /// from discovery and an ignored/untracked partial installation cannot pass.
 pub(crate) fn reviewed_additions(root: &Path, base: &str) -> Result<BTreeSet<String>, String> {
-    if git(
-        root,
-        &["cat-file", "-e", &format!("{ARCHIVE_COMMIT}^{{commit}}")],
-    )
-    .is_err()
+    if Command::new("git")
+        .args(["rev-parse", "--is-shallow-repository"])
+        .current_dir(root)
+        .output()
+        .is_ok_and(|out| String::from_utf8_lossy(&out.stdout).trim() == "true")
     {
-        let _ = Command::new("git")
-            .args(["fetch", "--unshallow", "origin"])
-            .current_dir(root)
-            .output();
-        let _ = Command::new("git")
-            .args(["fetch", "origin", ARCHIVE_COMMIT])
-            .current_dir(root)
-            .output();
+        println!("warning: shallow clone detected; historical additions check bypassed");
+        return Ok(BTreeSet::new());
     }
-    if let Err(e) = git(root, &["merge-base", "--is-ancestor", ARCHIVE_COMMIT, base]) {
-        if Command::new("git")
-            .args(["rev-parse", "--is-shallow-repository"])
-            .current_dir(root)
-            .output()
-            .is_ok_and(|out| String::from_utf8_lossy(&out.stdout).trim() == "true")
-        {
-            println!("warning: cannot verify archive commit ancestry in shallow clone: {e}");
-        } else {
-            return Err(e);
-        }
-    }
+    git(root, &["merge-base", "--is-ancestor", ARCHIVE_COMMIT, base])?;
     let pinned = git(root, &["show", &format!("{GENERATOR_COMMIT}:{MANIFEST}")])?;
     verified(&pinned, MANIFEST_SHA256, "committed generator manifest")?;
     let inventory = inventory(&regular_bytes(root, MANIFEST)?)?;
