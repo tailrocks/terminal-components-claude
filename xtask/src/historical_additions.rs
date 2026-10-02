@@ -123,15 +123,6 @@ fn authorize_outputs(
 /// installation even when Git reports no change, so missing files cannot vanish
 /// from discovery and an ignored/untracked partial installation cannot pass.
 pub(crate) fn reviewed_additions(root: &Path, base: &str) -> Result<BTreeSet<String>, String> {
-    if Command::new("git")
-        .args(["rev-parse", "--is-shallow-repository"])
-        .current_dir(root)
-        .output()
-        .is_ok_and(|out| String::from_utf8_lossy(&out.stdout).trim() == "true")
-    {
-        println!("warning: shallow clone detected; historical additions check bypassed");
-        return Ok(BTreeSet::new());
-    }
     git(root, &["merge-base", "--is-ancestor", ARCHIVE_COMMIT, base])?;
     let pinned = git(root, &["show", &format!("{GENERATOR_COMMIT}:{MANIFEST}")])?;
     verified(&pinned, MANIFEST_SHA256, "committed generator manifest")?;
