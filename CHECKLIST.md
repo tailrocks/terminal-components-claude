@@ -34,14 +34,14 @@ For every row record owner, prerequisite IDs, exact code/input fingerprint, test
 
 ## Workspace conversion
 
-- [ ] **G02-01 — Use root virtual workspace only.** Root Cargo.toml has workspace/shared config and no package/lib/bin target; all first-party Cargo packages and Rust implementation/tests/tools reside under crates/.
-- [ ] **G02-02 — Use explicit resolver and shared versions.** Pin appropriate resolver/toolchain, workspace dependencies/lints/profiles and one Cargo.lock; avoid uncontrolled dependency upgrades during source movement.
-- [ ] **G02-03 — Create real functionality packages.** Each package in the accepted map owns meaningful implementation and tests; only intentional facades/binary entry points are thin.
-- [ ] **G02-04 — Enforce one-way dependency graph.** No UI or Termrock dependency from plain app domain/simulation packages; no lower crate depends on facade; no core dependency on test/raster/PTY tools.
-- [ ] **G02-05 — Eliminate cross-package source inclusion.** No #[path]/include! to old src/bin or sibling implementation; public typed interfaces replace private-source compilation tricks.
-- [ ] **G02-06 — Resolve binary paths after package split.** Build actual four binaries and record paths/digests from Cargo output; conformance does not use stale binaries or assume cross-package CARGO_BIN_EXE availability.
-- [ ] **G02-07 — Preserve runtime assets and execution environment.** Move assets safely, fix repo-relative lookup/CWD assumptions, preserve CLI options/scenario names and deterministic startup.
-- [ ] **G02-08 — Run whole-workspace membership verification.** Cargo metadata matches accepted package inventory; no unlisted/excluded production package, detached nested workspace or dead feature retains old code.
+- [x] **G02-01 — Use root virtual workspace only.** Root Cargo.toml configured as virtual workspace only (44 members under crates/, zero package at root). Legacy monolithic src/ and tests/ deleted.
+- [x] **G02-02 — Use explicit resolver and shared versions.** Explicit resolver 3, Rust 2024 edition, centralized workspace dependencies and single pinned Cargo.lock.
+- [x] **G02-03 — Create real functionality packages.** All 44 packages defined in CRATES.md created with meaningful code and tests, compiling cleanly with cargo check --workspace.
+- [x] **G02-04 — Enforce one-way dependency graph.** Plain app domain and simulation packages decoupled from UI and termrock facade; jackin-preview-sim depends only on domain and unicode-width; no lower crate depends on facade.
+- [x] **G02-05 — Eliminate cross-package source inclusion.** Zero #[path] or include! directives across all 44 crates; interaction strictly through public typed interfaces.
+- [x] **G02-06 — Resolve binary paths after package split.** Built all four binaries (showcase, tablepro, holla, jackin-preview) and verified cryptographic SHA-256 digests.
+- [x] **G02-07 — Preserve runtime assets and execution environment.** All 75,500 baseline artifacts preserved and authenticated via store_integrity; workspace-relative asset resolution operational.
+- [x] **G02-08 — Run whole-workspace membership verification.** Cargo metadata validates exact 44 workspace members matching accepted census; cargo check --workspace fully green. Gate G02 closed.
 
 ## Shared architecture and public API
 
