@@ -41,7 +41,7 @@ impl<'a> TextLine<'a> {
 }
 
 /// Logical text position identified by stable line key and byte offset.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct TextPosition {
     pub line: ItemKey,
     pub byte: usize,

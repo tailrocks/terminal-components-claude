@@ -204,6 +204,31 @@ impl fmt::Display for ColumnKey {
     }
 }
 
+/// Stable identity for a cell identified by row item key and column key.
+#[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
+pub struct CellKey {
+    pub row: ItemKey,
+    pub col: ColumnKey,
+}
+
+impl CellKey {
+    pub const fn new(row: ItemKey, col: ColumnKey) -> Self {
+        Self { row, col }
+    }
+}
+
+impl fmt::Debug for CellKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "CellKey({}, {})", self.row.0, self.col.0)
+    }
+}
+
+impl fmt::Display for CellKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({}, {})", self.row.0, self.col.0)
+    }
+}
+
 /// Stable identity for form fields.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
 pub struct FieldKey(pub u64);
@@ -352,6 +377,30 @@ impl Part {
     pub const TITLE: Part = Part("title");
     pub const META: Part = Part("meta");
     pub const SEAM: Part = Part("seam");
+    pub const CONTAINER: Part = Part("container");
+    pub const ROW: Part = Part("row");
+    pub const CELL: Part = Part("cell");
+    pub const GUTTER: Part = Part("gutter");
+    pub const CURSOR: Part = Part("cursor");
+    pub const SELECTION: Part = Part("selection");
+    pub const EDITOR: Part = Part("editor");
+    pub const SORT_MARKER: Part = Part("sort-marker");
+    pub const FOOTER: Part = Part("footer");
+    pub const FADE: Part = Part("fade");
+    pub const EMPTY: Part = Part("empty");
+    pub const LINE_NUMBER: Part = Part("line-number");
+    pub const CURRENT_LINE: Part = Part("current-line");
+    pub const TEXT: Part = Part("text");
+    pub const SYNTAX: Part = Part("syntax");
+    pub const DIAGNOSTIC: Part = Part("diagnostic");
+    pub const FIND: Part = Part("find");
+    pub const COMPLETION: Part = Part("completion");
+    pub const OLD_GUTTER: Part = Part("old-gutter");
+    pub const NEW_GUTTER: Part = Part("new-gutter");
+    pub const CONTEXT: Part = Part("context");
+    pub const ADDITION: Part = Part("addition");
+    pub const DELETION: Part = Part("deletion");
+    pub const EMPHASIS: Part = Part("emphasis");
 
     /// Construct a new part name.
     pub const fn new(name: &'static str) -> Self {
