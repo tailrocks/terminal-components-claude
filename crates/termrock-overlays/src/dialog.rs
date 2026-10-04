@@ -661,10 +661,9 @@ impl<'a> Dialog<'a> {
     }
 
     /// Columns available to the content: the frame minus one border column
-    /// and `design.space.dialog_inset` on each side (§26 N1).
+    /// and `(dialog_inset - 1)` padding column on each side (total `dialog_inset * 2`, §26 N1).
     fn inner_width(&self, d: &DesignTokens) -> u16 {
         self.measured_width(d)
-            .saturating_sub(2)
             .saturating_sub(d.space.dialog_inset.saturating_mul(2))
     }
 
@@ -690,8 +689,8 @@ impl<'a> Dialog<'a> {
         self.width.unwrap_or(d.size.dialog_width)
     }
 
-    /// `border(2)` + `title(1)` + the wrapped description + the prompt +
-    /// `[blank + body]` + `[blank + actions]` (§26 N1).
+    /// `border(2)` + `pad(2)` + `title(1 + gap 1)` + the wrapped description +
+    /// the prompt + `[blank + body]` + `[blank + actions]` (§26 N1).
     ///
     /// A pure function of the props and the design tokens, and the number
     /// [`Dialog::draw`] lays out against — the two share
@@ -700,11 +699,13 @@ impl<'a> Dialog<'a> {
     pub fn measured_height(&self, d: &DesignTokens) -> u16 {
         let inner = self.inner_width(d);
         let desc = self.description.map_or(0, |s| wrapped_rows(s, inner));
-        let actions: u16 = if self.actions.is_empty() { 0 } else { 2 };
-        3u16.saturating_add(desc)
+        let title_rows: u16 = if self.title.is_some() { 2 } else { 0 };
+        let action_rows: u16 = if self.actions.is_empty() { 0 } else { 2 };
+        4u16.saturating_add(title_rows)
+            .saturating_add(desc)
             .saturating_add(self.input_rows(d))
             .saturating_add(self.body_block(d))
-            .saturating_add(actions)
+            .saturating_add(action_rows)
     }
 
     /// The layer this dialog wants: a modal sized from the props and the
@@ -791,14 +792,14 @@ impl<'a> Dialog<'a> {
                 };
                 // the horizontal inset `measured_height` wraps the description
                 // against; vertically the frame is the padding (§26 N1)
-                let pad = ui.design().space.dialog_inset;
+                let pad = ui.design().space.dialog_inset.saturating_sub(1);
                 let inner = crate::layout::inset(
                     framed,
                     crate::layout::Insets {
                         l: pad,
-                        t: 0,
+                        t: 1,
                         r: pad,
-                        b: 0,
+                        b: 1,
                     },
                 );
                 if inner.is_empty() {
@@ -814,8 +815,8 @@ impl<'a> Dialog<'a> {
                     };
                     ui.paint_str(row, t, ts.style);
                     ui.register_decor(id, PartRef::of(Part::TITLE), row);
+                    y = y.saturating_add(2);
                 }
-                y = y.saturating_add(1);
                 let actions_y = if self.actions.is_empty() {
                     inner.bottom()
                 } else {
@@ -824,7 +825,7 @@ impl<'a> Dialog<'a> {
                 if let Some(d) = self.description {
                     let ds = style(ui, Part::DETAIL, StateFlags::empty());
                     for line in wrap(d, inner.width).iter().take(usize::from(desc_h)) {
-                        if y >= actions_y {
+                        if y >= actions_y.saturating_sub(1) {
                             break;
                         }
                         let row = Rect {
@@ -1076,7 +1077,7 @@ mod tests {
     #[test]
     fn valid_dialog_preserves_chrome_and_clips_its_body() {
         let (mut rt, mut buf) = scene();
-        let area = Rect::new(4, 3, 20, 6);
+        let area = Rect::new(4, 1, 20, 9);
         let mut inner = Rect::ZERO;
         let mut answer = 0;
         rt.draw_scene(SCREEN, &mut buf, |ui, _| {
@@ -1242,8 +1243,8 @@ mod tests {
             assert_eq!(prompt().measured_width(d), d.size.dialog_width);
             assert_eq!(
                 prompt().measured_height(d),
-                3u16.saturating_add(d.size.field_height).saturating_add(2),
-                "title + border, the prompt's field, the action block"
+                6u16.saturating_add(d.size.field_height).saturating_add(2),
+                "title + border + padding, the prompt's field, the action block"
             );
         }
     }
@@ -1263,10 +1264,11 @@ mod tests {
             d.measured_width(&theme.design),
             d.measured_height(&theme.design),
         );
+        let screen = Rect::new(0, 0, 40, asked.bottom().max(SCREEN.height));
         let (mut rt, _) = scene();
-        let mut buf = Buffer::empty(SCREEN);
+        let mut buf = Buffer::empty(screen);
         let mut body = Rect::ZERO;
-        rt.draw_scene(SCREEN, &mut buf, |ui, _| {
+        rt.draw_scene(screen, &mut buf, |ui, _| {
             d.draw(ui, asked, &DialogState::default(), |_, area| body = area);
         })
         .commit_presented();
@@ -1469,8 +1471,10 @@ mod tests {
         let desc = d
             .description
             .map_or(0, |s| wrapped_rows(s, d.inner_width(dt)));
+        let title_rows: u16 = if d.title.is_some() { 2 } else { 0 };
         let actions: u16 = if d.actions.is_empty() { 0 } else { 2 };
-        let rest = 3u16
+        let rest = 4u16
+            .saturating_add(title_rows)
             .saturating_add(desc)
             .saturating_add(d.body_block(dt))
             .saturating_add(actions);

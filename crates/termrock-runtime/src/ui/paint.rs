@@ -450,16 +450,13 @@ impl Ui<'_> {
 
     /// Dim the page under a layer by walking the role recorded per painted
     /// cell and stepping it down the foreground ladder semantically
-    /// (§54, `docs/reviews/laneC-app-tick.md` Q4). `steps == 0` is identity:
+    /// (§54, `docs/design/visual-contract.md` § Modal backdrops). `steps == 0` is identity:
     /// not a restyle to the same colours, but no write at all, so the frame
-    /// is byte-identical. One step is `Fg(Muted)`, two `Fg(Faint)`, three
-    /// `Fg(Ghost)` and four or more erases the glyph into the resolved
+    /// is byte-identical. One step is `Fg(Secondary)`, two `Fg(Muted)`, three
+    /// `Fg(Faint)` and four or more erases the glyph into the resolved
     /// backdrop background; ladder roles start from their own rung and erase
-    /// once they step past `Ghost`; `Accent`/`AccentHover`/`AccentPressed`
-    /// walk the accent chain and erase past its end. Backgrounds resolve
-    /// from the recorded background role — never by colour identity, which
-    /// is exactly the reverse-lookup defect this replaces. Only `BOLD`
-    /// survives; every other modifier is cleared. Walks only `area`.
+    /// once they step past `Ghost`. Backgrounds resolve from the recorded
+    /// background role. All modifiers are cleared. Walks only `area`.
     pub fn dim_layer(&mut self, area: Rect, steps: u8) {
         if steps == 0 {
             return;
@@ -471,32 +468,66 @@ impl Ui<'_> {
         let backdrop_fill = crate::theme::resolve::bind_role(theme, Role::BackdropBg, surface);
         for pos in area.positions() {
             let roles = self.roles_at(pos);
-            let fg = match roles.fg {
-                // a ladder role steps from its own rung and erases past Ghost
-                Some(Role::Fg(step)) => ladder(theme, surface, step.index(), steps),
-                // the accent chain degrades through hover and pressed
-                Some(Role::Accent) => accent(theme, surface, 0, steps),
-                Some(Role::AccentHover) => accent(theme, surface, 1, steps),
-                Some(Role::AccentPressed) => accent(theme, surface, 2, steps),
-                // a background role recorded as a foreground carries no text
-                Some(Role::CurrentSurface | Role::RaisedSurface | Role::Surface(_)) => {
-                    FadeResult::Fg(None)
+            let cell_bg = self.page().cell(pos).and_then(|c| c.style().bg);
+            let bg = match cell_bg {
+                Some(c)
+                    if c == theme.bg(Surface::Canvas)
+                        || c == theme.bg(Surface::Surface)
+                        || c == theme.bg(Surface::Elevated) =>
+                {
+                    Some(c)
                 }
-                // every other semantic foreground: Muted, Faint, Ghost, erase
-                Some(_) => ladder(theme, surface, 1, steps),
-                None => FadeResult::Fg(backdrop_text),
+                Some(c)
+                    if c == theme.bg(Surface::Field) || c == theme.bg(Surface::FieldHover) =>
+                {
+                    Some(theme.bg(Surface::Elevated))
+                }
+                Some(_) => match roles.bg {
+                    Some(Role::Surface(s)) => Some(theme.bg(s)),
+                    Some(Role::CurrentSurface) => cell_bg,
+                    Some(Role::RaisedSurface) => Some(theme.bg(theme.raise(surface))),
+                    _ => Some(theme.bg(Surface::Overlay)),
+                },
+                None => backdrop_fill,
             };
-            let bg = match roles.bg {
-                Some(Role::Surface(s)) => {
-                    crate::theme::resolve::bind_role(theme, Role::Surface(s), surface)
+            let fg = if (roles.fg.is_some() && roles.fg == roles.bg)
+                || self
+                    .page()
+                    .cell(pos)
+                    .is_some_and(|c| {
+                        (roles.fg.is_some() || roles.bg.is_some())
+                            && c.style().fg.is_some()
+                            && c.style().fg != Some(Color::Reset)
+                            && c.style().fg == c.style().bg
+                    })
+            {
+                FadeResult::Fg(bg)
+            } else {
+                match roles.fg {
+                    Some(Role::CurrentSurface | Role::RaisedSurface | Role::Surface(_)) => {
+                        FadeResult::Fg(bg)
+                    }
+                    Some(
+                        Role::Fg(FgStep::Primary)
+                        | Role::Accent
+                        | Role::AccentHover
+                        | Role::AccentPressed
+                        | Role::Danger
+                        | Role::DangerSoft
+                        | Role::Warning
+                        | Role::Success
+                        | Role::Info,
+                    ) => ladder(theme, surface, 0, steps),
+                    Some(Role::Fg(FgStep::Secondary) | Role::OnAccent | Role::OnDanger) => {
+                        ladder(theme, surface, 1, steps)
+                    }
+                    Some(Role::Fg(FgStep::Ghost)) => ladder(theme, surface, 4, steps),
+                    Some(_) => ladder(theme, surface, 2, steps),
+                    None => FadeResult::Fg(backdrop_text),
                 }
-                Some(Role::CurrentSurface) => Some(theme.bg(Surface::Canvas)),
-                Some(Role::RaisedSurface) => Some(theme.bg(Surface::Surface)),
-                _ => backdrop_fill,
             };
             let page = self.page_mut();
             if let Some(c) = page.cell_mut(pos) {
-                let bold = c.modifier.intersection(Modifier::BOLD);
                 let mut st = Style::new();
                 st.fg = match fg {
                     FadeResult::Fg(f) => f,
@@ -509,7 +540,7 @@ impl Ui<'_> {
                 };
                 st.bg = bg;
                 c.set_style(st);
-                c.modifier = bold;
+                c.modifier = Modifier::empty();
             }
         }
     }
@@ -540,17 +571,6 @@ fn ladder(theme: &Theme, surface: Surface, base: usize, steps: u8) -> FadeResult
     }
 }
 
-/// Step the accent chain (`Accent`, `AccentHover`, `AccentPressed`) down by
-/// `steps` from `base`, erasing past its end.
-fn accent(theme: &Theme, surface: Surface, base: usize, steps: u8) -> FadeResult {
-    let role = match base.saturating_add(usize::from(steps)) {
-        0 => Role::Accent,
-        1 => Role::AccentHover,
-        2 => Role::AccentPressed,
-        _ => return FadeResult::Erase,
-    };
-    FadeResult::Fg(crate::theme::resolve::bind_role(theme, role, surface))
-}
 
 const fn index_to_step(i: usize) -> FgStep {
     match i {
@@ -691,31 +711,40 @@ mod tests {
         for theme in [Theme::junie(), Theme::paper()] {
             let backdrop_bg =
                 crate::theme::resolve::bind_role(&theme, Role::BackdropBg, Surface::Canvas);
-            // the four non-ladder tones: Muted, Faint, Ghost, erase
+            // the four non-ladder tones: Secondary, Muted, Faint, Ghost, erase
             for role in [Role::Success, Role::Warning, Role::Danger, Role::Info] {
-                for (steps, step) in [(1u8, FgStep::Muted), (2, FgStep::Faint), (3, FgStep::Ghost)]
-                {
+                for (steps, step) in [
+                    (1u8, FgStep::Secondary),
+                    (2, FgStep::Muted),
+                    (3, FgStep::Faint),
+                    (4, FgStep::Ghost),
+                ] {
                     let c = dimmed_cell(&theme, role, "x", Modifier::empty(), steps);
                     assert_eq!(c.fg, fg_of(&theme, step), "{role:?} at {steps}");
                     assert_eq!(c.symbol(), "x", "{role:?} at {steps} keeps its glyph");
                 }
-                for steps in [4u8, 5, 9] {
+                for steps in [5u8, 6, 9] {
                     let c = dimmed_cell(&theme, role, "x", Modifier::empty(), steps);
                     assert_eq!(c.symbol(), " ", "{role:?} erases at {steps}");
                     assert_eq!(c.fg, backdrop_bg.expect("backdrop"), "{role:?} at {steps}");
                 }
             }
-            // every other non-ladder foreground role uses the same rule —
+            // every other non-ladder foreground role uses base 2 (Faint at 1, Ghost at 2) —
             // `BorderSubtle` and `DisabledFg` are exactly the two the legacy
             // colour-identity lookup misclassified
             for role in [Role::BorderSubtle, Role::DisabledFg, Role::Focus] {
                 assert_eq!(
                     dimmed_cell(&theme, role, "x", Modifier::empty(), 1).fg,
-                    fg_of(&theme, FgStep::Muted),
+                    fg_of(&theme, FgStep::Faint),
                     "{role:?}"
                 );
                 assert_eq!(
-                    dimmed_cell(&theme, role, "x", Modifier::empty(), 4).symbol(),
+                    dimmed_cell(&theme, role, "x", Modifier::empty(), 2).fg,
+                    fg_of(&theme, FgStep::Ghost),
+                    "{role:?}"
+                );
+                assert_eq!(
+                    dimmed_cell(&theme, role, "x", Modifier::empty(), 3).symbol(),
                     " ",
                     "{role:?}"
                 );
@@ -742,29 +771,20 @@ mod tests {
                 assert_eq!(c.symbol(), " ", "{start:?} + {steps} erases past Ghost");
                 assert_eq!(c.fg, backdrop_bg.expect("backdrop"));
             }
-            // the accent chain
-            let accent_of = |r: Role| {
-                crate::theme::resolve::bind_role(&theme, r, Surface::Canvas).expect("accent")
-            };
+            // accent degrades through the foreground ladder
             for (start, steps, want) in [
-                (Role::Accent, 1u8, Role::AccentHover),
-                (Role::Accent, 2, Role::AccentPressed),
-                (Role::AccentHover, 1, Role::AccentPressed),
+                (Role::Accent, 1u8, FgStep::Secondary),
+                (Role::Accent, 2, FgStep::Muted),
+                (Role::Accent, 4, FgStep::Ghost),
             ] {
                 let c = dimmed_cell(&theme, start, "x", Modifier::empty(), steps);
-                assert_eq!(c.fg, accent_of(want), "{start:?} + {steps}");
+                assert_eq!(c.fg, fg_of(&theme, want), "{start:?} + {steps}");
                 assert_eq!(c.symbol(), "x");
             }
-            for (start, steps) in [
-                (Role::Accent, 3u8),
-                (Role::AccentHover, 2),
-                (Role::AccentPressed, 1),
-            ] {
-                let c = dimmed_cell(&theme, start, "x", Modifier::empty(), steps);
-                assert_eq!(c.symbol(), " ", "{start:?} + {steps} erases past the chain");
-                assert_eq!(c.fg, backdrop_bg.expect("backdrop"));
-            }
-            // only BOLD survives
+            let c = dimmed_cell(&theme, Role::Accent, "x", Modifier::empty(), 5);
+            assert_eq!(c.symbol(), " ", "Accent + 5 erases past the chain");
+            assert_eq!(c.fg, backdrop_bg.expect("backdrop"));
+            // all modifiers are cleared
             let c = dimmed_cell(
                 &theme,
                 Role::Fg(FgStep::Primary),
@@ -772,7 +792,7 @@ mod tests {
                 Modifier::BOLD | Modifier::ITALIC | Modifier::UNDERLINED,
                 1,
             );
-            assert_eq!(c.modifier, Modifier::BOLD);
+            assert_eq!(c.modifier, Modifier::empty());
             let c = dimmed_cell(
                 &theme,
                 Role::Fg(FgStep::Primary),

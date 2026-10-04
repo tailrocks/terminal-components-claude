@@ -44,9 +44,9 @@ pub enum Anchor {
 /// Screen placement for `Anchor::Screen`.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum ScreenAlign {
-    /// Horizontally centred, vertically in the optical centre (upper third).
+    /// Horizontally and vertically centred.
     Center,
-    /// Horizontally centred, near the top.
+    /// Horizontally centred, in the upper third.
     UpperThird,
     /// Horizontally centred, at the bottom.
     Bottom,
@@ -292,8 +292,8 @@ pub fn resolve_anchor(screen: Rect, anchor: Anchor, size: LayerSize) -> Rect {
             let x = screen.centered_horizontally(Constraint::Length(w)).x;
             let free = screen.height.saturating_sub(h);
             let y = match align {
-                ScreenAlign::Center => screen.y.saturating_add(free / 3),
-                ScreenAlign::UpperThird => screen.y.saturating_add(free / 6),
+                ScreenAlign::Center => screen.centered_vertically(Constraint::Length(h)).y,
+                ScreenAlign::UpperThird => screen.y.saturating_add(free / 3),
                 ScreenAlign::Bottom => screen.y.saturating_add(free),
             };
             Rect {
@@ -653,14 +653,14 @@ mod tests {
     }
 
     #[test]
-    fn anchor_screen_center_sits_in_the_upper_third() {
+    fn anchor_screen_center_is_centered() {
         let screen = Rect::new(0, 0, 120, 40);
         let r = resolve_anchor(
             screen,
             Anchor::Screen(ScreenAlign::Center),
             LayerSize::Fixed(60, 12),
         );
-        assert_eq!(r, Rect::new(30, 9, 60, 12));
+        assert_eq!(r, Rect::new(30, 14, 60, 12));
         let b = resolve_anchor(
             screen,
             Anchor::Screen(ScreenAlign::Bottom),

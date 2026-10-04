@@ -249,14 +249,17 @@ fn container_like(m: &mut PartMap<PartRecipe>) {
     part(
         m,
         Part::CONTAINER,
-        p().set_fg(Role::Fg(FgStep::Primary))
-            .set_bg(Role::CurrentSurface),
+        p().set_bg(Role::CurrentSurface),
     );
     part(m, Part::BORDER, p().set_fg(Role::BorderSubtle))
         .when(StateFlags::FOCUSED, p().set_fg(Role::BorderStrong));
     part(
         m,
         Part::TITLE,
+        p().set_fg(Role::Fg(FgStep::Secondary)),
+    )
+    .when(
+        StateFlags::FOCUSED,
         p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD),
     );
     part(m, Part::DETAIL, p().set_fg(Role::Fg(FgStep::Secondary)));
@@ -281,6 +284,13 @@ fn container_like(m: &mut PartMap<PartRecipe>) {
         p().set_fg(Role::BorderSubtle)
             .set_glyph(GlyphRole::RuleQuiet),
     );
+}
+
+fn dialog(r: &mut Recipe) {
+    container_like(&mut r.parts);
+    let title = r.parts.entry(Part::TITLE);
+    title.base = p().set_fg(Role::Fg(FgStep::Primary)).add(Modifier::BOLD);
+    title.states.clear();
 }
 
 fn tabs(m: &mut PartMap<PartRecipe>) {
@@ -625,9 +635,10 @@ pub(crate) fn default_recipes() -> Recipes {
             Family::FIELD | Family::INPUT | Family::TEXTAREA | Family::CODE | Family::SELECT => {
                 field_like(&mut r.parts);
             }
-            Family::PANEL | Family::DIALOG | Family::OVERLAY | Family::FORM | Family::WIZARD => {
+            Family::PANEL | Family::OVERLAY | Family::FORM | Family::WIZARD => {
                 container_like(&mut r.parts);
             }
+            Family::DIALOG => dialog(r),
             Family::HELP => help(r),
             Family::TABS => tabs(&mut r.parts),
             Family::SCROLLBAR => scrollbar(&mut r.parts),

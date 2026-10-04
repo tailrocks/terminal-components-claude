@@ -406,7 +406,6 @@ impl<'a> Button<'a> {
         let container = style(ui, Part::CONTAINER);
         ui.fill(area, container.style);
 
-        // gutter: the focus bar when the recipe says so, else a blank cell
         let gutter_cell = cell_at(area, area.x);
         if let Some(f) = ov.slot_for(Part::GUTTER) {
             f(ui, gutter_cell);
@@ -414,9 +413,13 @@ impl<'a> Button<'a> {
             let g = style(ui, Part::GUTTER);
             match g.glyph {
                 Slot::Set(glyph) => {
-                    ui.glyph(gutter_cell, glyph, g.style);
+                    let gs = g.style.remove_modifier(ratatui_core::style::Modifier::BOLD);
+                    ui.glyph(gutter_cell, glyph, gs);
                 }
-                Slot::Inherit | Slot::Clear => ui.fill(gutter_cell, g.style),
+                Slot::Inherit | Slot::Clear => {
+                    let gs = container.style.with_fg_from_bg(container.style);
+                    ui.fill(gutter_cell, gs);
+                }
             }
         }
 

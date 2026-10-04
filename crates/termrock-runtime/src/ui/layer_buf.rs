@@ -126,7 +126,14 @@ impl LayerDraw {
                 continue;
             }
             if let (Some(src), Some(dst)) = (self.buf.cell(pos), page.cell_mut(pos)) {
-                *dst = src.clone();
+                dst.set_symbol(src.symbol());
+                dst.modifier = src.modifier;
+                if src.fg != ratatui_core::style::Color::Reset {
+                    dst.set_fg(src.fg);
+                }
+                if src.bg != ratatui_core::style::Color::Reset {
+                    dst.set_bg(src.bg);
+                }
                 let index = usize::from(pos.y.saturating_sub(screen.y))
                     .saturating_mul(usize::from(screen.width))
                     .saturating_add(usize::from(pos.x.saturating_sub(screen.x)));

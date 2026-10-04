@@ -39,6 +39,7 @@ const DELETE_ROW: ActionKey = ActionKey::application("tablepro.delete-row");
 const DISCARD_ROWS: ActionKey = ActionKey::application("tablepro.discard-rows");
 const QUIT: ActionKey = ActionKey::application("tablepro.quit");
 const CANCEL_OR_QUIT: ActionKey = ActionKey::application("tablepro.cancel-or-quit");
+const DELETE_CONNECTION: ActionKey = ActionKey::application("tablepro.delete-connection");
 const QUIT_DIALOG: Id = Id::root("tablepro.quit-dialog");
 const QUIT_ACTIONS: [Action<'static>; 2] = [
     Action::new(ActionKey::CANCEL, "Cancel"),
@@ -79,6 +80,10 @@ enum DestructiveIntent {
         question: String,
         scope: Vec<(TabKey, u64)>,
     },
+    DeleteConnection {
+        index: usize,
+        question: String,
+    },
     CloseTab {
         key: TabKey,
         generation: u64,
@@ -105,6 +110,9 @@ impl core::fmt::Debug for DestructiveIntent {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Self::Quit { .. } => f.write_str("Quit"),
+            Self::DeleteConnection { index, .. } => {
+                f.debug_tuple("DeleteConnection").field(index).finish()
+            }
             Self::CloseTab { key, .. } => f.debug_tuple("CloseTab").field(key).finish(),
             Self::Reconnect { scope, .. } => f
                 .debug_struct("Reconnect")
@@ -124,6 +132,9 @@ impl DestructiveIntent {
         match self {
             Self::Quit { question, .. } => {
                 Dialog::destructive(QUIT_DIALOG, "Quit TablePro?", question).actions(&QUIT_ACTIONS)
+            }
+            Self::DeleteConnection { question, .. } => {
+                Dialog::destructive(QUIT_DIALOG, "Delete connection?", question)
             }
             Self::CloseTab { .. } => Dialog::destructive(
                 QUIT_DIALOG,
@@ -348,6 +359,16 @@ fn keymap() -> KeyMap {
         )
         .bind(
             KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('d')),
+            DELETE_CONNECTION,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('D')),
+            DELETE_CONNECTION,
+        )
+        .bind(
+            KeyPhase::Bubble,
             Chord::with(KeyCode::Char('r'), KeyModifiers::CONTROL),
             RUN,
         )
@@ -556,7 +577,7 @@ impl TableProApp {
             connection: connection.clone(),
             keymap: keymap(),
             empty_result: ResultGrid::empty(),
-            status: "Ready · Ctrl+R runs · Ctrl+Q quits".to_owned(),
+            status: String::new(),
             quit: false,
             destructive_intent: None,
             destructive_notice: None,
@@ -761,11 +782,11 @@ impl TableProApp {
         }
     }
 
-    fn connections_panel<'a>(title: &'a str, meta: Option<&'a str>) -> Panel<'a> {
+    fn connections_panel<'a>(title: &'a str, meta: Option<&'a str>, focused: bool) -> Panel<'a> {
         let panel = Panel::new(CONNECTIONS_PANEL)
             .kind(PanelKind::Framed)
             .title(title)
-            .focused(true)
+            .focused(focused)
             .patch_part(&FRAMED_PANEL_PATCH)
             .slot(Part::GUTTER, &preserve_frame_gutter);
         match meta {
@@ -810,6 +831,53 @@ impl TableProApp {
         self.connection_tree_state = initial_connection_tree_state(&self.connection_nodes);
         self.connection_visual_tree_state =
             initial_connection_visual_tree_state(&self.connection_nodes);
+    }
+
+    fn duplicate_connection(&mut self) {
+        let i = self.connections_screen.selected;
+        if i < self.connections.len() {
+            let mut c = self.connections[i].clone();
+            c.name = format!("{} (Copy)", c.name);
+            c.last_used = "never".to_owned();
+            self.connections.insert(i + 1, c.clone());
+            self.connections_screen.connections.insert(i + 1, c);
+            let prev_cursor = self.connection_tree_state.cursor();
+            self.connection_nodes = build_connection_nodes(&self.connections);
+            if let Some(cursor) = prev_cursor
+                && let Some((idx, _)) = self
+                    .connection_nodes
+                    .iter()
+                    .enumerate()
+                    .find(|(_, n)| connection_node_key(n) == cursor)
+            {
+                self.connection_tree_state.set_cursor(idx, cursor);
+                self.connection_visual_tree_state.set_cursor(idx, cursor);
+            } else {
+                self.connection_tree_state = initial_connection_tree_state(&self.connection_nodes);
+                self.connection_visual_tree_state =
+                    initial_connection_visual_tree_state(&self.connection_nodes);
+            }
+            self.sync_connection_selection();
+            self.status = "Duplicated".to_owned();
+        }
+    }
+
+    fn request_delete_connection(&mut self, cx: &mut Cx<'_>) {
+        let i = self.connections_screen.selected;
+        let Some(c) = self.connections.get(i).cloned() else {
+            return;
+        };
+        let question = format!(
+            "{} ({}@{}) will be removed from connections.json. Its password stays in the keychain until you remove it there.",
+            c.name, c.user, c.host
+        );
+        self.open_destructive(
+            cx,
+            DestructiveIntent::DeleteConnection {
+                index: i,
+                question,
+            },
+        );
     }
 
     fn sync_connection_selection(&mut self) {
@@ -1473,11 +1541,27 @@ impl TableProApp {
             if let Some(request) = self.destructive_intent.take()
                 && confirmed
             {
-                if !self.workbench.matches_owner(&request.owner) {
+                if !matches!(request.intent, DestructiveIntent::DeleteConnection { .. })
+                    && !self.workbench.matches_owner(&request.owner)
+                {
                     self.stale_destructive();
                     return response.erase();
                 }
                 match request.intent {
+                    DestructiveIntent::DeleteConnection { index, .. } => {
+                        if index < self.connections.len() {
+                            self.connections.remove(index);
+                            if index < self.connections_screen.connections.len() {
+                                self.connections_screen.connections.remove(index);
+                            }
+                            self.connections_screen.selected = if self.connections.is_empty() {
+                                0
+                            } else {
+                                index.min(self.connections.len() - 1)
+                            };
+                            self.rebuild_connection_nodes();
+                        }
+                    }
                     DestructiveIntent::Quit { scope, .. } => {
                         if self.workbench.matches_scope(&scope) {
                             if !self.quit {
@@ -1713,12 +1797,13 @@ impl TableProApp {
             },
             height: area.height,
         };
-        let panel = Self::connections_panel(" Connections ", Some(&count));
+        let focused = self.destructive_intent.is_none() && !self.form_open;
+        let panel = Self::connections_panel(" Connections ", Some(&count), focused);
         let inner = panel.inner(ui, list_area);
         let body = legacy_tree_body(inner);
         panel.draw(ui, list_area, |_, _| {});
-        paint_frame_title_tail(ui, list_area, " Connections ");
-        paint_panel_tail(ui, list_area);
+        paint_frame_title_tail(ui, list_area, " Connections ", focused);
+        paint_panel_tail(ui, list_area, focused);
         ui.with_area(body, |ui| {
             let filter = termrock::Rect {
                 x: body.x,
@@ -1732,7 +1817,17 @@ impl TableProApp {
                 height: inner.height.saturating_sub(2),
                 ..body
             };
-            connection_tree().draw(
+            let show_meta = if area.width < 80 {
+                true
+            } else {
+                let row_w = list_width.saturating_sub(4);
+                self.connections.iter().all(|c| {
+                    let meta_w = termrock::width(c.engine.short()) as u16;
+                    let need = 10 + termrock::width(&c.name) as u16 + meta_w;
+                    need <= row_w
+                })
+            };
+            connection_tree_with_meta(show_meta).draw(
                 ui,
                 tree_area,
                 &self.connection_visual_tree_state,
@@ -1745,6 +1840,7 @@ impl TableProApp {
                 &self.connection_nodes,
                 connection_node,
                 connection_node_key,
+                focused,
             );
         });
         let blank = ui
@@ -1775,8 +1871,8 @@ impl TableProApp {
         let inner = panel.inner(ui, area);
         let body = legacy_tree_body(inner);
         panel.draw(ui, area, |_, _| {});
-        paint_frame_title_tail(ui, area, " Explorer ");
-        paint_panel_tail(ui, area);
+        paint_frame_title_tail(ui, area, " Explorer ", true);
+        paint_panel_tail(ui, area, true);
         ui.with_area(body, |ui| {
             let filter = termrock::Rect {
                 x: body.x,
@@ -1803,6 +1899,7 @@ impl TableProApp {
                 &self.explorer_nodes,
                 explorer_node,
                 explorer_node_key,
+                true,
             );
         });
     }
@@ -1870,9 +1967,9 @@ impl TableProApp {
                 ui.paint_str(inner, "No tab open", ui.surface_style());
             }
         });
-        paint_frame_title_tail(ui, area, &title);
+        paint_frame_title_tail(ui, area, &title, true);
         if meta.is_some() {
-            paint_panel_tail(ui, area);
+            paint_panel_tail(ui, area, true);
         }
     }
 }
@@ -2032,7 +2129,7 @@ fn connection_node(node: &ConnectionNode) -> TreeNode {
     }
 }
 
-fn connection_row(node: &ConnectionNode, row: &mut RowUi<'_>) {
+fn connection_row_with_meta(node: &ConnectionNode, row: &mut RowUi<'_>, show_meta: bool) {
     match node {
         ConnectionNode::Group { name } => row.label(name),
         ConnectionNode::Connection { connection, .. } => {
@@ -2049,7 +2146,9 @@ fn connection_row(node: &ConnectionNode, row: &mut RowUi<'_>) {
             .role(Role::Fg(FgStep::Muted))
             .remove_modifier(Modifier::BOLD);
             row.label_spans(&[glyph, Span::new(" "), Span::new(&connection.name)]);
-            row.meta(connection.engine.short());
+            if show_meta {
+                row.meta(connection.engine.short());
+            }
         }
     }
 }
@@ -2208,10 +2307,21 @@ fn connection_tree() -> Tree<
     impl Fn(&ConnectionNode) -> ItemKey,
     impl Fn(&ConnectionNode, &mut RowUi<'_>),
 > {
+    connection_tree_with_meta(true)
+}
+
+fn connection_tree_with_meta(
+    show_meta: bool,
+) -> Tree<
+    'static,
+    ConnectionNode,
+    impl Fn(&ConnectionNode) -> ItemKey,
+    impl Fn(&ConnectionNode, &mut RowUi<'_>),
+> {
     Tree::new(CONNECTIONS)
         .key(connection_node_key)
         .node(&connection_node)
-        .row(connection_row)
+        .row(move |node, row| connection_row_with_meta(node, row, show_meta))
 }
 
 fn explorer_tree() -> Tree<
@@ -2250,6 +2360,7 @@ fn paint_legacy_tree_gutters<T>(
     nodes: &[T],
     node: impl Fn(&T) -> TreeNode,
     key: impl Fn(&T) -> ItemKey,
+    focused: bool,
 ) {
     if area.is_empty() {
         return;
@@ -2269,7 +2380,7 @@ fn paint_legacy_tree_gutters<T>(
             let row = visible_row.saturating_sub(first_visible);
             if visible_row >= first_visible
                 && row < usize::from(area.height)
-                && cursor != Some(key(item))
+                && (!focused || cursor != Some(key(item)))
             {
                 ui.paint_str(
                     termrock::Rect {
@@ -2379,13 +2490,18 @@ fn paint_legacy_filter(ui: &mut Ui<'_>, area: termrock::Rect, text: &str) {
     }
 }
 
-fn paint_panel_tail(ui: &mut Ui<'_>, area: termrock::Rect) {
+fn paint_panel_tail(ui: &mut Ui<'_>, area: termrock::Rect, focused: bool) {
     if area.width < 2 || area.height == 0 {
         return;
     }
+    let role = if focused {
+        Role::BorderStrong
+    } else {
+        Role::BorderSubtle
+    };
     let style = ui
         .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(role)));
     ui.paint_str(
         termrock::Rect {
             x: area.right().saturating_sub(2),
@@ -2398,7 +2514,7 @@ fn paint_panel_tail(ui: &mut Ui<'_>, area: termrock::Rect) {
     );
 }
 
-fn paint_frame_title_tail(ui: &mut Ui<'_>, area: termrock::Rect, title: &str) {
+fn paint_frame_title_tail(ui: &mut Ui<'_>, area: termrock::Rect, title: &str, focused: bool) {
     let x = area
         .x
         .saturating_add(2)
@@ -2406,9 +2522,14 @@ fn paint_frame_title_tail(ui: &mut Ui<'_>, area: termrock::Rect, title: &str) {
     if x >= area.right().saturating_sub(1) || area.height == 0 {
         return;
     }
+    let role = if focused {
+        Role::BorderStrong
+    } else {
+        Role::BorderSubtle
+    };
     let style = ui
         .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::BorderStrong)));
+        .patch(ui.paint_patch(&StylePatch::new().set_fg(role)));
     ui.paint_str(
         termrock::Rect {
             x,
@@ -2431,7 +2552,7 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
                 area,
                 &[
                     Span::new(" "),
-                    Span::new("▪").role(Role::Accent),
+                    Span::new("▪").role(Role::Success),
                     Span::new("  "),
                     Span::new("TablePro").bold(),
                     Span::new("  "),
@@ -2447,7 +2568,7 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
                 area,
                 &[
                     Span::new(" "),
-                    Span::new("▪").role(Role::Accent),
+                    Span::new("▪").role(Role::Success),
                     Span::new("  "),
                     Span::new("TablePro").bold(),
                     Span::new("  "),
@@ -2471,7 +2592,7 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             area,
             &[
                 Span::new(" "),
-                Span::new("▪").role(Role::Accent),
+                Span::new("▪").role(Role::Success),
                 Span::new("  "),
                 Span::new("TablePro").bold(),
                 Span::new("  "),
@@ -2504,9 +2625,9 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     ui.paint_spans(
         right,
         &[
-            Span::new(capability).role(Role::BorderStrong),
-            Span::new(" · ").role(Role::BorderStrong),
-            Span::new(&dimensions).role(Role::BorderStrong),
+            Span::new(capability).role(Role::Fg(FgStep::Faint)),
+            Span::new(" · ").role(Role::Fg(FgStep::Faint)),
+            Span::new(&dimensions).role(Role::Fg(FgStep::Faint)),
             Span::new(" "),
             Span::new(" ? help ").role(Role::Fg(FgStep::Muted)),
         ],
@@ -2521,6 +2642,26 @@ struct KeyHint {
 }
 
 fn footer_hints(app: &TableProApp) -> &'static [KeyHint] {
+    if app.destructive_intent.is_some() {
+        return &[
+            KeyHint {
+                key: "← →",
+                action: "Choose",
+            },
+            KeyHint {
+                key: "Enter",
+                action: "Confirm",
+            },
+            KeyHint {
+                key: "Esc",
+                action: "Cancel",
+            },
+            KeyHint {
+                key: "y / n",
+                action: "Quick answer",
+            },
+        ];
+    }
     if app.screen == Screen::Connections {
         &[
             KeyHint {
@@ -2679,6 +2820,24 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             base,
         );
         right_w = width.saturating_add(3);
+    } else if app.screen == Screen::Connections
+        && !app.status.is_empty()
+        && app.destructive_intent.is_none()
+    {
+        let width = termrock::width(&app.status);
+        if width > 0 && width < area.width {
+            let right = termrock::Rect {
+                x: area.right().saturating_sub(width).saturating_sub(1),
+                width,
+                ..area
+            };
+            ui.paint_str(
+                right,
+                &app.status,
+                base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)))),
+            );
+            right_w = width.saturating_add(3);
+        }
     }
 
     let limit = area.right().saturating_sub(right_w);
@@ -2981,7 +3140,7 @@ impl App for TableProApp {
         }
         // Stateless props have no update method, but their factories remain
         // the single source of configuration for both runtime phases.
-        let _ = Self::connections_panel("", None);
+        let _ = Self::connections_panel("", None, true);
         let _ = Self::connection_details_panel("");
         let _ = Self::explorer_panel(self.workbench.schema_caption());
         let _ = Self::content_panel("", None);
@@ -3050,9 +3209,20 @@ impl App for TableProApp {
                     response |= Response::changed();
                 }
                 c if c == STRUCTURE => {
-                    let _ = self.workbench.toggle_structure();
-                    self.sync_active_tab();
-                    response |= Response::changed();
+                    if self.screen == Screen::Connections {
+                        self.duplicate_connection();
+                        response |= Response::changed();
+                    } else {
+                        let _ = self.workbench.toggle_structure();
+                        self.sync_active_tab();
+                        response |= Response::changed();
+                    }
+                }
+                c if c == DELETE_CONNECTION => {
+                    if self.screen == Screen::Connections {
+                        self.request_delete_connection(cx);
+                        response |= Response::changed();
+                    }
                 }
                 c if c == FORM => {
                     self.begin_connection_form();
@@ -3195,7 +3365,7 @@ impl App for TableProApp {
         let rows = shell_parts(full);
         draw_header(ui, rows[0], self);
         if self.form_open {
-            Self::connections_panel(" Connect to database", None).draw(ui, rows[1], |ui, area| {
+            Self::connections_panel(" Connect to database", None, true).draw(ui, rows[1], |ui, area| {
                 if let Some(draft) = self.draft.as_ref() {
                     Self::connection_form(&self.form_fields, &self.form_actions).draw(
                         ui,

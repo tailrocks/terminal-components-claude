@@ -1251,6 +1251,10 @@ impl<'f> Ui<'f> {
             .unwrap_or_default()
     }
 
+    pub(crate) fn page(&self) -> &Buffer {
+        self.page
+    }
+
     pub(crate) fn page_mut(&mut self) -> &mut Buffer {
         self.page
     }
