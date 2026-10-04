@@ -65,11 +65,7 @@ fn row_like(m: &mut PartMap<PartRecipe>) {
         .when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
     part(m, Part::LABEL, p()).when(StateFlags::DISABLED, p().set_fg(Role::DisabledFg));
     part(m, Part::META, p().set_fg(Role::Fg(FgStep::Muted)));
-    part(
-        m,
-        Part::HEADER,
-        p().set_fg(Role::Fg(FgStep::Faint)),
-    );
+    part(m, Part::HEADER, p().set_fg(Role::Fg(FgStep::Faint)));
     part(
         m,
         Part::TRACK,

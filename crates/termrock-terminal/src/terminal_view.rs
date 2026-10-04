@@ -495,12 +495,10 @@ impl<'a> TerminalView<'a> {
                         });
                     }
                 }
-                Intent::Paste(text) => {
-                    if self.interaction.allows_forwarding() {
-                        acc.action(TerminalAction::Forward {
-                            token: InputToken::new(Input::Paste(text.to_string())),
-                        });
-                    }
+                Intent::Paste(text) if self.interaction.allows_forwarding() => {
+                    acc.action(TerminalAction::Forward {
+                        token: InputToken::new(Input::Paste(text.to_string())),
+                    });
                 }
                 _ => {}
             }
@@ -614,14 +612,15 @@ impl<'a> TerminalView<'a> {
             }
         }
 
-        if let Some((cursor_abs_x, cursor_abs_y)) = cursor_loc {
-            if cursor_abs_x < buf.area().width && cursor_abs_y < buf.area().height {
-                let cell = &mut buf[(cursor_abs_x, cursor_abs_y)];
-                if is_focused {
-                    cell.modifier.insert(Modifier::REVERSED);
-                } else {
-                    cell.modifier.insert(Modifier::UNDERLINED);
-                }
+        if let Some((cursor_abs_x, cursor_abs_y)) = cursor_loc
+            && cursor_abs_x < buf.area().width
+            && cursor_abs_y < buf.area().height
+        {
+            let cell = &mut buf[(cursor_abs_x, cursor_abs_y)];
+            if is_focused {
+                cell.modifier.insert(Modifier::REVERSED);
+            } else {
+                cell.modifier.insert(Modifier::UNDERLINED);
             }
         }
 

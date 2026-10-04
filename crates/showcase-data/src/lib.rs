@@ -281,7 +281,7 @@ pub const LANGUAGES: &[&str] = &[
 /// Stable pre-order project tree copied from the legacy showcase. Keys are
 /// explicit domain identities, never derived from depth or display position,
 /// so expansion cannot alias a sibling or move a selection.
-
+///
 /// Label and metadata for each tree key, in the same order as [`TREE`].
 pub const TREE_LABELS: &[(&str, &str)] = &[
     ("src", "directory"),

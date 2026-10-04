@@ -206,6 +206,12 @@ pub struct IntentQueue {
     probes: Cell<usize>,
 }
 
+impl Default for IntentQueue {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl IntentQueue {
     pub const fn new() -> Self {
         IntentQueue {

@@ -478,12 +478,7 @@ fn draw_state_language(ui: &mut Ui<'_>, state_area: Rect) {
             );
             let text_x = inner.x.saturating_add(3);
             ui.paint_str(
-                Rect::new(
-                    text_x,
-                    y,
-                    state_area.right().saturating_sub(text_x),
-                    1,
-                ),
+                Rect::new(text_x, y, state_area.right().saturating_sub(text_x), 1),
                 label,
                 ui.surface_style()
                     .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)))),
