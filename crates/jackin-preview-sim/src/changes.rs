@@ -8,8 +8,6 @@
 
 use std::collections::BTreeSet;
 
-use termrock::{FgStep, Role};
-
 /// The kind of one line in a unified diff.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DiffLineKind {
@@ -63,15 +61,6 @@ impl DiffLine {
     /// Whether the line exists only on the old side.
     pub const fn is_deletion(&self) -> bool {
         matches!(self.kind, DiffLineKind::Remove)
-    }
-
-    /// The theme role a diff renderer should use for this line.
-    pub const fn role(&self) -> Role {
-        match self.kind {
-            DiffLineKind::Context => Role::Fg(FgStep::Primary),
-            DiffLineKind::Add => Role::Success,
-            DiffLineKind::Remove => Role::Danger,
-        }
     }
 }
 
@@ -143,16 +132,6 @@ impl DiffStatus {
             Self::Modified => "modified",
             Self::Deleted => "deleted",
             Self::Renamed { .. } => "renamed",
-        }
-    }
-
-    /// Theme role for the status marker.
-    pub const fn role(&self) -> Role {
-        match self {
-            Self::Added => Role::Success,
-            Self::Modified => Role::Warning,
-            Self::Deleted => Role::Danger,
-            Self::Renamed { .. } => Role::Fg(FgStep::Secondary),
         }
     }
 }

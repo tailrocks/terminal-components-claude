@@ -7,8 +7,6 @@
 
 use std::collections::VecDeque;
 
-use termrock::{FgStep, Position, Rect, Role, SplitAxis, SplitModel, width};
-
 use jackin_preview_domain::account::AccountId;
 use jackin_preview_domain::agent::Agent;
 use jackin_preview_domain::instance::{AgentState, DaemonSnapshot};
@@ -28,6 +26,82 @@ pub const MIN_PANE_ROWS: u16 = 4;
 /// Maximum automatic label length accepted by a caller.
 pub const MAX_LABEL: usize = 16;
 
+/// A 2D rectangle in screen or container coordinates.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct Rect {
+    /// Left coordinate.
+    pub x: u16,
+    /// Top coordinate.
+    pub y: u16,
+    /// Width.
+    pub width: u16,
+    /// Height.
+    pub height: u16,
+}
+
+impl Rect {
+    /// Construct a new rectangle.
+    pub const fn new(x: u16, y: u16, width: u16, height: u16) -> Self {
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
+    }
+
+    /// Whether this rectangle has zero width or height.
+    pub const fn is_empty(&self) -> bool {
+        self.width == 0 || self.height == 0
+    }
+
+    /// Right edge coordinate.
+    pub const fn right(&self) -> u16 {
+        self.x.saturating_add(self.width)
+    }
+
+    /// Bottom edge coordinate.
+    pub const fn bottom(&self) -> u16 {
+        self.y.saturating_add(self.height)
+    }
+}
+
+/// A 2D position in screen or container coordinates.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct Position {
+    /// Column position.
+    pub x: u16,
+    /// Row position.
+    pub y: u16,
+}
+
+impl Position {
+    /// Construct a position.
+    pub const fn new(x: u16, y: u16) -> Self {
+        Self { x, y }
+    }
+}
+
+/// A 2D cell coordinate.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub struct CellPos {
+    /// Zero-based row.
+    pub row: usize,
+    /// Zero-based column.
+    pub col: usize,
+}
+
+impl CellPos {
+    /// Construct a cell position.
+    pub const fn new(row: usize, col: usize) -> Self {
+        Self { row, col }
+    }
+}
+
+fn width(s: &str) -> u16 {
+    unicode_width::UnicodeWidthStr::width(s) as u16
+}
+
 /// Direction of a two-pane split.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SplitDir {
@@ -35,15 +109,6 @@ pub enum SplitDir {
     Horizontal,
     /// First pane on top.
     Vertical,
-}
-
-impl SplitDir {
-    const fn axis(self) -> SplitAxis {
-        match self {
-            Self::Horizontal => SplitAxis::Horizontal,
-            Self::Vertical => SplitAxis::Vertical,
-        }
-    }
 }
 
 /// Which side of a split is maximized.
@@ -81,17 +146,6 @@ impl Split {
         }
     }
 
-    fn model(self, dir: SplitDir) -> SplitModel {
-        let percent = self.percent.clamp(5, 95) as u8;
-        let mut model = SplitModel::new(dir.axis(), percent, self.min_first, self.min_second);
-        match self.maximized {
-            Maximized::None => {}
-            Maximized::First => model.toggle_max(termrock::Maximized::First),
-            Maximized::Second => model.toggle_max(termrock::Maximized::Second),
-        }
-        model
-    }
-
     /// Toggle a pane's maximized state.
     pub fn toggle_max(&mut self, which: Maximized) {
         self.maximized = if self.maximized == which {
@@ -109,29 +163,106 @@ impl Split {
 
     /// Lay out two panes with `gap` cells between them.
     pub fn layout(&self, dir: SplitDir, area: Rect, gap: u16) -> (Rect, Rect) {
-        self.model(dir).layout(area, gap)
+        match self.maximized {
+            Maximized::First => (area, collapsed(area, dir, true)),
+            Maximized::Second => (collapsed(area, dir, false), area),
+            Maximized::None => {
+                let length = match dir {
+                    SplitDir::Vertical => area.height,
+                    SplitDir::Horizontal => area.width,
+                };
+                let usable = length.saturating_sub(gap);
+                if usable < self.min_first.saturating_add(self.min_second) {
+                    return (area, collapsed(area, dir, true));
+                }
+                let percent = self.percent.clamp(5, 95);
+                let first = (u32::from(usable).saturating_mul(u32::from(percent)) / 100) as u16;
+                let first = first.clamp(self.min_first, usable.saturating_sub(self.min_second));
+                match dir {
+                    SplitDir::Vertical => {
+                        let a = Rect::new(area.x, area.y, area.width, first);
+                        let b_y = area
+                            .y
+                            .saturating_add(first)
+                            .saturating_add(gap.min(area.height.saturating_sub(first)));
+                        let b_h = area.height.saturating_sub(first.saturating_add(gap));
+                        let b = Rect::new(area.x, b_y, area.width, b_h);
+                        (a, b)
+                    }
+                    SplitDir::Horizontal => {
+                        let a = Rect::new(area.x, area.y, first, area.height);
+                        let b_x = area
+                            .x
+                            .saturating_add(first)
+                            .saturating_add(gap.min(area.width.saturating_sub(first)));
+                        let b_w = area.width.saturating_sub(first.saturating_add(gap));
+                        let b = Rect::new(b_x, area.y, b_w, area.height);
+                        (a, b)
+                    }
+                }
+            }
+        }
     }
 
     /// Return the seam between two panes.
     pub fn handle(&self, dir: SplitDir, area: Rect, gap: u16) -> Rect {
-        self.model(dir).handle(area, gap)
+        let (a, b) = self.layout(dir, area, gap);
+        let thickness = if a.is_empty() || b.is_empty() { 0 } else { gap };
+        match dir {
+            SplitDir::Vertical => Rect {
+                x: area.x,
+                y: a.bottom(),
+                width: area.width,
+                height: thickness,
+            },
+            SplitDir::Horizontal => Rect {
+                x: a.right(),
+                y: area.y,
+                width: thickness,
+                height: area.height,
+            },
+        }
     }
 
     /// Drag the seam under a position. Returns whether the ratio changed.
     pub fn drag_to(&mut self, dir: SplitDir, area: Rect, gap: u16, pos: Position) -> bool {
-        let mut model = self.model(dir);
-        let changed = model.drag_to(area, gap, pos);
-        if changed {
-            self.percent = u16::from(model.percent);
+        let length = match dir {
+            SplitDir::Vertical => area.height,
+            SplitDir::Horizontal => area.width,
+        };
+        let usable = length.saturating_sub(gap);
+        let offset = match dir {
+            SplitDir::Vertical => pos.y.saturating_sub(area.y),
+            SplitDir::Horizontal => pos.x.saturating_sub(area.x),
+        };
+        if usable == 0 || usable < self.min_first.saturating_add(self.min_second) {
+            return false;
         }
+        let first = offset.clamp(self.min_first, usable.saturating_sub(self.min_second));
+        let percent = (u32::from(first)
+            .saturating_mul(100)
+            .saturating_add(u32::from(usable) / 2))
+        .checked_div(u32::from(usable))
+        .unwrap_or(0) as u16;
+        let percent = percent.clamp(5, 95);
+        let changed = percent != self.percent;
+        self.percent = percent;
         changed
     }
 
     /// Resize the first pane by whole cells.
     pub fn nudge(&mut self, dir: SplitDir, area: Rect, gap: u16, delta: i16) {
-        let mut model = self.model(dir);
-        model.nudge(area, gap, delta);
-        self.percent = u16::from(model.percent);
+        let (first, _) = self.layout(dir, area, gap);
+        let cur = match dir {
+            SplitDir::Vertical => i32::from(first.height),
+            SplitDir::Horizontal => i32::from(first.width),
+        };
+        let target = cur.saturating_add(i32::from(delta)).max(0) as u16;
+        let pos = match dir {
+            SplitDir::Vertical => Position::new(area.x, area.y.saturating_add(target)),
+            SplitDir::Horizontal => Position::new(area.x.saturating_add(target), area.y),
+        };
+        self.drag_to(dir, area, gap, pos);
     }
 
     /// Vertical layout convenience method.
@@ -142,6 +273,23 @@ impl Split {
     /// Horizontal layout convenience method.
     pub fn horizontal(&self, area: Rect, gap: u16) -> (Rect, Rect) {
         self.layout(SplitDir::Horizontal, area, gap)
+    }
+}
+
+const fn collapsed(area: Rect, dir: SplitDir, at_end: bool) -> Rect {
+    match dir {
+        SplitDir::Vertical => Rect {
+            x: area.x,
+            y: if at_end { area.bottom() } else { area.y },
+            width: area.width,
+            height: 0,
+        },
+        SplitDir::Horizontal => Rect {
+            x: if at_end { area.right() } else { area.x },
+            y: area.y,
+            width: 0,
+            height: area.height,
+        },
     }
 }
 
@@ -405,20 +553,6 @@ pub enum Tone {
     Warning,
 }
 
-impl Tone {
-    /// Convert the simulation tone to a public `termrock` role.
-    pub const fn role(self) -> Role {
-        match self {
-            Self::Normal => Role::Fg(FgStep::Primary),
-            Self::Muted => Role::Fg(FgStep::Muted),
-            Self::Secondary => Role::Fg(FgStep::Secondary),
-            Self::Success => Role::Success,
-            Self::Error => Role::Danger,
-            Self::Warning => Role::Warning,
-        }
-    }
-}
-
 /// One owned styled transcript span.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Span {
@@ -446,11 +580,6 @@ impl Span {
         self.bold = true;
         self
     }
-
-    /// The public facade role for this span.
-    pub const fn role(&self) -> Role {
-        self.tone.role()
-    }
 }
 
 /// One owned transcript line.
@@ -464,7 +593,7 @@ pub struct TextViewport {
     /// Whether new output follows the tail.
     pub follow: bool,
     /// Optional cursor position.
-    pub caret: Option<termrock::CellPos>,
+    pub caret: Option<CellPos>,
     /// Whether the cursor is visible.
     pub caret_visible: bool,
     max_lines: usize,
@@ -1569,7 +1698,7 @@ impl Pane {
             let line_number = self.term.lines.len().saturating_sub(1);
             let col = usize::from(width(&self.proc.prompt))
                 .saturating_add(usize::from(width(&self.input)));
-            self.term.caret = Some(termrock::CellPos::new(line_number, col));
+            self.term.caret = Some(CellPos::new(line_number, col));
         } else {
             self.term.caret = None;
         }

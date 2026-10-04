@@ -9,6 +9,8 @@ pub mod pinned;
 
 use std::collections::BTreeSet;
 
+use crate::onepassword::SimOnePassword;
+use crate::provider;
 use jackin_preview_domain::account::{
     Account, AccountId, AccountIdentity, AccountRegistry, Confidence, CredentialSource,
     DetectedKind, IdentitySubject, IssueCode, Lifecycle, Provenance, Recoverability,
@@ -25,8 +27,6 @@ use jackin_preview_domain::workspace::{
     AllowedRoles, DirtyExitPolicy, EnvVar, Mount, MountScope, RoleEntry, RolePolicy, Workspace,
     WorkspaceId,
 };
-use crate::onepassword::SimOnePassword;
-use crate::provider;
 
 /// Synthetic home directory used by the fixtures.
 pub const HOME: &str = "/Users/alexey";
@@ -569,7 +569,9 @@ pub fn fixture_roles_for(scenario: jackin_preview_domain::scenario::Scenario) ->
 }
 
 /// The scenario's authoritative saved workspaces, shared with `world_for`.
-pub fn fixture_workspaces_for(scenario: jackin_preview_domain::scenario::Scenario) -> Vec<Workspace> {
+pub fn fixture_workspaces_for(
+    scenario: jackin_preview_domain::scenario::Scenario,
+) -> Vec<Workspace> {
     pinned::workspaces_for(scenario)
 }
 

@@ -1238,9 +1238,6 @@ dependencies = [
 [[package]]
 name = "jackin-preview-domain"
 version = "0.1.0"
-dependencies = [
- "termrock-text",
-]
 
 [[package]]
 name = "jackin-preview-host-ui"
@@ -1267,8 +1264,7 @@ name = "jackin-preview-sim"
 version = "0.1.0"
 dependencies = [
  "jackin-preview-domain",
- "ratatui 0.30.2",
- "termrock",
+ "unicode-width 0.2.0",
 ]
 
 [[package]]

@@ -713,8 +713,7 @@ impl App {
         .then(|| {
             HomeState::hints(
                 &self.world,
-                ui.state(home::ROWS)
-                    .contains(termrock::StateFlags::FOCUSED),
+                ui.state(home::ROWS).contains(termrock::StateFlags::FOCUSED),
             )
         });
         let actions_hints = matches!(self.overlay, Some(Overlay::Actions(_))).then(Actions::hints);
@@ -785,10 +784,7 @@ impl App {
         }
         let escape = Chord::key(KeyCode::Esc);
         self.keymap.remove(KeyPhase::Capture, escape);
-        if self.route == Route::Home
-            && self.overlay.is_none()
-            && !self.menu.is_open()
-        {
+        if self.route == Route::Home && self.overlay.is_none() && !self.menu.is_open() {
             if self.home.scope.is_some() || !self.home.query().is_empty() {
                 self.keymap.add(KeyPhase::Capture, escape, QUERY_ESCAPE);
             } else {

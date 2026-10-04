@@ -8,8 +8,6 @@ pub(crate) use termrock_core as keys;
 pub(crate) use termrock_core as response;
 pub(crate) use termrock_layout as layout;
 pub(crate) use termrock_layout as measure;
-pub(crate) use termrock_theme as theme;
-pub(crate) use termrock_text as text;
 pub(crate) use termrock_render as render;
 pub(crate) use termrock_runtime as ui;
 pub(crate) use termrock_runtime as runtime;
@@ -18,6 +16,8 @@ pub(crate) use termrock_runtime as hit;
 pub(crate) use termrock_runtime as keymap;
 pub(crate) use termrock_runtime as capture;
 pub(crate) use termrock_runtime as layer;
+pub(crate) use termrock_text as text;
+pub(crate) use termrock_theme as theme;
 
 pub use termrock_core::action::ActionKey;
 

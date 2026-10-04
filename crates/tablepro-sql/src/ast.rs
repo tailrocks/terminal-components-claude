@@ -61,38 +61,19 @@ pub enum Statement {
     /// Row-selecting query.
     Select(Select),
     /// Update statement.
-    Update {
-        table: String,
-        has_where: bool,
-    },
+    Update { table: String, has_where: bool },
     /// Delete statement.
-    Delete {
-        table: String,
-        has_where: bool,
-    },
+    Delete { table: String, has_where: bool },
     /// Insert statement.
-    Insert {
-        table: String,
-    },
+    Insert { table: String },
     /// Drop statement.
-    Drop {
-        kind: String,
-        name: String,
-    },
+    Drop { kind: String, name: String },
     /// Truncate statement.
-    Truncate {
-        table: String,
-    },
+    Truncate { table: String },
     /// Alter statement.
-    Alter {
-        table: String,
-        destructive: bool,
-    },
+    Alter { table: String, destructive: bool },
     /// Create statement.
-    Create {
-        kind: String,
-        name: String,
-    },
+    Create { kind: String, name: String },
     /// Explain wrapper.
     Explain {
         analyze: bool,

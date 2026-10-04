@@ -223,7 +223,9 @@ pub enum TerminalAction {
     /// Viewport size change reported to host adapter.
     Resize { rows: u16, cols: u16 },
     /// Selection changed notification.
-    SelectionChanged { selection: Option<TerminalSelection> },
+    SelectionChanged {
+        selection: Option<TerminalSelection>,
+    },
 }
 
 /// Durable state for `TerminalView`.
@@ -410,7 +412,11 @@ impl<'a> TerminalView<'a> {
         // Process intents
         for it in cx.intents(self.id) {
             match it {
-                Intent::Wheel { axis: Axis::V, delta, .. } => {
+                Intent::Wheel {
+                    axis: Axis::V,
+                    delta,
+                    ..
+                } => {
                     let before = state.scroll.offset();
                     state.scroll.scroll_by(delta as isize);
                     if state.scroll.offset() != before {

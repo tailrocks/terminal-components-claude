@@ -272,7 +272,6 @@ impl LayerSpec {
 
 /// A layer lifecycle event, delivered to the layer's owner.
 
-
 /// Resolve a layer's area: anchor, flip, then clamp (§9.1).
 ///
 /// [`LayerSize::Fill`] yields the whole screen. A `Fixed` size is clipped to

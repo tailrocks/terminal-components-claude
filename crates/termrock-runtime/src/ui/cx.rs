@@ -318,10 +318,7 @@ impl<'f> Cx<'f> {
     /// Crate-private because cached values are implementation details, never
     /// semantic application state. Returning both borrows the frozen queue
     /// and the independent cache at once without allocating an intent copy.
-    pub fn intents_with_cache<T: Default + 'static>(
-        &mut self,
-        id: Id,
-    ) -> (IntentIter<'f>, &mut T) {
+    pub fn intents_with_cache<T: Default + 'static>(&mut self, id: Id) -> (IntentIter<'f>, &mut T) {
         (self.intents.iter(id), self.cache.get_mut::<T>(id))
     }
 

@@ -8,11 +8,11 @@
 pub mod driver;
 
 use bitflags::bitflags;
+use ratatui_core::layout::Rect;
 use termrock::{
     ActionKey, Binding, BindingState, Chord, ColorLevel, Cx, Family, Id, ItemKey, Part, PartRef,
     Response, StateFlags, Status, StylePatch, Theme, Ui,
 };
-use ratatui_core::layout::Rect;
 
 bitflags! {
     /// What a component can do, selecting the capability-gated cases.

@@ -7,8 +7,8 @@
 
 use core::ops::Range;
 
-use termrock_core::geometry::Headroom;
 use crate::response::Response;
+use termrock_core::geometry::Headroom;
 
 /// Offset, content length and viewport length on one axis.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]

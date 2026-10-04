@@ -1346,7 +1346,6 @@ mod tests {
         CellRoles, FrameRead, FrameState, LayoutFacts, ReferenceState, ReferenceTarget, Ui, UiCore,
     };
     use crate::action::ActionKey;
-    use crate::rowui::RowUi;
     use crate::event::{Chord, KeyCode};
     use crate::focus::Focusability;
     use crate::hit::{Axes, Headroom};
@@ -1354,6 +1353,7 @@ mod tests {
     use crate::keymap::Binding;
     use crate::layer::{LayerId, LayerSpec};
     use crate::response::StateFlags;
+    use crate::rowui::RowUi;
     use crate::theme::{
         Family, FgStep, Overlay, OverlayRule, Role, StylePatch, Surface, Theme, Variant,
     };

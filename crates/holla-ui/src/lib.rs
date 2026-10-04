@@ -7,8 +7,8 @@ pub mod dispatch;
 pub mod screens;
 
 pub mod domain {
-    pub use holla_domain::*;
     pub use holla_catalog::ranking;
+    pub use holla_domain::*;
     pub use holla_plan::{activity, plan};
     pub use holla_sim::fixtures;
 }

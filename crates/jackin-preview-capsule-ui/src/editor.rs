@@ -312,8 +312,10 @@ impl EditorState {
     pub fn begin_save(
         &mut self,
         world: &mut jackin_preview_sim::world::World,
-    ) -> Result<jackin_preview_domain::workspace_save::SaveTicket, jackin_preview_domain::workspace_save::SaveError>
-    {
+    ) -> Result<
+        jackin_preview_domain::workspace_save::SaveTicket,
+        jackin_preview_domain::workspace_save::SaveError,
+    > {
         use jackin_preview_domain::workspace_save::SaveError;
         if self.saving.is_some() {
             return Err(SaveError::Busy);
@@ -339,7 +341,10 @@ impl EditorState {
 
     /// Settle only this editor's ticket. True means its unchanged draft is now clean.
     /// Newer drafts remain dirty; replacing the editor cannot steal a completion.
-    pub fn settle_save(&mut self, result: &jackin_preview_domain::workspace_save::SaveResult) -> bool {
+    pub fn settle_save(
+        &mut self,
+        result: &jackin_preview_domain::workspace_save::SaveResult,
+    ) -> bool {
         use jackin_preview_domain::workspace_save::SaveResult;
         let Some(ticket) = result.ticket() else {
             return false;

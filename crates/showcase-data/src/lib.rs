@@ -1,6 +1,5 @@
 //! Demo fixtures carried over from the legacy showcase.
 
-
 /// One deterministic task row shared by the table and task-runner pages.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct TaskRow {

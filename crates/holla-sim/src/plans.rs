@@ -3,13 +3,13 @@
 //! run. Phrases are bound to the target host (`REMOVE ALL DOCKER DATA ON
 //! devbox`); the broadest plans demand the `I UNDERSTAND:` prefix.
 
+use crate::world::World;
 use holla_domain::disk::Freshness;
 use holla_domain::docker::{ContainerState, Health};
 use holla_domain::effect::Mutation;
 use holla_domain::human_bytes;
 use holla_domain::mise::ToolState;
 use holla_plan::plan::{Plan, PlanEffect, PlanSpec, PlanStep, StepState};
-use crate::world::World;
 use std::sync::Arc;
 
 /// A review bound to the exact simulated host and effect target facts.
@@ -41,10 +41,7 @@ impl ReviewedPlan {
         Arc::ptr_eq(&self.target, &binding.target) && self.plan == binding.plan
     }
 
-    pub fn toggle(
-        &mut self,
-        index: usize,
-    ) -> Result<String, holla_plan::plan::PlanError> {
+    pub fn toggle(&mut self, index: usize) -> Result<String, holla_plan::plan::PlanError> {
         self.plan.toggle(index)
     }
 

@@ -2,10 +2,10 @@
 //! typed recipes, role-level patches, a scoped overlay stack and one
 //! six-level precedence chain. No theme trait, no generic theme parameter.
 
-pub(crate) use termrock_core::id;
-pub(crate) use termrock_core::response;
 pub(crate) use crate as theme;
+pub(crate) use termrock_core::id;
 pub use termrock_core::id::Part;
+pub(crate) use termrock_core::response;
 pub use termrock_core::response::StateFlags;
 
 pub mod border;

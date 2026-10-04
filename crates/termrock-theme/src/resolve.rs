@@ -48,12 +48,7 @@ impl PaintStyle {
         }
     }
 
-    pub fn bound(
-        style: Style,
-        fg: Option<Role>,
-        bg: Option<Role>,
-        surface: Surface,
-    ) -> Self {
+    pub fn bound(style: Style, fg: Option<Role>, bg: Option<Role>, surface: Surface) -> Self {
         Self {
             style,
             fg_role: fg.filter(|_| style.fg.is_some()).map(|r| (r, surface)),

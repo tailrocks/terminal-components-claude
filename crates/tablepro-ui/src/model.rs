@@ -14,15 +14,9 @@ use crate::tabs::{Tab, TabKey, TabRecord};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SwitchTarget {
     /// Catalog table, identified by schema and name.
-    Table {
-        schema: String,
-        name: String,
-    },
+    Table { schema: String, name: String },
     /// Catalog view, identified by schema and name.
-    View {
-        schema: String,
-        name: String,
-    },
+    View { schema: String, name: String },
     /// Schema name.
     Schema(String),
     /// Database name.
@@ -96,11 +90,7 @@ pub struct SwitcherIndex {
 
 impl SwitcherIndex {
     /// Build without open-tab metadata for standalone catalog consumers.
-    pub fn from_catalog(
-        catalog: &Catalog,
-        history: &History,
-        connections: &[Connection],
-    ) -> Self {
+    pub fn from_catalog(catalog: &Catalog, history: &History, connections: &[Connection]) -> Self {
         Self::build(catalog, history, connections, &[])
     }
 

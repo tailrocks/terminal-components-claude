@@ -170,10 +170,9 @@ impl TableTab {
     }
 
     pub fn sort(&mut self, column: usize, direction: SortDir) {
-        self.result.model.sort(
-            ColumnKey::num((column as u16).saturating_add(1)),
-            direction,
-        );
+        self.result
+            .model
+            .sort(ColumnKey::num((column as u16).saturating_add(1)), direction);
     }
 
     pub fn structure(&self) -> Vec<Vec<Value>> {

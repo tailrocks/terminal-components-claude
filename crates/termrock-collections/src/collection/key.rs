@@ -4,8 +4,6 @@ use core::cell::Cell;
 
 use crate::id::ItemKey;
 
-
-
 /// Selection behaviour of a collection.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
 pub enum SelectMode {
@@ -47,8 +45,6 @@ impl<T> KeyFn<T> for ByIndex {
         ItemKey::index(index)
     }
 }
-
-
 
 /// A selection set with an inverted representation, so "select all" never
 /// materialises every key. The `Vec` is kept sorted; `contains` is a binary

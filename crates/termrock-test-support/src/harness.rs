@@ -4,15 +4,15 @@
 //! shape of the existing suites survives and a test never observes the
 //! one-frame pointer latency of §20.1.
 
+use ratatui_core::backend::TestBackend;
+use ratatui_core::buffer::{Buffer, Cell};
+use ratatui_core::layout::{Position, Rect};
+use ratatui_core::terminal::Terminal;
 use termrock::{
     App, Axis, ColorLevel, Diagnostic, Family, FocusRing, Id, Input, Invalidate, Key, KeyCode,
     KeyModifiers, LayerId, Mouse, MouseKind, Part, PartRef, Resolved, Response, Runtime,
     StateFlags, Theme, Variant,
 };
-use ratatui_core::backend::TestBackend;
-use ratatui_core::buffer::{Buffer, Cell};
-use ratatui_core::layout::{Position, Rect};
-use ratatui_core::terminal::Terminal;
 
 use crate::digest::Scene;
 
@@ -517,8 +517,8 @@ pub fn row_text(buf: &Buffer, y: u16) -> (String, Vec<u16>) {
 
 #[cfg(test)]
 mod tests {
-    use termrock::{Cx, Focusability, FrameRead, ItemKey, RowUi, Ui};
     use ratatui_core::layout::Rect;
+    use termrock::{Cx, Focusability, FrameRead, ItemKey, RowUi, Ui};
 
     use super::*;
 

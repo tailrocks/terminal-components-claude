@@ -3,6 +3,7 @@
 
 pub mod accounting;
 pub mod action;
+pub mod clock;
 pub mod debian;
 pub mod disk;
 pub mod docker;
@@ -12,13 +13,12 @@ pub mod github;
 pub mod host;
 pub mod mise;
 pub mod pg;
-pub mod ssh;
 pub mod scenario;
-pub mod clock;
+pub mod ssh;
 
+pub use clock::Clock;
 pub use host::Environment;
 pub use scenario::{Motion, Scenario};
-pub use clock::Clock;
 
 /// Fixture home directory. Display paths use `~`; typed confirmation
 /// phrases expand through this, e.g. `~/work/scratch` -> `/home/dev/work/scratch`.

@@ -1,7 +1,7 @@
 //! A cancellable task runner using the public lifecycle rail.
 
-use termrock::author::PaintStyle;
 use std::{cmp::Ordering, time::Duration};
+use termrock::author::PaintStyle;
 
 use termrock::{
     ActionKey, Button, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, ItemKey, Modifier,

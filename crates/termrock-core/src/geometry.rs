@@ -200,5 +200,3 @@ pub enum Axes {
     /// Both axes.
     Both,
 }
-
-

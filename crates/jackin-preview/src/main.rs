@@ -10,7 +10,11 @@ fn main() -> std::io::Result<()> {
     ) {
         Ok(jackin_preview_app::cli::Parsed::Run(options)) => options.run(),
         Ok(jackin_preview_app::cli::Parsed::Help) => {
-            writeln!(std::io::stdout().lock(), "{}", jackin_preview_app::cli::HELP)?;
+            writeln!(
+                std::io::stdout().lock(),
+                "{}",
+                jackin_preview_app::cli::HELP
+            )?;
             Ok(())
         }
         Err(message) => {

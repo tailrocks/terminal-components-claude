@@ -39,8 +39,8 @@ pub use workbench::Workbench;
 #[cfg(test)]
 mod tablepro {
     use super::{Catalog, ColType, PendingEdits, ResultGrid, SafeMode, Value};
-    use tablepro_sql as sql;
     use sql::Statement;
+    use tablepro_sql as sql;
     use termrock::{ColumnKey, EditIntent, GridEditor, GridModel, ItemKey, SortDir};
 
     fn parse_statement(source: &str) -> Result<Statement, String> {
@@ -103,7 +103,8 @@ mod tablepro {
     fn view_grid_is_read_only_with_a_reason() -> Result<(), String> {
         let catalog = Catalog::acme_prod();
         let statement = parse_select("SELECT status FROM orders LIMIT 3")?;
-        let result = tablepro_demo::run_select(&catalog, &statement).map_err(|error| error.message)?;
+        let result =
+            tablepro_demo::run_select(&catalog, &statement).map_err(|error| error.message)?;
         let grid = ResultGrid::from_result(&result);
 
         assert!(!grid.is_editable());

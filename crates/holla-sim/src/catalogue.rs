@@ -2,12 +2,12 @@
 //! Ranking = scope ring weight + pins/usage memory + live urgency; every
 //! score component is visible in the row's reason (ranking is inspectable).
 
+use crate::world::{Domain, World};
+use holla_catalog::ranking::Memory;
 use holla_domain::action::{Action, ActionKind, Availability, Risk, Scope};
 use holla_domain::docker::Health;
 use holla_domain::human_bytes;
 use holla_domain::mise::Trust;
-use holla_catalog::ranking::Memory;
-use crate::world::{Domain, World};
 
 /// One ranked section on home.
 pub struct Section {
@@ -811,11 +811,11 @@ pub fn visible(
 )]
 mod tests {
     use super::*;
+    use holla_domain::scenario::Scenario;
     use holla_domain::{
         fixtures,
         ranking::{Pin, Usage},
     };
-    use holla_domain::scenario::Scenario;
 
     fn settled(scenario: Scenario) -> World {
         let mut world = fixtures::world_for(scenario);

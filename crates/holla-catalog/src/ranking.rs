@@ -32,12 +32,7 @@ pub struct Memory {
 
 impl Memory {
     /// Seed deterministic ranking facts while normalizing alias ownership.
-    pub fn seeded(
-        pins: Vec<Pin>,
-        aliases: Vec<Alias>,
-        usage: Vec<Usage>,
-        hides: Vec<Pin>,
-    ) -> Self {
+    pub fn seeded(pins: Vec<Pin>, aliases: Vec<Alias>, usage: Vec<Usage>, hides: Vec<Pin>) -> Self {
         let mut memory = Self {
             pins,
             aliases: Vec::new(),

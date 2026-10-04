@@ -2752,7 +2752,13 @@ mod tests {
                 for hint in &layer.hints {
                     let text = format!("{} {}", hint.key, hint.label);
                     let len = text.len() as u16;
-                    ui.page_mut().set_stringn(x, 1, &text, text.len(), ratatui_core::style::Style::new());
+                    ui.page_mut().set_stringn(
+                        x,
+                        1,
+                        &text,
+                        text.len(),
+                        ratatui_core::style::Style::new(),
+                    );
                     x = x.saturating_add(len + 1);
                 }
             });

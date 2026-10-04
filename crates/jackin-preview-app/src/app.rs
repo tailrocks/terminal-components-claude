@@ -3,7 +3,6 @@
 //! This module owns only interaction state and paints through `tui-next`'s
 //! public facade.  Domain and simulation state stay in sibling modules.
 
-use termrock::author::PaintStyle;
 use std::{
     cell::RefCell,
     collections::{BTreeMap, hash_map::DefaultHasher},
@@ -11,6 +10,7 @@ use std::{
     mem,
     time::Duration,
 };
+use termrock::author::PaintStyle;
 
 use termrock::{
     ActionKey, App as TuiApp, AsItem, Brand, Button, Chord, ContextMenu, Cx, Dialog, DialogAction,
@@ -2226,8 +2226,13 @@ impl App {
         if let Some(zoomed) = tab.zoomed {
             layouts.push((zoomed, area));
         } else {
+            let sim_area = jackin_preview_sim::Rect::new(area.x, area.y, area.width, area.height);
+            let mut sim_layouts = Vec::new();
             tab.root
-                .layout(area, &mut layouts, &mut Vec::new(), &mut Vec::new());
+                .layout(sim_area, &mut sim_layouts, &mut Vec::new(), &mut Vec::new());
+            for (id, r) in sim_layouts {
+                layouts.push((id, Rect::new(r.x, r.y, r.width, r.height)));
+            }
         }
         layouts
     }
@@ -2351,7 +2356,12 @@ impl App {
             if previous_revision.is_some_and(|previous| previous != revision) {
                 state.invalidate();
             }
-            state.set_caret(focused.then_some(caret).flatten());
+            state.set_caret(
+                focused
+                    .then_some(caret)
+                    .flatten()
+                    .map(|c| termrock::CellPos::new(c.row, c.col)),
+            );
             let frame = self.capsule_frame.borrow();
             let Some((_, projected)) = frame.transcripts.get(&pane_id) else {
                 continue;

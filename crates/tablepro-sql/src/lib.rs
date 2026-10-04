@@ -19,7 +19,9 @@ pub use completion::{
 };
 pub use parser::{ParseError, parse};
 pub use preview::{preview_sql, sql_literal};
-pub use safety::{Decision, Risk, Tier, assess, fmt_rows, gate, is_dangerous, risk_assessment, tier};
+pub use safety::{
+    Decision, Risk, Tier, assess, fmt_rows, gate, is_dangerous, risk_assessment, tier,
+};
 pub use tokenizer::{
     FUNCTIONS, KEYWORDS, TokKind, Token, is_keyword, split_statements, statement_at, tokenize,
 };

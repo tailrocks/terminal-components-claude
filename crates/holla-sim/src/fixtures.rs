@@ -2,7 +2,8 @@
 //! (reasons, sizes, freshness, trust, blockers) is seeded here; nothing is
 //! probed from the real machine.
 
-use holla_plan::activity::{Activity, ActivityState};
+use crate::world::{Discovery, Domain, World};
+use holla_catalog::ranking::{Alias, Memory, Pin, Usage};
 use holla_domain::debian::{DebianState, OrphanPackage};
 use holla_domain::disk::{Candidate, DiskState, Family, Freshness};
 use holla_domain::docker::{Container, ContainerState, DockerFixture, Health};
@@ -11,10 +12,9 @@ use holla_domain::github::{GhRepo, GhState};
 use holla_domain::host::{Environment, Host};
 use holla_domain::mise::{MiseState, MiseTask, MiseTool, ToolState, Trust};
 use holla_domain::pg::PgSession;
-use holla_catalog::ranking::{Alias, Memory, Pin, Usage};
-use holla_domain::ssh::{HostKeyPolicy, SshHost};
 use holla_domain::scenario::Scenario;
-use crate::world::{Discovery, Domain, World};
+use holla_domain::ssh::{HostKeyPolicy, SshHost};
+use holla_plan::activity::{Activity, ActivityState};
 
 /// Fixture home directory. Display paths use `~`; typed confirmation
 /// phrases (P3) expand through this, e.g. `~/work/scratch` →

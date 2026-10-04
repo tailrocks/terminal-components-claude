@@ -11,8 +11,8 @@ pub mod inspect;
 pub mod op_flow;
 
 pub use capsule::{
-    CapsuleFocus, CapsuleInteraction, CapsuleLayer, CapsuleState, ExitDecision as CapsuleExitDecision,
-    PrefixCommand,
+    CapsuleFocus, CapsuleInteraction, CapsuleLayer, CapsuleState,
+    ExitDecision as CapsuleExitDecision, PrefixCommand,
 };
 pub use editor::{EditorState, PendingWorkspace, Tab as EditorTab};
 pub use file_browser::{FileBrowserAction, FileBrowserEntry, FileBrowserState};

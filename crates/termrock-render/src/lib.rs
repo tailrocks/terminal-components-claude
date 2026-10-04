@@ -103,4 +103,3 @@ pub trait TerminalSource {
     fn cell(&self, position: Position) -> Option<TerminalCell<'_>>;
     fn cursor(&self) -> Option<TerminalCursor>;
 }
-

@@ -3,15 +3,15 @@
 
 use std::collections::BTreeMap;
 
+use ratatui_core::buffer::Buffer;
+use ratatui_core::layout::{Position, Rect};
+use ratatui_core::style::Style;
 use termrock::{
     Anchor, App, Axis, BindingState, Chord, CollectionCore, ColorLevel, CrossAlign, Cx, Diagnostic,
     Flow, Focusability, Id, Invalidate, ItemKey, KeyCode, KeyMap, KeyModifiers, LayerId, LayerKind,
     LayerSize, LayerSpec, MouseKind, ReferenceState, ReferenceTarget, Region, RegionKind, Response,
     Side, StateFlags, Theme, Ui,
 };
-use ratatui_core::buffer::Buffer;
-use ratatui_core::layout::{Position, Rect};
-use ratatui_core::style::Style;
 
 use super::{Caps, Conformance, Fixture, PointerGesture};
 use crate::harness::{Harness, centre};
@@ -1129,10 +1129,7 @@ pub fn wheel_at_boundary_is_consumed_without_repaint<C: Conformance>() {
     }
     let focus = h.focus();
     let area = h
-        .area_of_part(
-            C::scroll_id(),
-            termrock::PartRef::of(termrock::Part::TRACK),
-        )
+        .area_of_part(C::scroll_id(), termrock::PartRef::of(termrock::Part::TRACK))
         .or_else(|| h.area_of(C::scroll_id()))
         .unwrap_or(h.app().fixture.area);
     let (x, y) = centre(area);

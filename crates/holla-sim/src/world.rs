@@ -2,8 +2,8 @@
 //! Discovery is progressive and per domain — each capability lands at its
 //! own virtual-ms mark so early frames honestly show a half-known folder.
 
+use holla_catalog::ranking::Memory;
 use holla_domain::clock::Clock;
-use holla_plan::activity::Activity;
 use holla_domain::debian::DebianState;
 use holla_domain::disk::DiskState;
 use holla_domain::docker::DockerState;
@@ -12,9 +12,9 @@ use holla_domain::github::GhState;
 use holla_domain::host::Host;
 use holla_domain::mise::MiseState;
 use holla_domain::pg::PgSession;
-use holla_catalog::ranking::Memory;
-use holla_domain::ssh::SshHost;
 use holla_domain::scenario::Scenario;
+use holla_domain::ssh::SshHost;
+use holla_plan::activity::Activity;
 
 /// A capability domain discovery can land (or fail) in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

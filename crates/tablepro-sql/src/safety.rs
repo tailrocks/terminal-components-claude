@@ -46,9 +46,7 @@ pub enum Decision {
     /// Execute the statement immediately.
     Run,
     /// Ask first. `deliberate` = Safe Mode levels: requires deliberate confirmation.
-    Confirm {
-        deliberate: bool,
-    },
+    Confirm { deliberate: bool },
     /// Read-only connection refuses writes.
     Deny,
 }

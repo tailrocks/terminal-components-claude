@@ -166,7 +166,8 @@ fn context(source: &str, cursor: usize) -> (&str, Clause, Option<&str>) {
     if let Some(qualifier) = preceding.strip_suffix('.') {
         return (word, Clause::Member, qualifier.get(word_start(qualifier)..));
     }
-    let statement_start = crate::tokenizer::statement_at(source, cursor).map_or(0, |(start, _)| start);
+    let statement_start =
+        crate::tokenizer::statement_at(source, cursor).map_or(0, |(start, _)| start);
     let preceding = source.get(statement_start..start).unwrap_or_default();
     let mut clause = Clause::Start;
     for token in tokenize(preceding)

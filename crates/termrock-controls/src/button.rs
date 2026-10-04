@@ -328,11 +328,7 @@ impl<'a> Button<'a> {
         }
     }
 
-    pub fn update_in_form(
-        &self,
-        cx: &mut Cx<'_>,
-        inherited_disabled: bool,
-    ) -> Response<Activated> {
+    pub fn update_in_form(&self, cx: &mut Cx<'_>, inherited_disabled: bool) -> Response<Activated> {
         self.with_inherited_disabled(inherited_disabled).update(cx)
     }
 
@@ -508,12 +504,7 @@ impl<'a> Button<'a> {
         area
     }
 
-    pub fn draw_in_form(
-        &self,
-        ui: &mut Ui<'_>,
-        area: Rect,
-        inherited_disabled: bool,
-    ) -> Rect {
+    pub fn draw_in_form(&self, ui: &mut Ui<'_>, area: Rect, inherited_disabled: bool) -> Rect {
         self.with_inherited_disabled(inherited_disabled)
             .draw(ui, area)
     }

@@ -11,16 +11,16 @@ use termrock::{
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
-use tablepro_domain::{
-    Catalog, ColType, ConnectOutcome, Connection, Engine, Environment, ObjectKind, SafeMode,
-};
-use tablepro_demo as db;
-use tablepro_sql as sql;
 use crate::domain::ResultGrid;
 use crate::model::SwitchTarget;
 use crate::quick_switcher::{self, QuickSwitcher};
 use crate::tabs::{ExplorerItem, GridView, Tab, TabKey, TabRecord};
 use crate::workbench::Workbench;
+use tablepro_demo as db;
+use tablepro_domain::{
+    Catalog, ColType, ConnectOutcome, Connection, Engine, Environment, ObjectKind, SafeMode,
+};
+use tablepro_sql as sql;
 
 /// Minimum terminal width.
 pub const MIN_WIDTH: u16 = 72;

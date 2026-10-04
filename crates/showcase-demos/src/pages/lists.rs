@@ -6,8 +6,8 @@ use termrock::{
     Ui, Variant, id, layout,
 };
 
-use showcase_data::LANGUAGES;
 use crate::render_number::RenderNumber;
+use showcase_data::LANGUAGES;
 
 use super::{Page, PageUpdate, frame};
 

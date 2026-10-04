@@ -630,8 +630,13 @@ impl fmt::Debug for EnvValue {
 impl Drop for EnvValue {
     fn drop(&mut self) {
         if let Self::Plain(value) = self {
-            let mut secret = termrock_text::Secret::new(mem::take(value));
-            secret.zeroize();
+            let mut bytes = mem::take(value).into_bytes();
+            let capacity = bytes.capacity();
+            bytes.resize(capacity, 0);
+            bytes.fill(0);
+            core::hint::black_box(&bytes);
+            core::sync::atomic::compiler_fence(core::sync::atomic::Ordering::SeqCst);
+            drop(bytes);
         }
     }
 }

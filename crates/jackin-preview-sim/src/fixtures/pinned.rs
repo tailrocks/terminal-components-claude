@@ -1,6 +1,8 @@
 //! Pinned 794b095 fixture graph, migrated as domain data only.
 //! Canonical role keys replace the source fixture's short references together;
 //! daemon services and virtual time remain the current safe simulation.
+use crate::pty::{Daemon, Span, SplitDir, TextViewport, Tone};
+use crate::world::{GithubRepo, World};
 use jackin_preview_domain::account::{
     Account, AccountId, AccountIdentity, AccountRegistry, Confidence, CredentialSource,
     DetectedKind, IdentitySubject, IssueCode, Lifecycle, Recoverability, RecoverableIssue,
@@ -11,15 +13,13 @@ use jackin_preview_domain::instance::{
     DaemonSnapshot, Instance, InstanceStatus, ManifestError, RunId, SessionRecord, SessionStatus,
 };
 use jackin_preview_domain::onepassword::OpReference;
+use jackin_preview_domain::scenario::Scenario;
 use jackin_preview_domain::usage::{
     AccountUsage, FreshnessInfo, QuotaStatus, QuotaWindow, WindowCategory, WindowUnit,
 };
 use jackin_preview_domain::workspace::{
     AllowedRoles, EnvVar, Isolation, Mount, RoleEntry, RolePolicy, RoleSource, Workspace,
 };
-use jackin_preview_domain::scenario::Scenario;
-use crate::pty::{Daemon, Span, SplitDir, TextViewport, Tone};
-use crate::world::{GithubRepo, World};
 
 fn op_ref(account: &str, vault: (&str, &str), item: (&str, &str), field: &str) -> OpReference {
     OpReference {

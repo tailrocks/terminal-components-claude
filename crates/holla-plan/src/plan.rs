@@ -102,12 +102,7 @@ impl PlanStep {
         self.success_effects = effects;
         self
     }
-    pub fn fails_after(
-        mut self,
-        reason: &str,
-        effects: Vec<Mutation>,
-        error_line: &str,
-    ) -> Self {
+    pub fn fails_after(mut self, reason: &str, effects: Vec<Mutation>, error_line: &str) -> Self {
         self.fails = Some(reason.into());
         self.fail_lines = effects
             .iter()
@@ -219,10 +214,8 @@ impl Plan {
         let mut ids = std::collections::BTreeSet::new();
         for (index, step) in spec.steps.iter().enumerate() {
             for effects in [&step.success_effects, &step.failure_effects] {
-                let amounts: Result<Vec<_>, _> = effects
-                    .iter()
-                    .map(Mutation::reclaimed_bytes)
-                    .collect();
+                let amounts: Result<Vec<_>, _> =
+                    effects.iter().map(Mutation::reclaimed_bytes).collect();
                 let amounts = amounts.map_err(|_| PlanError::InvalidInventory)?;
                 accounting::bytes(amounts).map_err(|_| PlanError::InvalidInventory)?;
             }

@@ -131,8 +131,25 @@ const FIRST: &[&str] = &[
 ];
 
 const LAST: &[&str] = &[
-    "Okafor", "Weber", "Costa", "Tanaka", "Rossi", "Nguyen", "Petrov", "Haddad", "Iyer", "Novak",
-    "Lindqvist", "Alvarez", "Sato", "Brandt", "Karim", "Mehta", "Berg", "Silva", "Mori",
+    "Okafor",
+    "Weber",
+    "Costa",
+    "Tanaka",
+    "Rossi",
+    "Nguyen",
+    "Petrov",
+    "Haddad",
+    "Iyer",
+    "Novak",
+    "Lindqvist",
+    "Alvarez",
+    "Sato",
+    "Brandt",
+    "Karim",
+    "Mehta",
+    "Berg",
+    "Silva",
+    "Mori",
     "Fischer",
 ];
 

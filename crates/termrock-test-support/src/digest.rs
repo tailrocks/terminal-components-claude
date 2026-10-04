@@ -17,9 +17,9 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::{Mutex, MutexGuard, OnceLock, PoisonError};
 
-use termrock::{App, ColorLevel, Cx, FocusRing, Registry, Response, Runtime, Theme, Ui};
 use ratatui_core::buffer::Buffer;
 use ratatui_core::layout::Rect;
+use termrock::{App, ColorLevel, Cx, FocusRing, Registry, Response, Runtime, Theme, Ui};
 
 /// An application that does nothing; the scene draws through a closure.
 #[derive(Debug, Default, Clone, Copy)]

@@ -2,7 +2,31 @@
 //! on a deterministic tick timeline, a bounded build log, typed failure,
 //! and the credential stage's account resolution.
 
-use termrock::StepState;
+/// Status of a simulated launch step.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+pub enum StepState {
+    #[default]
+    Queued,
+    Running,
+    Done,
+    Skipped,
+    Failed,
+    Blocked,
+}
+
+impl StepState {
+    /// Return the display label for this step state.
+    pub const fn label(&self) -> &'static str {
+        match self {
+            Self::Queued => "queued",
+            Self::Running => "running",
+            Self::Done => "done",
+            Self::Skipped => "skipped",
+            Self::Failed => "failed",
+            Self::Blocked => "blocked",
+        }
+    }
+}
 
 use jackin_preview_domain::agent::Agent;
 use jackin_preview_domain::instance::RunId;

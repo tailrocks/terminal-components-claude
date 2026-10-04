@@ -6,16 +6,16 @@
 use std::collections::BTreeMap;
 
 use crate::arbiter::Arbiter;
-use jackin_preview_domain::clock::{Clock, EPOCH_SECS};
-use jackin_preview_domain::account::{AccountId, AccountRegistry};
-use jackin_preview_domain::agent::{Agent, AuthMode, Provider};
 use crate::fixtures::{self, HOME};
-use jackin_preview_domain::instance::{Instance, InstanceStatus};
-use jackin_preview_domain::workspace::{RoleEntry, Usability, Workspace, WorkspaceId};
-use jackin_preview_domain::workspace_save::{PendingWrite, SaveError, SaveResult, SaveTicket};
-use jackin_preview_domain::scenario::Scenario;
 use crate::onepassword::SimOnePassword;
 use crate::pty::Daemon;
+use jackin_preview_domain::account::{AccountId, AccountRegistry};
+use jackin_preview_domain::agent::{Agent, AuthMode, Provider};
+use jackin_preview_domain::clock::{Clock, EPOCH_SECS};
+use jackin_preview_domain::instance::{Instance, InstanceStatus};
+use jackin_preview_domain::scenario::Scenario;
+use jackin_preview_domain::workspace::{RoleEntry, Usability, Workspace, WorkspaceId};
+use jackin_preview_domain::workspace_save::{PendingWrite, SaveError, SaveResult, SaveTicket};
 
 /// Host trust setting projected by the Settings route.
 #[derive(Debug, Clone, PartialEq, Eq)]

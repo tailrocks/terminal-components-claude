@@ -56,62 +56,66 @@ pub mod session {
     pub use termrock_session::*;
 }
 pub mod author {
-    pub use termrock_runtime::author::*;
-    pub use termrock_theme::PaintStyle;
-    pub use termrock_core::id::{Id, ItemKey, Part, PartRef, Revision};
-    pub use termrock_core::event::{Axis, Chord, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
-    pub use termrock_core::intent::{FocusVia, Intent, IntentIter, Phase};
-    pub use termrock_core::response::{Activated, Flow, Invalidate, Response, StateFlags};
-    pub use termrock_runtime::{Cx, FrameRead, LayoutFacts, ReferenceState, ReferenceTarget, Ui};
-    pub use termrock_runtime::focus::{FocusVis, Focusability, ScopeId, ScopeMode};
-    pub use termrock_theme::{
-        Align, Family, FgStep, GlyphRole, Modifier, Overlay, OverlayRule, PartMetrics, Resolved, Role,
-        Slot, StyleDefaults, StylePatch, Surface, SyntaxRole, Theme, Variant,
-    };
-    pub use termrock_layout::{Constraints, Measure, Size};
+    pub use ratatui_core::buffer::{Buffer, Cell};
     pub use ratatui_core::layout::{Position, Rect};
     pub use ratatui_core::style::{Color, Style};
-    pub use ratatui_core::buffer::{Buffer, Cell};
+    pub use termrock_core::event::{
+        Axis, Chord, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind,
+    };
+    pub use termrock_core::id::{Id, ItemKey, Part, PartRef, Revision};
+    pub use termrock_core::intent::{FocusVia, Intent, IntentIter, Phase};
+    pub use termrock_core::response::{Activated, Flow, Invalidate, Response, StateFlags};
+    pub use termrock_layout::{Constraints, Measure, Size};
+    pub use termrock_runtime::author::*;
+    pub use termrock_runtime::focus::{FocusVis, Focusability, ScopeId, ScopeMode};
+    pub use termrock_runtime::{Cx, FrameRead, LayoutFacts, ReferenceState, ReferenceTarget, Ui};
+    pub use termrock_theme::PaintStyle;
+    pub use termrock_theme::{
+        Align, Family, FgStep, GlyphRole, Modifier, Overlay, OverlayRule, PartMetrics, Resolved,
+        Role, Slot, StyleDefaults, StylePatch, Surface, SyntaxRole, Theme, Variant,
+    };
 }
 
 // ── Application-Author Curated Facade ──
 pub use termrock_core::validate::FieldError;
 
 // identity
-pub use termrock_core::id::{Id, ItemKey, Part, PartRef, Revision};
-pub use termrock_core::id;
 pub use termrock_core::custom_hash16;
+pub use termrock_core::id;
+pub use termrock_core::id::{Id, ItemKey, Part, PartRef, Revision};
 
 // runtime & session
+pub use termrock_runtime::{
+    Acc, ActivationFeedback, ActivationKey, App, ClockError, FeedbackClock, FeedbackClockError,
+    Moment, PaintedFrame, PendingInput, RenderSnapshot, RenderSnapshotError, Runtime,
+    SimulationMoment, TypingPolicy, UpdateCause,
+};
+pub use termrock_runtime::{Cx, FrameRead, LayoutFacts, ReferenceState, ReferenceTarget, Ui};
+#[cfg(feature = "testing")]
+pub use termrock_runtime::{ProjectedFrame, RenderModel, StyledQuery};
 pub use termrock_session::{
     DefaultTerminal, TerminalSession, chain_panic_hook, run, run_with_feedback_clock,
 };
-pub use termrock_runtime::{
-    Acc, ActivationFeedback, ActivationKey, App, ClockError, FeedbackClock, FeedbackClockError, Moment,
-    PaintedFrame, PendingInput, RenderSnapshot, RenderSnapshotError, Runtime, SimulationMoment,
-    TypingPolicy, UpdateCause,
-};
-#[cfg(feature = "testing")]
-pub use termrock_runtime::{ProjectedFrame, RenderModel, StyledQuery};
-pub use termrock_runtime::{Cx, FrameRead, LayoutFacts, ReferenceState, ReferenceTarget, Ui};
 
 // events, intents, responses
+pub use termrock_core::action::{Action, ActionKey};
+pub use termrock_core::diagnostics::Diagnostic;
 pub use termrock_core::event::{Axis, Chord, Input, Key, KeyCode, KeyModifiers, Mouse, MouseKind};
 pub use termrock_core::intent::{FocusVia, Intent, IntentIter, Phase};
 pub use termrock_core::keys::{MediaKeyCode, ModifierKeyCode};
 pub use termrock_core::response::{Activated, Flow, Invalidate, Response, StateFlags};
-pub use termrock_core::action::{Action, ActionKey};
-pub use termrock_core::diagnostics::Diagnostic;
 
 // keymap, focus, hit, capture, scroll
+pub use termrock_collections::ScrollState;
+pub use termrock_runtime::capture::Capture;
+pub use termrock_runtime::focus::{
+    FocusEntry, FocusRing, FocusState, FocusVis, Focusability, ScopeId, ScopeMode,
+};
+pub use termrock_runtime::hit::{Axes, Headroom, Hit, Region, RegionKind, Registry};
 pub use termrock_runtime::{
     Binding, BindingState, BindingTableId, Bindings, ChordCase, Hint, HintKey, HintLayer, KeyMap,
     KeyPhase, binding_conflicts,
 };
-pub use termrock_runtime::capture::Capture;
-pub use termrock_runtime::focus::{FocusEntry, FocusRing, FocusState, FocusVis, Focusability, ScopeId, ScopeMode};
-pub use termrock_runtime::hit::{Axes, Headroom, Hit, Region, RegionKind, Registry};
-pub use termrock_collections::ScrollState;
 
 // layers
 pub use termrock_runtime::layer::{
@@ -129,8 +133,8 @@ pub use termrock_theme::{
 };
 
 // layout and measurement
-pub use termrock_layout::{Insets, Maximized, RowAlign, SplitAxis, SplitModel, Track};
 pub use termrock_layout::{Constraints, Measure, Size};
+pub use termrock_layout::{Insets, Maximized, RowAlign, SplitAxis, SplitModel, Track};
 
 // text and secrets
 pub use termrock_text::{
@@ -158,8 +162,8 @@ pub use termrock_controls::{
 
 // components: fields
 pub use termrock_fields::{
-    discard_error, redacted_text, BlurPolicy, EditPhase, ErrorState, Field, NoValidate,
-    TextArea, TextAreaState, TextAction, TextCmd, TextInput, TextInputState, Validate,
+    BlurPolicy, EditPhase, ErrorState, Field, NoValidate, TextAction, TextArea, TextAreaState,
+    TextCmd, TextInput, TextInputState, Validate, discard_error, redacted_text,
 };
 
 // components: feedback
@@ -170,11 +174,12 @@ pub use termrock_feedback::{
 
 // components: navigation
 pub use termrock_navigation::{
-    AsItem, BadgeFn, ChipBar, ChipBarAction, ChipBarCmd, ChipBarState, FilterList, FilterListAction,
-    FilterListCmd, FilterListState, FilterPolicy, Item, ItemRow, ItemRowLayout, List, ListAction,
-    ListCmd, ListState, NavList, NavListAction, NavListCmd, NavListState, NavMode, NodeKind,
-    StepState, Steps, StepsAction, StepsCmd, StepsState, Tabs, TabsAction, TabsCmd, TabsState, Tree,
-    TreeAction, TreeBranchActivation, TreeBranchClick, TreeCmd, TreeNode, TreeState,
+    AsItem, BadgeFn, ChipBar, ChipBarAction, ChipBarCmd, ChipBarState, FilterList,
+    FilterListAction, FilterListCmd, FilterListState, FilterPolicy, Item, ItemRow, ItemRowLayout,
+    List, ListAction, ListCmd, ListState, NavList, NavListAction, NavListCmd, NavListState,
+    NavMode, NodeKind, StepState, Steps, StepsAction, StepsCmd, StepsState, Tabs, TabsAction,
+    TabsCmd, TabsState, Tree, TreeAction, TreeBranchActivation, TreeBranchClick, TreeCmd, TreeNode,
+    TreeState,
 };
 
 // components: viewport
@@ -215,11 +220,11 @@ pub use termrock_forms::{
 };
 
 // components: terminal
+pub use termrock_render::{TerminalCell, TerminalCursor, TerminalSource};
 pub use termrock_terminal::{
     InputToken, LinkKey, TerminalAction, TerminalInteraction, TerminalSelection, TerminalView,
     TerminalViewState,
 };
-pub use termrock_render::{TerminalCell, TerminalCursor, TerminalSource};
 
 // ratatui-core types
 pub use ratatui_core::buffer::{Buffer, Cell};
