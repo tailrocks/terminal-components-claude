@@ -1163,7 +1163,6 @@ impl Page for PickersPage {
     }
 }
 
-#[cfg(test)]
 pub fn action_keys() -> impl Iterator<Item = ActionKey> {
     MENU_ITEMS.iter().chain(CONTEXT_ITEMS).map(MenuItem::action)
 }
