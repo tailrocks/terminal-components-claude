@@ -1,0 +1,21 @@
+{
+  "cell_count": 1440,
+  "cols": 72,
+  "cursor": {
+    "visible": true,
+    "x": 3,
+    "y": 2
+  },
+  "frame_digest": 7284688772711632662,
+  "name": "holla/finder/concept-first-use/72x20/none",
+  "non_empty_cells": 224,
+  "provenance": {
+    "argv": [],
+    "created_unix": 0,
+    "profile": "default",
+    "source": "screen",
+    "tool": "tuiscotti",
+    "tool_version": "0.2.0"
+  },
+  "rows": 20
+}

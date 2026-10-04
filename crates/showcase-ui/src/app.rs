@@ -1,0 +1,1567 @@
+//! Application shell for the migrated showcase binary.
+
+use showcase_demos::render_number::RenderNumber;
+use termrock::author::PaintStyle;
+use termrock::{
+    ActionKey, App as TuiApp, Brand, Chord, ColorLevel, Cx, Dialog, DialogAction, DialogState,
+    FrameRead, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Moment, NavList, NavListAction,
+    NavListState, Panel, PanelKind, Part, PartRef, Phase, Props, Rect, Response, Size, StateFlags,
+    Status, StatusBar, StatusItem, Theme, TooSmall, Ui, Variant, id, width,
+};
+
+use showcase_demos::pages::forms::SUBMIT as FORM_SUBMIT;
+use showcase_demos::pages::taskrunner::RUN_COMMAND;
+use showcase_demos::pages::{
+    Page, PageStatus, buttons::ButtonsPage, chips::ChipsPage, chrome::ChromePage,
+    dialogs::DialogsPage, editable::EditablePage, editor::EditorPage, forms::FormsPage,
+    grid::GridPage, inputs::InputsPage, lists::ListsPage, overview::OverviewPage,
+    panels::PanelsPage, pickers::PickersPage, progress::ProgressPage, scrolling::ScrollingPage,
+    settings::SettingsPage, sidebars::SidebarsPage, tables::TablesPage, taskrunner::TaskRunnerPage,
+    terminal::TerminalPage, textareas::TextAreasPage, trees::TreesPage,
+};
+
+const NAV: Id = id!("navigation");
+const BRAND: Id = id!("brand");
+const STATUS: Id = id!("status");
+const HELP: Id = id!("help");
+const TOO_SMALL: Id = id!("too-small");
+const HEADER_HELP: Id = id!("header.help");
+const HEADER_INSPECT: Id = id!("header.inspect");
+const INSPECTOR: Id = id!("inspector");
+const QUIT: ActionKey = ActionKey::application("showcase.quit");
+const QUIT_CTRL: ActionKey = ActionKey::application("showcase.quit.ctrl");
+const HELP_COMMAND: ActionKey = ActionKey::application("showcase.help");
+const INSPECTOR_COMMAND: ActionKey = ActionKey::application("showcase.inspector");
+const NEXT_PAGE: ActionKey = ActionKey::application("showcase.page.next");
+const PREV_PAGE: ActionKey = ActionKey::application("showcase.page.previous");
+const HELP_TEXT: &str = "Tab / Shift+Tab   move keyboard focus\n\
+↑ ↓ ← →           move inside the focused control\n\
+Enter / Space     activate · start editing\n\
+Esc               cancel editing · back to navigation\n\
+[ ]               previous / next page\n\
+0                 jump to navigation\n\
+i                 toggle state inspector\n\
+q                 quit\n\n\
+Mouse: hover to preview, click to focus and activate, wheel to scroll, drag the scrollbar thumb.";
+
+const STATUS_LEFT: [StatusItem<'static>; 1] = [StatusItem::new("showcase")];
+const STATUS_RIGHT: [StatusItem<'static>; 2] = [
+    StatusItem::new("q quit").priority(10),
+    StatusItem::new("? help").priority(5),
+];
+
+/// Stable page identity used by command-line selection and tests.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PageId {
+    /// Introductory page.
+    Overview,
+    /// Button variants.
+    Buttons,
+    /// Single-line input.
+    Inputs,
+    /// Multiline input.
+    TextAreas,
+    /// Form composition.
+    Forms,
+    /// Scrollable list.
+    Lists,
+    /// Hierarchical tree.
+    Trees,
+    /// Read-only table.
+    Tables,
+    /// Editable table.
+    Editable,
+    /// Panel containers.
+    Panels,
+    /// Sidebar navigation.
+    Sidebars,
+    /// Dialogs and layers.
+    Dialogs,
+    /// Progress indicators.
+    Progress,
+    /// Scrolling content.
+    Scrolling,
+    /// Terminal output.
+    Terminal,
+    /// Code editor preview.
+    Editor,
+    /// Grid preview.
+    Grid,
+    /// Chips and selectors.
+    Chips,
+    /// Picker controls.
+    Pickers,
+    /// Application chrome.
+    Chrome,
+    /// Settings controls.
+    Settings,
+    /// Animated task runner.
+    TaskRunner,
+}
+
+impl PageId {
+    /// Every page in navigation order.
+    pub const ALL: [Self; 22] = [
+        Self::Overview,
+        Self::Buttons,
+        Self::Inputs,
+        Self::TextAreas,
+        Self::Forms,
+        Self::Lists,
+        Self::Trees,
+        Self::Tables,
+        Self::Editable,
+        Self::Panels,
+        Self::Sidebars,
+        Self::Dialogs,
+        Self::Progress,
+        Self::Scrolling,
+        Self::Terminal,
+        Self::Editor,
+        Self::Grid,
+        Self::Chips,
+        Self::Pickers,
+        Self::Chrome,
+        Self::Settings,
+        Self::TaskRunner,
+    ];
+
+    /// Human-readable title.
+    pub const fn title(self) -> &'static str {
+        match self {
+            Self::Overview => "Overview",
+            Self::Buttons => "Buttons",
+            Self::Inputs => "Inputs",
+            Self::TextAreas => "Text areas",
+            Self::Forms => "Forms",
+            Self::Lists => "Lists",
+            Self::Trees => "Trees",
+            Self::Tables => "Tables",
+            Self::Editable => "Editable tables",
+            Self::Panels => "Panels",
+            Self::Sidebars => "Sidebars",
+            Self::Dialogs => "Dialogs",
+            Self::Progress => "Progress",
+            Self::Scrolling => "Scrolling",
+            Self::Terminal => "Terminal",
+            Self::Editor => "Code editor",
+            Self::Grid => "Data grid",
+            Self::Chips => "Chips & selects",
+            Self::Pickers => "Pickers",
+            Self::Chrome => "Chrome",
+            Self::Settings => "Settings",
+            Self::TaskRunner => "Task runner",
+        }
+    }
+
+    /// Stable command-line spelling.
+    pub const fn slug(self) -> &'static str {
+        match self {
+            Self::Overview => "overview",
+            Self::Buttons => "buttons",
+            Self::Inputs => "inputs",
+            Self::TextAreas => "textareas",
+            Self::Forms => "forms",
+            Self::Lists => "lists",
+            Self::Trees => "trees",
+            Self::Tables => "tables",
+            Self::Editable => "editable",
+            Self::Panels => "panels",
+            Self::Sidebars => "sidebars",
+            Self::Dialogs => "dialogs",
+            Self::Progress => "progress",
+            Self::Scrolling => "scrolling",
+            Self::Terminal => "terminal",
+            Self::Editor => "editor",
+            Self::Grid => "grid",
+            Self::Chips => "chips",
+            Self::Pickers => "pickers",
+            Self::Chrome => "chrome",
+            Self::Settings => "settings",
+            Self::TaskRunner => "taskrunner",
+        }
+    }
+
+    /// Position in the stable navigation order.
+    pub fn index(self) -> usize {
+        Self::ALL.iter().position(|page| *page == self).unwrap_or(0)
+    }
+
+    /// Parse a page slug or title without panicking.
+    pub fn from_name(value: &str) -> Option<Self> {
+        let normalized = |input: &str| {
+            input
+                .chars()
+                .filter(char::is_ascii_alphanumeric)
+                .map(|character| character.to_ascii_lowercase())
+                .collect::<String>()
+        };
+        let value = normalized(value);
+        Self::ALL
+            .into_iter()
+            .find(|page| normalized(page.slug()) == value || normalized(page.title()) == value)
+    }
+
+    /// Parse the keyed navigation value.
+    pub fn from_key(key: ItemKey) -> Option<Self> {
+        Self::ALL
+            .into_iter()
+            .find(|page| ItemKey::text(page.slug()) == key)
+    }
+}
+
+/// A sidebar item. The app owns these values; `NavList` only borrows them per phase.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct NavEntry {
+    /// Destination.
+    pub id: PageId,
+    /// Display label.
+    pub label: &'static str,
+    /// Visual section heading.
+    pub section: &'static str,
+    /// Stable navigation glyph.
+    pub icon: &'static str,
+}
+
+impl std::fmt::Display for NavEntry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.label)
+    }
+}
+
+/// The complete migrated navigation surface.
+pub const NAV_ENTRIES: &[NavEntry] = &[
+    NavEntry {
+        id: PageId::Overview,
+        label: "Overview",
+        section: "Foundations",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Buttons,
+        label: "Buttons",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Inputs,
+        label: "Inputs",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::TextAreas,
+        label: "Text areas",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Forms,
+        label: "Forms",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Lists,
+        label: "Lists",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Trees,
+        label: "Trees",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Tables,
+        label: "Tables",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Editable,
+        label: "Editable tables",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Panels,
+        label: "Panels",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Sidebars,
+        label: "Sidebars",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Dialogs,
+        label: "Dialogs",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Progress,
+        label: "Progress",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Scrolling,
+        label: "Scrolling",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Terminal,
+        label: "Terminal",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Editor,
+        label: "Code editor",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Grid,
+        label: "Data grid",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Chips,
+        label: "Chips & selects",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Pickers,
+        label: "Pickers",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Chrome,
+        label: "Chrome",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::Settings,
+        label: "Settings",
+        section: "Screens",
+        icon: "•",
+    },
+    NavEntry {
+        id: PageId::TaskRunner,
+        label: "Task runner",
+        section: "Screens",
+        icon: "•",
+    },
+];
+
+fn nav_key(entry: &NavEntry) -> ItemKey {
+    ItemKey::text(entry.id.slug())
+}
+
+fn nav_section(entry: &NavEntry) -> &str {
+    entry.section
+}
+
+fn nav() -> NavList<'static, NavEntry, impl Fn(&NavEntry) -> ItemKey> {
+    NavList::new(NAV)
+        .key(nav_key)
+        .section(&nav_section)
+        .compact_when_clipped()
+        .header_indent(3)
+        .render_row(&paint_nav_row)
+}
+
+fn shell_brand() -> Brand<'static> {
+    Brand::new(BRAND, "Junie").tagline("Design system")
+}
+
+fn shell_status() -> StatusBar<'static> {
+    StatusBar::new(STATUS)
+        .left(&STATUS_LEFT)
+        .right(&STATUS_RIGHT)
+        .status(Status::Ready)
+}
+
+fn missing_page_panel() -> Panel<'static> {
+    Panel::new(BRAND)
+        .kind(PanelKind::Framed)
+        .title("Missing page")
+}
+
+fn inspector_panel() -> Panel<'static> {
+    Panel::new(INSPECTOR).kind(PanelKind::Card).title("State")
+}
+
+fn too_small_notice() -> TooSmall<'static> {
+    TooSmall::new(TOO_SMALL, "showcase").minimum(72, 20)
+}
+
+fn page(kind: PageId) -> Box<dyn Page> {
+    match kind {
+        PageId::Overview => Box::new(OverviewPage::new()),
+        PageId::Buttons => Box::new(ButtonsPage::new()),
+        PageId::Inputs => Box::new(InputsPage::new()),
+        PageId::TextAreas => Box::new(TextAreasPage::new()),
+        PageId::Forms => Box::new(FormsPage::new()),
+        PageId::Lists => Box::new(ListsPage::new()),
+        PageId::Trees => Box::new(TreesPage::new()),
+        PageId::Tables => Box::new(TablesPage::new()),
+        PageId::Editable => Box::new(EditablePage::new()),
+        PageId::Panels => Box::new(PanelsPage::new()),
+        PageId::Sidebars => Box::new(SidebarsPage::new()),
+        PageId::Dialogs => Box::new(DialogsPage::new()),
+        PageId::Progress => Box::new(ProgressPage::new()),
+        PageId::Scrolling => Box::new(ScrollingPage::new()),
+        PageId::Terminal => Box::new(TerminalPage::new()),
+        PageId::Editor => Box::new(EditorPage::new()),
+        PageId::Grid => Box::new(GridPage::new()),
+        PageId::Chips => Box::new(ChipsPage::new()),
+        PageId::Pickers => Box::new(PickersPage::new()),
+        PageId::Chrome => Box::new(ChromePage::new()),
+        PageId::Settings => Box::new(SettingsPage::new()),
+        PageId::TaskRunner => Box::new(TaskRunnerPage::new()),
+    }
+}
+
+fn keymap() -> KeyMap {
+    KeyMap::new()
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('q')), QUIT)
+        // Capture keeps the global interrupt available while a text control
+        // owns printable-key handling.
+        .bind(
+            KeyPhase::Capture,
+            Chord::with(KeyCode::Char('c'), termrock::KeyModifiers::CONTROL),
+            QUIT_CTRL,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('c'), termrock::KeyModifiers::CONTROL),
+            QUIT_CTRL,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('?')),
+            HELP_COMMAND,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('i')),
+            INSPECTOR_COMMAND,
+        )
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char(']')), NEXT_PAGE)
+        .bind(KeyPhase::Bubble, Chord::key(KeyCode::Char('[')), PREV_PAGE)
+        .bind(
+            KeyPhase::Bubble,
+            Chord::key(KeyCode::Char('r')),
+            RUN_COMMAND,
+        )
+        .bind(
+            KeyPhase::Bubble,
+            Chord::with(KeyCode::Char('s'), termrock::KeyModifiers::CONTROL),
+            FORM_SUBMIT,
+        )
+}
+
+/// The complete showcase app state.
+pub struct App {
+    page: PageId,
+    nav_state: NavListState,
+    pages: Vec<Box<dyn Page>>,
+    help_state: DialogState,
+    keymap: KeyMap,
+    inspector: bool,
+    quit: bool,
+    status: Option<(PageStatus, Moment)>,
+    motion_paused: bool,
+}
+
+impl core::fmt::Debug for App {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter
+            .debug_struct("App")
+            .field("page", &self.page)
+            .field("nav_state", &self.nav_state)
+            .field("pages", &self.pages.len())
+            .field("help_state", &self.help_state)
+            .field("keymap", &self.keymap)
+            .field("inspector", &self.inspector)
+            .field("motion_paused", &self.motion_paused)
+            .field("quit", &self.quit)
+            .field("status", &self.status.as_ref().map(|(_, since)| since))
+            .finish()
+    }
+}
+
+impl App {
+    /// Construct the overview page.
+    pub fn new() -> Self {
+        Self::with_page(PageId::Overview)
+    }
+
+    /// Construct with a selected initial page.
+    pub fn with_page(initial: PageId) -> Self {
+        Self::with_page_motion(initial, false, 0)
+    }
+
+    pub(crate) fn with_page_motion(initial: PageId, paused: bool, frame: usize) -> Self {
+        let mut nav_state = NavListState::new();
+        let initial_key = ItemKey::text(initial.slug());
+        nav_state.set_current(Some(initial_key));
+        nav_state.set_cursor(initial.index(), initial_key);
+        let mut pages: Vec<Box<dyn Page>> = PageId::ALL.into_iter().map(page).collect();
+        if paused {
+            for page in &mut pages {
+                page.seek_paused(frame);
+            }
+        }
+        Self {
+            page: initial,
+            nav_state,
+            pages,
+            help_state: DialogState::default(),
+            keymap: keymap(),
+            inspector: false,
+            quit: false,
+            status: None,
+            motion_paused: paused,
+        }
+    }
+
+    /// Current page.
+    pub const fn page(&self) -> PageId {
+        self.page
+    }
+
+    /// Whether quit was requested.
+    pub const fn quit(&self) -> bool {
+        self.quit
+    }
+
+    fn goto(&mut self, page: PageId) {
+        self.page = page;
+        let key = ItemKey::text(page.slug());
+        self.nav_state.set_current(Some(key));
+        self.nav_state.set_cursor(page.index(), key);
+    }
+
+    fn active(&self) -> Option<&dyn Page> {
+        self.pages.get(self.page.index()).map(Box::as_ref)
+    }
+
+    fn help_dialog() -> Dialog<'static> {
+        Dialog::info(HELP, "Keyboard & mouse")
+            .description(HELP_TEXT)
+            .width(70)
+    }
+
+    fn update_help(&mut self, cx: &mut Cx<'_>, response: &mut Response<()>) {
+        let help = Self::help_dialog().update(cx, &mut self.help_state);
+        if let Some(action) = help.action_ref() {
+            match action {
+                DialogAction::Action(_) | DialogAction::Dismissed(_) => {
+                    if cx.is_open(HELP) {
+                        cx.close_layer(HELP, None);
+                    }
+                }
+            }
+        }
+        *response |= help.erase();
+    }
+
+    fn update_header(&mut self, cx: &mut Cx<'_>, response: &mut Response<()>) {
+        let help_clicked = cx.intents(HEADER_HELP).any(|intent| {
+            matches!(
+                intent,
+                Intent::Pointer {
+                    phase: Phase::Click,
+                    ..
+                }
+            )
+        });
+        if help_clicked {
+            if !cx.is_open(HELP) {
+                let layer = Self::help_dialog().layer(cx);
+                cx.open_layer(HELP, layer);
+            }
+            *response |= Response::changed();
+        }
+        let inspector_clicked = cx.intents(HEADER_INSPECT).any(|intent| {
+            matches!(
+                intent,
+                Intent::Pointer {
+                    phase: Phase::Click,
+                    ..
+                }
+            )
+        });
+        if inspector_clicked {
+            self.inspector = !self.inspector;
+            *response |= Response::changed();
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+struct ShellLayout {
+    header: Rect,
+    sidebar: Rect,
+    main: Rect,
+    inspector: Option<Rect>,
+    footer: Rect,
+}
+
+fn shell_layout(area: Rect, inspector: bool) -> ShellLayout {
+    let header = Rect::new(area.x, area.y, area.width, 1);
+    let footer = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
+    let body = Rect::new(
+        area.x,
+        area.y.saturating_add(2),
+        area.width,
+        area.height.saturating_sub(4),
+    );
+    let sidebar_width = if area.width >= 110 { 24 } else { 19 };
+    let inspector_width = if inspector && area.width >= 100 {
+        30
+    } else {
+        0
+    };
+    let sidebar = Rect::new(body.x, body.y, sidebar_width, body.height);
+    let main_x = body.x.saturating_add(sidebar_width).saturating_add(2);
+    let main_width = body.width.saturating_sub(
+        sidebar_width
+            .saturating_add(2)
+            .saturating_add(inspector_width)
+            .saturating_add(u16::from(inspector_width > 0).saturating_mul(2)),
+    );
+    let main = Rect::new(main_x, body.y, main_width, body.height);
+    let inspector = (inspector_width > 0).then(|| {
+        Rect::new(
+            main.right().saturating_add(2),
+            body.y,
+            inspector_width,
+            body.height,
+        )
+    });
+    ShellLayout {
+        header,
+        sidebar,
+        main,
+        inspector,
+        footer,
+    }
+}
+
+fn shell_part_style(
+    ui: &mut Ui<'_>,
+    family: termrock::Family,
+    part: Part,
+    flags: StateFlags,
+) -> PaintStyle {
+    let background = ui.surface_style();
+    shell_compat_style(
+        ui.style(family, Variant::DEFAULT, part, flags)
+            .style
+            .with_bg_from(background),
+    )
+}
+
+/// Clear component-first modifiers before the compatibility paint pass.
+///
+/// `Buffer::set_style` patches a cell, so a public component's bold state is
+/// otherwise retained by a later shell style that only changes colours. The
+/// historical shell starts from plain cells and adds bold only where its old
+/// renderer did.
+fn shell_compat_style(style: PaintStyle) -> PaintStyle {
+    let bold = style.add_modifier.contains(termrock::Modifier::BOLD);
+    let style = style.remove_modifier(termrock::Modifier::all());
+    if bold {
+        style.add_modifier(termrock::Modifier::BOLD)
+    } else {
+        style
+    }
+}
+
+fn shell_row_style(style: PaintStyle, flags: StateFlags) -> PaintStyle {
+    let style = shell_compat_style(style);
+    if flags.contains(StateFlags::FOCUSED) {
+        style.add_modifier(termrock::Modifier::BOLD)
+    } else {
+        style
+    }
+}
+
+fn shell_text_style(ui: &Ui<'_>, step: termrock::FgStep) -> PaintStyle {
+    shell_compat_style(
+        ui.surface_style()
+            .patch(ui.paint_patch(&termrock::StylePatch::new().set_fg(termrock::Role::Fg(step)))),
+    )
+}
+
+fn paint_header(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    screen_width: u16,
+    screen_height: u16,
+    page: PageId,
+    inspector: bool,
+) {
+    if area.is_empty() {
+        return;
+    }
+    let canvas = shell_compat_style(ui.surface_style());
+    ui.fill(area, canvas);
+
+    let (title, secondary, muted, faint, marker) = header_styles(ui);
+    let left = paint_header_breadcrumb(ui, area, page, title, secondary, muted, marker);
+    paint_header_actions(
+        ui,
+        area,
+        (screen_width, screen_height),
+        left,
+        (muted, faint),
+        inspector,
+    );
+}
+
+fn header_styles(ui: &mut Ui<'_>) -> (PaintStyle, PaintStyle, PaintStyle, PaintStyle, PaintStyle) {
+    let title = shell_part_style(
+        ui,
+        termrock::Family::PANEL,
+        Part::TITLE,
+        StateFlags::empty(),
+    );
+    let secondary = shell_part_style(
+        ui,
+        termrock::Family::PANEL,
+        Part::DETAIL,
+        StateFlags::empty(),
+    );
+    let muted = shell_part_style(ui, termrock::Family::LIST, Part::META, StateFlags::empty());
+    let faint = shell_text_style(ui, termrock::FgStep::Faint);
+    let marker = shell_part_style(
+        ui,
+        termrock::Family::LIST,
+        Part::MARKER,
+        StateFlags::SELECTED,
+    );
+    (title, secondary, muted, faint, marker)
+}
+
+fn paint_header_breadcrumb(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    page: PageId,
+    title: PaintStyle,
+    secondary: PaintStyle,
+    muted: PaintStyle,
+    marker: PaintStyle,
+) -> u16 {
+    let mut x = area.x.saturating_add(1);
+    ui.paint_str(Rect::new(x, area.y, 1, 1), "▪", marker);
+    x = x.saturating_add(2);
+    ui.paint_str(
+        Rect::new(x, area.y, area.right().saturating_sub(x), 1),
+        "Junie",
+        title,
+    );
+    x = x.saturating_add(6);
+    ui.paint_str(
+        Rect::new(x, area.y, area.right().saturating_sub(x), 1),
+        "Design system",
+        secondary,
+    );
+    x = x.saturating_add(14);
+
+    let Some(entry) = NAV_ENTRIES
+        .get(page.index())
+        .copied()
+        .or_else(|| NAV_ENTRIES.first().copied())
+    else {
+        return x;
+    };
+    for fragment in ["/ ", entry.section, " / ", entry.label] {
+        ui.paint_str(
+            Rect::new(x, area.y, area.right().saturating_sub(x), 1),
+            fragment,
+            muted,
+        );
+        x = x.saturating_add(width(fragment));
+    }
+    x
+}
+
+fn paint_header_actions(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    screen: (u16, u16),
+    left: u16,
+    styles: (PaintStyle, PaintStyle),
+    inspector: bool,
+) {
+    let (screen_width, screen_height) = screen;
+    let (muted, faint) = styles;
+    let capability = ui.theme().capability.color.label();
+    let width_text = RenderNumber::new(usize::from(screen_width));
+    let height_text = RenderNumber::new(usize::from(screen_height));
+    let dimensions_width = width(width_text.as_str())
+        .saturating_add(1)
+        .saturating_add(width(height_text.as_str()));
+    let capability_width = width(capability)
+        .saturating_add(3)
+        .saturating_add(dimensions_width);
+    let help_text = " ? Help ";
+    let inspector_text = if inspector {
+        " i Inspector · on "
+    } else {
+        " i Inspector "
+    };
+    let help_width = width(help_text);
+    let inspector_width = width(inspector_text);
+    let mut right = area.right().saturating_sub(1);
+    let help_x = right.saturating_sub(help_width);
+    let help_style = header_action_style(ui, HEADER_HELP, muted);
+    ui.paint_str(
+        Rect::new(help_x, area.y, help_width, 1),
+        help_text,
+        help_style,
+    );
+    ui.register_part(
+        HEADER_HELP,
+        PartRef::of(Part::LABEL),
+        Rect::new(help_x, area.y, help_width, 1),
+    );
+    right = help_x.saturating_sub(1);
+
+    let inspector_x = right.saturating_sub(inspector_width);
+    let inspector_style = header_action_style(ui, HEADER_INSPECT, muted);
+    ui.paint_str(
+        Rect::new(inspector_x, area.y, inspector_width, 1),
+        inspector_text,
+        inspector_style,
+    );
+    ui.register_part(
+        HEADER_INSPECT,
+        PartRef::of(Part::LABEL),
+        Rect::new(inspector_x, area.y, inspector_width, 1),
+    );
+    right = inspector_x.saturating_sub(1);
+    // The Holla shell paints the capability cluster only when at least two
+    // cells separate it from the breadcrumb; narrower shells omit it rather
+    // than crowd the route title.
+    if right > left.saturating_add(capability_width).saturating_add(2) {
+        // The old shell leaves one cell between the capability cluster and
+        // the inspector action.
+        let cap_x = right.saturating_sub(capability_width.saturating_add(1));
+        ui.paint_str(
+            Rect::new(cap_x, area.y, width(capability), 1),
+            capability,
+            faint,
+        );
+        ui.paint_str(
+            Rect::new(cap_x.saturating_add(width(capability)), area.y, 3, 1),
+            " · ",
+            faint,
+        );
+        let mut dimension_x = cap_x.saturating_add(width(capability)).saturating_add(3);
+        for fragment in [width_text.as_str(), "×", height_text.as_str()] {
+            let columns = width(fragment);
+            ui.paint_str(Rect::new(dimension_x, area.y, columns, 1), fragment, faint);
+            dimension_x = dimension_x.saturating_add(columns);
+        }
+    }
+}
+
+fn header_action_style(ui: &mut Ui<'_>, id: Id, muted: PaintStyle) -> PaintStyle {
+    if ui.state(id).contains(StateFlags::HOVERED) {
+        shell_part_style(
+            ui,
+            termrock::Family::LIST,
+            Part::CONTAINER,
+            StateFlags::HOVERED,
+        )
+    } else {
+        muted
+    }
+}
+
+fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, entry: &NavEntry) {
+    let current = flags.contains(StateFlags::SELECTED);
+    // Current destination is a marker, not row selection. Keyboard cursor
+    // and hover remain independent, as in the pinned product reference.
+    let flags = flags.difference(StateFlags::SELECTED);
+    let emphasized = current || flags.intersects(StateFlags::FOCUSED | StateFlags::HOVERED);
+    let container = shell_compat_style(
+        ui.style(
+            termrock::Family::LIST,
+            Variant::DEFAULT,
+            Part::CONTAINER,
+            flags,
+        )
+        .style,
+    );
+    let row_background = ui.surface_style().patch(container);
+    ui.fill(row, container);
+    let gutter = ui
+        .style(
+            termrock::Family::LIST,
+            Variant::DEFAULT,
+            Part::GUTTER,
+            flags,
+        )
+        .style
+        .with_bg_from(row_background);
+    let gutter = if flags.contains(StateFlags::FOCUSED) {
+        gutter
+    } else {
+        gutter.with_fg_from_bg(row_background)
+    };
+    let marker = ui
+        .style(
+            termrock::Family::LIST,
+            Variant::DEFAULT,
+            Part::MARKER,
+            if current {
+                flags | StateFlags::SELECTED
+            } else {
+                flags
+            },
+        )
+        .style
+        .with_bg_from(row_background);
+    let label = ui
+        .style(
+            termrock::Family::LIST,
+            Variant::DEFAULT,
+            Part::LABEL,
+            flags,
+        )
+        .style
+        .with_bg_from(row_background);
+    let secondary = shell_part_style(ui, termrock::Family::PANEL, Part::DETAIL, flags)
+        .with_bg_from(row_background);
+    let gutter = shell_row_style(gutter, flags);
+    let marker = shell_row_style(marker, flags);
+    let label = shell_row_style(label, flags);
+    let secondary = shell_row_style(secondary, flags);
+    ui.paint_str(Rect::new(row.x, row.y, 1, 1), "▎", gutter);
+    ui.paint_str(
+        Rect::new(row.x.saturating_add(1), row.y, 1, 1),
+        if current { "›" } else { " " },
+        marker,
+    );
+    ui.paint_str(Rect::new(row.x.saturating_add(2), row.y, 1, 1), " ", label);
+    ui.paint_str(
+        Rect::new(
+            row.x.saturating_add(3),
+            row.y,
+            row.width.saturating_sub(4),
+            1,
+        ),
+        entry.label,
+        if emphasized { label } else { secondary },
+    );
+    let label_style = if emphasized { label } else { secondary };
+    let label_area = Rect::new(
+        row.x.saturating_add(3),
+        row.y,
+        row.width.saturating_sub(4),
+        1,
+    );
+    let used = width(entry.label).min(label_area.width);
+    if used < label_area.width {
+        ui.fill(
+            Rect::new(
+                label_area.x.saturating_add(used),
+                label_area.y,
+                label_area.width.saturating_sub(used),
+                1,
+            ),
+            label_style,
+        );
+    }
+}
+
+fn paint_inspector(ui: &mut Ui<'_>, area: Rect, app: &App) {
+    inspector_panel().draw(ui, area, |ui, inner| {
+        let focus = if ui.state(NAV).contains(StateFlags::FOCUSED) {
+            "navigation"
+        } else {
+            "page"
+        };
+        let hover = if ui.hovered_part(NAV).is_some() {
+            "navigation"
+        } else {
+            "—"
+        };
+        let pressed = if ui.pressed_part(NAV).is_some() {
+            "navigation"
+        } else {
+            "—"
+        };
+        let rows = [
+            ("page", app.page.title()),
+            ("focus", focus),
+            ("hover", hover),
+            ("pressed", pressed),
+            ("colors", ui.theme().capability.color.label()),
+        ];
+        Props::new(&rows).draw(ui, inner);
+    });
+}
+
+/// Paint one footer hint at the cursor column if it fits before `reserved`.
+#[expect(
+    clippy::too_many_arguments,
+    reason = "the footer paints pre-resolved part styles without re-resolving per hint"
+)]
+fn paint_hint(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    x: &mut u16,
+    reserved: u16,
+    key_style: PaintStyle,
+    action_style: PaintStyle,
+    key: &str,
+    action: &str,
+) {
+    let key_width = width(key);
+    let action_width = width(action);
+    let hint_width = key_width.saturating_add(action_width).saturating_add(3);
+    if x.saturating_add(hint_width).saturating_add(reserved) > area.right() {
+        return;
+    }
+    ui.paint_str(Rect::new(*x, area.y, key_width, 1), key, key_style);
+    *x = x.saturating_add(key_width.saturating_add(1));
+    ui.paint_str(Rect::new(*x, area.y, action_width, 1), action, action_style);
+    *x = x.saturating_add(action_width.saturating_add(2));
+}
+
+fn paint_footer(
+    ui: &mut Ui<'_>,
+    area: Rect,
+    nav_focused: bool,
+    page_hints: &[(&str, &str)],
+    page_editing: bool,
+    status: Option<&str>,
+) {
+    const TAB_NEXT: (&str, &str) = ("Tab", "Next");
+    if area.is_empty() {
+        return;
+    }
+    let canvas = shell_compat_style(ui.surface_style());
+    ui.fill(area, canvas);
+    let key_style = shell_part_style(
+        ui,
+        termrock::Family::KEYHINT,
+        Part::KEY,
+        StateFlags::empty(),
+    );
+    let action_style = shell_part_style(
+        ui,
+        termrock::Family::KEYHINT,
+        Part::ACTION,
+        StateFlags::empty(),
+    );
+    let nav_hints: &[(&str, &str)] = if nav_focused {
+        &[
+            ("↑ ↓", "Move"),
+            ("Enter", "Open"),
+            ("Tab", "Into page"),
+            ("q", "Quit"),
+        ]
+    } else {
+        &[]
+    };
+    // Allocation-free iteration: the navigation hints replace the page hints
+    // while the navigation owns focus, and the "Tab / Next" entry is appended
+    // only when the page body owns focus and is not in an editing mode that
+    // consumes it.
+    let tab_next = !nav_focused && !page_editing;
+    let mut x = area.x.saturating_add(1);
+    let reserved = status.map_or(14, |message| width(message).saturating_add(3));
+    let page_hints: &[(&str, &str)] = if nav_focused { &[] } else { page_hints };
+    for &(key, action) in nav_hints.iter().chain(page_hints.iter()) {
+        paint_hint(
+            ui,
+            area,
+            &mut x,
+            reserved,
+            key_style,
+            action_style,
+            key,
+            action,
+        );
+    }
+    if tab_next {
+        paint_hint(
+            ui,
+            area,
+            &mut x,
+            reserved,
+            key_style,
+            action_style,
+            TAB_NEXT.0,
+            TAB_NEXT.1,
+        );
+    }
+    if let Some(message) = status {
+        let message_width = width(message);
+        if area.right() > message_width.saturating_add(1) {
+            let style = canvas.patch(
+                ui.paint_patch(
+                    &termrock::StylePatch::new()
+                        .set_fg(termrock::Role::Fg(termrock::FgStep::Secondary)),
+                ),
+            );
+            ui.paint_str(
+                Rect::new(
+                    area.right().saturating_sub(message_width).saturating_sub(1),
+                    area.y,
+                    message_width,
+                    1,
+                ),
+                message,
+                style,
+            );
+        }
+    }
+}
+
+impl Default for App {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl TuiApp for App {
+    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        if cx.update_cause() == termrock::UpdateCause::Bootstrap {
+            cx.focus(NAV);
+        }
+        let mut response = Response::ignored();
+        if !self.motion_paused
+            && cx.update_cause() == termrock::UpdateCause::Tick
+            && self.status.as_ref().is_some_and(|(_, since)| {
+                cx.now().saturating_duration_since(*since) > std::time::Duration::from_secs(4)
+            })
+        {
+            self.status = None;
+            response = response.repaint();
+        }
+        response |= shell_brand().update(cx).erase();
+        response |= shell_status().update(cx).erase();
+        // These stateless shell props have no update phase of their own, but
+        // the same constructors must remain the source of truth in both
+        // runtime phases.  Calling them here also keeps the minimum-size and
+        // fallback branches construction-safe under the props guard.
+        let _ = too_small_notice();
+        let _ = missing_page_panel();
+        let _ = inspector_panel();
+        let command = cx.command();
+        self.update_header(cx, &mut response);
+        match command {
+            Some(QUIT | QUIT_CTRL) => {
+                self.quit = true;
+                cx.quit();
+            }
+            Some(NEXT_PAGE) => {
+                let next = self
+                    .page
+                    .index()
+                    .checked_add(1)
+                    .and_then(|index| PageId::ALL.get(index).copied())
+                    .or_else(|| PageId::ALL.first().copied());
+                if let Some(page) = next {
+                    self.goto(page);
+                }
+            }
+            Some(PREV_PAGE) => {
+                let previous = self
+                    .page
+                    .index()
+                    .checked_sub(1)
+                    .and_then(|index| PageId::ALL.get(index).copied())
+                    .or_else(|| PageId::ALL.last().copied());
+                if let Some(page) = previous {
+                    self.goto(page);
+                }
+            }
+            Some(HELP_COMMAND) if !cx.is_open(HELP) => {
+                cx.open_layer(HELP, Self::help_dialog().layer(cx));
+            }
+            Some(INSPECTOR_COMMAND) => {
+                self.inspector = !self.inspector;
+            }
+            _ => {}
+        }
+        if let Some(action) = command
+            && !matches!(
+                action,
+                QUIT | QUIT_CTRL | NEXT_PAGE | PREV_PAGE | HELP_COMMAND | INSPECTOR_COMMAND
+            )
+            && let Some(active) = self.pages.get_mut(self.page.index())
+        {
+            response |= active.command(cx, action);
+        }
+        response |= nav()
+            .update(cx, &mut self.nav_state, NAV_ENTRIES)
+            .on_action(|action| match action {
+                NavListAction::Chose(key) => {
+                    if let Some(page) = PageId::from_key(key) {
+                        self.goto(page);
+                    }
+                }
+                NavListAction::EnterContent(key) => {
+                    if let Some(page) = PageId::from_key(key) {
+                        self.goto(page);
+                        cx.focus_next();
+                    }
+                }
+                NavListAction::Moved(_)
+                | NavListAction::LeaveBackward
+                | NavListAction::LeaveForward => {}
+            });
+        // The reference global help dialog suspends page ticks, not status
+        // expiry. Hidden pages likewise keep domain deadlines without
+        // publishing completion until a later eligible page tick.
+        if !(cx.update_cause() == termrock::UpdateCause::Tick
+            && (cx.is_open(HELP) || self.motion_paused))
+            && let Some(active) = self.pages.get_mut(self.page.index())
+        {
+            let update = active.update(cx);
+            response |= update.response;
+            if let Some(status) = update.status {
+                self.status = Some((status, cx.now()));
+                response = response.repaint();
+            }
+        }
+        self.update_help(cx, &mut response);
+        if !self.motion_paused
+            && let Some((_, since)) = &self.status
+        {
+            let deadline = since
+                .saturating_add(std::time::Duration::from_secs(4))
+                .saturating_add(std::time::Duration::from_nanos(1));
+            cx.request_repaint_at(deadline);
+        }
+        response
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>) {
+        let full = ui.full();
+        // The historical renderer establishes a complete canvas before any
+        // component paints. This clears cells that Brand/Nav/Status do not
+        // touch and gives the compatibility pass deterministic write state.
+        ui.fill(full, shell_compat_style(ui.surface_style()));
+        if full.width < 72 || full.height < 20 {
+            too_small_notice().draw(ui, full);
+            return;
+        }
+        let shell = shell_layout(full, self.inspector);
+
+        // Navigation owns both row painting and registration. Header/footer
+        // compatibility painting remains separate shell migration work.
+        shell_brand().draw(ui, shell.header);
+        nav().draw(ui, shell.sidebar, &self.nav_state, NAV_ENTRIES);
+        shell_status().draw(ui, shell.footer);
+        paint_header(
+            ui,
+            shell.header,
+            full.width,
+            full.height,
+            self.page,
+            self.inspector,
+        );
+        if let Some(active) = self.active() {
+            active.draw(ui, shell.main);
+        } else {
+            missing_page_panel().draw(ui, shell.main, |ui, area| {
+                let _ = ui.paint_str(area, "No page selected", ui.surface_style());
+            });
+        }
+        if let Some(inspector) = shell.inspector {
+            paint_inspector(ui, inspector, self);
+        }
+        let (page_hints, page_editing) = self
+            .active()
+            .map(|page| (page.hints(ui), page.editing(ui)))
+            .unwrap_or_default();
+        paint_footer(
+            ui,
+            shell.footer,
+            ui.state(NAV).contains(StateFlags::FOCUSED),
+            page_hints,
+            page_editing,
+            self.status.as_ref().map(|(status, _)| status.0.as_str()),
+        );
+        ui.layer(HELP, |ui, area| {
+            Self::help_dialog().draw(ui, area, &self.help_state, |ui, body| {
+                let _ = ui.paint_str(body, "q quit   ? help   Esc close", ui.surface_style());
+            });
+        });
+    }
+
+    fn should_quit(&self) -> bool {
+        self.quit
+    }
+
+    fn keymap(&self) -> &KeyMap {
+        &self.keymap
+    }
+
+    fn min_size(&self) -> Size {
+        Size {
+            min: (72, 20),
+            preferred: (120, 40),
+        }
+    }
+
+    fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
+        // Historical top-level Esc only returns focus to the shell navigation;
+        // it never changes the selected page or exits the application.
+        cx.focus(NAV);
+        Response::changed()
+    }
+}
+
+/// Parse CLI options and run the migrated binary.
+pub fn run() -> std::io::Result<()> {
+    let (page, theme, paused, frame) = parse_args(std::env::args().skip(1))?;
+    termrock::run(App::with_page_motion(page, paused, frame), theme)
+}
+
+fn parse_args(
+    mut args: impl Iterator<Item = String>,
+) -> std::io::Result<(PageId, Theme, bool, usize)> {
+    let mut theme = Theme::junie();
+    let mut page = PageId::Overview;
+    let mut paused = false;
+    let mut frame = 0usize;
+    let mut frame_seen = false;
+    let mut full_seen = false;
+    while let Some(arg) = args.next() {
+        match arg.as_str() {
+            "--theme" => {
+                if let Some(value) = args.next() {
+                    theme = if value.eq_ignore_ascii_case("paper") {
+                        Theme::paper()
+                    } else {
+                        Theme::junie()
+                    };
+                }
+            }
+            "--color" => {
+                if let Some(value) = args.next() {
+                    let level = match value.to_ascii_lowercase().as_str() {
+                        "truecolor" | "24bit" => Some(ColorLevel::TrueColor),
+                        "256" | "ansi256" => Some(ColorLevel::Ansi256),
+                        "16" | "ansi16" => Some(ColorLevel::Ansi16),
+                        "none" | "mono" => Some(ColorLevel::Mono),
+                        _ => None,
+                    };
+                    if let Some(level) = level {
+                        theme = theme.downgrade(level);
+                    }
+                }
+            }
+            "--page" => {
+                if let Some(value) = args.next()
+                    && let Some(selected) = PageId::from_name(&value)
+                {
+                    page = selected;
+                }
+            }
+            "--motion" => {
+                let Some(value) = args.next() else {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        "--motion requires full or paused",
+                    ));
+                };
+                match value.as_str() {
+                    "full" => {
+                        full_seen = true;
+                        paused = false;
+                    }
+                    "paused" => paused = true,
+                    _ => {
+                        return Err(std::io::Error::new(
+                            std::io::ErrorKind::InvalidInput,
+                            "--motion must be full or paused",
+                        ));
+                    }
+                }
+            }
+            "--frame" => {
+                let Some(value) = args.next() else {
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::InvalidInput,
+                        "--frame requires an integer",
+                    ));
+                };
+                frame = value
+                    .parse::<usize>()
+                    .ok()
+                    .filter(|n| *n <= 10_000)
+                    .ok_or_else(|| {
+                        std::io::Error::new(
+                            std::io::ErrorKind::InvalidInput,
+                            "--frame must be between 0 and 10000",
+                        )
+                    })?;
+                frame_seen = true;
+                paused = true;
+            }
+            _ => {}
+        }
+    }
+    if frame_seen && full_seen {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "--frame cannot be combined with --motion full",
+        ));
+    }
+    Ok((page, theme, paused, frame))
+}
+
+#[cfg(test)]
+mod paint_contract_tests {
+    use super::*;
+    use termrock::{Color, Family, Modifier, Role, StylePatch, Surface};
+
+    fn collision_style(role: Role) -> PaintStyle {
+        let mut theme = Theme::junie();
+        theme.color.accent = Color::Rgb(100, 100, 100);
+        theme.color.danger = theme.color.accent;
+        let family = Family::custom("showcase.paint-contract");
+        theme
+            .define_family(family, |family| {
+                family
+                    .part(Part::LABEL)
+                    .base(StylePatch::new().set_fg(role));
+            })
+            .resolve(
+                family,
+                Variant::DEFAULT,
+                Part::LABEL,
+                StateFlags::empty(),
+                Surface::Canvas,
+            )
+            .style
+    }
+
+    #[test]
+    fn shell_modifier_cleanup_preserves_colliding_semantic_roles() {
+        let accent = collision_style(Role::Accent).add_modifier(Modifier::BOLD | Modifier::ITALIC);
+        let danger = collision_style(Role::Danger).add_modifier(Modifier::BOLD | Modifier::ITALIC);
+        assert_eq!(accent.as_style(), danger.as_style());
+        let accent = shell_compat_style(accent);
+        let danger = shell_compat_style(danger);
+        assert_ne!(accent, danger, "equal RGB must not erase semantic identity");
+        assert_eq!(accent.add_modifier, Modifier::BOLD);
+        assert_eq!(accent.fg, Some(Color::Rgb(100, 100, 100)));
+        assert_eq!(accent.as_style(), danger.as_style());
+    }
+}
+
+#[cfg(test)]
+mod app_tests {
+    use super::*;
+
+    #[test]
+    fn application_commands_are_distinct_from_library_custom_keys() {
+        let owned = [
+            QUIT,
+            QUIT_CTRL,
+            HELP_COMMAND,
+            INSPECTOR_COMMAND,
+            NEXT_PAGE,
+            PREV_PAGE,
+            FORM_SUBMIT,
+            RUN_COMMAND,
+        ]
+        .into_iter()
+        .chain(showcase_demos::pages::pickers::action_keys())
+        .collect::<Vec<_>>();
+        let names = [
+            "showcase.quit",
+            "showcase.quit.ctrl",
+            "showcase.help",
+            "showcase.inspector",
+            "showcase.page.next",
+            "showcase.page.previous",
+            "showcase.form.submit",
+            "showcase.taskrunner.run",
+            "showcase.menu.open",
+            "showcase.menu.close",
+            "showcase.context.inspect",
+            "showcase.context.copy",
+        ];
+        assert_eq!(owned.len(), names.len());
+        for (key, name) in owned.iter().zip(names) {
+            assert_eq!(
+                *key,
+                ActionKey::application(name),
+                "application owner: {name}"
+            );
+            assert_ne!(*key, ActionKey::custom(name), "library namespace: {name}");
+            assert_eq!(
+                owned.iter().filter(|other| *other == key).count(),
+                1,
+                "distinct command: {name}"
+            );
+        }
+    }
+
+    #[test]
+    fn showcase_motion_flags_parse_and_bound_paused_frames() {
+        let parsed = parse_args(
+            ["--page", "progress", "--motion", "paused", "--frame", "80"]
+                .into_iter()
+                .map(str::to_owned),
+        );
+        assert!(parsed.is_ok(), "valid frame options: {parsed:?}");
+        if let Ok((page, _, paused, frame)) = parsed {
+            assert_eq!(page, PageId::Progress);
+            assert!(paused);
+            assert_eq!(frame, 80);
+        }
+
+        let parsed = parse_args(["--frame", "10000"].into_iter().map(str::to_owned));
+        assert!(parsed.is_ok(), "maximum frame is valid: {parsed:?}");
+        if let Ok((_, _, paused, frame)) = parsed {
+            assert!(paused);
+            assert_eq!(frame, 10_000);
+        }
+        assert!(parse_args(["--frame", "10001"].into_iter().map(str::to_owned)).is_err());
+        assert!(parse_args(["--motion"].into_iter().map(str::to_owned)).is_err());
+        assert!(parse_args(["--motion", "reduced"].into_iter().map(str::to_owned)).is_err());
+        assert!(
+            parse_args(
+                ["--motion", "full", "--frame", "80"]
+                    .into_iter()
+                    .map(str::to_owned)
+            )
+            .is_err()
+        );
+        assert!(
+            parse_args(
+                ["--frame", "80", "--motion", "full"]
+                    .into_iter()
+                    .map(str::to_owned)
+            )
+            .is_err()
+        );
+    }
+}

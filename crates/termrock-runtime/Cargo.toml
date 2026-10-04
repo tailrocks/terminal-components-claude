@@ -1,0 +1,23 @@
+[package]
+name = "termrock-runtime"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[features]
+default = []
+testing = ["termrock-core/testing", "termrock-theme/testing"]
+crossterm = []
+
+[dependencies]
+termrock-core.workspace = true
+termrock-layout.workspace = true
+termrock-theme.workspace = true
+termrock-text.workspace = true
+termrock-render.workspace = true
+termrock-collections.workspace = true
+unicode-width.workspace = true
+unicode-segmentation.workspace = true
+ratatui.workspace = true
+ratatui-core.workspace = true

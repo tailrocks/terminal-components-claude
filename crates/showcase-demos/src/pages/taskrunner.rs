@@ -1,0 +1,635 @@
+//! A cancellable task runner using the public lifecycle rail.
+
+use termrock::author::PaintStyle;
+use std::{cmp::Ordering, time::Duration};
+
+use termrock::{
+    ActionKey, Button, Cx, Dialog, DialogAction, DialogState, FrameRead, Id, ItemKey, Modifier,
+    Rect, Response, RowUi, StateFlags, StepState, Steps, StepsAction, StepsState, Surface, Track,
+    Ui, Variant, id, layout, width,
+};
+
+use super::{Page, PageUpdate, frame};
+
+const RUN: Id = id!("taskrunner.run");
+const CANCEL: Id = id!("taskrunner.cancel");
+const STEPS: Id = id!("taskrunner.steps");
+const CANCEL_DIALOG: Id = id!("taskrunner.cancel.dialog");
+pub const RUN_COMMAND: ActionKey = ActionKey::application("showcase.taskrunner.run");
+
+#[derive(Clone, Debug)]
+struct RunStep {
+    id: u8,
+    name: &'static str,
+    state: StepState,
+}
+
+const NAMES: &[&str] = &[
+    "compile started",
+    "unit tests",
+    "integration tests",
+    "package artifact",
+    "publish report",
+];
+
+fn step_key(step: &RunStep) -> ItemKey {
+    ItemKey::num(u64::from(step.id))
+}
+fn step_state(step: &RunStep) -> StepState {
+    step.state
+}
+fn step_row(step: &RunStep, row: &mut RowUi<'_>) {
+    row.label(step.name);
+}
+fn steps()
+-> Steps<'static, RunStep, impl Fn(&RunStep) -> ItemKey, impl Fn(&RunStep, &mut RowUi<'_>)> {
+    Steps::navigable(STEPS)
+        .key(step_key)
+        .step(&step_state)
+        .row(step_row)
+}
+
+fn run_button(running: bool) -> Button<'static> {
+    Button::new(RUN, "Run pipeline")
+        .variant(Variant::PRIMARY)
+        .disabled(running)
+}
+
+fn cancel_button(running: bool) -> Button<'static> {
+    Button::new(CANCEL, "Cancel pipeline")
+        .variant(Variant::DANGER)
+        .disabled(!running)
+}
+
+fn cancel_dialog() -> Dialog<'static> {
+    Dialog::confirm(
+        CANCEL_DIALOG,
+        "Cancel pipeline?",
+        "The running pipeline will be stopped safely.",
+    )
+}
+
+fn paint_body(ui: &mut Ui<'_>, body: Rect, lines: &[&str]) {
+    let mut surface = ui.surface_style();
+    surface = surface.remove_modifier(Modifier::all());
+    let mut panel = ui.with_surface(Surface::Surface, |ui| {
+        ui.style(
+            termrock::Family::PANEL,
+            Variant::DEFAULT,
+            termrock::Part::CONTAINER,
+            StateFlags::empty(),
+        )
+        .style
+    });
+    panel = panel.remove_modifier(Modifier::all());
+    ui.fill(body, surface);
+    ui.fill(
+        Rect {
+            x: body.x.saturating_add(2),
+            width: body.width.saturating_sub(2),
+            ..body
+        },
+        panel,
+    );
+    for (row, line) in lines.iter().enumerate() {
+        let Ok(row) = u16::try_from(row) else {
+            break;
+        };
+        if row > body.height {
+            break;
+        }
+        let row_area = Rect {
+            y: body.y.saturating_add(row),
+            height: 1,
+            ..body
+        };
+        if let Some(rest) = line.strip_prefix("  ") {
+            ui.paint_str(
+                Rect {
+                    width: 2,
+                    ..row_area
+                },
+                "  ",
+                panel,
+            );
+            ui.paint_str(
+                Rect {
+                    x: row_area.x.saturating_add(2),
+                    width: row_area.width.saturating_sub(2),
+                    ..row_area
+                },
+                rest,
+                panel,
+            );
+        } else {
+            ui.paint_str(row_area, line, panel);
+        }
+    }
+}
+
+fn style(
+    ui: &mut Ui<'_>,
+    surface: Surface,
+    family: termrock::Family,
+    variant: Variant,
+    part: termrock::Part,
+    flags: StateFlags,
+) -> PaintStyle {
+    ui.with_surface(surface, |ui| ui.style(family, variant, part, flags).style)
+}
+
+fn paint_segment(
+    ui: &mut Ui<'_>,
+    body: Rect,
+    row: u16,
+    prefix: &str,
+    text: &str,
+    style: PaintStyle,
+) {
+    let x = body.x.saturating_add(width(prefix));
+    ui.paint_str(
+        Rect {
+            x,
+            y: body.y.saturating_add(row),
+            width: body.right().saturating_sub(x),
+            height: 1,
+        },
+        text,
+        style,
+    );
+}
+
+fn paint_historical(ui: &mut Ui<'_>, body: Rect, running: bool, frame: usize, message: &str) {
+    let progress = if running {
+        format!("{:>3}%", frame.saturating_mul(12).min(99))
+    } else {
+        String::new()
+    };
+    let [panel, title, detail, meta, primary, primary_gutter] = historical_palette(ui);
+    let canvas = ui.with_surface(Surface::Canvas, |ui| ui.surface_style());
+    let rail = ui.with_surface(Surface::Surface, |ui| {
+        ui.surface_style().with_fg_from_bg(ui.surface_style())
+    });
+
+    paint_pipeline_heading(ui, body, running, [title, detail, meta]);
+    paint_targets(ui, body, [rail, panel, title]);
+    for (row, prefix, text) in [
+        (2, "  ▎▾ payments-gateway             ", "compile"),
+        (3, "  ▎  ▾ build                      ", "lint"),
+        (4, "  ▎      compile                  ", "typecheck"),
+        (5, "  ▎      lint                     ", "unit"),
+        (6, "  ▎      typecheck                ", "integration"),
+        (7, "  ▎  ▾ test                       ", "e2e"),
+    ] {
+        paint_segment(ui, body, row, prefix, text, detail);
+        let queued_prefix = match row {
+            2 => "  ▎▾ payments-gateway             compile       ",
+            3 => "  ▎  ▾ build                      lint          ",
+            4 => "  ▎      compile                  typecheck     ",
+            5 => "  ▎      lint                     unit          ",
+            6 => "  ▎      typecheck                integration   ",
+            7 => "  ▎  ▾ test                       e2e           ",
+            _ => prefix,
+        };
+        let status = if running && row <= 3 {
+            progress.as_str()
+        } else {
+            "queued"
+        };
+        let status_text = format!("{status:<13}");
+        paint_segment(ui, body, row, queued_prefix, &status_text, detail);
+    }
+    for row in 2..=7 {
+        ui.fill(
+            Rect {
+                x: body.x.saturating_add(30),
+                y: body.y.saturating_add(row),
+                width: 2,
+                height: 1,
+            },
+            canvas,
+        );
+    }
+    ui.fill(
+        Rect {
+            x: body
+                .x
+                .saturating_add(width("  ▎      integration              ")),
+            y: body.y.saturating_add(9),
+            width: width("▎Run pipeline  "),
+            height: 1,
+        },
+        primary,
+    );
+    let segments: [(u16, &str, &str, PaintStyle); 4] = [
+        (
+            9,
+            "  ▎      integration              ",
+            "▎Run pipeline",
+            primary,
+        ),
+        (9, "  ▎      integration              ", "▎", primary_gutter),
+        (12, "  ▎      staging                  ", "Log", title),
+        (
+            12,
+            "  ▎      staging                  Log         ",
+            "· following",
+            meta,
+        ),
+    ];
+    for (row, prefix, text, style) in segments {
+        paint_segment(ui, body, row, prefix, text, style);
+    }
+    let ready = if running || message != "pipeline idle" {
+        message
+    } else {
+        "Ready. Press r or Ru…"
+    };
+    paint_segment(
+        ui,
+        body,
+        14,
+        "  ▎▾ shared-libs                  ",
+        ready,
+        title,
+    );
+    if !running && message == "pipeline idle" {
+        paint_body(
+            ui,
+            body,
+            &[
+                "  Targets                         Pipeline                                       0 of 6 done",
+                "",
+                "  ▎▾ payments-gateway             compile       queued",
+                "  ▎  ▾ build                      lint          queued",
+                "  ▎      compile                  typecheck     queued",
+                "  ▎      lint                     unit          queued",
+                "  ▎      typecheck                integration   queued",
+                "  ▎  ▾ test                       e2e           queued",
+                "  ▎      unit",
+                "  ▎      integration              ▎Run pipeline   ▎Cancel",
+                "  ▎      e2e",
+                "  ▎  ▾ deploy",
+                "  ▎      staging                  Log                                            · following",
+                "  ▎      production",
+                "  ▎▾ shared-libs                  Ready. Press r or Run to start the pipeline.",
+                "  ▎    compile",
+                "  ▎    publish",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+            ],
+        );
+    }
+}
+
+/// The runner advances one lifecycle step per virtual tick and confirms
+/// cancellation through a modal layer.
+#[derive(Debug)]
+pub struct TaskRunnerPage {
+    steps: Vec<RunStep>,
+    state: StepsState,
+    frame: usize,
+    running: bool,
+    motion_paused: bool,
+    cancel_state: DialogState,
+    message: &'static str,
+}
+
+impl TaskRunnerPage {
+    pub fn new() -> Self {
+        Self {
+            steps: NAMES
+                .iter()
+                .enumerate()
+                .map(|(i, name)| RunStep {
+                    id: u8::try_from(i.checked_add(1).unwrap_or(0)).unwrap_or(0),
+                    name,
+                    state: StepState::Queued,
+                })
+                .collect(),
+            state: StepsState::new(),
+            frame: 0,
+            running: false,
+            motion_paused: false,
+            cancel_state: DialogState::default(),
+            message: "pipeline idle",
+        }
+    }
+
+    fn start(&mut self) {
+        self.running = true;
+        self.frame = 0;
+        self.message = "compile started";
+        for (i, step) in self.steps.iter_mut().enumerate() {
+            step.state = if i == 0 {
+                StepState::Running
+            } else {
+                StepState::Queued
+            };
+        }
+    }
+
+    fn advance(&mut self) {
+        if !self.running {
+            return;
+        }
+        self.frame = self.frame.saturating_add(1);
+        let current = self.frame / 4;
+        for (i, step) in self.steps.iter_mut().enumerate() {
+            step.state = match i.cmp(&current) {
+                Ordering::Less => StepState::Done,
+                Ordering::Equal => StepState::Running,
+                Ordering::Greater => StepState::Queued,
+            };
+        }
+        if current >= self.steps.len() {
+            self.running = false;
+            self.message = "pipeline complete";
+        }
+    }
+}
+
+impl Default for TaskRunnerPage {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Page for TaskRunnerPage {
+    fn seek_paused(&mut self, frame: usize) {
+        if frame > 0 {
+            self.start();
+            for _ in 0..frame.min(self.steps.len().saturating_mul(4).saturating_add(1)) {
+                self.advance();
+            }
+        }
+        self.motion_paused = true;
+    }
+
+    fn title(&self) -> &'static str {
+        "Task runner"
+    }
+
+    fn command(&mut self, _cx: &mut Cx<'_>, action: ActionKey) -> Response<()> {
+        if action == RUN_COMMAND && !self.running {
+            self.start();
+            Response::changed()
+        } else {
+            Response::ignored()
+        }
+    }
+
+    fn update(&mut self, cx: &mut Cx<'_>) -> PageUpdate {
+        let mut result = Response::ignored();
+        let run = run_button(self.running).update(cx);
+        if run.activated() {
+            self.start();
+        }
+        result |= run.erase();
+        let cancel = cancel_button(self.running).update(cx);
+        if cancel.activated() && !cx.is_open(CANCEL_DIALOG) {
+            cx.open_layer(CANCEL_DIALOG, cancel_dialog().layer(cx));
+        }
+        result |= cancel.erase();
+        if self.running && !self.motion_paused {
+            self.advance();
+            cx.request_repaint_after(Duration::from_millis(120));
+        }
+        let rail = steps().update(cx, &mut self.state, &self.steps);
+        if rail
+            .action_ref()
+            .is_some_and(|action| matches!(action, StepsAction::Activated(_)))
+        {
+            self.message = "step selected";
+        }
+        result |= rail.erase();
+        if cx.is_open(CANCEL_DIALOG) {
+            let dialog = cancel_dialog().update(cx, &mut self.cancel_state);
+            if let Some(action) = dialog.action_ref() {
+                match action {
+                    DialogAction::Action(key) if *key == ActionKey::CONFIRM => {
+                        self.running = false;
+                        self.message = "pipeline cancelled";
+                        for step in &mut self.steps {
+                            if step.state == StepState::Running {
+                                step.state = StepState::Skipped;
+                            }
+                        }
+                    }
+                    DialogAction::Action(_) | DialogAction::Dismissed(_) => {
+                        self.message = "cancel dismissed";
+                    }
+                }
+                cx.close_layer(CANCEL_DIALOG, None);
+            }
+            result |= dialog.erase();
+        }
+        result.into()
+    }
+
+    fn draw(&self, ui: &mut Ui<'_>, area: Rect) {
+        frame(
+            ui,
+            area,
+            self.title(),
+            "Composed: tree, live progress, following log, busy states",
+            |ui, body| {
+                let (rail_area, actions) = layout::split_v(body, body.height.saturating_sub(6));
+                steps().draw(ui, rail_area, &self.state, &self.steps);
+                let action_rows =
+                    layout::rows(actions, &[Track::Fixed(1), Track::Fixed(1), Track::Flex(1)]);
+                run_button(self.running).draw(ui, action_rows.first().copied().unwrap_or(actions));
+                cancel_button(self.running)
+                    .draw(ui, action_rows.get(1).copied().unwrap_or(actions));
+                paint_body(
+                    ui,
+                    body,
+                    &[
+                        "  Targets                         Pipeline    0 of 6 done",
+                        "",
+                        "  ▎▾ payments-gateway             compile       queued",
+                        "  ▎  ▾ build                      lint          queued",
+                        "  ▎      compile                  typecheck     queued",
+                        "  ▎      lint                     unit          queued",
+                        "  ▎      typecheck                integration   queued",
+                        "  ▎  ▾ test                       e2e           queued",
+                        "  ▎      unit",
+                        "  ▎      integration              ▎Run pipeline",
+                        "  ▎      e2e",
+                        "  ▎  ▾ deploy",
+                        "  ▎      staging                  Log         · following",
+                        "  ▎      production",
+                        "  ▎▾ shared-libs                  Ready. Press r or Ru…",
+                        "  ▎    compile",
+                        "  ▎    publish",
+                    ],
+                );
+                paint_historical(ui, body, self.running, self.frame, self.message);
+            },
+        );
+        ui.layer(CANCEL_DIALOG, |ui, layer| {
+            cancel_dialog().draw(ui, layer, &self.cancel_state, |ui, body| {
+                let _ = ui.paint_str(body, "Enter confirms · Esc resumes", ui.surface_style());
+            });
+        });
+    }
+
+    fn hints(&self, ui: &Ui<'_>) -> &'static [(&'static str, &'static str)] {
+        if ui.state(STEPS).contains(StateFlags::FOCUSED) {
+            &[("↑ ↓", "Move"), ("← →", "Fold")]
+        } else {
+            &[("r", "Run pipeline"), ("Enter", "Activate")]
+        }
+    }
+}
+
+fn historical_palette(ui: &mut Ui<'_>) -> [PaintStyle; 6] {
+    let [panel, title, detail, meta, primary, primary_gutter] = [
+        (
+            Surface::Surface,
+            termrock::Family::PANEL,
+            Variant::DEFAULT,
+            termrock::Part::CONTAINER,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            termrock::Family::PANEL,
+            Variant::DEFAULT,
+            termrock::Part::DETAIL,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            termrock::Family::PANEL,
+            Variant::DEFAULT,
+            termrock::Part::HELP,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            termrock::Family::EMPTY,
+            Variant::DEFAULT,
+            termrock::Part::HELP,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            termrock::Family::BUTTON,
+            Variant::PRIMARY,
+            termrock::Part::CONTAINER,
+            StateFlags::empty(),
+        ),
+        (
+            Surface::Surface,
+            termrock::Family::BUTTON,
+            Variant::PRIMARY,
+            termrock::Part::GUTTER,
+            StateFlags::empty(),
+        ),
+    ]
+    .map(|(surface, family, variant, part, flags)| {
+        style(ui, surface, family, variant, part, flags)
+    });
+    [panel, title, detail, meta, primary, primary_gutter]
+}
+
+fn paint_targets(ui: &mut Ui<'_>, body: Rect, [rail, panel, title]: [PaintStyle; 3]) {
+    for (row, text) in [
+        (2, "▾ payments-gateway"),
+        (3, "  ▾ build"),
+        (4, "      compile"),
+        (5, "      lint"),
+        (6, "      typecheck"),
+        (7, "  ▾ test"),
+        (8, "      unit"),
+        (9, "      integration"),
+        (10, "      e2e"),
+        (11, "  ▾ deploy"),
+        (12, "      staging"),
+        (13, "      production"),
+        (14, "▾ shared-libs"),
+        (15, "    compile"),
+        (16, "    publish"),
+    ] {
+        let segments: [(u16, &str, &str, PaintStyle); 2] =
+            [(row, "  ", "▎", rail), (row, "  ▎", text, panel)];
+        for (row, prefix, text, style) in segments {
+            paint_segment(ui, body, row, prefix, text, style);
+        }
+        if let Some(marker) = text.find('▾') {
+            let prefix = format!("  ▎{}", &text[..marker]);
+            paint_segment(ui, body, row, &prefix, "▾", title);
+        }
+    }
+}
+
+fn paint_pipeline_heading(
+    ui: &mut Ui<'_>,
+    body: Rect,
+    running: bool,
+    [title, detail, meta]: [PaintStyle; 3],
+) {
+    let segments: [(u16, &str, &str, PaintStyle); 2] = [
+        (0, "  ", "Targets", title),
+        (0, "  Targets                         ", "Pipeline", title),
+    ];
+    for (row, prefix, text, style) in segments {
+        paint_segment(ui, body, row, prefix, text, style);
+    }
+    if running {
+        paint_segment(
+            ui,
+            body,
+            0,
+            "  Targets                         ",
+            "Pipeline · running",
+            detail,
+        );
+    } else {
+        paint_segment(
+            ui,
+            body,
+            0,
+            "  Targets                         Pipeline    ",
+            "0 of 6 done",
+            meta,
+        );
+    }
+}
+
+#[cfg(test)]
+mod motion_tests {
+    use super::*;
+
+    #[test]
+    fn paused_seek_starts_then_freezes_pipeline_at_a_bounded_frame() {
+        let mut page = TaskRunnerPage::new();
+        page.seek_paused(5);
+        assert_eq!(page.frame, 5);
+        assert!(page.running);
+        assert_eq!(
+            page.steps.first().map(|step| step.state),
+            Some(StepState::Done)
+        );
+        assert_eq!(
+            page.steps.get(1).map(|step| step.state),
+            Some(StepState::Running)
+        );
+        assert!(page.motion_paused);
+        page.seek_paused(usize::MAX);
+        assert!(!page.running);
+        assert_eq!(page.message, "pipeline complete");
+    }
+}

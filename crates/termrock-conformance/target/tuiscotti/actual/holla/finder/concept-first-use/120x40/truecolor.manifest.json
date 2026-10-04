@@ -1,0 +1,60 @@
+{
+  "artifacts": {
+    "ansi": {
+      "bytes": 7950,
+      "file": "holla/finder/concept-first-use/120x40/truecolor.ansi",
+      "sha256": "9d0dd1f18e4134aafc861ad8c8fec8a25103f328b53e7d21c4cd228717032e63"
+    },
+    "ascii": {
+      "bytes": 498,
+      "file": "holla/finder/concept-first-use/120x40/truecolor.ascii",
+      "sha256": "ec5ece290d1c741baf5139a3e9b73be7b6019ccf5b66e4f5511964735ad77936"
+    },
+    "ascii_loss_json": {
+      "bytes": 1264,
+      "file": "holla/finder/concept-first-use/120x40/truecolor.ascii.loss.json",
+      "sha256": "96537a63e4ec709e5ba1d982479a24648c237ac4454a498b428bde6c50bd6665"
+    },
+    "frame_json": {
+      "bytes": 1276798,
+      "file": "holla/finder/concept-first-use/120x40/truecolor.frame.json",
+      "sha256": "58c7ae7f2a92c0086ae4dfd2fab53d06f14ab5e0e069843aa626ca44bd757d53"
+    },
+    "html": {
+      "bytes": 255283,
+      "file": "holla/finder/concept-first-use/120x40/truecolor.html",
+      "sha256": "c6a02eccc40960074958925de799a00747e5d534016a54334326680e7eee74f1"
+    },
+    "observations_json": {
+      "bytes": 408,
+      "file": "holla/finder/concept-first-use/120x40/truecolor.observations.json",
+      "sha256": "acb4c3dec898a58034767fd9ebf423891c838f23a9c3ed2aa92553c7fec63a52"
+    },
+    "png": {
+      "bytes": 180903,
+      "file": "holla/finder/concept-first-use/120x40/truecolor.png",
+      "sha256": "5e1084868ebff09ff39646df719bd1dd14dd801eaeca17b649dcfde30ec432df"
+    },
+    "png_fidelity_json": {
+      "bytes": 276,
+      "file": "holla/finder/concept-first-use/120x40/truecolor.png.fidelity.json",
+      "sha256": "b93b5e43d193775e0ae963bec8da72c25c0030de2ae9b20aff8d75951bf2256f"
+    },
+    "txt": {
+      "bytes": 518,
+      "file": "holla/finder/concept-first-use/120x40/truecolor.txt",
+      "sha256": "98d91d5f54c05ffb5467579ffbb44186784e973bf5733a3eba2441ab2475a5b6"
+    }
+  },
+  "ascii_substitutions_count": 13,
+  "dimensions": {
+    "cols": 120,
+    "rows": 40
+  },
+  "frame_digest": 12191670560321795991,
+  "generation": "c73bfcd1b0be94a57e13fdc61e785c9d4b22320681585080127dd8020d22e4ab",
+  "name": "holla/finder/concept-first-use/120x40/truecolor",
+  "profile": "tuiscotti-default",
+  "schema_version": 1,
+  "timestamp_utc": "2026-10-04T10:34:58Z"
+}
