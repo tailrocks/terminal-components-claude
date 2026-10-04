@@ -13,6 +13,11 @@
       "target": "aarch64-apple-darwin",
       "artifact": "https://github.com/tailrocks/velnor-new/releases/download/v0.1.0/velnor-actions-0.1.0-aarch64-apple-darwin",
       "sha256": "b6f514b71e3d1d72978c66cecf23560e7f25ad51727e9f26c88870b77d61695f"
+    },
+    {
+      "target": "x86_64-apple-darwin",
+      "artifact": "https://github.com/tailrocks/velnor-new/releases/download/v0.1.0/velnor-actions-0.1.0-x86_64-apple-darwin",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
     }
   ]
 }

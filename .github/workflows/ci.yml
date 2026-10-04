@@ -504,9 +504,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/holla/nextest/default,stack/rust/crates/holla/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/holla/build/default
           VELNOR_MATRIX_KEY: m-f7366ac3e24380a3
-          VELNOR_TASK_DIGEST: b3-af3c3487647e91be72fabd71fec48e97d379513aa821bdbad8a559fb440156a3
+          VELNOR_TASK_DIGEST: b3-b1527ba4ff60facd9e6b74664b402822f12dbeb27670296df0bdb38a08245376
           VELNOR_TASK_ID: stack/rust/crates/holla/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-f7366ac3e24380a3\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/holla/Cargo.toml --package holla; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-f7366ac3e24380a3\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-f7366ac3e24380a3\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/holla/Cargo.toml --package holla; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-f7366ac3e24380a3\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/holla/nextest/default,')"
         env:
@@ -714,9 +714,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/holla-catalog/nextest/default,stack/rust/crates/holla-catalog/doctest/default,stack/rust/crates/holla-catalog/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/holla-catalog/build/default
           VELNOR_MATRIX_KEY: m-292fb4c05dd76a62
-          VELNOR_TASK_DIGEST: b3-a8f99722cac1bf30c1c8d5180f210b79db9943adce3554d1aa0142b2c2d268f9
+          VELNOR_TASK_DIGEST: b3-a64cb1fd3928d3a8400c30dbab1a4715ea053c862f3405ff35115df574d3b755
           VELNOR_TASK_ID: stack/rust/crates/holla-catalog/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-292fb4c05dd76a62\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/holla-catalog/Cargo.toml --package holla-catalog; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-292fb4c05dd76a62\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-292fb4c05dd76a62\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/holla-catalog/Cargo.toml --package holla-catalog; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-292fb4c05dd76a62\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/holla-catalog/nextest/default,')"
         env:
@@ -953,9 +953,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/holla-domain/nextest/default,stack/rust/crates/holla-domain/doctest/default,stack/rust/crates/holla-domain/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/holla-domain/build/default
           VELNOR_MATRIX_KEY: m-88dd7358fa6aa302
-          VELNOR_TASK_DIGEST: b3-1cc6ec1ada64db19721a15802b45ec71145898598e17e3f8d6dccaa8f0b97d07
+          VELNOR_TASK_DIGEST: b3-33bc45609d52b264152d6ccd4ed09c78d65a5e3101d87d1e4b6c860897bc0003
           VELNOR_TASK_ID: stack/rust/crates/holla-domain/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-88dd7358fa6aa302\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/holla-domain/Cargo.toml --package holla-domain; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-88dd7358fa6aa302\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-88dd7358fa6aa302\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/holla-domain/Cargo.toml --package holla-domain; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-88dd7358fa6aa302\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/holla-domain/nextest/default,')"
         env:
@@ -1192,9 +1192,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/holla-plan/nextest/default,stack/rust/crates/holla-plan/doctest/default,stack/rust/crates/holla-plan/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/holla-plan/build/default
           VELNOR_MATRIX_KEY: m-e2df4443edc0fda3
-          VELNOR_TASK_DIGEST: b3-c1426bdfb8538e0de6e5dc23634f372106f81b572e7c77545020b1b4328118ec
+          VELNOR_TASK_DIGEST: b3-30cfc8f1bb30963a2e7693fcb982439fc67ee7be615df3ec4d705314da1750bb
           VELNOR_TASK_ID: stack/rust/crates/holla-plan/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-e2df4443edc0fda3\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/holla-plan/Cargo.toml --package holla-plan; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-e2df4443edc0fda3\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-e2df4443edc0fda3\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/holla-plan/Cargo.toml --package holla-plan; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-e2df4443edc0fda3\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/holla-plan/nextest/default,')"
         env:
@@ -1431,9 +1431,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/holla-sim/nextest/default,stack/rust/crates/holla-sim/doctest/default,stack/rust/crates/holla-sim/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/holla-sim/build/default
           VELNOR_MATRIX_KEY: m-1c52ad29b8c122c8
-          VELNOR_TASK_DIGEST: b3-65e1a50870538d202c180d783006522342b52c2c50215f9a1acfcffb7dce2f04
+          VELNOR_TASK_DIGEST: b3-1815c520e21f87e513c5165ebda3608ef06113bbfe61a67eff422521b564e2b9
           VELNOR_TASK_ID: stack/rust/crates/holla-sim/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-1c52ad29b8c122c8\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/holla-sim/Cargo.toml --package holla-sim; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-1c52ad29b8c122c8\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-1c52ad29b8c122c8\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/holla-sim/Cargo.toml --package holla-sim; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-1c52ad29b8c122c8\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/holla-sim/nextest/default,')"
         env:
@@ -1670,9 +1670,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/holla-ui/nextest/default,stack/rust/crates/holla-ui/doctest/default,stack/rust/crates/holla-ui/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/holla-ui/build/default
           VELNOR_MATRIX_KEY: m-6156936543cb2bc7
-          VELNOR_TASK_DIGEST: b3-d224046bd82ae14fa965fb2ed0ca07dbb44eb53bf080bd4800b98ae6422200af
+          VELNOR_TASK_DIGEST: b3-f5fa8d5752164ff379bddc8320ecf1905e07038d9f677069506c0831aa0cfb76
           VELNOR_TASK_ID: stack/rust/crates/holla-ui/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-6156936543cb2bc7\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/holla-ui/Cargo.toml --package holla-ui; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-6156936543cb2bc7\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-6156936543cb2bc7\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/holla-ui/Cargo.toml --package holla-ui; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-6156936543cb2bc7\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/holla-ui/nextest/default,')"
         env:
@@ -1909,9 +1909,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/jackin-preview/nextest/default,stack/rust/crates/jackin-preview/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/jackin-preview/build/default
           VELNOR_MATRIX_KEY: m-e7422c52372afa72
-          VELNOR_TASK_DIGEST: b3-fcf36c0567bbd66080e4a8a7c555bd3511091df93c04be851f7e84978bc7d19f
+          VELNOR_TASK_DIGEST: b3-c8c774b7898511f7e33632b7284ed868dea9f3182503bedc0672b51b4d8cc769
           VELNOR_TASK_ID: stack/rust/crates/jackin-preview/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-e7422c52372afa72\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/jackin-preview/Cargo.toml --package jackin-preview; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-e7422c52372afa72\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-e7422c52372afa72\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/jackin-preview/Cargo.toml --package jackin-preview; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-e7422c52372afa72\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/jackin-preview/nextest/default,')"
         env:
@@ -2119,9 +2119,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/jackin-preview-app/nextest/default,stack/rust/crates/jackin-preview-app/doctest/default,stack/rust/crates/jackin-preview-app/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/jackin-preview-app/build/default
           VELNOR_MATRIX_KEY: m-ffb70d35b11a7447
-          VELNOR_TASK_DIGEST: b3-eb34ab44dad2c8d78a857590b5df2f6af3cd274923fb28463f68c7c154536aae
+          VELNOR_TASK_DIGEST: b3-56c0a835cc549c1fda0211d77a8ffd49b0b738ebe47910e2800fe426054c11b8
           VELNOR_TASK_ID: stack/rust/crates/jackin-preview-app/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-ffb70d35b11a7447\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/jackin-preview-app/Cargo.toml --package jackin-preview-app; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-ffb70d35b11a7447\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-ffb70d35b11a7447\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/jackin-preview-app/Cargo.toml --package jackin-preview-app; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-ffb70d35b11a7447\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/jackin-preview-app/nextest/default,')"
         env:
@@ -2358,9 +2358,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/jackin-preview-capsule-ui/nextest/default,stack/rust/crates/jackin-preview-capsule-ui/doctest/default,stack/rust/crates/jackin-preview-capsule-ui/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/jackin-preview-capsule-ui/build/default
           VELNOR_MATRIX_KEY: m-599417b41dfebf06
-          VELNOR_TASK_DIGEST: b3-b5a3e449d6967756cb27a0a3daa28614661697c397c24e8dedffdd53522ba749
+          VELNOR_TASK_DIGEST: b3-df102672aa13c5f9d27d482fdbb17bd0da4c884979a848129600efd9f224b72d
           VELNOR_TASK_ID: stack/rust/crates/jackin-preview-capsule-ui/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-599417b41dfebf06\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/jackin-preview-capsule-ui/Cargo.toml --package jackin-preview-capsule-ui; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-599417b41dfebf06\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-599417b41dfebf06\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/jackin-preview-capsule-ui/Cargo.toml --package jackin-preview-capsule-ui; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-599417b41dfebf06\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/jackin-preview-capsule-ui/nextest/default,')"
         env:
@@ -2597,9 +2597,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/jackin-preview-domain/nextest/default,stack/rust/crates/jackin-preview-domain/doctest/default,stack/rust/crates/jackin-preview-domain/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/jackin-preview-domain/build/default
           VELNOR_MATRIX_KEY: m-d991e9cb25abd74f
-          VELNOR_TASK_DIGEST: b3-352e5d7a47c97741e9a50af603e7e67379528e09b4c7e3a540d1414b37bfc582
+          VELNOR_TASK_DIGEST: b3-a85f3372199f2328f1c24c92180f4cbd7bfe5a892c23ef5a4f44933fa4dee19c
           VELNOR_TASK_ID: stack/rust/crates/jackin-preview-domain/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-d991e9cb25abd74f\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/jackin-preview-domain/Cargo.toml --package jackin-preview-domain; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-d991e9cb25abd74f\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-d991e9cb25abd74f\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/jackin-preview-domain/Cargo.toml --package jackin-preview-domain; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-d991e9cb25abd74f\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/jackin-preview-domain/nextest/default,')"
         env:
@@ -2836,9 +2836,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/jackin-preview-host-ui/nextest/default,stack/rust/crates/jackin-preview-host-ui/doctest/default,stack/rust/crates/jackin-preview-host-ui/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/jackin-preview-host-ui/build/default
           VELNOR_MATRIX_KEY: m-0b44d81d9183242d
-          VELNOR_TASK_DIGEST: b3-1a8916d9b49aea4a946fb4afc50672c201e74cd57f736f6fac2edec63deb6cc4
+          VELNOR_TASK_DIGEST: b3-e14751576d9cfa5515aa38acf924b6cccc19a3d613458bf03b37324cfab1a575
           VELNOR_TASK_ID: stack/rust/crates/jackin-preview-host-ui/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-0b44d81d9183242d\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/jackin-preview-host-ui/Cargo.toml --package jackin-preview-host-ui; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-0b44d81d9183242d\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-0b44d81d9183242d\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/jackin-preview-host-ui/Cargo.toml --package jackin-preview-host-ui; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-0b44d81d9183242d\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/jackin-preview-host-ui/nextest/default,')"
         env:
@@ -3075,9 +3075,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/jackin-preview-presentation/nextest/default,stack/rust/crates/jackin-preview-presentation/doctest/default,stack/rust/crates/jackin-preview-presentation/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/jackin-preview-presentation/build/default
           VELNOR_MATRIX_KEY: m-f4817e4fcf4da6f3
-          VELNOR_TASK_DIGEST: b3-8b5894e92f40f1e824bf3f7daeeadfbbc875279d09a70fb8214b9d5d8da494c8
+          VELNOR_TASK_DIGEST: b3-cb98586ceff6e791c770c5b9ff5000b4188cd855a4ef491ee94097c9380dee2a
           VELNOR_TASK_ID: stack/rust/crates/jackin-preview-presentation/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-f4817e4fcf4da6f3\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/jackin-preview-presentation/Cargo.toml --package jackin-preview-presentation; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-f4817e4fcf4da6f3\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-f4817e4fcf4da6f3\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/jackin-preview-presentation/Cargo.toml --package jackin-preview-presentation; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-f4817e4fcf4da6f3\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/jackin-preview-presentation/nextest/default,')"
         env:
@@ -3314,9 +3314,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/jackin-preview-sim/nextest/default,stack/rust/crates/jackin-preview-sim/doctest/default,stack/rust/crates/jackin-preview-sim/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/jackin-preview-sim/build/default
           VELNOR_MATRIX_KEY: m-7360df5395c660ac
-          VELNOR_TASK_DIGEST: b3-dcc913153a92c0584f963ec04e2f222c1dfd3c182f55ce86a8baef02e3b78677
+          VELNOR_TASK_DIGEST: b3-0c215fd64de1e516dae33c88881346fcbfd74cf866c57c692f0cba64d9d735f3
           VELNOR_TASK_ID: stack/rust/crates/jackin-preview-sim/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-7360df5395c660ac\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/jackin-preview-sim/Cargo.toml --package jackin-preview-sim; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-7360df5395c660ac\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-7360df5395c660ac\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/jackin-preview-sim/Cargo.toml --package jackin-preview-sim; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-7360df5395c660ac\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/jackin-preview-sim/nextest/default,')"
         env:
@@ -3553,9 +3553,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/showcase/nextest/default,stack/rust/crates/showcase/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/showcase/build/default
           VELNOR_MATRIX_KEY: m-0450fc14037a070c
-          VELNOR_TASK_DIGEST: b3-5256f8b81a2a6fdca958ce854493f81970a99c7029e7bfef473aa75b7b2204ab
+          VELNOR_TASK_DIGEST: b3-27687c82753d848c1e5e9fe4f32f85073055842e7637f814f1b6d149c6a2ba28
           VELNOR_TASK_ID: stack/rust/crates/showcase/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-0450fc14037a070c\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/showcase/Cargo.toml --package showcase; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-0450fc14037a070c\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-0450fc14037a070c\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/showcase/Cargo.toml --package showcase; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-0450fc14037a070c\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/showcase/nextest/default,')"
         env:
@@ -3763,9 +3763,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/showcase-data/nextest/default,stack/rust/crates/showcase-data/doctest/default,stack/rust/crates/showcase-data/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/showcase-data/build/default
           VELNOR_MATRIX_KEY: m-0b3755afc25401c7
-          VELNOR_TASK_DIGEST: b3-f0a95fba73a984727a04eb35e8765200e8d2b47dc50d0c1093d5761048d01c01
+          VELNOR_TASK_DIGEST: b3-e77f17ad6b115d694cc99147f6c2cce8b2d6e57727be1b3ee5937504f8cf1ce2
           VELNOR_TASK_ID: stack/rust/crates/showcase-data/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-0b3755afc25401c7\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/showcase-data/Cargo.toml --package showcase-data; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-0b3755afc25401c7\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-0b3755afc25401c7\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/showcase-data/Cargo.toml --package showcase-data; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-0b3755afc25401c7\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/showcase-data/nextest/default,')"
         env:
@@ -4002,9 +4002,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/showcase-demos/nextest/default,stack/rust/crates/showcase-demos/doctest/default,stack/rust/crates/showcase-demos/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/showcase-demos/build/default
           VELNOR_MATRIX_KEY: m-c6b882c274d76e22
-          VELNOR_TASK_DIGEST: b3-1cb2f1a817eaa5e0c26affeeabe1b962df1dfc69ddf10945f60976c28d364048
+          VELNOR_TASK_DIGEST: b3-da84a8203a52d98b7659cf48a7aae7c1b2c52b14f55dc956bd572466a10720fe
           VELNOR_TASK_ID: stack/rust/crates/showcase-demos/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-c6b882c274d76e22\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/showcase-demos/Cargo.toml --package showcase-demos; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-c6b882c274d76e22\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-c6b882c274d76e22\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/showcase-demos/Cargo.toml --package showcase-demos; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-c6b882c274d76e22\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/showcase-demos/nextest/default,')"
         env:
@@ -4241,9 +4241,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/showcase-ui/nextest/default,stack/rust/crates/showcase-ui/doctest/default,stack/rust/crates/showcase-ui/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/showcase-ui/build/default
           VELNOR_MATRIX_KEY: m-1a15dd6a2dad6155
-          VELNOR_TASK_DIGEST: b3-acfaf76e85f5ddea8ef4807b331122e3d27535e69a04ae5300dbe35170fc753d
+          VELNOR_TASK_DIGEST: b3-8ff37422069bbbd14e92d906fa08843864df3cba4676dd2a4b55310093ca5b90
           VELNOR_TASK_ID: stack/rust/crates/showcase-ui/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-1a15dd6a2dad6155\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/showcase-ui/Cargo.toml --package showcase-ui; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-1a15dd6a2dad6155\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-1a15dd6a2dad6155\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/showcase-ui/Cargo.toml --package showcase-ui; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-1a15dd6a2dad6155\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/showcase-ui/nextest/default,')"
         env:
@@ -4480,9 +4480,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/tablepro/nextest/default,stack/rust/crates/tablepro/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/tablepro/build/default
           VELNOR_MATRIX_KEY: m-c9a2dcdb6b9a01c2
-          VELNOR_TASK_DIGEST: b3-b2b9ff4c000ad0a77593d70eb49054aa1db7b8f65827d0c0ab850538cb679503
+          VELNOR_TASK_DIGEST: b3-b758bfa3b8f0875e16c876ffd281aadef6dd225c8cfc0425b93ced3bc6c69738
           VELNOR_TASK_ID: stack/rust/crates/tablepro/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-c9a2dcdb6b9a01c2\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/tablepro/Cargo.toml --package tablepro; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-c9a2dcdb6b9a01c2\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-c9a2dcdb6b9a01c2\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/tablepro/Cargo.toml --package tablepro; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-c9a2dcdb6b9a01c2\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/tablepro/nextest/default,')"
         env:
@@ -4690,9 +4690,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/tablepro-demo/nextest/default,stack/rust/crates/tablepro-demo/doctest/default,stack/rust/crates/tablepro-demo/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/tablepro-demo/build/default
           VELNOR_MATRIX_KEY: m-ecda3a9b7f4c88fc
-          VELNOR_TASK_DIGEST: b3-d847b7627f1c4f0252ede9dfe87afd4ea1b3fd24b3ee2eb21f3860fade9376bc
+          VELNOR_TASK_DIGEST: b3-ad5264d0d42bf1b2f8c8278c7568c31cf25de5930f15d56d7eba76c7d85d7993
           VELNOR_TASK_ID: stack/rust/crates/tablepro-demo/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-ecda3a9b7f4c88fc\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/tablepro-demo/Cargo.toml --package tablepro-demo; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-ecda3a9b7f4c88fc\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-ecda3a9b7f4c88fc\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/tablepro-demo/Cargo.toml --package tablepro-demo; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-ecda3a9b7f4c88fc\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/tablepro-demo/nextest/default,')"
         env:
@@ -4929,9 +4929,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/tablepro-domain/nextest/default,stack/rust/crates/tablepro-domain/doctest/default,stack/rust/crates/tablepro-domain/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/tablepro-domain/build/default
           VELNOR_MATRIX_KEY: m-d72ba444766b7783
-          VELNOR_TASK_DIGEST: b3-0af182b34eb3c0c8a7c6561733a70226e238bc6de8a6b4bdb87339ca9b446227
+          VELNOR_TASK_DIGEST: b3-8952721b8300dec32751590da7ab7ed14d5f978319c57d6410c4e40ab3da596f
           VELNOR_TASK_ID: stack/rust/crates/tablepro-domain/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-d72ba444766b7783\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/tablepro-domain/Cargo.toml --package tablepro-domain; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-d72ba444766b7783\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-d72ba444766b7783\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/tablepro-domain/Cargo.toml --package tablepro-domain; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-d72ba444766b7783\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/tablepro-domain/nextest/default,')"
         env:
@@ -5168,9 +5168,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/tablepro-sql/nextest/default,stack/rust/crates/tablepro-sql/doctest/default,stack/rust/crates/tablepro-sql/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/tablepro-sql/build/default
           VELNOR_MATRIX_KEY: m-2ece9f7c2f187a41
-          VELNOR_TASK_DIGEST: b3-5800086bcb221d5c9222265d41ebdbfe6f9a75ae3f91f7d9ac1d302bf3be95d3
+          VELNOR_TASK_DIGEST: b3-18f358f386bbdf1daa35e8124f7092ec84b38e484c092df05a35e1b5cb05cafb
           VELNOR_TASK_ID: stack/rust/crates/tablepro-sql/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-2ece9f7c2f187a41\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/tablepro-sql/Cargo.toml --package tablepro-sql; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-2ece9f7c2f187a41\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-2ece9f7c2f187a41\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/tablepro-sql/Cargo.toml --package tablepro-sql; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-2ece9f7c2f187a41\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/tablepro-sql/nextest/default,')"
         env:
@@ -5407,9 +5407,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/tablepro-ui/nextest/default,stack/rust/crates/tablepro-ui/doctest/default,stack/rust/crates/tablepro-ui/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/tablepro-ui/build/default
           VELNOR_MATRIX_KEY: m-0f8e71e82351bd1e
-          VELNOR_TASK_DIGEST: b3-0381482cec67754fb80e15d4353b59cefe49217056b6aa5a3250fe419abf4724
+          VELNOR_TASK_DIGEST: b3-a209b0635678e569494f7b55eee8cc0b710b7796fbd83ed55d65fe3ae22e7157
           VELNOR_TASK_ID: stack/rust/crates/tablepro-ui/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-0f8e71e82351bd1e\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/tablepro-ui/Cargo.toml --package tablepro-ui; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-0f8e71e82351bd1e\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-0f8e71e82351bd1e\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/tablepro-ui/Cargo.toml --package tablepro-ui; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-0f8e71e82351bd1e\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/tablepro-ui/nextest/default,')"
         env:
@@ -5646,9 +5646,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock/nextest/default,stack/rust/crates/termrock/doctest/default,stack/rust/crates/termrock/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock/build/default
           VELNOR_MATRIX_KEY: m-af2ba55c20f38e9d
-          VELNOR_TASK_DIGEST: b3-2ee0f51b1fe74f5d60e125b5a6810fba00e00346eba0ac7717b376c71cfd3d66
+          VELNOR_TASK_DIGEST: b3-738a988c19d92d83d8622cb817e5b53cdb39ce89ad20f4f9293e886fd7502199
           VELNOR_TASK_ID: stack/rust/crates/termrock/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-af2ba55c20f38e9d\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock/Cargo.toml --package termrock; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-af2ba55c20f38e9d\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-af2ba55c20f38e9d\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock/Cargo.toml --package termrock; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-af2ba55c20f38e9d\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock/nextest/default,')"
         env:
@@ -5885,9 +5885,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-collections/nextest/default,stack/rust/crates/termrock-collections/doctest/default,stack/rust/crates/termrock-collections/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-collections/build/default
           VELNOR_MATRIX_KEY: m-833877d5f5350eac
-          VELNOR_TASK_DIGEST: b3-a9137f9449f1a577a1a9845e4a3e7fd0690bee1f5b4b65c7565b9640d9ec0fde
+          VELNOR_TASK_DIGEST: b3-decbfd140a56372c837e8f7f4168ed48dedf03a7eba1b893632a8da514eaf454
           VELNOR_TASK_ID: stack/rust/crates/termrock-collections/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-833877d5f5350eac\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-collections/Cargo.toml --package termrock-collections; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-833877d5f5350eac\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-833877d5f5350eac\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-collections/Cargo.toml --package termrock-collections; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-833877d5f5350eac\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-collections/nextest/default,')"
         env:
@@ -6124,9 +6124,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-conformance/nextest/default,stack/rust/crates/termrock-conformance/doctest/default,stack/rust/crates/termrock-conformance/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-conformance/build/default
           VELNOR_MATRIX_KEY: m-5126cfc883c4b85f
-          VELNOR_TASK_DIGEST: b3-74ff6bf5cf2ccf0d5ea858b35301a532ebb8b037152988c1a8537e8675505f6b
+          VELNOR_TASK_DIGEST: b3-62e7a3bef7ec8c1b4f655987aec1c9d671ad5eb9991848de65212a436c13b846
           VELNOR_TASK_ID: stack/rust/crates/termrock-conformance/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-5126cfc883c4b85f\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-conformance/Cargo.toml --package termrock-conformance; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-5126cfc883c4b85f\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-5126cfc883c4b85f\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-conformance/Cargo.toml --package termrock-conformance; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-5126cfc883c4b85f\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-conformance/nextest/default,')"
         env:
@@ -6363,9 +6363,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-controls/nextest/default,stack/rust/crates/termrock-controls/doctest/default,stack/rust/crates/termrock-controls/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-controls/build/default
           VELNOR_MATRIX_KEY: m-ab3359b00770c733
-          VELNOR_TASK_DIGEST: b3-b25a598ec0a31a227e83726bed89430e6063582ba2f3144ae9688106b6c356f3
+          VELNOR_TASK_DIGEST: b3-ae2b9f68913663653cd36e2bc1860edcc96949348c8998e659c24635b74f0ebe
           VELNOR_TASK_ID: stack/rust/crates/termrock-controls/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-ab3359b00770c733\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-controls/Cargo.toml --package termrock-controls; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-ab3359b00770c733\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-ab3359b00770c733\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-controls/Cargo.toml --package termrock-controls; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-ab3359b00770c733\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-controls/nextest/default,')"
         env:
@@ -6602,9 +6602,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-core/nextest/default,stack/rust/crates/termrock-core/doctest/default,stack/rust/crates/termrock-core/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-core/build/default
           VELNOR_MATRIX_KEY: m-42eec8c13fed3ddd
-          VELNOR_TASK_DIGEST: b3-72f5d5bda963b4da73a0d01c44248a96e26c5af6f3ed0ab8d21b06bea9f82e77
+          VELNOR_TASK_DIGEST: b3-a34352d8f0a0b45565596f174f3b999ae5338df2bf774d883ced1ad90c535854
           VELNOR_TASK_ID: stack/rust/crates/termrock-core/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-42eec8c13fed3ddd\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-core/Cargo.toml --package termrock-core; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-42eec8c13fed3ddd\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-42eec8c13fed3ddd\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-core/Cargo.toml --package termrock-core; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-42eec8c13fed3ddd\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-core/nextest/default,')"
         env:
@@ -6841,9 +6841,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-editors/nextest/default,stack/rust/crates/termrock-editors/doctest/default,stack/rust/crates/termrock-editors/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-editors/build/default
           VELNOR_MATRIX_KEY: m-3de2ba4deaca9a2a
-          VELNOR_TASK_DIGEST: b3-49df7150101e0b78478b17a9ac5f8ae7749be567f4a7bd659443baa2a8f8245d
+          VELNOR_TASK_DIGEST: b3-cfad402a35d891b9b9dace1bc1b1ec1aa523577f75963cfc04ecb61833c6e83d
           VELNOR_TASK_ID: stack/rust/crates/termrock-editors/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-3de2ba4deaca9a2a\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-editors/Cargo.toml --package termrock-editors; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-3de2ba4deaca9a2a\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-3de2ba4deaca9a2a\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-editors/Cargo.toml --package termrock-editors; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-3de2ba4deaca9a2a\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-editors/nextest/default,')"
         env:
@@ -7080,9 +7080,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-feedback/nextest/default,stack/rust/crates/termrock-feedback/doctest/default,stack/rust/crates/termrock-feedback/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-feedback/build/default
           VELNOR_MATRIX_KEY: m-b0e7f42d0df652d8
-          VELNOR_TASK_DIGEST: b3-2fda4488776c3f92d3132803abb55ae556585755895c0d6edebb6ed5860bb4e1
+          VELNOR_TASK_DIGEST: b3-30e315de77a62c08465a95a34b494b6a7511ab6cec05f16bc52fe53a7628d356
           VELNOR_TASK_ID: stack/rust/crates/termrock-feedback/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-b0e7f42d0df652d8\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-feedback/Cargo.toml --package termrock-feedback; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-b0e7f42d0df652d8\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-b0e7f42d0df652d8\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-feedback/Cargo.toml --package termrock-feedback; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-b0e7f42d0df652d8\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-feedback/nextest/default,')"
         env:
@@ -7319,9 +7319,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-fields/nextest/default,stack/rust/crates/termrock-fields/doctest/default,stack/rust/crates/termrock-fields/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-fields/build/default
           VELNOR_MATRIX_KEY: m-451472483edd04f9
-          VELNOR_TASK_DIGEST: b3-91a9e78be44a8ce742b6a277f8606db1e9c506a418ab1e34818a28b0c6161e44
+          VELNOR_TASK_DIGEST: b3-ea217d7b776120e1e2f545f7bc2ec4a9b1b8494fb5c42d2f0b44169ed4210050
           VELNOR_TASK_ID: stack/rust/crates/termrock-fields/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-451472483edd04f9\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-fields/Cargo.toml --package termrock-fields; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-451472483edd04f9\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-451472483edd04f9\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-fields/Cargo.toml --package termrock-fields; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-451472483edd04f9\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-fields/nextest/default,')"
         env:
@@ -7558,9 +7558,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-forms/nextest/default,stack/rust/crates/termrock-forms/doctest/default,stack/rust/crates/termrock-forms/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-forms/build/default
           VELNOR_MATRIX_KEY: m-7b32fb762bbbab79
-          VELNOR_TASK_DIGEST: b3-7c2f57798258c8365fbaeecda4b846c554e6494ffc94c17dbfea2acf39b464d2
+          VELNOR_TASK_DIGEST: b3-f029dc9e35937f63f08e5ace0c80c6f740737fea1e35c2ca31c78451d509d05d
           VELNOR_TASK_ID: stack/rust/crates/termrock-forms/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-7b32fb762bbbab79\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-forms/Cargo.toml --package termrock-forms; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-7b32fb762bbbab79\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-7b32fb762bbbab79\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-forms/Cargo.toml --package termrock-forms; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-7b32fb762bbbab79\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-forms/nextest/default,')"
         env:
@@ -7797,9 +7797,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-grid/nextest/default,stack/rust/crates/termrock-grid/doctest/default,stack/rust/crates/termrock-grid/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-grid/build/default
           VELNOR_MATRIX_KEY: m-8efade1fe212b143
-          VELNOR_TASK_DIGEST: b3-96c0571125716ac1f7a7c120cf54ac68538b1ac011b4c6b0740b07f9c0f35863
+          VELNOR_TASK_DIGEST: b3-85ce1e72755ae6df92aaabd2a86a3d87d840e3d4d0d4725d971830bb1312331e
           VELNOR_TASK_ID: stack/rust/crates/termrock-grid/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-8efade1fe212b143\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-grid/Cargo.toml --package termrock-grid; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-8efade1fe212b143\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-8efade1fe212b143\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-grid/Cargo.toml --package termrock-grid; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-8efade1fe212b143\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-grid/nextest/default,')"
         env:
@@ -8036,9 +8036,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-layout/nextest/default,stack/rust/crates/termrock-layout/doctest/default,stack/rust/crates/termrock-layout/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-layout/build/default
           VELNOR_MATRIX_KEY: m-1c1988ee7b3ffbc4
-          VELNOR_TASK_DIGEST: b3-6f1aa4cd20c2257eef3ef587f6bc2a121dfe4bd9cf75683eceafbf64479f92ae
+          VELNOR_TASK_DIGEST: b3-de28a1ac80034af409c965ad5fb7fee38e6dbd780907137db3a2c3d203f29006
           VELNOR_TASK_ID: stack/rust/crates/termrock-layout/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-1c1988ee7b3ffbc4\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-layout/Cargo.toml --package termrock-layout; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-1c1988ee7b3ffbc4\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-1c1988ee7b3ffbc4\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-layout/Cargo.toml --package termrock-layout; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-1c1988ee7b3ffbc4\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-layout/nextest/default,')"
         env:
@@ -8275,9 +8275,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-navigation/nextest/default,stack/rust/crates/termrock-navigation/doctest/default,stack/rust/crates/termrock-navigation/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-navigation/build/default
           VELNOR_MATRIX_KEY: m-7bdc44adb782dd0b
-          VELNOR_TASK_DIGEST: b3-43d6fc678f50e3ec29b43042d40554e2117e67604370679c9c1874e9a385b8c4
+          VELNOR_TASK_DIGEST: b3-434816c65a347fafa05d97a307f84e1e3de9c1def962143b36e9355e8b53aff9
           VELNOR_TASK_ID: stack/rust/crates/termrock-navigation/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-7bdc44adb782dd0b\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-navigation/Cargo.toml --package termrock-navigation; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-7bdc44adb782dd0b\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-7bdc44adb782dd0b\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-navigation/Cargo.toml --package termrock-navigation; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-7bdc44adb782dd0b\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-navigation/nextest/default,')"
         env:
@@ -8514,9 +8514,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-overlays/nextest/default,stack/rust/crates/termrock-overlays/doctest/default,stack/rust/crates/termrock-overlays/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-overlays/build/default
           VELNOR_MATRIX_KEY: m-4778374e3202482a
-          VELNOR_TASK_DIGEST: b3-c7f93c2b14eda8ea61e462cd68087535885e6b914d6429e15ba803a486464bdd
+          VELNOR_TASK_DIGEST: b3-ca05c16e7a3d1fa40005fa6c0e18ef4717b941e8b37147c0b73e69db6897737c
           VELNOR_TASK_ID: stack/rust/crates/termrock-overlays/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-4778374e3202482a\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-overlays/Cargo.toml --package termrock-overlays; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-4778374e3202482a\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-4778374e3202482a\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-overlays/Cargo.toml --package termrock-overlays; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-4778374e3202482a\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-overlays/nextest/default,')"
         env:
@@ -8753,9 +8753,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-render/nextest/default,stack/rust/crates/termrock-render/doctest/default,stack/rust/crates/termrock-render/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-render/build/default
           VELNOR_MATRIX_KEY: m-26a8c88494c69d12
-          VELNOR_TASK_DIGEST: b3-249209ab26c80f2069e41c8877485b28460a5f7d21ebc184894856178bf1b527
+          VELNOR_TASK_DIGEST: b3-6ef7761ad435912bec75ed59e3b4d7c006640a805362029e7c13a7ff8e9ca120
           VELNOR_TASK_ID: stack/rust/crates/termrock-render/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-26a8c88494c69d12\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-render/Cargo.toml --package termrock-render; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-26a8c88494c69d12\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-26a8c88494c69d12\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-render/Cargo.toml --package termrock-render; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-26a8c88494c69d12\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-render/nextest/default,')"
         env:
@@ -8992,9 +8992,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-runtime/nextest/default,stack/rust/crates/termrock-runtime/doctest/default,stack/rust/crates/termrock-runtime/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-runtime/build/default
           VELNOR_MATRIX_KEY: m-8cca851b2a877979
-          VELNOR_TASK_DIGEST: b3-14c1f4a30d50b7b792378213b6520ec83bf5ebabd5e8c4e13565bb1b7286dcbd
+          VELNOR_TASK_DIGEST: b3-49de69c8a2df1fbc064bf953cc1199d2b9e0035aaeff280e1dff619ee6b19759
           VELNOR_TASK_ID: stack/rust/crates/termrock-runtime/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-8cca851b2a877979\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-runtime/Cargo.toml --package termrock-runtime; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-8cca851b2a877979\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-8cca851b2a877979\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-runtime/Cargo.toml --package termrock-runtime; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-8cca851b2a877979\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-runtime/nextest/default,')"
         env:
@@ -9231,9 +9231,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-session/nextest/default,stack/rust/crates/termrock-session/doctest/default,stack/rust/crates/termrock-session/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-session/build/default
           VELNOR_MATRIX_KEY: m-433c1e48696ab89c
-          VELNOR_TASK_DIGEST: b3-8ffa6c8047f5925c1885d24d7aa8536d4167f34d27d440b65378e5b799758375
+          VELNOR_TASK_DIGEST: b3-50595f0c25e7aa9130fcf8a014968860955e408fb5366aaaebc2cf2a82f6ed2e
           VELNOR_TASK_ID: stack/rust/crates/termrock-session/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-433c1e48696ab89c\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-session/Cargo.toml --package termrock-session; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-433c1e48696ab89c\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-433c1e48696ab89c\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-session/Cargo.toml --package termrock-session; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-433c1e48696ab89c\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-session/nextest/default,')"
         env:
@@ -9470,9 +9470,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-terminal/nextest/default,stack/rust/crates/termrock-terminal/doctest/default,stack/rust/crates/termrock-terminal/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-terminal/build/default
           VELNOR_MATRIX_KEY: m-782a315b6353bdb1
-          VELNOR_TASK_DIGEST: b3-e0e6a1d61d765bcb396c2c16a76c7855d56d03e63594122c2d6fbf875fdc06d6
+          VELNOR_TASK_DIGEST: b3-3898a79ca678ade1a835206f50d0b5e763ccf8246894550fe945b35337abe1d6
           VELNOR_TASK_ID: stack/rust/crates/termrock-terminal/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-782a315b6353bdb1\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-terminal/Cargo.toml --package termrock-terminal; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-782a315b6353bdb1\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-782a315b6353bdb1\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-terminal/Cargo.toml --package termrock-terminal; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-782a315b6353bdb1\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-terminal/nextest/default,')"
         env:
@@ -9709,9 +9709,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-test-support/nextest/default,stack/rust/crates/termrock-test-support/doctest/default,stack/rust/crates/termrock-test-support/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-test-support/build/default
           VELNOR_MATRIX_KEY: m-08a4ff66137c88a6
-          VELNOR_TASK_DIGEST: b3-98f8153d32fcfa2cdf1a883c603e835c35bba8bb5178d54d2f463bb5821f55ec
+          VELNOR_TASK_DIGEST: b3-c49d6c96154b3b2fc77d58e42736dc6c39c1a9f9a12344d568a0c8778c62f6c3
           VELNOR_TASK_ID: stack/rust/crates/termrock-test-support/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-08a4ff66137c88a6\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-test-support/Cargo.toml --package termrock-test-support; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-08a4ff66137c88a6\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-08a4ff66137c88a6\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-test-support/Cargo.toml --package termrock-test-support; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-08a4ff66137c88a6\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-test-support/nextest/default,')"
         env:
@@ -9948,9 +9948,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-text/nextest/default,stack/rust/crates/termrock-text/doctest/default,stack/rust/crates/termrock-text/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-text/build/default
           VELNOR_MATRIX_KEY: m-b76b59d66282a82f
-          VELNOR_TASK_DIGEST: b3-bdff1431aa37e560365b6bec444164d1897480678a165bbd5746e700727d75b4
+          VELNOR_TASK_DIGEST: b3-4f07478f0ac8ef90fdddd61bda081fce7cc4ceb4d4f3e4311026def1f914c313
           VELNOR_TASK_ID: stack/rust/crates/termrock-text/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-b76b59d66282a82f\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-text/Cargo.toml --package termrock-text; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-b76b59d66282a82f\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-b76b59d66282a82f\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-text/Cargo.toml --package termrock-text; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-b76b59d66282a82f\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-text/nextest/default,')"
         env:
@@ -10187,9 +10187,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-theme/nextest/default,stack/rust/crates/termrock-theme/doctest/default,stack/rust/crates/termrock-theme/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-theme/build/default
           VELNOR_MATRIX_KEY: m-e45acc93b2e1682b
-          VELNOR_TASK_DIGEST: b3-f9af6b40682cc8dee7fa737e2ca76a88a4be862339163e61c02b12b20a62ac1d
+          VELNOR_TASK_DIGEST: b3-04e81ba13434722805886ea9b1ec8916c7ff0439cc2b4a2a25aa332a4e30e01f
           VELNOR_TASK_ID: stack/rust/crates/termrock-theme/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-e45acc93b2e1682b\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-theme/Cargo.toml --package termrock-theme; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-e45acc93b2e1682b\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-e45acc93b2e1682b\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-theme/Cargo.toml --package termrock-theme; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-e45acc93b2e1682b\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-theme/nextest/default,')"
         env:
@@ -10426,9 +10426,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-viewport/nextest/default,stack/rust/crates/termrock-viewport/doctest/default,stack/rust/crates/termrock-viewport/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-viewport/build/default
           VELNOR_MATRIX_KEY: m-30dbc07372956250
-          VELNOR_TASK_DIGEST: b3-a1c31799a13f51099ba3d2cc42939ede913cfc9ec543fb44726a536677428961
+          VELNOR_TASK_DIGEST: b3-e4715026111cb966c8ea3b1230dde4d5e1019361d4aad94565dd666e88549eb1
           VELNOR_TASK_ID: stack/rust/crates/termrock-viewport/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-30dbc07372956250\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-viewport/Cargo.toml --package termrock-viewport; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-30dbc07372956250\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-30dbc07372956250\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-viewport/Cargo.toml --package termrock-viewport; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-30dbc07372956250\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-viewport/nextest/default,')"
         env:
@@ -10665,9 +10665,9 @@ jobs:
           VELNOR_DOWNSTREAM_TASK_IDS: stack/rust/crates/termrock-xtask/nextest/default,stack/rust/crates/termrock-xtask/doc/default
           VELNOR_MATRIX_ID: stack:rust|task:stack/rust/crates/termrock-xtask/build/default
           VELNOR_MATRIX_KEY: m-106c8adb07d96317
-          VELNOR_TASK_DIGEST: b3-c3a3ce6e24a84a8ac04686c1cfeaa93d9c2e18a97ae2e18b59cf193460b08fe6
+          VELNOR_TASK_DIGEST: b3-55ba1c65eb4f03d1dd2460f4afb374b773ebb1b5737d030517a69f5954ac5a37
           VELNOR_TASK_ID: stack/rust/crates/termrock-xtask/build/default
-        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-106c8adb07d96317\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo build --locked --offline --manifest-path crates/termrock-xtask/Cargo.toml --package termrock-xtask; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-106c8adb07d96317\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
+        run: "sh -c 'unset ACTIONS_ID_TOKEN_REQUEST_TOKEN ACTIONS_ID_TOKEN_REQUEST_URL ACTIONS_RUNTIME_TOKEN GITHUB_TOKEN MISE_GITHUB_TOKEN GH_TOKEN GH_HOST GH_CONFIG_DIR; date +%s%3N > \"$RUNNER_TEMP/velnor/start-m-106c8adb07d96317\"; mise --no-config --no-env --no-hooks exec rust@1.98.1 aqua:nextest-rs/nextest/cargo-nextest@0.9.146 -- cargo nextest list --profile ci --list-type binaries-only --locked --offline --manifest-path crates/termrock-xtask/Cargo.toml --package termrock-xtask; code=$?; read -r start_ms rest < \"$RUNNER_TEMP/velnor/start-m-106c8adb07d96317\"; VELNOR_EXIT_CODE=\"$code\" VELNOR_START_MS=\"$start_ms\" VELNOR_INTERNAL_OP=write-task-report-v1 \"$RUNNER_TEMP/velnor/bin/velnor-actions-0.1.0\"; helper_code=$?; if [ \"$code\" -ne 0 ]; then exit \"$code\"; fi; exit \"$helper_code\"'"
       - name: Unit and integration tests
         if: "!contains(needs.plan.outputs.covered_tasks, ',stack/rust/crates/termrock-xtask/nextest/default,')"
         env:

@@ -5191,7 +5191,7 @@ mod replacement_tests {
         eprintln!("After Tab focus: {:?}", h.focus());
         let _ = h.key(KeyCode::Char('i'));
         eprintln!("After i focus: {:?}", h.focus());
-        h.type_str("UPDATE orders SET status = 'paid' WHERE id = 'x'");
+        let _ = h.type_str("UPDATE orders SET status = 'paid' WHERE id = 'x'");
         eprintln!("Query text after typing: {:?}", h.app().query());
         let _ = h.key(KeyCode::Esc);
         let _ = h.ctrl('r');
