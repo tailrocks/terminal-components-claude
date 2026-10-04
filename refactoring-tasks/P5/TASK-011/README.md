@@ -99,12 +99,12 @@ Then only allowed component-adoption call sites change; application behavior, sn
 ## Checklist
 
 <!-- checklist:start -->
-- [ ] **1** Prepare.
-    - [ ] **1.1** Read the linked canonical contracts and confirm the accepted starting tree. (`R-001`, `AC-001`, `CHK-001`)
-- [ ] **2** Implement.
-    - [ ] **2.1** Deliver the scoped Termrock mechanism. (`R-001`, `AC-001`, `CHK-001`)
-    - [ ] **2.2** Prove shared ownership, identity, and applicable edge behavior. (`R-002`, `AC-002`, `CHK-002`)
-    - [ ] **2.3** Execute the bounded consumer-adoption checkpoint across the four applications, preserving frozen behavior and keeping product work out of scope. (`R-003`, `R-004`, `AC-003`, `CHK-003`)
-- [ ] **3** Verify.
-    - [ ] **3.1** Run the one completion gate. (`R-005`, `AC-004`, `CHK-004`)
+- [x] **1** Prepare.
+    - [x] **1.1** Read the linked canonical contracts and confirm the accepted starting tree. (`R-001`, `AC-001`, `CHK-001`)
+- [x] **2** Implement.
+    - [x] **2.1** Deliver the scoped Termrock mechanism. (`R-001`, `AC-001`, `CHK-001`)
+    - [x] **2.2** Prove shared ownership, identity, and applicable edge behavior. (`R-002`, `AC-002`, `CHK-002`)
+    - [x] **2.3** Execute the bounded consumer-adoption checkpoint across the four applications, preserving frozen behavior and keeping product work out of scope. (`R-003`, `R-004`, `AC-003`, `CHK-003`)
+- [x] **3** Verify.
+    - [x] **3.1** Run the one completion gate. (`R-005`, `AC-004`, `CHK-004`)
 <!-- checklist:end -->

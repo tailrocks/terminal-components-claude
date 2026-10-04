@@ -348,6 +348,10 @@ impl Part {
     pub const THUMB: Part = Part("thumb");
     pub const SURFACE: Part = Part("surface");
     pub const BACKDROP: Part = Part("backdrop");
+    pub const BORDER: Part = Part("border");
+    pub const TITLE: Part = Part("title");
+    pub const META: Part = Part("meta");
+    pub const SEAM: Part = Part("seam");
 
     /// Construct a new part name.
     pub const fn new(name: &'static str) -> Self {
