@@ -65,26 +65,26 @@ impl LayoutFacts {
 
 /// Runtime-resolved interaction state at the start of the frame.
 #[derive(Clone, Copy, Debug, Default)]
-pub(crate) struct Snapshot {
-    pub(crate) focus: Option<Id>,
-    pub(crate) focus_visible: bool,
-    pub(crate) hover: Option<(Id, PartRef)>,
-    pub(crate) hover_suppressed: bool,
-    pub(crate) pressed: Option<(Id, PartRef)>,
-    pub(crate) capture: Option<Id>,
+pub struct Snapshot {
+    pub focus: Option<Id>,
+    pub focus_visible: bool,
+    pub hover: Option<(Id, PartRef)>,
+    pub hover_suppressed: bool,
+    pub pressed: Option<(Id, PartRef)>,
+    pub capture: Option<Id>,
 }
 
 /// Last frame's facts: geometry, layout, declared flags and the snapshot.
 #[derive(Debug, Default, Clone)]
 pub struct LastFrame {
-    pub(crate) registry: Registry,
-    pub(crate) ring: FocusRing,
-    pub(crate) layout: Vec<(Id, LayoutFacts)>,
-    pub(crate) declared: Vec<(Id, StateFlags)>,
+    pub registry: Registry,
+    pub ring: FocusRing,
+    pub layout: Vec<(Id, LayoutFacts)>,
+    pub declared: Vec<(Id, StateFlags)>,
     pub(crate) bindings: BindingRegistry,
     pub(crate) typing_bindings: BindingRegistry,
     pub(crate) typing: crate::runtime::typing::TypingResolved,
-    pub(crate) snapshot: Snapshot,
+    pub snapshot: Snapshot,
 }
 
 impl LastFrame {
@@ -179,12 +179,12 @@ pub(crate) struct DeferredFocus {
 
 /// Mutable services `Cx` exposes; owned by the runtime.
 #[derive(Debug, Default)]
-pub(crate) struct FrameServices {
+pub struct FrameServices {
     pub(crate) viewport: Rect,
     pub(crate) layers: LayerStack,
     pub(crate) capture: CaptureSlot,
     pub(crate) events: Vec<(Id, LayerEvent)>,
-    pub(crate) focus_request: Option<Id>,
+    pub focus_request: Option<Id>,
     /// Provenance for only the newly opened top layer, until publication.
     /// Its target is read from the live spec; explicit focus supersedes it.
     pub(crate) initial_focus_layer: Option<LayerId>,
@@ -233,8 +233,8 @@ impl core::fmt::Debug for Cx<'_> {
 }
 
 impl<'f> Cx<'f> {
-    #[cfg(test)]
-    pub(crate) fn new(
+    #[cfg(any(test, feature = "testing"))]
+    pub fn new(
         intents: &'f IntentQueue,
         services: &'f mut FrameServices,
         core: &'f mut UiCore,
@@ -253,7 +253,7 @@ impl<'f> Cx<'f> {
         )
     }
 
-    pub(crate) fn new_with_cause(
+    pub fn new_with_cause(
         intents: &'f IntentQueue,
         services: &'f mut FrameServices,
         core: &'f mut UiCore,

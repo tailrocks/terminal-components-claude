@@ -17,8 +17,7 @@ use ratatui_core::style::Color;
 use core::ops::{BitOr, BitOrAssign};
 use std::collections::HashMap;
 
-pub use cx::LastFrame;
-pub use cx::{Cx, FrameRead, LayoutFacts};
+pub use cx::{Cx, FrameRead, FrameServices, LastFrame, LayoutFacts};
 use derived::{DerivedCache, ReferenceCacheKey};
 use layer_buf::LayerPool;
 
@@ -69,7 +68,7 @@ impl CellRoles {
 #[derive(Debug, Default)]
 pub struct FrameState {
     pub registry: Registry,
-    pub(crate) ring: FocusRing,
+    pub ring: FocusRing,
     pub(crate) layers: LayerPool,
     pub(crate) cursors: Vec<CursorRequest>,
     pub(crate) typing: Vec<crate::runtime::typing::TypingDeclaration>,
@@ -260,7 +259,7 @@ impl UiCore {
     }
 
     /// Drop every derived cache (resize, theme change, generation gap).
-    pub(crate) fn clear_caches(&mut self) {
+    pub fn clear_caches(&mut self) {
         self.cache.clear();
         self.reference_cache.clear();
         self.style_cache.clear();
