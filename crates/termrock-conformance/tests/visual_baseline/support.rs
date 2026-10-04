@@ -758,13 +758,17 @@ thread_local! {
 
 pub const DEFAULT_BASELINE_STORE: &str = "baselines/tuiscotti-v1";
 
-pub fn baseline_store_root() -> PathBuf {
+pub fn workspace_root() -> PathBuf {
     let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let workspace_root = manifest_dir
+    manifest_dir
         .parent()
         .and_then(Path::parent)
         .map(Path::to_path_buf)
-        .unwrap_or(manifest_dir);
+        .unwrap_or(manifest_dir)
+}
+
+pub fn baseline_store_root() -> PathBuf {
+    let workspace_root = workspace_root();
     match std::env::var("VISUAL_BASELINE_STORE").as_deref() {
         Ok("tuiscotti" | "tuiscotti-v1" | "baselines/tuiscotti-v1") => {
             let path = workspace_root.join("baselines/tuiscotti-v1");
@@ -807,10 +811,11 @@ pub fn baseline_store_root() -> PathBuf {
 
 pub fn store() -> GroupedStore {
     let base = baseline_store_root();
+    let ws_root = workspace_root();
     GroupedStore::new(&base)
-        .with_actual_root(Path::new("target/tuiscotti/actual"))
-        .with_diff_root(Path::new("target/tuiscotti/diff"))
-        .with_report_path(Path::new("target/tuiscotti/report.html"))
+        .with_actual_root(&ws_root.join("target/tuiscotti/actual"))
+        .with_diff_root(&ws_root.join("target/tuiscotti/diff"))
+        .with_report_path(&ws_root.join("target/tuiscotti/report.html"))
 }
 
 fn sha256_hex(bytes: &[u8]) -> String {
@@ -1074,11 +1079,12 @@ pub fn check_baseline_bundle(
     frame: &Frame,
     renderer: &mut Renderer,
 ) -> Result<GroupedOutcome, String> {
-    let actual_root = Path::new("target/tuiscotti/actual");
-    let diff_root = Path::new("target/tuiscotti/diff");
+    let ws_root = workspace_root();
+    let actual_root = ws_root.join("target/tuiscotti/actual");
+    let diff_root = ws_root.join("target/tuiscotti/diff");
     let approved_root = baseline_store_root();
 
-    write_10_artifact_bundle(actual_root, name, frame, renderer)?;
+    write_10_artifact_bundle(&actual_root, name, frame, renderer)?;
 
     let actual_paths = tuiscotti::grouped::ArtifactPaths {
         ansi: actual_root.join(format!("{name}.ansi")),
