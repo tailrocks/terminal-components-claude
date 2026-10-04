@@ -251,6 +251,11 @@ impl ActionKey {
     pub const fn as_str(&self) -> &'static str {
         self.0
     }
+
+    /// Return the static command name.
+    pub const fn name(&self) -> &'static str {
+        self.0
+    }
 }
 
 impl fmt::Debug for ActionKey {

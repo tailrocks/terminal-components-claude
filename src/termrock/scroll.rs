@@ -100,6 +100,14 @@ impl ScrollState {
         self.scroll_to(target)
     }
 
+    pub fn scroll_up(&mut self, delta: usize) -> bool {
+        self.scroll_by(-(delta as isize))
+    }
+
+    pub fn scroll_down(&mut self, delta: usize) -> bool {
+        self.scroll_by(delta as isize)
+    }
+
     pub fn ensure_visible(&mut self, index: usize) -> bool {
         if self.viewport == 0 || index >= self.total {
             return false;
