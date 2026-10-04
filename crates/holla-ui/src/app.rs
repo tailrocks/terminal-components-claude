@@ -1,2167 +1,3356 @@
-//! Application routes and typed intent reduction; shared runtime owns interaction.
-use crate::{
-    dispatch::{self, Destination},
-    domain::{action::Scope, fixtures, ranking::Pin},
-    scenario::{Motion, Scenario},
-    screens::{
-        actions::{Actions, Choice},
-        activity::{self, Activities},
-        clone::ClonePicker,
-        dialogs::{self, ProductDialog},
-        home::{self, HomeState},
-        plan::{self, PlanState},
-        plan_gate::PlanGate,
-    },
-    sim::{pg, world::World},
-};
-use termrock::{
-    ActionKey, Binding, Brand, Chord, Constraints, Cx, Dialog, FgStep, Focusability, FrameRead,
-    HintBar, HintLayer, Id, Intent, ItemKey, KeyCode, KeyMap, KeyPhase, Menu, MenuAction, MenuBar,
-    MenuItem, MenuState, Part, PartRef, Phase, Rect, Response, Role, StatusAction, StatusBar,
-    StatusItem, StylePatch, Surface, TooSmall, Ui,
-};
+//! Application shell: the tab strip (Here plus every activity and plan),
+//! the Here tab's page stack, the modal stack, focus/hover/press state, the
+//! menu bar, the status bar and the hint bar. The launch pipeline lives
+//! here too: trust, arguments and the confirmation gates are resolved by
+//! the shell before anything executes.
 
-const BRAND: Id = Id::root("holla.brand");
-const MENU: Id = Id::root("holla.menu");
-const HEADER: Id = Id::root("holla.header");
-const STRIP: Id = Id::root("holla.activities");
-const FOOTER: Id = Id::root("holla.footer");
-const MIN_WIDTH: u16 = 72;
-const MIN_HEIGHT: u16 = 20;
-const HELP: ActionKey = ActionKey::application("holla.help");
-const ABOUT: ActionKey = ActionKey::application("holla.about");
-const QUIT: ActionKey = ActionKey::application("holla.quit");
-const HOME: ActionKey = ActionKey::application("holla.home");
-const NEXT_ACTIVITY: ActionKey = ActionKey::application("holla.next-activity");
-const SCOPE: ActionKey = ActionKey::application("holla.scope");
-const PREVIEW: ActionKey = ActionKey::application("holla.preview");
-const ACTIONS: ActionKey = ActionKey::application("holla.actions");
-const TOGGLE: ActionKey = ActionKey::application("holla.plan-toggle");
-const CONTINUE: ActionKey = ActionKey::application("holla.plan-continue");
-const OPEN_MENU: ActionKey = ActionKey::application("holla.open-menu");
-const RESULTS: ActionKey = ActionKey::application("holla.results");
-const QUERY_ESCAPE: ActionKey = ActionKey::application("holla.query-escape");
-const PREVIOUS: ActionKey = ActionKey::application("holla.previous");
-const INTERRUPT: ActionKey = ActionKey::application("holla.interrupt");
-const ACTIVITY_SHORTCUTS: &[(char, ActionKey)] = &[
-    ('1', ActionKey::application("holla.activity-1")),
-    ('2', ActionKey::application("holla.activity-2")),
-    ('3', ActionKey::application("holla.activity-3")),
-    ('4', ActionKey::application("holla.activity-4")),
-    ('5', ActionKey::application("holla.activity-5")),
-    ('6', ActionKey::application("holla.activity-6")),
-    ('7', ActionKey::application("holla.activity-7")),
-    ('8', ActionKey::application("holla.activity-8")),
-    ('9', ActionKey::application("holla.activity-9")),
-];
-const GLOBAL: &[Binding<ActionKey>] = &[
-    Binding {
-        action: HELP,
-        chord: Some(Chord::key(KeyCode::F(1))),
-        cmd: HELP,
-        label: "Help",
-        priority: 50,
-        visible: true,
-    },
-    Binding {
-        action: OPEN_MENU,
-        chord: Some(Chord::key(KeyCode::F(10))),
-        cmd: OPEN_MENU,
-        label: "Menu",
-        priority: 40,
-        visible: true,
-    },
-    Binding {
-        action: QUIT,
-        chord: Some(Chord::with(
-            KeyCode::Char('q'),
-            termrock::KeyModifiers::CONTROL,
-        )),
-        cmd: QUIT,
-        label: "Quit",
-        priority: 20,
-        visible: true,
-    },
-    Binding {
-        action: NEXT_ACTIVITY,
-        chord: Some(Chord::with(
-            KeyCode::Char('a'),
-            termrock::KeyModifiers::CONTROL,
-        )),
-        cmd: NEXT_ACTIVITY,
-        label: "Activities",
-        priority: 30,
-        visible: true,
-    },
-    Binding {
-        action: SCOPE,
-        chord: Some(Chord::with(
-            KeyCode::Char('s'),
-            termrock::KeyModifiers::CONTROL,
-        )),
-        cmd: SCOPE,
-        label: "Scope",
-        priority: 40,
-        visible: true,
-    },
-    Binding {
-        action: PREVIEW,
-        chord: Some(Chord::with(
-            KeyCode::Char('p'),
-            termrock::KeyModifiers::CONTROL,
-        )),
-        cmd: PREVIEW,
-        label: "Preview",
-        priority: 60,
-        visible: true,
-    },
-    Binding {
-        action: ACTIONS,
-        chord: Some(Chord::with(
-            KeyCode::Char('o'),
-            termrock::KeyModifiers::CONTROL,
-        )),
-        cmd: ACTIONS,
-        label: "Actions",
-        priority: 60,
-        visible: true,
-    },
-];
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum Route {
-    Home,
-    Plan,
-    Activity,
-}
-enum Overlay {
-    Dialog(Box<ProductDialog>),
-    Clone(ClonePicker),
-    Actions(Actions),
-    Gate(PlanGate),
+use crate::tui::core::event::{Input, Key, Mouse, MouseKind, Outcome};
+use crate::tui::core::focus::{Focus, FocusRing};
+use crate::tui::core::hit::HitRegistry;
+use crate::tui::core::id::WidgetId;
+use crate::tui::theme::{BadgeKind, Theme, Tone};
+use crate::tui::ui::ctx::{Interaction, RenderCtx, fill};
+use crate::tui::ui::text::{truncate, truncate_middle, width};
+use crate::tui::widgets::brand::Lockup;
+use crate::tui::widgets::button::Button;
+use crate::tui::widgets::dialog::{Dialog, DialogBody, DialogResult};
+use crate::tui::widgets::hintbar::{HintBar, HintLayer};
+use crate::tui::widgets::input::TextInput;
+use crate::tui::widgets::keyhint::{Hint, hint};
+use crate::tui::widgets::menu::{
+    ContextMenu, MenuBar, MenuBarEvent, MenuEvent, MenuItem, Placement,
+};
+use crate::tui::widgets::picker::{Picker, PickerEvent, PickerItem};
+use crate::tui::widgets::progress::MeterTone;
+use crate::tui::widgets::props::Prop;
+use crate::tui::widgets::segments::{self, Segment};
+use crate::tui::widgets::statusbar::{StatusBar, StatusItem};
+use crate::tui::widgets::tabs::{TabEvent, TabItem, Tabs};
+use ratatui::Frame;
+use ratatui::buffer::Buffer;
+use ratatui::crossterm::event::{KeyCode, KeyModifiers};
+use ratatui::layout::{Position, Rect};
+
+use holla_domain::action::{Confirmation, Item, Launch, Risk};
+use holla_domain::activity::{ActivityKind, ActivityState};
+use holla_domain::context::{HostRole, Scope};
+use holla_domain::plan::PlanPhase;
+use holla_domain::scenario::{Motion, Scenario};
+use crate::screens::activity::ActivityTab;
+use crate::screens::cleanup::CleanupPage;
+use crate::screens::disk::DiskPage;
+use crate::screens::files::FilesPage;
+use crate::screens::finder::FinderPage;
+use crate::screens::modals::{TextLine, TextModal};
+use crate::screens::plan::{PlanReviewPage, PlanTab};
+use crate::screens::review::{ArgsPage, GatePage, TrustPage};
+use crate::screens::snapshot::SnapshotPage;
+use crate::screens::{Cx, GateTarget, Go, Modal, ModalResult, ModalTag, Page, Request, Screen};
+use holla_sim::world::{Msg, World};
+
+pub const MIN_WIDTH: u16 = 72;
+pub const MIN_HEIGHT: u16 = 20;
+/// The canonical product mark; every brand lockup renders exactly this.
+pub const BRAND_MARK: &str = "holla❯";
+
+pub const MENU: WidgetId = WidgetId::of("shell.menu");
+pub const TABS: WidgetId = WidgetId::of("shell.tabs");
+const STATUS_PATH: WidgetId = WidgetId::of("shell.status.path");
+const STATUS_RUNNING: WidgetId = WidgetId::of("shell.status.running");
+const STATUS_GIT: WidgetId = WidgetId::of("shell.status.git");
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TabKind {
+    Here,
+    Activity(String),
+    Plan(String),
 }
 
-/// Holla's deterministic launcher application. External commands remain fixture data.
-///
-/// Run with [`termrock::FeedbackClock::Simulation`] initialized to
-/// [`Self::fixture_time_ms`]. An incompatible feedback clock pauses simulation
-/// with a visible diagnostic before advancing any fixture state.
+pub struct TabEntry {
+    pub kind: TabKind,
+    pub stack: Vec<Box<dyn Screen>>,
+}
+
+pub(crate) struct ModalEntry {
+    modal: Modal,
+    tag: ModalTag,
+    owner: usize,
+    saved_focus: Option<WidgetId>,
+}
+
+/// What an alternatives-menu row does.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum MenuAction {
+    Run,
+    Copy,
+    Insert,
+    Args,
+    Alternative(String),
+    Pin,
+    Alias,
+    Hide,
+    Reset,
+    Why,
+}
+
 pub struct App {
-    world: World,
-    motion: Motion,
-    route: Route,
-    home: HomeState,
-    plan: Option<PlanState>,
-    activities: Activities,
-    overlay: Option<Overlay>,
-    retired_overlay: Option<Overlay>,
-    menu: MenuState,
-    keymap: KeyMap,
-    status: Option<String>,
-    status_until_ms: Option<i64>,
-    last_step_at: Option<termrock::Moment>,
-    quit: bool,
-}
-impl std::fmt::Debug for App {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("App")
-            .field("scenario", &self.world.scenario)
-            .field("motion", &self.motion)
-            .finish_non_exhaustive()
-    }
-}
-fn menu_bar() -> MenuBar<'static> {
-    // The static menu data lives here, inside the one constructor both phases
-    // call, so every configured row keeps exactly one construction site (§13).
-    const FILE: &[MenuItem<'static>] = &[MenuItem::new(QUIT, "Quit").chord(Chord::with(
-        KeyCode::Char('q'),
-        termrock::KeyModifiers::CONTROL,
-    ))];
-    const GO: &[MenuItem<'static>] = &[MenuItem::new(HOME, "Home")];
-    const HELP_MENU: &[MenuItem<'static>] = &[
-        MenuItem::new(HELP, "Key reference").chord(Chord::key(KeyCode::F(1))),
-        MenuItem::new(ABOUT, "About holla"),
-    ];
-    const MENUS: &[Menu<'static>] = &[
-        Menu::new("File", FILE),
-        Menu::new("Go", GO),
-        Menu::new("Help", HELP_MENU),
-    ];
-    MenuBar::new(MENU, MENUS).chord_case(termrock::ChordCase::UppercaseAscii)
-}
-
-fn brand() -> Brand<'static> {
-    Brand::new(BRAND, "holla❯").clickable(true)
-}
-
-fn header_bar<'a>(items: &'a [StatusItem<'a>]) -> StatusBar<'a> {
-    StatusBar::new(HEADER).right(items)
-}
-
-fn gate_dialog() -> Dialog<'static> {
-    Dialog::new(crate::screens::plan_gate::GATE)
+    pub theme: Theme,
+    pub scenario: Scenario,
+    pub motion: Motion,
+    pub world: World,
+    pub tabs: Vec<TabEntry>,
+    pub active: usize,
+    pub(crate) modals: Vec<ModalEntry>,
+    pub focus: Focus,
+    pub ring: FocusRing,
+    pub hits: HitRegistry,
+    pub hover: Option<WidgetId>,
+    pub pressed: Option<WidgetId>,
+    hover_suppressed: bool,
+    flash: Option<(WidgetId, i64)>,
+    pub status: Option<(String, Tone, i64)>,
+    pub size: (u16, u16),
+    pub quit: bool,
+    too_small: bool,
+    menu: MenuBar,
+    strip: Tabs,
+    last_click: Option<(WidgetId, i64)>,
+    menu_item: Option<String>,
+    menu_actions: Vec<MenuAction>,
+    pending_gate: Option<GateTarget>,
+    pending_confirm: Option<(String, Vec<(String, String)>)>,
+    pub clipboard_gen: u32,
+    /// The quit was confirmed: every live activity is being stopped and the
+    /// shell leaves once the last one has settled.
+    pub quitting: bool,
+    /// The query that led to the last invocation, for query learning.
+    pub last_query: Option<String>,
 }
 
 impl App {
-    /// Revision of applied in-memory simulation effects; never a real-host revision.
-    pub fn effect_revision(&self) -> u64 {
-        self.world.effect_revision
-    }
-
-    /// Virtual milliseconds in the deterministic fixture, independent of wall time.
-    pub fn fixture_time_ms(&self) -> i64 {
-        self.world.now_ms()
-    }
-
-    /// Construct one named fixture at a virtual millisecond frame.
-    pub fn for_scenario(scenario: Scenario, motion: Motion, frame: u64) -> Self {
-        let mut world = fixtures::world_for(scenario);
-        world.seek(frame);
-        world.clock.running = motion != Motion::Paused;
-        let mut keymap = KeyMap::new();
-        for binding in GLOBAL {
-            if let Some(chord) = binding.chord {
-                keymap = keymap.bind(KeyPhase::Capture, chord, binding.action);
-            }
-        }
-        keymap = keymap
-            .bind(KeyPhase::Bubble, Chord::key(KeyCode::Down), RESULTS)
-            .bind(KeyPhase::Bubble, Chord::key(KeyCode::Up), PREVIOUS)
-            .bind(
-                KeyPhase::Capture,
-                Chord::with(KeyCode::Char('c'), termrock::KeyModifiers::CONTROL),
-                INTERRUPT,
-            );
-        Self {
-            world,
+    /// Pure fixture entry point: one coherent world per scenario, advanced
+    /// `frame` ticks through its scripted timeline.
+    pub fn for_scenario(scenario: Scenario, motion: Motion, frame: u64, theme: Theme) -> Self {
+        let world = holla_sim::fixtures::world_for(scenario, motion);
+        let mut app = Self {
+            theme,
+            scenario,
             motion,
-            route: Route::Home,
-            home: HomeState::default(),
-            plan: None,
-            activities: Activities::default(),
-            overlay: None,
-            retired_overlay: None,
-            menu: MenuState::default(),
-            keymap,
+            world,
+            tabs: vec![TabEntry {
+                kind: TabKind::Here,
+                stack: vec![Box::new(FinderPage::new(None))],
+            }],
+            active: 0,
+            modals: vec![],
+            focus: Focus::default(),
+            ring: FocusRing::default(),
+            hits: HitRegistry::default(),
+            hover: None,
+            pressed: None,
+            hover_suppressed: false,
+            flash: None,
             status: None,
-            status_until_ms: None,
-            last_step_at: None,
+            size: (0, 0),
             quit: false,
+            too_small: false,
+            menu: Self::build_menu(),
+            strip: Tabs::with_items(TABS, vec![]),
+            last_click: None,
+            menu_item: None,
+            menu_actions: vec![],
+            pending_gate: None,
+            pending_confirm: None,
+            clipboard_gen: 0,
+            quitting: false,
+            last_query: None,
+        };
+        app.start();
+        // frames advance through the scripted timeline, then freeze
+        let running = app.world.clock.running;
+        app.world.clock.running = true;
+        for _ in 0..frame {
+            app.on_tick();
         }
+        app.world.clock.running = running;
+        app
     }
-    fn open_dialog(&mut self, intent: dialogs::Intent, cx: &mut Cx<'_>) {
-        let dialog = ProductDialog::new(intent, &self.world);
-        dialog.open(cx);
-        self.overlay = Some(Overlay::Dialog(Box::new(dialog)));
-    }
-    fn destination(&mut self, destination: Destination, cx: &mut Cx<'_>) {
-        match destination {
-            Destination::Notice(message) => self.set_status(message),
-            Destination::Preview(action) => self.open_dialog(dialogs::Intent::Preview(action), cx),
-            Destination::Trust { action, file } => {
-                self.open_dialog(dialogs::Intent::Trust { action, file }, cx);
-            }
-            Destination::Plan(review) => {
-                self.plan = Some(PlanState::new(*review));
-                self.route = Route::Plan;
-                cx.focus(plan::STEPS);
-            }
-            Destination::Activity(id, message) => {
-                self.activities.show(id);
-                self.route = Route::Activity;
-                self.set_status(message);
-                cx.focus(activity::output_id(id));
-            }
-            Destination::Database => match (
-                pg::Review::new(&self.world, pg::Operation::Cancel),
-                pg::Review::new(&self.world, pg::Operation::Terminate),
-            ) {
-                (Ok(cancel), Ok(terminate)) => self.open_dialog(
-                    dialogs::Intent::Database {
-                        cancel: Some(cancel),
-                        terminate: Some(terminate),
-                    },
-                    cx,
-                ),
-                (Err(error), _) | (_, Err(error)) => self.set_status(error.to_string()),
-            },
-            Destination::Monitor => self.open_dialog(dialogs::Intent::Monitor, cx),
-            Destination::Clone => {
-                if let Some(github) = &self.world.github {
-                    let picker = ClonePicker::new(github);
-                    picker.open(cx);
-                    self.overlay = Some(Overlay::Clone(picker));
+
+    fn start(&mut self) {
+        self.enter_top();
+        match self.scenario {
+            Scenario::DockerCleanup => {
+                if let Some(f) = self.finder_mut() {
+                    f.query = "docker clean".into();
                 }
+                self.enter_top();
             }
-        }
-    }
-    fn next_activity(&mut self, cx: &mut Cx<'_>) {
-        let ordered = activity::ordered(&self.world);
-        let next = (self.route == Route::Activity)
-            .then(|| {
-                ordered
-                    .iter()
-                    .position(|activity| Some(activity.id) == self.activities.current_id())
-            })
-            .flatten()
-            .and_then(|index| ordered.get(index.saturating_add(1)))
-            .or_else(|| ordered.first())
-            .map(|activity| activity.id);
-        if let Some(id) = next {
-            self.activities.show(id);
-            self.route = Route::Activity;
-            cx.focus(activity::output_id(id));
-        }
-    }
-    fn command(&mut self, command: ActionKey, cx: &mut Cx<'_>) {
-        match command {
-            HELP => self.open_dialog(dialogs::Intent::Help, cx),
-            ABOUT => self.open_dialog(dialogs::Intent::About, cx),
-            QUIT => self.open_dialog(dialogs::Intent::Quit, cx),
-            INTERRUPT => self.quit = true,
-            HOME => {
-                self.route = Route::Home;
-                cx.focus(home::QUERY);
+            Scenario::DiskCleanup => {
+                let cwd = self.world.location.cwd.clone();
+                self.push_page(Page::Disk { path: cwd });
             }
-            OPEN_MENU => {
-                let _ = menu_bar().open_menu(cx, &mut self.menu, 0);
+            Scenario::UpgradePlan => {
+                self.push_page(Page::PlanReview {
+                    plan: "upgrade".into(),
+                });
             }
-            NEXT_ACTIVITY => self.next_activity(cx),
-            SCOPE if self.route == Route::Home => {
-                self.home.scope = self.home.scope.map_or_else(
-                    || Scope::ORDER.first().copied(),
-                    |scope| {
-                        Scope::ORDER
-                            .iter()
-                            .position(|current| *current == scope)
-                            .and_then(|index| Scope::ORDER.get(index.saturating_add(1)).copied())
-                    },
-                );
-                self.set_status(format!(
-                    "Scope: {}",
-                    self.home.scope.map_or("all", Scope::label)
-                ));
-            }
-            PREVIEW if self.route == Route::Home => {
-                if let Some(action) = self.home.subject(&self.world, cx) {
-                    if let crate::domain::action::Availability::NeedsTrust(file) =
-                        &action.availability
-                    {
-                        self.open_dialog(
-                            dialogs::Intent::Trust {
-                                file: file.clone(),
-                                action,
-                            },
-                            cx,
-                        );
-                    } else {
-                        self.open_dialog(dialogs::Intent::Preview(action), cx);
-                    }
+            Scenario::ActivitiesMulti => {
+                let ids: Vec<String> = self.world.activities.iter().map(|a| a.id.clone()).collect();
+                for id in ids {
+                    self.open_activity_tab(&id, false);
                 }
+                self.active = 0;
+                self.enter_top();
             }
-            ACTIONS if self.route == Route::Home => {
-                if let Some(action) = self.home.subject(&self.world, cx) {
-                    let picker = Actions::new(action, &self.world);
-                    picker.open(cx);
-                    self.overlay = Some(Overlay::Actions(picker));
-                }
-            }
-            TOGGLE
-                if self.route == Route::Plan
-                    && cx
-                        .state(plan::STEPS)
-                        .contains(termrock::StateFlags::FOCUSED) =>
-            {
-                if let Some(plan) = &mut self.plan {
-                    let message = plan.toggle_selected();
-                    self.set_status(message);
-                }
-            }
-            CONTINUE if self.route == Route::Plan => {
-                if let Some(plan) = &self.plan {
-                    self.plan_event(plan.continuation(), cx);
-                }
-            }
-            RESULTS if self.route == Route::Home => self.home.focus_first(&self.world, cx),
-            PREVIOUS if self.route == Route::Home => cx.focus_prev(),
-            QUERY_ESCAPE if self.route == Route::Home => {
-                if self.home.scope.take().is_some() {
-                    self.set_status("Scope: all".into());
-                } else {
-                    self.home.clear_query();
-                }
-            }
-            command if self.route == Route::Activity => {
-                if let Some(index) = ACTIVITY_SHORTCUTS
-                    .iter()
-                    .position(|(_, key)| *key == command)
-                {
-                    if let Some(activity) = activity::ordered(&self.world).get(index) {
-                        let id = activity.id;
-                        self.activities.show(id);
-                        cx.focus(activity::output_id(id));
-                    } else {
-                        self.set_status(format!("No activity {}", index.saturating_add(1)));
-                    }
+            Scenario::LaunchFailure => {
+                let ids: Vec<String> = self.world.activities.iter().map(|a| a.id.clone()).collect();
+                for id in ids {
+                    self.open_activity_tab(&id, true);
                 }
             }
             _ => {}
         }
     }
-    fn action_choice(
+
+    fn finder_mut(&mut self) -> Option<&mut FinderPage> {
+        self.tabs[0].stack.first_mut()?.as_finder()
+    }
+
+    pub fn set_status(&mut self, s: &str, tone: Tone) {
+        self.status = Some((s.to_owned(), tone, self.world.now_ms() + 5_000));
+    }
+
+    fn top(&self) -> Option<&dyn Screen> {
+        self.tabs
+            .get(self.active)
+            .and_then(|t| t.stack.last())
+            .map(|b| b.as_ref())
+    }
+
+    fn animating(&self) -> bool {
+        self.flash.is_some()
+            || self.world.discovering()
+            || self.world.live_activities() > 0
+            || self
+                .world
+                .plans
+                .iter()
+                .any(|p| p.phase == PlanPhase::Running)
+            || self.top().is_some_and(|s| s.animating(&self.world))
+    }
+
+    pub fn tick_interval(&self) -> std::time::Duration {
+        if self.motion == Motion::Paused {
+            return std::time::Duration::from_millis(500);
+        }
+        std::time::Duration::from_millis(if self.animating() { 80 } else { 200 })
+    }
+
+    fn interaction(&self) -> Interaction {
+        let flash = match self.flash {
+            Some((id, until)) if self.world.now_ms() < until => Some(id),
+            _ => None,
+        };
+        Interaction {
+            focus: self.focus.current(),
+            hover: self.hover,
+            pressed: self.pressed,
+            flash,
+            focus_hidden: false,
+            hover_suppressed: self.hover_suppressed,
+            tick: (self.world.now_ms() / 80) as u64,
+        }
+    }
+
+    /// Run a closure against the top screen with a context, then apply its
+    /// requests.
+    fn with_top<F: FnOnce(&mut Box<dyn Screen>, &mut World, &mut Cx) -> Outcome>(
         &mut self,
-        choice: Choice,
-        action: crate::domain::action::Action,
-        cx: &mut Cx<'_>,
-    ) {
-        match choice {
-            Choice::Run => {
-                let destination = dispatch::invoke(&mut self.world, &action);
-                self.destination(destination, cx);
+        f: F,
+    ) -> Outcome {
+        let active = self.active;
+        let mut cx = Cx {
+            focus: &mut self.focus,
+            ring: &self.ring,
+            requests: vec![],
+        };
+        let o = match self.tabs.get_mut(active).and_then(|t| t.stack.last_mut()) {
+            Some(s) => f(s, &mut self.world, &mut cx),
+            None => Outcome::Ignored,
+        };
+        let reqs = std::mem::take(&mut cx.requests);
+        o.or(self.apply_requests(reqs, active))
+    }
+
+    fn enter_top(&mut self) {
+        self.with_top(|s, w, cx| {
+            s.enter(w, cx);
+            Outcome::Changed
+        });
+        let pf = self.top().and_then(|s| s.primary_focus());
+        self.focus.set(pf);
+    }
+
+    // ------------------------------------------------------------- input
+
+    pub fn handle(&mut self, input: Input) -> Outcome {
+        match input {
+            Input::Resize(w, h) => {
+                self.size = (w, h);
+                Outcome::Changed
             }
-            Choice::Preview => self.open_dialog(dialogs::Intent::Preview(action), cx),
-            Choice::Copy => self.set_status("Copied · simulated clipboard".into()),
-            Choice::Alias => self.open_dialog(dialogs::Intent::Alias(action), cx),
-            Choice::Pin => {
-                if self.world.memory.pin_at(&self.world.cwd, &action.command) {
-                    self.world
-                        .memory
-                        .pins
-                        .retain(|pin| pin.path != self.world.cwd || pin.command != action.command);
-                    self.set_status(format!("Unpinned {}", action.command));
-                } else {
-                    self.world.memory.pins.push(Pin {
-                        path: self.world.cwd.clone(),
-                        command: action.command.clone(),
-                    });
-                    self.set_status(format!("Pinned {} here", action.command));
-                }
+            Input::Tick => self.on_tick(),
+            Input::Paste(text) => self.on_paste(&text),
+            Input::Key(key) => {
+                self.hover_suppressed = true;
+                self.on_key(key)
             }
-            Choice::Hide => {
-                if self
-                    .world
-                    .memory
-                    .hidden_at(&self.world.cwd, &action.command)
-                {
-                    self.world
-                        .memory
-                        .hides
-                        .retain(|pin| pin.path != self.world.cwd || pin.command != action.command);
-                    self.set_status(format!("Unhidden {} here", action.command));
-                } else {
-                    self.world.memory.hides.push(Pin {
-                        path: self.world.cwd.clone(),
-                        command: action.command.clone(),
-                    });
-                    self.set_status(format!(
-                        "Hidden {} here · Reset ranking restores",
-                        action.command
-                    ));
-                }
-            }
-            Choice::Reset => {
-                self.world.memory.reset_at(&self.world.cwd, &action.command);
-                self.set_status(format!(
-                    "Reset ranking for {} · pins, aliases, hides cleared",
-                    action.command
-                ));
-            }
+            Input::Mouse(m) => self.on_mouse(m),
         }
     }
-    fn update_overlay(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let Some(mut overlay) = self.overlay.take() else {
-            return Response::ignored();
-        };
-        let (response, closed) = match &mut overlay {
-            Overlay::Dialog(dialog) => {
-                let (response, event) = dialog.update(cx, &mut self.world);
-                let closed = event.is_some();
-                if let Some(event) = event {
-                    match event {
-                        dialogs::Event::Close => {}
-                        dialogs::Event::Quit => self.quit = true,
-                        dialogs::Event::Destination(destination) => {
-                            self.destination(*destination, cx);
-                        }
-                    }
-                }
-                (response, closed)
-            }
-            Overlay::Clone(picker) => {
-                let (response, chosen, closed) = picker.update(cx);
-                let done = chosen.is_some() || closed;
-                if let Some((repo, login)) = chosen {
-                    self.open_dialog(dialogs::Intent::Clone { repo, login }, cx);
-                }
-                (response, done)
-            }
-            Overlay::Actions(picker) => {
-                let (response, choice, closed) = picker.update(cx);
-                let done = choice.is_some() || closed;
-                if let Some(choice) = choice {
-                    match picker.reviewed_action(&self.world) {
-                        Ok(action) => self.action_choice(choice, action, cx),
-                        Err(reason) => self.set_status(reason.into()),
-                    }
-                }
-                (response, done)
-            }
-            Overlay::Gate(gate) => {
-                if let Some(plan) = &mut self.plan {
-                    let (response, result) = gate.update(cx, &mut plan.review, &mut self.world);
-                    let done = result.is_some();
-                    if let Some(message) = result {
-                        self.set_status(message);
-                    }
-                    (response, done)
-                } else {
-                    (Response::ignored(), true)
-                }
-            }
-        };
-        if !closed && self.overlay.is_none() {
-            self.overlay = Some(overlay);
+
+    fn on_tick(&mut self) -> Outcome {
+        let msgs = self.world.tick();
+        let mut out = if self.animating() {
+            Outcome::Changed
         } else {
-            self.retired_overlay = Some(overlay);
-        }
-        response
-    }
-    fn strip_update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        for intent in cx.intents(STRIP) {
-            if let Intent::Pointer {
-                phase: Phase::Click | Phase::DoubleClick,
-                part: PartRef {
-                    item: Some(key), ..
+            Outcome::Ignored
+        };
+        // a committed cleanup advances one item per tick; its report lands
+        // in place and the status says how it ended
+        if let Some(idx) = crate::screens::cleanup::step(&mut self.world) {
+            let r = &self.world.reports[idx];
+            let (summary, tone) = (
+                r.summary(),
+                if r.incomplete() {
+                    Tone::Error
+                } else {
+                    Tone::Secondary
                 },
-                ..
-            } = intent
-                && let Some(id) = self
-                    .world
-                    .activities
-                    .iter()
-                    .find(|activity| ItemKey::num(u64::from(activity.id)) == key)
-                    .map(|activity| activity.id)
-            {
-                self.activities.show(id);
-                self.route = Route::Activity;
-                cx.focus(activity::output_id(id));
-                return Response::changed();
-            }
-        }
-        Response::ignored()
-    }
-    fn strip_draw(&self, ui: &mut Ui<'_>, area: Rect) {
-        if self.world.activities.is_empty() || area.is_empty() {
-            return;
-        }
-        ui.register_control(STRIP, area, Focusability::ClickOnly);
-        let mut x = area.x;
-        for (index, activity) in activity::ordered(&self.world).into_iter().enumerate() {
-            let label = format!(
-                " {} {} {} ",
-                activity::state_glyph(activity.state),
-                index.saturating_add(1),
-                activity.name
             );
-            let width = termrock::width(&label).min(area.right().saturating_sub(x));
-            if width == 0 {
-                break;
-            }
-            let row = Rect::new(x, area.y, width, 1);
-            let key = ItemKey::num(u64::from(activity.id));
-            let role = activity::state_role(activity.state);
-            let patch = if self.route == Route::Activity
-                && self.activities.current_id() == Some(activity.id)
+            self.set_status(&summary, tone);
+            out = Outcome::Changed;
+        }
+        if self.world.cleanup_job.is_some() {
+            out = Outcome::Changed;
+        }
+        if let Some((_, until)) = self.flash
+            && self.world.now_ms() >= until
+        {
+            self.flash = None;
+            out = Outcome::Changed;
+        }
+        if let Some((_, _, until)) = &self.status
+            && self.world.now_ms() >= *until
+        {
+            self.status = None;
+            out = Outcome::Changed;
+        }
+        if self
+            .modals
+            .last()
+            .is_some_and(|m| m.tag.kind == "activities")
+        {
+            let items = self.activity_picker_items();
+            if let Some(top) = self.modals.last_mut()
+                && let Modal::Picker(p) = &mut top.modal
             {
-                StylePatch::new()
-                    .set_fg(Role::Surface(Surface::Canvas))
-                    .set_bg(role)
+                p.refresh_items(items);
+            }
+        }
+        if self.quitting {
+            let live = self.world.live_activities();
+            if let Some(job) = &self.world.cleanup_job {
+                let text = format!(
+                    "waiting for the cleanup · {} of {} items · quitting when it settles",
+                    job.exec.completed(),
+                    job.exec.total()
+                );
+                self.status = Some((text, Tone::Secondary, self.world.now_ms() + 5_000));
+            } else if live == 0 {
+                self.quit = true;
             } else {
-                StylePatch::new().set_fg(role)
+                let text = format!(
+                    "stopping {} · {} still cancelling · quitting when every process is gone",
+                    crate::screens::plural(live, "activity", "activities"),
+                    self.world.cancelling()
+                );
+                self.status = Some((text, Tone::Secondary, self.world.now_ms() + 5_000));
+            }
+            out = Outcome::Changed;
+        }
+        // every screen on every tab ticks so background tabs keep their state
+        let active = self.active;
+        for ti in 0..self.tabs.len() {
+            let mut cx = Cx {
+                focus: &mut self.focus,
+                ring: &self.ring,
+                requests: vec![],
             };
-            let style = ui.paint_patch(&patch);
-            ui.paint_str(row, &label, style);
-            ui.register_part(STRIP, PartRef::item(Part::ROW, key), row);
-            x = x.saturating_add(width).saturating_add(1);
-        }
-        let faint = ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint)));
-        ui.paint_str(
-            Rect::new(x, area.y, area.right().saturating_sub(x), 1),
-            "0 home",
-            faint,
-        );
-    }
-    fn chrome(&self, ui: &mut Ui<'_>, area: Rect) {
-        let header = Rect::new(area.x, area.y, area.width, 1);
-        let brand = brand();
-        let brand_width = brand
-            .measure(ui, Constraints::loose(header.width, 1))
-            .preferred
-            .0;
-        brand.draw(ui, Rect::new(header.x, header.y, brand_width, 1));
-        let menu = menu_bar();
-        let menu_width = menu
-            .measure(
-                ui,
-                Constraints::loose(header.width.saturating_sub(brand_width), 1),
-            )
-            .preferred
-            .0;
-        menu.draw(
-            ui,
-            Rect::new(
-                header.x.saturating_add(brand_width),
-                header.y,
-                menu_width,
-                1,
-            ),
-            &self.menu,
-        );
-        let used = brand_width.saturating_add(menu_width).saturating_add(2);
-        let identity = self.world.host.identity();
-        let level = format!(
-            "{} · {}×{}",
-            ui.theme().capability.color.label(),
-            area.width,
-            area.height
-        );
-        let crumb = match self.route {
-            Route::Home => self.world.cwd.clone(),
-            Route::Plan => self.plan.as_ref().map_or_else(String::new, |plan| {
-                format!("Plan · {}", plan.plan().title())
-            }),
-            Route::Activity => self.activities.current(&self.world).map_or_else(
-                || "Activity".into(),
-                |activity| format!("Activity · {}", activity.name),
-            ),
-        };
-        let available = area.width.saturating_sub(used);
-        let reserved = termrock::width(&identity)
-            .saturating_add(termrock::width(&level))
-            .saturating_add(termrock::width("? help"))
-            .saturating_add(10);
-        let crumb = termrock::truncate_middle(&crumb, available.saturating_sub(reserved));
-        let mut items = Vec::new();
-        if available.saturating_sub(reserved) >= 8 {
-            items.push(
-                StatusItem::new(&crumb)
-                    .priority(7)
-                    .tone(Role::Fg(FgStep::Secondary)),
-            );
-        }
-        let scope = (self.route == Route::Home)
-            .then_some(self.home.scope)
-            .flatten()
-            .map(|scope| format!("scope: {}", scope.label()));
-        if let Some(scope) = scope.as_deref() {
-            items.push(
-                StatusItem::new(scope)
-                    .priority(6)
-                    .tone(Role::Fg(FgStep::Secondary)),
-            );
-        }
-        items.extend(self.discovery_item());
-        items.push(StatusItem::new(&identity).priority(9).tone(
-            if self.world.host.env.sensitive() {
-                Role::Warning
-            } else {
-                Role::Fg(FgStep::Secondary)
-            },
-        ));
-        items.push(
-            StatusItem::new(&level)
-                .priority(1)
-                .tone(Role::Fg(FgStep::Faint)),
-        );
-        items.push(
-            StatusItem::new("? help")
-                .priority(3)
-                .key(ItemKey::text("help")),
-        );
-        header_bar(&items).draw(
-            ui,
-            Rect::new(area.x.saturating_add(used), area.y, available, 1),
-        );
-        self.strip_draw(
-            ui,
-            Rect::new(area.x, area.y.saturating_add(1), area.width, 1),
-        );
-        let footer = Rect::new(area.x, area.bottom().saturating_sub(1), area.width, 1);
-        self.footer_draw(ui, footer);
-    }
-    fn discovery_item(&self) -> Option<StatusItem<'static>> {
-        self.world.discovering().then(|| {
-            // Discovery settles within the bounded fixture startup interval.
-            let frame = usize::try_from(self.world.now_ms().div_euclid(80)).unwrap_or_default();
-            StatusItem::new("discovering…")
-                .spinner(frame)
-                .priority(5)
-                .tone(Role::Fg(FgStep::Secondary))
-        })
-    }
-    fn footer_draw(&self, ui: &mut Ui<'_>, footer: Rect) {
-        let hints = HintLayer::from_bindings(GLOBAL);
-        let editing = match &self.overlay {
-            Some(Overlay::Dialog(dialog)) => dialog.is_editing(),
-            Some(Overlay::Gate(gate)) => gate.is_editing(),
-            Some(Overlay::Clone(_) | Overlay::Actions(_)) => false,
-            None => self.route == Route::Home && self.home.is_editing(),
-        };
-        let home_hints = (self.route == Route::Home
-            && self.overlay.is_none()
-            && !self.menu.is_open())
-        .then(|| {
-            HomeState::hints(
-                &self.world,
-                ui.state(home::ROWS).contains(termrock::StateFlags::FOCUSED),
-            )
-        });
-        let actions_hints = matches!(self.overlay, Some(Overlay::Actions(_))).then(Actions::hints);
-        let mut bar = HintBar::derived(FOOTER).screen(&hints);
-        if let Some(mode_hints) = actions_hints.as_ref().or(home_hints.as_ref()) {
-            bar = bar.mode(mode_hints);
-        }
-        bar.status_text(self.status.as_deref())
-            .badge(editing.then_some("EDIT"))
-            .centered(true)
-            .draw(ui, footer);
-    }
-}
-impl App {
-    fn cadence(&self, cx: &Cx<'_>) -> u64 {
-        if self.world.discovering() || cx.activation_feedback().is_some() {
-            80
-        } else {
-            200
-        }
-    }
-    fn synchronize_feedback(&mut self, cx: &mut Cx<'_>, clock: crate::clock::Clock) -> bool {
-        let synchronized = u64::try_from(clock.now_ms).is_ok_and(|now| {
-            cx.sync_feedback_time(termrock::SimulationMoment::from_millis(now))
-                .is_ok()
-        });
-        if !synchronized {
-            self.motion = Motion::Paused;
-            self.world.clock.running = false;
-            self.last_step_at = None;
-            self.status = Some("Simulation animation paused: feedback clock mismatch.".into());
-            self.status_until_ms = None;
-        }
-        synchronized
-    }
-    fn refresh_query_bindings(&mut self, cx: &Cx<'_>) {
-        let enter = Chord::key(KeyCode::Enter);
-        let space = Chord::key(KeyCode::Char(' '));
-        self.keymap.remove(KeyPhase::Bubble, enter);
-        self.keymap.remove(KeyPhase::Capture, space);
-        if self.route == Route::Plan && self.overlay.is_none() && !self.menu.is_open() {
-            self.keymap.add(KeyPhase::Bubble, enter, CONTINUE);
-            if cx
-                .state(plan::STEPS)
-                .contains(termrock::StateFlags::FOCUSED)
-            {
-                self.keymap.add(KeyPhase::Capture, space, TOGGLE);
+            let mut o = Outcome::Ignored;
+            if let Some(s) = self.tabs[ti].stack.last_mut() {
+                o = s.on_tick(&mut self.world, &mut cx);
+            }
+            let reqs = std::mem::take(&mut cx.requests);
+            if ti == active {
+                out = out.or(o).or(self.apply_requests(reqs, ti));
             }
         }
-        let quit = Chord::key(KeyCode::Char('q'));
-        self.keymap.remove(KeyPhase::Capture, quit);
-        if too_small(cx.viewport()) {
-            self.keymap.add(KeyPhase::Capture, quit, INTERRUPT);
+        for m in msgs {
+            out = out.or(self.dispatch_msg(m));
         }
-        for (character, command) in std::iter::once(&('0', HOME)).chain(ACTIVITY_SHORTCUTS) {
-            let chord = Chord::key(KeyCode::Char(*character));
-            self.keymap.remove(KeyPhase::Capture, chord);
-            if self.route == Route::Activity {
-                self.keymap.add(KeyPhase::Capture, chord, *command);
-            }
-        }
-        for (character, command) in [('q', QUIT), ('?', HELP)] {
-            let chord = Chord::key(KeyCode::Char(character));
-            self.keymap.remove_before_typing(home::QUERY, chord);
-            if self.home.query().is_empty() {
-                self.keymap.add_before_typing(home::QUERY, chord, command);
-            }
-        }
-        let escape = Chord::key(KeyCode::Esc);
-        self.keymap.remove(KeyPhase::Capture, escape);
-        if self.route == Route::Home && self.overlay.is_none() && !self.menu.is_open() {
-            if self.home.scope.is_some() || !self.home.query().is_empty() {
-                self.keymap.add(KeyPhase::Capture, escape, QUERY_ESCAPE);
-            } else {
-                self.keymap.add(KeyPhase::Capture, escape, INTERRUPT);
-            }
-        }
+        out
     }
-    fn set_status(&mut self, message: String) {
-        self.status = Some(message);
-        self.status_until_ms = Some(self.world.now_ms().saturating_add(5_000));
-    }
-    fn plan_event(&mut self, event: plan::Event, cx: &mut Cx<'_>) {
-        match event {
-            plan::Event::Notice(message) => self.set_status(message),
-            plan::Event::Gate => {
-                if let Some(plan) = &self.plan {
-                    let gate = PlanGate::new(&plan.review);
-                    gate.open(cx);
-                    self.overlay = Some(Overlay::Gate(gate));
+
+    fn dispatch_msg(&mut self, m: Msg) -> Outcome {
+        let mut out;
+        match &m {
+            Msg::ActivityEnded { id, ok } => {
+                if let Some(a) = self.world.activity(id) {
+                    let name = a.name.clone();
+                    let exit = a.exit.unwrap_or(0);
+                    if *ok {
+                        self.set_status(&format!("{name} finished · exit 0"), Tone::Secondary);
+                    } else if a.state == ActivityState::Stopped {
+                        self.set_status(&format!("{name} stopped · exit {exit}"), Tone::Secondary);
+                    } else {
+                        self.set_status(&format!("{name} failed · exit {exit}"), Tone::Error);
+                    }
                 }
+                out = Outcome::Changed;
+            }
+            Msg::BatchDone { id, ok } => {
+                let label = self
+                    .world
+                    .batches
+                    .iter()
+                    .find(|b| &b.id == id)
+                    .map(|b| {
+                        let (okn, failed, cancelled, _) = b.tally(&self.world);
+                        format!(
+                            "{} · {okn} ok · {failed} failed · {cancelled} cancelled",
+                            b.label
+                        )
+                    })
+                    .unwrap_or_default();
+                self.set_status(&label, if *ok { Tone::Secondary } else { Tone::Error });
+                out = Outcome::Changed;
+            }
+            Msg::PlanDone { plan } => {
+                if let Some(p) = self.world.plan(plan) {
+                    let (ok, failed, excluded, skipped, never) = p.outcome();
+                    let tone = if failed > 0 {
+                        Tone::Error
+                    } else {
+                        Tone::Secondary
+                    };
+                    let _ = (ok, excluded, skipped, never);
+                    self.set_status(
+                        &if failed > 0 {
+                            format!("{} · {failed} failed", p.title)
+                        } else {
+                            format!("{} finished", p.title)
+                        },
+                        tone,
+                    );
+                }
+                out = Outcome::Changed;
+            }
+            Msg::DiscoveryDone { .. } | Msg::PlanStepEnded { .. } | Msg::ScanDone => {
+                out = Outcome::Changed
             }
         }
+        for ti in 0..self.tabs.len() {
+            let mut cx = Cx {
+                focus: &mut self.focus,
+                ring: &self.ring,
+                requests: vec![],
+            };
+            if let Some(s) = self.tabs[ti].stack.last_mut() {
+                s.on_msg(&m, &mut self.world, &mut cx);
+            }
+            let reqs = std::mem::take(&mut cx.requests);
+            if ti == self.active {
+                out = out.or(self.apply_requests(reqs, ti));
+            }
+        }
+        out
     }
-    fn update_controls(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        // Closed overlays remain scrubbed until their final focus callbacks run.
-        let retired = self
-            .retired_overlay
-            .take()
-            .map_or_else(Response::ignored, |mut overlay| match &mut overlay {
-                Overlay::Dialog(dialog) => dialog.poll(cx).0,
-                Overlay::Gate(gate) => gate.poll(cx).0,
-                Overlay::Clone(picker) => picker.update(cx).0,
-                Overlay::Actions(picker) => picker.update(cx).0,
-            });
-        // Every retained owner receives lifecycle callbacks, regardless of route.
-        // Product activation remains subject to modal, command and route policy.
-        let (home_response, home_action) = self.home.update(&self.world, cx);
-        let (plan_response, plan_event) = self
-            .plan
-            .as_mut()
-            .map_or_else(|| (Response::ignored(), None), |plan| plan.update(cx));
-        let activity_response = self.activities.update(&self.world, cx);
-        let mut menu = menu_bar().update(cx, &mut self.menu);
-        let brand = brand().update(cx);
-        let items = [StatusItem::new("? help").key(ItemKey::text("help"))];
-        let header = header_bar(&items).update(cx);
-        let controls = retired | home_response | plan_response | activity_response;
-        if too_small(cx.viewport()) {
-            let overlay = self
-                .overlay
-                .as_mut()
-                .map_or_else(Response::ignored, |overlay| match overlay {
-                    Overlay::Dialog(dialog) => dialog.poll(cx).0,
-                    Overlay::Gate(gate) => gate.poll(cx).0,
-                    Overlay::Clone(picker) => picker.update(cx).0,
-                    Overlay::Actions(picker) => picker.update(cx).0,
-                });
-            if cx.update_cause() == termrock::UpdateCause::Event && cx.command() == Some(INTERRUPT)
-            {
+
+    fn on_paste(&mut self, text: &str) -> Outcome {
+        if let Some(top) = self.modals.last_mut() {
+            return match &mut top.modal {
+                Modal::Dialog(d) => d.on_paste(text),
+                Modal::Picker(p) => {
+                    // one QueryChanged per paste, never one per grapheme
+                    let (o, ev) = p.on_paste(text);
+                    if top.tag.kind == "files-jump" {
+                        return self.files_jump_event(ev, o);
+                    }
+                    o.or(Outcome::Changed)
+                }
+                _ => Outcome::Consumed,
+            };
+        }
+        let text = text.to_owned();
+        self.with_top(|s, w, cx| s.on_paste(&text, w, cx))
+    }
+
+    fn attached(&self) -> bool {
+        self.top().is_some_and(|s| s.is_editing())
+            && matches!(
+                self.tabs.get(self.active).map(|t| &t.kind),
+                Some(TabKind::Activity(_))
+            )
+    }
+
+    fn on_key(&mut self, key: Key) -> Outcome {
+        if self.too_small {
+            if key.is_char('q') || key.ctrl_char('c') {
                 self.quit = true;
             }
-            return controls
-                | overlay
-                | menu.erase()
-                | brand.erase()
-                | header.erase()
-                | Response::consumed();
+            return Outcome::Consumed;
         }
-        if self.overlay.is_some() {
-            return controls
-                | menu.erase()
-                | brand.erase()
-                | header.erase()
-                | self.update_overlay(cx);
-        }
-        if let Some(command @ (INTERRUPT | QUIT)) = cx
-            .command()
-            .filter(|_| cx.update_cause() == termrock::UpdateCause::Event)
-        {
-            self.command(command, cx);
-            return controls | menu.erase() | brand.erase() | header.erase() | Response::changed();
-        }
-        if let Some(MenuAction::Chosen(command)) = menu.take_action() {
-            self.command(command, cx);
-            return controls | menu.erase() | brand.erase() | header.erase();
+        if !self.modals.is_empty() {
+            return self.modal_key(key);
         }
         if self.menu.is_open() {
-            return controls | menu.erase() | brand.erase() | header.erase();
-        }
-        if let Some(command) = cx
-            .command()
-            .filter(|_| cx.update_cause() == termrock::UpdateCause::Event)
-        {
-            self.command(command, cx);
-            return controls | menu.erase() | brand.erase() | header.erase() | Response::changed();
-        }
-        if brand.activated() {
-            self.open_dialog(dialogs::Intent::About, cx);
-            return controls | menu.erase() | brand.erase() | header.erase();
-        }
-        if matches!(header.action_ref(), Some(StatusAction::Chose(_))) {
-            self.open_dialog(dialogs::Intent::Help, cx);
-            return controls | menu.erase() | brand.erase() | header.erase();
-        }
-        let strip = self.strip_update(cx);
-        match self.route {
-            Route::Home => {
-                if let Some(action) = home_action {
-                    let destination = dispatch::invoke(&mut self.world, &action);
-                    self.destination(destination, cx);
+            let (o, ev) = self.menu.on_key(&key);
+            return match ev {
+                Some(MenuBarEvent::Chosen(mi, ii)) => {
+                    let label = self.menu.menus[mi][ii].label.clone();
+                    self.run_menu(&label)
                 }
+                Some(MenuBarEvent::Brand) => {
+                    self.open_about();
+                    Outcome::Changed
+                }
+                _ => o.or(Outcome::Changed),
+            };
+        }
+        let attached = self.attached();
+        if attached {
+            // an attached program owns the keyboard except for the detach chord
+            if key.ctrl() && matches!(key.code, KeyCode::Char(']') | KeyCode::Char('5')) {
+                return self.with_top(|s, w, cx| s.on_key(&key, w, cx));
             }
-            Route::Plan => {
-                if let Some(event) = plan_event {
-                    self.plan_event(event, cx);
-                }
-            }
-            Route::Activity => {}
-        }
-        controls | menu.erase() | brand.erase() | header.erase() | strip
-    }
-}
-impl termrock::App for App {
-    fn update(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        let mut clock_response = Response::ignored();
-        let synchronized = self.synchronize_feedback(cx, self.world.clock);
-        if !synchronized {
-            clock_response = Response::changed();
-        }
-        if synchronized && self.motion != Motion::Paused {
-            let cadence = self.cadence(cx);
-            let anchor = *self.last_step_at.get_or_insert(cx.now());
-            let due = anchor.saturating_add(std::time::Duration::from_millis(cadence));
-            if cx.update_cause() == termrock::UpdateCause::Tick && cx.now() >= due {
-                // Validate the exact next clock before advancing any discovery state.
-                let mut next_clock = self.world.clock;
-                next_clock.advance(cadence as i64);
-                if self.synchronize_feedback(cx, next_clock) {
-                    let _ = self.world.tick(cadence as i64);
-                    self.last_step_at = Some(cx.now());
-                    if self
-                        .status_until_ms
-                        .is_some_and(|until| self.world.now_ms() >= until)
-                    {
-                        self.status = None;
-                        self.status_until_ms = None;
-                    }
-                }
-                clock_response = Response::changed();
+            let o = self.with_top(|s, w, cx| s.on_key(&key, w, cx));
+            // a key the editing owner does not take (an Alt chord in input
+            // mode) still reaches the shell chords below
+            if o != Outcome::Ignored {
+                return o;
             }
         }
-        let plan_key = self.route == Route::Plan
-            && self.overlay.is_none()
-            && !self.menu.is_open()
-            && !too_small(cx.viewport())
-            && cx.activation_key().is_some();
-        let response = self.update_controls(cx);
-        if plan_key && response.is_consumed() {
-            if matches!(self.overlay, Some(Overlay::Gate(_))) {
-                cx.flash_activation(gate_dialog().input_id());
-            } else if self.overlay.is_none()
-                && !self.menu.is_open()
-                && cx
-                    .state(plan::STEPS)
-                    .contains(termrock::StateFlags::FOCUSED)
-                && let Some(step) = self.plan.as_ref().and_then(PlanState::selected)
+        let typing = self.top().is_some_and(|s| s.typing_hot());
+        // global chords
+        match key.code {
+            KeyCode::F(10) => {
+                self.menu.open_menu(0);
+                return Outcome::Changed;
+            }
+            KeyCode::F(1) => {
+                self.open_help();
+                return Outcome::Changed;
+            }
+            KeyCode::Char('?') if !typing && key.plain() => {
+                self.open_help();
+                return Outcome::Changed;
+            }
+            KeyCode::Char('q') if key.ctrl() => {
+                self.open_quit_confirm();
+                return Outcome::Changed;
+            }
+            KeyCode::Char('c') if key.ctrl() => {
+                self.quit = true;
+                return Outcome::Consumed;
+            }
+            KeyCode::Char('g') if key.ctrl() => {
+                self.open_activities();
+                return Outcome::Changed;
+            }
+            KeyCode::Char('w') if key.ctrl() => {
+                self.go(Go::CloseTab);
+                return Outcome::Changed;
+            }
+            KeyCode::Char(c) if key.alt() && c.is_ascii_digit() => {
+                let n = c as usize - '0' as usize;
+                if n < self.tabs.len() {
+                    self.activate_tab(n);
+                } else {
+                    self.set_status(&format!("No tab {n}"), Tone::Secondary);
+                }
+                return Outcome::Changed;
+            }
+            _ => {}
+        }
+        // the menu bar is a focus stop: ← → move the cursor, Enter opens
+        if self.focus.is(MENU) {
+            let (o, ev) = self.menu.on_key(&key);
+            if let Some(MenuBarEvent::Opened(_)) = ev {
+                return Outcome::Changed;
+            }
+            if o.consumed() {
+                return o;
+            }
+            if key.code == KeyCode::Esc {
+                let pf = self.top().and_then(|s| s.primary_focus());
+                self.focus.set(pf);
+                return Outcome::Changed;
+            }
+        }
+        // the tab strip is a focus stop
+        if self.focus.is(TABS) {
+            let (o, ev) = self.strip.on_key(&key);
+            match ev {
+                Some(TabEvent::Activated(i)) => {
+                    self.activate_tab(i);
+                    self.focus.focus(TABS);
+                    return Outcome::Changed;
+                }
+                Some(TabEvent::Close(i)) => {
+                    self.active = i;
+                    self.go(Go::CloseTab);
+                    return Outcome::Changed;
+                }
+                _ => {}
+            }
+            if o.consumed() {
+                return o;
+            }
+            if key.code == KeyCode::Esc || key.code == KeyCode::Enter {
+                let pf = self.top().and_then(|s| s.primary_focus());
+                self.focus.set(pf);
+                return Outcome::Changed;
+            }
+        }
+        let out = self.with_top(|s, w, cx| s.on_key(&key, w, cx));
+        if out.consumed() {
+            if matches!(key.code, KeyCode::Enter | KeyCode::Char(' '))
+                && key.plain()
+                && !typing
+                && let Some(f) = self.focus.current()
             {
-                cx.flash_activation_part(
-                    plan::STEPS,
-                    PartRef::item(Part::ROW, ItemKey::text(&step.id)),
+                self.flash = Some((f, self.world.now_ms() + 140));
+            }
+            return out;
+        }
+        match key.code {
+            KeyCode::Tab => {
+                self.focus.next(&self.ring);
+                Outcome::Changed
+            }
+            KeyCode::BackTab => {
+                self.focus.prev(&self.ring);
+                Outcome::Changed
+            }
+            KeyCode::Esc => {
+                if self.active != 0 {
+                    self.activate_tab(0);
+                    return Outcome::Changed;
+                }
+                self.with_top(|s, w, cx| s.on_esc_top(w, cx))
+            }
+            _ => Outcome::Ignored,
+        }
+    }
+
+    // ------------------------------------------------------------- menus
+
+    fn build_menu() -> MenuBar {
+        let file = vec![
+            MenuItem::new("Run").shortcut("Enter"),
+            MenuItem::new("Alternatives…").shortcut("Alt+Enter"),
+            MenuItem::new("Copy command").separator(),
+            MenuItem::new("Close tab").shortcut("Ctrl+W").separator(),
+            MenuItem::new("Quit").shortcut("Ctrl+Q"),
+        ];
+        let go = vec![
+            MenuItem::new("Here").shortcut("Alt+0"),
+            MenuItem::new("Activities…").shortcut("Ctrl+G").separator(),
+            MenuItem::new("Parent scope").shortcut("Ctrl+↑"),
+            MenuItem::new("Children scope").shortcut("Ctrl+↓"),
+            MenuItem::new("System scope").separator(),
+            MenuItem::new("Tasks"),
+            MenuItem::new("Git"),
+            MenuItem::new("Files"),
+            MenuItem::new("Disk"),
+            MenuItem::new("Services"),
+            MenuItem::new("System"),
+        ];
+        let help = vec![
+            MenuItem::new("Key reference").shortcut("F1"),
+            MenuItem::new("Why is this here?"),
+            MenuItem::new("About holla"),
+        ];
+        MenuBar::new(MENU, vec![("File", file), ("Go", go), ("Help", help)])
+            .brand(Lockup::new(BRAND_MARK))
+    }
+
+    fn run_menu(&mut self, label: &str) -> Outcome {
+        let key = |code: KeyCode, mods: KeyModifiers| Input::Key(Key { code, mods });
+        match label {
+            "Run" => return self.handle(key(KeyCode::Enter, KeyModifiers::NONE)),
+            "Alternatives…" => return self.handle(key(KeyCode::Enter, KeyModifiers::ALT)),
+            "Copy command" => {
+                let cmd = self
+                    .current_item()
+                    .map(|i| i.commands.join("\n"))
+                    .unwrap_or_default();
+                if cmd.is_empty() {
+                    self.set_status("Nothing to copy here", Tone::Secondary);
+                } else {
+                    self.copy(cmd);
+                }
+            }
+            "Close tab" => self.go(Go::CloseTab),
+            "Quit" => self.open_quit_confirm(),
+            "Here" => self.activate_tab(0),
+            "Activities…" => self.open_activities(),
+            "Parent scope" => self.go(Go::Scope(Scope::Parent)),
+            "Children scope" => self.go(Go::Scope(Scope::Children)),
+            "System scope" => self.go(Go::Scope(Scope::System)),
+            "Tasks" | "Git" | "Files" | "Disk" | "Services" | "System" => {
+                let g: &'static str = match label {
+                    "Tasks" => "Tasks",
+                    "Git" => "Git",
+                    "Files" => "Files",
+                    "Disk" => "Disk",
+                    "Services" => "Services",
+                    _ => "System",
+                };
+                self.activate_tab(0);
+                self.push_page(Page::Finder { group: Some(g) });
+            }
+            "Key reference" => self.open_help(),
+            "Why is this here?" => self.open_why(),
+            "About holla" => self.open_about(),
+            _ => self.set_status(
+                &format!("{label}: not available in the preview"),
+                Tone::Secondary,
+            ),
+        }
+        Outcome::Changed
+    }
+
+    fn current_item(&mut self) -> Option<Item> {
+        if self.active != 0 {
+            return None;
+        }
+        let id = self.finder_page_current_id()?;
+        self.world.items().into_iter().find(|i| i.id == id)
+    }
+
+    fn finder_page_current_id(&mut self) -> Option<String> {
+        self.tabs[0].stack.last_mut()?.as_finder()?.current_id()
+    }
+
+    fn open_about(&mut self) {
+        let lines = vec![
+            TextLine::kv("Product", "holla · this folder, this host, right now"),
+            TextLine::kv("Scenario", self.world.scenario.name()),
+            TextLine::kv(
+                "Simulation",
+                "mise, git, gh, docker, btm, pg_activity, ssh and the filesystem are in-memory fixtures · no stack command is ever executed",
+            ),
+            TextLine::kv(
+                "Design system",
+                "Junie TUI (junie_tui) · one accent, state as geometry, one hint bar",
+            ),
+            TextLine::kv(
+                "Model",
+                "a tab is something that runs · a page is something you are deciding",
+            ),
+        ];
+        let m = TextModal::new(WidgetId::of("about"), "About holla❯", lines).width(70);
+        self.push_modal(Modal::Text(m), ModalTag::new("about"));
+    }
+
+    fn open_help(&mut self) {
+        let kind = self
+            .tabs
+            .get(self.active)
+            .map(|t| t.kind.clone())
+            .unwrap_or(TabKind::Here);
+        let mut lines = vec![];
+        let mut section = |title: &str, rows: &[(&str, &str)]| {
+            lines.push(TextLine::heading(title));
+            for (k, v) in rows {
+                lines.push(TextLine::kv(k, v));
+            }
+            lines.push(TextLine::blank());
+        };
+        match kind {
+            TabKind::Here => {
+                section(
+                    "Finder",
+                    &[
+                        (
+                            "Type",
+                            "search actions and resources together · @parent @children @system @all narrow the scope",
+                        ),
+                        ("↑↓", "move · PgUp PgDn Home End"),
+                        (
+                            "Enter",
+                            "primary action · destructive rows open a review instead",
+                        ),
+                        (
+                            "Alt+Enter",
+                            "alternatives · run, copy, insert, arguments, pin, alias, hide, why",
+                        ),
+                        ("Tab", "preview › tab strip › finder"),
+                        (
+                            "Ctrl+↑ / Ctrl+↓",
+                            "scope outward (parent, system) / inward (children)",
+                        ),
+                        (
+                            "Esc",
+                            "clear query › scope back to here › back a page › quit",
+                        ),
+                        (
+                            "Aliases",
+                            "gp pull · du disk usage · test the test task here · d then u · dc docker cleanup",
+                        ),
+                    ],
+                );
+                section(
+                    "Pages",
+                    &[
+                        (
+                            "Disk",
+                            "↑↓ move · Space select · a all · Enter drill · c cleanup plan · p details",
+                        ),
+                        (
+                            "Plan review",
+                            "Space include or exclude · u undo · Enter step facts · c confirm",
+                        ),
+                        (
+                            "Gates",
+                            "Gate 1 reviews facts and the full sequence · Gate 2 types the target-bound phrase",
+                        ),
+                    ],
+                );
+            }
+            TabKind::Activity(_) => {
+                section(
+                    "Activity",
+                    &[
+                        ("↑↓ PgUp PgDn", "scroll · f follow tail · y copy selection"),
+                        ("s", "stop · r restart · x close tab"),
+                        (
+                            "Enter / i",
+                            "attach to an interactive program · Ctrl+] detaches",
+                        ),
+                        ("1–9", "show or hide a merged log stream"),
+                        ("Esc", "back to Here · the activity keeps running"),
+                    ],
+                );
+            }
+            TabKind::Plan(_) => {
+                section(
+                    "Plan",
+                    &[
+                        ("↑↓", "select a step · Enter maximise its output · f follow"),
+                        ("r", "retry the failed step · k skip an optional failure"),
+                        ("Ctrl+C", "cancel the remaining work"),
+                        ("Esc", "back to Here · the plan keeps running"),
+                    ],
                 );
             }
         }
-        self.refresh_query_bindings(cx);
-        if self.motion != Motion::Paused
-            && let Some(anchor) = self.last_step_at
-        {
-            cx.request_repaint_at(
-                anchor.saturating_add(std::time::Duration::from_millis(self.cadence(cx))),
-            );
-        }
-        clock_response | response
+        section(
+            "Everywhere",
+            &[
+                ("F10", "menu bar · F1 this reference"),
+                (
+                    "Ctrl+G",
+                    "activities · Alt+0 Here · Alt+1–9 tabs · Ctrl+W close tab",
+                ),
+                ("Ctrl+Q", "quit with confirmation · Ctrl+C quit now"),
+                (
+                    "Mouse",
+                    "click selects · double-click runs · right-click alternatives · wheel scrolls under the pointer",
+                ),
+            ],
+        );
+        let m = TextModal::new(WidgetId::of("help"), "Key reference", lines)
+            .subtitle(&self.crumb())
+            .width(78);
+        self.push_modal(Modal::Text(m), ModalTag::new("help"));
     }
-    fn draw(&self, ui: &mut Ui<'_>) {
-        let area = ui.full();
-        let base = ui.surface_style();
-        ui.fill(area, base);
-        if too_small(area) {
-            TooSmall::new(Id::root("holla.too-small"), "holla❯")
-                .minimum(MIN_WIDTH, MIN_HEIGHT)
-                .draw(ui, area);
+
+    fn open_why(&mut self) {
+        let Some(it) = self.current_item() else {
+            self.set_status("Select a row first", Tone::Secondary);
+            return;
+        };
+        let cwd = self.world.location.cwd_short();
+        let rows = holla_domain::ranking::explain(&it, &cwd);
+        let mut lines: Vec<TextLine> = rows.iter().map(|(k, v)| TextLine::kv(k, v)).collect();
+        lines.push(TextLine::blank());
+        lines.push(TextLine::text("Ranking order: alias › pin › live state › context › query › used here › used anywhere › default. Risk changes the gate, never the rank.", Tone::Muted));
+        let m = TextModal::new(
+            WidgetId::of("why"),
+            &format!("Why is “{}” here?", it.label),
+            lines,
+        )
+        .width(74);
+        self.push_modal(Modal::Text(m), ModalTag::new("why"));
+    }
+
+    fn open_quit_confirm(&mut self) {
+        let n = self.world.live_activities();
+        let cleanup = self
+            .world
+            .cleanup_job
+            .as_ref()
+            .map(|j| (j.exec.completed(), j.exec.total()));
+        let body = match (n, cleanup) {
+            (0, None) => "Nothing is running.".to_owned(),
+            (n, None) => format!(
+                "{} still running. Quitting stops what holla started; detached monitors keep running.",
+                crate::screens::plural(n, "activity is", "activities are")
+            ),
+            (0, Some((k, t))) => format!(
+                "A cleanup is running ({k} of {t} items). Committed deletions cannot be stopped; leaving waits for the rest, then quits."
+            ),
+            (n, Some((k, t))) => format!(
+                "{} still running and a cleanup is at {k} of {t} items. Quitting stops the activities and waits for the cleanup to settle.",
+                crate::screens::plural(n, "activity is", "activities are")
+            ),
+        };
+        // leaving a remote box says which box
+        let title = if self.world.host.remote {
+            format!("Quit holla❯ on {}?", self.world.host.name)
+        } else {
+            "Quit holla❯?".to_owned()
+        };
+        let body = if self.world.host.remote {
+            format!(
+                "◆ {} · {} · over SSH. {body}",
+                self.world.host.name,
+                self.world.host.role.label()
+            )
+        } else {
+            body
+        };
+        let d = if n > 0 {
+            Dialog::destructive(WidgetId::of("quit"), &title, &body, "Stop and quit")
+        } else if cleanup.is_some() {
+            Dialog::destructive(WidgetId::of("quit"), &title, &body, "Leave when it settles")
+        } else {
+            Dialog::confirm(WidgetId::of("quit"), &title, &body, "Quit")
+        };
+        self.push_modal(Modal::Dialog(d), ModalTag::new("quit"));
+    }
+
+    fn activity_picker_items(&self) -> Vec<PickerItem> {
+        let mut v = vec![];
+        for a in &self.world.activities {
+            let glyph = match a.state {
+                ActivityState::Running | ActivityState::Queued => "⠋",
+                ActivityState::Cancelling => "◐",
+                ActivityState::Succeeded => "✓",
+                ActivityState::Failed => "!",
+                ActivityState::Stopped | ActivityState::Detached => "○",
+            };
+            let mut detail = format!(
+                "{} · {} · {}",
+                a.state.label(),
+                a.scope.word,
+                crate::screens::ticks_label(a.duration_ticks(self.world.tick))
+            );
+            if a.waiting.is_some() {
+                detail = format!("{detail} · waiting for input");
+            }
+            v.push(PickerItem {
+                label: a.name.clone(),
+                detail,
+                glyph,
+                group: "activities",
+                tag: a
+                    .waiting
+                    .as_ref()
+                    .map(|p| if p.secret { "password" } else { "input" }),
+                matched: vec![],
+                disabled: false,
+                key: a.id.clone(),
+            });
+        }
+        for p in &self.world.plans {
+            if p.phase != PlanPhase::Review {
+                let (ok, failed, ..) = p.outcome();
+                v.push(PickerItem {
+                    label: p.title.clone(),
+                    detail: format!(
+                        "plan · {} · {ok} done · {failed} failed",
+                        if p.phase == PlanPhase::Done {
+                            "finished"
+                        } else {
+                            "running"
+                        }
+                    ),
+                    glyph: if p.phase == PlanPhase::Done {
+                        if failed > 0 { "!" } else { "✓" }
+                    } else {
+                        "⠋"
+                    },
+                    group: "plans",
+                    tag: None,
+                    matched: vec![],
+                    disabled: false,
+                    key: format!("plan:{}", p.id),
+                });
+            }
+        }
+        v
+    }
+
+    fn open_activities(&mut self) {
+        let items = self.activity_picker_items();
+        let mut p = Picker::new(WidgetId::of("activities"), "Activities");
+        p.searchable = false;
+        p.width = 70;
+        p.empty_text = "Nothing has been started yet".into();
+        p.scope = Some(format!("{} live", self.world.live_activities()));
+        p.set_items(items);
+        self.push_modal(Modal::Picker(p), ModalTag::new("activities"));
+    }
+
+    // ------------------------------------------------------------ modals
+
+    fn push_modal(&mut self, modal: Modal, tag: ModalTag) {
+        let initial = match &modal {
+            Modal::Dialog(d) => Some(d.initial_focus),
+            Modal::Picker(p) => Some(p.id),
+            Modal::Menu(m) => Some(m.id),
+            Modal::Text(t) => Some(t.id),
+        };
+        self.modals.push(ModalEntry {
+            modal,
+            tag,
+            owner: self.active,
+            saved_focus: self.focus.current(),
+        });
+        self.focus.set(initial);
+        self.hover = None;
+        self.pressed = None;
+    }
+
+    fn pop_modal(&mut self) -> Option<ModalEntry> {
+        let e = self.modals.pop();
+        if let Some(e) = &e {
+            self.focus.set(e.saved_focus);
+        }
+        e
+    }
+
+    fn deliver(&mut self, entry: ModalEntry, result: ModalResult) -> Outcome {
+        let owner = entry.owner;
+        let tag = entry.tag.clone();
+        // shell-owned dialogs first
+        match tag.kind {
+            "quit" => {
+                if let ModalResult::Dialog {
+                    action: Some(1), ..
+                } = result
+                {
+                    let n = self.world.stop_all();
+                    if n == 0 && self.world.cleanup_job.is_none() {
+                        self.quit = true;
+                    } else if n == 0 {
+                        self.quitting = true;
+                        self.set_status(
+                            "leaving when the cleanup settles · its report and log land first",
+                            Tone::Secondary,
+                        );
+                    } else {
+                        self.quitting = true;
+                        self.set_status(
+                            &format!(
+                                "stopping {} · quitting when every process is gone",
+                                crate::screens::plural(n, "activity", "activities")
+                            ),
+                            Tone::Secondary,
+                        );
+                    }
+                }
+                return Outcome::Changed;
+            }
+            "confirm-one" => {
+                if let ModalResult::Dialog {
+                    action: Some(1), ..
+                } = result
+                    && let Some((item, args)) = self.pending_confirm.take()
+                {
+                    self.execute_item(&item, args);
+                } else {
+                    self.pending_confirm = None;
+                    self.set_status("Cancelled · nothing was executed", Tone::Secondary);
+                }
+                return Outcome::Changed;
+            }
+            "gate2" => {
+                if let ModalResult::Dialog {
+                    action: Some(1), ..
+                } = result
+                {
+                    self.gate2_confirmed();
+                } else {
+                    self.set_status("Cancelled · nothing was executed", Tone::Secondary);
+                }
+                return Outcome::Changed;
+            }
+            "alias" => {
+                if let ModalResult::Dialog {
+                    action: Some(1),
+                    text: Some(t),
+                } = result
+                {
+                    let alias = t.trim().to_owned();
+                    if alias.is_empty() {
+                        self.set_status("No alias set: the field was empty", Tone::Secondary);
+                    } else {
+                        self.world.memory.set_alias(&alias, &tag.key);
+                        self.set_status(
+                            &format!("Alias {alias} set · it beats learned ranking from now on"),
+                            Tone::Secondary,
+                        );
+                    }
+                }
+                return Outcome::Changed;
+            }
+            "activities" => {
+                if let ModalResult::Picked(i) = result {
+                    // the row's identity, never its index: rows refresh
+                    // while the picker is open
+                    let key = match &entry.modal {
+                        Modal::Picker(p) => p.items.get(i).map(|it| it.key.clone()),
+                        _ => None,
+                    };
+                    match key.as_deref() {
+                        Some(k) if k.starts_with("plan:") => {
+                            let pid = k.trim_start_matches("plan:").to_owned();
+                            if self.world.plan(&pid).is_some() {
+                                self.open_plan_tab(&pid);
+                            } else {
+                                self.set_status("That plan is gone", Tone::Secondary);
+                            }
+                        }
+                        Some(k) if self.world.activity(k).is_some() => {
+                            let id = k.to_owned();
+                            self.open_activity_tab(&id, true);
+                        }
+                        _ => self.set_status("That activity is gone", Tone::Secondary),
+                    }
+                }
+                return Outcome::Changed;
+            }
+            "alternatives" => {
+                if let ModalResult::MenuChosen(i) = result {
+                    let action = self.menu_actions.get(i).cloned();
+                    if let Some(a) = action {
+                        self.menu_action(a, &tag.key);
+                    }
+                }
+                return Outcome::Changed;
+            }
+            "close-tab" => {
+                if let ModalResult::Dialog {
+                    action: Some(1), ..
+                } = result
+                {
+                    self.close_tab(self.active, true);
+                }
+                return Outcome::Changed;
+            }
+            _ => {}
+        }
+        let mut cx = Cx {
+            focus: &mut self.focus,
+            ring: &self.ring,
+            requests: vec![],
+        };
+        let o = match self.tabs.get_mut(owner).and_then(|t| t.stack.last_mut()) {
+            Some(s) => s.on_modal(&tag, result, &mut self.world, &mut cx),
+            None => Outcome::Changed,
+        };
+        let reqs = std::mem::take(&mut cx.requests);
+        o.or(self.apply_requests(reqs, owner)).or(Outcome::Changed)
+    }
+
+    fn modal_key(&mut self, key: Key) -> Outcome {
+        let Some(top) = self.modals.last_mut() else {
+            return Outcome::Ignored;
+        };
+        match &mut top.modal {
+            Modal::Dialog(d) => {
+                let out = d.on_key(&key, &mut self.focus, &self.ring);
+                if let Some(result) = d.result {
+                    let text = match &d.body {
+                        DialogBody::Input(i) => Some(i.text().to_owned()),
+                        _ => None,
+                    };
+                    let action = match result {
+                        DialogResult::Action(i) => Some(i),
+                        DialogResult::Cancelled => None,
+                    };
+                    let entry = self.pop_modal().unwrap();
+                    return self.deliver(entry, ModalResult::Dialog { action, text });
+                }
+                out.or(Outcome::Consumed)
+            }
+            Modal::Picker(p) => {
+                let (o, ev) = p.on_key(&key);
+                if top.tag.kind == "files-jump" {
+                    return self.files_jump_event(ev, o);
+                }
+                match ev {
+                    Some(PickerEvent::Chosen(i)) | Some(PickerEvent::ChosenAlt(i)) => {
+                        let entry = self.pop_modal().unwrap();
+                        self.deliver(entry, ModalResult::Picked(i))
+                    }
+                    Some(PickerEvent::Cancelled) => {
+                        let entry = self.pop_modal().unwrap();
+                        self.deliver(entry, ModalResult::Cancelled)
+                    }
+                    _ => o.or(Outcome::Consumed),
+                }
+            }
+            Modal::Menu(m) => {
+                let (o, ev) = m.on_key(&key);
+                match ev {
+                    Some(MenuEvent::Chosen(i)) => {
+                        let entry = self.pop_modal().unwrap();
+                        self.deliver(entry, ModalResult::MenuChosen(i))
+                    }
+                    Some(MenuEvent::Dismissed) => {
+                        let entry = self.pop_modal().unwrap();
+                        self.deliver(entry, ModalResult::Cancelled)
+                    }
+                    None => o.or(Outcome::Consumed),
+                }
+            }
+            Modal::Text(t) => {
+                let o = t.on_key(&key);
+                if t.closed {
+                    let entry = self.pop_modal().unwrap();
+                    return self.deliver(entry, ModalResult::Closed);
+                }
+                o.or(Outcome::Consumed)
+            }
+        }
+    }
+
+    /// The jump picker (HP04): the query re-supplies suggestions, Enter
+    /// resolves an exact path over the selected suggestion, and a failed
+    /// jump keeps the picker open with the error in its status row.
+    fn files_jump_event(&mut self, ev: Option<PickerEvent>, o: Outcome) -> Outcome {
+        let active = self.active;
+        let query = match self.modals.last() {
+            Some(ModalEntry {
+                modal: Modal::Picker(p),
+                ..
+            }) => p.query.clone(),
+            _ => return o.or(Outcome::Consumed),
+        };
+        match ev {
+            Some(PickerEvent::QueryChanged) | Some(PickerEvent::Back) => {
+                let rows = self
+                    .tabs
+                    .get_mut(active)
+                    .and_then(|t| t.stack.last_mut())
+                    .and_then(|s| s.as_files())
+                    .map(|f| {
+                        f.set_jump_error(None);
+                        f.jump_rows(&query, &self.world)
+                    });
+                if let Some((items, status)) = rows
+                    && let Some(ModalEntry {
+                        modal: Modal::Picker(p),
+                        ..
+                    }) = self.modals.last_mut()
+                {
+                    p.refresh_items(items);
+                    p.status = status;
+                }
+                Outcome::Changed
+            }
+            Some(PickerEvent::Chosen(_))
+            | Some(PickerEvent::ChosenAlt(_))
+            | Some(PickerEvent::Submit) => {
+                // Submit: a typed path with no suggestion resolves on its own
+                let selected = match (&ev, self.modals.last()) {
+                    (Some(PickerEvent::Submit), _) => None,
+                    (
+                        _,
+                        Some(ModalEntry {
+                            modal: Modal::Picker(p),
+                            ..
+                        }),
+                    ) => p.current_key().map(str::to_owned),
+                    _ => None,
+                };
+                let mut cx = Cx {
+                    focus: &mut self.focus,
+                    ring: &self.ring,
+                    requests: vec![],
+                };
+                let outcome = self
+                    .tabs
+                    .get_mut(active)
+                    .and_then(|t| t.stack.last_mut())
+                    .and_then(|s| s.as_files())
+                    .map(
+                        |f| match f.jump_target(&query, selected.as_deref(), &self.world) {
+                            None => Err("Type a path or choose a suggestion".to_owned()),
+                            Some(target) => f
+                                .perform_jump(&target, &self.world, &mut cx)
+                                .map(|_| target),
+                        },
+                    );
+                let requests = std::mem::take(&mut cx.requests);
+                match outcome {
+                    Some(Ok(target)) => {
+                        self.pop_modal();
+                        let short = self.world.location.short(&target);
+                        self.set_status(&format!("Jumped to {short}"), Tone::Secondary);
+                        self.apply_requests(requests, active);
+                    }
+                    Some(Err(e)) => {
+                        let rows = self
+                            .tabs
+                            .get_mut(active)
+                            .and_then(|t| t.stack.last_mut())
+                            .and_then(|s| s.as_files())
+                            .map(|f| {
+                                f.set_jump_error(Some(e.clone()));
+                                f.jump_rows(&query, &self.world)
+                            });
+                        if let Some((items, status)) = rows
+                            && let Some(ModalEntry {
+                                modal: Modal::Picker(p),
+                                ..
+                            }) = self.modals.last_mut()
+                        {
+                            p.refresh_items(items);
+                            p.status = status;
+                        }
+                    }
+                    None => {
+                        self.pop_modal();
+                    }
+                }
+                Outcome::Changed
+            }
+            Some(PickerEvent::Cancelled) => {
+                self.pop_modal();
+                Outcome::Changed
+            }
+            _ => o.or(Outcome::Consumed),
+        }
+    }
+
+    fn modal_click(&mut self, id: WidgetId, pos: Position) -> Outcome {
+        let Some(top) = self.modals.last_mut() else {
+            return Outcome::Ignored;
+        };
+        match &mut top.modal {
+            Modal::Dialog(d) => {
+                let out = d.on_click(id, pos, &mut self.focus);
+                if let Some(result) = d.result {
+                    let text = match &d.body {
+                        DialogBody::Input(i) => Some(i.text().to_owned()),
+                        _ => None,
+                    };
+                    let action = match result {
+                        DialogResult::Action(i) => Some(i),
+                        DialogResult::Cancelled => None,
+                    };
+                    let entry = self.pop_modal().unwrap();
+                    return self.deliver(entry, ModalResult::Dialog { action, text });
+                }
+                out.or(Outcome::Changed)
+            }
+            Modal::Picker(p) => {
+                let ev = p.on_click(id);
+                if top.tag.kind == "files-jump" {
+                    return self.files_jump_event(ev, Outcome::Changed);
+                }
+                if let Some(PickerEvent::Chosen(i)) = ev {
+                    let entry = self.pop_modal().unwrap();
+                    return self.deliver(entry, ModalResult::Picked(i));
+                }
+                Outcome::Changed
+            }
+            Modal::Menu(m) => match m.on_click(id) {
+                Some(MenuEvent::Chosen(i)) => {
+                    let entry = self.pop_modal().unwrap();
+                    self.deliver(entry, ModalResult::MenuChosen(i))
+                }
+                Some(MenuEvent::Dismissed) => {
+                    let entry = self.pop_modal().unwrap();
+                    self.deliver(entry, ModalResult::Cancelled)
+                }
+                None => Outcome::Changed,
+            },
+            Modal::Text(t) => {
+                if id == crate::tui::widgets::scrollbar::id_for(t.id) {
+                    return t.on_scrollbar(pos);
+                }
+                Outcome::Changed
+            }
+        }
+    }
+
+    fn modal_outside_click(&mut self) -> Outcome {
+        let Some(top) = self.modals.last_mut() else {
+            return Outcome::Ignored;
+        };
+        match &mut top.modal {
+            Modal::Dialog(d) => {
+                if matches!(d.body, DialogBody::Facts { ack: Some(_), .. }) {
+                    return Outcome::Consumed;
+                }
+                let out = d.on_click_outside();
+                if let Some(result) = d.result {
+                    let action = match result {
+                        DialogResult::Action(i) => Some(i),
+                        DialogResult::Cancelled => None,
+                    };
+                    let entry = self.pop_modal().unwrap();
+                    return self.deliver(entry, ModalResult::Dialog { action, text: None });
+                }
+                out
+            }
+            Modal::Picker(_) | Modal::Menu(_) | Modal::Text(_) => {
+                let entry = self.pop_modal().unwrap();
+                self.deliver(entry, ModalResult::Cancelled)
+            }
+        }
+    }
+
+    // ------------------------------------------------------------- mouse
+
+    fn on_mouse(&mut self, m: Mouse) -> Outcome {
+        match m.kind {
+            MouseKind::Move => {
+                let was = self.hover;
+                let suppressed = self.hover_suppressed;
+                self.hover_suppressed = false;
+                self.hover = self.hits.hit(m.pos);
+                if self.menu.is_open() {
+                    self.menu.on_hover(self.hover);
+                }
+                if self.hover != was || suppressed {
+                    Outcome::Changed
+                } else {
+                    Outcome::Ignored
+                }
+            }
+            MouseKind::Drag => {
+                self.hover = self.hits.hit(m.pos);
+                let Some(pressed) = self.pressed else {
+                    return Outcome::Ignored;
+                };
+                if !self.modals.is_empty() {
+                    if let Some(Modal::Text(t)) = self.modals.last_mut().map(|m| &mut m.modal)
+                        && pressed == crate::tui::widgets::scrollbar::id_for(t.id)
+                    {
+                        return t.on_scrollbar_drag(m.pos);
+                    }
+                    return Outcome::Consumed;
+                }
+                self.with_top(|s, w, _| s.on_drag(pressed, m.pos, w))
+            }
+            MouseKind::Down => {
+                let hit = self.hits.hit(m.pos);
+                self.pressed = hit;
+                self.hover = hit;
+                let Some(id) = hit else {
+                    return if self.modals.is_empty() {
+                        Outcome::Ignored
+                    } else {
+                        Outcome::Consumed
+                    };
+                };
+                if self.modals.is_empty() && self.ring.contains(id) {
+                    self.focus.focus(id);
+                }
+                if self.modals.is_empty() {
+                    self.with_top(|s, w, _| s.on_press(id, m.pos, w));
+                }
+                Outcome::Changed
+            }
+            MouseKind::Up => {
+                let hit = self.hits.hit(m.pos);
+                let pressed = self.pressed.take();
+                let Some(id) = hit else {
+                    if !self.modals.is_empty() && pressed.is_none() {
+                        return self.modal_outside_click();
+                    }
+                    if self.menu.is_open() {
+                        self.menu.close();
+                    }
+                    return Outcome::Changed;
+                };
+                if pressed != Some(id) {
+                    return Outcome::Changed;
+                }
+                self.flash = Some((id, self.world.now_ms() + 140));
+                let double = self
+                    .last_click
+                    .take()
+                    .is_some_and(|(lid, at)| lid == id && self.world.now_ms() - at < 500);
+                self.last_click = Some((id, self.world.now_ms()));
+                if !self.modals.is_empty() {
+                    return self.modal_click(id, m.pos);
+                }
+                if self.menu.owns(id) {
+                    let (o, ev) = self.menu.on_click(id);
+                    return match ev {
+                        Some(MenuBarEvent::Chosen(mi, ii)) => {
+                            let label = self.menu.menus[mi][ii].label.clone();
+                            self.run_menu(&label)
+                        }
+                        Some(MenuBarEvent::Brand) => {
+                            self.open_about();
+                            Outcome::Changed
+                        }
+                        _ => o.or(Outcome::Changed),
+                    };
+                }
+                if self.menu.is_open() {
+                    self.menu.close();
+                    return Outcome::Changed;
+                }
+                if self.strip.owns(id) {
+                    let (_, ev) = self.strip.on_click(id);
+                    match ev {
+                        Some(TabEvent::Activated(i)) => self.activate_tab(i),
+                        Some(TabEvent::Close(i)) => {
+                            self.active = i;
+                            self.go(Go::CloseTab);
+                        }
+                        _ => {}
+                    }
+                    return Outcome::Changed;
+                }
+                if id == STATUS_RUNNING {
+                    self.open_activities();
+                    return Outcome::Changed;
+                }
+                if id == STATUS_PATH {
+                    let p = self.world.location.cwd.clone();
+                    self.copy(p);
+                    return Outcome::Changed;
+                }
+                if id == STATUS_GIT {
+                    self.go(Go::Run {
+                        item: "git.status".into(),
+                        args: vec![],
+                    });
+                    return Outcome::Changed;
+                }
+                let o = self.with_top(|s, w, cx| {
+                    if double {
+                        let d = s.on_double_click(id, m.pos, w, cx);
+                        if d.consumed() {
+                            return d;
+                        }
+                    }
+                    s.on_click(id, m.pos, w, cx)
+                });
+                o.or(Outcome::Changed)
+            }
+            MouseKind::Secondary => {
+                let hit = self.hits.hit(m.pos);
+                self.hover = hit;
+                if !self.modals.is_empty() {
+                    return Outcome::Consumed;
+                }
+                let Some(id) = hit else {
+                    return Outcome::Ignored;
+                };
+                self.with_top(|s, w, cx| s.on_secondary(id, m.pos, w, cx))
+            }
+            MouseKind::WheelUp
+            | MouseKind::WheelDown
+            | MouseKind::WheelLeft
+            | MouseKind::WheelRight => {
+                let delta = match m.kind {
+                    MouseKind::WheelUp | MouseKind::WheelLeft => -3,
+                    _ => 3,
+                };
+                if let Some(top) = self.modals.last_mut() {
+                    return match &mut top.modal {
+                        Modal::Picker(p) => p.on_wheel(delta),
+                        Modal::Text(t) => t.on_wheel(delta),
+                        _ => Outcome::Consumed,
+                    };
+                }
+                let Some(id) = self.hits.hit_scroll(m.pos) else {
+                    return Outcome::Ignored;
+                };
+                self.with_top(|s, w, _| s.on_wheel(id, delta, m.pos, w))
+            }
+        }
+    }
+
+    // ----------------------------------------------------------- requests
+
+    fn apply_requests(&mut self, requests: Vec<Request>, _owner: usize) -> Outcome {
+        let mut out = Outcome::Ignored;
+        for r in requests {
+            out = Outcome::Changed;
+            match r {
+                Request::Status(s) => self.set_status(&s, Tone::Secondary),
+                Request::Error(s) => self.set_status(&s, Tone::Error),
+                Request::Open(m, tag) => self.push_modal(*m, tag),
+                Request::Go(g) => self.go(g),
+                Request::Copy(s) => self.copy(s),
+            }
+        }
+        out
+    }
+
+    fn copy(&mut self, s: String) {
+        let shown = truncate(&s.replace('\n', " · "), 48);
+        self.world.clipboard = Some(s);
+        self.clipboard_gen += 1;
+        self.set_status(&format!("Copied {shown}"), Tone::Secondary);
+    }
+
+    pub fn go(&mut self, g: Go) {
+        match g {
+            Go::Run { item, args } => {
+                self.last_query = self
+                    .tabs
+                    .first_mut()
+                    .and_then(|t| t.stack.first_mut())
+                    .and_then(|s| s.as_finder())
+                    .map(|f| f.query.clone())
+                    .filter(|q| !q.trim().is_empty());
+                self.run_item(&item, args)
+            }
+            Go::Alternatives { item, anchor } => self.open_alternatives(&item, anchor),
+            Go::Push(page) => {
+                self.activate_tab(0);
+                self.push_page(page);
+            }
+            Go::Pop => self.pop_page(),
+            Go::Here => self.activate_tab(0),
+            Go::Scope(s) => {
+                self.activate_tab(0);
+                // scope lives on the root finder; domain pages pop back to it
+                while self.tabs[0].stack.len() > 1 {
+                    self.tabs[0].stack.pop();
+                }
+                if let Some(f) = self.finder_mut() {
+                    f.set_scope(s);
+                }
+                self.enter_top();
+                let loc = &self.world.location;
+                let word = match s {
+                    Scope::Here => format!("here · {}", loc.cwd_short()),
+                    Scope::Parent => match &loc.workspace {
+                        Some(p) => format!("parent · {}", loc.short(&p.root)),
+                        None => "parent · no root above".to_owned(),
+                    },
+                    Scope::Children => format!(
+                        "children · {}",
+                        crate::screens::plural(loc.children.len(), "project", "projects")
+                    ),
+                    Scope::System => format!("system · {}", self.world.host.name),
+                };
+                self.set_status(&format!("Scope {word}"), Tone::Secondary);
+            }
+            Go::ConfirmPlan(id) => self.confirm_plan(&id),
+            Go::Gate1Accepted(target) => self.open_gate2(target),
+            Go::Trusted { config, then } => {
+                let custom = self
+                    .world
+                    .custom_project
+                    .as_ref()
+                    .filter(|c| c.path == config)
+                    .cloned();
+                if let Some(cfg) = custom {
+                    // the file is re-read at approval: an edit during review
+                    // revokes the review instead of trusting unseen bytes
+                    let now_text = match self.world.fs.get(&cfg.path).map(|n| &n.content) {
+                        Some(holla_sim::fs::Content::Text(t)) => t.clone(),
+                        _ => String::new(),
+                    };
+                    let now_digest = holla_domain::digest::sha256_hex(now_text.as_bytes());
+                    if now_digest != cfg.digest {
+                        self.pop_page();
+                        self.reload_project_config();
+                        self.set_status(
+                            "The configuration changed during review · nothing was trusted or run · review again",
+                            Tone::Error,
+                        );
+                        return;
+                    }
+                    let cwd = self
+                        .find_item(&then)
+                        .map(|i| i.scope.runs_in.clone())
+                        .unwrap_or(self.world.location.cwd.clone());
+                    match self.world.trust.approve(&cfg.digest, &cfg.path, &cwd) {
+                        Ok(text) => {
+                            self.world.persisted.trust = Some(text);
+                            self.pop_page();
+                            self.set_status(
+                                &format!(
+                                    "Trusted {} · this exact content at this path",
+                                    self.world.location.short(&config)
+                                ),
+                                Tone::Secondary,
+                            );
+                            self.run_item(&then, vec![]);
+                        }
+                        Err(e) => {
+                            self.pop_page();
+                            self.set_status(&format!("{e} · nothing was run"), Tone::Error);
+                        }
+                    }
+                    return;
+                }
+                if !self.world.trusted_now.contains(&config) {
+                    self.world.trusted_now.push(config.clone());
+                }
+                self.pop_page();
+                self.set_status(
+                    &format!(
+                        "Trusted {} · re-resolving the task",
+                        self.world.location.short(&config)
+                    ),
+                    Tone::Secondary,
+                );
+                self.run_item(&then, vec![]);
+            }
+            Go::CleanupPlan(selected) => {
+                let plan = holla_sim::fixtures::plan_cleanup_work(&self.world, &selected);
+                self.world.plans.retain(|p| p.id != "cleanup-work");
+                self.world.plans.push(plan);
+                self.push_page(Page::PlanReview {
+                    plan: "cleanup-work".into(),
+                });
+            }
+            Go::Restart(id) => self.run_derived(&format!("activity.{id}.restart"), ""),
+            Go::CloseTab => self.request_close_tab(),
+            Go::Quit => {
+                if self.quitting {
+                    self.set_status(
+                        "Already stopping · the shell leaves when every process is gone",
+                        Tone::Secondary,
+                    );
+                } else if self.world.live_activities() > 0 {
+                    self.open_quit_confirm();
+                } else {
+                    self.quit = true;
+                }
+            }
+            Go::Reload => {
+                self.reload_project_config();
+                self.enter_top();
+            }
+            Go::Exec { label, argv } => {
+                let scope = holla_domain::context::ScopeTag::here(&self.world.location.cwd);
+                let script = self.world.script_for(None, &argv);
+                let aid = self.world.start_activity(
+                    argv,
+                    script,
+                    &label,
+                    &label,
+                    ActivityKind::Task,
+                    scope,
+                );
+                self.open_activity_tab(&aid, true);
+            }
+            Go::Osc52(value) => self.copy_osc52(value),
+            Go::Analyze(path) => {
+                self.activate_tab(0);
+                if !self.world.fs.exists(&path) {
+                    self.set_status(&format!("{path}: no such file or directory"), Tone::Error);
+                } else {
+                    self.world.start_scan(&path);
+                    self.push_page(Page::Disk { path });
+                }
+            }
+        }
+    }
+
+    fn page_screen(&mut self, page: Page) -> Box<dyn Screen> {
+        match page {
+            Page::Finder { group } => Box::new(FinderPage::new(group)),
+            Page::Disk { path } => Box::new(DiskPage::new(&path)),
+            Page::PlanReview { plan } => {
+                self.ensure_plan(&plan);
+                Box::new(PlanReviewPage::new(&plan))
+            }
+            Page::Review(target) => Box::new(GatePage::new(target, &self.world)),
+            Page::Trust { config, then } => Box::new(TrustPage::new(&config, &then)),
+            Page::Args { item } => Box::new(ArgsPage::new(&item, &self.world)),
+            Page::Snapshot { kind } => Box::new(SnapshotPage::new(&kind, &self.world)),
+            Page::Files { path, query } => {
+                Box::new(FilesPage::new(&path, query.as_deref(), &self.world))
+            }
+            Page::Find => Box::new(FilesPage::find(&self.world)),
+            Page::DiskOverview => Box::new(DiskPage::overview()),
+            Page::TopFiles => Box::new(DiskPage::top_files()),
+            Page::Cleanup { category } => Box::new(CleanupPage::new(category.as_deref())),
+            Page::CleanupGate { plan } => {
+                Box::new(GatePage::new(GateTarget::Cleanup(plan), &self.world))
+            }
+            Page::Report { index } => {
+                Box::new(SnapshotPage::new(&format!("report:{index}"), &self.world))
+            }
+            Page::Config { path } => {
+                Box::new(SnapshotPage::new(&format!("config:{path}"), &self.world))
+            }
+        }
+    }
+
+    /// Re-parse the project configuration from the filesystem (an edit,
+    /// a relocation, a restart).
+    fn reload_project_config(&mut self) {
+        let Some(cfg) = self.world.custom_project.clone() else {
+            return;
+        };
+        let text = match self.world.fs.get(&cfg.path).map(|n| &n.content) {
+            Some(holla_sim::fs::Content::Text(t)) => t.clone(),
+            _ => String::new(),
+        };
+        let builtin = holla_sim::catalog::builtin_ids(&self.world);
+        let builtin_refs: Vec<&str> = builtin.iter().map(String::as_str).collect();
+        let reserved: Vec<String> = self
+            .world
+            .custom_global
+            .as_ref()
+            .map(|g| g.actions.iter().map(|a| a.id.clone()).collect())
+            .unwrap_or_default();
+        self.world.custom_project = Some(holla_domain::custom::parse_config(
+            &cfg.path,
+            cfg.origin,
+            &text,
+            &builtin_refs,
+            &reserved,
+        ));
+    }
+
+    pub(crate) fn push_page(&mut self, page: Page) {
+        let screen = self.page_screen(page);
+        self.tabs[0].stack.push(screen);
+        self.active = 0;
+        self.enter_top();
+    }
+
+    fn pop_page(&mut self) {
+        if self.active == 0 && self.tabs[0].stack.len() > 1 {
+            self.tabs[0].stack.pop();
+            self.enter_top();
+        } else if self.active != 0 {
+            self.activate_tab(0);
+        }
+    }
+
+    fn activate_tab(&mut self, i: usize) {
+        if i >= self.tabs.len() {
             return;
         }
-        let body = Rect::new(
-            area.x.saturating_add(1),
-            area.y.saturating_add(2),
-            area.width.saturating_sub(2),
-            area.height.saturating_sub(4),
-        );
-        match self.route {
-            Route::Home => self.home.draw(&self.world, ui, body),
-            Route::Plan => {
-                if let Some(plan) = &self.plan {
-                    plan.draw(ui, body);
-                }
-            }
-            Route::Activity => self.activities.draw(&self.world, ui, body),
-        }
-        self.chrome(ui, area);
-        if let Some(overlay) = &self.overlay {
-            match overlay {
-                Overlay::Dialog(dialog) => dialog.draw(ui),
-                Overlay::Clone(picker) => picker.draw(ui),
-                Overlay::Actions(picker) => picker.draw(ui),
-                Overlay::Gate(gate) => gate.draw(ui),
-            }
-        }
-        // The update pass builds every prop the draw pass will render, so each
-        // set of props keeps exactly one construction site (§13).
-        let _ = gate_dialog();
+        self.active = i;
+        self.strip.set_active(i);
+        self.enter_top();
     }
-    fn should_quit(&self) -> bool {
-        self.quit
-    }
-    fn keymap(&self) -> &KeyMap {
-        &self.keymap
-    }
-    fn on_esc(&mut self, cx: &mut Cx<'_>) -> Response<()> {
-        if self.route != Route::Home {
-            self.route = Route::Home;
-            cx.focus(home::QUERY);
-            return Response::changed();
-        }
-        if self.home.scope.take().is_some() {
-            return Response::changed();
-        }
-        if !self.home.query().is_empty() {
-            self.home.clear_query();
-            return Response::changed();
-        }
-        Response::ignored()
-    }
-}
 
-fn too_small(area: Rect) -> bool {
-    area.width < MIN_WIDTH || area.height < MIN_HEIGHT
-}
-
-#[cfg(test)]
-#[expect(
-    clippy::unwrap_used,
-    clippy::indexing_slicing,
-    reason = "Deterministic product routes and named fixtures must be present"
-)]
-mod tests {
-    use super::*;
-    use crate::sim::catalogue;
-    use termrock::{Dialog, Theme};
-    use termrock_test_support::Harness;
-    fn harness(app: App, theme: Theme, width: u16, height: u16) -> Harness<App> {
-        let initial =
-            termrock::SimulationMoment::from_millis(u64::try_from(app.fixture_time_ms()).unwrap());
-        Harness::new_with_feedback_clock(
-            app,
-            theme,
-            width,
-            height,
-            termrock::FeedbackClock::Simulation { initial },
-        )
-    }
-    fn app(scenario: Scenario) -> Harness<App> {
-        harness(
-            App::for_scenario(scenario, Motion::Paused, 4_000),
-            Theme::junie(),
-            120,
-            40,
-        )
-    }
-    #[test]
-    fn home_query_stays_armed_under_action_focus_with_shared_caret_and_paste() {
-        let mut harness = app(Scenario::HardCases);
-        assert!(harness.tab_to(home::ROWS));
-        let _ = harness.type_str("git");
-        assert_eq!(harness.focus(), Some(home::ROWS));
-        assert_eq!(harness.app().home.query(), "git");
-        assert!(harness.cursor().is_some());
-        let _ = harness.paste(" q?0 ");
-        assert_eq!(harness.app().home.query(), "git q?0 ");
-        assert!(harness.app().overlay.is_none());
-        let _ = harness.key(KeyCode::Backspace);
-        assert_eq!(harness.app().home.query(), "git q?0");
-        assert!(harness.app().home.rows(&harness.app().world).is_empty());
-        assert_ne!(harness.focus(), Some(home::ROWS));
-        assert!(harness.cursor().is_some());
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-    }
-    #[test]
-    fn empty_query_chrome_exceptions_and_modal_typing_do_not_leak() {
-        for (character, title) in [('?', "Key reference"), ('q', "Quit holla?")] {
-            let mut harness = app(Scenario::HardCases);
-            assert!(harness.tab_to(home::ROWS));
-            let _ = harness.key(KeyCode::Char(character));
-            assert!(harness.text().contains(title));
-            assert_eq!(harness.app().home.query(), "");
-            let _ = harness.type_str("q?0text");
-            assert_eq!(harness.app().home.query(), "");
-            assert!(harness.app().overlay.is_some());
-            let _ = harness.key(KeyCode::Esc);
-            assert!(harness.app().overlay.is_none());
-            let _ = harness.paste("q?");
-            assert_eq!(harness.app().home.query(), "q?");
-            assert!(harness.app().overlay.is_none());
-            assert!(
-                harness.diagnostics().is_empty(),
-                "{:?}",
-                harness.diagnostics()
-            );
-        }
-    }
-    #[test]
-    fn unmatched_home_query_has_source_notice_and_no_empty_row_focus_stop() {
-        let mut harness = app(Scenario::HardCases);
-        assert!(harness.tab_to(home::QUERY));
-        let _ = harness.paste("  impossible-no-fixture-match  ");
-        assert!(harness.app().home.rows(&harness.app().world).is_empty());
-        assert!(
-            harness
-                .text()
-                .contains("Nothing matches “impossible-no-fixture-match” here")
-        );
-        let revision = harness.app().effect_revision();
-        let _ = harness.key(KeyCode::Down);
-        assert_ne!(harness.focus(), Some(home::ROWS));
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        assert!(harness.tab_to(home::QUERY));
-        let _ = harness.key(KeyCode::Esc);
-        assert!(harness.app().home.query().is_empty());
-        let _ = harness.key(KeyCode::Down);
-        assert_eq!(harness.focus(), Some(home::ROWS));
-        assert_eq!(harness.app().effect_revision(), revision);
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-    }
-    #[test]
-    fn frame_seek_lands_on_discovered_state() {
-        let settled = harness(
-            App::for_scenario(Scenario::FirstUse, Motion::Paused, 4_000),
-            Theme::junie(),
-            120,
-            40,
-        );
-        assert!(!settled.app().world.discovering());
-        assert!(!settled.text().contains("discovering…"));
-        let mut theme = Theme::junie();
-        theme.design.motion.spinner_frames = &["a", "b", "c"];
-        let early = harness(
-            App::for_scenario(Scenario::FirstUse, Motion::Paused, 100),
-            theme,
-            120,
-            40,
-        );
-        assert!(early.app().world.discovering());
-        // Reference seek rounds100ms to160ms: virtual spinner frame2.
-        assert!(
-            early
-                .text()
-                .lines()
-                .next()
-                .unwrap()
-                .contains("c discovering…")
-        );
-        assert!(early.diagnostics().is_empty(), "{:?}", early.diagnostics());
-    }
-    #[test]
-    fn actions_picker_preserves_source_footer_height_and_query_isolation() {
-        let mut h = app(Scenario::RustDirty);
-        let _ = h.type_str("cargo build");
-        let _ = h.ctrl('o');
-        assert_eq!(
-            h.layer_area(crate::screens::actions::PICKER)
-                .map(|area| area.height),
-            Some(12)
-        );
-        assert_eq!(h.cursor(), None);
-        let text = h.text();
-        let footer = text.lines().last().unwrap();
-        assert!(
-            footer.contains("↑↓ Move")
-                && footer.contains("Enter Choose")
-                && footer.contains("Esc Cancel")
-        );
-        assert!(!footer.contains("EDIT"));
-        let _ = h.type_str("ignored");
-        let _ = h.paste("ignored paste");
-        assert_eq!(h.app().home.query(), "cargo build");
-        assert!(h.text().contains("Set alias…"));
-        let _ = h.key(KeyCode::Esc);
-        assert!(h.app().overlay.is_none());
-        assert_eq!(h.app().home.query(), "cargo build");
-        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
-    }
-    #[test]
-    fn home_hint_casing_preserves_lowercase_physical_shortcuts() {
-        let mut h = app(Scenario::RustDirty);
-        let text = h.text();
-        let footer = text.lines().last().unwrap();
-        assert!(footer.contains("Ctrl+S Scope"));
-        assert!(footer.contains("q Quit"));
-        let _ = h.ctrl('s');
-        assert!(h.text().contains("scope: here"));
-        assert!(h.tab_to(home::ROWS));
-        let text = h.text();
-        let footer = text.lines().last().unwrap();
-        assert!(footer.contains("Ctrl+P Preview"));
-        assert!(footer.contains("Ctrl+O Actions"));
-        assert!(h.tab_to(home::QUERY));
-        let _ = h.key(KeyCode::Char('q'));
-        assert!(h.text().contains("Quit holla?"));
-        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
-    }
-    #[test]
-    fn home_product_hints_follow_query_rows_and_yield_to_modal_context() {
-        let mut h = app(Scenario::RustDirty);
-        assert!(h.text().lines().last().unwrap().contains("Run top match"));
-        assert!(h.tab_to(home::ROWS));
-        let footer = h.text().lines().last().unwrap().to_owned();
-        assert!(footer.contains("Run") && footer.contains("Preview"));
-        assert!(!footer.contains("Run top match"));
-        let _ = h.key(KeyCode::F(1));
-        assert!(!h.text().lines().last().unwrap().contains("Run top match"));
-        assert!(!h.text().lines().last().unwrap().contains("Filter"));
-        let _ = h.key(KeyCode::Esc);
-        assert!(h.tab_to(home::QUERY));
-        assert!(h.text().lines().last().unwrap().contains("Type Filter"));
-        assert!(h.diagnostics().is_empty(), "{:?}", h.diagnostics());
-    }
-    #[test]
-    fn home_scope_is_projected_into_header_and_clears_with_escape() {
-        let mut harness = app(Scenario::HardCases);
-        let _ = harness.ctrl('s');
-        let scope = harness.app().home.scope.unwrap();
-        let label = format!("scope: {}", scope.label());
-        assert!(harness.text().lines().next().unwrap().contains(&label));
-        let _ = harness.key(KeyCode::Esc);
-        assert!(!harness.text().lines().next().unwrap().contains("scope:"));
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-    }
-    #[test]
-    fn home_escape_clears_scope_before_canonical_query() {
-        let mut harness = app(Scenario::HardCases);
-        assert!(harness.tab_to(home::ROWS));
-        let _ = harness.type_str("git");
-        let _ = harness.ctrl('s');
-        assert!(harness.app().home.scope.is_some());
-        let _ = harness.key(KeyCode::Esc);
-        assert!(harness.app().home.scope.is_none());
-        assert_eq!(harness.app().home.query(), "git");
-        let _ = harness.key(KeyCode::Esc);
-        assert_eq!(harness.app().home.query(), "");
-        let _ = harness.type_str("docker");
-        assert_eq!(harness.app().home.query(), "docker");
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-    }
-    #[test]
-    fn home_navigation_uses_shared_boundaries_and_reveals_selected_rows() {
-        let mut harness = harness(
-            App::for_scenario(Scenario::HardCases, Motion::Paused, 4_000),
-            Theme::junie(),
-            120,
-            20,
-        );
-        assert!(harness.tab_to(home::QUERY));
-        let count = harness.app().home.rows(&harness.app().world).len();
-        let _ = harness.key(KeyCode::Down);
-        assert_eq!(harness.focus(), Some(home::ROWS));
-        let first = harness
-            .app()
-            .home
-            .selected(&harness.app().world)
-            .unwrap()
-            .id;
-        let _ = harness.key(KeyCode::Up);
-        assert_eq!(harness.focus(), Some(home::QUERY));
-        let _ = harness.key(KeyCode::Down);
-        for _ in 1..count {
-            let _ = harness.key(KeyCode::Down);
-        }
-        assert_eq!(harness.focus(), Some(home::ROWS));
-        let last = harness.app().home.selected(&harness.app().world).unwrap();
-        assert_ne!(last.id, first);
-        assert!(harness.text().contains(&last.title), "{}", harness.text());
-        let _ = harness.key(KeyCode::Down);
-        assert_ne!(harness.focus(), Some(home::ROWS));
-        assert!(harness.tab_to(home::QUERY));
-        let _ = harness.key(KeyCode::Down);
-        assert_eq!(
-            harness
-                .app()
-                .home
-                .selected(&harness.app().world)
-                .unwrap()
-                .id,
-            first
-        );
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-    }
-    #[test]
-    fn activity_digits_are_route_scoped_and_cycle_from_home_starts_first() {
-        let mut harness = app(Scenario::ActivitiesMulti);
-        let ids: Vec<_> = activity::ordered(&harness.app().world)
+    fn open_activity_tab(&mut self, id: &str, activate: bool) {
+        if let Some(i) = self
+            .tabs
             .iter()
-            .map(|a| a.id)
-            .collect();
-        assert!(ids.len() >= 2);
-        let _ = harness.type_str("12");
-        assert_eq!(harness.app().home.query(), "12");
-        let _ = harness.ctrl('a');
-        assert_eq!(harness.app().activities.current_id(), Some(ids[0]));
-        let _ = harness.key(KeyCode::Char('2'));
-        assert_eq!(harness.app().activities.current_id(), Some(ids[1]));
-        let _ = harness.key(KeyCode::Char('9'));
-        assert_eq!(harness.app().status.as_deref(), Some("No activity 9"));
-        let _ = harness.key(KeyCode::Char('0'));
-        assert!(harness.app().route == Route::Home);
-        let _ = harness.ctrl('a');
-        assert_eq!(harness.app().activities.current_id(), Some(ids[0]));
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-    }
-    #[test]
-    fn interrupt_quits_outside_modals_and_quit_chord_precedes_open_menu() {
-        let mut harness = app(Scenario::HardCases);
-        let _ = harness.key(KeyCode::F(1));
-        let _ = harness.ctrl('c');
-        assert!(!harness.app().quit);
-        let _ = harness.key(KeyCode::Esc);
-        let _ = harness.key(KeyCode::F(10));
-        assert!(
-            harness.app().menu.is_open(),
-            "F10 must open the real menu before testing precedence"
-        );
-        let _ = harness.ctrl('q');
-        assert!(harness.text().contains("Quit holla?"));
-        assert!(!harness.app().quit);
-        let mut harness = app(Scenario::HardCases);
-        let _ = harness.key(KeyCode::F(10));
-        let _ = harness.ctrl('c');
-        assert!(harness.app().quit);
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-    }
-    #[test]
-    fn menu_opens_before_publication_and_survives_focus_settlement() {
-        let mut harness = app(Scenario::HardCases);
-        assert!(harness.tab_to(home::QUERY));
-        let _ = harness.type_str("git");
-        let mut harness = harness.with_auto_draw(false);
-        let _ = harness.key(KeyCode::F(10));
-        assert!(harness.app().menu.is_open(), "event must open menu");
-        harness.draw();
-        assert!(
-            harness.app().menu.is_open(),
-            "publication must preserve menu"
-        );
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-    }
-    #[test]
-    fn too_small_surface_consumes_commands_and_quits_without_query_or_modal_effects() {
-        for key in [KeyCode::Char('q'), KeyCode::Char('c')] {
-            let mut harness = app(Scenario::HardCases);
-            let _ = harness.type_str("git");
-            let _ = harness.key(KeyCode::F(1));
-            let revision = harness.app().effect_revision();
-            let _ = harness.resize(40, 10);
-            assert!(
-                harness.diagnostics().is_empty(),
-                "resize: {:?}",
-                harness.diagnostics()
-            );
-            let _ = harness.key(KeyCode::F(1));
-            assert!(!harness.app().quit);
-            let _ = harness.resize(120, 40);
-            assert!(harness.text().contains("Key reference"));
-            assert!(
-                harness.diagnostics().is_empty(),
-                "restore: {:?}",
-                harness.diagnostics()
-            );
-            let _ = harness.resize(40, 10);
-            assert!(
-                harness.diagnostics().is_empty(),
-                "second resize: {:?}",
-                harness.diagnostics()
-            );
-            if key == KeyCode::Char('c') {
-                let _ = harness.ctrl('c');
-            } else {
-                let _ = harness.key(key);
+            .position(|t| t.kind == TabKind::Activity(id.to_owned()))
+        {
+            if activate {
+                self.activate_tab(i);
             }
-            assert!(harness.app().quit);
-            assert_eq!(harness.app().home.query(), "git");
-            assert_eq!(harness.app().effect_revision(), revision);
-            assert!(
-                harness.diagnostics().is_empty(),
-                "{:?}",
-                harness.diagnostics()
-            );
+            return;
         }
-    }
-    #[test]
-    fn plan_physical_edges_leave_steps_without_changing_inclusion_or_effects() {
-        let mut harness = app(Scenario::DockerCleanup);
-        let _ = harness.type_str("docker system prune");
-        let _ = harness.key(KeyCode::Enter);
-        assert!(harness.app().route == Route::Plan);
-        assert!(harness.tab_to(plan::STEPS));
-        let _ = harness.key(KeyCode::Home);
-        let included = harness.app().plan.as_ref().unwrap().plan().included_count();
-        let revision = harness.app().effect_revision();
-        let _ = harness.key(KeyCode::Up);
-        assert_ne!(harness.focus(), Some(plan::STEPS));
-        assert!(harness.tab_to(plan::STEPS));
-        let _ = harness.key(KeyCode::End);
-        let _ = harness.key(KeyCode::Down);
-        assert_ne!(harness.focus(), Some(plan::STEPS));
-        assert_eq!(
-            harness.app().plan.as_ref().unwrap().plan().included_count(),
-            included
-        );
-        assert_eq!(harness.app().effect_revision(), revision);
-        assert!(harness.app().overlay.is_none());
-        assert!(harness.activation_feedback().is_none());
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-    }
-    #[test]
-    fn plan_space_is_focus_bound_and_preserves_chrome_activation() {
-        let mut harness = app(Scenario::DockerCleanup);
-        let _ = harness.type_str("docker system prune");
-        let _ = harness.key(KeyCode::Enter);
-        let index = harness
-            .app()
-            .plan
-            .as_ref()
-            .unwrap()
-            .plan()
-            .steps()
-            .iter()
-            .position(|step| step.optional)
-            .unwrap();
-        for _ in 0..index {
-            let _ = harness.key(KeyCode::Down);
+        self.tabs.push(TabEntry {
+            kind: TabKind::Activity(id.to_owned()),
+            stack: vec![Box::new(ActivityTab::new(id))],
+        });
+        if activate {
+            let n = self.tabs.len() - 1;
+            self.activate_tab(n);
         }
-        let included = harness.app().plan.as_ref().unwrap().plan().included_count();
-        assert!(harness.tab_to(MENU));
-        let _ = harness.key(KeyCode::Char(' '));
-        assert!(harness.app().menu.is_open());
-        assert_eq!(
-            harness.app().plan.as_ref().unwrap().plan().included_count(),
-            included
-        );
-        let _ = harness.key(KeyCode::Esc);
-        assert!(harness.tab_to(MENU));
-        let _ = harness.key(KeyCode::Enter);
-        assert!(harness.app().menu.is_open());
-        let _ = harness.key(KeyCode::Esc);
-        assert!(harness.tab_to(plan::STEPS));
-        let _ = harness.key(KeyCode::Char(' '));
-        assert!(harness.app().plan.as_ref().unwrap().plan().included_count() < included);
-        assert!(harness.app().overlay.is_none());
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-    }
-    #[test]
-    fn plan_keyboard_feedback_uses_post_request_owner_and_double_click_cannot_open_gate() {
-        let mut harness = harness(
-            App::for_scenario(Scenario::DockerCleanup, Motion::Full, 4_000),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let _ = harness.type_str("docker system prune");
-        let _ = harness.key(KeyCode::Enter);
-        assert!(
-            harness.activation_feedback().is_none(),
-            "Home query submission does not flash"
-        );
-        let step = harness
-            .app()
-            .plan
-            .as_ref()
-            .unwrap()
-            .selected()
-            .unwrap()
-            .id
-            .clone();
-        let part = PartRef::item(Part::ROW, ItemKey::text(&step));
-        let _ = harness.click_part(plan::STEPS, part);
-        let _ = harness.click_part(plan::STEPS, part);
-        assert!(harness.app().overlay.is_none());
-        let _ = harness.advance(std::time::Duration::from_millis(80));
-        assert_eq!(
-            harness.activation_feedback().unwrap().remaining,
-            std::time::Duration::from_millis(60)
-        );
-        let _ = harness.key(KeyCode::Char(' '));
-        let feedback = harness.activation_feedback().unwrap();
-        assert_eq!((feedback.owner, feedback.part), (plan::STEPS, part));
-        assert_eq!(feedback.remaining, std::time::Duration::from_millis(140));
-        let _ = harness.key(KeyCode::Enter);
-        let gate = Dialog::new(crate::screens::plan_gate::GATE);
-        assert_eq!(
-            harness.activation_feedback().unwrap().owner,
-            gate.input_id()
-        );
-        assert_eq!(harness.focus(), Some(gate.input_id()));
-        let _ = harness.advance(std::time::Duration::from_millis(80));
-        let _ = harness.advance(std::time::Duration::from_millis(80));
-        assert!(harness.activation_feedback().is_none());
-        let phrase = harness
-            .app()
-            .plan
-            .as_ref()
-            .unwrap()
-            .plan()
-            .phrase()
-            .to_owned();
-        let _ = harness.type_str(&phrase);
-        let _ = harness.key(KeyCode::Enter);
-        assert_eq!(harness.app().effect_revision(), 0, "editor Enter only arms");
-        assert!(
-            harness.activation_feedback().is_none(),
-            "modal editing has no keyboard flash"
-        );
-        assert!(harness.tab_to(gate.action_id(1)));
-        let _ = harness.key(KeyCode::Char(' '));
-        assert_eq!(harness.app().effect_revision(), 1);
-        assert!(harness.app().plan.as_ref().unwrap().plan().ran());
-        assert!(
-            harness.activation_feedback().is_none(),
-            "modal confirmation preserves source feedback policy"
-        );
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-    }
-    #[test]
-    fn every_real_app_scenario_renders_purely_with_persistent_identity() {
-        for scenario in Scenario::ALL {
-            let mut harness = app(scenario);
-            assert!(harness.text().contains("holla❯"));
-            assert!(harness.text().contains(&harness.app().world.host.name));
-            let catalogue = catalogue::catalogue(&harness.app().world);
-            let time = harness.app().world.now_ms();
-            let text = harness.text();
-            harness.draw();
-            harness.draw();
-            assert_eq!(harness.text(), text);
-            assert_eq!(catalogue::catalogue(&harness.app().world), catalogue);
-            assert_eq!(harness.app().world.now_ms(), time);
-        }
-    }
-    #[test]
-    fn help_escape_and_quit_use_actual_dialog_routes() {
-        let mut harness = app(Scenario::FirstUse);
-        let _ = harness.key(KeyCode::F(1));
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        assert!(matches!(harness.app().overlay, Some(Overlay::Dialog(_))));
-        assert!(harness.text().contains("Key reference"));
-        let _ = harness.key(KeyCode::Esc);
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        assert!(harness.app().overlay.is_none());
-        let _ = harness.ctrl('q');
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        assert!(harness.text().contains("Quit holla?"));
-        let _ = harness.click_id(Dialog::new(dialogs::DIALOG).action_id(1));
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        assert!(harness.app().quit);
-    }
-    #[test]
-    fn filtered_cleanup_enters_review_and_exact_gate_applies_once() {
-        let mut harness = app(Scenario::DockerCleanup);
-        assert!(harness.tab_to(home::QUERY));
-        let _ = harness.type_str("docker system prune");
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        let _ = harness.key(KeyCode::Enter);
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        assert!(matches!(harness.app().route, Route::Plan));
-        assert_eq!(harness.app().world.effect_revision, 0);
-        assert!(harness.tab_to(plan::STEPS));
-        let _ = harness.key(KeyCode::Enter);
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        assert!(matches!(harness.app().overlay, Some(Overlay::Gate(_))));
-        let phrase = harness
-            .app()
-            .plan
-            .as_ref()
-            .unwrap()
-            .plan()
-            .phrase()
-            .to_owned();
-        let _ = harness.type_str(&phrase);
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        let _ = harness.click_id(Dialog::new(crate::screens::plan_gate::GATE).action_id(1));
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        assert_eq!(harness.app().world.effect_revision, 1);
-        assert!(harness.app().plan.as_ref().unwrap().plan().ran());
-        assert!(harness.app().overlay.is_none());
-        let _ = harness.key(KeyCode::Enter);
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        assert_eq!(harness.app().world.effect_revision, 1);
-    }
-    #[test]
-    fn clone_picker_is_reachable_from_the_real_action_row() {
-        let mut harness = app(Scenario::RustDirty);
-        assert!(harness.tab_to(home::QUERY));
-        let _ = harness.type_str("gh repo clone");
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        let _ = harness.key(KeyCode::Enter);
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        assert!(matches!(harness.app().overlay, Some(Overlay::Clone(_))));
-        let _ = harness.key(KeyCode::Enter);
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        assert!(matches!(harness.app().overlay, Some(Overlay::Dialog(_))));
-        assert!(harness.text().contains("Primary branch"));
-    }
-    #[test]
-    fn action_picker_refuses_memory_changes_after_context_moves() {
-        let mut harness = app(Scenario::DockerCleanup);
-        assert!(harness.tab_to(home::QUERY));
-        let _ = harness.type_str("docker system prune");
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        let _ = harness.ctrl('o');
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        assert!(matches!(harness.app().overlay, Some(Overlay::Actions(_))));
-        let pins = harness.app().world.memory.pins.clone();
-        harness.app_mut().world.cwd = "/different-folder".into();
-        let _ = harness.type_str("Pin here");
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        let _ = harness.key(KeyCode::Enter);
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        assert!(harness.app().overlay.is_none());
-        assert_eq!(harness.app().world.memory.pins, pins);
-        assert!(harness.app().status.as_deref().unwrap().contains("changed"));
-    }
-    #[test]
-    fn ssh_preview_shows_literal_resolution_and_refuses_changed_target() {
-        for changed in [false, true] {
-            let mut harness = app(Scenario::RemoteHost);
-            let host = harness.app().world.ssh[0].clone();
-            assert!(harness.tab_to(home::QUERY));
-            let _ = harness.type_str(&format!("ssh {}", host.alias));
-            assert!(
-                harness.diagnostics().is_empty(),
-                "{:?}",
-                harness.diagnostics()
-            );
-            let _ = harness.key(KeyCode::Enter);
-            assert!(
-                harness.diagnostics().is_empty(),
-                "{:?}",
-                harness.diagnostics()
-            );
-            assert!(matches!(harness.app().overlay, Some(Overlay::Dialog(_))));
-            let text = harness.text();
-            for expected in [
-                &host.host_name,
-                &host.user,
-                &host.chain(),
-                "Host key policy",
-                "Multiplexing",
-            ] {
-                assert!(text.contains(expected), "missing {expected}");
-            }
-            if changed {
-                harness.app_mut().world.ssh[0].host_name = "different.example".into();
-            }
-            let _ = harness.click_id(Dialog::new(dialogs::DIALOG).action_id(1));
-            assert!(
-                harness.diagnostics().is_empty(),
-                "{:?}",
-                harness.diagnostics()
-            );
-            let status = harness.app().status.as_deref().unwrap();
-            if changed {
-                assert!(status.contains("SSH target changed"));
-            } else {
-                assert!(status.contains(&format!("Would run: ssh {}", host.alias)));
-            }
-            assert_eq!(harness.app().world.effect_revision, 0);
-        }
-    }
-    #[test]
-    fn routes_and_gate_deliver_owner_lifecycle() {
-        let mut harness = app(Scenario::DockerCleanup);
-        assert!(harness.diagnostics().is_empty());
-        assert!(harness.tab_to(home::QUERY));
-        let _ = harness.type_str("docker system prune");
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        let _ = harness.key(KeyCode::Enter);
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        assert!(
-            harness.diagnostics().is_empty(),
-            "plan {:?}",
-            harness.diagnostics()
-        );
-        assert!(harness.tab_to(plan::STEPS));
-        let _ = harness.key(KeyCode::Enter);
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        assert!(
-            harness.diagnostics().is_empty(),
-            "gate {:?}",
-            harness.diagnostics()
-        );
-        let _ = harness.key(KeyCode::Esc);
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-        assert!(
-            harness.diagnostics().is_empty(),
-            "cancel {:?}",
-            harness.diagnostics()
-        );
-    }
-    #[test]
-    fn activity_switching_and_home_keep_viewport_lifecycle_clean() {
-        let mut harness = app(Scenario::ActivitiesMulti);
-        for _ in 0..3 {
-            let _ = harness.ctrl('a');
-            assert!(matches!(harness.app().route, Route::Activity));
-            assert!(
-                harness.diagnostics().is_empty(),
-                "{:?}",
-                harness.diagnostics()
-            );
-        }
-        let _ = harness.key(KeyCode::Char('0'));
-        assert!(matches!(harness.app().route, Route::Home));
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
     }
 
-    #[test]
-    fn coalesced_deadlines_preserve_fixed_steps_and_pause() {
-        for motion in [Motion::Full, Motion::Reduced, Motion::Paused] {
-            let mut harness = harness(
-                App::for_scenario(Scenario::FirstUse, motion, 0),
-                Theme::junie(),
-                120,
-                40,
-            );
-            harness.ticks(20);
-            assert_eq!(harness.app().world.now_ms(), 0);
-            let _ = harness.advance(std::time::Duration::from_millis(1_800));
-            let step = if motion == Motion::Paused { 0 } else { 80 };
-            assert_eq!(harness.app().world.now_ms(), step);
-            harness.ticks(20);
-            harness.draw();
-            assert_eq!(harness.app().world.now_ms(), step);
-            let _ = harness.advance(std::time::Duration::from_millis(80));
-            assert_eq!(harness.app().world.now_ms(), step * 2);
-            assert!(
-                harness.diagnostics().is_empty(),
-                "{:?}",
-                harness.diagnostics()
-            );
+    fn open_plan_tab(&mut self, id: &str) {
+        if let Some(i) = self
+            .tabs
+            .iter()
+            .position(|t| t.kind == TabKind::Plan(id.to_owned()))
+        {
+            self.activate_tab(i);
+            return;
         }
+        self.tabs.push(TabEntry {
+            kind: TabKind::Plan(id.to_owned()),
+            stack: vec![Box::new(PlanTab::new(id))],
+        });
+        let n = self.tabs.len() - 1;
+        self.activate_tab(n);
     }
-    #[test]
-    fn pointer_feedback_changes_cadence_from_last_wake_and_expires_in_fixture_time() {
-        for input_at in [5_u64, 100] {
-            let mut harness = harness(
-                App::for_scenario(Scenario::HardCases, Motion::Full, 4_000),
-                Theme::junie(),
-                120,
-                40,
-            );
-            let _ = harness.advance(std::time::Duration::from_millis(input_at));
-            let _ = harness.click_id(BRAND);
-            assert_eq!(harness.app().fixture_time_ms(), 4_000);
-            let _ = harness.advance(std::time::Duration::from_millis(
-                80_u64.saturating_sub(input_at),
-            ));
-            assert_eq!(harness.app().fixture_time_ms(), 4_080);
-            assert_eq!(
-                harness.activation_feedback().unwrap().remaining,
-                std::time::Duration::from_millis(60)
-            );
-            harness.ticks(5);
-            let _ = harness.resize(121, 40);
-            assert_eq!(harness.app().fixture_time_ms(), 4_080);
-            let _ = harness.advance(std::time::Duration::from_millis(80));
-            assert_eq!(harness.app().fixture_time_ms(), 4_160);
-            assert!(harness.activation_feedback().is_none());
-            let _ = harness.advance(std::time::Duration::from_millis(199));
-            assert_eq!(harness.app().fixture_time_ms(), 4_160);
-            let _ = harness.advance(std::time::Duration::from_millis(1));
-            assert_eq!(harness.app().fixture_time_ms(), 4_360);
-            assert!(
-                harness.diagnostics().is_empty(),
-                "{:?}",
-                harness.diagnostics()
-            );
+
+    fn request_close_tab(&mut self) {
+        if self.active == 0 {
+            self.set_status("Here cannot be closed · Ctrl+Q quits", Tone::Secondary);
+            return;
         }
-    }
-    #[test]
-    fn delayed_pointer_feedback_coalesces_and_paused_feedback_keeps_fixture_epoch() {
-        for motion in [Motion::Full, Motion::Paused] {
-            let mut harness = harness(
-                App::for_scenario(Scenario::HardCases, motion, 4_000),
-                Theme::junie(),
-                120,
-                40,
-            );
-            let _ = harness.advance(std::time::Duration::from_millis(5));
-            let _ = harness.click_id(BRAND);
-            let _ = harness.advance(std::time::Duration::from_millis(1_800));
-            let step = if motion == Motion::Paused { 0 } else { 80 };
-            assert_eq!(harness.app().fixture_time_ms(), 4_000 + step);
-            assert_eq!(
-                harness.activation_feedback().unwrap().remaining,
-                std::time::Duration::from_millis(if motion == Motion::Paused { 140 } else { 60 })
-            );
-            harness.ticks(10);
-            assert_eq!(harness.app().fixture_time_ms(), 4_000 + step);
-            assert!(
-                harness.diagnostics().is_empty(),
-                "{:?}",
-                harness.diagnostics()
-            );
-        }
-    }
-    #[test]
-    fn feedback_clock_mismatch_and_backwards_epoch_refuse_all_fixture_progress() {
-        let snapshot = |app: &App| {
-            (
-                app.fixture_time_ms(),
-                app.effect_revision(),
-                app.world
-                    .discovery
-                    .iter()
-                    .map(|mark| (mark.domain, mark.at_ms, mark.fails, mark.done, mark.failed))
-                    .collect::<Vec<_>>(),
-                catalogue::catalogue(&app.world),
-            )
+        let live = match &self.tabs[self.active].kind {
+            TabKind::Activity(id) => self.world.activity(id).is_some_and(|a| a.state.live()),
+            TabKind::Plan(id) => self
+                .world
+                .plan(id)
+                .is_some_and(|p| p.phase == PlanPhase::Running),
+            TabKind::Here => false,
         };
-        for clock in [
-            termrock::FeedbackClock::Elapsed,
-            termrock::FeedbackClock::Simulation {
-                initial: termrock::SimulationMoment::from_millis(5_000),
-            },
-        ] {
-            let app = App::for_scenario(Scenario::HardCases, Motion::Full, 4_000);
-            let expected = snapshot(&app);
-            let mut harness = Harness::new_with_feedback_clock(app, Theme::junie(), 120, 40, clock);
-            assert_eq!(snapshot(harness.app()), expected);
-            assert!(!harness.app().world.clock.running);
-            assert_eq!(harness.app().motion, Motion::Paused);
-            assert!(harness.text().contains("feedback clock mismatch"));
-            let _ = harness.advance(std::time::Duration::from_millis(1_800));
-            assert_eq!(snapshot(harness.app()), expected);
-            assert!(
-                harness.diagnostics().is_empty(),
-                "{:?}",
-                harness.diagnostics()
+        if live {
+            let name = self.tab_label(self.active);
+            let d = Dialog::destructive(
+                WidgetId::of("close-tab"),
+                &format!("Stop {name}?"),
+                "Closing the tab stops the work it holds. Detach instead to keep a monitor running.",
+                "Stop and close",
             );
+            self.push_modal(Modal::Dialog(d), ModalTag::new("close-tab"));
+        } else {
+            self.close_tab(self.active, false);
         }
     }
 
-    #[test]
-    fn modal_status_ages_only_with_admitted_virtual_steps() {
-        let mut harness = harness(
-            App::for_scenario(Scenario::FirstUse, Motion::Full, 4_000),
-            Theme::junie(),
-            120,
-            40,
-        );
-        let _ = harness.ctrl('s');
-        let _ = harness.key(KeyCode::F(1));
-        for _ in 0..24 {
-            let _ = harness.advance(std::time::Duration::from_millis(200));
-            assert!(harness.app().status.is_some());
+    fn close_tab(&mut self, i: usize, stop: bool) {
+        if i == 0 || i >= self.tabs.len() {
+            return;
         }
-        let _ = harness.advance(std::time::Duration::from_millis(200));
-        assert_eq!(harness.app().world.now_ms(), 9_000);
-        assert!(harness.app().status.is_none());
-        assert!(harness.app().overlay.is_some());
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
+        match self.tabs[i].kind.clone() {
+            TabKind::Activity(id) => {
+                let tick = self.world.tick;
+                if stop
+                    && let Some(a) = self.world.activity_mut(&id)
+                    && a.state.live()
+                {
+                    // the tab stays until the process group is gone: a
+                    // stop is a request, not a result
+                    a.stop(tick);
+                    self.set_status(
+                        "Stopping · the tab closes once the process is gone",
+                        Tone::Secondary,
+                    );
+                    return;
+                }
+                if self.world.activity(&id).is_some_and(|a| a.state.live()) {
+                    return;
+                }
+                self.world.activities.retain(|a| a.id != id);
+            }
+            TabKind::Plan(id) => {
+                if stop && let Some(p) = self.world.plan_mut(&id) {
+                    p.cancel_remaining();
+                    p.phase = PlanPhase::Done;
+                }
+            }
+            TabKind::Here => {}
+        }
+        self.tabs.remove(i);
+        self.activate_tab(i.saturating_sub(1).min(self.tabs.len() - 1));
     }
 
-    #[test]
-    fn early_input_and_unrelated_ticks_cannot_admit_simulation_time() {
-        let mut harness = harness(
-            App::for_scenario(Scenario::FirstUse, Motion::Full, 0),
-            Theme::junie(),
-            120,
-            40,
-        );
-        for _ in 0..10 {
-            let _ = harness.advance(std::time::Duration::from_micros(600));
-            let _ = harness.tick();
-        }
-        let _ = harness.key(KeyCode::F(1));
-        assert_eq!(harness.app().world.now_ms(), 0);
-        let _ = harness.advance(std::time::Duration::from_millis(74));
-        assert_eq!(harness.app().world.now_ms(), 80);
-    }
-    #[test]
-    fn footer_status_survives_focused_hints_and_edit_badge_uses_top_context() {
-        let mut harness = app(Scenario::DockerCleanup);
-        assert!(harness.tab_to(home::QUERY));
-        let _ = harness.type_str("docker system prune");
-        let _ = harness.ctrl('s');
-        assert!(harness.row(39).contains("EDIT"));
-        assert!(harness.row(39).contains("Scope: here"));
-        let _ = harness.key(KeyCode::F(1));
-        assert!(!harness.row(39).contains("EDIT"));
-        assert!(harness.row(39).contains("Scope: here"));
-        let _ = harness.key(KeyCode::Esc);
-        assert!(harness.row(39).contains("EDIT"));
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
+    // ------------------------------------------------------- launch pipeline
 
-        let mut harness = app(Scenario::DockerCleanup);
-        assert!(harness.tab_to(home::QUERY));
-        let _ = harness.type_str("docker system prune");
-        let _ = harness.key(KeyCode::Enter);
-        assert!(harness.tab_to(plan::STEPS));
-        let _ = harness.key(KeyCode::Enter);
-        assert!(harness.row(39).contains("EDIT"));
-        let _ = harness.key(KeyCode::Enter);
-        assert!(!harness.row(39).contains("EDIT"));
-        assert_eq!(harness.app().world.effect_revision, 0);
-        assert!(
-            harness.diagnostics().is_empty(),
-            "{:?}",
-            harness.diagnostics()
-        );
-    }
-}
-
-#[cfg(test)]
-mod historical_tests;
-
-#[cfg(test)]
-mod independent_draw_review {
-    //! Draw purity: repeating a full frame must repaint every cell
-    //! identically and leave the model untouched, at every colour level and
-    //! size, for every scenario and top-level route.
-    use super::*;
-
-    struct Borrowed<'a>(&'a App);
-
-    impl termrock::App for Borrowed<'_> {
-        fn update(&mut self, _cx: &mut Cx<'_>) -> Response<()> {
-            Response::ignored()
-        }
-
-        fn draw(&self, ui: &mut Ui<'_>) {
-            termrock::App::draw(self.0, ui);
-        }
+    fn find_item(&self, id: &str) -> Option<Item> {
+        self.world.items().into_iter().find(|i| i.id == id)
     }
 
-    /// Everything a frame may read; a change here means draw reached the
-    /// model.
-    fn fingerprint(a: &App) -> String {
-        format!(
-            "{:?}{:?}{:?}{:?}{:?}{:?}",
-            (
-                a.world.effect_revision,
-                a.world.now_ms(),
-                &a.world.cwd,
-                &a.world.discovery
-            ),
-            (&a.world.mise, &a.world.git, &a.world.ssh, &a.world.github),
-            (&a.world.docker, &a.world.pg, &a.world.disk, &a.world.debian),
-            (&a.world.memory, &a.world.activities),
-            (&a.status, a.quit, a.activities.current_id()),
-            crate::sim::catalogue::catalogue(&a.world)
+    fn run_item(&mut self, id: &str, args: Vec<(String, String)>) {
+        let Some(it) = self.find_item(id) else {
+            self.set_status(&format!("{id} is no longer available here"), Tone::Error);
+            return;
+        };
+        if let holla_domain::action::Freshness::Unavailable(why) = &it.freshness
+            && !matches!(
+                it.launch,
+                Launch::Snapshot { .. }
+                    | Launch::Files { .. }
+                    | Launch::Insert
+                    | Launch::Config { .. }
+            )
+        {
+            self.set_status(&format!("{} is unavailable · {why}", it.label), Tone::Error);
+            return;
+        }
+        // trust first: a contributed or untrusted definition is reviewed before it runs
+        if let Confirmation::Trust { .. } = &it.confirmation {
+            let config = self.config_path_for(&it);
+            let trusted = match &it.trust_key {
+                Some((path, digest)) => {
+                    let cwd = it.scope.runs_in.clone();
+                    self.world.trust.status(digest, path, &cwd)
+                        == holla_domain::custom::TrustStatus::Trusted
+                }
+                None => self.world.trusted_now.contains(&config),
+            };
+            if !trusted {
+                self.activate_tab(0);
+                self.push_page(Page::Trust {
+                    config,
+                    then: it.id.clone(),
+                });
+                return;
+            }
+        }
+        // arguments
+        if !it.args.is_empty() && args.is_empty() {
+            self.activate_tab(0);
+            self.push_page(Page::Args {
+                item: it.id.clone(),
+            });
+            return;
+        }
+        // plans are always reviewed on their own page
+        if let Launch::Plan { plan } = &it.launch {
+            self.remember_use(&it.id);
+            self.activate_tab(0);
+            self.push_page(Page::PlanReview { plan: plan.clone() });
+            return;
+        }
+        match &it.confirmation {
+            Confirmation::None | Confirmation::Trust { .. } => self.execute_item(&it.id, args),
+            // a review page (cleanup, disk, top files, find) gates the
+            // deletion itself: opening it is navigation, never a confirmation
+            Confirmation::One
+                if matches!(
+                    it.launch,
+                    Launch::Cleanup { .. } | Launch::Disk { .. } | Launch::TopFiles | Launch::Find
+                ) =>
+            {
+                self.execute_item(&it.id, args)
+            }
+            Confirmation::One => self.open_confirm_one(&it, args),
+            Confirmation::TwoGate { .. } => {
+                self.activate_tab(0);
+                self.push_page(Page::Review(GateTarget::Item {
+                    item: it.id.clone(),
+                    args,
+                }));
+            }
+        }
+    }
+
+    /// Record the use and the query that led to it, before the result is
+    /// known (failed invocations count too). Nothing is learned while
+    /// history is disabled.
+    fn remember_use(&mut self, id: &str) {
+        self.world.record_use(id);
+        if let Some(q) = self.last_query.take()
+            && !q.trim().is_empty()
+        {
+            let host = self.world.host.name.clone();
+            let now = self.world.now_secs();
+            self.world.memory.usage.learn_query(&q, id, &host, now);
+        }
+        self.persist_usage();
+    }
+
+    /// Save the usage store the way a production launch would: merge with
+    /// what is on disk, then replace it. A save failure is shown, never
+    /// fatal.
+    fn persist_usage(&mut self) {
+        let now = self.world.now_secs();
+        let on_disk = self.world.persisted.frecency.clone();
+        match self.world.memory.usage.save(on_disk.as_deref(), now) {
+            Ok(text) => self.world.persisted.frecency = Some(text),
+            Err(e) if self.world.memory.usage.enabled => {
+                self.set_status(&format!("history not saved · {e}"), Tone::Error);
+            }
+            Err(_) => {}
+        }
+    }
+
+    fn config_path_for(&self, it: &Item) -> String {
+        if let Some((path, _)) = &it.trust_key {
+            return path.clone();
+        }
+        self.world
+            .mise
+            .configs
+            .iter()
+            .find(|c| {
+                c.tasks
+                    .iter()
+                    .any(|t| format!("mise.task.{}", t.namespaced) == it.id)
+            })
+            .map(|c| c.path.clone())
+            .unwrap_or_else(|| format!("{}/mise.toml", it.scope.defined_at))
+    }
+
+    fn open_confirm_one(&mut self, it: &Item, args: Vec<(String, String)>) {
+        let mut facts = crate::screens::finder::item_facts(it, &self.world, &self.theme);
+        if !args.is_empty() {
+            let a: Vec<String> = args.iter().map(|(k, v)| format!("{k} = {v}")).collect();
+            facts.push(Prop::new("Arguments", a.join(" · ")));
+        }
+        facts.push(
+            Prop::new("Confirmation", "one explicit confirmation · not remembered")
+                .tone(Tone::Muted),
+        );
+        let code = it.commands.clone();
+        let dangerous = matches!(it.risk, Risk::Destructive | Risk::Privileged);
+        let confirm = if dangerous {
+            Button::danger(WidgetId::of("confirm-one").sub("ok"), "Run")
+        } else {
+            Button::primary(WidgetId::of("confirm-one").sub("ok"), "Run")
+        };
+        let mut d = Dialog::facts(
+            WidgetId::of("confirm-one"),
+            &it.label,
+            facts,
+            code,
+            None,
+            confirm,
+        );
+        d.initial_focus = if dangerous {
+            d.actions[0].id
+        } else {
+            d.actions[1].id
+        };
+        d.width = 74;
+        self.pending_confirm = Some((it.id.clone(), args));
+        self.push_modal(Modal::Dialog(d), ModalTag::new("confirm-one"));
+    }
+
+    fn ensure_plan(&mut self, id: &str) {
+        if self.world.plan(id).is_some() {
+            return;
+        }
+        let plan = match id {
+            "docker-cleanup" => holla_sim::fixtures::plan_docker_cleanup(&self.world),
+            "upgrade" => holla_sim::fixtures::plan_upgrade(&self.world),
+            "git-pull-all" => holla_sim::fixtures::plan_git_pull_all(&self.world),
+            "git-switch-primary" => holla_sim::fixtures::plan_git_switch_primary(&self.world),
+            "upgrade-all" => holla_sim::fixtures::plan_upgrade_all(&self.world),
+            _ => {
+                let sel: Vec<String> = self
+                    .world
+                    .disk
+                    .candidates
+                    .iter()
+                    .filter(|c| {
+                        c.default_selected() && c.path.starts_with(&self.world.location.cwd)
+                    })
+                    .map(|c| c.path.clone())
+                    .collect();
+                holla_sim::fixtures::plan_cleanup_work(&self.world, &sel)
+            }
+        };
+        self.world.plans.push(plan);
+    }
+
+    /// The plan review's Confirm: gate it when it has a phrase, otherwise one
+    /// facts confirmation, then start it.
+    fn confirm_plan(&mut self, id: &str) {
+        let Some(p) = self.world.plan(id).cloned() else {
+            return;
+        };
+        if p.included_count() == 0 {
+            self.set_status("Nothing to run: every step is excluded", Tone::Secondary);
+            return;
+        }
+        if p.phrase.is_some() {
+            self.push_page(Page::Review(GateTarget::Plan(id.to_owned())));
+        } else {
+            let mut facts: Vec<Prop> = vec![
+                Prop::new("Plan", format!("{} · {}", p.title, p.intent)).wrap(),
+                Prop::new("Host", p.host.clone()).tone(
+                    if p.host == self.world.host.name && self.world.host.role.sensitive() {
+                        Tone::Warning
+                    } else {
+                        Tone::Normal
+                    },
+                ),
+                Prop::new(
+                    "Steps",
+                    format!(
+                        "{} included · {} excluded · ~{}",
+                        p.included_count(),
+                        p.steps.len() - p.included_count(),
+                        crate::screens::ticks_label(p.estimate_ticks())
+                    ),
+                ),
+            ];
+            for (k, v) in p.facts.iter().filter(|(k, _)| k != "Host") {
+                facts.push(Prop::new(k, v.clone()).wrap());
+            }
+            let code: Vec<String> = p
+                .steps
                 .iter()
-                .map(|action| action.id.clone())
-                .collect::<Vec<_>>(),
-        )
+                .filter(|s| s.included)
+                .flat_map(|s| s.commands.clone())
+                .collect();
+            // one risk level per action: a plan without a phrase is not
+            // destructive, so its confirmation is the primary button
+            let confirm = Button::primary(WidgetId::of("start-plan").sub("ok"), "Start plan");
+            let mut d = Dialog::facts(
+                WidgetId::of("start-plan"),
+                &format!("Start {}?", p.title.to_lowercase()),
+                facts,
+                code,
+                None,
+                confirm,
+            );
+            d.initial_focus = d.actions[0].id;
+            d.width = 76;
+            self.pending_gate = Some(GateTarget::Plan(id.to_owned()));
+            self.push_modal(Modal::Dialog(d), ModalTag::new("gate2"));
+        }
     }
 
-    #[test]
-    fn all_scenarios_available_routes_repeat_full_cells_without_model_effects() {
-        let mut count = 0;
-        for scenario in Scenario::ALL {
-            for route in [Route::Home, Route::Plan, Route::Activity] {
-                let mut app = App::for_scenario(scenario, Motion::Paused, 4000);
-                if route == Route::Plan {
-                    let plan = crate::sim::catalogue::catalogue(&app.world)
-                        .iter()
-                        .find_map(|action| crate::sim::plans::plan_for(&app.world, &action.id));
-                    let Some(plan) = plan else { continue };
-                    app.plan = Some(PlanState::new(plan));
+    /// Gate 2: the typed target-bound phrase over the review page.
+    fn open_gate2(&mut self, target: GateTarget) {
+        let (title, facts, code, phrase, confirm_label) = match &target {
+            GateTarget::Plan(id) => {
+                let Some(p) = self.world.plan(id).cloned() else {
+                    return;
+                };
+                let mut facts = vec![
+                    Prop::new("Action", p.intent.clone()).wrap(),
+                    Prop::new("Host", p.host.clone()).tone(Tone::Normal),
+                    Prop::new("Steps", format!("{} included", p.included_count())),
+                ];
+                for (k, v) in p.facts.iter().take(3) {
+                    facts.push(Prop::new(k, v.clone()).wrap());
                 }
-                if let (Route::Activity, Some(activity)) = (route, app.world.activities.first()) {
-                    app.activities.show(activity.id);
+                let code: Vec<String> = p
+                    .steps
+                    .iter()
+                    .filter(|s| s.included)
+                    .flat_map(|s| s.commands.clone())
+                    .collect();
+                (
+                    p.title.clone(),
+                    facts,
+                    code,
+                    p.gate_phrase().unwrap_or_default(),
+                    "Execute".to_owned(),
+                )
+            }
+            GateTarget::Item { item, .. } => {
+                let Some(it) = self.find_item(item) else {
+                    return;
+                };
+                let facts = crate::screens::finder::item_facts(&it, &self.world, &self.theme);
+                (
+                    it.label.clone(),
+                    facts,
+                    it.commands.clone(),
+                    it.confirmation.phrase().unwrap_or_default(),
+                    "Execute".to_owned(),
+                )
+            }
+            GateTarget::Cleanup(plan) => {
+                let facts = crate::screens::cleanup::plan_facts(plan, &self.world);
+                let code: Vec<String> = plan.items.iter().map(|i| i.path.clone()).collect();
+                (
+                    format!(
+                        "{} {} items",
+                        if plan.dry_run {
+                            "Dry run"
+                        } else if plan.mode == holla_sim::cleanup::Mode::Permanent {
+                            "Permanently delete"
+                        } else {
+                            "Trash"
+                        },
+                        plan.items.len()
+                    ),
+                    facts,
+                    code,
+                    plan.phrase(),
+                    if plan.dry_run {
+                        "Dry run".to_owned()
+                    } else {
+                        "Execute".to_owned()
+                    },
+                )
+            }
+        };
+        let confirm = Button::danger(WidgetId::of("gate2").sub("ok"), &confirm_label);
+        let mut d = Dialog::facts(
+            WidgetId::of("gate2"),
+            &format!("{title} · gate 2 of 2"),
+            facts,
+            code,
+            Some(&phrase),
+            confirm,
+        );
+        d.width = 78;
+        self.pending_gate = Some(target);
+        self.push_modal(Modal::Dialog(d), ModalTag::new("gate2"));
+    }
+
+    /// Gate 2 confirmed: re-resolve, then execute (CONCEPT §10 invariants).
+    fn gate2_confirmed(&mut self) {
+        let Some(target) = self.pending_gate.take() else {
+            return;
+        };
+        match target {
+            GateTarget::Plan(id) => {
+                let drift = self.world.plan(&id).and_then(|p| {
+                    if p.drift.is_some() && !p.drift_consumed {
+                        p.drift.clone()
+                    } else {
+                        None
+                    }
+                });
+                if let Some(d) = drift {
+                    if let Some(p) = self.world.plan_mut(&id) {
+                        p.drift_consumed = true;
+                    }
+                    self.set_status(
+                        &format!("Plan changed · {d} · confirmation invalidated, review again"),
+                        Tone::Error,
+                    );
+                    // the gate-1 page is still below: refresh it
+                    self.enter_top();
+                    return;
                 }
-                app.route = route;
-                let before = fingerprint(&app);
-                for (cols, rows) in [(71, 19), (72, 20), (120, 40)] {
-                    for color in [
-                        termrock::ColorLevel::TrueColor,
-                        termrock::ColorLevel::Ansi256,
-                        termrock::ColorLevel::Ansi16,
-                        termrock::ColorLevel::Mono,
-                    ] {
-                        let mut scene = termrock_test_support::Harness::new(
-                            Borrowed(&app),
-                            termrock::Theme::junie().downgrade(color),
-                            cols,
-                            rows,
+                // leave the review pages
+                while self.tabs[0].stack.len() > 1 {
+                    self.tabs[0].stack.pop();
+                }
+                let tick = self.world.tick;
+                if let Some(p) = self.world.plan_mut(&id) {
+                    p.arm(tick);
+                }
+                let title = self
+                    .world
+                    .plan(&id)
+                    .map(|p| p.title.clone())
+                    .unwrap_or_default();
+                self.open_plan_tab(&id);
+                self.set_status(&format!("{title} started"), Tone::Secondary);
+            }
+            GateTarget::Item { item, args } => {
+                while self.tabs[0].stack.len() > 1 {
+                    self.tabs[0].stack.pop();
+                }
+                self.enter_top();
+                self.execute_item(&item, args);
+            }
+            GateTarget::Cleanup(plan) => {
+                // the gate revalidates: a plan whose fingerprint drifted
+                // since review is refused before any effect
+                let outcome = crate::screens::cleanup::commit(&plan, &mut self.world);
+                match outcome {
+                    Ok(index) => {
+                        while self.tabs[0].stack.len() > 1 {
+                            self.tabs[0].stack.pop();
+                        }
+                        self.push_page(Page::Report { index });
+                        let n = plan.items.len();
+                        self.set_status(
+                            &format!(
+                                "cleanup started · {} · quitting waits for it",
+                                crate::screens::plural(n, "item", "items")
+                            ),
+                            Tone::Secondary,
                         );
-                        scene.draw();
-                        let cells = scene.buffer().clone();
-                        let cursor = scene.runtime().cursor_position();
-                        scene.draw();
-                        assert_eq!(
-                            scene.buffer(),
-                            &cells,
-                            "{scenario:?} route {} {cols}x{rows}",
-                            route as u8
-                        );
-                        assert_eq!(
-                            scene.runtime().cursor_position(),
-                            cursor,
-                            "{scenario:?} route {} {cols}x{rows}",
-                            route as u8
-                        );
-                        assert_eq!(
-                            fingerprint(&app),
-                            before,
-                            "{scenario:?} route {}",
-                            route as u8
-                        );
-                        count += 1;
+                    }
+                    Err(e) => {
+                        self.set_status(&e, Tone::Error);
+                        self.enter_top();
                     }
                 }
             }
         }
-        debug_assert!(count > 0, "no cases drawn");
-        let _ = count;
     }
+
+    fn activity_name(it: &Item) -> String {
+        if let Some(ns) = it.id.strip_prefix("mise.task.") {
+            let ns = ns.trim_start_matches("//");
+            return ns
+                .replace(':', " ")
+                .replace("apps/", "")
+                .replace("services/", "")
+                .replace("tools/", "");
+        }
+        let l = it.label.to_lowercase();
+        for v in ["run ", "start ", "follow ", "open ", "connect to ", "show "] {
+            if let Some(rest) = l.strip_prefix(v) {
+                return rest.to_owned();
+            }
+        }
+        l
+    }
+
+    fn execute_item(&mut self, id: &str, args: Vec<(String, String)>) {
+        let Some(it) = self.find_item(id) else {
+            return;
+        };
+        self.remember_use(id);
+        match it.launch.clone() {
+            Launch::Activity { script } => {
+                let name = Self::activity_name(&it);
+                let kind = if it.id == "docker.compose_logs" {
+                    ActivityKind::Logs {
+                        services: self
+                            .world
+                            .docker
+                            .compose
+                            .as_ref()
+                            .map(|c| {
+                                c.services
+                                    .iter()
+                                    .filter(|s| !matches!(s.as_str(), "db" | "redis"))
+                                    .cloned()
+                                    .collect()
+                            })
+                            .unwrap_or_default(),
+                    }
+                } else {
+                    ActivityKind::Task
+                };
+                // launch-time arguments fill their placeholders in the typed
+                // spec; they are never appended as free text
+                let argv: Vec<holla_domain::exec::Command> = it
+                    .exec
+                    .iter()
+                    .map(|c| {
+                        let mut c = c.clone();
+                        for a in &mut c.args {
+                            for (k, v) in &args {
+                                let ph = format!("<{k}>");
+                                if a.contains(&ph) {
+                                    *a = a.replace(&ph, v);
+                                }
+                            }
+                        }
+                        if c.program == "kill"
+                            && let Some(sig) = args.iter().find(|(k, _)| k == "signal")
+                        {
+                            c.args[0] = format!("-{}", sig.1);
+                        }
+                        c
+                    })
+                    .collect();
+                if argv.is_empty() && script.is_none() {
+                    self.set_status(
+                        &format!(
+                            "{} has no executable specification in this preview",
+                            it.label
+                        ),
+                        Tone::Error,
+                    );
+                    return;
+                }
+                let script = self.world.script_for(script.as_deref(), &argv);
+                let aid = self.world.start_activity(
+                    argv,
+                    script,
+                    &name,
+                    &it.label,
+                    kind,
+                    it.scope.clone(),
+                );
+                if let Some(a) = self.world.activity_mut(&aid) {
+                    if !args.is_empty() {
+                        // launch arguments are insights; secrets never are
+                        a.insights = args
+                            .iter()
+                            .filter(|(k, _)| !it.args.iter().any(|s| &s.name == k && s.secret))
+                            .cloned()
+                            .collect();
+                    }
+                    a.effect = it.effect.clone();
+                    if it.id == "system.kill"
+                        && let Some(pid) = args
+                            .iter()
+                            .find(|(k, _)| k == "pid")
+                            .and_then(|(_, v)| v.trim().parse::<u32>().ok())
+                    {
+                        a.effect = Some(holla_domain::effect::Effect::KillProcess(pid));
+                    }
+                }
+                self.open_activity_tab(&aid, true);
+                self.set_status(
+                    &format!(
+                        "Started {name} in {}",
+                        self.world.location.short(&it.scope.runs_in)
+                    ),
+                    Tone::Secondary,
+                );
+            }
+            Launch::Batch => {
+                let members: Vec<_> = it
+                    .batch
+                    .iter()
+                    .map(|(name, argv, effect, scope)| {
+                        let script = self.world.script_for(None, argv);
+                        (
+                            name.clone(),
+                            argv.clone(),
+                            script,
+                            effect.clone(),
+                            scope.clone(),
+                        )
+                    })
+                    .collect();
+                let ids =
+                    self.world
+                        .start_batch(&it.id, &it.label, it.batch_mode, members, &it.label);
+                if let Some(first) = ids.first() {
+                    let first = first.clone();
+                    self.open_activity_tab(&first, true);
+                }
+                self.set_status(
+                    &format!(
+                        "{} · {} started {}",
+                        it.label,
+                        crate::screens::plural(ids.len(), "activity", "activities"),
+                        match it.batch_mode {
+                            holla_sim::world::BatchMode::Parallel =>
+                                "in parallel · Ctrl+G lists them",
+                            holla_sim::world::BatchMode::Sequential =>
+                                "one after another · Ctrl+G lists them",
+                        }
+                    ),
+                    Tone::Secondary,
+                );
+            }
+            Launch::Handoff { tool } => {
+                let script = match tool.as_str() {
+                    "btm" => "monitor:btm".to_owned(),
+                    "pg_activity" => "monitor:pg_activity".to_owned(),
+                    t if t.starts_with("ssh ") => format!("ssh:{}", t.trim_start_matches("ssh ")),
+                    t => format!("handoff:{t}"),
+                };
+                let kind = if tool.starts_with("ssh ") {
+                    ActivityKind::Ssh {
+                        alias: tool.trim_start_matches("ssh ").to_owned(),
+                    }
+                } else {
+                    ActivityKind::Monitor { tool: tool.clone() }
+                };
+                let argv = it.exec.clone();
+                let script = self.world.script_for(Some(&script), &argv);
+                let aid = self.world.start_activity(
+                    argv,
+                    script,
+                    &tool,
+                    &it.label,
+                    kind,
+                    it.scope.clone(),
+                );
+                self.open_activity_tab(&aid, true);
+                self.set_status(
+                    &format!("{tool} opened as an activity · Enter attaches, Ctrl+] detaches"),
+                    Tone::Secondary,
+                );
+            }
+            Launch::Disk { path } => {
+                let path = if path == "<path>" {
+                    args.iter()
+                        .find(|(k, _)| k == "path")
+                        .map(|(_, v)| v.trim().to_owned())
+                        .unwrap_or_default()
+                } else {
+                    path
+                };
+                self.activate_tab(0);
+                if path.is_empty() {
+                    self.push_page(Page::DiskOverview);
+                    return;
+                }
+                if !path.starts_with('/') {
+                    self.set_status(&format!("{path}: the path must be absolute"), Tone::Error);
+                    return;
+                }
+                if !self.world.fs.exists(&path) {
+                    self.set_status(&format!("{path}: no such file or directory"), Tone::Error);
+                    return;
+                }
+                self.world.start_scan(&path);
+                self.push_page(Page::Disk { path });
+            }
+            Launch::Files { path } => {
+                self.activate_tab(0);
+                self.push_page(Page::Files { path, query: None });
+            }
+            Launch::Find => {
+                self.activate_tab(0);
+                self.push_page(Page::Find);
+            }
+            Launch::Cleanup { category } => {
+                self.activate_tab(0);
+                self.push_page(Page::Cleanup { category });
+            }
+            Launch::TopFiles => {
+                self.activate_tab(0);
+                self.push_page(Page::TopFiles);
+            }
+            Launch::Config { path } => {
+                self.activate_tab(0);
+                self.push_page(Page::Config { path });
+            }
+            Launch::Copy { value } => self.copy_osc52(value),
+            Launch::Group(g) => {
+                self.activate_tab(0);
+                self.push_page(Page::Finder { group: Some(g) });
+            }
+            Launch::Scope(s) => self.go(Go::Scope(s)),
+            Launch::Snapshot { snapshot } => {
+                self.activate_tab(0);
+                let kind = if snapshot == "port" {
+                    let port = args
+                        .iter()
+                        .find(|(k, _)| k == "port")
+                        .map(|(_, v)| v.clone())
+                        .unwrap_or("5173".into());
+                    format!("port:{port}")
+                } else {
+                    snapshot
+                };
+                self.push_page(Page::Snapshot { kind });
+            }
+            Launch::OpenActivity { id } => self.open_activity_tab(&id, true),
+            Launch::Plan { plan } => {
+                self.activate_tab(0);
+                self.push_page(Page::PlanReview { plan });
+            }
+            Launch::Insert => {
+                let cmd = it.commands.first().cloned().unwrap_or_default();
+                self.set_status(
+                    &format!(
+                        "Inserted into the shell: {} · holla returns to the prompt",
+                        truncate(&cmd, 40)
+                    ),
+                    Tone::Secondary,
+                );
+            }
+        }
+    }
+
+    /// Copy through the terminal's OSC 52 channel: the result names the
+    /// actual destination and never claims success the terminal cannot
+    /// deliver (I-F11).
+    pub fn copy_osc52(&mut self, value: String) {
+        let p = &self.world.platform;
+        if !p.osc52 {
+            self.set_status(
+                "Not copied · this terminal does not accept OSC 52 · no system clipboard is wired",
+                Tone::Error,
+            );
+            return;
+        }
+        let encoded = value.len().div_ceil(3) * 4;
+        if encoded > p.osc52_limit {
+            self.set_status(
+                &format!("Not copied · {encoded} encoded bytes exceed the terminal's {} byte OSC 52 limit", p.osc52_limit),
+                Tone::Error,
+            );
+            return;
+        }
+        let shown = truncate(&value.replace('\n', " · "), 40);
+        self.world.clipboard = Some(value);
+        self.clipboard_gen += 1;
+        self.set_status(
+            &format!("Copied to the terminal clipboard (OSC 52, flushed) · {shown}"),
+            Tone::Secondary,
+        );
+    }
+
+    // --------------------------------------------------------- alternatives
+
+    fn open_alternatives(&mut self, id: &str, anchor: Rect) {
+        let Some(it) = self.find_item(id) else {
+            return;
+        };
+        let mut items = vec![];
+        let mut actions = vec![];
+        let primary = match (&it.launch, &it.confirmation) {
+            (_, Confirmation::TwoGate { .. }) => "Review…",
+            (Launch::Plan { .. }, _) => "Review the plan",
+            (
+                Launch::Disk { .. } | Launch::Group(_) | Launch::Snapshot { .. } | Launch::Scope(_),
+                _,
+            ) => "Open",
+            (_, Confirmation::One) => "Run after confirmation…",
+            _ => "Run now",
+        };
+        let mut m = MenuItem::new(primary).shortcut("Enter");
+        if matches!(it.risk, Risk::Destructive | Risk::Privileged) {
+            m = m.danger();
+        }
+        items.push(m);
+        actions.push(MenuAction::Run);
+        if !it.commands.is_empty() {
+            items.push(MenuItem::new("Copy command").shortcut("y"));
+            actions.push(MenuAction::Copy);
+            items.push(MenuItem::new("Insert into shell"));
+            actions.push(MenuAction::Insert);
+        }
+        if !it.args.is_empty() {
+            items.push(MenuItem::new("Arguments…"));
+            actions.push(MenuAction::Args);
+        }
+        if let Some(last) = items.last_mut() {
+            last.separator_after = true;
+        }
+        for a in &it.alternatives {
+            items.push(MenuItem::new(a.label.clone()));
+            actions.push(MenuAction::Alternative(a.item.clone()));
+        }
+        if !it.alternatives.is_empty()
+            && let Some(last) = items.last_mut()
+        {
+            last.separator_after = true;
+        }
+        items.push(MenuItem::new(if it.pinned {
+            "Unpin here"
+        } else {
+            "Pin here"
+        }));
+        actions.push(MenuAction::Pin);
+        items.push(MenuItem::new(match self.world.memory.alias_for(&it.id) {
+            Some(a) => format!("Change alias ({a})…"),
+            None => "Set alias…".into(),
+        }));
+        actions.push(MenuAction::Alias);
+        items.push(MenuItem::new(if it.hidden {
+            "Restore here"
+        } else {
+            "Hide here"
+        }));
+        actions.push(MenuAction::Hide);
+        items.push(MenuItem::new("Reset ranking").separator());
+        actions.push(MenuAction::Reset);
+        items.push(MenuItem::new("Why is this here?"));
+        actions.push(MenuAction::Why);
+        let menu = ContextMenu::new(WidgetId::of("alternatives"), items)
+            .anchor(anchor, Placement::Below)
+            .title(&it.label);
+        self.menu_actions = actions;
+        self.menu_item = Some(it.id.clone());
+        self.push_modal(
+            Modal::Menu(menu),
+            ModalTag::new("alternatives").key(it.id.clone()),
+        );
+    }
+
+    /// Alternatives that derive from another row rather than being rows of
+    /// their own: dry runs, fetches, per-container operations, an SSH
+    /// resolution, activity control, a volume analysis, an alias prompt.
+    fn run_derived(&mut self, alt: &str, origin: &str) {
+        let tick = self.world.tick;
+        let scope = self
+            .find_item(origin)
+            .map(|i| i.scope.clone())
+            .unwrap_or_else(|| holla_domain::context::ScopeTag::here(&self.world.location.cwd));
+        if let Some(ns) = alt
+            .strip_prefix("mise.task.")
+            .and_then(|s| s.strip_suffix(".dry"))
+        {
+            let argv = vec![holla_domain::exec::Command::argv(
+                "mise",
+                &["run", "--dry-run", ns],
+                &scope.runs_in,
+                &self.world.host.name,
+            )];
+            let script = self.world.script_for(None, &argv);
+            let aid = self.world.start_activity(
+                argv,
+                script,
+                &format!("{} · dry run", ns.trim_start_matches("//")),
+                "Dry run",
+                ActivityKind::Task,
+                scope,
+            );
+            self.open_activity_tab(&aid, true);
+            self.set_status("Dry run started · nothing executes", Tone::Secondary);
+            return;
+        }
+        if let Some(rest) = alt.strip_prefix("ssh.")
+            && let Some(alias) = rest.strip_suffix(".resolve")
+        {
+            self.activate_tab(0);
+            self.push_page(Page::Snapshot {
+                kind: format!("ssh:{alias}"),
+            });
+            return;
+        }
+        if let Some(rest) = alt.strip_prefix("activity.") {
+            if let Some(aid) = rest.strip_suffix(".stop") {
+                if let Some(a) = self.world.activity_mut(aid) {
+                    a.stop(tick);
+                }
+                self.set_status(
+                    "Stop requested · output kept · the state settles once the process is gone",
+                    Tone::Secondary,
+                );
+                return;
+            }
+            if let Some(aid) = rest.strip_suffix(".restart") {
+                if let Some(a) = self.world.activity_mut(aid) {
+                    if a.state.live() {
+                        self.set_status("Still running · stop it first", Tone::Secondary);
+                        return;
+                    }
+                    a.restart(tick);
+                    a.advance(tick);
+                }
+                let aid = aid.to_owned();
+                self.open_activity_tab(&aid, true);
+                self.set_status("Restarted", Tone::Secondary);
+                return;
+            }
+        }
+        if alt.ends_with(".alias") {
+            self.menu_action(MenuAction::Alias, origin);
+            return;
+        }
+        self.set_status(
+            &format!("{alt}: not available in the preview"),
+            Tone::Secondary,
+        );
+    }
+
+    fn menu_action(&mut self, a: MenuAction, id: &str) {
+        let cwd = self.world.location.cwd.clone();
+        match a {
+            MenuAction::Run => self.run_item(id, vec![]),
+            MenuAction::Copy => {
+                let cmd = self
+                    .find_item(id)
+                    .map(|i| i.commands.join("\n"))
+                    .unwrap_or_default();
+                self.copy(cmd);
+            }
+            MenuAction::Insert => {
+                let cmd = self
+                    .find_item(id)
+                    .and_then(|i| i.commands.first().cloned())
+                    .unwrap_or_default();
+                self.set_status(
+                    &format!(
+                        "Inserted into the shell: {} · holla returns to the prompt",
+                        truncate(&cmd, 40)
+                    ),
+                    Tone::Secondary,
+                );
+            }
+            MenuAction::Args => {
+                self.activate_tab(0);
+                self.push_page(Page::Args {
+                    item: id.to_owned(),
+                });
+            }
+            MenuAction::Alternative(alt) => {
+                if self.find_item(&alt).is_some() {
+                    self.run_item(&alt, vec![]);
+                } else {
+                    self.run_derived(&alt, id);
+                }
+            }
+            MenuAction::Pin => {
+                let on = self.world.memory.toggle_pin(&cwd, id);
+                self.set_status(
+                    if on {
+                        "Pinned here · it stays near the top in this folder"
+                    } else {
+                        "Unpinned"
+                    },
+                    Tone::Secondary,
+                );
+                self.enter_top();
+            }
+            MenuAction::Alias => {
+                let existing = self.world.memory.alias_for(id).unwrap_or("").to_owned();
+                let input = TextInput::new(WidgetId::of("alias").sub("field"), "Alias")
+                    .value(&existing)
+                    .placeholder("gp · du · dc")
+                    .help("exact match beats every learned signal · never drifts");
+                let d = Dialog::prompt(WidgetId::of("alias"), "Set an alias", input, "Save");
+                self.push_modal(Modal::Dialog(d), ModalTag::new("alias").key(id.to_owned()));
+            }
+            MenuAction::Hide => {
+                let hidden = self
+                    .world
+                    .memory
+                    .hidden
+                    .iter()
+                    .any(|(p, i)| p == &cwd && i == id);
+                if hidden {
+                    self.world.memory.restore(&cwd, id);
+                    self.set_status("Restored here", Tone::Secondary);
+                } else {
+                    self.world.memory.hide(&cwd, id);
+                    self.set_status(
+                        "Hidden here · still reachable by search · Restore from the same menu",
+                        Tone::Secondary,
+                    );
+                }
+                self.enter_top();
+            }
+            MenuAction::Reset => {
+                self.world.memory.reset(id);
+                self.set_status(
+                    "Ranking reset for this row · pins and aliases kept",
+                    Tone::Secondary,
+                );
+                self.enter_top();
+            }
+            MenuAction::Why => {
+                if let Some(it) = self.find_item(id) {
+                    let cwd_short = self.world.location.cwd_short();
+                    let rows = holla_domain::ranking::explain(&it, &cwd_short);
+                    let mut lines: Vec<TextLine> =
+                        rows.iter().map(|(k, v)| TextLine::kv(k, v)).collect();
+                    lines.push(TextLine::blank());
+                    lines.push(TextLine::text("Ranking order: alias › pin › live state › context › query › used here › used anywhere › default. Risk changes the gate, never the rank.", Tone::Muted));
+                    let m = TextModal::new(
+                        WidgetId::of("why"),
+                        &format!("Why is “{}” here?", it.label),
+                        lines,
+                    )
+                    .width(74);
+                    self.push_modal(Modal::Text(m), ModalTag::new("why"));
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------------ render
+
+    pub fn render(&mut self, frame: &mut Frame) {
+        let area = frame.area();
+        self.size = (area.width, area.height);
+        let theme = self.theme;
+        let mut hits = HitRegistry::default();
+        let mut ring = FocusRing::default();
+        let interaction = self.interaction();
+        let cursor;
+        {
+            let buf = frame.buffer_mut();
+            let mut ctx = RenderCtx::new(&theme, interaction, &mut hits, &mut ring);
+            self.draw(area, buf, &mut ctx);
+            cursor = ctx.cursor;
+        }
+        self.hits = hits;
+        self.ring = ring;
+        if self.modals.is_empty() {
+            if !self.too_small && !self.focus.current().is_some_and(|c| self.ring.contains(c)) {
+                let pf = self.top().and_then(|s| s.primary_focus());
+                self.focus
+                    .set(pf.filter(|p| self.ring.contains(*p)).or(self.ring.first()));
+            }
+        } else {
+            self.focus.ensure_valid(&self.ring);
+        }
+        let _ = cursor;
+    }
+
+    fn draw(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = self.theme;
+        fill(buf, area, t.base());
+        self.too_small = area.width < MIN_WIDTH || area.height < MIN_HEIGHT;
+        if self.too_small {
+            let lines = [
+                (&*format!(" {BRAND_MARK} "), Lockup::style(&t)),
+                ("Terminal too small", t.secondary()),
+                (
+                    &*format!(
+                        "Need {MIN_WIDTH}×{MIN_HEIGHT}, have {}×{}",
+                        area.width, area.height
+                    ),
+                    t.muted(),
+                ),
+                ("q Quit", t.faint()),
+            ];
+            let y0 = area.y + area.height.saturating_sub(5) / 2;
+            for (i, (text, style)) in lines.iter().enumerate() {
+                let w = width(text) as u16;
+                let x = area.x + area.width.saturating_sub(w) / 2;
+                let y = y0 + i as u16 + if i == 3 { 1 } else { 0 };
+                if y < area.bottom() {
+                    buf.set_string(x, y, text, if i == 0 { *style } else { style.bg(t.canvas) });
+                }
+            }
+            return;
+        }
+        self.draw_frame(area, buf, ctx);
+        if let Some(mut entry) = self.modals.pop() {
+            match &mut entry.modal {
+                Modal::Dialog(d) => d.render(area, buf, ctx),
+                Modal::Picker(p) => p.render(area, buf, ctx, ""),
+                Modal::Menu(m) => {
+                    ctx.begin_modal();
+                    m.render(area, buf, ctx);
+                    ctx.ring.register(m.id);
+                }
+                Modal::Text(m) => m.render(area, buf, ctx),
+            }
+            self.modals.push(entry);
+            let footer = Rect::new(area.x, area.bottom() - 1, area.width, 1);
+            self.draw_footer(footer, buf, true);
+        }
+    }
+
+    fn crumb(&self) -> String {
+        let here = &self.tabs[0];
+        // a page nested inside its own family (the tree's Top files under
+        // Disk › Usage) repeats the family name; the trail keeps it once
+        let mut parts: Vec<String> = vec![];
+        for s in &here.stack {
+            let crumb = s.crumb(&self.world);
+            let (family, rest) = match crumb.split_once(" › ") {
+                Some((f, r)) => (f.to_owned(), Some(r.to_owned())),
+                None => (crumb.clone(), None),
+            };
+            let same_family = parts
+                .last()
+                .is_some_and(|prev| prev.split(" › ").next() == Some(family.as_str()));
+            match (same_family, rest) {
+                (true, Some(r)) => parts.push(r),
+                _ => parts.push(crumb),
+            }
+        }
+        parts.join(" › ")
+    }
+
+    fn tab_label(&self, i: usize) -> String {
+        match &self.tabs[i].kind {
+            TabKind::Here => self.crumb(),
+            TabKind::Activity(id) => self
+                .world
+                .activity(id)
+                .map(|a| a.name.clone())
+                .unwrap_or("activity".into()),
+            TabKind::Plan(id) => self
+                .world
+                .plan(id)
+                .map(|p| p.title.clone())
+                .unwrap_or("plan".into()),
+        }
+    }
+
+    fn strip_items(&self) -> Vec<TabItem> {
+        let mut v = vec![];
+        for (i, tab) in self.tabs.iter().enumerate() {
+            let label = self.tab_label(i);
+            let label = if i == 0 {
+                crumb_fit(&label, 48)
+            } else {
+                truncate(&label, 24)
+            };
+            let mut item = TabItem::new(&label);
+            match &tab.kind {
+                TabKind::Here => {}
+                TabKind::Activity(id) => {
+                    item = item.closable();
+                    if let Some(a) = self.world.activity(id) {
+                        match a.state {
+                            ActivityState::Running | ActivityState::Cancelling => item.busy = true,
+                            ActivityState::Queued => item = item.suffix("…"),
+                            ActivityState::Failed => item.error = true,
+                            ActivityState::Succeeded => item = item.suffix("✓"),
+                            ActivityState::Stopped | ActivityState::Detached => {
+                                item = item.suffix("○")
+                            }
+                        }
+                    }
+                }
+                TabKind::Plan(id) => {
+                    item = item.closable();
+                    if let Some(p) = self.world.plan(id) {
+                        match p.phase {
+                            PlanPhase::Running => item.busy = true,
+                            PlanPhase::Done => {
+                                if p.outcome().1 > 0 {
+                                    item.error = true;
+                                } else {
+                                    item = item.suffix("✓");
+                                }
+                            }
+                            PlanPhase::Review => {}
+                        }
+                    }
+                }
+            }
+            v.push(item);
+        }
+        v
+    }
+
+    fn draw_frame(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = self.theme;
+        let header = Rect::new(area.x, area.y, area.width, 1);
+        let strip = Rect::new(area.x + 1, area.y + 2, area.width.saturating_sub(2), 2);
+        let footer = Rect::new(area.x, area.bottom() - 1, area.width, 1);
+        let status = Rect::new(area.x, area.bottom() - 2, area.width, 1);
+        // one blank row separates the body from the status bar (shell rhythm)
+        let body = Rect::new(
+            area.x + 1,
+            area.y + 4,
+            area.width.saturating_sub(2),
+            area.height.saturating_sub(7),
+        );
+        self.draw_menu(header, buf, ctx);
+        // tab strip
+        let items = self.strip_items();
+        let first = self.strip.first;
+        self.strip = Tabs::with_items(TABS, items);
+        self.strip.first = first;
+        self.strip.set_active(self.active);
+        self.strip.render(strip, buf, ctx, t.canvas);
+        // body
+        let active = self.active;
+        if let Some(s) = self.tabs.get_mut(active).and_then(|t| t.stack.last_mut()) {
+            s.render(body, buf, ctx, &self.world);
+        }
+        self.draw_status(status, buf, ctx);
+        self.draw_footer(footer, buf, false);
+        self.menu.render_open(area, buf, ctx);
+    }
+
+    /// Row zero: the menu bar, then the project crumb and the host identity
+    /// right-aligned in what is left of the row.
+    fn draw_menu(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let t = self.theme;
+        self.menu.render(area, buf, ctx, t.canvas);
+        let used = self
+            .menu
+            .areas
+            .iter()
+            .map(|r| r.right())
+            .max()
+            .unwrap_or(area.x)
+            .max(self.menu.brand_area.right());
+        let rest = Rect::new(used + 2, area.y, area.right().saturating_sub(used + 2), 1);
+        let w = &self.world;
+        let mut right = vec![];
+        let project = match (&w.location.workspace, &w.location.project) {
+            (Some(ws), Some(p)) => format!("{} › {} · {}", ws.name, p.name, p.kind.label()),
+            (None, Some(p)) => format!("{} · {}", p.name, p.kind.label()),
+            _ => "no project".into(),
+        };
+        let host = match w.host.role {
+            HostRole::Production => format!("◆ {} · production", w.host.name),
+            r => format!("{} · {}", w.host.name, r.label()),
+        };
+        // the identity is the constant frame and the path the variable
+        // part: the crumb truncates to what is left rather than dropping
+        let budget = (rest.width as usize).saturating_sub(width(&host) + 6);
+        if budget >= 12 {
+            right
+                .push(Segment::new(truncate_middle(&project, budget), Tone::Secondary).priority(6));
+        }
+        // the `◆` glyph and the word are the identity; no safety tone at rest
+        right.push(Segment::new(host, Tone::Normal).bold().priority(9));
+        segments::render(rest, buf, ctx, &[], &right, t.canvas);
+    }
+
+    fn draw_status(&mut self, area: Rect, buf: &mut Buffer, ctx: &mut RenderCtx) {
+        let w = &self.world;
+        let mut bar = StatusBar::new();
+        bar.left.push(
+            StatusItem::new(truncate_middle(&w.location.cwd_short(), 44), Tone::Normal)
+                .strong()
+                .clickable(STATUS_PATH)
+                .priority(10),
+        );
+        if let Some(g) = w.git_here() {
+            // the branch is an identity, the state after it is the fact that
+            // earns the warning tone; the state survives the branch name
+            let state = g.state_summary();
+            bar.left.push(
+                StatusItem::new(truncate_middle(&g.head_label(), 24), Tone::Muted)
+                    .clickable(STATUS_GIT)
+                    .priority(if state.is_empty() { 5 } else { 4 }),
+            );
+            if !state.is_empty() {
+                bar.left.push(
+                    StatusItem::new(state, Tone::Warning)
+                        .clickable(STATUS_GIT)
+                        .priority(5),
+                );
+            }
+        }
+        let bits = self.top().map(|s| s.status(w)).unwrap_or_default();
+        if let Some(c) = bits.center {
+            bar.center.push(c);
+        }
+        for r in bits.right {
+            bar.right.push(r);
+        }
+        if self.attached() {
+            bar.right.push(
+                StatusItem::new("attached", Tone::Secondary)
+                    .chip()
+                    .priority(8),
+            );
+        }
+        let live = w.live_activities();
+        if live > 0 {
+            bar.right.push(
+                StatusItem::new(
+                    crate::screens::plural(live, "running", "running"),
+                    Tone::Secondary,
+                )
+                .busy()
+                .chip()
+                .clickable(STATUS_RUNNING)
+                .priority(6),
+            );
+        }
+        if let Some(fs) = w.disk.root_fs()
+            && fs.pct() >= 85
+        {
+            bar.right.push(
+                StatusItem::new(fs.mount.clone(), Tone::Muted)
+                    .meter(Some(fs.pct()), MeterTone::Normal)
+                    .priority(4),
+            );
+        }
+        bar.right.push(
+            StatusItem::new(
+                format!(
+                    "{} · {}×{}",
+                    self.theme.level.label(),
+                    self.size.0,
+                    self.size.1
+                ),
+                Tone::Faint,
+            )
+            .priority(1),
+        );
+        bar.render(area, buf, ctx);
+    }
+
+    fn draw_footer(&mut self, area: Rect, buf: &mut Buffer, modal: bool) {
+        let t = self.theme;
+        fill(buf, area, t.base());
+        let hints: Vec<Hint> = if modal {
+            match self.modals.last().map(|m| &m.modal) {
+                Some(Modal::Picker(p)) => {
+                    let mut v = vec![];
+                    if p.searchable {
+                        v.push(hint("Type", "Filter"));
+                    }
+                    v.push(hint("↑↓", "Move"));
+                    v.push(hint("Enter", "Switch"));
+                    v.push(hint("Esc", "Cancel"));
+                    v
+                }
+                Some(Modal::Dialog(d)) => {
+                    if d.is_editing() {
+                        vec![
+                            hint("Type", "Phrase"),
+                            hint("Enter", "Next"),
+                            hint("Esc", "Cancel"),
+                        ]
+                    } else if matches!(d.body, DialogBody::Facts { .. }) {
+                        vec![
+                            hint("← →", "Choose"),
+                            hint("Enter", "Confirm"),
+                            hint("Esc", "Cancel"),
+                        ]
+                    } else if matches!(d.body, DialogBody::Input(_)) {
+                        vec![
+                            hint("Enter", "Edit / Save"),
+                            hint("Tab", "Next"),
+                            hint("Esc", "Cancel"),
+                        ]
+                    } else {
+                        vec![
+                            hint("← →", "Choose"),
+                            hint("Enter", "Confirm"),
+                            hint("Esc", "Cancel"),
+                            hint("y / n", "Quick answer"),
+                        ]
+                    }
+                }
+                Some(Modal::Menu(_)) => vec![
+                    hint("↑↓", "Move"),
+                    hint("Enter", "Choose"),
+                    hint("Esc", "Close"),
+                ],
+                Some(Modal::Text(_)) => vec![hint("↑↓", "Scroll"), hint("Esc", "Close")],
+                None => vec![],
+            }
+        } else {
+            let focus = self.focus.current();
+            if focus == Some(TABS) {
+                vec![
+                    hint("← →", "Switch tab"),
+                    hint("1–9", "Jump"),
+                    hint("x", "Close"),
+                    hint("Enter", "Into the tab"),
+                    hint("Esc", "Back"),
+                ]
+            } else {
+                self.top()
+                    .map(|s| s.hints(focus, &self.world))
+                    .unwrap_or_default()
+            }
+        };
+        let editing =
+            self.modals.last().is_some_and(|m| match &m.modal {
+                Modal::Dialog(d) => d.is_editing(),
+                _ => false,
+            }) || (!modal && self.top().is_some_and(|s| s.is_editing()) && self.active == 0);
+        let badge = if editing {
+            Some(("EDIT", BadgeKind::Edit))
+        } else {
+            None
+        };
+        // an error status carries a `! ` prefix: leave room for it
+        let status = self
+            .status
+            .as_ref()
+            .map(|(s, tone, _)| (truncate(s, area.width.saturating_sub(8) as usize), *tone));
+        let modal_layer = modal.then(|| HintLayer::new(hints.clone()));
+        let menu_layer = (!modal && self.menu.is_open()).then(|| {
+            HintLayer::new(vec![
+                hint("← →", "Menu"),
+                hint("↑↓", "Move"),
+                hint("Enter", "Choose"),
+                hint("Esc", "Close"),
+            ])
+        });
+        let screen_layer = (!modal && !hints.is_empty()).then(|| HintLayer::new(hints.clone()));
+        let fallback = HintLayer::new(vec![hint("F1", "Help"), hint("Esc", "Back")]);
+        let mut layer = HintBar::resolve(&[modal_layer, menu_layer, screen_layer, Some(fallback)]);
+        layer.badge = badge;
+        layer.status = status;
+        layer.centered = true;
+        HintBar::render(area, buf, &t, &layer);
+    }
+}
+
+/// Fit a ` › ` breadcrumb into `max` cells by dropping middle crumbs first
+/// (`Here › … › Review`), then truncating the last crumb in the middle.
+fn crumb_fit(label: &str, max: usize) -> String {
+    use crate::tui::ui::text::width;
+    if width(label) <= max {
+        return label.to_owned();
+    }
+    let parts: Vec<&str> = label.split(" › ").collect();
+    if parts.len() >= 3 {
+        let first = parts[0];
+        let last = parts[parts.len() - 1];
+        let short = format!("{first} › … › {last}");
+        if width(&short) <= max {
+            return short;
+        }
+        let room = max.saturating_sub(width(first) + 8);
+        return format!("{first} › … › {}", truncate_middle(last, room.max(6)));
+    }
+    truncate_middle(label, max)
 }

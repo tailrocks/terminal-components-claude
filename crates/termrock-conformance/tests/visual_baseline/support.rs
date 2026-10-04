@@ -656,7 +656,7 @@ pub fn spawn_boot(case: &Case) -> Session {
     let mut session = spawn(case);
     boot(&mut session, case.needle);
     if !case.sends.is_empty() {
-        drive(&mut session, case.sends);
+        drive_with_timeout(&mut session, case.sends, case.timeout_ms);
     }
     session
 }
@@ -710,12 +710,17 @@ fn normalize_chord(step: &str) -> String {
     step.to_string()
 }
 
+#[allow(dead_code)]
 pub fn drive(session: &mut Session, steps: &[&str]) {
+    drive_with_timeout(session, steps, 8_000);
+}
+
+pub fn drive_with_timeout(session: &mut Session, steps: &[&str], timeout_ms: u64) {
     for step in steps {
         if let Some(ms) = step.strip_prefix("sleep:") {
             std::thread::sleep(Duration::from_millis(ms.parse().expect("sleep:<ms>")));
         } else if let Some(needle) = step.strip_prefix("wait:") {
-            let deadline = std::time::Instant::now() + Duration::from_secs(8);
+            let deadline = std::time::Instant::now() + Duration::from_millis(timeout_ms.max(8_000));
             let cancel = CancelToken::new();
             session
                 .inner
@@ -732,6 +737,9 @@ pub fn drive(session: &mut Session, steps: &[&str]) {
         } else if let Some(text) = step.strip_prefix("type:") {
             session.inner.send_text(text).expect("type_text");
             std::thread::sleep(Duration::from_millis(120));
+        } else if *step == "f" || *step == "F" {
+            session.inner.send_text(step).expect("send_key");
+            std::thread::sleep(Duration::from_millis(120));
         } else {
             let chord = normalize_chord(step);
             session.inner.press(&chord).expect("send_key");
@@ -740,9 +748,14 @@ pub fn drive(session: &mut Session, steps: &[&str]) {
     }
 }
 
+#[allow(dead_code)]
 pub fn settle_and_gate(session: &mut Session, name: &str) {
+    settle_and_gate_with_timeout(session, name, 8_000);
+}
+
+pub fn settle_and_gate_with_timeout(session: &mut Session, name: &str, timeout_ms: u64) {
     let cancel = CancelToken::new();
-    let deadline = std::time::Instant::now() + Duration::from_secs(8);
+    let deadline = std::time::Instant::now() + Duration::from_millis(timeout_ms.max(8_000));
     let obs = session
         .inner
         .wait_stable_quiet(deadline, SETTLE, &cancel)
@@ -1258,7 +1271,7 @@ pub fn assert_gated(outcome: &GroupedOutcome) {
 /// A ported-matrix capture running through the PTY session.
 pub fn run_and_assert(case: &Case) {
     let mut session = spawn_boot(case);
-    settle_and_gate(&mut session, &case.name);
+    settle_and_gate_with_timeout(&mut session, &case.name, case.timeout_ms);
 }
 
 /// Expand one representative static Case::new root through the full canonical
@@ -1353,7 +1366,7 @@ pub fn run_canonical_live(representative: &Case, mut interact: impl FnMut(&mut S
             if !collect_matrix(&name, || {
                 let mut session = spawn_boot(&case);
                 interact(&mut session, &case);
-                settle_and_gate(&mut session, &case.name);
+                settle_and_gate_with_timeout(&mut session, &case.name, case.timeout_ms);
             }) {
                 failures.push(name);
             }
@@ -1383,7 +1396,7 @@ pub fn run_canonical_live_with_compact_sends(
             if !collect_matrix(&name, || {
                 let mut session = spawn_boot(&case);
                 interact(&mut session, &case);
-                settle_and_gate(&mut session, &case.name);
+                settle_and_gate_with_timeout(&mut session, &case.name, case.timeout_ms);
             }) {
                 failures.push(name);
             }

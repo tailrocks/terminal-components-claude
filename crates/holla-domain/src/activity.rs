@@ -750,11 +750,10 @@ impl Activity {
     }
 }
 
-/// Map a key event to the bytes a terminal would forward (E34).
-pub fn key_bytes(key: &termrock_core::event::Key) -> Option<Vec<u8>> {
-    use termrock_core::keys::KeyCode;
-    let ctrl = key.ctrl();
-    Some(match key.code {
+/// Map raw key code and modifiers to the bytes a terminal would forward (E34).
+pub fn key_bytes_raw(code: ratatui::crossterm::event::KeyCode, ctrl: bool, alt: bool) -> Option<Vec<u8>> {
+    use ratatui::crossterm::event::KeyCode;
+    Some(match code {
         KeyCode::Enter => vec![b'\r'],
         KeyCode::Backspace => vec![0x7f],
         KeyCode::Tab => vec![b'\t'],
@@ -770,10 +769,28 @@ pub fn key_bytes(key: &termrock_core::event::Key) -> Option<Vec<u8>> {
                 return None;
             }
         }
-        KeyCode::Char(c) if !key.alt() => c.to_string().into_bytes(),
+        KeyCode::Char(c) if !alt => c.to_string().into_bytes(),
         _ => return None,
     })
 }
+
+/// Map a key event to the bytes a terminal would forward (E34).
+pub fn key_bytes(key: &termrock_core::event::Key) -> Option<Vec<u8>> {
+    use termrock_core::keys::KeyCode;
+    let ctrl = key.ctrl();
+    let alt = key.alt();
+    let crossterm_code = match key.code {
+        KeyCode::Enter => ratatui::crossterm::event::KeyCode::Enter,
+        KeyCode::Backspace => ratatui::crossterm::event::KeyCode::Backspace,
+        KeyCode::Tab => ratatui::crossterm::event::KeyCode::Tab,
+        KeyCode::Char(c) => ratatui::crossterm::event::KeyCode::Char(c),
+        KeyCode::Up => ratatui::crossterm::event::KeyCode::Up,
+        KeyCode::Esc => ratatui::crossterm::event::KeyCode::Esc,
+        _ => return None,
+    };
+    key_bytes_raw(crossterm_code, ctrl, alt)
+}
+
 
 #[cfg(test)]
 mod tests {
