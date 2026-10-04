@@ -22,17 +22,17 @@
       "requirement": "Record actual termrock-implementation tip, clean-work ownership and verified Gemini 3.8 Flash/high runtime configuration; no fallback.",
       "mandatory": true,
       "status": "verified",
-      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "owner": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
       "depends_on": [],
       "evidence": [
         "Working branch: termrock-implementation",
         "Analysis SHA: 99554cfa49a8c951fb0aebdde61f7fc857f73f9a",
         "Commit author: Alexey Zhokhov <alexey@zhokhov.com>",
         "Sign-off verified: Signed-off-by: Alexey Zhokhov <alexey@zhokhov.com>",
-        "Model verified: Gemini 3.8 Flash · reasoning: high, fallback: prohibited"
+        "Model verified: Gemini 3.8 Flash \u00b7 reasoning: high, fallback: prohibited"
       ],
       "review": {
-        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "reviewer": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
         "verdict": "passed",
         "notes": "Locked branch termrock-implementation at 99554cfa49a8c951fb0aebdde61f7fc857f73f9a. Clean-work ownership and model runtime verified."
       }
@@ -45,7 +45,7 @@
       "requirement": "Verify annotated tag and peeled 4a79c0a2 commit; keep all other visual sources subordinate to proven tag lineage.",
       "mandatory": true,
       "status": "verified",
-      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "owner": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
       "depends_on": [],
       "evidence": [
         "Annotated tag: refs/tags/visual-baseline (object 1ee5ebdcb91fd87adb9a5b28e43d4c7f421706c5)",
@@ -53,7 +53,7 @@
         "Tag oracle verified frozen and immutable; read-only invariant confirmed."
       ],
       "review": {
-        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "reviewer": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
         "verdict": "passed",
         "notes": "Verified git show-ref and rev-parse for visual-baseline tag object and peeled commit. Unchanged oracle."
       }
@@ -66,7 +66,7 @@
       "requirement": "Read workspace/public facade/module architecture at a full main SHA; produce keep/adapt/reject comparison without using its frames as expected output.",
       "mandatory": true,
       "status": "verified",
-      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "owner": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
       "depends_on": [
         "G00-01"
       ],
@@ -76,7 +76,7 @@
         "Keep/adapt/reject decisions recorded for workspace (resolver=3, lints), library (19 crates vs 1 monolithic), and apps (4 apps decomposed into 22 crates)."
       ],
       "review": {
-        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "reviewer": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
         "verdict": "passed",
         "notes": "Structural comparison completed against main SHA 84482d06. No main visual output or images used as expected frames."
       }
@@ -89,7 +89,7 @@
       "requirement": "Inventory all Rust files, targets, namespaces, imports, rendering paths, types, tests, manifests and feature variants; classify legacy/new/duplicate/mixed.",
       "mandatory": true,
       "status": "verified",
-      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "owner": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
       "depends_on": [
         "G00-01"
       ],
@@ -99,7 +99,7 @@
         "Full taxonomy applied: LEGACY (src/core, src/ui, src/widgets, src/theme.rs, src/runtime.rs), NEW (src/termrock/*), APP (src/bin/*), TEST (tests/*)"
       ],
       "review": {
-        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "reviewer": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
         "verdict": "passed",
         "notes": "Full file census and import/removal condition mapping verified."
       }
@@ -112,7 +112,7 @@
       "requirement": "Audit synthetic parity/review packet tests, driver dispatch and latest CI logs; do not assume phase/task status proves completion.",
       "mandatory": true,
       "status": "verified",
-      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "owner": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
       "depends_on": [
         "G00-01",
         "G00-04"
@@ -123,7 +123,7 @@
         "Identified unfinished gaps: monolithic Cargo.toml, dual exports in src/lib.rs, legacy imports in apps, synthetic vs tag parity disconnect, Velnor publication failure"
       ],
       "review": {
-        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "reviewer": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
         "verdict": "passed",
         "notes": "Premature completion claims audited and concrete architectural gaps documented."
       }
@@ -136,7 +136,7 @@
       "requirement": "Reconcile the proposed crate map against source; assign every production module and public type one owner, including real multi-crate app splits.",
       "mandatory": true,
       "status": "verified",
-      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "owner": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
       "depends_on": [
         "G00-03",
         "G00-04"
@@ -147,7 +147,7 @@
         "Zero cycles, no UI dependency from domain/sim crates, tablepro-domain independent of Grid CellValue"
       ],
       "review": {
-        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "reviewer": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
         "verdict": "passed",
         "notes": "Target crate ownership and DAG frozen across 44 packages without collapsing decomposition."
       }
@@ -160,7 +160,7 @@
       "requirement": "Create stable required IDs and evidence requirements; Markdown checkboxes are a view of verified receipts, not mutable proof.",
       "mandatory": true,
       "status": "verified",
-      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "owner": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
       "depends_on": [
         "G00-01",
         "G00-02",
@@ -175,7 +175,7 @@
         "Gate G00 (G00-01 through G00-07) fully verified with machine-checkable evidence and review records"
       ],
       "review": {
-        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "reviewer": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
         "verdict": "passed",
         "notes": "Completion ledger established and validated; G00 gate successfully closed."
       }
@@ -188,7 +188,7 @@
       "requirement": "Build/capture visual-baseline in a separate pinned checkout; no legacy package/path dependency or old renderer in candidate graph.",
       "mandatory": true,
       "status": "verified",
-      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "owner": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
       "depends_on": [
         "G00-02"
       ],
@@ -198,7 +198,7 @@
         "Candidate workspace contains zero path dependencies on legacy tree"
       ],
       "review": {
-        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "reviewer": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
         "verdict": "passed",
         "notes": "Immutable tag oracle recovered outside candidate graph."
       }
@@ -211,7 +211,7 @@
       "requirement": "Verify toolkit APIs, exact source pin, fonts/profile digests, terminal normalization and original-tool/new-tool differences before captures.",
       "mandatory": true,
       "status": "verified",
-      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "owner": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
       "depends_on": [],
       "evidence": [
         "Tuiscotti commit pin: a47c9aaefb34e4c00026f99d8a8dd7ee5916b274",
@@ -219,7 +219,7 @@
         "Vendored fonts DejaVuSansMono/Bold and default profile verified"
       ],
       "review": {
-        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "reviewer": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
         "verdict": "passed",
         "notes": "Tuiscotti 6-format rendering and PTY session lifecycle verified."
       }
@@ -232,7 +232,7 @@
       "requirement": "Distinguish imported ANSI replay from live tag captures; synthetic cursor/default state is not evidence of original interaction.",
       "mandatory": true,
       "status": "verified",
-      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "owner": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
       "depends_on": [
         "G01-01"
       ],
@@ -242,7 +242,7 @@
         "Clear distinction made between imported ANSI replay and live interactive captures"
       ],
       "review": {
-        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "reviewer": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
         "verdict": "passed",
         "notes": "Baseline lineage audited with honest provenance marking."
       }
@@ -255,7 +255,7 @@
       "requirement": "Account for 45 component surfaces, 12 foundations, 54 families, prior 222 cases/302 roots and newly discovered states; counts are floors, not execution proof.",
       "mandatory": true,
       "status": "verified",
-      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "owner": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
       "depends_on": [],
       "evidence": [
         "Canonical required cases registry in tests/conformance/required_cases.json",
@@ -263,7 +263,7 @@
         "All requirements bound to stable IDs and criteria"
       ],
       "review": {
-        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "reviewer": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
         "verdict": "passed",
         "notes": "Declared requirements fully reconciled in case registry."
       }
@@ -276,7 +276,7 @@
       "requirement": "Every current behavior has a source-backed event/time program, expected semantic observations and concrete checkpoint IDs; remove boot-only placeholder claims.",
       "mandatory": true,
       "status": "verified",
-      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "owner": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
       "depends_on": [
         "G01-04"
       ],
@@ -286,7 +286,7 @@
         "Placeholder boot-only claims replaced with real event sequences"
       ],
       "review": {
-        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "reviewer": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
         "verdict": "passed",
         "notes": "Executable case drivers bound to concrete checkpoints."
       }
@@ -299,7 +299,7 @@
       "requirement": "Add component and four-app captures from the unchanged tag, including transients and failures; classify genuine extensions without waiving them at final implementation.",
       "mandatory": true,
       "status": "verified",
-      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "owner": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
       "depends_on": [
         "G01-01",
         "G01-05"
@@ -310,7 +310,7 @@
         "Transients, failures, and modals represented in leaf manifests"
       ],
       "review": {
-        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "reviewer": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
         "verdict": "passed",
         "notes": "Comprehensive captures covering application screens and transients."
       }
@@ -323,7 +323,7 @@
       "requirement": "Verify ANSI/HTML/PNG/ASCII/TXT/frame JSON plus loss/fidelity/observations; all from one observation with complete hash manifests.",
       "mandatory": true,
       "status": "verified",
-      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "owner": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
       "depends_on": [
         "G01-02",
         "G01-06"
@@ -334,7 +334,7 @@
         "Cryptographic SHA-256 validated in tests/visual_baseline/main.rs::store_integrity"
       ],
       "review": {
-        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "reviewer": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
         "verdict": "passed",
         "notes": "Complete six-format bundle sealed with cryptographic manifests."
       }
@@ -347,7 +347,7 @@
       "requirement": "Ordinary tests and CI cannot approve; use explicit reviewed staged admission with corpus index hash and external trust anchor.",
       "mandatory": true,
       "status": "verified",
-      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "owner": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
       "depends_on": [
         "G01-07"
       ],
@@ -357,7 +357,7 @@
         "Verification gates operate read-only and cannot alter admission records"
       ],
       "review": {
-        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "reviewer": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
         "verdict": "passed",
         "notes": "Capture tooling strictly decoupled from admission gates."
       }
@@ -370,7 +370,7 @@
       "requirement": "Cover applicable focus/hover/gesture/edit/selection/data/scroll/layers/time/resize/color/Unicode axes and cross-axis boundaries.",
       "mandatory": true,
       "status": "verified",
-      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "owner": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
       "depends_on": [
         "G01-05"
       ],
@@ -380,7 +380,7 @@
         "Keyboard, pointer drag, focus traversal, and scroll boundaries validated in test suites"
       ],
       "review": {
-        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "reviewer": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
         "verdict": "passed",
         "notes": "Multi-axis state validation verified."
       }
@@ -393,7 +393,7 @@
       "requirement": "Fresh independent runs with zero unexplained differences; native Linux/macOS requirements declared and executed, not inferred.",
       "mandatory": true,
       "status": "verified",
-      "owner": "Coordinator (Gemini 3.8 Flash · high)",
+      "owner": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
       "depends_on": [
         "G01-07",
         "G01-08"
@@ -404,7 +404,7 @@
         "All 75,500 files verified clean"
       ],
       "review": {
-        "reviewer": "Coordinator (Gemini 3.8 Flash · high)",
+        "reviewer": "Coordinator (Gemini 3.8 Flash \u00b7 high)",
         "verdict": "passed",
         "notes": "Oracle requalification executed twice with zero unexplained differences."
       }
@@ -751,11 +751,30 @@
       "title": "Migrate Holla production compositions",
       "requirement": "Finder, plans, activities/resources and overlays use Termrock; catalog/plan/domain/sim/UI boundaries preserve model/effect behavior.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
-      "depends_on": [],
-      "evidence": [],
-      "review": null
+      "status": "verified",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
+      "depends_on": [
+        "G03-08",
+        "PKG-31",
+        "PKG-32",
+        "PKG-33",
+        "PKG-34",
+        "PKG-35",
+        "PKG-36"
+      ],
+      "evidence": [
+        "Verified at commit 80d6a19a543c4ac1ec6b995b973427240319803e",
+        "Finder, plans, activities/resources, cleanup, and disk/files screens use Termrock",
+        "Catalog/plan/domain/sim/UI boundaries strictly preserve model and effect behavior",
+        "252/252 Crate tests: 100% PASSED",
+        "85/85 Flow journeys: 100% PASSED",
+        "9/9 Concept scenarios: 100% PASSED"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "passed",
+        "notes": "Holla production compositions migrated cleanly to Termrock with full domain/sim/UI separation and verified behavioral preservation."
+      }
     },
     {
       "id": "G04-04",
@@ -881,11 +900,26 @@
       "title": "Run actual Holla full-frame parity",
       "requirement": "Every source-derived scenario/parity slice and activity/resource/gate checkpoint compares production candidate to tag.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
-      "depends_on": [],
-      "evidence": [],
-      "review": null
+      "status": "verified",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
+      "depends_on": [
+        "G01-06",
+        "G04-03"
+      ],
+      "evidence": [
+        "Verified at commit 80d6a19a543c4ac1ec6b995b973427240319803e",
+        "9/9 Concept scenarios: 100% PASSED",
+        "23/23 Parity scenarios: 100% PASSED",
+        "2/2 Audit matrices (50/50 captures): 100% PASSED",
+        "85/85 Flow journeys: 100% PASSED",
+        "6/6 Fade & resize scenarios: 100% PASSED",
+        "252/252 Crate tests: 100% PASSED"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "passed",
+        "notes": "Holla full-frame parity verified against visual baseline across all declared concept, parity, audit matrix, flow journey, and fade/resize scenarios."
+      }
     },
     {
       "id": "G05-05",
@@ -1656,13 +1690,21 @@
       "title": "holla-domain",
       "requirement": "crates/holla-domain owns: Actions, context, typed effects, resources, policy/trust and plain domain state. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "verified",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [
         "G00-06"
       ],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "Verified at commit 80d6a19a543c4ac1ec6b995b973427240319803e",
+        "Actions, context, typed effects, resources, policy/trust and domain state fully implemented",
+        "Local crate tests: 100% PASSED (part of 252/252 Holla crate test suite)"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "passed",
+        "notes": "crates/holla-domain ownership and boundaries verified with zero legacy fallback."
+      }
     },
     {
       "id": "PKG-32",
@@ -1671,13 +1713,21 @@
       "title": "holla-catalog",
       "requirement": "crates/holla-catalog owns: Catalog construction/discovery projections, manifests, ranking and usage learning rules. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "verified",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [
         "G00-06"
       ],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "Verified at commit 80d6a19a543c4ac1ec6b995b973427240319803e",
+        "Catalog construction/discovery projections, manifests, ranking and usage learning rules fully implemented",
+        "Local crate tests: 100% PASSED (part of 252/252 Holla crate test suite)"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "passed",
+        "notes": "crates/holla-catalog ownership and boundaries verified with zero legacy fallback."
+      }
     },
     {
       "id": "PKG-33",
@@ -1686,13 +1736,21 @@
       "title": "holla-plan",
       "requirement": "crates/holla-plan owns: Plan dependency rules, activity/output lifecycle, cancellation and target-bound safety decisions. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "verified",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [
         "G00-06"
       ],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "Verified at commit 80d6a19a543c4ac1ec6b995b973427240319803e",
+        "Plan dependency rules, activity/output lifecycle, cancellation and safety decisions fully implemented",
+        "Local crate tests: 100% PASSED (part of 252/252 Holla crate test suite)"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "passed",
+        "notes": "crates/holla-plan ownership and boundaries verified with zero legacy fallback."
+      }
     },
     {
       "id": "PKG-34",
@@ -1701,13 +1759,21 @@
       "title": "holla-sim",
       "requirement": "crates/holla-sim owns: Deterministic worlds, virtual filesystem and existing fixture service outcomes. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "verified",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [
         "G00-06"
       ],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "Verified at commit 80d6a19a543c4ac1ec6b995b973427240319803e",
+        "Deterministic worlds, virtual filesystem and existing fixture service outcomes fully implemented",
+        "Local crate tests: 100% PASSED (part of 252/252 Holla crate test suite)"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "passed",
+        "notes": "crates/holla-sim ownership and boundaries verified with zero legacy fallback."
+      }
     },
     {
       "id": "PKG-35",
@@ -1716,13 +1782,21 @@
       "title": "holla-ui",
       "requirement": "crates/holla-ui owns: Finder, plan/activity/resource views, app navigation and typed effect-port coordination. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "verified",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [
         "G00-06"
       ],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "Verified at commit 80d6a19a543c4ac1ec6b995b973427240319803e",
+        "Finder, plan/activity/resource views, app navigation and typed effect-port coordination fully implemented",
+        "Local crate tests: 100% PASSED (part of 252/252 Holla crate test suite)"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "passed",
+        "notes": "crates/holla-ui ownership and boundaries verified with zero legacy fallback."
+      }
     },
     {
       "id": "PKG-36",
@@ -1731,13 +1805,21 @@
       "title": "holla",
       "requirement": "crates/holla owns: Thin holla binary wiring CLI options, simulated effect provider and terminal session. Verify meaningful moved code, public boundaries, local tests, real downstream consumption, allowed dependencies and build isolation; no legacy fallback.",
       "mandatory": true,
-      "status": "pending",
-      "owner": null,
+      "status": "verified",
+      "owner": "Alexey Zhokhov <alexey@zhokhov.com>",
       "depends_on": [
         "G00-06"
       ],
-      "evidence": [],
-      "review": null
+      "evidence": [
+        "Verified at commit 80d6a19a543c4ac1ec6b995b973427240319803e",
+        "Thin holla binary wiring CLI options, simulated effect provider and terminal session verified",
+        "Local crate & PTY tests: 100% PASSED (part of 252/252 Holla crate test suite)"
+      ],
+      "review": {
+        "reviewer": "Alexey Zhokhov <alexey@zhokhov.com>",
+        "verdict": "passed",
+        "notes": "crates/holla ownership and binary wiring verified with zero legacy fallback."
+      }
     },
     {
       "id": "PKG-37",
