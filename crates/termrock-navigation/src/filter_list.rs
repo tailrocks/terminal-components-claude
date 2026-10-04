@@ -236,7 +236,7 @@ impl FilterListState {
         self.matches.len()
     }
 
-    pub(crate) fn push_query_char(&mut self, c: char) -> FilterListAction {
+    pub fn push_query_char(&mut self, c: char) -> FilterListAction {
         self.query.push(c);
         self.core.invalidate();
         FilterListAction::QueryChanged
