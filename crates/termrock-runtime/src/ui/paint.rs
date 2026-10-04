@@ -311,7 +311,7 @@ impl Ui<'_> {
                 if x >= area.right() {
                     break;
                 }
-                let mut st = base.add_modifier(sp.add);
+                let mut st = base.add_modifier(sp.add).remove_modifier(sp.remove);
                 if let Some(role) = sp.role {
                     st = st.patch(self.paint_patch(&crate::theme::StylePatch::new().set_fg(role)));
                 }
@@ -329,7 +329,7 @@ impl Ui<'_> {
         {
             let mut feed = ClusterFeed::new(&mut scratch);
             for sp in spans {
-                let mut st = base.add_modifier(sp.add);
+                let mut st = base.add_modifier(sp.add).remove_modifier(sp.remove);
                 if let Some(role) = sp.role {
                     st = st.patch(self.paint_patch(&crate::theme::StylePatch::new().set_fg(role)));
                 }

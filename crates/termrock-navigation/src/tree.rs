@@ -2030,6 +2030,7 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> Tree<'_, T, K, R> {
                 .rect
                 .right()
                 .saturating_sub(fold_x.saturating_add(2))
+                .saturating_sub(1)
                 .min(row.rect.width),
             ..row.rect
         };

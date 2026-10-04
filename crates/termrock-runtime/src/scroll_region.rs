@@ -528,7 +528,10 @@ mod tests {
         let plain = render(None);
         let focused = render(Some(ReferenceTarget::new(ID, ReferenceState::FOCUSED)));
         let pressed = render(Some(ReferenceTarget::new(ID, ReferenceState::PRESSED)));
-        assert_eq!(focused, plain, "owner focus styled its scrollbar");
+        assert_ne!(
+            focused, plain,
+            "owner focus should style its scrollbar thumb"
+        );
         assert_eq!(pressed, plain, "owner press styled its scrollbar");
     }
 

@@ -114,10 +114,10 @@ pub enum Environment {
 impl Environment {
     pub fn label(self) -> &'static str {
         match self {
-            Environment::Local => "Local",
-            Environment::Development => "Development",
-            Environment::Staging => "Staging",
-            Environment::Production => "Production",
+            Environment::Local => "local",
+            Environment::Development => "development",
+            Environment::Staging => "staging",
+            Environment::Production => "production",
         }
     }
 }

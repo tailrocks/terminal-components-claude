@@ -1623,16 +1623,31 @@ impl TableProApp {
         let ssl_ssh = format!(
             "{} / {}",
             if connection.ssl { "on" } else { "off" },
-            if connection.ssh.is_some() {
-                "on"
-            } else {
-                "off"
-            }
+            connection.ssh.as_deref().unwrap_or("off")
         );
-        let properties = [
-            ("Engine", connection.engine.label().to_owned()),
-            ("Host", host),
-            ("Database", connection.database.clone()),
+        let env_role = match connection.environment {
+            Environment::Production => Role::Fg(FgStep::Primary),
+            Environment::Staging => Role::Fg(FgStep::Secondary),
+            Environment::Development => Role::Fg(FgStep::Muted),
+            Environment::Local => Role::Fg(FgStep::Faint),
+        };
+        let safe_mode_role = if connection.safe_mode >= SafeMode::Safe {
+            Role::Fg(FgStep::Primary)
+        } else {
+            Role::Fg(FgStep::Secondary)
+        };
+        let mut properties = vec![
+            (
+                "Engine",
+                connection.engine.label().to_owned(),
+                Role::Fg(FgStep::Primary),
+            ),
+            ("Host", host, Role::Fg(FgStep::Primary)),
+            (
+                "Database",
+                connection.database.clone(),
+                Role::Fg(FgStep::Primary),
+            ),
             (
                 "User",
                 if connection.user.is_empty() {
@@ -1640,8 +1655,13 @@ impl TableProApp {
                 } else {
                     connection.user.clone()
                 },
+                Role::Fg(FgStep::Primary),
             ),
-            ("Environment", connection.environment.label().to_owned()),
+            (
+                "Environment",
+                connection.environment.label().to_owned(),
+                env_role,
+            ),
             (
                 "Safe Mode",
                 format!(
@@ -1649,10 +1669,24 @@ impl TableProApp {
                     connection.safe_mode.label(),
                     connection.safe_mode.description()
                 ),
+                safe_mode_role,
             ),
-            ("SSL / SSH", ssl_ssh),
-            ("Last used", connection.last_used.clone()),
         ];
+        if connection.environment == Environment::Production
+            && connection.safe_mode == SafeMode::Silent
+        {
+            properties.push((
+                "",
+                "Production with Silent safe mode: writes run without asking".to_owned(),
+                Role::Warning,
+            ));
+        }
+        properties.push(("SSL / SSH", ssl_ssh, Role::Fg(FgStep::Secondary)));
+        properties.push((
+            "Last used",
+            connection.last_used.clone(),
+            Role::Fg(FgStep::Muted),
+        ));
         let card_area = termrock::Rect {
             width: area.width.min(70),
             height: area.height.min(17),
@@ -1720,36 +1754,11 @@ impl TableProApp {
             termrock::Rect {
                 x: body.x.saturating_add(2),
                 y: body.y,
-                width: body.width.saturating_sub(1),
+                width: body.width.saturating_sub(2),
                 height: 1,
             },
             blank,
         );
-        let field = ui.surface_style().patch(
-            ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(termrock::Surface::Field))),
-        );
-        ui.fill(
-            termrock::Rect {
-                x: body.right(),
-                y: inner.y.saturating_add(1),
-                width: 1,
-                height: 1,
-            },
-            field,
-        );
-        if self.connection_visual_tree_state.cursor()
-            == self.connection_nodes.first().map(connection_node_key)
-        {
-            ui.fill(
-                termrock::Rect {
-                    x: body.right(),
-                    y: body.y.saturating_add(2),
-                    width: 1,
-                    height: 1,
-                },
-                ui.surface_style().add_modifier(Modifier::BOLD),
-            );
-        }
         if area.width >= 80 {
             let details = termrock::Rect {
                 x: area.x.saturating_add(list_width).saturating_add(2),
@@ -1960,17 +1969,23 @@ fn stable_key(parts: &[&str]) -> ItemKey {
 fn build_connection_nodes(connections: &[Connection]) -> Vec<ConnectionNode> {
     let mut nodes = Vec::with_capacity(connections.len().saturating_mul(2));
     let mut groups: Vec<&str> = Vec::new();
-    for (index, connection) in connections.iter().enumerate() {
+    for connection in connections {
         if !groups.contains(&connection.group.as_str()) {
-            groups.push(&connection.group);
-            nodes.push(ConnectionNode::Group {
-                name: connection.group.clone(),
-            });
+            groups.push(connection.group.as_str());
         }
-        nodes.push(ConnectionNode::Connection {
-            index,
-            connection: connection.clone(),
+    }
+    for group in groups {
+        nodes.push(ConnectionNode::Group {
+            name: group.to_string(),
         });
+        for (index, connection) in connections.iter().enumerate() {
+            if connection.group == group {
+                nodes.push(ConnectionNode::Connection {
+                    index,
+                    connection: connection.clone(),
+                });
+            }
+        }
     }
     nodes
 }
@@ -2031,7 +2046,8 @@ fn connection_row(node: &ConnectionNode, row: &mut RowUi<'_>) {
                 '◇' => Span::new("◇"),
                 _ => Span::new("·"),
             }
-            .role(Role::Fg(FgStep::Muted));
+            .role(Role::Fg(FgStep::Muted))
+            .remove_modifier(Modifier::BOLD);
             row.label_spans(&[glyph, Span::new(" "), Span::new(&connection.name)]);
             row.meta(connection.engine.short());
         }
@@ -2222,7 +2238,7 @@ fn tab_strip()
 fn legacy_tree_body(inner: termrock::Rect) -> termrock::Rect {
     termrock::Rect {
         x: inner.x.saturating_sub(1),
-        width: inner.width.saturating_add(1),
+        width: inner.width.saturating_add(2),
         ..inner
     }
 }
@@ -2242,9 +2258,7 @@ fn paint_legacy_tree_gutters<T>(
     let mut visible_row = 0usize;
     let first_visible = state.scroll().offset();
     let cursor = state.cursor();
-    let gutter_style = ui
-        .surface_style()
-        .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::OnSurfaceInverse)));
+    let gutter_style = ui.surface_style().with_fg_from_bg(ui.surface_style());
 
     for item in nodes {
         let descriptor = node(item);
@@ -2264,7 +2278,7 @@ fn paint_legacy_tree_gutters<T>(
                         width: 1,
                         height: 1,
                     },
-                    "▎",
+                    " ",
                     gutter_style,
                 );
             }
@@ -2347,7 +2361,7 @@ fn paint_legacy_filter(ui: &mut Ui<'_>, area: termrock::Rect, text: &str) {
             width: 1.min(area.width),
             ..area
         },
-        "▎",
+        " ",
         gutter,
     );
 
@@ -2500,99 +2514,130 @@ fn draw_header(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     );
 }
 
-fn with_footer_spans(app: &TableProApp, paint: impl FnOnce(&[Span<'static>])) {
+#[derive(Clone, Copy)]
+struct KeyHint {
+    key: &'static str,
+    action: &'static str,
+}
+
+fn footer_hints(app: &TableProApp) -> &'static [KeyHint] {
     if app.screen == Screen::Connections {
-        paint(&[
-            Span::new(" "),
-            Span::new("↑ ↓").bold(),
-            Span::new(" "),
-            Span::new("Move").role(Role::Fg(FgStep::Muted)),
-            Span::new("  "),
-            Span::new("Enter").bold(),
-            Span::new(" "),
-            Span::new("Connect").role(Role::Fg(FgStep::Muted)),
-            Span::new("  "),
-            Span::new("/").bold(),
-            Span::new(" "),
-            Span::new("Filter").role(Role::Fg(FgStep::Muted)),
-            Span::new("  "),
-            Span::new("Ctrl+N").bold(),
-            Span::new(" "),
-            Span::new("New").role(Role::Fg(FgStep::Muted)),
-            Span::new("  "),
-            Span::new("Tab").bold(),
-            Span::new(" "),
-            Span::new("Next").role(Role::Fg(FgStep::Muted)),
-        ]);
+        &[
+            KeyHint {
+                key: "↑ ↓",
+                action: "Move",
+            },
+            KeyHint {
+                key: "Enter",
+                action: "Connect",
+            },
+            KeyHint {
+                key: "E",
+                action: "Edit",
+            },
+            KeyHint {
+                key: "D",
+                action: "Delete",
+            },
+            KeyHint {
+                key: "Ctrl+D",
+                action: "Duplicate",
+            },
+            KeyHint {
+                key: "/",
+                action: "Filter",
+            },
+            KeyHint {
+                key: "Ctrl+N",
+                action: "New",
+            },
+            KeyHint {
+                key: "Tab",
+                action: "Next",
+            },
+        ]
     } else {
         match app.workbench.active() {
-            Some(Tab::Table(_)) => paint(&[
-                Span::new(" "),
-                Span::new("↑ ↓←→").bold(),
-                Span::new(" "),
-                Span::new("Cell").role(Role::Fg(FgStep::Muted)),
-                Span::new("  "),
-                Span::new("Enter").bold(),
-                Span::new(" "),
-                Span::new("Edit").role(Role::Fg(FgStep::Muted)),
-                Span::new("  s").bold(),
-                Span::new(" "),
-                Span::new("Sort").role(Role::Fg(FgStep::Muted)),
-                Span::new("  f").bold(),
-                Span::new(" "),
-                Span::new("Filter").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Space").bold(),
-                Span::new(" "),
-                Span::new("Select row").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Tab").bold(),
-                Span::new(" "),
-                Span::new("Next").role(Role::Fg(FgStep::Muted)),
-            ]),
-            Some(Tab::Query(_)) => paint(&[
-                Span::new(" "),
-                Span::new("Enter").bold(),
-                Span::new(" "),
-                Span::new("Edit").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Ctrl+R").bold(),
-                Span::new(" "),
-                Span::new("Run").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Alt+R").bold(),
-                Span::new(" "),
-                Span::new("Run all").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Ctrl+O").bold(),
-                Span::new(" "),
-                Span::new("Quick open").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Tab").bold(),
-                Span::new(" "),
-                Span::new("Next").role(Role::Fg(FgStep::Muted)),
-            ]),
-            Some(Tab::History(_)) => paint(&[
-                Span::new(" "),
-                Span::new("↑ ↓").bold(),
-                Span::new(" "),
-                Span::new("Move").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Enter").bold(),
-                Span::new(" "),
-                Span::new("Open").role(Role::Fg(FgStep::Muted)),
-                Span::new("  /").bold(),
-                Span::new(" "),
-                Span::new("Filter").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Tab").bold(),
-                Span::new(" "),
-                Span::new("Next").role(Role::Fg(FgStep::Muted)),
-            ]),
-            None => paint(&[
-                Span::new(" "),
-                Span::new("Ctrl+N").bold(),
-                Span::new(" "),
-                Span::new("New query").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Ctrl+O").bold(),
-                Span::new(" "),
-                Span::new("Quick open").role(Role::Fg(FgStep::Muted)),
-                Span::new("  Tab").bold(),
-                Span::new(" "),
-                Span::new("Next").role(Role::Fg(FgStep::Muted)),
-            ]),
+            Some(Tab::Table(_)) => &[
+                KeyHint {
+                    key: "↑ ↓←→",
+                    action: "Cell",
+                },
+                KeyHint {
+                    key: "Enter",
+                    action: "Edit",
+                },
+                KeyHint {
+                    key: "s",
+                    action: "Sort",
+                },
+                KeyHint {
+                    key: "f",
+                    action: "Filter",
+                },
+                KeyHint {
+                    key: "Space",
+                    action: "Select row",
+                },
+                KeyHint {
+                    key: "Tab",
+                    action: "Next",
+                },
+            ],
+            Some(Tab::Query(_)) => &[
+                KeyHint {
+                    key: "Enter",
+                    action: "Edit",
+                },
+                KeyHint {
+                    key: "Ctrl+R",
+                    action: "Run",
+                },
+                KeyHint {
+                    key: "Alt+R",
+                    action: "Run all",
+                },
+                KeyHint {
+                    key: "Ctrl+O",
+                    action: "Quick open",
+                },
+                KeyHint {
+                    key: "Tab",
+                    action: "Next",
+                },
+            ],
+            Some(Tab::History(_)) => &[
+                KeyHint {
+                    key: "↑ ↓",
+                    action: "Move",
+                },
+                KeyHint {
+                    key: "Enter",
+                    action: "Open",
+                },
+                KeyHint {
+                    key: "/",
+                    action: "Filter",
+                },
+                KeyHint {
+                    key: "Tab",
+                    action: "Next",
+                },
+            ],
+            None => &[
+                KeyHint {
+                    key: "Ctrl+N",
+                    action: "New query",
+                },
+                KeyHint {
+                    key: "Ctrl+O",
+                    action: "Quick open",
+                },
+                KeyHint {
+                    key: "Tab",
+                    action: "Next",
+                },
+            ],
         }
     }
 }
@@ -2600,9 +2645,10 @@ fn with_footer_spans(app: &TableProApp, paint: impl FnOnce(&[Span<'static>])) {
 fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
     ui.fill(area, base);
-    with_footer_spans(app, |spans| {
-        ui.paint_spans(area, spans, base);
-    });
+    if area.is_empty() {
+        return;
+    }
+    let mut right_w = 0u16;
     if let Some(notice) = app.destructive_notice {
         let width = termrock::width(notice).min(area.width);
         let right = termrock::Rect {
@@ -2612,6 +2658,7 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
         };
         ui.fill(right, base);
         ui.paint_str(right, notice, base);
+        right_w = width.saturating_add(3);
     } else if app.screen == Screen::Workbench {
         let prefix = "Connected to ";
         // A leading combining mark or ZWJ can join the prefix's final space.
@@ -2630,6 +2677,71 @@ fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
             right,
             &[Span::new(&right_text).role(Role::Fg(FgStep::Muted))],
             base,
+        );
+        right_w = width.saturating_add(3);
+    }
+
+    let limit = area.right().saturating_sub(right_w);
+    let mut x = area.x.saturating_add(1);
+    let key_style = base.patch(
+        ui.paint_patch(
+            &StylePatch::new()
+                .set_fg(Role::Fg(FgStep::Primary))
+                .add(Modifier::BOLD),
+        ),
+    );
+    let action_style =
+        base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+    let faint_style =
+        base.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
+
+    let hints = footer_hints(app);
+    let mut drawn = 0usize;
+    for (i, h) in hints.iter().enumerate() {
+        let kw = termrock::width(h.key);
+        let aw = termrock::width(h.action);
+        let w = kw.saturating_add(1).saturating_add(aw).saturating_add(2);
+        let reserve = if i.saturating_add(1) < hints.len() {
+            2
+        } else {
+            0
+        };
+        if x.saturating_add(w).saturating_add(reserve) > limit {
+            break;
+        }
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                y: area.y,
+                width: kw,
+                height: 1,
+            },
+            h.key,
+            key_style,
+        );
+        ui.paint_str(
+            termrock::Rect {
+                x: x.saturating_add(kw).saturating_add(1),
+                y: area.y,
+                width: aw,
+                height: 1,
+            },
+            h.action,
+            action_style,
+        );
+        x = x.saturating_add(w);
+        drawn += 1;
+    }
+    if drawn < hints.len() && x < limit {
+        ui.paint_str(
+            termrock::Rect {
+                x,
+                y: area.y,
+                width: 1,
+                height: 1,
+            },
+            "…",
+            faint_style,
         );
     }
 }
@@ -2664,25 +2776,19 @@ fn draw_too_small(ui: &mut Ui<'_>, area: termrock::Rect) {
 fn draw_connection_properties(
     ui: &mut Ui<'_>,
     area: termrock::Rect,
-    properties: &[(&str, String)],
+    properties: &[(&str, String, Role)],
 ) {
     let value_x = area.x.saturating_add(13);
-    let value_width = area.width.saturating_sub(18).max(1);
+    let value_width = area.width.saturating_sub(13).max(1);
     let label_style = ui
         .surface_style()
         .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
     let mut y = area.y;
-    for (label, value) in properties {
-        let value_step = match *label {
-            "Environment" => FgStep::Faint,
-            "Safe Mode" | "SSL / SSH" => FgStep::Secondary,
-            "Last used" => FgStep::Muted,
-            _ => FgStep::Primary,
-        };
+    for (label, value, role) in properties {
         let value_style = ui
             .surface_style()
-            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(value_step))));
-        let lines = if *label == "Safe Mode" {
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(*role)));
+        let lines = if *label == "Safe Mode" || label.is_empty() {
             wrap(value, value_width)
         } else {
             vec![value.clone()]
@@ -2691,7 +2797,7 @@ fn draw_connection_properties(
             if y >= area.bottom().saturating_sub(2) {
                 break;
             }
-            if line_index == 0 {
+            if line_index == 0 && !label.is_empty() {
                 ui.paint_str(
                     termrock::Rect {
                         x: area.x,
@@ -2780,39 +2886,13 @@ const CONNECT_LABEL: Part = Part::custom("connect.label");
 const EDIT_LABEL: Part = Part::custom("edit.label");
 const DUPLICATE_LABEL: Part = Part::custom("duplicate.label");
 const DELETE_LABEL: Part = Part::custom("delete.label");
-const ACTION_MONO: &[termrock::MonoRule] = &[
-    (
-        CONNECT_LABEL,
-        termrock::StateFlags::empty(),
-        StylePatch::new()
-            .set_fg(Role::Surface(termrock::Surface::Canvas))
-            .set_bg(Role::Fg(FgStep::Primary)),
-    ),
-    (
-        EDIT_LABEL,
-        termrock::StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
-    ),
-    (
-        DUPLICATE_LABEL,
-        termrock::StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
-    ),
-    (
-        DELETE_LABEL,
-        termrock::StateFlags::empty(),
-        StylePatch::new().set_fg(Role::Fg(FgStep::Primary)),
-    ),
-];
-
 fn action_paint(ui: &Ui<'_>, part: Part, background: Role, foreground: Role) -> PaintStyle {
     ui.style_defaults(
         CONNECTION_ACTIONS,
         termrock::Variant::DEFAULT,
         part,
         termrock::StateFlags::empty(),
-        StyleDefaults::new(StylePatch::new().set_bg(background).set_fg(foreground))
-            .mono(ACTION_MONO),
+        StyleDefaults::new(StylePatch::new().set_bg(background).set_fg(foreground)),
         None,
     )
     .over(ui.surface_style())
@@ -2849,7 +2929,7 @@ fn paint_action_button(
             width: 1,
             height: 1,
         },
-        "▎",
+        " ",
         gutter,
     );
     ui.paint_str(

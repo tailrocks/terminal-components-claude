@@ -1680,6 +1680,7 @@ fn paint_row(
             text,
             role: if r.sel { None } else { role },
             add,
+            remove: Modifier::empty(),
         };
         let base = if r.sel { styles.1 } else { styles.0 };
         let w = ui.paint_spans(
