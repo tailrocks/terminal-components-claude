@@ -3,14 +3,12 @@
 use core::marker::PhantomData;
 
 use ratatui_core::layout::{Position, Rect};
-use ratatui_core::style::Modifier;
 
 use super::filter_list::{FilterList, FilterListAction, FilterListState, FilterPolicy};
 use super::{Acc, PartStyle, SlotFn, overlay_chrome};
 use crate::collection::{EmptyState, RowFn, RowUi};
 use crate::id::{Id, ItemKey, Part};
 use crate::layer::{Anchor, LayerSize, LayerSpec, ScreenAlign};
-use crate::layout::Track;
 use crate::response::{Response, StateFlags};
 use crate::text::width;
 use crate::theme::{Family, StylePatch, Surface, Variant};

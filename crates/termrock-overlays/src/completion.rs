@@ -694,10 +694,64 @@ impl<T, R> Bindings for Completion<'_, T, R> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use ratatui_core::buffer::Buffer;
 
-    use super::*;
-    use crate::components::{CodeEditor, CodeEditorState};
+    use crate::focus::Focusability;
+    use crate::response::StateFlags;
+
+    struct CodeEditorState {
+        text: String,
+        cursor: usize,
+        editing: bool,
+    }
+
+    impl CodeEditorState {
+        fn new(text: &str) -> Self {
+            Self {
+                text: text.to_string(),
+                cursor: 0,
+                editing: false,
+            }
+        }
+        fn cursor_offset(&self) -> usize {
+            self.cursor
+        }
+        fn text(&self) -> &str {
+            &self.text
+        }
+    }
+
+    struct CodeEditor {
+        id: Id,
+    }
+
+    impl CodeEditor {
+        fn new(id: Id, _tab_width: usize) -> Self {
+            Self { id }
+        }
+        fn update(&self, cx: &mut Cx<'_>, state: &mut CodeEditorState) -> Response<()> {
+            let mut r = Response::ignored();
+            for it in cx.intents(self.id) {
+                if let Intent::Key(k) = it {
+                    if !state.editing {
+                        if k.code == KeyCode::Char('i') {
+                            state.editing = true;
+                            r |= Response::changed();
+                        }
+                    } else if let KeyCode::Char(c) = k.code {
+                        state.text.insert(state.cursor, c);
+                        state.cursor += c.len_utf8();
+                        r |= Response::changed();
+                    }
+                }
+            }
+            r
+        }
+        fn draw(&self, ui: &mut Ui<'_>, area: Rect, _state: &CodeEditorState) {
+            ui.register_editor(self.id, area, Focusability::Focusable, StateFlags::EDITING);
+        }
+    }
     use crate::event::Input;
     use crate::keymap::KeyMap;
     use crate::runtime::stub::key;
