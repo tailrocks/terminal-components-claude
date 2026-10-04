@@ -226,6 +226,9 @@ pub struct QueryTab {
     pub error: Option<String>,
     pub plan: Option<PlanNode>,
     pub running: bool,
+    pub editing: bool,
+    pub last_duration: Option<u32>,
+    pub affected: Option<(usize, String)>,
 }
 
 impl core::fmt::Debug for QueryTab {
@@ -240,6 +243,7 @@ impl core::fmt::Debug for QueryTab {
             .field("has_error", &self.error.is_some())
             .field("has_plan", &self.plan.is_some())
             .field("running", &self.running)
+            .field("editing", &self.editing)
             .finish()
     }
 }
@@ -257,6 +261,9 @@ impl QueryTab {
             error: None,
             plan: None,
             running: false,
+            editing: false,
+            last_duration: None,
+            affected: None,
         }
     }
 
@@ -291,7 +298,7 @@ impl QueryTab {
     }
 
     pub fn dirty(&self) -> bool {
-        self.editor_state.draft_text().unwrap_or(&self.query) != self.saved_text
+        self.query != self.saved_text
     }
 }
 

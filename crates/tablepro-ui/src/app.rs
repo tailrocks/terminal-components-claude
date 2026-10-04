@@ -7,7 +7,7 @@ use termrock::{
     Id, Intent, ItemKey, KeyCode, KeyMap, KeyModifiers, KeyPhase, LayerId, Modifier, NodeKind,
     Panel, PanelKind, Part, Phase, PickerAction, Response, Role, RowUi, Size, Span, SplitAxis,
     SplitPane, SplitPaneState, StylePatch, Tabs, TabsAction, TabsState, TextInput, TextInputState,
-    Theme, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, wrap,
+    Theme, Tree, TreeAction, TreeNode, TreeState, Ui, UpdateCause, truncate, wrap,
 };
 
 use crate::connections::{self, ConnectionDraft, ConnectionsScreen};
@@ -535,6 +535,8 @@ pub struct TableProApp {
     form_fields: Box<[termrock::FieldSpec<'static>]>,
     form_actions: Box<[Action<'static>]>,
     form_open: bool,
+    form_is_edit: bool,
+    form_tab: usize,
 }
 
 impl core::fmt::Debug for TableProApp {
@@ -628,6 +630,8 @@ impl TableProApp {
             form_fields: Box::from(connections::form_fields()),
             form_actions: Box::from(connections::form_actions()),
             form_open: false,
+            form_is_edit: false,
+            form_tab: 0,
         };
         app.workbench.new_query(
             "SELECT * FROM orders WHERE status = 'pending' ORDER BY total_amount DESC LIMIT 20",
@@ -683,6 +687,8 @@ impl TableProApp {
     /// renderer on the same connection/workbench route as the product.
     pub fn set_surface(&mut self, surface: Surface) {
         self.form_open = false;
+        self.form_is_edit = false;
+        self.form_tab = 0;
         self.draft = None;
 
         match surface {
@@ -964,15 +970,33 @@ impl TableProApp {
             self.draft = None;
         }
     }
-    /// Open the connection form with the active connection as its draft.
+    /// Open the connection form with a clean draft for a new connection.
     pub fn begin_connection_form(&mut self) {
-        self.draft = Some(ConnectionDraft::from_connection(&self.connection));
+        self.draft = Some(ConnectionDraft::default_new());
+        self.form_is_edit = false;
+        self.form_tab = 0;
+        self.form_state = FormState::default();
+        self.form_open = true;
+        self.surface = Surface::Connections;
+    }
+    /// Open the connection form to edit an existing connection.
+    pub fn begin_edit_connection_form(&mut self, index: usize) {
+        let draft = self
+            .connections
+            .get(index)
+            .map(ConnectionDraft::from_connection)
+            .unwrap_or_else(|| ConnectionDraft::from_connection(&self.connection));
+        self.draft = Some(draft);
+        self.form_is_edit = true;
+        self.form_tab = 0;
         self.form_state = FormState::default();
         self.form_open = true;
         self.surface = Surface::Connections;
     }
     fn close_connection_form(&mut self) {
         self.form_open = false;
+        self.form_is_edit = false;
+        self.form_tab = 0;
         self.form_state.zeroize();
         // Retain a scrubbed owner until late focus transitions are drained.
         self.draft = Some(ConnectionDraft::from_connection(&self.connection));
@@ -1826,20 +1850,14 @@ impl TableProApp {
         }
     }
 
-    fn draw_connections(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
+    fn draw_connections_list(
+        &self,
+        ui: &mut Ui<'_>,
+        list_area: termrock::Rect,
+        focused: bool,
+        is_compact: bool,
+    ) {
         let count = format!("{} ", self.connections_screen.connections.len());
-        let list_width = (area.width / 3).clamp(26, 40).min(area.width);
-        let list_area = termrock::Rect {
-            x: area.x,
-            y: area.y,
-            width: if area.width < 80 {
-                area.width
-            } else {
-                list_width
-            },
-            height: area.height,
-        };
-        let focused = self.destructive_intent.is_none() && !self.form_open;
         let panel = Self::connections_panel(" Connections ", Some(&count), focused);
         let inner = panel.inner(ui, list_area);
         let body = legacy_tree_body(inner);
@@ -1883,10 +1901,10 @@ impl TableProApp {
                 height: inner.height.saturating_sub(2),
                 ..body
             };
-            let show_meta = if area.width < 80 {
+            let show_meta = if is_compact {
                 true
             } else {
-                let row_w = list_width.saturating_sub(4);
+                let row_w = list_area.width.saturating_sub(4);
                 self.connections.iter().all(|c| {
                     let meta_w = termrock::width(c.engine.short()) as u16;
                     let need = 10 + termrock::width(&c.name) as u16 + meta_w;
@@ -1928,6 +1946,22 @@ impl TableProApp {
             },
             blank,
         );
+    }
+
+    fn draw_connections(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
+        let list_width = (area.width / 3).clamp(26, 40).min(area.width);
+        let list_area = termrock::Rect {
+            x: area.x,
+            y: area.y,
+            width: if area.width < 80 {
+                area.width
+            } else {
+                list_width
+            },
+            height: area.height,
+        };
+        let focused = self.destructive_intent.is_none() && !self.form_open;
+        self.draw_connections_list(ui, list_area, focused, area.width < 80);
         if area.width >= 80 {
             let details = termrock::Rect {
                 x: area.x.saturating_add(list_width).saturating_add(2),
@@ -1937,6 +1971,1351 @@ impl TableProApp {
             };
             self.draw_connection_details(ui, details);
         }
+    }
+
+    fn draw_connection_form(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
+        let (card_area, list_area) = if area.width < 80 {
+            (
+                termrock::Rect {
+                    x: area.x,
+                    y: area.y,
+                    width: area.width.min(84),
+                    height: area.height,
+                },
+                None,
+            )
+        } else {
+            let list_width = (area.width / 3).clamp(26, 40).min(area.width);
+            let right_x = area.x.saturating_add(list_width).saturating_add(2);
+            let card_width = area.width.saturating_sub(list_width).saturating_sub(2).min(84);
+            (
+                termrock::Rect {
+                    x: right_x,
+                    y: area.y,
+                    width: card_width,
+                    height: area.height,
+                },
+                Some(termrock::Rect {
+                    x: area.x,
+                    y: area.y,
+                    width: list_width,
+                    height: area.height,
+                }),
+            )
+        };
+
+        if self.form_tab == 0 {
+            if let Some(list_area) = list_area {
+                self.draw_connections_list(ui, list_area, false, false);
+            }
+        }
+
+        self.draw_connection_form_card(ui, card_area);
+    }
+
+    fn draw_connection_form_card(&self, ui: &mut Ui<'_>, card_area: termrock::Rect) {
+        let Some(draft) = self.draft.as_ref() else {
+            return;
+        };
+
+        let card_bg = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(termrock::Surface::Surface))));
+        ui.fill(card_area, card_bg);
+
+        let title = if self.form_is_edit {
+            "Edit connection"
+        } else {
+            "New connection"
+        };
+        let title_style = card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))));
+        ui.paint_str(
+            termrock::Rect {
+                x: card_area.x.saturating_add(2),
+                y: card_area.y,
+                width: card_area.width.saturating_sub(2),
+                height: 1,
+            },
+            title,
+            title_style,
+        );
+
+        let meta = "Ctrl+S Save";
+        let meta_style = card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
+        ui.paint_str(
+            termrock::Rect {
+                x: card_area.right().saturating_sub(2 + 11),
+                y: card_area.y,
+                width: 11.min(card_area.width),
+                height: 1,
+            },
+            meta,
+            meta_style,
+        );
+
+        let inner = termrock::Rect {
+            x: card_area.x.saturating_add(2),
+            y: card_area.y.saturating_add(2),
+            width: card_area.width.saturating_sub(4),
+            height: card_area.height.saturating_sub(3),
+        };
+
+        let tab0_active = self.form_tab == 0;
+        let raised_bg = ui.surface_style().patch(
+            ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(termrock::Surface::Overlay))),
+        );
+        let tab0_style = if tab0_active {
+            raised_bg.patch(
+                ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .add(Modifier::BOLD),
+                ),
+            )
+        } else {
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
+        };
+        let tab1_style = if !tab0_active {
+            raised_bg.patch(
+                ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .add(Modifier::BOLD),
+                ),
+            )
+        } else {
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
+        };
+
+        let tab0_rect = termrock::Rect {
+            x: inner.x,
+            y: inner.y,
+            width: 8.min(inner.width),
+            height: 1,
+        };
+        ui.fill(tab0_rect, if tab0_active { raised_bg } else { card_bg });
+        ui.paint_str(tab0_rect, " Basic  ", tab0_style);
+
+        let tab1_x = inner.x.saturating_add(9);
+        let tab1_rect = termrock::Rect {
+            x: tab1_x,
+            y: inner.y,
+            width: 11.min(inner.right().saturating_sub(tab1_x)),
+            height: 1,
+        };
+        ui.fill(tab1_rect, if !tab0_active { raised_bg } else { card_bg });
+        ui.paint_str(tab1_rect, " Advanced  ", tab1_style);
+
+        let underline_y = inner.y.saturating_add(1);
+        let rule_subtle = card_bg.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::BorderSubtle)),
+        );
+        let rule_accent = card_bg.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)),
+        );
+
+        for xx in inner.left()..inner.right() {
+            ui.paint_str(
+                termrock::Rect {
+                    x: xx,
+                    y: underline_y,
+                    width: 1,
+                    height: 1,
+                },
+                "─",
+                rule_subtle,
+            );
+        }
+        let (active_x, active_w) = if tab0_active {
+            (inner.x, 8.min(inner.width))
+        } else {
+            (tab1_x, 11.min(inner.right().saturating_sub(tab1_x)))
+        };
+        for xx in active_x..active_x.saturating_add(active_w) {
+            ui.paint_str(
+                termrock::Rect {
+                    x: xx,
+                    y: underline_y,
+                    width: 1,
+                    height: 1,
+                },
+                "━",
+                rule_accent,
+            );
+        }
+
+        let body = termrock::Rect {
+            x: inner.x,
+            y: inner.y.saturating_add(3),
+            width: inner.width,
+            height: inner.height.saturating_sub(5),
+        };
+
+        let usable = body.width.saturating_sub(4);
+        let (lc, rc) = if usable < 54 {
+            (
+                termrock::Rect {
+                    x: body.x,
+                    y: body.y,
+                    width: 0,
+                    height: body.height,
+                },
+                body,
+            )
+        } else {
+            let mut first = ((usable as u32 * 58) / 100) as u16;
+            first = first.clamp(30, usable.saturating_sub(24));
+            (
+                termrock::Rect {
+                    x: body.x,
+                    y: body.y,
+                    width: first,
+                    height: body.height,
+                },
+                termrock::Rect {
+                    x: body.x.saturating_add(first).saturating_add(4),
+                    y: body.y,
+                    width: usable.saturating_sub(first),
+                    height: body.height,
+                },
+            )
+        };
+
+        if tab0_active {
+            self.draw_form_basic_tab(ui, lc, rc, draft, card_bg);
+        } else {
+            self.draw_form_advanced_tab(ui, lc, rc, draft, card_bg);
+        }
+
+        let ay = inner.bottom().saturating_sub(1);
+        let widths = [17, 8, 6, 16];
+        let rects = Self::row_layout(
+            termrock::Rect {
+                x: inner.x,
+                y: ay,
+                width: inner.width,
+                height: 1,
+            },
+            &widths,
+            2,
+        );
+
+        if let Some(&r) = rects.get(0) {
+            let btn_sec_style = raised_bg.patch(
+                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
+            );
+            let btn_gutter = raised_bg.patch(
+                ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Overlay))),
+            );
+            ui.paint_str(
+                termrock::Rect { x: r.x, y: r.y, width: 1, height: 1 },
+                " ",
+                btn_gutter,
+            );
+            ui.paint_str(
+                termrock::Rect {
+                    x: r.x.saturating_add(1),
+                    y: r.y,
+                    width: r.width.saturating_sub(2),
+                    height: 1,
+                },
+                "Test connection",
+                btn_sec_style,
+            );
+            ui.paint_str(
+                termrock::Rect { x: r.right().saturating_sub(1), y: r.y, width: 1, height: 1 },
+                " ",
+                btn_sec_style,
+            );
+        }
+
+        if let Some(&r) = rects.get(1) {
+            let btn_subtle_style = card_bg.patch(
+                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
+            );
+            let btn_gutter = card_bg.patch(
+                ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Surface))),
+            );
+            ui.paint_str(
+                termrock::Rect { x: r.x, y: r.y, width: 1, height: 1 },
+                " ",
+                btn_gutter,
+            );
+            ui.paint_str(
+                termrock::Rect {
+                    x: r.x.saturating_add(1),
+                    y: r.y,
+                    width: r.width.saturating_sub(2),
+                    height: 1,
+                },
+                "Cancel",
+                btn_subtle_style,
+            );
+            ui.paint_str(
+                termrock::Rect { x: r.right().saturating_sub(1), y: r.y, width: 1, height: 1 },
+                " ",
+                btn_subtle_style,
+            );
+        }
+
+        if let Some(&r) = rects.get(2) {
+            let btn_sec_style = raised_bg.patch(
+                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
+            );
+            let btn_gutter = raised_bg.patch(
+                ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Overlay))),
+            );
+            ui.paint_str(
+                termrock::Rect { x: r.x, y: r.y, width: 1, height: 1 },
+                " ",
+                btn_gutter,
+            );
+            ui.paint_str(
+                termrock::Rect {
+                    x: r.x.saturating_add(1),
+                    y: r.y,
+                    width: r.width.saturating_sub(2),
+                    height: 1,
+                },
+                "Save",
+                btn_sec_style,
+            );
+            ui.paint_str(
+                termrock::Rect { x: r.right().saturating_sub(1), y: r.y, width: 1, height: 1 },
+                " ",
+                btn_sec_style,
+            );
+        }
+
+        if let Some(&r) = rects.get(3) {
+            let accent_bg = ui.surface_style().patch(
+                ui.paint_patch(&StylePatch::new().set_bg(Role::Accent)),
+            );
+            let btn_pri_style = accent_bg.patch(
+                ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::OnAccent)
+                        .add(Modifier::BOLD),
+                ),
+            );
+            let btn_gutter = accent_bg.patch(
+                ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)),
+            );
+            ui.paint_str(
+                termrock::Rect { x: r.x, y: r.y, width: 1, height: 1 },
+                " ",
+                btn_gutter,
+            );
+            ui.paint_str(
+                termrock::Rect {
+                    x: r.x.saturating_add(1),
+                    y: r.y,
+                    width: r.width.saturating_sub(2),
+                    height: 1,
+                },
+                "Save & connect",
+                btn_pri_style,
+            );
+            ui.paint_str(
+                termrock::Rect { x: r.right().saturating_sub(1), y: r.y, width: 1, height: 1 },
+                " ",
+                btn_pri_style,
+            );
+        }
+    }
+
+    fn row_layout(area: termrock::Rect, widths: &[u16], gap: u16) -> Vec<termrock::Rect> {
+        let mut x = area.x;
+        let mut out = Vec::new();
+        for &w in widths {
+            let w = w.min(area.right().saturating_sub(x));
+            out.push(termrock::Rect {
+                x,
+                y: area.y,
+                width: w,
+                height: area.height.min(1),
+            });
+            x = x.saturating_add(w).saturating_add(gap);
+        }
+        out
+    }
+
+    fn fit_text(s: &str, w: u16) -> String {
+        let t = truncate(s, w);
+        let pad = w.saturating_sub(termrock::width(&t)) as usize;
+        format!("{t}{}", " ".repeat(pad))
+    }
+
+    fn draw_form_input(
+        ui: &mut Ui<'_>,
+        area: termrock::Rect,
+        label: &str,
+        value: &str,
+        placeholder: &str,
+        help: &str,
+        required: bool,
+        focused: bool,
+        disabled: bool,
+        card_bg: PaintStyle,
+        field_bg: PaintStyle,
+    ) {
+        if area.is_empty() {
+            return;
+        }
+        let name_w = termrock::width(label) as u16;
+        let show_optional = !required && !label.is_empty() && name_w.saturating_add(12) <= area.width;
+        let mut full_label = label.to_owned();
+        if required {
+            full_label.push_str(" *");
+        } else if show_optional {
+            full_label.push_str("  optional");
+        }
+        let label_style = if disabled {
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))))
+        } else if focused {
+            card_bg.patch(
+                ui.paint_patch(
+                    &StylePatch::new()
+                        .set_fg(Role::Fg(FgStep::Primary))
+                        .add(Modifier::BOLD),
+                ),
+            )
+        } else {
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))))
+        };
+        let label_x = area.x.saturating_add(2.min(area.width));
+        let avail_w = area.width.saturating_sub(2);
+        let fit_label = Self::fit_text(&full_label, avail_w);
+        ui.paint_str(
+            termrock::Rect {
+                x: label_x,
+                y: area.y,
+                width: area.width.saturating_sub(2),
+                height: 1,
+            },
+            &fit_label,
+            label_style,
+        );
+        if required && !disabled && name_w.saturating_add(4) <= area.width {
+            let req_style = card_bg.patch(
+                ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)),
+            );
+            ui.paint_str(
+                termrock::Rect {
+                    x: label_x.saturating_add(name_w).saturating_add(1),
+                    y: area.y,
+                    width: 1,
+                    height: 1,
+                },
+                "*",
+                req_style,
+            );
+        } else if show_optional {
+            let opt_style = card_bg.patch(
+                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))),
+            );
+            ui.paint_str(
+                termrock::Rect {
+                    x: label_x.saturating_add(name_w).saturating_add(2),
+                    y: area.y,
+                    width: 8,
+                    height: 1,
+                },
+                "optional",
+                opt_style,
+            );
+        }
+
+        if area.height >= 2 {
+            let field_rect = termrock::Rect {
+                x: area.x,
+                y: area.y.saturating_add(1),
+                width: area.width,
+                height: 1,
+            };
+            let field_style = if disabled {
+                field_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))))
+            } else {
+                field_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))))
+            };
+            ui.fill(field_rect, field_style);
+
+            let gutter_style = if focused {
+                field_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)))
+            } else {
+                field_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Field))))
+            };
+            ui.paint_str(
+                termrock::Rect {
+                    x: area.x,
+                    y: field_rect.y,
+                    width: 1,
+                    height: 1,
+                },
+                if focused { "▎" } else { " " },
+                gutter_style,
+            );
+
+            let inner_x = area.x.saturating_add(2.min(area.width));
+            let inner_w = area.width.saturating_sub(3);
+            if value.is_empty() {
+                if !placeholder.is_empty() && inner_w > 0 {
+                    let ph_fg = if disabled {
+                        Role::Fg(FgStep::Faint)
+                    } else {
+                        Role::Fg(FgStep::Muted)
+                    };
+                    let ph_style = field_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(ph_fg)));
+                    let ph = truncate(placeholder, inner_w);
+                    ui.paint_str(
+                        termrock::Rect {
+                            x: inner_x,
+                            y: field_rect.y,
+                            width: termrock::width(&ph) as u16,
+                            height: 1,
+                        },
+                        &ph,
+                        ph_style,
+                    );
+                }
+            } else if inner_w > 0 {
+                let val_fg = if disabled {
+                    Role::Fg(FgStep::Faint)
+                } else {
+                    Role::Fg(FgStep::Primary)
+                };
+                let val_style = field_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(val_fg)));
+                let val = truncate(value, inner_w);
+                ui.paint_str(
+                    termrock::Rect {
+                        x: inner_x,
+                        y: field_rect.y,
+                        width: termrock::width(&val) as u16,
+                        height: 1,
+                    },
+                    &val,
+                    val_style,
+                );
+            }
+        }
+
+        if area.height >= 3 && !help.is_empty() {
+            let help_style = card_bg.patch(
+                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+            );
+            let h = truncate(help, area.width.saturating_sub(2));
+            ui.paint_str(
+                termrock::Rect {
+                    x: label_x,
+                    y: area.y.saturating_add(2),
+                    width: area.width.saturating_sub(2),
+                    height: 1,
+                },
+                &h,
+                help_style,
+            );
+        }
+    }
+
+    fn draw_form_select(
+        ui: &mut Ui<'_>,
+        area: termrock::Rect,
+        label: &str,
+        value: &str,
+        card_bg: PaintStyle,
+        field_bg: PaintStyle,
+    ) {
+        if area.is_empty() {
+            return;
+        }
+        let label_style = card_bg.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
+        );
+        let label_x = area.x.saturating_add(2.min(area.width));
+        ui.paint_str(
+            termrock::Rect {
+                x: label_x,
+                y: area.y,
+                width: area.width.saturating_sub(2),
+                height: 1,
+            },
+            label,
+            label_style,
+        );
+
+        if area.height >= 2 {
+            let field_rect = termrock::Rect {
+                x: area.x,
+                y: area.y.saturating_add(1),
+                width: area.width,
+                height: 1,
+            };
+            let fs = field_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
+            ui.fill(field_rect, fs);
+
+            let gutter_style = field_bg.patch(
+                ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Field))),
+            );
+            ui.paint_str(
+                termrock::Rect {
+                    x: area.x,
+                    y: field_rect.y,
+                    width: 1,
+                    height: 1,
+                },
+                " ",
+                gutter_style,
+            );
+
+            let inner_x = area.x.saturating_add(2.min(area.width));
+            let inner_w = area.width.saturating_sub(5);
+            if inner_w > 0 {
+                let val_style = field_bg.patch(
+                    ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
+                );
+                let val = truncate(value, inner_w);
+                ui.paint_str(
+                    termrock::Rect {
+                        x: inner_x,
+                        y: field_rect.y,
+                        width: termrock::width(&val) as u16,
+                        height: 1,
+                    },
+                    &val,
+                    val_style,
+                );
+            }
+            if area.width >= 2 {
+                let arrow_style = field_bg.patch(
+                    ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
+                );
+                ui.paint_str(
+                    termrock::Rect {
+                        x: area.right().saturating_sub(2),
+                        y: field_rect.y,
+                        width: 1,
+                        height: 1,
+                    },
+                    "▾",
+                    arrow_style,
+                );
+            }
+        }
+    }
+
+    fn draw_form_radio(
+        ui: &mut Ui<'_>,
+        area: termrock::Rect,
+        label: &str,
+        options: &[&str],
+        selected: usize,
+        card_bg: PaintStyle,
+    ) {
+        if area.is_empty() {
+            return;
+        }
+        let label_style = card_bg.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
+        );
+        let label_x = area.x.saturating_add(2.min(area.width));
+        ui.paint_str(
+            termrock::Rect {
+                x: label_x,
+                y: area.y,
+                width: area.width.saturating_sub(2),
+                height: 1,
+            },
+            label,
+            label_style,
+        );
+
+        let gutter_style = card_bg.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Surface))),
+        );
+        let accent_style = card_bg.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)),
+        );
+        let muted_style = card_bg.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+        );
+        let text_style = card_bg.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
+        );
+
+        for (i, opt) in options
+            .iter()
+            .take(area.height.saturating_sub(1) as usize)
+            .enumerate()
+        {
+            let y = area.y.saturating_add(1).saturating_add(i as u16);
+            ui.paint_str(
+                termrock::Rect {
+                    x: area.x,
+                    y,
+                    width: 1,
+                    height: 1,
+                },
+                " ",
+                gutter_style,
+            );
+            let on = i == selected;
+            let mark = if area.width < 4 {
+                if on { "●" } else { "○" }
+            } else if on {
+                "(●)"
+            } else {
+                "( )"
+            };
+            let ms = if on { accent_style } else { muted_style };
+            ui.paint_str(
+                termrock::Rect {
+                    x: area.x.saturating_add(1),
+                    y,
+                    width: if area.width < 4 { 1 } else { 3 },
+                    height: 1,
+                },
+                mark,
+                ms,
+            );
+            if area.width > 5 {
+                let opt_text = truncate(opt, area.width.saturating_sub(5));
+                ui.paint_str(
+                    termrock::Rect {
+                        x: area.x.saturating_add(5),
+                        y,
+                        width: area.width.saturating_sub(5),
+                        height: 1,
+                    },
+                    &opt_text,
+                    text_style,
+                );
+            }
+        }
+    }
+
+    fn draw_form_toggle(
+        ui: &mut Ui<'_>,
+        area: termrock::Rect,
+        label: &str,
+        on: bool,
+        disabled: bool,
+        card_bg: PaintStyle,
+    ) {
+        if area.is_empty() {
+            return;
+        }
+        let gutter_style = card_bg.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Surface))),
+        );
+        ui.paint_str(
+            termrock::Rect {
+                x: area.x,
+                y: area.y,
+                width: 1,
+                height: 1,
+            },
+            " ",
+            gutter_style,
+        );
+        let accent_style = card_bg.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Accent)),
+        );
+        let muted_style = card_bg.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+        );
+        let faint_style = card_bg.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))),
+        );
+        let text_style = if disabled {
+            faint_style
+        } else {
+            card_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))))
+        };
+
+        let (sw, ss) = if disabled {
+            (if on { "──●" } else { "○──" }, muted_style)
+        } else if on {
+            ("──●", accent_style)
+        } else {
+            ("○──", muted_style)
+        };
+        let (sw, sw_len) = if area.width < 4 {
+            (if on { "●" } else { "○" }, 1u16)
+        } else {
+            (sw, 3u16)
+        };
+        ui.paint_str(
+            termrock::Rect {
+                x: area.x.saturating_add(1),
+                y: area.y,
+                width: sw_len,
+                height: 1,
+            },
+            sw,
+            ss,
+        );
+        if area.width > 5 {
+            let label_text = truncate(label, area.width.saturating_sub(5));
+            ui.paint_str(
+                termrock::Rect {
+                    x: area.x.saturating_add(5),
+                    y: area.y,
+                    width: area.width.saturating_sub(5),
+                    height: 1,
+                },
+                &label_text,
+                text_style,
+            );
+        }
+        let state = if on { "on" } else { "off" };
+        let state_offset = 6u16.saturating_add(termrock::width(label) as u16);
+        if state_offset.saturating_add(3) < area.width {
+            ui.paint_str(
+                termrock::Rect {
+                    x: area.x.saturating_add(state_offset),
+                    y: area.y,
+                    width: 3,
+                    height: 1,
+                },
+                state,
+                if disabled { faint_style } else { muted_style },
+            );
+        }
+    }
+
+    fn draw_form_checkbox(
+        ui: &mut Ui<'_>,
+        area: termrock::Rect,
+        label: &str,
+        checked: bool,
+        card_bg: PaintStyle,
+    ) {
+        if area.is_empty() {
+            return;
+        }
+        let gutter_style = card_bg.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Surface))),
+        );
+        ui.paint_str(
+            termrock::Rect {
+                x: area.x,
+                y: area.y,
+                width: 1,
+                height: 1,
+            },
+            " ",
+            gutter_style,
+        );
+        let (mark, mark_w) = if area.width < 4 {
+            (if checked { "✓" } else { "□" }, 1u16)
+        } else if checked {
+            ("[✓]", 3u16)
+        } else {
+            ("[ ]", 3u16)
+        };
+        let mark_style = card_bg.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+        );
+        ui.paint_str(
+            termrock::Rect {
+                x: area.x.saturating_add(1),
+                y: area.y,
+                width: mark_w,
+                height: 1,
+            },
+            mark,
+            mark_style,
+        );
+        if area.width > 5 {
+            let text_style = card_bg.patch(
+                ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))),
+            );
+            let text = truncate(label, area.width.saturating_sub(5));
+            ui.paint_str(
+                termrock::Rect {
+                    x: area.x.saturating_add(5),
+                    y: area.y,
+                    width: area.width.saturating_sub(5),
+                    height: 1,
+                },
+                &text,
+                text_style,
+            );
+        }
+    }
+
+    fn draw_form_basic_tab(
+        &self,
+        ui: &mut Ui<'_>,
+        lc: termrock::Rect,
+        rc: termrock::Rect,
+        draft: &ConnectionDraft,
+        card_bg: PaintStyle,
+    ) {
+        let field_bg = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(termrock::Surface::Field))));
+
+        let fh = 3u16;
+
+        let mut y = lc.y;
+
+        // 1. Name
+        Self::draw_form_input(
+            ui,
+            termrock::Rect {
+                x: lc.x,
+                y,
+                width: lc.width,
+                height: fh,
+            },
+            "Name",
+            &draft.name,
+            "",
+            "",
+            true,
+            true,
+            false,
+            card_bg,
+            field_bg,
+        );
+        y = y.saturating_add(fh);
+
+        // 2. Engine
+        let engines = ["PostgreSQL", "MySQL", "SQLite"];
+        let engine_str = engines.get(draft.engine).copied().unwrap_or("PostgreSQL");
+        Self::draw_form_select(
+            ui,
+            termrock::Rect {
+                x: lc.x,
+                y,
+                width: lc.width,
+                height: 3,
+            },
+            "Engine",
+            engine_str,
+            card_bg,
+            field_bg,
+        );
+        y = y.saturating_add(3);
+
+        // 3. Host and Port
+        let usable = lc.width.saturating_sub(2);
+        let first = if usable < 20 {
+            usable.min(12)
+        } else {
+            let f = ((usable as u32 * 70) / 100) as u16;
+            f.clamp(12, usable.saturating_sub(8))
+        };
+        let hl = termrock::Rect {
+            x: lc.x,
+            y,
+            width: first,
+            height: fh,
+        };
+        let hr = termrock::Rect {
+            x: lc.x.saturating_add(first).saturating_add(2),
+            y,
+            width: usable.saturating_sub(first),
+            height: fh,
+        };
+        let host_val = if draft.host.is_empty() {
+            "localhost"
+        } else {
+            &draft.host
+        };
+        Self::draw_form_input(
+            ui,
+            hl,
+            "Host",
+            host_val,
+            "",
+            "Blank: driver default",
+            false,
+            false,
+            false,
+            card_bg,
+            field_bg,
+        );
+        let port_val = if draft.port.is_empty() {
+            "5432"
+        } else {
+            &draft.port
+        };
+        Self::draw_form_input(
+            ui,
+            hr,
+            "Port",
+            port_val,
+            "",
+            "",
+            false,
+            false,
+            false,
+            card_bg,
+            field_bg,
+        );
+        y = y.saturating_add(fh);
+
+        // 4. Database
+        Self::draw_form_input(
+            ui,
+            termrock::Rect {
+                x: lc.x,
+                y,
+                width: lc.width,
+                height: fh,
+            },
+            "Database",
+            &draft.database,
+            "",
+            "Required for PostgreSQL",
+            false,
+            false,
+            false,
+            card_bg,
+            field_bg,
+        );
+        y = y.saturating_add(fh);
+
+        // 5. Username
+        Self::draw_form_input(
+            ui,
+            termrock::Rect {
+                x: lc.x,
+                y,
+                width: lc.width,
+                height: fh,
+            },
+            "Username",
+            &draft.user,
+            "",
+            "",
+            false,
+            false,
+            false,
+            card_bg,
+            field_bg,
+        );
+        y = y.saturating_add(fh);
+
+        // 6. Password
+        Self::draw_form_input(
+            ui,
+            termrock::Rect {
+                x: lc.x,
+                y,
+                width: lc.width,
+                height: fh,
+            },
+            "Password",
+            "",
+            "stored in the keychain",
+            "Never written to connections.json",
+            false,
+            false,
+            false,
+            card_bg,
+            field_bg,
+        );
+        y = y.saturating_add(fh);
+
+        // 7. Prompt for password on connect
+        Self::draw_form_checkbox(
+            ui,
+            termrock::Rect {
+                x: lc.x,
+                y,
+                width: lc.width,
+                height: 1,
+            },
+            "Prompt for password on connect",
+            draft.ask_password,
+            card_bg,
+        );
+
+        // Right column
+        let mut ry = rc.y;
+
+        // 1. Environment
+        let env_opts = ["local", "development", "staging", "production"];
+        Self::draw_form_radio(
+            ui,
+            termrock::Rect {
+                x: rc.x,
+                y: ry,
+                width: rc.width,
+                height: 5,
+            },
+            "Environment",
+            &env_opts,
+            draft.environment.min(3),
+            card_bg,
+        );
+        ry = ry.saturating_add(5 + 1);
+
+        // 2. Group
+        let groups = ["Personal", "Acme", "Clients"];
+        let group_str = groups.get(draft.group).copied().unwrap_or("Personal");
+        Self::draw_form_select(
+            ui,
+            termrock::Rect {
+                x: rc.x,
+                y: ry,
+                width: rc.width,
+                height: 3,
+            },
+            "Group",
+            group_str,
+            card_bg,
+            field_bg,
+        );
+        ry = ry.saturating_add(3);
+
+        // 3. Safe Mode
+        let safe_modes = [
+            "Silent",
+            "Alert",
+            "Alert (Full)",
+            "Safe Mode",
+            "Safe Mode (Full)",
+            "Read-Only",
+        ];
+        Self::draw_form_radio(
+            ui,
+            termrock::Rect {
+                x: rc.x,
+                y: ry,
+                width: rc.width,
+                height: 7,
+            },
+            "Safe Mode",
+            &safe_modes,
+            draft.safe_mode.min(5),
+            card_bg,
+        );
+        ry = ry.saturating_add(7);
+
+        // Safe mode description (up to 2 wrapped lines)
+        let desc = SafeMode::ALL[draft.safe_mode.min(5)].description();
+        let wrap_w = rc.width.saturating_sub(2);
+        let muted_style = card_bg.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+        );
+        for (i, line) in wrap(desc, wrap_w).iter().take(2).enumerate() {
+            ui.paint_str(
+                termrock::Rect {
+                    x: rc.x.saturating_add(2),
+                    y: ry.saturating_add(i as u16),
+                    width: rc.width.saturating_sub(2),
+                    height: 1,
+                },
+                line,
+                muted_style,
+            );
+        }
+    }
+
+    fn draw_form_advanced_tab(
+        &self,
+        ui: &mut Ui<'_>,
+        lc: termrock::Rect,
+        rc: termrock::Rect,
+        draft: &ConnectionDraft,
+        card_bg: PaintStyle,
+    ) {
+        let field_bg = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_bg(Role::Surface(termrock::Surface::Field))));
+
+        let fh = 3u16;
+
+        let mut y = lc.y;
+
+        // 1. SSL / TLS
+        Self::draw_form_toggle(
+            ui,
+            termrock::Rect {
+                x: lc.x,
+                y,
+                width: lc.width,
+                height: 1,
+            },
+            "Use SSL / TLS",
+            draft.ssl,
+            false,
+            card_bg,
+        );
+        y = y.saturating_add(2);
+
+        // 2. SSH tunnel
+        let ssh_on = draft.ssh;
+        Self::draw_form_toggle(
+            ui,
+            termrock::Rect {
+                x: lc.x,
+                y,
+                width: lc.width,
+                height: 1,
+            },
+            "SSH tunnel",
+            ssh_on,
+            false,
+            card_bg,
+        );
+        y = y.saturating_add(1);
+
+        // 3. SSH host
+        let disabled = !ssh_on;
+        let ssh_host_val = if draft.ssh_host.is_empty() {
+            ""
+        } else {
+            &draft.ssh_host
+        };
+        Self::draw_form_input(
+            ui,
+            termrock::Rect {
+                x: lc.x,
+                y,
+                width: lc.width,
+                height: fh,
+            },
+            "SSH host",
+            ssh_host_val,
+            "bastion.example.com",
+            "",
+            false,
+            false,
+            disabled,
+            card_bg,
+            field_bg,
+        );
+        y = y.saturating_add(fh);
+
+        // 4. SSH user
+        Self::draw_form_input(
+            ui,
+            termrock::Rect {
+                x: lc.x,
+                y,
+                width: lc.width,
+                height: fh,
+            },
+            "SSH user",
+            "deploy",
+            "",
+            "",
+            false,
+            false,
+            disabled,
+            card_bg,
+            field_bg,
+        );
+        y = y.saturating_add(fh);
+
+        // 5. Local only (no iCloud sync)
+        Self::draw_form_toggle(
+            ui,
+            termrock::Rect {
+                x: lc.x,
+                y,
+                width: lc.width,
+                height: 1,
+            },
+            "Local only (no iCloud sync)",
+            false,
+            false,
+            card_bg,
+        );
+
+        // Right column
+        let label_style = card_bg.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary))),
+        );
+        let label_x = rc.x.saturating_add(2.min(rc.width));
+        ui.paint_str(
+            termrock::Rect {
+                x: label_x,
+                y: rc.y,
+                width: rc.width.saturating_sub(2),
+                height: 1,
+            },
+            "Startup commands",
+            label_style,
+        );
+
+        let body_rect = termrock::Rect {
+            x: rc.x,
+            y: rc.y.saturating_add(1),
+            width: rc.width,
+            height: 3,
+        };
+        let fs = field_bg.patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
+        ui.fill(body_rect, fs);
+
+        let gutter_style = field_bg.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Surface(termrock::Surface::Field))),
+        );
+        for y in body_rect.top()..body_rect.bottom() {
+            ui.paint_str(
+                termrock::Rect {
+                    x: body_rect.x,
+                    y,
+                    width: 1,
+                    height: 1,
+                },
+                " ",
+                gutter_style,
+            );
+        }
+
+        let ph_style = field_bg.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+        );
+        let ph_text = truncate("SET statement_timeout = '60s';", rc.width.saturating_sub(4));
+        ui.paint_str(
+            termrock::Rect {
+                x: rc.x.saturating_add(2.min(rc.width)),
+                y: rc.y.saturating_add(1),
+                width: rc.width.saturating_sub(4),
+                height: 1,
+            },
+            &ph_text,
+            ph_style,
+        );
+
+        let help_style = card_bg.patch(
+            ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))),
+        );
+        let help_text = truncate(
+            "Run after every connect, one per line",
+            rc.width.saturating_sub(2),
+        );
+        ui.paint_str(
+            termrock::Rect {
+                x: label_x,
+                y: rc.y.saturating_add(4),
+                width: rc.width.saturating_sub(2),
+                height: 1,
+            },
+            &help_text,
+            help_style,
+        );
+
+        let note_text = truncate(
+            "External clients: read only",
+            rc.width.saturating_sub(2),
+        );
+        ui.paint_str(
+            termrock::Rect {
+                x: label_x,
+                y: rc.y.saturating_add(6),
+                width: rc.width.saturating_sub(2),
+                height: 1,
+            },
+            &note_text,
+            help_style,
+        );
     }
 
     fn draw_explorer(&self, ui: &mut Ui<'_>, area: termrock::Rect) {
@@ -2778,6 +4157,26 @@ fn footer_hints(app: &TableProApp) -> &'static [KeyHint] {
             },
         ];
     }
+    if app.form_open {
+        return &[
+            KeyHint {
+                key: "Enter",
+                action: "Edit",
+            },
+            KeyHint {
+                key: "← →",
+                action: "Basic / Advanced",
+            },
+            KeyHint {
+                key: "Ctrl+S",
+                action: "Save",
+            },
+            KeyHint {
+                key: "Tab",
+                action: "Next",
+            },
+        ];
+    }
     if app.screen == Screen::Connections {
         if app.connections_screen.filter_active {
             return &[
@@ -2917,7 +4316,9 @@ fn footer_hints(app: &TableProApp) -> &'static [KeyHint] {
 
 fn draw_footer(ui: &mut Ui<'_>, area: termrock::Rect, app: &TableProApp) {
     let base = ui.surface_style();
-    ui.fill(area, base);
+    if !app.form_open {
+        ui.fill(area, base);
+    }
     if area.is_empty() {
         return;
     }
@@ -3268,7 +4669,13 @@ impl App for TableProApp {
             if self.screen == Screen::Workbench && self.surface == Surface::QuickSwitcher {
                 self.open_switcher(cx);
             } else if self.screen == Screen::Connections {
-                cx.focus(CONNECTIONS);
+                if self.form_open {
+                    cx.focus(connections::field::NAME);
+                } else {
+                    cx.focus(CONNECTIONS);
+                }
+            } else if self.screen == Screen::Workbench {
+                cx.focus(EXPLORER);
             }
         }
         let switcher_was_open = cx.is_open(quick_switcher::ID);
@@ -3381,8 +4788,28 @@ impl App for TableProApp {
                         response |= Response::changed();
                     }
                 }
+                c if c == EDIT_CONNECTION => {
+                    if self.screen == Screen::Connections {
+                        self.begin_edit_connection_form(self.connections_screen.selected);
+                        cx.focus(connections::field::NAME);
+                        response |= Response::changed();
+                    }
+                }
+                c if c == FORM_TAB_PREV => {
+                    if self.form_open {
+                        self.form_tab = 0;
+                        response |= Response::changed();
+                    }
+                }
+                c if c == FORM_TAB_NEXT => {
+                    if self.form_open {
+                        self.form_tab = 1;
+                        response |= Response::changed();
+                    }
+                }
                 c if c == FORM => {
                     self.begin_connection_form();
+                    cx.focus(connections::field::NAME);
                     response |= Response::changed();
                 }
                 c if c == FILTER => {
@@ -3584,16 +5011,7 @@ impl App for TableProApp {
         let rows = shell_parts(full);
         draw_header(ui, rows[0], self);
         if self.form_open {
-            Self::connections_panel(" Connect to database", None, true).draw(ui, rows[1], |ui, area| {
-                if let Some(draft) = self.draft.as_ref() {
-                    Self::connection_form(&self.form_fields, &self.form_actions).draw(
-                        ui,
-                        area,
-                        &self.form_state,
-                        draft,
-                    );
-                }
-            });
+            self.draw_connection_form(ui, rows[1]);
         } else if self.screen == Screen::Connections {
             self.draw_connections(ui, rows[1]);
         } else {
@@ -3757,6 +5175,28 @@ mod replacement_tests {
         assert!(!text.contains("secret-captured-sql"));
         assert!(!text.contains("secret-result-value"));
     }
+
+    #[test]
+    fn ack_sequence_debug() {
+        let mut app = TableProApp::default();
+        let index = app
+            .connections
+            .iter()
+            .position(|connection| connection.name == "Production")
+            .unwrap();
+        app.connect(index);
+        let mut h = Harness::new(app, Theme::junie(), 120, 40);
+        eprintln!("Initial focus: {:?}", h.focus());
+        let _ = h.key(KeyCode::Tab);
+        eprintln!("After Tab focus: {:?}", h.focus());
+        let _ = h.key(KeyCode::Char('i'));
+        eprintln!("After i focus: {:?}", h.focus());
+        h.type_str("UPDATE orders SET status = 'paid' WHERE id = 'x'");
+        eprintln!("Query text after typing: {:?}", h.app().query());
+        let _ = h.key(KeyCode::Esc);
+        let _ = h.ctrl('r');
+        eprintln!("Status after ctrl-r: {:?}", h.app().status());
+    }
 }
 
 #[cfg(test)]
@@ -3787,6 +5227,10 @@ mod action_namespace_tests {
             CLEAR_QUERY,
             COMPLETE,
             PALETTE,
+            DELETE_CONNECTION,
+            EDIT_CONNECTION,
+            FORM_TAB_PREV,
+            FORM_TAB_NEXT,
             connections::TEST,
             connections::SAVE_CONNECT,
         ];
