@@ -1102,7 +1102,9 @@ impl<T, K: KeyFn<T>, R: RowFn<T>> NavList<'_, T, K, R> {
                     | StateFlags::HOVERED,
             ),
         );
-        ui.fill(rect, h.style);
+        if h.style.bg.is_some() {
+            ui.fill(rect, h.style);
+        }
         let inner = Rect {
             x: rect.x.saturating_add(self.header_indent),
             width: rect.width.saturating_sub(self.header_indent),

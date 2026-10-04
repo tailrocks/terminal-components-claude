@@ -222,6 +222,7 @@ impl Page for OverviewPage {
         let _ = brand();
         let _ = props_list();
         let _ = props().draw(ui, Rect::ZERO);
+        self.author.draw(ui, Rect::ZERO);
         frame(
             ui,
             area,
@@ -255,7 +256,7 @@ impl Page for OverviewPage {
                     )
                 };
                 draw_tokens(ui, left);
-                draw_principles(ui, right, &self.author);
+                draw_principles(ui, right);
             },
         );
     }
@@ -292,6 +293,9 @@ fn draw_tokens(ui: &mut Ui<'_>, area: Rect) {
             .surface_style()
             .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Primary))));
         let muted = ui
+            .surface_style()
+            .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Muted))));
+        let faint = ui
             .surface_style()
             .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Faint))));
         let colors = [
@@ -348,7 +352,7 @@ fn draw_tokens(ui: &mut Ui<'_>, area: Rect) {
                 let mut swatch = ui.surface_style();
                 swatch = swatch.patch(ui.paint_patch(&StylePatch::new().set_bg(*color)));
                 ui.fill(Rect::new(x, y, 4, 1), swatch);
-                ui.paint_str(Rect::new(x.saturating_add(4), y, 1, 1), "▏", muted);
+                ui.paint_str(Rect::new(x.saturating_add(4), y, 1, 1), "▏", faint);
                 ui.paint_str(
                     Rect::new(x.saturating_add(6), y, column_width.saturating_sub(6), 1),
                     name,
@@ -374,7 +378,7 @@ fn draw_tokens(ui: &mut Ui<'_>, area: Rect) {
     });
 }
 
-fn draw_principles(ui: &mut Ui<'_>, area: Rect, author: &AuthorBadge) {
+fn draw_principles(ui: &mut Ui<'_>, area: Rect) {
     if area.is_empty() {
         return;
     }
@@ -437,62 +441,50 @@ fn draw_principles(ui: &mut Ui<'_>, area: Rect, author: &AuthorBadge) {
         area.x,
         legend_y,
         area.width,
-        area.bottom().saturating_sub(legend_y),
+        area.bottom().saturating_sub(legend_y).min(10),
     );
     if legend_area.is_empty() {
         return;
     }
-    let author_y = legend_area.bottom().saturating_sub(1);
-    let state_area = Rect {
-        height: legend_area.height.saturating_sub(1),
-        ..legend_area
-    };
-    draw_state_language(ui, state_area);
-    let author_area = Rect::new(
-        area.x,
-        author_y,
-        area.width,
-        area.bottom().saturating_sub(author_y).min(1),
-    );
-    author.draw(ui, author_area);
+    draw_state_language(ui, legend_area);
 }
 
 fn draw_state_language(ui: &mut Ui<'_>, state_area: Rect) {
-    state_language_panel().draw(ui, state_area, |ui, inner| {
-        for (index, (glyph, label)) in STATE_LEGEND.iter().enumerate() {
-            let Ok(offset) = u16::try_from(index) else {
-                break;
-            };
-            let Some(y) = inner.y.checked_add(offset) else {
-                break;
-            };
-            if y >= inner.bottom() {
-                break;
-            }
-            let marker_color = match index {
-                0 | 2 | 3 => Role::Accent,
-                1 => Role::Fg(FgStep::Secondary),
-                4 => Role::Danger,
-                5 => Role::Fg(FgStep::Primary),
-                _ => Role::Fg(FgStep::Faint),
-            };
-            ui.paint_str(
-                Rect::new(inner.x, y, 1, 1),
-                glyph,
-                ui.surface_style()
-                    .patch(ui.paint_patch(&StylePatch::new().set_fg(marker_color))),
-            );
-            ui.paint_str(
-                Rect::new(
-                    inner.x.saturating_add(3),
-                    y,
-                    inner.width.saturating_sub(3),
-                    1,
-                ),
-                label,
-                ui.surface_style()
-                    .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)))),
-            );
+    let inner = state_language_panel().draw(ui, state_area, |_, inner| inner);
+    for (index, (glyph, label)) in STATE_LEGEND.iter().enumerate() {
+        let Ok(offset) = u16::try_from(index) else {
+            break;
+        };
+        let Some(y) = inner.y.checked_add(offset) else {
+            break;
+        };
+        if y >= inner.bottom() {
+            break;
         }
-    });
+        let marker_color = match index {
+            0 | 2 | 3 => Role::Accent,
+            1 => Role::Fg(FgStep::Secondary),
+            4 => Role::Danger,
+            5 => Role::Fg(FgStep::Primary),
+            _ => Role::Fg(FgStep::Faint),
+        };
+        ui.paint_str(
+            Rect::new(inner.x, y, 1, 1),
+            glyph,
+            ui.surface_style()
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(marker_color))),
+        );
+        let text_x = inner.x.saturating_add(3);
+        ui.paint_str(
+            Rect::new(
+                text_x,
+                y,
+                state_area.right().saturating_sub(text_x),
+                1,
+            ),
+            label,
+            ui.surface_style()
+                .patch(ui.paint_patch(&StylePatch::new().set_fg(Role::Fg(FgStep::Secondary)))),
+        );
+    }
 }

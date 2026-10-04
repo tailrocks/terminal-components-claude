@@ -68,7 +68,7 @@ fn row_like(m: &mut PartMap<PartRecipe>) {
     part(
         m,
         Part::HEADER,
-        p().set_fg(Role::Fg(FgStep::Secondary)).add(Modifier::BOLD),
+        p().set_fg(Role::Fg(FgStep::Faint)),
     );
     part(
         m,

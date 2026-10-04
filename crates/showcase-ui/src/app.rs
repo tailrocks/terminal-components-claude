@@ -85,6 +85,8 @@ pub enum PageId {
     Terminal,
     /// Code editor preview.
     Editor,
+    /// Diff view preview.
+    Diff,
     /// Grid preview.
     Grid,
     /// Chips and selectors.
@@ -101,7 +103,7 @@ pub enum PageId {
 
 impl PageId {
     /// Every page in navigation order.
-    pub const ALL: [Self; 22] = [
+    pub const ALL: [Self; 23] = [
         Self::Overview,
         Self::Buttons,
         Self::Inputs,
@@ -118,6 +120,7 @@ impl PageId {
         Self::Scrolling,
         Self::Terminal,
         Self::Editor,
+        Self::Diff,
         Self::Grid,
         Self::Chips,
         Self::Pickers,
@@ -145,6 +148,7 @@ impl PageId {
             Self::Scrolling => "Scrolling",
             Self::Terminal => "Terminal",
             Self::Editor => "Code editor",
+            Self::Diff => "Diff",
             Self::Grid => "Data grid",
             Self::Chips => "Chips & selects",
             Self::Pickers => "Pickers",
@@ -173,6 +177,7 @@ impl PageId {
             Self::Scrolling => "scrolling",
             Self::Terminal => "terminal",
             Self::Editor => "editor",
+            Self::Diff => "diff",
             Self::Grid => "grid",
             Self::Chips => "chips",
             Self::Pickers => "pickers",
@@ -328,6 +333,12 @@ pub const NAV_ENTRIES: &[NavEntry] = &[
         icon: "•",
     },
     NavEntry {
+        id: PageId::Diff,
+        label: "Diff",
+        section: "Components",
+        icon: "•",
+    },
+    NavEntry {
         id: PageId::Grid,
         label: "Data grid",
         section: "Components",
@@ -379,6 +390,7 @@ fn nav() -> NavList<'static, NavEntry, impl Fn(&NavEntry) -> ItemKey> {
         .section(&nav_section)
         .compact_when_clipped()
         .header_indent(3)
+        .scrollable(true)
         .render_row(&paint_nav_row)
 }
 
@@ -425,6 +437,7 @@ fn page(kind: PageId) -> Box<dyn Page> {
         PageId::Scrolling => Box::new(ScrollingPage::new()),
         PageId::Terminal => Box::new(TerminalPage::new()),
         PageId::Editor => Box::new(EditorPage::new()),
+        PageId::Diff => Box::new(showcase_demos::pages::diff::DiffPage::new()),
         PageId::Grid => Box::new(GridPage::new()),
         PageId::Chips => Box::new(ChipsPage::new()),
         PageId::Pickers => Box::new(PickersPage::new()),
@@ -949,31 +962,33 @@ fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, e
     let marker = shell_row_style(marker, flags);
     let label = shell_row_style(label, flags);
     let secondary = shell_row_style(secondary, flags);
-    ui.paint_str(Rect::new(row.x, row.y, 1, 1), "▎", gutter);
+    let gutter_str = if flags.contains(StateFlags::FOCUSED) {
+        "▎"
+    } else {
+        " "
+    };
+    ui.paint_str(Rect::new(row.x, row.y, 1, 1), gutter_str, gutter);
     ui.paint_str(
         Rect::new(row.x.saturating_add(1), row.y, 1, 1),
         if current { "›" } else { " " },
         marker,
     );
     ui.paint_str(Rect::new(row.x.saturating_add(2), row.y, 1, 1), " ", label);
-    ui.paint_str(
-        Rect::new(
-            row.x.saturating_add(3),
-            row.y,
-            row.width.saturating_sub(4),
-            1,
-        ),
-        entry.label,
-        if emphasized { label } else { secondary },
-    );
+    let max_label_w = row.width.saturating_sub(4);
+    let fitted_label = termrock::truncate(entry.label, max_label_w);
     let label_style = if emphasized { label } else { secondary };
     let label_area = Rect::new(
         row.x.saturating_add(3),
         row.y,
-        row.width.saturating_sub(4),
+        max_label_w,
         1,
     );
-    let used = width(entry.label).min(label_area.width);
+    ui.paint_str(
+        label_area,
+        &fitted_label,
+        label_style,
+    );
+    let used = width(&fitted_label).min(label_area.width);
     if used < label_area.width {
         ui.fill(
             Rect::new(
