@@ -6,7 +6,7 @@ rust-version.workspace = true
 license.workspace = true
 
 [features]
-default = []
+default = ["testing"]
 testing = ["termrock-core/testing", "termrock-theme/testing"]
 crossterm = []
 

@@ -2100,8 +2100,8 @@ impl<A: App> Runtime<A> {
 }
 
 /// A scripted application for runtime-level tests.
-#[cfg(test)]
-pub(crate) mod stub {
+#[cfg(any(test, feature = "testing"))]
+pub mod stub {
     use ratatui_core::buffer::Buffer;
     use ratatui_core::layout::{Position, Rect};
 
@@ -2122,23 +2122,23 @@ pub(crate) mod stub {
         clippy::struct_excessive_bools,
         reason = "a test stub's knobs: one flag per registration shape, set by field                   init from `Control::new`, never a state machine"
     )]
-    pub(crate) struct Control {
-        pub(crate) id: Id,
-        pub(crate) area: Rect,
-        pub(crate) focus: Focusability,
+    pub struct Control {
+        pub id: Id,
+        pub area: Rect,
+        pub focus: Focusability,
         /// Registers as an editor (swallows typing, consumes Esc as cancel).
-        pub(crate) editor: bool,
+        pub editor: bool,
         /// Claims capture on `Press`.
-        pub(crate) captures: bool,
+        pub captures: bool,
         /// Also registers a scroll region.
-        pub(crate) scroll: bool,
+        pub scroll: bool,
         /// Registers a `Decorative` region only — no control, no part. This
         /// is what a `Dialog` registers for its own id.
-        pub(crate) decor: bool,
+        pub decor: bool,
     }
 
     impl Control {
-        pub(crate) const fn new(id: Id, area: Rect) -> Self {
+        pub const fn new(id: Id, area: Rect) -> Self {
             Control {
                 id,
                 area,
@@ -2152,38 +2152,38 @@ pub(crate) mod stub {
     }
 
     #[derive(Default, Debug)]
-    pub(crate) struct Stub {
-        pub(crate) page: Vec<Control>,
-        pub(crate) layers: Vec<(Id, Vec<Control>)>,
+    pub struct Stub {
+        pub page: Vec<Control>,
+        pub layers: Vec<(Id, Vec<Control>)>,
         /// Every intent seen, as `(owner, Debug text)`.
-        pub(crate) log: Vec<(Id, String)>,
-        pub(crate) consume_keys: bool,
-        pub(crate) focus_request: Option<Id>,
-        pub(crate) open_request: Option<(Id, LayerSpec)>,
-        pub(crate) close_request: Option<Id>,
-        pub(crate) resize_request: Option<(Id, crate::layer::LayerSize)>,
+        pub log: Vec<(Id, String)>,
+        pub consume_keys: bool,
+        pub focus_request: Option<Id>,
+        pub open_request: Option<(Id, LayerSpec)>,
+        pub close_request: Option<Id>,
+        pub resize_request: Option<(Id, crate::layer::LayerSize)>,
         /// `update` calls so far.
-        pub(crate) updates: usize,
-        pub(crate) events_started: bool,
+        pub updates: usize,
+        pub events_started: bool,
         /// Focus requests issued from inside `update` on each pass (settling tests).
-        pub(crate) chase: Vec<Id>,
-        pub(crate) esc_hits: usize,
+        pub chase: Vec<Id>,
+        pub esc_hits: usize,
         /// An owner whose bucket `update` never drains (the gated-shape app).
-        pub(crate) skip_drain: Option<Id>,
+        pub skip_drain: Option<Id>,
     }
 
     impl Stub {
-        pub(crate) fn controls(&self) -> impl Iterator<Item = &Control> + '_ {
+        pub fn controls(&self) -> impl Iterator<Item = &Control> + '_ {
             self.page
                 .iter()
                 .chain(self.layers.iter().flat_map(|(_, c)| c.iter()))
         }
 
-        pub(crate) fn saw(&self, id: Id, needle: &str) -> bool {
+        pub fn saw(&self, id: Id, needle: &str) -> bool {
             self.log.iter().any(|(o, s)| *o == id && s.contains(needle))
         }
 
-        pub(crate) fn count(&self, id: Id, needle: &str) -> usize {
+        pub fn count(&self, id: Id, needle: &str) -> usize {
             self.log
                 .iter()
                 .filter(|(o, s)| *o == id && s.contains(needle))
@@ -2301,7 +2301,7 @@ pub(crate) mod stub {
         }
     }
 
-    pub(crate) const SCREEN: Rect = Rect {
+    pub const SCREEN: Rect = Rect {
         x: 0,
         y: 0,
         width: 40,
@@ -2309,7 +2309,7 @@ pub(crate) mod stub {
     };
 
     /// A runtime that has drawn once.
-    pub(crate) fn runtime(stub: Stub) -> (Runtime<Stub>, Buffer) {
+    pub fn runtime(stub: Stub) -> (Runtime<Stub>, Buffer) {
         let mut rt = Runtime::new(stub, Theme::junie());
         let _ = rt.initialize();
         let mut buf = Buffer::empty(SCREEN);
@@ -2323,14 +2323,14 @@ pub(crate) mod stub {
         panic!("initial fixture focus did not settle");
     }
 
-    pub(crate) fn key(code: KeyCode) -> Input {
+    pub fn key(code: KeyCode) -> Input {
         Input::Key(Key {
             code,
             mods: KeyModifiers::NONE,
         })
     }
 
-    pub(crate) fn mouse(kind: MouseKind, x: u16, y: u16) -> Input {
+    pub fn mouse(kind: MouseKind, x: u16, y: u16) -> Input {
         Input::Mouse(Mouse {
             kind,
             pos: Position::new(x, y),
@@ -2339,7 +2339,7 @@ pub(crate) mod stub {
     }
 
     /// Behavioral fixture delivery: publish real geometry, settle, then assert acceptance.
-    pub(crate) fn deliver<A: App>(rt: &mut Runtime<A>, input: Input) -> Response<()> {
+    pub fn deliver<A: App>(rt: &mut Runtime<A>, input: Input) -> Response<()> {
         assert!(
             rt.bootstrapped,
             "behavioral fixture must explicitly initialize"
@@ -2365,7 +2365,7 @@ pub(crate) mod stub {
     }
 
     /// Handle then draw, like the harness.
-    pub(crate) fn step(rt: &mut Runtime<Stub>, buf: &mut Buffer, input: Input) -> Response<()> {
+    pub fn step(rt: &mut Runtime<Stub>, buf: &mut Buffer, input: Input) -> Response<()> {
         let r = deliver(rt, input);
         rt.draw_buffer(SCREEN, buf).commit_presented();
         r

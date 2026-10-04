@@ -42,4 +42,8 @@ pub use runtime::*;
 pub use scroll_region::*;
 pub use termrock_core::event::Chord;
 pub use termrock_core::intent::Intent;
+pub use ui::cx;
 pub use ui::*;
+
+#[cfg(any(test, feature = "testing"))]
+pub use runtime::stub;

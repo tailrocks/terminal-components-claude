@@ -5,7 +5,7 @@
 //! through it so a layer's written-cell bitset is always correct, clipping
 //! is automatic, and roles are recorded per painted cell for `dim_layer`.
 
-pub(crate) mod cx;
+pub mod cx;
 pub(crate) mod derived;
 pub(crate) mod layer_buf;
 pub(crate) mod paint;
@@ -17,7 +17,7 @@ use ratatui_core::style::Color;
 use core::ops::{BitOr, BitOrAssign};
 use std::collections::HashMap;
 
-use cx::LastFrame;
+pub use cx::LastFrame;
 pub use cx::{Cx, FrameRead, LayoutFacts};
 use derived::{DerivedCache, ReferenceCacheKey};
 use layer_buf::LayerPool;
@@ -67,8 +67,8 @@ impl CellRoles {
 
 /// Per-frame output the runtime consumes after `app.draw` (§3.3 steps 12–15).
 #[derive(Debug, Default)]
-pub(crate) struct FrameState {
-    pub(crate) registry: Registry,
+pub struct FrameState {
+    pub registry: Registry,
     pub(crate) ring: FocusRing,
     pub(crate) layers: LayerPool,
     pub(crate) cursors: Vec<CursorRequest>,
@@ -186,7 +186,7 @@ struct ReferenceScope {
 }
 
 impl FrameState {
-    pub(crate) fn reset(&mut self, generation: u32, screen: Rect) {
+    pub fn reset(&mut self, generation: u32, screen: Rect) {
         self.registry.reset(generation);
         self.ring.reset();
         self.layers.begin();
@@ -226,7 +226,7 @@ impl FrameState {
 /// State that outlives a frame: the derived cache, the style memo and the
 /// overlay stack (§20.9-2 P4: constructed once per runtime, reused).
 #[derive(Default)]
-pub(crate) struct UiCore {
+pub struct UiCore {
     cache: DerivedCache,
     reference_cache: DerivedCache,
     pub(crate) style_cache: StyleCache,
@@ -348,7 +348,7 @@ impl core::fmt::Debug for Ui<'_> {
 }
 
 impl<'f> Ui<'f> {
-    pub(crate) fn new(
+    pub fn new(
         frame: &'f mut FrameState,
         page: &'f mut Buffer,
         core: &'f mut UiCore,
