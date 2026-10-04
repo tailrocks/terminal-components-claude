@@ -7,12 +7,158 @@ use junie_tui::ui::text::fuzzy;
 
 // ------------------------------------------------------------ pending edits
 
+/// Data source abstraction representing base grid rows and pending edits for preview SQL generation.
+/// Allows `preview_sql` to consume either legacy `DataGrid` or caller-owned Termrock Grid state.
+pub trait TableGridSource {
+    fn row_cell(&self, row: usize, col: usize) -> Option<junie_tui::widgets::grid::CellValue>;
+    fn dirty_rows(&self) -> Vec<usize>;
+    fn cell_edits_for_row(&self, row: usize) -> Vec<(usize, junie_tui::widgets::grid::CellValue)>;
+    fn inserted_rows(&self) -> Vec<usize>;
+    fn inserted_value(&self, row: usize, col: usize)
+    -> Option<junie_tui::widgets::grid::CellValue>;
+    fn deleted_rows(&self) -> Vec<usize>;
+}
+
+impl TableGridSource for junie_tui::widgets::grid::DataGrid {
+    fn row_cell(&self, row: usize, col: usize) -> Option<junie_tui::widgets::grid::CellValue> {
+        self.rows().get(row).and_then(|r| r.get(col)).cloned()
+    }
+
+    fn dirty_rows(&self) -> Vec<usize> {
+        self.pending.dirty_rows().into_iter().collect()
+    }
+
+    fn cell_edits_for_row(&self, row: usize) -> Vec<(usize, junie_tui::widgets::grid::CellValue)> {
+        self.pending
+            .cells
+            .iter()
+            .filter(|((r, _), _)| *r == row)
+            .map(|((_, c), v)| (*c, v.clone()))
+            .collect()
+    }
+
+    fn inserted_rows(&self) -> Vec<usize> {
+        self.pending.inserted.iter().copied().collect()
+    }
+
+    fn inserted_value(
+        &self,
+        row: usize,
+        col: usize,
+    ) -> Option<junie_tui::widgets::grid::CellValue> {
+        self.pending.value(row, col).cloned()
+    }
+
+    fn deleted_rows(&self) -> Vec<usize> {
+        self.pending.deleted.iter().copied().collect()
+    }
+}
+
+/// Caller-owned Termrock Grid pending edit state adapter for TablePro.
+#[allow(dead_code)]
+#[derive(Debug, Clone, Default)]
+pub struct TermrockGridPendingState {
+    pub rows: Vec<Vec<junie_tui::widgets::grid::CellValue>>,
+    pub edits: std::collections::BTreeMap<(usize, usize), junie_tui::widgets::grid::CellValue>,
+    pub inserted: Vec<usize>,
+    pub inserted_cells:
+        std::collections::BTreeMap<(usize, usize), junie_tui::widgets::grid::CellValue>,
+    pub deleted: Vec<usize>,
+}
+
+#[allow(dead_code)]
+impl TermrockGridPendingState {
+    pub fn new(rows: Vec<Vec<junie_tui::widgets::grid::CellValue>>) -> Self {
+        Self {
+            rows,
+            edits: std::collections::BTreeMap::new(),
+            inserted: Vec::new(),
+            inserted_cells: std::collections::BTreeMap::new(),
+            deleted: Vec::new(),
+        }
+    }
+
+    pub fn record_edit(
+        &mut self,
+        row: usize,
+        col: usize,
+        val: junie_tui::widgets::grid::CellValue,
+    ) {
+        if let Some(orig) = self.rows.get(row).and_then(|r| r.get(col))
+            && orig == &val
+        {
+            self.edits.remove(&(row, col));
+            return;
+        }
+        self.edits.insert((row, col), val);
+    }
+
+    pub fn insert_row(
+        &mut self,
+        row: usize,
+        values: impl IntoIterator<Item = (usize, junie_tui::widgets::grid::CellValue)>,
+    ) {
+        if !self.inserted.contains(&row) {
+            self.inserted.push(row);
+        }
+        for (col, val) in values {
+            self.inserted_cells.insert((row, col), val);
+        }
+    }
+
+    pub fn mark_deleted(&mut self, row: usize) {
+        if !self.deleted.contains(&row) {
+            self.deleted.push(row);
+        }
+    }
+}
+
+impl TableGridSource for TermrockGridPendingState {
+    fn row_cell(&self, row: usize, col: usize) -> Option<junie_tui::widgets::grid::CellValue> {
+        self.rows.get(row).and_then(|r| r.get(col)).cloned()
+    }
+
+    fn dirty_rows(&self) -> Vec<usize> {
+        self.edits
+            .keys()
+            .map(|(r, _)| *r)
+            .filter(|r| !self.inserted.contains(r))
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .collect()
+    }
+
+    fn cell_edits_for_row(&self, row: usize) -> Vec<(usize, junie_tui::widgets::grid::CellValue)> {
+        self.edits
+            .iter()
+            .filter(|((r, _), _)| *r == row)
+            .map(|((_, c), v)| (*c, v.clone()))
+            .collect()
+    }
+
+    fn inserted_rows(&self) -> Vec<usize> {
+        self.inserted.clone()
+    }
+
+    fn inserted_value(
+        &self,
+        row: usize,
+        col: usize,
+    ) -> Option<junie_tui::widgets::grid::CellValue> {
+        self.inserted_cells.get(&(row, col)).cloned()
+    }
+
+    fn deleted_rows(&self) -> Vec<usize> {
+        self.deleted.clone()
+    }
+}
+
 /// Statements TablePro would run on save (parameters inlined), built from
 /// a grid's pending changes: updates by row, then inserts, then deletes.
 pub fn preview_sql(
     table: &Table,
     columns: &[(String, ColType)],
-    grid: &junie_tui::widgets::grid::DataGrid,
+    grid: &impl TableGridSource,
 ) -> Vec<String> {
     use junie_tui::widgets::grid::CellValue;
     let pk: Vec<&str> = table
@@ -27,12 +173,7 @@ pub fn preview_sql(
                 .iter()
                 .enumerate()
                 .map(|(ci, c)| {
-                    let v = grid
-                        .rows()
-                        .get(src)
-                        .and_then(|r| r.get(ci))
-                        .cloned()
-                        .unwrap_or(CellValue::Null);
+                    let v = grid.row_cell(src, ci).unwrap_or(CellValue::Null);
                     match v {
                         CellValue::Null => format!("{} IS NULL", c.0),
                         other => {
@@ -46,31 +187,24 @@ pub fn preview_sql(
         pk.iter()
             .map(|k| {
                 let ci = columns.iter().position(|c| c.0 == *k).unwrap_or(0);
-                let v = grid
-                    .rows()
-                    .get(src)
-                    .and_then(|r| r.get(ci))
-                    .cloned()
-                    .unwrap_or(CellValue::Null);
+                let v = grid.row_cell(src, ci).unwrap_or(CellValue::Null);
                 format!("{k} = {}", sql_literal(&crate::tabs::from_cell(&v)))
             })
             .collect::<Vec<_>>()
             .join(" AND ")
     };
-    let pending = &grid.pending;
     let mut out = Vec::new();
-    for r in pending.dirty_rows() {
-        let mut sets: Vec<(usize, String)> = pending
-            .cells
-            .iter()
-            .filter(|((row, _), _)| *row == r)
-            .map(|((_, col), v)| {
+    for r in grid.dirty_rows() {
+        let mut sets: Vec<(usize, String)> = grid
+            .cell_edits_for_row(r)
+            .into_iter()
+            .map(|(col, v)| {
                 (
-                    *col,
+                    col,
                     format!(
                         "{} = {}",
-                        columns[*col].0,
-                        sql_literal(&crate::tabs::from_cell(v))
+                        columns[col].0,
+                        sql_literal(&crate::tabs::from_cell(&v))
                     ),
                 )
             })
@@ -84,11 +218,11 @@ pub fn preview_sql(
             pk_where(r)
         ));
     }
-    for &r in &pending.inserted {
+    for r in grid.inserted_rows() {
         let mut names = vec![];
         let mut vals = vec![];
         for (ci, c) in columns.iter().enumerate() {
-            let v = pending.value(r, ci).cloned().unwrap_or(CellValue::Default);
+            let v = grid.inserted_value(r, ci).unwrap_or(CellValue::Default);
             if matches!(v, CellValue::Default) {
                 continue;
             }
@@ -106,7 +240,7 @@ pub fn preview_sql(
             ));
         }
     }
-    for &r in &pending.deleted {
+    for r in grid.deleted_rows() {
         out.push(format!(
             "DELETE FROM {} WHERE {};",
             table.qualified(),
@@ -967,12 +1101,12 @@ mod tests {
             .map(|(n, ty)| ColumnSpec::new(n, crate::tabs::cell_kind(*ty)))
             .collect();
         let mut g = DataGrid::new(junie_tui::core::id::WidgetId::of("g"), specs);
-        let rows = crate::db::rows(t, 0, 3)
+        let rows: Vec<Vec<CellValue>> = crate::db::rows(t, 0, 3)
             .iter()
             .map(|r| r.iter().map(crate::tabs::to_cell).collect())
             .collect();
         g.set_rows(GridRows {
-            rows,
+            rows: rows.clone(),
             total: RowTotal::Exact(3),
             more: false,
         });
@@ -987,10 +1121,23 @@ mod tests {
             sql[0]
         );
         assert!(sql[1].starts_with("DELETE FROM public.orders WHERE id = '"));
+
+        // Caller-owned TermrockGridPendingState produces exact byte-for-byte parity
+        let mut termrock_state = TermrockGridPendingState::new(rows);
+        termrock_state.record_edit(1, status, CellValue::Text("shipped".into()));
+        termrock_state.mark_deleted(2);
+        let termrock_sql = preview_sql(t, &cols, &termrock_state);
+        assert_eq!(
+            sql, termrock_sql,
+            "TermrockGridPendingState must match DataGrid byte-for-byte"
+        );
+
         // reverting removes the update
         let original = g.rows()[1][status].clone();
-        g.record_cell(1, status, original);
+        g.record_cell(1, status, original.clone());
         assert_eq!(preview_sql(t, &cols, &g).len(), 1);
+        termrock_state.record_edit(1, status, original);
+        assert_eq!(preview_sql(t, &cols, &termrock_state).len(), 1);
     }
 
     #[test]
