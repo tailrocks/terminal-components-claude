@@ -2471,6 +2471,7 @@ dependencies = [
  "ratatui 0.30.2",
  "showcase-data",
  "termrock",
+ "termrock-test-support",
 ]
 
 [[package]]

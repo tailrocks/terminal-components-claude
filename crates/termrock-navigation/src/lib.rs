@@ -26,6 +26,7 @@ pub use termrock_core::intent::Phase;
 pub use termrock_runtime::{ReferenceState, ReferenceTarget, ScrollRegion};
 pub use termrock_text::{Secret, SecretPolicy};
 
+#[cfg(test)]
 pub(crate) mod components {
     pub(crate) use super::picker;
     pub(crate) use termrock_runtime::Acc;
