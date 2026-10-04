@@ -914,7 +914,7 @@ fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, e
     // and hover remain independent, as in the pinned product reference.
     let flags = flags.difference(StateFlags::SELECTED);
     let emphasized = current || flags.intersects(StateFlags::FOCUSED | StateFlags::HOVERED);
-    let container = shell_compat_style(
+    let container = shell_row_style(
         ui.style(
             termrock::Family::LIST,
             Variant::DEFAULT,
@@ -922,6 +922,7 @@ fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, e
             flags,
         )
         .style,
+        flags,
     );
     let row_background = ui.surface_style().patch(container);
     ui.fill(row, container);
@@ -977,17 +978,8 @@ fn paint_nav_row(ui: &mut Ui<'_>, row: Rect, flags: StateFlags, _key: ItemKey, e
     let max_label_w = row.width.saturating_sub(4);
     let fitted_label = termrock::truncate(entry.label, max_label_w);
     let label_style = if emphasized { label } else { secondary };
-    let label_area = Rect::new(
-        row.x.saturating_add(3),
-        row.y,
-        max_label_w,
-        1,
-    );
-    ui.paint_str(
-        label_area,
-        &fitted_label,
-        label_style,
-    );
+    let label_area = Rect::new(row.x.saturating_add(3), row.y, max_label_w, 1);
+    ui.paint_str(label_area, &fitted_label, label_style);
     let used = width(&fitted_label).min(label_area.width);
     if used < label_area.width {
         ui.fill(

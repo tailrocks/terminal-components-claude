@@ -20,6 +20,7 @@ use ratatui_crossterm::crossterm::event::{
     read,
 };
 use ratatui_crossterm::crossterm::execute;
+use ratatui_crossterm::crossterm::style::Colored;
 use ratatui_crossterm::crossterm::terminal::{
     EnableLineWrap, EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode,
 };
@@ -213,6 +214,7 @@ pub fn run_with_feedback_clock<A: App>(
     let origin = Instant::now();
     let mut rt = Runtime::new_with_feedback_clock(app, theme.for_terminal(), clock);
     let _ = rt.initialize();
+    let suppress_colors = Colored::ansi_color_disabled_memoized();
     let mut pending = None;
     loop {
         // Exactly one clock advance per scheduler turn. A callback rearming
@@ -227,6 +229,9 @@ pub fn run_with_feedback_clock<A: App>(
                 let mut painted = None;
                 session.terminal().draw(|f| {
                     painted = Some(rt.draw(f));
+                    if suppress_colors {
+                        reset_frame_colors(f.buffer_mut());
+                    }
                 })?;
                 if let Some(frame) = painted {
                     frame.commit_presented();
@@ -264,6 +269,18 @@ pub fn run_with_feedback_clock<A: App>(
         // fabricates input ticks, and an immediate deadline still polls input.
     }
     session.leave()
+}
+
+fn reset_frame_colors(buffer: &mut ratatui_core::buffer::Buffer) {
+    // Crossterm 0.29 serializes suppressed SetColors as ESC[;m, which resets
+    // modifiers emitted immediately before it. Reset color values prevent
+    // Ratatui from emitting those commands, preserving bold/underline/reverse.
+    // Keep semantic theme colors during rendering: widgets use them to select
+    // planes and state styles before this final backend boundary.
+    for cell in &mut buffer.content {
+        cell.fg = ratatui_core::style::Color::Reset;
+        cell.bg = ratatui_core::style::Color::Reset;
+    }
 }
 
 #[cfg(test)]
