@@ -24,7 +24,7 @@ use crate::ui::{Cx, FrameRead, Ui};
 use crate::validate::{FieldError, NoValidate, Validate};
 
 mod text_target {
-    pub(crate) trait Sealed {}
+    pub trait Sealed {}
 
     impl Sealed for String {}
     impl Sealed for crate::secret::Secret {}
@@ -34,7 +34,7 @@ mod text_target {
 ///
 /// Sealing keeps the public standalone controls on `String` while allowing
 /// forms to edit `Secret` in place, without cloning it or widening the API.
-pub(crate) trait TextTarget: text_target::Sealed {
+pub trait TextTarget: text_target::Sealed {
     fn expose(&self) -> &str;
     fn set(&mut self, value: &str, sensitive: bool);
     fn is_sensitive(&self) -> bool;
